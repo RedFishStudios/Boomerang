@@ -1,14 +1,9 @@
 --[[
-  EquipmentToolService
-
-  Description:
-  Handles equipment tool behavior
-
-  Author:
-  @SixthAtom
-
-  Date:
-  13-03-2026
+  Serverside handling of equipping and unequipping tools
+  Original author:
+  @SixthAtom 13-03-2026
+  Modified by
+  @soulsplosion
 ]]
 
 local EquipmentToolService = {}
@@ -37,7 +32,9 @@ type SlotHandlers = { Apply: (player: Player, itemName: string) -> (), Remove: (
 -- PRIVATE VARIABLES
 -------------------------------------------------------------------------------
 
-local assets = ReplicatedStorage.Assets
+local assets = ReplicatedStorage.Shared.Assets
+
+local slotHandlers = {}
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -47,12 +44,11 @@ local assets = ReplicatedStorage.Assets
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
 
-local function deleteItemFromPlayer(player: Player, itemName: string)
-	for _, parent in next, { player.Backpack, player.Character } do
+local function removeFromBackpack(player: Player, itemName: string)
+	for _, parent in next, { player:FindFirstChild("Backpack"), player.Character } do
 		if not parent then
 			continue
 		end
-
 		for _, v in next, parent:QueryDescendants(">Tool") do
 			if v.Name == itemName then
 				v:Destroy()
@@ -60,25 +56,6 @@ local function deleteItemFromPlayer(player: Player, itemName: string)
 		end
 	end
 end
-
-local slotHandlers: { [Slot]: SlotHandlers } = {
-	[SLOTS.Gun] = {
-		Apply = function(player, itemName)
-			deleteItemFromPlayer(player, itemName)
-
-			local gunToolTemplate = assets.Tools:FindFirstChild(itemName)
-			if not gunToolTemplate then
-				return
-			end
-
-			local gunTool = gunToolTemplate:Clone()
-			gunTool:SetAttribute("Slot", SLOTS.Gun)
-			gunTool.Parent = player.Backpack
-		end,
-
-		Remove = deleteItemFromPlayer,
-	},
-}
 
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
@@ -113,8 +90,12 @@ function EquipmentToolService.init()
 	end)
 end
 
-function EquipmentToolService.start() end
+function EquipmentToolService.start()
 
-function EquipmentToolService.test() end
+end
+
+function EquipmentToolService.test()
+
+end
 
 return EquipmentToolService

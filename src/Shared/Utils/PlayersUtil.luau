@@ -10,7 +10,6 @@ function PlayersUtil.onPlayerAdded(handler: (player: Player) -> ())
 	for _, plr in Players:GetPlayers() do
 		task.spawn(handler, plr)
 	end
-
 	return Players.PlayerAdded:Connect(handler)
 end
 

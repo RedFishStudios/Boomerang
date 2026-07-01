@@ -110,7 +110,7 @@ local function solveMotorsForCharacter(character: GameTypes.R15Character, lookAt
 	local waistYawAngle = math.clamp(math.atan2(-waistTarget.X, -waistTarget.Z), -ANGLE_LIMITS.WaistYaw, ANGLE_LIMITS.WaistYaw)
 	local waistPitchAngle = math.clamp(math.atan2(waistTarget.Y, Vector2.new(waistTarget.X, waistTarget.Z).Magnitude), -ANGLE_LIMITS.WaistPitch, ANGLE_LIMITS.WaistPitch)
 
-	waistM6D.C0 = waistM6D.C0:Lerp(waistBaseC0 * CFrame.fromOrientation(waistPitchAngle, waistYawAngle, 0), dT * ANIMATION_SPEEDS.Waist)
+	waistM6D.Attachment0.CFrame = waistM6D.Attachment0.CFrame:Lerp(waistBaseC0 * CFrame.fromOrientation(waistPitchAngle, waistYawAngle, 0), dT * ANIMATION_SPEEDS.Waist)
 
 	-- Compute root (local player only)
 	if character == player.Character and not humanoid.SeatPart then
