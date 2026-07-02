@@ -139,6 +139,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       return
    end
 
+   local maximumSpeed = toolData.Boomerang.Speed
    local speed = 0
    local hitboxRadius = toolData.Boomerang.HitboxRadius
    local movingTowardsPlayerPercentage = 1
@@ -157,38 +158,44 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          return
       end
 
+      local currentMovementDirection
+
+      -- // Prioritize movement towards the player
       local toPlayer = (rootPart.Position - replicationPart.Position)
       local distance = toPlayer.Magnitude
       local direction = toPlayer.Unit
 
-      -- Raycast in front of the boomerang to detect collisions with walls or other obstacles
+      -- // Raycast in that direction for an obstruction
       local rayOrigin = replicationPart.Position
       local rayDistance = (math.max(speed, hitboxRadius)) * deltaTime
       local raycastResult = raycastWithHorizontalHitbox(rayOrigin, direction, rayDistance, hitboxRadius, raycastParams)
 
-      -- // Hit obstruction = move perpendicularly along the wall to slide around it
+      -- // If we hit something, adjust movement direction to move perpendicular to the obstruction
       if raycastResult and raycastResult.Instance then
-         speed = 0
+         -- Determine new movement direction adjacent to the obstructing surface
+         -- Prioritize whichever direction brings the boomerang closer to the player
          local normal = raycastResult.Normal
-         
-         -- Direction along the wall.
          local slideDirection = direction - normal * direction:Dot(normal)
          local slideMagnitude = slideDirection.Magnitude
+         slideDirection = slideDirection.Unit
 
+         -- Obstruction is directly between player and wall = stop movement
          if slideMagnitude < 0.01 then
-            speed = 0
             return
          end
 
-         slideDirection = slideDirection.Unit
-
-         local slideSpeed = toolData.Boomerang.Speed * slideMagnitude
+         -- Determine new slide speed
+         local maximumSlideSpeed = math.clamp(maximumSpeed * slideMagnitude, 0, maximumSpeed)
+         local slideSpeed = math.clamp(speed + deltaTime * 60, 0, maximumSlideSpeed)
          local slideDistance = slideSpeed * deltaTime
 
-         local slideHit = RaycastsUtility.raycastProjectileObstruction(replicationPart.Position, slideDirection, slideDistance, raycastParams)
+         local slideHit = workspace:Raycast(
+            replicationPart.Position,
+            slideDirection * slideDistance,
+            raycastParams
+         )
 
          if slideHit and not slideHit.Instance:IsDescendantOf(Characters) then
-            speed = 0
             return
          end
 
@@ -197,6 +204,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          )
       else
          speed = math.min(speed + deltaTime * 60, toolData.Boomerang.Speed)
+         replicationPart:PivotTo(replicationPart.CFrame + direction * speed * deltaTime)
       end
 
       if distance <= speed * deltaTime then
@@ -206,8 +214,6 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          Connection:Disconnect()
          return
       end
-
-      replicationPart:PivotTo(replicationPart.CFrame + direction * speed * deltaTime)
    end)
 end
 
