@@ -85,8 +85,19 @@ function WeaponService.init()
       ThrownWeapons.Data[player] = {
          ToolId = toolId,
          State = ThrownWeapons.StateEnum.Outgoing,
-         ReplicationPart = nil
+         ReplicationPart = nil,
+         TestRaycastVisualizers = {}
       }
+      for i = 1, 3 do
+         local part = Instance.new("Part")
+         part.Size = Vector3.new(1, 1, 1)
+         part.Anchored = true
+         part.CanTouch = false
+         part.CanQuery = false
+         part.CanCollide = false
+         part.Parent = workspace
+         ThrownWeapons.Data[player].TestRaycastVisualizers[i] = part
+      end
 
       local Logic = getLogic(toolData.LogicClass)
       Logic.throw(player, toolId, toolData, ThrownWeapons.Data[player])

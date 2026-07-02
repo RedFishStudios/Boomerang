@@ -23,27 +23,45 @@ local function raycastWithHorizontalHitbox(
    direction: Vector3,
    rayDistance: number,
    hitboxRadius: number,
-   raycastParams: RaycastParams
+   raycastParams: RaycastParams,
+   weaponData: ThrownWeapons.Data
 ): RaycastResult?
+   for i, p in pairs(weaponData.TestRaycastVisualizers) do
+      if p and p.Parent then
+         p.Color = Color3.new(0.164706, 0.960784, 0.007843)
+      end
+   end
+   rayDistance = math.max(rayDistance * 5, hitboxRadius)
+
+   local rightDirection = direction:Cross(UP_VECTOR).Unit
+   local leftOrigin = rayOrigin - rightDirection * hitboxRadius
+   local rightOrigin = rayOrigin + rightDirection * hitboxRadius
+
+   -- Position all 3 raycast visualizers at the predicted raycast endpoints
+   weaponData.TestRaycastVisualizers[1].Position = rayOrigin + direction * rayDistance
+   weaponData.TestRaycastVisualizers[2].Position = leftOrigin + direction * rayDistance
+   weaponData.TestRaycastVisualizers[3].Position = rightOrigin + direction * rayDistance
+
    local raycastResult = RaycastsUtility.raycastProjectileObstruction(rayOrigin, direction, rayDistance, raycastParams)
    if raycastResult or hitboxRadius <= 0 then
+      weaponData.TestRaycastVisualizers[1].Position = raycastResult.Position
+      weaponData.TestRaycastVisualizers[1].Color = Color3.new(1, 0, 0)
       return raycastResult
    end
 
-   local rightDirection = direction:Cross(UP_VECTOR)
-   if rightDirection.Magnitude <= 0 then
-      return nil
-   end
-   rightDirection = rightDirection.Unit
-
-   local leftOrigin = rayOrigin - rightDirection * hitboxRadius
    raycastResult = RaycastsUtility.raycastProjectileObstruction(leftOrigin, direction, rayDistance, raycastParams)
    if raycastResult then
+      weaponData.TestRaycastVisualizers[2].Position = raycastResult.Position
+      weaponData.TestRaycastVisualizers[2].Color = Color3.new(1, 0, 0)
       return raycastResult
    end
 
-   local rightOrigin = rayOrigin + rightDirection * hitboxRadius
-   return RaycastsUtility.raycastProjectileObstruction(rightOrigin, direction, rayDistance, raycastParams)
+   local finalResult = RaycastsUtility.raycastProjectileObstruction(rightOrigin, direction, rayDistance, raycastParams)
+   if finalResult then
+      weaponData.TestRaycastVisualizers[3].Position = finalResult.Position
+      weaponData.TestRaycastVisualizers[3].Color = Color3.new(1, 0, 0)
+   end
+   return finalResult
 end
 
 function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.Tool, thrownWeaponData: ThrownWeapons.Data)
@@ -88,7 +106,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       -- Raycast in front of the boomerang to detect collisions with walls or other obstacles
       local rayOrigin = replicationPart.Position
       local rayDistance = speed * deltaTime
-      local raycastResult = raycastWithHorizontalHitbox(rayOrigin, direction, rayDistance, hitboxRadius, raycastParams)
+      local raycastResult = raycastWithHorizontalHitbox(rayOrigin, direction, rayDistance, hitboxRadius, raycastParams, thrownWeaponData)
 
       -- Result
       if raycastResult then
@@ -141,9 +159,12 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
 
    local maximumSpeed = toolData.Boomerang.Speed
    local speed = 0
+   local slideSpeed = 0
    local hitboxRadius = toolData.Boomerang.HitboxRadius
-   local movingTowardsPlayerPercentage = 1
    local raycastParams = RaycastsUtility.getProjectileObstructionParams({replicationPart, Characters})
+
+   local slideDirection = Vector3.new()
+   local slideMomentum = 0 -- momentum carried by the slide
 
    local Connection
    Connection = RunService.Stepped:Connect(function(_, deltaTime)
@@ -158,8 +179,6 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          return
       end
 
-      local currentMovementDirection
-
       -- // Prioritize movement towards the player
       local toPlayer = (rootPart.Position - replicationPart.Position)
       local distance = toPlayer.Magnitude
@@ -168,25 +187,29 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       -- // Raycast in that direction for an obstruction
       local rayOrigin = replicationPart.Position
       local rayDistance = (math.max(speed, hitboxRadius)) * deltaTime
-      local raycastResult = raycastWithHorizontalHitbox(rayOrigin, direction, rayDistance, hitboxRadius, raycastParams)
+      local raycastResult = raycastWithHorizontalHitbox(rayOrigin, direction, rayDistance, hitboxRadius, raycastParams, thrownToolData)
 
       -- // If we hit something, adjust movement direction to move perpendicular to the obstruction
       if raycastResult and raycastResult.Instance then
+         speed = 0
+         slideMomentum = 1
+
          -- Determine new movement direction adjacent to the obstructing surface
          -- Prioritize whichever direction brings the boomerang closer to the player
          local normal = raycastResult.Normal
-         local slideDirection = direction - normal * direction:Dot(normal)
+         slideDirection = direction - normal * direction:Dot(normal)
          local slideMagnitude = slideDirection.Magnitude
          slideDirection = slideDirection.Unit
 
          -- Obstruction is directly between player and wall = stop movement
          if slideMagnitude < 0.01 then
+            speed = 0
             return
          end
 
          -- Determine new slide speed
          local maximumSlideSpeed = math.clamp(maximumSpeed * slideMagnitude, 0, maximumSpeed)
-         local slideSpeed = math.clamp(speed + deltaTime * 60, 0, maximumSlideSpeed)
+         slideSpeed = math.clamp(slideSpeed + deltaTime * 60, 0, maximumSlideSpeed)
          local slideDistance = slideSpeed * deltaTime
 
          local slideHit = workspace:Raycast(
@@ -196,6 +219,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          )
 
          if slideHit and not slideHit.Instance:IsDescendantOf(Characters) then
+            speed = 0
             return
          end
 
@@ -203,13 +227,23 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
             replicationPart.CFrame + slideDirection * slideDistance
          )
       else
-         speed = math.min(speed + deltaTime * 60, toolData.Boomerang.Speed)
-         replicationPart:PivotTo(replicationPart.CFrame + direction * speed * deltaTime)
+         print("non obstructed")
+         slideMomentum = math.clamp(slideMomentum - (deltaTime * 10), 0, 1)
+         local blendedDirection = slideDirection * slideMomentum + direction * (1 - slideMomentum)
+         blendedDirection = blendedDirection.Unit
+         local blendedSpeed = slideSpeed * slideMomentum + speed * (1 - slideMomentum)
+
+         speed = math.min(speed + deltaTime * 100, toolData.Boomerang.Speed)
+         slideSpeed = speed
+         replicationPart:PivotTo(replicationPart.CFrame + blendedDirection * blendedSpeed * deltaTime)
       end
 
       if distance <= speed * deltaTime then
          -- Close enough to snap and consider returned
          replicationPart:Destroy()
+         for _, part in ipairs(ThrownWeapons.Data[player].TestRaycastVisualizers) do
+            part:Destroy()
+         end
          ThrownWeapons.Data[player] = nil
          Connection:Disconnect()
          return

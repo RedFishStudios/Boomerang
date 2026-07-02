@@ -13,7 +13,9 @@ ThrownWeapons.StateEnum = {
 export type Data = {
    ToolId: string,
    State: number,
-   ReplicationPart: Part
+   ReplicationPart: Part,
+
+   TestRaycastVisualizers: {Part}
 }
 
 -- // Data for a thrown weapon out on the field
