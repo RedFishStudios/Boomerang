@@ -81,6 +81,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    replicationPart.Position = character.PrimaryPart.Position + character.PrimaryPart.CFrame.LookVector * 3
    replicationPart.Parent = ThrownWeaponsFolder
    thrownWeaponData.ReplicationPart = replicationPart
+   thrownWeaponData.State = ThrownWeapons.StateEnum.Outgoing
 
    local direction = character.PrimaryPart.CFrame.LookVector
    direction = Vector3.new(direction.X, 0, direction.Z).Unit
@@ -89,17 +90,19 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    local energy = toolData.Boomerang.Bounces
    local raycastParams = RaycastsUtility.getProjectileObstructionParams({replicationPart}) -- TODO: add throwing player or anyone on the throwing player's team
 
-   local Connection
-   Connection = RunService.Stepped:Connect(function(time, deltaTime)
+   thrownWeaponData.MovementConnection = RunService.Stepped:Connect(function(time, deltaTime)
+      print(`throwing`)
       if not replicationPart or not replicationPart.Parent then
          return
       end
 
       -- Exhaustion
       if energy <= 0 then
-         speed = speed - speed * SLOW_RATE * deltaTime
-         if speed <= 0 then
-            Connection:Disconnect()
+         speed = speed - (speed * SLOW_RATE * deltaTime)
+         if speed <= .1 then
+            thrownWeaponData.MovementConnection:Disconnect()
+            thrownWeaponData.MovementConnection = nil
+            return
          end
       end
 
@@ -118,19 +121,14 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
             if energy > 0 and RoundService.isInRound() then 
                print(`deal damage`)
             else
-               print(`exhausted; deal no damage`)
+               print(`hit player while on exhausted recoil`)
             end
          else
-            print('STRUCK OBSTRUCTION')
             energy -= 1
             direction = direction - 2 * direction:Dot(raycastResult.Normal) * raycastResult.Normal
             direction = Vector3.new(direction.X, 0, direction.Z).Unit
             if energy == 0 then
-               print(`become exhausted`)
-               local Data = ThrownWeapons.Data[player]
-               if Data then
-                  Data.State = ThrownWeapons.StateEnum.Exhausted
-               end
+               thrownWeaponData.State = ThrownWeapons.StateEnum.Exhausted
             end
             return
          end
@@ -141,7 +139,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    end)
 end
 
-function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.Tool, thrownToolData: ThrownWeapons.Data)
+function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.Tool, thrownWeaponData: ThrownWeapons.Data)
    if not toolData.Boomerang then
       warn(`this is not a boomerang`)
       return
@@ -151,10 +149,20 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       print(`no character`)
       return
    end
-   local replicationPart = thrownToolData.ReplicationPart  
+   local replicationPart = thrownWeaponData.ReplicationPart  
    if not replicationPart or not replicationPart.Parent then
       warn(`no replication part found for thrown tool`)
       return
+   end
+   if thrownWeaponData.State == ThrownWeapons.StateEnum.Returning then
+      print(`already returning`)
+      return
+   end
+
+   thrownWeaponData.State = ThrownWeapons.StateEnum.Returning
+   if thrownWeaponData.MovementConnection then
+      thrownWeaponData.MovementConnection:Disconnect()
+      thrownWeaponData.MovementConnection = nil
    end
 
    local maximumSpeed = toolData.Boomerang.Speed
@@ -166,16 +174,17 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
    local slideDirection = Vector3.new()
    local slideMomentum = 0 -- momentum carried by the slide
 
-   local Connection
-   Connection = RunService.Stepped:Connect(function(_, deltaTime)
+   thrownWeaponData.MovementConnection = RunService.Stepped:Connect(function(_, deltaTime)
       if not replicationPart or not replicationPart.Parent then
-         Connection:Disconnect()
+         thrownWeaponData.MovementConnection:Disconnect()
+         thrownWeaponData.MovementConnection = nil
          return
       end
 
       local rootPart = character and character.PrimaryPart
       if not rootPart then
-         Connection:Disconnect()
+         thrownWeaponData.MovementConnection:Disconnect()
+         thrownWeaponData.MovementConnection = nil
          return
       end
 
@@ -187,7 +196,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       -- // Raycast in that direction for an obstruction
       local rayOrigin = replicationPart.Position
       local rayDistance = (math.max(speed, hitboxRadius)) * deltaTime
-      local raycastResult = raycastWithHorizontalHitbox(rayOrigin, direction, rayDistance, hitboxRadius, raycastParams, thrownToolData)
+      local raycastResult = raycastWithHorizontalHitbox(rayOrigin, direction, rayDistance, hitboxRadius, raycastParams, thrownWeaponData)
 
       -- // If we hit something, adjust movement direction to move perpendicular to the obstruction
       if raycastResult and raycastResult.Instance then
@@ -212,11 +221,12 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          slideSpeed = math.clamp(slideSpeed + deltaTime * 60, 0, maximumSlideSpeed)
          local slideDistance = slideSpeed * deltaTime
 
-         local slideHit = workspace:Raycast(
-            replicationPart.Position,
-            slideDirection * slideDistance,
-            raycastParams
-         )
+         --local slideHit = workspace:Raycast(
+         --  replicationPart.Position,
+         --   slideDirection * slideDistance,
+         --   raycastParams
+         --)
+         local slideHit = raycastWithHorizontalHitbox(rayOrigin, direction, rayDistance, hitboxRadius*.5, raycastParams, thrownWeaponData)
 
          if slideHit and not slideHit.Instance:IsDescendantOf(Characters) then
             speed = 0
@@ -227,7 +237,6 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
             replicationPart.CFrame + slideDirection * slideDistance
          )
       else
-         print("non obstructed")
          slideMomentum = math.clamp(slideMomentum - (deltaTime * 10), 0, 1)
          local blendedDirection = slideDirection * slideMomentum + direction * (1 - slideMomentum)
          blendedDirection = blendedDirection.Unit
@@ -245,7 +254,8 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
             part:Destroy()
          end
          ThrownWeapons.Data[player] = nil
-         Connection:Disconnect()
+         thrownWeaponData.MovementConnection:Disconnect()
+         thrownWeaponData.MovementConnection = nil
          return
       end
    end)
