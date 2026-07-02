@@ -24,7 +24,7 @@ local RoundTypes = require(SharedConstants.RoundTypes)
 -- PRIVATE VARIABLES
 -------------------------------------------------------------------------------
 
-local isInRound = false
+local isInRound = true
 local currentRoundTypeId: string? = nil
 
 -------------------------------------------------------------------------------
@@ -45,6 +45,15 @@ end
 
 function RoundService.getCurrentRoundTypeId(): string?
    return currentRoundTypeId
+end
+
+-- // Returns true if current round permits late joining for the given player
+function RoundService.canSpawnIntoRound(player: Player): boolean
+   if not isInRound or not currentRoundTypeId then
+      return false
+   end
+   local roundType = RoundTypes[currentRoundTypeId]
+   return roundType.CanLateJoin
 end
 
 -------------------------------------------------------------------------------

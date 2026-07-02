@@ -1,0 +1,26 @@
+--[[
+
+hello. this is where i ramble.
+
+- When a player joins:
+   If in round
+      If can enter round
+         Enter the round
+         Get your tool(s)
+            Rely on player data
+            Pending: question about how many tools the player can have equipped at once  
+      Else
+         Enter the lobby, spectate
+   else
+      Enter the lobby
+
+- When a player throws a projectile weapon
+   Projectile weapons have different behavior such as movement behavior, bouncing, etc
+   Every weapon has 3 states:
+   - Outgoing
+   - Exhausted
+   - Returning
+
+]]
+
+return {}

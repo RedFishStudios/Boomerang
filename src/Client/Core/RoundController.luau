@@ -21,7 +21,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 -- PRIVATE VARIABLES
 -------------------------------------------------------------------------------
 
-local isInRound = false
+local isInRound = true
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES

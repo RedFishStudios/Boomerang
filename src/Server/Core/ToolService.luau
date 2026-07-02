@@ -1,17 +1,9 @@
 --[[
-  EquipmentService
-
-  Description:
-  Handles equipment state and actions
-
-  Author:
-  @SixthAtom
-
-  Date:
-  13-03-2026
+  Handles equipping/unequipping of tools to the character
+  - Boomerangs, shuricans, fans, special weapons, etc
 ]]
 
-local EquipmentService = {}
+local ToolService = {}
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
@@ -19,21 +11,18 @@ local ServerStorage = game:GetService("ServerStorage")
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 local ItemService = require(ServerStorage.Server.Core.ItemService)
 local PlayerDataService = require(ServerStorage.Server.Core.PlayerDataService)
-local EquipmentConstants = require(ReplicatedStorage.Shared.Constants.EquipmentConstants)
-local ItemConstants = require(ReplicatedStorage.Shared.Constants.ItemConstants)
+local ProfileTemplate = require(ReplicatedStorage.Shared.Data.ProfileTemplate)
+local RoundService = require(ServerStorage.Server.Core.RoundService)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
-local EQUIPMENT_SLOTS = EquipmentConstants.Slots
-
 -------------------------------------------------------------------------------
 -- TYPES
 -------------------------------------------------------------------------------
 
-type Slot = EquipmentConstants.Slot
-type EquipmentTask = (player: Player, slot: Slot, itemName: string) -> ()
+type ToolTask = (player: Player, itemName: string) -> ()
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
@@ -43,8 +32,8 @@ type EquipmentTask = (player: Player, slot: Slot, itemName: string) -> ()
 -- PUBLIC VARIABLES
 -------------------------------------------------------------------------------
 
-EquipmentService.ItemEquippedTasks = TasksList.new() :: TasksList.Id<EquipmentTask>
-EquipmentService.ItemUnequippedTasks = TasksList.new() :: TasksList.Id<EquipmentTask>
+ToolService.ToolEquippedTasks = TasksList.new() :: TasksList.Id<ToolTask>
+ToolService.ToolUnequippedTasks = TasksList.new() :: TasksList.Id<ToolTask>
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -54,76 +43,43 @@ EquipmentService.ItemUnequippedTasks = TasksList.new() :: TasksList.Id<Equipment
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
-function EquipmentService.getEquippedItemName(player: Player, slot: Slot): string?
-	local data = PlayerDataService.get(player)
-	if data then
-		return data.EquippedItems[slot]
-	end
-	return nil
-end
-
-function EquipmentService.isEquipped(player: Player, itemName: string)
-	local item = ItemConstants.getItem(itemName)
-	if not (item and item.EquipmentSlot) then
-		return false
-	end
-
-	return EquipmentService.getEquippedItemName(player, item.EquipmentSlot) == itemName
-end
-
-function EquipmentService.unequipSlot(player: Player, slot: Slot)
-	local data = PlayerDataService.get(player)
-	if not data then
-		return false -- RETURN: No data available
-	end
-
-	local equippedItemName = EquipmentService.getEquippedItemName(player, slot)
-	if not equippedItemName then
-		return false -- RETURN: Nothing's equipped
-	end
-
-	data.EquippedItems[slot] = nil
-	EquipmentService.ItemUnequippedTasks:Execute("parallel", player, slot, equippedItemName)
-
-	return true
-end
-
-function EquipmentService.equipItem(player: Player, itemName: string): boolean
+function ToolService.equipItem(player: Player, itemName: string): boolean
 	if not ItemService.hasItem(player, itemName) then
+      print("player doesn't own item: "..itemName)
 		return false -- RETURN: Item isn't owned
 	end
 
 	local item = ItemConstants.getItem(itemName)
 	if not item then
+      print("invalid item: "..itemName)
 		return false -- RETURN: Invalid item
 	end
 
 	local slot = item.EquipmentSlot
 	if not slot then
+      print("item is not equipable: "..itemName)
 		return false -- RETURN: Item is not equipable
 	end
 
-	if EQUIPMENT_SLOTS[slot] ~= slot then
-		return false -- RETURN: Invalid equipment slot
-	end
-
-	if EquipmentService.getEquippedItemName(player, slot) == itemName then
+	if ToolService.getEquippedItemName(player, slot) == itemName then
+      print("item already equipped: "..itemName)
 		return false -- RETURN: Already equipped
 	end
 
 	local data = PlayerDataService.get(player)
 	if not data then
+      print("no player data available for: "..player.Name)
 		return false -- RETURN: No player data available
 	end
 
 	local previousItemName = data.EquippedItems[slot]
 	if previousItemName then
 		data.EquippedItems[slot] = nil
-		EquipmentService.ItemUnequippedTasks:Execute("parallel", player, slot, previousItemName)
+		ToolService.ToolUnequippedTasks:Execute("parallel", player, previousItemName)
 	end
 
 	data.EquippedItems[slot] = itemName
-	EquipmentService.ItemEquippedTasks:Execute("parallel", player, slot, itemName)
+	ToolService.ToolEquippedTasks:Execute("parallel", player, itemName)
 
 	return true
 end
@@ -132,17 +88,28 @@ end
 -- CORE FUNCTIONS
 -------------------------------------------------------------------------------
 
-function EquipmentService.init()
+function ToolService.init()
 	ItemService.ItemAcquiredTasks:Add(function(player, itemName)
 		local item = ItemConstants.getItem(itemName)
 		if item and item.EquipmentSlot then
-			EquipmentService.equipItem(player, itemName)
+			ToolService.equipItem(player, itemName)
 		end
 	end)
+
+   -- // Grant items to newly added players
+   PlayerDataService.ProfileAddedTasks:Add(function(player: Player, data: ProfileTemplate.Template)
+      if RoundService.isInRound() then
+         if RoundService.canSpawnIntoRound(player) then
+            -- TODO: read data to get their skin
+            -- TODO: equip other tools besides boomerang
+            ToolService.equipItem(player, "Boomerang")
+         end
+      end
+   end)
 end
 
-function EquipmentService.start() end
+function ToolService.start() end
 
-function EquipmentService.test() end
+function ToolService.test() end
 
-return EquipmentService
+return ToolService

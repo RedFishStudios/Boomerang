@@ -35,6 +35,12 @@ local RemoteCodes = GeneralUtil.deepFreeze({
 		},
 	},
 
+	Weapon = {
+		Events = {
+			Throw = 0,
+		},
+	},
+
 	-- Services
 })
 
