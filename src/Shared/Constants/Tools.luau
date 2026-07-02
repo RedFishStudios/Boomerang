@@ -4,10 +4,10 @@ local GeneralUtil = require(ReplicatedStorage.Shared.Utils.GeneralUtil)
 
 export type Tool = {
    Id: string,
-   LogicClass: "Boomerang" | "Shuriken" | "Fan" | string,
+   LogicClass: "Boomerang", -- Name of the logics module responsible for handling this weapon's behavior when thrown
 
    Boomerang: {
-      Bounces: number, -- How many times the boomerang can bounce of objects before exhaustion
+      Bounces: number, -- How many times the boomerang can bounce off objects before exhaustion
       HitboxRadius: number,
       Speed: number
    }?
@@ -20,22 +20,10 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
       LogicClass = "Boomerang",
 
       Boomerang = {
-         Bounces = 1,
+         Bounces = 5,
          HitboxRadius = 1,
          Speed = 60
       }
-   },
-
-   -- // Shurikens // --
-   Shuriken = {
-      Id = "Shuriken",
-      LogicClass = "Shuriken"
-   },
-
-   -- // Fans // --
-   Fan = {
-      Id = "Fan",
-      LogicClass = "Fan"
    },
 
    -- // Special Weapons // --

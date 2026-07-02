@@ -8,9 +8,12 @@
 local RoundService = {}
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerStorage = game:GetService("ServerStorage")
 local SharedConstants = ReplicatedStorage.Shared.Constants
 
 local RoundTypes = require(SharedConstants.RoundTypes)
+local CurrentGameState = require(ServerStorage.Server.Referential.CurrentGameState)
+local ArenaService = require(ServerStorage.Server.Core.ArenaService)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -23,9 +26,6 @@ local RoundTypes = require(SharedConstants.RoundTypes)
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
 -------------------------------------------------------------------------------
-
-local isInRound = true
-local currentRoundTypeId: string? = nil
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -40,20 +40,30 @@ local currentRoundTypeId: string? = nil
 -------------------------------------------------------------------------------
 
 function RoundService.isInRound(): boolean
-   return isInRound
+   return CurrentGameState.IsInRound
 end
 
 function RoundService.getCurrentRoundTypeId(): string?
-   return currentRoundTypeId
+   return CurrentGameState.RoundTypeId
 end
 
 -- // Returns true if current round permits late joining for the given player
 function RoundService.canSpawnIntoRound(player: Player): boolean
-   if not isInRound or not currentRoundTypeId then
+   if not CurrentGameState.IsInRound or not CurrentGameState.RoundTypeId then
       return false
    end
-   local roundType = RoundTypes[currentRoundTypeId]
-   return roundType.CanLateJoin
+   return CurrentGameState.CanRespawn
+end
+
+function RoundService.setNextRound(roundTypeId: string, mapName: string)
+   local roundType = RoundTypes[roundTypeId]
+   CurrentGameState.RoundTypeId = roundTypeId
+   CurrentGameState.CurrentMapName = mapName
+   CurrentGameState.RemainingTime = roundType.TimeLasts
+   CurrentGameState.IsInRound = true
+   CurrentGameState.CanRespawn = roundType.CanRespawn
+   ArenaService.setArena(mapName)
+   -- TODO: update all clients (time remaining, round name they can display on screen, etc)
 end
 
 -------------------------------------------------------------------------------
@@ -61,7 +71,10 @@ end
 -------------------------------------------------------------------------------
 
 function RoundService.init()
-	
+	task.spawn(function()
+      task.wait(2)
+      RoundService.setNextRound("Classic", "GenericA")
+	end)
 end
 
 -- function RoundService.start() end

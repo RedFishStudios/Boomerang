@@ -22,7 +22,7 @@ local ConnectionsList = require(ReplicatedStorage.Shared.Classes.ConnectionsList
 local PlayerDataService = require(ServerStorage.Server.Core.PlayerDataService)
 local GlobalInstanceService = require(ServerStorage.Server.Services.GlobalInstanceService)
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
-local CollisionConstants = require(ReplicatedStorage.Shared.Constants.CollisionConstants)
+local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local SimpleRemotesUtil = require(ReplicatedStorage.Shared.Networking.SimpleRemotesUtil)
@@ -35,7 +35,7 @@ local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 -------------------------------------------------------------------------------
 
 local UNRELIABLE_CODES = RemoteCodes.Character.Unreliable
-local COLLISION_GROUP = CollisionConstants.Groups.Characters
+local COLLISION_GROUP = CollisionGroupConstants.Players
 
 -------------------------------------------------------------------------------
 -- TYPES

@@ -3,7 +3,8 @@
 
 export type RoundType = {
    Id: string,
-   CanLateJoin: boolean
+   CanRespawn: boolean,
+   TimeLasts: number
 }
 
 -------------------------------------------------------------------------------
@@ -15,7 +16,8 @@ local RoundTypes: {
 } = {
    Classic = {
       Id = "Classic",
-      CanLateJoin = true
+      CanRespawn = true,
+      TimeLasts = 1 * 60
    }
 }
 
