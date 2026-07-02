@@ -7,7 +7,7 @@ function RaycastsUtility.getProjectileObstructionParams(filterDescendantsInstanc
 	return raycastParams
 end
 
-function RaycastsUtility.RaycastProjectileObstruction(
+function RaycastsUtility.raycastProjectileObstruction(
 	origin: Vector3,
 	direction: Vector3,
 	distance: number,

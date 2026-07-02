@@ -16,6 +16,35 @@ local ThrownWeaponReplicationPart = ReplicatedStorage.Shared.Assets.ThrownWeapon
 local RunService = game:GetService("RunService")
 
 local SLOW_RATE = 5
+local UP_VECTOR = Vector3.new(0, 1, 0)
+
+local function raycastWithHorizontalHitbox(
+   rayOrigin: Vector3,
+   direction: Vector3,
+   rayDistance: number,
+   hitboxRadius: number,
+   raycastParams: RaycastParams
+): RaycastResult?
+   local raycastResult = RaycastsUtility.raycastProjectileObstruction(rayOrigin, direction, rayDistance, raycastParams)
+   if raycastResult or hitboxRadius <= 0 then
+      return raycastResult
+   end
+
+   local rightDirection = direction:Cross(UP_VECTOR)
+   if rightDirection.Magnitude <= 0 then
+      return nil
+   end
+   rightDirection = rightDirection.Unit
+
+   local leftOrigin = rayOrigin - rightDirection * hitboxRadius
+   raycastResult = RaycastsUtility.raycastProjectileObstruction(leftOrigin, direction, rayDistance, raycastParams)
+   if raycastResult then
+      return raycastResult
+   end
+
+   local rightOrigin = rayOrigin + rightDirection * hitboxRadius
+   return RaycastsUtility.raycastProjectileObstruction(rightOrigin, direction, rayDistance, raycastParams)
+end
 
 function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.Tool, thrownWeaponData: ThrownWeapons.Data)
    if not toolData.Boomerang then
@@ -38,6 +67,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    local direction = character.PrimaryPart.CFrame.LookVector
    direction = Vector3.new(direction.X, 0, direction.Z).Unit
    local speed = toolData.Boomerang.Speed
+   local hitboxRadius = toolData.Boomerang.HitboxRadius
    local energy = toolData.Boomerang.Bounces
    local raycastParams = RaycastsUtility.getProjectileObstructionParams({replicationPart}) -- TODO: add throwing player or anyone on the throwing player's team
 
@@ -58,7 +88,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       -- Raycast in front of the boomerang to detect collisions with walls or other obstacles
       local rayOrigin = replicationPart.Position
       local rayDistance = speed * deltaTime
-      local raycastResult = RaycastsUtility.RaycastProjectileObstruction(rayOrigin, direction, rayDistance, raycastParams)
+      local raycastResult = raycastWithHorizontalHitbox(rayOrigin, direction, rayDistance, hitboxRadius, raycastParams)
 
       -- Result
       if raycastResult then
@@ -110,6 +140,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
    end
 
    local speed = 0
+   local hitboxRadius = toolData.Boomerang.HitboxRadius
    local movingTowardsPlayerPercentage = 1
    local raycastParams = RaycastsUtility.getProjectileObstructionParams({replicationPart, Characters})
 
@@ -132,8 +163,8 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
 
       -- Raycast in front of the boomerang to detect collisions with walls or other obstacles
       local rayOrigin = replicationPart.Position
-      local rayDistance = (math.max(speed, 5)) * deltaTime
-      local raycastResult = RaycastsUtility.RaycastProjectileObstruction(rayOrigin, direction, rayDistance, raycastParams)
+      local rayDistance = (math.max(speed, hitboxRadius)) * deltaTime
+      local raycastResult = raycastWithHorizontalHitbox(rayOrigin, direction, rayDistance, hitboxRadius, raycastParams)
 
       -- // Hit obstruction = move perpendicularly along the wall to slide around it
       if raycastResult and raycastResult.Instance then
@@ -154,11 +185,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          local slideSpeed = toolData.Boomerang.Speed * slideMagnitude
          local slideDistance = slideSpeed * deltaTime
 
-         local slideHit = workspace:Raycast(
-            replicationPart.Position,
-            slideDirection * slideDistance,
-            raycastParams
-         )
+         local slideHit = RaycastsUtility.raycastProjectileObstruction(replicationPart.Position, slideDirection, slideDistance, raycastParams)
 
          if slideHit and not slideHit.Instance:IsDescendantOf(Characters) then
             speed = 0
