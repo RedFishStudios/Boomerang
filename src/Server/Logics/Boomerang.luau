@@ -4,6 +4,7 @@ local Boomerang = {}
 
 local ReplicatedStorage = game.ReplicatedStorage
 local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
+local RaycastsUtility = require(ReplicatedStorage.Shared.Utils.RaycastsUtility)
 local ToolAssets = ReplicatedStorage.Shared.Assets.Tools
 local ThrownWeapons = require(game.ServerStorage.Server.Referential.ThrownWeapons)
 local RoundService = require(game.ServerStorage.Server.Core.RoundService)
@@ -38,6 +39,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    direction = Vector3.new(direction.X, 0, direction.Z).Unit
    local speed = toolData.Boomerang.Speed
    local energy = toolData.Boomerang.Bounces
+   local raycastParams = RaycastsUtility.getProjectileObstructionParams({replicationPart}) -- TODO: add throwing player or anyone on the throwing player's team
 
    local Connection
    Connection = RunService.Stepped:Connect(function(time, deltaTime)
@@ -54,14 +56,9 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       end
 
       -- Raycast in front of the boomerang to detect collisions with walls or other obstacles
-      -- TODO: move to a shared utility as many weapons will use similar raycasts
-      -- TODO: raycast params can be moved outside of this function so we aren't creating new ones every frame
       local rayOrigin = replicationPart.Position
-      local rayDirection = direction * speed * deltaTime
-      local raycastParams = RaycastParams.new()
-      raycastParams.FilterDescendantsInstances = {replicationPart} -- TODO: add throwing player or anyone on the throwing player's team
-      raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-      local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+      local rayDistance = speed * deltaTime
+      local raycastResult = RaycastsUtility.RaycastProjectileObstruction(rayOrigin, direction, rayDistance, raycastParams)
 
       -- Result
       if raycastResult then
@@ -114,6 +111,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
 
    local speed = 0
    local movingTowardsPlayerPercentage = 1
+   local raycastParams = RaycastsUtility.getProjectileObstructionParams({replicationPart, Characters})
 
    local Connection
    Connection = RunService.Stepped:Connect(function(_, deltaTime)
@@ -133,13 +131,9 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       local direction = toPlayer.Unit
 
       -- Raycast in front of the boomerang to detect collisions with walls or other obstacles
-      -- TODO: move to a shared utility as many weapons will use similar raycasts
       local rayOrigin = replicationPart.Position
-      local rayDirection = direction * (math.max(speed, 5)) * deltaTime
-      local raycastParams = RaycastParams.new()
-      raycastParams.FilterDescendantsInstances = {replicationPart, Characters}
-      raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-      local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+      local rayDistance = (math.max(speed, 5)) * deltaTime
+      local raycastResult = RaycastsUtility.RaycastProjectileObstruction(rayOrigin, direction, rayDistance, raycastParams)
 
       -- // Hit obstruction = move perpendicularly along the wall to slide around it
       if raycastResult and raycastResult.Instance then
