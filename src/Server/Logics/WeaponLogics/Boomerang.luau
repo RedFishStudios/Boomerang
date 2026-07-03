@@ -7,7 +7,7 @@ local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
 local RaycastsUtility = require(ReplicatedStorage.Shared.Utils.RaycastsUtility)
 local ToolAssets = ReplicatedStorage.Shared.Assets.Tools
 local ThrownWeapons = require(game.ServerStorage.Server.Referential.ThrownWeapons)
-local RoundService = require(game.ServerStorage.Server.Core.RoundService)
+local RoundCyclingService = require(game.ServerStorage.Server.Core.RoundCyclingService)
 
 local Characters = game.Workspace.Characters
 local ThrownWeaponsFolder = game.Workspace.ThrownWeapons
@@ -91,7 +91,6 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    local raycastParams = RaycastsUtility.getProjectileObstructionParams({replicationPart}) -- TODO: add throwing player or anyone on the throwing player's team
 
    thrownWeaponData.MovementConnection = RunService.Stepped:Connect(function(time, deltaTime)
-      print(`throwing`)
       if not replicationPart or not replicationPart.Parent then
          return
       end
@@ -118,7 +117,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
 
          if struckObject:IsDescendantOf(Characters) then
             print('STRUCK A PLAYER')
-            if energy > 0 and RoundService.isInRound() then 
+            if energy > 0 and RoundCyclingService.isInRound() then 
                print(`deal damage`)
             else
                print(`hit player while on exhausted recoil`)

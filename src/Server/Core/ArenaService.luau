@@ -18,8 +18,6 @@ local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.Colli
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
-local MAP_CHOICES_PER_ROUND = 2
-
 -------------------------------------------------------------------------------
 -- TYPES
 -------------------------------------------------------------------------------
@@ -65,7 +63,7 @@ end
 -------------------------------------------------------------------------------
 
 -- // Return set of map names that can be chosen from for voting
-function ArenaService.generateAvailableMapChoices(): {string}
+function ArenaService.getNextMapChoices(): {string}
    local availableMapNames = {}
    for mapName, _ in pairs(registeredMaps) do
       table.insert(availableMapNames, mapName)
@@ -77,11 +75,12 @@ function ArenaService.generateAvailableMapChoices(): {string}
       if not table.find(availableForChoice, choice) then
          table.insert(availableForChoice, choice)
       end
-   until #availableForChoice >= MAP_CHOICES_PER_ROUND
+   until #availableForChoice >= 3
    return availableForChoice
 end
 
 function ArenaService.getSpawnPoint(player: Player): SpawnLocation
+   --error(`huh?`)
    local currentArenaModel = arenaFolder:FindFirstChildWhichIsA("Model")
    if not currentArenaModel then
       return nil
@@ -175,6 +174,11 @@ function ArenaService.setArena(mapName: string)
    if not map then
       warn(`Attempted to set arena to unregistered map: {mapName}`)
       return
+   end
+
+   local currentMap = arenaFolder:FindFirstChildWhichIsA("Model")
+   if currentMap then
+      currentMap:Destroy()
    end
    
    local liveMap = map:Clone()

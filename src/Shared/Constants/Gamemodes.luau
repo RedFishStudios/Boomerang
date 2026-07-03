@@ -11,14 +11,24 @@ export type RoundType = {
 -- PUBLIC VARIABLES
 -------------------------------------------------------------------------------
 
-local RoundTypes: {
+local Gamemodes: {
    [string]: RoundType
 } = {
    Classic = {
       Id = "Classic",
       CanRespawn = true,
       TimeLasts = 1 * 60
-   }
+   },
+   Elimination = {
+      Id = "Elimination",
+      CanRespawn = false,
+      TimeLasts = 2 * 60
+   },
+   ThrowBoomerang = {
+      Id = "ThrowBoomerang",
+      CanRespawn = true,
+      TimeLasts = 20
+   },
 }
 
-return RoundTypes
+return Gamemodes

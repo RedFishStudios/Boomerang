@@ -14,13 +14,13 @@ local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 local ItemService = require(ServerStorage.Server.Core.ItemService)
 local PlayerDataService = require(ServerStorage.Server.Core.PlayerDataService)
 local ProfileTemplate = require(ReplicatedStorage.Shared.Data.ProfileTemplate)
-local RoundService = require(ServerStorage.Server.Core.RoundService)
 local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local ThrownWeapons = require(ServerStorage.Server.Referential.ThrownWeapons)
 local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
+local CurrentGameState = require(ServerStorage.Server.Referential.CurrentGameState)
 
-local ToolLogics = ServerStorage.Server.Logics
+local ToolLogics = ServerStorage.Server.Logics.WeaponLogics
 local ToolLogicModules = {}
 
 -------------------------------------------------------------------------------
@@ -31,7 +31,7 @@ local ToolLogicModules = {}
 -- TYPES
 -------------------------------------------------------------------------------
 
-type Weapontask= (player: Player, itemName: string) -> ()
+type WeaponThrownTask = (player: Player, toolId: string) -> ()
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
@@ -43,6 +43,8 @@ local recallEvent = SimpleRemotes.getEvent("WeaponRecall")
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
 -------------------------------------------------------------------------------
+
+WeaponService.WeaponThrownTasks = TasksList.new() :: TasksList.TasksList<WeaponThrownTask>
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -66,8 +68,7 @@ end
 
 function WeaponService.init()
 	throwEvent.OnServerEvent:Connect(function(player: Player, toolId: string)
-      if not RoundService.isInRound() then
-         print(`tried to throw weapon while not in round`)
+      if not CurrentGameState.IsInRound then
          return
       end
       if ThrownWeapons.Data[player] then
@@ -101,6 +102,7 @@ function WeaponService.init()
 
       local Logic = getLogic(toolData.LogicClass)
       Logic.throw(player, toolId, toolData, ThrownWeapons.Data[player])
+      WeaponService.WeaponThrownTasks:Execute("parallel", player, toolId)
 	end)
 
    recallEvent.OnServerEvent:Connect(function(Player: Player)

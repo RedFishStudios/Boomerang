@@ -1,5 +1,5 @@
 --[[
-  - Communicates with ArenaService, RoundService and LobbyService to manage where players should spawn
+  Manages where players should spawn
 
   Author:
   @Soulsplosion
@@ -9,16 +9,13 @@ local SpawnService = {}
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
-local SharedConstants = ReplicatedStorage.Shared.Constants
 
-local RoundTypes = require(SharedConstants.RoundTypes)
 local CurrentGameState = require(ServerStorage.Server.Referential.CurrentGameState)
 local ArenaService = require(ServerStorage.Server.Core.ArenaService)
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 
 local LobbyService = require(ServerStorage.Server.Core.LobbyService)
-local RoundService = require(ServerStorage.Server.Core.RoundService)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
