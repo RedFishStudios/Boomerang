@@ -1,5 +1,7 @@
 --[[
-  Monitors arena map selection
+  - Manages arena map selection
+  - Manages arena map spawnpoint usage (spawning players into the map)
+  - Manages arena map functionality such as animated/interactive objects
 
   Author:
   @Soulsplosion
@@ -79,6 +81,48 @@ function ArenaService.generateAvailableMapChoices(): {string}
    return availableForChoice
 end
 
+function ArenaService.getSpawnPoint(player: Player): SpawnLocation
+   local currentArenaModel = arenaFolder:FindFirstChildWhichIsA("Model")
+   if not currentArenaModel then
+      return nil
+   end
+   local spawnPointsFolder = currentArenaModel:FindFirstChild("SpawnPoints")
+   if not spawnPointsFolder then
+      return nil
+   end
+   local spawnPoints = spawnPointsFolder:GetChildren()
+
+   -- Chosoe a spawn point that is not occupied by enemies
+   local MIN_DISTANCE = 75
+   local validSpawns = {}
+   for _, spawn in ipairs(spawnPoints) do
+      local valid = true
+      for _, otherPlayer in ipairs(Players:GetPlayers()) do
+         -- TODO: only consider team if teams are being used for enemy determination
+         if otherPlayer.Team ~= player.Team then
+            local character = otherPlayer.Character
+            local root = character and character:FindFirstChild("HumanoidRootPart")
+            if root then
+               local distance = (root.Position - spawn.Position).Magnitude
+               if distance < MIN_DISTANCE then
+                  valid = false
+                  break
+               end
+            end
+         end
+      end
+      if valid then
+         table.insert(validSpawns, spawn)
+      end
+   end
+   if #validSpawns > 0 then
+      return validSpawns[math.random(#validSpawns)]
+   else
+      return spawnPoints[math.random(#spawnPoints)]
+   end
+end
+
+-- // Send player to a random spawn point in the arena
 function ArenaService.sendToArena(player: Player)
    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
       warn(`player has no character or hrp to send to arena: {player}`)
@@ -168,6 +212,7 @@ end
 -------------------------------------------------------------------------------
 
 function ArenaService.init()
+   -- Register maps
 	for _, c in pairs(mapFolder:GetChildren()) do
       if not c:IsA("Model") then
          warn(`nonaccepted child in map folder: {c.Name}`)

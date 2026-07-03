@@ -1,11 +1,14 @@
 --[[
-  Relays round-related functionality and utilities for the client
+  Handles player team assignment
+
+  TODO:
+  - When a player joins, if currently in a team-based match, assign to the team with the least players
 
   Author:
   @Soulsplosion
 ]]
 
-local RespawnService = {}
+local GameTeamService = {}
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
@@ -35,31 +38,9 @@ type PlayerDiedEventTask = (player: Player) -> ()
 -- PUBLIC VARIABLES
 -------------------------------------------------------------------------------
 
-RespawnService.PlayerDiedTasks = TasksList.new() :: TasksList.TasksList<PlayerDiedEventTask>
-
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
-
-local function safeGetPlayerCharacter(player: Player)
-   if not player.Character then
-      local passed = 0
-      repeat
-         task.wait()
-         print(`waiting for player character: {player}`)
-         passed += 1
-      until passed >= 300 or player.Character
-      if not player.Character then
-         warn(`player character never loaded: {player}`)
-         return nil
-      end
-   end
-   return player.Character
-end
-
-local function safeGetHumanoid(character)
-   return character:WaitForChild("Humanoid", 5)
-end
 
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
@@ -69,40 +50,18 @@ end
 -- CORE FUNCTIONS
 -------------------------------------------------------------------------------
 
-function RespawnService.init()
+function GameTeamService.init()
 	PlayersUtil.onPlayerAdded(function(player: Player)
-      player.CharacterAdded:Connect(function()
-         local character = safeGetPlayerCharacter(player)
-         if not character then
-            return
-         end
-         local humanoid = safeGetHumanoid(character)
-         if not humanoid then
-            return
-         end
-
-         -- Send to round arena or respawn location
-         if CurrentGameState.IsInRound and CurrentGameState.CanRespawn then
-            ArenaService.sendToArena(player)
-         else
-            -- TODO: send to lobby
-         end
-
-         -- Death connection
-         humanoid.Died:Connect(function()
-            RespawnService.PlayerDiedTasks:Execute("parallel", player)
-            -- TODO: display death screen, respawn time, etc
-         end)
-      end)
+      
 	end)
 end
 
-function RespawnService.start()
+function GameTeamService.start()
 
 end
 
-function RespawnService.test()
+function GameTeamService.test()
 
 end
 
-return RespawnService
+return GameTeamService

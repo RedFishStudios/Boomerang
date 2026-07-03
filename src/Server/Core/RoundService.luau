@@ -1,5 +1,5 @@
 --[[
-  Relays round-related functionality and utilities for the client
+  - Manages round stopping and finishing, including set up of new rounds and management of end state for ongoing rounds
 
   Author:
   @Soulsplosion
