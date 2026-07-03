@@ -13,7 +13,9 @@ ThrownWeapons.StateEnum = {
 export type Data = {
    ToolId: string,
    State: number,
+
    ReplicationPart: Part,
+   
    MovementConnection: RBXScriptConnection?,
    TestRaycastVisualizers: {Part}
 }

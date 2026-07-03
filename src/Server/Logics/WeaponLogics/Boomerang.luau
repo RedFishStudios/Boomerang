@@ -4,8 +4,9 @@ local Boomerang = {}
 
 local ReplicatedStorage = game.ReplicatedStorage
 local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
+local BufferUtil = require(ReplicatedStorage.Shared.Utils.BufferUtil)
 local RaycastsUtility = require(ReplicatedStorage.Shared.Utils.RaycastsUtility)
-local ToolAssets = ReplicatedStorage.Shared.Assets.Tools
+local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local ThrownWeapons = require(game.ServerStorage.Server.Referential.ThrownWeapons)
 local RoundCyclingService = require(game.ServerStorage.Server.Core.RoundCyclingService)
 
@@ -14,9 +15,38 @@ local ThrownWeaponsFolder = game.Workspace.ThrownWeapons
 local ThrownWeaponReplicationPart = ReplicatedStorage.Shared.Assets.ThrownWeaponReplication
 
 local RunService = game:GetService("RunService")
+local thrownWeaponReplicationRemote = SimpleRemotes.getUnreliableEvent("ThrownWeaponReplication")
+local thrownBoomerangSpawnedRemote = SimpleRemotes.getEvent("ThrownBoomerangSpawned")
+local thrownBoomerangDespawnedRemote = SimpleRemotes.getEvent("ThrownBoomerangDespawned")
 
 local SLOW_RATE = 5
 local UP_VECTOR = Vector3.new(0, 1, 0)
+
+local function createReplicationPayload(ownerUserId: number, position: Vector3): buffer
+   local payload = buffer.create(16)
+   local offset = 0
+   offset = BufferUtil.writeu32(payload, offset, ownerUserId)
+   BufferUtil.writeVector3_96(payload, offset, position)
+   return payload
+end
+
+local function fireDespawned(ownerUserId: number)
+   local payload = buffer.create(4)
+   BufferUtil.writeu32(payload, 0, ownerUserId)
+   -- TODO: fire only for players that are currently in game or spectating? (if lobby is out of sight, they don't need to see this)
+   thrownBoomerangDespawnedRemote:FireAllClients(payload)
+end
+
+local function replicateIfMoved(ownerUserId: number, replicationPart: BasePart, lastReplicatedPosition: Vector3): Vector3
+   local currentPosition = replicationPart.Position
+   if currentPosition ~= lastReplicatedPosition then
+      local payload = createReplicationPayload(ownerUserId, currentPosition)
+      -- TODO: fire only for players that are currently in game or spectating? (if lobby is out of sight, they don't need to see this)
+      thrownWeaponReplicationRemote:FireAllClients(payload)
+      return currentPosition
+   end
+   return lastReplicatedPosition
+end
 
 local function raycastWithHorizontalHitbox(
    rayOrigin: Vector3,
@@ -29,9 +59,10 @@ local function raycastWithHorizontalHitbox(
    for i, p in pairs(weaponData.TestRaycastVisualizers) do
       if p and p.Parent then
          p.Color = Color3.new(0.164706, 0.960784, 0.007843)
+         p.Transparency = 1
       end
    end
-   rayDistance = math.max(rayDistance * 5, hitboxRadius)
+   rayDistance = math.max(rayDistance, hitboxRadius)
 
    local rightDirection = direction:Cross(UP_VECTOR).Unit
    local leftOrigin = rayOrigin - rightDirection * hitboxRadius
@@ -78,8 +109,10 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    -- TODO: cast in front of the player to see if they already have a wall obstructing them (ie trying to throw the weapon inside a wall)
 
    local replicationPart = ThrownWeaponReplicationPart:Clone()
+   replicationPart.Name = `BoomerangReplication_{player.Name}`
    replicationPart.Position = character.PrimaryPart.Position + character.PrimaryPart.CFrame.LookVector * 3
    replicationPart.Parent = ThrownWeaponsFolder
+   thrownBoomerangSpawnedRemote:FireAllClients(player.UserId, replicationPart.Position, boomerangId)
    thrownWeaponData.ReplicationPart = replicationPart
    thrownWeaponData.State = ThrownWeapons.StateEnum.Outgoing
 
@@ -88,6 +121,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    local speed = toolData.Boomerang.Speed
    local hitboxRadius = toolData.Boomerang.HitboxRadius
    local energy = toolData.Boomerang.Bounces
+   local lastReplicatedPosition = replicationPart.Position
    local raycastParams = RaycastsUtility.getProjectileObstructionParams({replicationPart}) -- TODO: add throwing player or anyone on the throwing player's team
 
    thrownWeaponData.MovementConnection = RunService.Stepped:Connect(function(time, deltaTime)
@@ -135,6 +169,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
 
       local currentCFrame = replicationPart.CFrame
       replicationPart:PivotTo(currentCFrame + direction * speed * deltaTime)
+      lastReplicatedPosition = replicateIfMoved(player.UserId, replicationPart, lastReplicatedPosition)
    end)
 end
 
@@ -168,6 +203,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
    local speed = 0
    local slideSpeed = 0
    local hitboxRadius = toolData.Boomerang.HitboxRadius
+   local lastReplicatedPosition = replicationPart.Position
    local raycastParams = RaycastsUtility.getProjectileObstructionParams({replicationPart, Characters})
 
    local slideDirection = Vector3.new()
@@ -235,6 +271,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          replicationPart:PivotTo(
             replicationPart.CFrame + slideDirection * slideDistance
          )
+         lastReplicatedPosition = replicateIfMoved(player.UserId, replicationPart, lastReplicatedPosition)
       else
          slideMomentum = math.clamp(slideMomentum - (deltaTime * 10), 0, 1)
          local blendedDirection = slideDirection * slideMomentum + direction * (1 - slideMomentum)
@@ -244,11 +281,13 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          speed = math.min(speed + deltaTime * 100, toolData.Boomerang.Speed)
          slideSpeed = speed
          replicationPart:PivotTo(replicationPart.CFrame + blendedDirection * blendedSpeed * deltaTime)
+         lastReplicatedPosition = replicateIfMoved(player.UserId, replicationPart, lastReplicatedPosition)
       end
 
       if distance <= speed * deltaTime then
          -- Close enough to snap and consider returned
          replicationPart:Destroy()
+         fireDespawned(player.UserId)
          for _, part in ipairs(ThrownWeapons.Data[player].TestRaycastVisualizers) do
             part:Destroy()
          end

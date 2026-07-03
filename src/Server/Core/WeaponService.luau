@@ -9,6 +9,7 @@ local WeaponService = {}
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
+local CollectionService = game:GetService("CollectionService")
 
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 local ItemService = require(ServerStorage.Server.Core.ItemService)
@@ -67,6 +68,24 @@ end
 -------------------------------------------------------------------------------
 
 function WeaponService.init()
+   -- Ensure boomerang replication remotes exist at server startup.
+   SimpleRemotes.getEvent("ThrownBoomerangSpawned")
+   SimpleRemotes.getEvent("ThrownBoomerangDespawned")
+   SimpleRemotes.getUnreliableEvent("ThrownWeaponReplication")
+
+   -- // Create thrown weapon replication part
+   local replicationPart = Instance.new("Part")
+   replicationPart.Name = "ThrownWeaponReplication"
+   replicationPart.Shape = Enum.PartType.Cylinder
+   replicationPart.Size = Vector3.new(3, 3, 3)
+   replicationPart.Anchored = true
+   replicationPart.CanCollide = false
+   replicationPart.CanQuery = false
+   replicationPart.CanTouch = false
+   replicationPart.Transparency = 1
+   replicationPart.Parent = game.ReplicatedStorage.Shared.Assets
+
+   -- // Throw boomerang
 	throwEvent.OnServerEvent:Connect(function(player: Player, toolId: string)
       if not CurrentGameState.IsInRound then
          return
@@ -105,6 +124,7 @@ function WeaponService.init()
       WeaponService.WeaponThrownTasks:Execute("parallel", player, toolId)
 	end)
 
+   -- // Manual recall boomerang
    recallEvent.OnServerEvent:Connect(function(Player: Player)
       local thrownWeaponData = ThrownWeapons.Data[Player]
       if not thrownWeaponData then

@@ -30,7 +30,7 @@ function ThrowBoomerangRoundLogic.setup()
    table.insert(PerMatchDestroyerFunctions, WeaponService.WeaponThrownTasks:Add(function(player: Player, toolId: string)
       print("player threw boomerang!")
       PerPlayerCount[player] = (PerPlayerCount[player] or 0) + 1
-      if PerPlayerCount[player] >= 3 then
+      if PerPlayerCount[player] >= 12 then
          print(`player has thrown boomerang 3 times and wins`)
          ThrowBoomerangRoundLogic.teardown()
       end
