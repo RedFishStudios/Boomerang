@@ -9,6 +9,7 @@ local RaycastsUtility = require(ReplicatedStorage.Shared.Utils.RaycastsUtility)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local ThrownWeapons = require(game.ServerStorage.Server.Referential.ThrownWeapons)
 local RoundCyclingService = require(game.ServerStorage.Server.Core.RoundCyclingService)
+local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 
 local Characters = game.Workspace.Characters
 local ThrownWeaponsFolder = game.Workspace.ThrownWeapons
@@ -110,7 +111,8 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
 
    local replicationPart = ThrownWeaponReplicationPart:Clone()
    replicationPart.Name = `BoomerangReplication_{player.Name}`
-   replicationPart.Position = character.PrimaryPart.Position + character.PrimaryPart.CFrame.LookVector * 3
+   local startPosition = character.PrimaryPart.Position + character.PrimaryPart.CFrame.LookVector * 3
+   replicationPart.Position = Vector3.new(startPosition.X, GlobalConfig.BoomerangHeight, startPosition.Z)
    replicationPart.Parent = ThrownWeaponsFolder
    thrownBoomerangSpawnedRemote:FireAllClients(player.UserId, replicationPart.Position, boomerangId)
    thrownWeaponData.ReplicationPart = replicationPart

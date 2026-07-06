@@ -82,7 +82,7 @@ function WeaponService.init()
    replicationPart.CanCollide = false
    replicationPart.CanQuery = false
    replicationPart.CanTouch = false
-   replicationPart.Transparency = 1
+   replicationPart.Transparency = .8
    replicationPart.Parent = game.ReplicatedStorage.Shared.Assets
 
    -- // Throw boomerang
