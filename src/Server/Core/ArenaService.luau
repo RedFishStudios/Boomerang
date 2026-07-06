@@ -126,6 +126,15 @@ function ArenaService.getSpawnPoint(player: Player): SpawnLocation
    end
 end
 
+function ArenaService.getCurrentArenaPosition(): Vector3?
+   local currentArenaModel = arenaFolder:FindFirstChildWhichIsA("Model")
+   if not currentArenaModel then
+      print(`No current arena model found`)
+      return nil
+   end
+   return currentArenaModel:GetPivot().Position
+end
+
 -- // Send player to a random spawn point in the arena
 function ArenaService.sendToArena(player: Player)
    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then

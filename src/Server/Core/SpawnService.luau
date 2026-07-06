@@ -36,6 +36,7 @@ type PlayerDiedEventTask = (player: Player) -> ()
 -------------------------------------------------------------------------------
 
 SpawnService.PlayerDiedTasks = TasksList.new() :: TasksList.TasksList<PlayerDiedEventTask>
+ArenaService.PlayerSpawnedTasks = TasksList.new() :: TasksList.TasksList<(player: Player, inArena: boolean)->()>
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS

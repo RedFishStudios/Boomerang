@@ -191,7 +191,7 @@ function RoundCyclingService.init()
          print("Intermission...")
       until ticks >= 3
       local choice = math.random(#options)
-		RoundCyclingService.setNextRound(options[choice].Gamemode, options[choice].Map)
+		RoundCyclingService.setNextRound("Elimination", options[choice].Map)
    end)
 end
 

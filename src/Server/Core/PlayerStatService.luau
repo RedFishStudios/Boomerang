@@ -27,6 +27,8 @@ type PlayerStats = {
 -- PRIVATE VARIABLES
 -------------------------------------------------------------------------------
 
+local PlayerLiveStats: {[Player]: PlayerStats} = {}
+
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
@@ -36,6 +38,7 @@ type PlayerStats = {
 -------------------------------------------------------------------------------
 
 function PlayerStatService.init()
+   
 end
 
 function PlayerStatService.start()

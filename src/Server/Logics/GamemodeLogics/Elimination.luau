@@ -3,9 +3,11 @@
 local EliminationRoundLogic = {} 
 
 local ServerStorage = game:GetService("ServerStorage")
+local ArenaService = require(ServerStorage.Server.Core.ArenaService)
 local GameTeamService = require(ServerStorage.Server.Core.GameTeamService)
 local RoundCyclingService = require(ServerStorage.Server.Core.RoundCyclingService)
 local WeaponService = require(ServerStorage.Server.Core.WeaponService)
+local StormCloseSystem = require(ServerStorage.Server.Core.StormCloseSystem)
 
 local ServerReferential = ServerStorage.Server.Referential
 local CurrentGameState = require(ServerReferential.CurrentGameState)
@@ -18,16 +20,12 @@ end
 function EliminationRoundLogic.setup()
    clear()
    GameTeamService.setFreeForAll()
-   task.spawn(function()
-      print("ELIMINATION ROUND - PLACEHOLDER")
-      task.wait(3)
-      EliminationRoundLogic.teardown()
-   end)
+   local arenaPosition = ArenaService.getCurrentArenaPosition() or Vector3.new(0, 0, 0)
+   StormCloseSystem.begin(arenaPosition)
 end
 
 function EliminationRoundLogic.teardown()
    clear()
-   CurrentGameState.RoundFinishedTasks:Execute("parallel")
 end
 
 return EliminationRoundLogic
