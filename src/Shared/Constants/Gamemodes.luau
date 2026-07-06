@@ -3,6 +3,8 @@
 
 export type RoundType = {
    Id: string,
+   Display: string?, -- if different from id
+   Subheader: string, -- for client display
    CanRespawn: boolean,
    TimeLasts: number
 }
@@ -16,18 +18,21 @@ local Gamemodes: {
 } = {
    Classic = {
       Id = "Classic",
+      Subheader = "Have the highest score when the timer runs out!",
       CanRespawn = true,
-      TimeLasts = 1 * 60
+      TimeLasts = 800
    },
    Elimination = {
       Id = "Elimination",
+      Subheader = "Eliminate all opponents to win!",
       CanRespawn = false,
-      TimeLasts = 2 * 60
+      TimeLasts = 800
    },
    ThrowBoomerang = {
       Id = "ThrowBoomerang",
+      Subheader = "Throw the boomerang 12 times (test)",
       CanRespawn = true,
-      TimeLasts = 20
+      TimeLasts = 800
    },
 }
 

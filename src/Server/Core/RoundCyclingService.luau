@@ -7,6 +7,8 @@
 
 local RoundCyclingService = {}
 
+local RunService = game:GetService("RunService")
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 local SharedConstants = ReplicatedStorage.Shared.Constants
@@ -14,6 +16,7 @@ local SharedConstants = ReplicatedStorage.Shared.Constants
 local Gamemodes = require(SharedConstants.Gamemodes)
 local CurrentGameState = require(ServerStorage.Server.Referential.CurrentGameState)
 local ArenaService = require(ServerStorage.Server.Core.ArenaService)
+local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 
 local GamemodeLogics = ServerStorage.Server.Logics.GamemodeLogics
 local GamemodeLogicModules = {}
@@ -30,13 +33,9 @@ local GamemodeLogicModules = {}
 -- PRIVATE VARIABLES
 -------------------------------------------------------------------------------
 
-local function getLogic(roundTypeId: string)
-	if not GamemodeLogicModules[roundTypeId] then
-		local module = require(GamemodeLogics:WaitForChild(roundTypeId))
-		GamemodeLogicModules[roundTypeId] = module
-	end
-	return GamemodeLogicModules[roundTypeId]
-end
+local roundDurationConnection: RBXScriptConnection? = nil
+local currentRoundEndsAt: number? = nil
+local currentRoundTypeId: string? = nil
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -45,6 +44,34 @@ end
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
+
+local function getLogic(roundTypeId: string)
+	if not GamemodeLogicModules[roundTypeId] then
+		local module = require(GamemodeLogics:WaitForChild(roundTypeId))
+		GamemodeLogicModules[roundTypeId] = module
+	end
+	return GamemodeLogicModules[roundTypeId]
+end
+
+local function updateRoundDuration()
+   if not currentRoundEndsAt then
+      return
+   end
+   local secondsLeft = math.max(0, currentRoundEndsAt - workspace:GetServerTimeNow())
+   CurrentGameState.RemainingTime = secondsLeft
+   if secondsLeft <= 0 and roundDurationConnection then
+      roundDurationConnection:Disconnect()
+      roundDurationConnection = nil
+      currentRoundEndsAt = nil
+      if currentRoundTypeId then
+         local roundLogic = getLogic(currentRoundTypeId)
+         currentRoundTypeId = nil
+         if roundLogic and roundLogic.teardown then
+            roundLogic.teardown()
+         end
+      end
+   end
+end
 
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
@@ -84,9 +111,12 @@ end
 
 function RoundCyclingService.setNextRound(roundTypeId: string, mapName: string)
    local roundType = Gamemodes[roundTypeId]
+   local roundDuration = roundType.TimeLasts
+   local notificationServerTime = workspace:GetServerTimeNow()
+
    CurrentGameState.RoundTypeId = roundTypeId
    CurrentGameState.CurrentMapName = mapName
-   CurrentGameState.RemainingTime = roundType.TimeLasts
+   CurrentGameState.RemainingTime = roundDuration
    CurrentGameState.IsInRound = true
    CurrentGameState.CanRespawn = roundType.CanRespawn
    ArenaService.setArena(mapName)
@@ -95,7 +125,15 @@ function RoundCyclingService.setNextRound(roundTypeId: string, mapName: string)
    if roundLogic and roundLogic.setup then
       roundLogic.setup()
    end
-   -- TODO: update all clients (time remaining, round name they can display on screen, etc)
+
+   currentRoundTypeId = roundTypeId
+   SimpleRemotes.getEvent("NewRoundStarted"):FireAllClients(roundTypeId, roundDuration, notificationServerTime)
+	currentRoundEndsAt = notificationServerTime + roundDuration
+   if roundDurationConnection  then
+      roundDurationConnection:Disconnect()
+      roundDurationConnection = nil
+   end
+   roundDurationConnection = RunService.Heartbeat:Connect(updateRoundDuration)
 end
 
 -------------------------------------------------------------------------------
@@ -103,6 +141,8 @@ end
 -------------------------------------------------------------------------------
 
 function RoundCyclingService.init()
+   SimpleRemotes.getEvent("NewRoundStarted")
+
 	task.spawn(function()
       task.wait(2)
       RoundCyclingService.setNextRound("ThrowBoomerang", "GenericA")
@@ -110,6 +150,12 @@ function RoundCyclingService.init()
 
    CurrentGameState.RoundFinishedTasks:Add(function()
       print("A ROUND FINISHED - BEGINNING INTERMISSION -")
+
+      if roundDurationConnection  then
+         roundDurationConnection:Disconnect()
+         roundDurationConnection = nil
+         currentRoundEndsAt = nil
+      end
 
       -- // Establish available options for next round
       local possibleMaps = ArenaService.getNextMapChoices()

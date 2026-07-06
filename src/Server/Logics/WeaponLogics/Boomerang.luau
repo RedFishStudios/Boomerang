@@ -163,7 +163,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
             direction = direction - 2 * direction:Dot(raycastResult.Normal) * raycastResult.Normal
             direction = Vector3.new(direction.X, 0, direction.Z).Unit
             if energy == 0 then
-               thrownWeaponData.State = ThrownWeapons.StateEnum.Exhausted
+               Boomerang.recall(player, boomerangId, toolData, thrownWeaponData)
             end
             return
          end
