@@ -12,7 +12,6 @@ local ServerStorage = game:GetService("ServerStorage")
 local CollectionService = game:GetService("CollectionService")
 
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
-local ItemService = require(ServerStorage.Server.Core.ItemService)
 local PlayerDataService = require(ServerStorage.Server.Core.PlayerDataService)
 local ProfileTemplate = require(ReplicatedStorage.Shared.Data.ProfileTemplate)
 local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
@@ -20,6 +19,7 @@ local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local ThrownWeapons = require(ServerStorage.Server.Referential.ThrownWeapons)
 local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
 local CurrentGameState = require(ServerStorage.Server.Referential.CurrentGameState)
+local ArenaService = require(ServerStorage.Server.Core.ArenaService)
 
 local ToolLogics = ServerStorage.Server.Logics.WeaponLogics
 local ToolLogicModules = {}
@@ -136,6 +136,15 @@ function WeaponService.init()
       local toolData = Tools[thrownWeaponData.ToolId]
       local Logic = getLogic(toolData.LogicClass)
       Logic.recall(Player, thrownWeaponData.ToolId, toolData, thrownWeaponData)
+   end)
+
+   -- // Reset thrown boomerangs when map changes
+   ArenaService.MapChangedTasks:Add(function(newMapName: string)
+      for player, thrownWeaponData in pairs(ThrownWeapons.Data) do
+         local toolData = Tools[thrownWeaponData.ToolId]
+         local Logic = getLogic(toolData.LogicClass)
+         Logic.removeFromField(player, thrownWeaponData)
+      end
    end)
 end
 

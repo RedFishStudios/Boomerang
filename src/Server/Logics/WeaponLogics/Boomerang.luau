@@ -175,6 +175,22 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    end)
 end
 
+-- // Restore to player / remove from field
+function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapons.Data)
+   if thrownWeaponData.ReplicationPart then
+      thrownWeaponData.ReplicationPart:Destroy()
+   end
+   fireDespawned(player.UserId)
+   for _, part in ipairs(ThrownWeapons.Data[player].TestRaycastVisualizers) do
+      part:Destroy()
+   end
+   if thrownWeaponData.MovementConnection then
+      thrownWeaponData.MovementConnection:Disconnect()
+      thrownWeaponData.MovementConnection = nil
+   end
+   ThrownWeapons.Data[player] = nil
+end
+
 function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.Tool, thrownWeaponData: ThrownWeapons.Data)
    if not toolData.Boomerang then
       warn(`this is not a boomerang`)
@@ -287,15 +303,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       end
 
       if distance <= speed * deltaTime then
-         -- Close enough to snap and consider returned
-         replicationPart:Destroy()
-         fireDespawned(player.UserId)
-         for _, part in ipairs(ThrownWeapons.Data[player].TestRaycastVisualizers) do
-            part:Destroy()
-         end
-         ThrownWeapons.Data[player] = nil
-         thrownWeaponData.MovementConnection:Disconnect()
-         thrownWeaponData.MovementConnection = nil
+         Boomerang.removeFromField(player, thrownWeaponData)
          return
       end
    end)

@@ -13,6 +13,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 
 local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
+local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -21,6 +22,8 @@ local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.Colli
 -------------------------------------------------------------------------------
 -- TYPES
 -------------------------------------------------------------------------------
+
+type MapChangedTask = (newMapName: string)->()
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
@@ -36,6 +39,8 @@ local registeredMaps: {
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
 -------------------------------------------------------------------------------
+
+ArenaService.MapChangedTasks = TasksList.new() :: TasksList.TasksList<MapChangedTask>
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -209,6 +214,8 @@ function ArenaService.setArena(mapName: string)
          sendPlayerToSpawnPosition(player, chosenSpawnPoint.Position)
       end
    end
+
+   ArenaService.MapChangedTasks:Execute("parallel")
 end
 
 -------------------------------------------------------------------------------
