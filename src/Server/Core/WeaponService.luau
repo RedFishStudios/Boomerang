@@ -16,12 +16,12 @@ local PlayerDataService = require(ServerStorage.Server.Core.PlayerDataService)
 local ProfileTemplate = require(ReplicatedStorage.Shared.Data.ProfileTemplate)
 local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
-local ThrownWeapons = require(ServerStorage.Server.Referential.ThrownWeapons)
+local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
 local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
-local CurrentGameState = require(ServerStorage.Server.Referential.CurrentGameState)
+local CurrentGameState = require(ReplicatedStorage.Shared.Referential.CurrentGameState)
 local ArenaService = require(ServerStorage.Server.Core.ArenaService)
 
-local ToolLogics = ServerStorage.Server.Logics.WeaponLogics
+local ToolLogics = ReplicatedStorage.Shared.Logics.WeaponLogics
 local ToolLogicModules = {}
 
 -------------------------------------------------------------------------------

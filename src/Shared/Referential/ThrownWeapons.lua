@@ -1,3 +1,5 @@
+-- // Data on thrown weapons that exist in the field
+
 local ThrownWeapons = {}
 
 ThrownWeapons.StateEnum = {
@@ -14,13 +16,12 @@ export type Data = {
    ToolId: string,
    State: number,
 
-   ReplicationPart: Part,
+   Host: Part | Model,
    
    MovementConnection: RBXScriptConnection?,
    TestRaycastVisualizers: {Part}
 }
 
--- // Data for a thrown weapon out on the field
 ThrownWeapons.Data = {} :: {
    [Player]: Data
 }

@@ -14,7 +14,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local SharedConstants = ReplicatedStorage.Shared.Constants
 
 local Gamemodes = require(SharedConstants.Gamemodes)
-local CurrentGameState = require(ServerStorage.Server.Referential.CurrentGameState)
+local CurrentGameState = require(ReplicatedStorage.Shared.Referential.CurrentGameState)
 local ArenaService = require(ServerStorage.Server.Core.ArenaService)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 

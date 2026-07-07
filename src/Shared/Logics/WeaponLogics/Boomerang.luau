@@ -2,51 +2,38 @@
 
 local Boomerang = {}
 
+
+local RunService = game:GetService("RunService")
+
 local ReplicatedStorage = game.ReplicatedStorage
 local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
 local BufferUtil = require(ReplicatedStorage.Shared.Utils.BufferUtil)
 local RaycastsUtility = require(ReplicatedStorage.Shared.Utils.RaycastsUtility)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
-local ThrownWeapons = require(game.ServerStorage.Server.Referential.ThrownWeapons)
-local RoundCyclingService = require(game.ServerStorage.Server.Core.RoundCyclingService)
+local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
+local CurrentGameState = require(ReplicatedStorage.Shared.Referential.CurrentGameState)
 
 local Characters = game.Workspace.Characters
 local ThrownWeaponsFolder = game.Workspace.ThrownWeapons
 local ThrownWeaponReplicationPart = ReplicatedStorage.Shared.Assets.ThrownWeaponReplication
 
-local RunService = game:GetService("RunService")
-local thrownWeaponReplicationRemote = SimpleRemotes.getUnreliableEvent("ThrownWeaponReplication")
 local thrownBoomerangSpawnedRemote = SimpleRemotes.getEvent("ThrownBoomerangSpawned")
 local thrownBoomerangDespawnedRemote = SimpleRemotes.getEvent("ThrownBoomerangDespawned")
+
+local isServer = RunService:IsServer()
 
 local SLOW_RATE = 5
 local UP_VECTOR = Vector3.new(0, 1, 0)
 
-local function createReplicationPayload(ownerUserId: number, position: Vector3): buffer
-   local payload = buffer.create(16)
-   local offset = 0
-   offset = BufferUtil.writeu32(payload, offset, ownerUserId)
-   BufferUtil.writeVector3_96(payload, offset, position)
-   return payload
-end
-
 local function fireDespawned(ownerUserId: number)
+   if not isServer then
+      return
+   end
    local payload = buffer.create(4)
    BufferUtil.writeu32(payload, 0, ownerUserId)
    -- TODO: fire only for players that are currently in game or spectating? (if lobby is out of sight, they don't need to see this)
    thrownBoomerangDespawnedRemote:FireAllClients(payload)
-end
-
-local function replicateIfMoved(ownerUserId: number, replicationPart: BasePart, lastReplicatedPosition: Vector3): Vector3
-   local currentPosition = replicationPart.Position
-   if currentPosition ~= lastReplicatedPosition then
-      local payload = createReplicationPayload(ownerUserId, currentPosition)
-      -- TODO: fire only for players that are currently in game or spectating? (if lobby is out of sight, they don't need to see this)
-      thrownWeaponReplicationRemote:FireAllClients(payload)
-      return currentPosition
-   end
-   return lastReplicatedPosition
 end
 
 local function raycastWithHorizontalHitbox(
@@ -107,30 +94,34 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       return
    end
 
-   -- TODO: cast in front of the player to see if they already have a wall obstructing them (ie trying to throw the weapon inside a wall)
-
-   local replicationPart = ThrownWeaponReplicationPart:Clone()
-   replicationPart.Name = `BoomerangReplication_{player.Name}`
    local startPosition = character.PrimaryPart.Position + character.PrimaryPart.CFrame.LookVector * 3
-   replicationPart.Position = Vector3.new(startPosition.X, GlobalConfig.BoomerangHeight, startPosition.Z)
-   replicationPart.Parent = ThrownWeaponsFolder
-   thrownBoomerangSpawnedRemote:FireAllClients(player.UserId, replicationPart.Position, boomerangId)
-   thrownWeaponData.ReplicationPart = replicationPart
-   thrownWeaponData.State = ThrownWeapons.StateEnum.Outgoing
+   startPosition = Vector3.new(startPosition.X, GlobalConfig.BoomerangHeight, startPosition.Z)
+   if isServer then
+      -- Server creates and monitors a simple representation part
+      local partHost = ThrownWeaponReplicationPart:Clone()
+      partHost.Name = `BoomerangReplication_{player.Name}`
+      partHost.Position = startPosition
+      partHost.Parent = ThrownWeaponsFolder
+      thrownBoomerangSpawnedRemote:FireAllClients(player.UserId, partHost.Position, boomerangId)
+      thrownWeaponData.Host = partHost
+      thrownWeaponData.State = ThrownWeapons.StateEnum.Outgoing
+   else
+      -- Client creates and monitors the actual 3D model of the projectile
+      local boomerangModel = ReplicatedStorage.Shared.Assets.Tools.ClassicBoomerang:Clone()
+      boomerangModel.Name = `Boomerang_{player.Name}`
+      boomerangModel:PivotTo(CFrame.new(startPosition))
+      boomerangModel.Parent = workspace
+      thrownWeaponData.Host = boomerangModel
+   end
 
    local direction = character.PrimaryPart.CFrame.LookVector
    direction = Vector3.new(direction.X, 0, direction.Z).Unit
    local speed = toolData.Boomerang.Speed
    local hitboxRadius = toolData.Boomerang.HitboxRadius
    local energy = toolData.Boomerang.Bounces
-   local lastReplicatedPosition = replicationPart.Position
-   local raycastParams = RaycastsUtility.getProjectileObstructionParams({replicationPart}) -- TODO: add throwing player or anyone on the throwing player's team
+   local raycastParams = RaycastsUtility.getProjectileObstructionParams({thrownWeaponData.Host}) -- TODO: add throwing player or anyone on the throwing player's team
 
    thrownWeaponData.MovementConnection = RunService.Stepped:Connect(function(time, deltaTime)
-      if not replicationPart or not replicationPart.Parent then
-         return
-      end
-
       -- Exhaustion
       if energy <= 0 then
          speed = speed - (speed * SLOW_RATE * deltaTime)
@@ -142,7 +133,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       end
 
       -- Raycast in front of the boomerang to detect collisions with walls or other obstacles
-      local rayOrigin = replicationPart.Position
+      local rayOrigin = thrownWeaponData.Host:GetPivot().Position
       local rayDistance = speed * deltaTime
       local raycastResult = raycastWithHorizontalHitbox(rayOrigin, direction, rayDistance, hitboxRadius, raycastParams, thrownWeaponData)
 
@@ -153,7 +144,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
 
          if struckObject:IsDescendantOf(Characters) then
             print('STRUCK A PLAYER')
-            if energy > 0 and RoundCyclingService.isInRound() then 
+            if energy > 0 and CurrentGameState.IsInRound then 
                print(`deal damage`)
             else
                print(`hit player while on exhausted recoil`)
@@ -169,16 +160,15 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          end
       end
 
-      local currentCFrame = replicationPart.CFrame
-      replicationPart:PivotTo(currentCFrame + direction * speed * deltaTime)
-      lastReplicatedPosition = replicateIfMoved(player.UserId, replicationPart, lastReplicatedPosition)
+      local currentCFrame = thrownWeaponData.Host:GetPivot()
+      thrownWeaponData.Host:PivotTo(currentCFrame + direction * speed * deltaTime)
    end)
 end
 
 -- // Restore to player / remove from field
 function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapons.Data)
-   if thrownWeaponData.ReplicationPart then
-      thrownWeaponData.ReplicationPart:Destroy()
+   if thrownWeaponData.Host then
+      thrownWeaponData.Host:Destroy()
    end
    fireDespawned(player.UserId)
    for _, part in ipairs(ThrownWeapons.Data[player].TestRaycastVisualizers) do
@@ -201,9 +191,9 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       print(`no character`)
       return
    end
-   local replicationPart = thrownWeaponData.ReplicationPart  
-   if not replicationPart or not replicationPart.Parent then
-      warn(`no replication part found for thrown tool`)
+   local host = thrownWeaponData.Host  
+   if not host or not host.Parent then
+      warn(`no host found for thrown tool`)
       return
    end
    if thrownWeaponData.State == ThrownWeapons.StateEnum.Returning then
@@ -221,14 +211,13 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
    local speed = 0
    local slideSpeed = 0
    local hitboxRadius = toolData.Boomerang.HitboxRadius
-   local lastReplicatedPosition = replicationPart.Position
-   local raycastParams = RaycastsUtility.getProjectileObstructionParams({replicationPart, Characters})
+   local raycastParams = RaycastsUtility.getProjectileObstructionParams({host, Characters})
 
    local slideDirection = Vector3.new()
    local slideMomentum = 0 -- momentum carried by the slide
 
    thrownWeaponData.MovementConnection = RunService.Stepped:Connect(function(_, deltaTime)
-      if not replicationPart or not replicationPart.Parent then
+      if not host or not host.Parent then
          thrownWeaponData.MovementConnection:Disconnect()
          thrownWeaponData.MovementConnection = nil
          return
@@ -242,12 +231,12 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       end
 
       -- // Prioritize movement towards the player
-      local toPlayer = (rootPart.Position - replicationPart.Position)
+      local toPlayer = (rootPart.Position - host:GetPivot().Position)
       local distance = toPlayer.Magnitude
       local direction = toPlayer.Unit
 
       -- // Raycast in that direction for an obstruction
-      local rayOrigin = replicationPart.Position
+      local rayOrigin = host:GetPivot().Position
       local rayDistance = (math.max(speed, hitboxRadius)) * deltaTime
       local raycastResult = raycastWithHorizontalHitbox(rayOrigin, direction, rayDistance, hitboxRadius, raycastParams, thrownWeaponData)
 
@@ -286,10 +275,9 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
             return
          end
 
-         replicationPart:PivotTo(
-            replicationPart.CFrame + slideDirection * slideDistance
+         host:PivotTo(
+            host:GetPivot() + slideDirection * slideDistance
          )
-         lastReplicatedPosition = replicateIfMoved(player.UserId, replicationPart, lastReplicatedPosition)
       else
          slideMomentum = math.clamp(slideMomentum - (deltaTime * 10), 0, 1)
          local blendedDirection = slideDirection * slideMomentum + direction * (1 - slideMomentum)
@@ -298,8 +286,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
 
          speed = math.min(speed + deltaTime * 100, toolData.Boomerang.Speed)
          slideSpeed = speed
-         replicationPart:PivotTo(replicationPart.CFrame + blendedDirection * blendedSpeed * deltaTime)
-         lastReplicatedPosition = replicateIfMoved(player.UserId, replicationPart, lastReplicatedPosition)
+         host:PivotTo(host:GetPivot() + blendedDirection * blendedSpeed * deltaTime)
       end
 
       if distance <= speed * deltaTime then
