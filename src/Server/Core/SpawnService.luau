@@ -36,7 +36,7 @@ type PlayerDiedEventTask = (player: Player) -> ()
 -------------------------------------------------------------------------------
 
 SpawnService.PlayerDiedTasks = TasksList.new() :: TasksList.TasksList<PlayerDiedEventTask>
-ArenaService.PlayerSpawnedTasks = TasksList.new() :: TasksList.TasksList<(player: Player, inArena: boolean)->()>
+SpawnService.PlayerSpawnedTasks = TasksList.new() :: TasksList.TasksList<(player: Player, inArena: boolean)->()>
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -83,6 +83,7 @@ function SpawnService.init()
       setPlayerSpawnpoint(player)
 
       player.CharacterAdded:Connect(function()
+         SpawnService.PlayerSpawnedTasks:Execute("parallel", player, if player.RespawnLocation then player.RespawnLocation:IsDescendantOf(game.Workspace.Arena) else false)
          local humanoid = safeGetHumanoid(safeGetPlayerCharacter(player))
          if humanoid then
             humanoid.Died:Connect(function()

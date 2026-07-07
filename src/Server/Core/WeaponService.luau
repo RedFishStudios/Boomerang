@@ -128,8 +128,6 @@ function WeaponService.init()
 
    -- // Manual recall boomerang
    recallEvent.OnServerEvent:Connect(function(Player: Player)
-      warn(`recalling! current thrown weapons dataa: `)
-      print(ThrownWeapons.Data)
       local thrownWeaponData = ThrownWeapons.Data[Player]
       if not thrownWeaponData then
          print(`player has no thrown weapon to recall`)

@@ -20,7 +20,7 @@ local Gamemodes: {
       Id = "Classic",
       Subheader = "Have the highest score when the timer runs out!",
       CanRespawn = true,
-      TimeLasts = 8
+      TimeLasts = 2
    },
    Elimination = {
       Id = "Elimination",
@@ -32,7 +32,7 @@ local Gamemodes: {
       Id = "ThrowBoomerang",
       Subheader = "Throw the boomerang 12 times (test)",
       CanRespawn = true,
-      TimeLasts = 8
+      TimeLasts = 2
    },
 }
 

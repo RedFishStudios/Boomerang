@@ -5,19 +5,25 @@ type RoundFinishedTask = ()->()
 
 local CurrentGameState: {
    IsInRound: boolean,
-   RoundTypeId: string?, -- If in a round
+   Gamemode: string?, -- If in a round
    CurrentMapName: string?, -- If in a round
    RemainingTime: number?, -- If in a round
-   RoundFinishedTasks: TasksList.TasksList<RoundFinishedTask>, -- Should be called only from within the GamemodeLogics module
+
+   LivingPlayersInArena: {Player},
+   LivingPlayersInArenaUpdatedTasks: TasksList.TasksList<({Player})->()>,
+   RoundFinishedTasks: TasksList.TasksList<()->()>, -- Should be called only from within the GamemodeLogics module
 
    -- Copied over from Gamemodes data when a round is set
    CanRespawn: boolean?
 } = {
    IsInRound = false,
-   RoundTypeId = nil,
+   Gamemode = nil,
    CurrentMapName = nil,
    RemainingTime = nil,
    CanRespawn = nil,
+
+   LivingPlayersInArena = {},
+   LivingPlayersInArenaUpdatedTasks = TasksList.new(),
    RoundFinishedTasks = TasksList.new()
 }
 

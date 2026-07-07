@@ -17,6 +17,9 @@ local Gamemodes = require(SharedConstants.Gamemodes)
 local CurrentGameState = require(ReplicatedStorage.Shared.Referential.CurrentGameState)
 local ArenaService = require(ServerStorage.Server.Core.ArenaService)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
+local SpawnService = require(ServerStorage.Server.Core.SpawnService)
+local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
+local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 
 local GamemodeLogics = ServerStorage.Server.Logics.GamemodeLogics
 local GamemodeLogicModules = {}
@@ -35,7 +38,6 @@ local GamemodeLogicModules = {}
 
 local roundDurationConnection: RBXScriptConnection? = nil
 local currentRoundEndsAt: number? = nil
-local currentRoundTypeId: string? = nil
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -63,9 +65,9 @@ local function updateRoundDuration()
       roundDurationConnection:Disconnect()
       roundDurationConnection = nil
       currentRoundEndsAt = nil
-      if currentRoundTypeId then
-         local roundLogic = getLogic(currentRoundTypeId)
-         currentRoundTypeId = nil
+      if CurrentGameState.Gamemode then
+         local roundLogic = getLogic(CurrentGameState.Gamemode)
+         CurrentGameState.Gamemode = nil
          if roundLogic and roundLogic.teardown then
             roundLogic.teardown()
          end
@@ -82,12 +84,12 @@ function RoundCyclingService.isInRound(): boolean
 end
 
 function RoundCyclingService.getCurrentRoundTypeId(): string?
-   return CurrentGameState.RoundTypeId
+   return CurrentGameState.Gamemode
 end
 
 -- // Returns true if current round permits late joining for the given player
 function RoundCyclingService.canSpawnIntoRound(player: Player): boolean
-   if not CurrentGameState.IsInRound or not CurrentGameState.RoundTypeId then
+   if not CurrentGameState.IsInRound or not CurrentGameState.Gamemode then
       return false
    end
    return CurrentGameState.CanRespawn
@@ -114,7 +116,7 @@ function RoundCyclingService.setNextRound(roundTypeId: string, mapName: string)
    local roundDuration = roundType.TimeLasts
    local notificationServerTime = workspace:GetServerTimeNow()
 
-   CurrentGameState.RoundTypeId = roundTypeId
+   CurrentGameState.Gamemode = roundTypeId
    CurrentGameState.CurrentMapName = mapName
    CurrentGameState.RemainingTime = roundDuration
    CurrentGameState.IsInRound = true
@@ -126,7 +128,6 @@ function RoundCyclingService.setNextRound(roundTypeId: string, mapName: string)
       roundLogic.setup()
    end
 
-   currentRoundTypeId = roundTypeId
    SimpleRemotes.getEvent("NewRoundStarted"):FireAllClients(roundTypeId, roundDuration, notificationServerTime)
 	currentRoundEndsAt = notificationServerTime + roundDuration
    if roundDurationConnection  then
@@ -143,6 +144,30 @@ end
 function RoundCyclingService.init()
    SimpleRemotes.getEvent("NewRoundStarted")
 
+   SpawnService.PlayerDiedTasks:Add(function(Player: Player)
+      print(CurrentGameState.LivingPlayersInArena)
+      local i = table.find(CurrentGameState.LivingPlayersInArena, Player)
+      if i then 
+         table.remove(CurrentGameState.LivingPlayersInArena, i)
+         CurrentGameState.LivingPlayersInArenaUpdatedTasks:Execute("parallel", CurrentGameState.LivingPlayersInArena)
+      end
+   end)
+
+   SpawnService.PlayerSpawnedTasks:Add(function(player: Player, inArena: boolean)
+      if not table.find(CurrentGameState.LivingPlayersInArena, player) then
+         table.insert(CurrentGameState.LivingPlayersInArena, player)
+         CurrentGameState.LivingPlayersInArenaUpdatedTasks:Execute("parallel", CurrentGameState.LivingPlayersInArena)
+      end
+   end)
+
+   PlayersUtil.onPlayerRemoving(function(player: Player)
+      local i = table.find(CurrentGameState.LivingPlayersInArena, player)
+      if i then 
+         table.remove(CurrentGameState.LivingPlayersInArena, i)
+         CurrentGameState.LivingPlayersInArenaUpdatedTasks:Execute("parallel", CurrentGameState.LivingPlayersInArena)
+      end
+   end)
+
 	task.spawn(function()
       task.wait(2)
       RoundCyclingService.setNextRound("ThrowBoomerang", "GenericA")
@@ -150,6 +175,9 @@ function RoundCyclingService.init()
 
    CurrentGameState.RoundFinishedTasks:Add(function()
       print("A ROUND FINISHED - BEGINNING INTERMISSION -")
+
+      table.clear(CurrentGameState.LivingPlayersInArena)
+      CurrentGameState.LivingPlayersInArenaUpdatedTasks:Execute("parallel", CurrentGameState.LivingPlayersInArena)
 
       if roundDurationConnection  then
          roundDurationConnection:Disconnect()

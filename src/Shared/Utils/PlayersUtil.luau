@@ -20,6 +20,10 @@ function PlayersUtil.onCharacterAdded(player: Player, handler: (character: Model
 	return player.CharacterAdded:Connect(handler)
 end
 
+function PlayersUtil.onPlayerRemoving(handler: (player: Player) -> ())
+	return Players.PlayerRemoving:Connect(handler)
+end
+
 function PlayersUtil.isAlive(player: Player)
 	local character = player.Character
 	if not character then

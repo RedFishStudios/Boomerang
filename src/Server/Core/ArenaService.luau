@@ -12,6 +12,7 @@ local ArenaService = {}
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 
+local CurrentGameState = require(ReplicatedStorage.Shared.Referential.CurrentGameState)
 local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 
@@ -221,10 +222,15 @@ function ArenaService.setArena(mapName: string)
          local chosenSpawnPoint = candidateSpawnPoints[math.random(1, #candidateSpawnPoints)]
          spawnPointUsage[chosenSpawnPoint] = spawnPointUsage[chosenSpawnPoint] + 1
          sendPlayerToSpawnPosition(player, chosenSpawnPoint.Position)
+
+         if not table.find(CurrentGameState.LivingPlayersInArena, player) then
+            table.insert(CurrentGameState.LivingPlayersInArena, player)
+         end
       end
    end
 
    ArenaService.MapChangedTasks:Execute("parallel")
+   CurrentGameState.LivingPlayersInArenaUpdatedTasks:Execute("parallel", CurrentGameState.LivingPlayersInArena)
 end
 
 -------------------------------------------------------------------------------
