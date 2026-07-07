@@ -39,6 +39,10 @@ local RemoteCodes = GeneralUtil.deepFreeze({
 		Events = {
 			Throw = 0,
 		},
+
+		Unreliable = {
+			BoomerangSnapshot = 0,
+		},
 	},
 
 	-- Services

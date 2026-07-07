@@ -78,11 +78,12 @@ function WeaponService.init()
    replicationPart.Name = "ThrownWeaponReplication"
    replicationPart.Shape = Enum.PartType.Cylinder
    replicationPart.Size = Vector3.new(3, 3, 3)
+   replicationPart.Material = "Neon"
    replicationPart.Anchored = true
    replicationPart.CanCollide = false
    replicationPart.CanQuery = false
    replicationPart.CanTouch = false
-   replicationPart.Transparency = .8
+   replicationPart.Transparency = .6
    replicationPart.Parent = game.ReplicatedStorage.Shared.Assets
 
    -- // Throw boomerang

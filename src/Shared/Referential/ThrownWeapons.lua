@@ -17,6 +17,11 @@ export type Data = {
    State: number,
 
    Host: Part | Model,
+   Direction: Vector3?,
+   Speed: number?,
+   SyncTargetPosition: Vector3?,
+   ServerDirection: Vector3?,
+   ServerSpeed: number?,
    
    MovementConnection: RBXScriptConnection?,
    TestRaycastVisualizers: {Part}
