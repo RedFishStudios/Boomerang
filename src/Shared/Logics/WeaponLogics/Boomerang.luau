@@ -63,7 +63,7 @@ local function fireSpawned(ownerUserId: number, boomerangId: string, position: V
 
    local payload = buffer.create(SPAWN_PACKET_SIZE)
    local offset = 0
-   offset = BufferUtil.writeu32(payload, offset, ownerUserId)
+   offset = BufferUtil.writei32(payload, offset, ownerUserId)
    offset = BufferUtil.writeVector3_96(payload, offset, position)
    offset = BufferUtil.writeVector3_96(payload, offset, direction)
    offset = BufferUtil.writef32(payload, offset, speed)
@@ -77,7 +77,7 @@ local function fireDespawned(ownerUserId: number)
       return
    end
    local payload = buffer.create(DESPAWN_PACKET_SIZE)
-   BufferUtil.writeu32(payload, 0, ownerUserId)
+   BufferUtil.writei32(payload, 0, ownerUserId)
    -- TODO: fire only for players that are currently in game or spectating? (if lobby is out of sight, they don't need to see this)
    thrownBoomerangDespawnedRemote:FireAllClients(payload)
 end
@@ -90,7 +90,7 @@ local function fireSnapshot(ownerUserId: number, position: Vector3, direction: V
    local payload = buffer.create(SNAPSHOT_PACKET_SIZE)
    local offset = 0
    offset = BufferUtil.writeu8(payload, offset, WEAPON_UNRELIABLE_CODES.BoomerangSnapshot)
-   offset = BufferUtil.writeu32(payload, offset, ownerUserId)
+   offset = BufferUtil.writei32(payload, offset, ownerUserId)
    offset = BufferUtil.writeVector3_96(payload, offset, position)
    offset = BufferUtil.writeVector3_96(payload, offset, direction)
    offset = BufferUtil.writef32(payload, offset, speed)
@@ -147,6 +147,49 @@ local function raycastWithHorizontalHitbox(
    return finalResult
 end
 
+-- // If this raycast struck object is a player that should be damaged
+local function damagingPlayer(player: Player, boomerangPosition: Vector3, struckObject: Instance): (Player?, Model?)
+   if not struckObject then
+      return nil
+   end
+   if not struckObject:IsDescendantOf(Characters) then
+      return nil
+   end
+   local Model = struckObject:FindFirstAncestorOfClass("Model")
+   if not Model then
+      return nil
+   end
+   local otherPlayer = game.Players:GetPlayerFromCharacter(Model)
+   if not otherPlayer then
+      return nil
+   end
+   local Humanoid = Model:FindFirstChildOfClass("Humanoid")
+   if not Humanoid or Humanoid.Health <= 0 then
+      return nil
+   end
+   -- TODO: get proper radius of boomerang
+   if (boomerangPosition - Model.PrimaryPart.Position).Magnitude > 5 then
+      print("hit player, too far")
+      return nil
+   end
+   if otherPlayer == player then
+      if GlobalConfig.CanHurtSelf then
+         return otherPlayer, Model
+      end
+      return nil
+   end
+   local otherPlayerTeam = otherPlayer.Team
+   if otherPlayerTeam == player.Team then
+      if otherPlayerTeam:GetAttribute("FriendlyFire") then
+         return otherPlayer, Model
+      end
+      return nil
+   else
+      return otherPlayer, Model
+   end
+end
+
+-- // Throw a boomerang onto the field
 function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.Tool, thrownWeaponData: ThrownWeapons.Data, options: ThrowInitOptions?)
    if not toolData.Boomerang then
       warn(`this is not a boomerang`)
@@ -210,42 +253,24 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       -- Result
       if raycastResult then
          local struckObject = raycastResult.Instance
+         local victimPlayer, victimCharacter = damagingPlayer(player, rayOrigin, struckObject)
 
-         local function damagingPlayer(player: Player, struckObject: Instance): Player?
-            if struckObject:IsDescendantOf(Characters) then
-               local Model = struckObject:FindFirstAncestorOfClass("Model")
-               if Model then
-                  local otherPlayer = game.Players:GetPlayerFromCharacter(Model)
-                  local Humanoid = Model:FindFirstChildOfClass("Humanoid")
-                  if Humanoid and Humanoid.Health > 0 then
-                     return game.Players:GetPlayerFromCharacter(Model)
-                  end
-               end
-            end
-            return nil
-         end
-
-         if struckObject:IsDescendantOf(Characters) then
-            local Model = struckObject:FindFirstAncestorOfClass("Model")
-            if Model then
-               local Humanoid = Model:FindFirstChildOfClass("Humanoid")
-               if Humanoid then
-                  if Humanoid.Health > 0 then
-                     
-                  end
-               end
-            end
-            print('STRUCK A PLAYER')
-            if energy > 0 and CurrentGameState.IsInRound then 
-               print(`deal damage`)
-               if shouldRecallTransitions then
-                  Boomerang.recall(player, boomerangId, toolData, thrownWeaponData)
-               end
-            else
-               print(`hit player while on exhausted recoil`)
+         if victimPlayer and victimCharacter then
+            if shouldRecallTransitions then
+                 Boomerang.recall(player, boomerangId, toolData, thrownWeaponData)
             end
             thrownWeaponData.Direction = direction
             thrownWeaponData.Speed = speed
+
+            if isServer then
+               local Humanoid = victimCharacter:FindFirstChildOfClass("Humanoid")
+               if Humanoid and Humanoid.Health > 0 then
+                  Humanoid:TakeDamage(100000)
+               end
+            else
+               print("play effect on client")
+            end
+
             return true
          else
             energy -= 1

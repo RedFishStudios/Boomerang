@@ -2,7 +2,7 @@
 	<Meta name="ExplicitAutoJoints">true</Meta>
 	<External>null</External>
 	<External>nil</External>
-	<Item class="Tool" referent="RBX4BB96CEEF1B74316B259F46817DC6D02">
+	<Item class="Tool" referent="RBXB36B89A1AE694705B25ABDD09AD69BBC">
 		<Properties>
 			<bool name="CanBeDropped">false</bool>
 			<bool name="Enabled">true</bool>
@@ -34,9 +34,9 @@
 				<R02>0</R02>
 				<R10>0</R10>
 				<R11>1</R11>
-				<R12>-4.37113883e-08</R12>
+				<R12>0</R12>
 				<R20>0</R20>
-				<R21>4.37113883e-08</R21>
+				<R21>0</R21>
 				<R22>1</R22>
 			</CoordinateFrame>
 			<SharedString name="ModelMeshData">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
@@ -63,17 +63,17 @@
 					<R12>1</R12>
 					<R20>0</R20>
 					<R21>1</R21>
-					<R22>0</R22>
+					<R22>-0</R22>
 				</CFrame>
 			</OptionalCoordinateFrame>
 			<BinaryString name="AttributesSerialize"></BinaryString>
 			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
 			<bool name="DefinesCapabilities">false</bool>
-			<string name="Name">Boomerang</string>
+			<string name="Name">ClassicBoomerang</string>
 			<int64 name="SourceAssetId">6548275326</int64>
 			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 		</Properties>
-		<Item class="MeshPart" referent="RBX017B7B129D3840339F093A1895ACA610">
+		<Item class="MeshPart" referent="RBXC35BC00AA59344118B6102E787BA069A">
 			<Properties>
 				<bool name="DoubleSided">false</bool>
 				<bool name="HasJointOffset">false</bool>
@@ -113,8 +113,8 @@
 					<Z>-0.000703187427</Z>
 				</Vector3>
 				<float name="UnscaledVolume">0.198720247</float>
-				<bool name="Anchored">false</bool>
-				<bool name="AudioCanCollide">true</bool>
+				<bool name="Anchored">true</bool>
+				<bool name="AudioCanCollide">false</bool>
 				<float name="BackParamA">-0.5</float>
 				<float name="BackParamB">0.5</float>
 				<token name="BackSurface">0</token>
@@ -135,11 +135,11 @@
 					<R12>1</R12>
 					<R20>0</R20>
 					<R21>1</R21>
-					<R22>0</R22>
+					<R22>-0</R22>
 				</CoordinateFrame>
-				<bool name="CanCollide">true</bool>
-				<bool name="CanQuery">true</bool>
-				<bool name="CanTouch">true</bool>
+				<bool name="CanCollide">false</bool>
+				<bool name="CanQuery">false</bool>
+				<bool name="CanTouch">false</bool>
 				<bool name="CastShadow">true</bool>
 				<string name="CollisionGroup">Default</string>
 				<int name="CollisionGroupId">0</int>

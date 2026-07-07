@@ -178,7 +178,8 @@ end
 
 function WeaponController.init()
     thrownBoomerangSpawnedEvent.OnClientEvent:Connect(function(toolId: string, payload: buffer)
-      local ownerUserId, offset = BufferUtil.readu32(payload, 0)
+      print("thrown boomerang spawned received!")
+      local ownerUserId, offset = BufferUtil.readi32(payload, 0)
       local startPosition
       startPosition, offset = BufferUtil.readVector3_96(payload, offset)
       local direction
@@ -187,14 +188,17 @@ function WeaponController.init()
       speed, offset = BufferUtil.readf32(payload, offset)
       local throwServerTime
       throwServerTime, offset = BufferUtil.readf64(payload, offset)
+      print(ownerUserId, startPosition, direction, speed, throwServerTime)
 
       local forPlayer = Players:GetPlayerByUserId(ownerUserId)
       if not forPlayer then
+         warn(`no player source found for userId: {ownerUserId}`)
          return
       end
 
       local toolData = Tools[toolId]
       if not toolData then
+         warn(`no tool data found for toolId: {toolId}`)
          return
       end
 
@@ -207,7 +211,7 @@ function WeaponController.init()
    end)
 
    thrownBoomerangDespawnedEvent.OnClientEvent:Connect(function(payload: buffer)
-      local ownerUserId = BufferUtil.readu32(payload, 0)
+      local ownerUserId = BufferUtil.readi32(payload, 0)
       local forPlayer = Players:GetPlayerByUserId(ownerUserId)
       if not forPlayer then
          return
@@ -222,7 +226,7 @@ function WeaponController.init()
       end
 
       local ownerUserId
-      ownerUserId, offset = BufferUtil.readu32(payload, offset)
+      ownerUserId, offset = BufferUtil.readi32(payload, offset)
       local position
       position, offset = BufferUtil.readVector3_96(payload, offset)
       local direction

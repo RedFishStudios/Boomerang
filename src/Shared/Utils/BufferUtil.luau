@@ -81,6 +81,15 @@ function BufferUtil.readu32(b: buffer, offset: number)
 	return buffer.readu32(b, offset), offset + 4
 end
 
+function BufferUtil.writei32(b: buffer, offset: number, value: number)
+	buffer.writei32(b, offset, value)
+	return offset + 4
+end
+
+function BufferUtil.readi32(b: buffer, offset: number)
+	return buffer.readi32(b, offset), offset + 4
+end
+
 function BufferUtil.writeColor_24(b: buffer, offset: number, color: Color3)
 	offset = BufferUtil.writeu8(b, offset, color.R * 255)
 	offset = BufferUtil.writeu8(b, offset, color.G * 255)

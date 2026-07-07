@@ -88,6 +88,7 @@ function WeaponService.init()
 
    -- // Throw boomerang
 	throwEvent.OnServerEvent:Connect(function(player: Player, toolId: string)
+      print(player)
       if not CurrentGameState.IsInRound then
          return
       end
