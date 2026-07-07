@@ -76,14 +76,14 @@ function WeaponService.init()
    -- // Create thrown weapon replication part
    local replicationPart = Instance.new("Part")
    replicationPart.Name = "ThrownWeaponReplication"
-   replicationPart.Shape = Enum.PartType.Cylinder
+   replicationPart.Shape = Enum.PartType.Ball
    replicationPart.Size = Vector3.new(3, 3, 3)
    replicationPart.Material = "Neon"
    replicationPart.Anchored = true
    replicationPart.CanCollide = false
    replicationPart.CanQuery = false
    replicationPart.CanTouch = false
-   replicationPart.Transparency = .6
+   replicationPart.Transparency = 1
    replicationPart.Parent = game.ReplicatedStorage.Shared.Assets
 
    -- // Throw boomerang
@@ -127,12 +127,13 @@ function WeaponService.init()
 
    -- // Manual recall boomerang
    recallEvent.OnServerEvent:Connect(function(Player: Player)
+      warn(`recalling! current thrown weapons dataa: `)
+      print(ThrownWeapons.Data)
       local thrownWeaponData = ThrownWeapons.Data[Player]
       if not thrownWeaponData then
          print(`player has no thrown weapon to recall`)
          return
       end
-      thrownWeaponData.State = ThrownWeapons.StateEnum.Recalling
 
       local toolData = Tools[thrownWeaponData.ToolId]
       local Logic = getLogic(toolData.LogicClass)

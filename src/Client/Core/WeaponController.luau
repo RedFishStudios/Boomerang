@@ -83,17 +83,33 @@ local function clearThrownWeapon(forPlayer: Player)
    logic.removeFromField(forPlayer, thrownWeaponData)
 end
 
+-- // Register a snapshot of a server-authoritative position
 local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vector3, speed: number, state: number, serverTime: number)
    local thrownWeaponData = ThrownWeapons.Data[forPlayer]
    if not thrownWeaponData or not thrownWeaponData.Host or not thrownWeaponData.Host.Parent then
       return
    end
 
+   local previousState = thrownWeaponData.State
    local catchup = math.clamp(workspace:GetServerTimeNow() - serverTime, 0, MAX_SNAPSHOT_CATCHUP)
    local authoritativePosition = position + direction * speed * catchup
 
    thrownWeaponData.ServerDirection = direction
    thrownWeaponData.ServerSpeed = speed
+   thrownWeaponData.Direction = direction
+   thrownWeaponData.Speed = speed
+
+   if previousState ~= ThrownWeapons.StateEnum.Returning and state == ThrownWeapons.StateEnum.Returning then
+      print(`client returning`)
+      local toolData = Tools[thrownWeaponData.ToolId]
+      if toolData then
+         local logic = getLogic(toolData.LogicClass)
+         logic.recall(forPlayer, thrownWeaponData.ToolId, toolData, thrownWeaponData, {
+            InitialSpeed = speed,
+         })
+      end
+   end
+
    thrownWeaponData.State = state
 
    local currentPosition = thrownWeaponData.Host:GetPivot().Position
@@ -108,6 +124,7 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
    thrownWeaponData.SyncTargetPosition = authoritativePosition
 end
 
+-- // Sync client-rendered positions smoothly to server-authoritative positions
 local function updateSmoothing(deltaTime: number)
    for _, thrownWeaponData in pairs(ThrownWeapons.Data) do
       if not thrownWeaponData.SyncTargetPosition then
@@ -134,8 +151,33 @@ local function updateSmoothing(deltaTime: number)
    end
 end
 
-local function loadRemotes()
-   thrownBoomerangSpawnedEvent.OnClientEvent:Connect(function(toolId: string, payload: buffer)
+-------------------------------------------------------------------------------
+-- PUBLIC FUNCTIONS
+-------------------------------------------------------------------------------
+
+function WeaponController.startThrownWeapon(forPlayer: Player, toolId: string, toolData: Tools.Tool, initOptions)
+   clearThrownWeapon(forPlayer)
+
+   ThrownWeapons.Data[forPlayer] = {
+      ToolId = toolId,
+      State = ThrownWeapons.StateEnum.Outgoing,
+      ReplicationPart = nil,
+      TestRaycastVisualizers = createRaycastVisualizers(),
+      SyncTargetPosition = nil,
+      ServerDirection = nil,
+      ServerSpeed = nil,
+   }
+
+   local logic = getLogic(toolData.LogicClass)
+   logic.throw(forPlayer, toolId, toolData, ThrownWeapons.Data[forPlayer], initOptions)
+end
+
+-------------------------------------------------------------------------------
+-- CORE FUNCTIONS
+-------------------------------------------------------------------------------
+
+function WeaponController.init()
+    thrownBoomerangSpawnedEvent.OnClientEvent:Connect(function(toolId: string, payload: buffer)
       local ownerUserId, offset = BufferUtil.readu32(payload, 0)
       local startPosition
       startPosition, offset = BufferUtil.readVector3_96(payload, offset)
@@ -199,35 +241,7 @@ local function loadRemotes()
 
       onSnapshot(forPlayer, position, getHorizontalDirection(direction), speed, state, serverTime)
    end)
-end
 
--------------------------------------------------------------------------------
--- PUBLIC FUNCTIONS
--------------------------------------------------------------------------------
-
-function WeaponController.startThrownWeapon(forPlayer: Player, toolId: string, toolData: Tools.Tool, initOptions)
-   clearThrownWeapon(forPlayer)
-
-   ThrownWeapons.Data[forPlayer] = {
-      ToolId = toolId,
-      State = ThrownWeapons.StateEnum.Outgoing,
-      ReplicationPart = nil,
-      TestRaycastVisualizers = createRaycastVisualizers(),
-      SyncTargetPosition = nil,
-      ServerDirection = nil,
-      ServerSpeed = nil,
-   }
-
-   local logic = getLogic(toolData.LogicClass)
-   logic.throw(forPlayer, toolId, toolData, ThrownWeapons.Data[forPlayer], initOptions)
-end
-
--------------------------------------------------------------------------------
--- CORE FUNCTIONS
--------------------------------------------------------------------------------
-
-function WeaponController.init()
-   loadRemotes()
    RunService.PreSimulation:Connect(updateSmoothing)
 
 	UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessed: boolean)

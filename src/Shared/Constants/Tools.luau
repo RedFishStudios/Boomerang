@@ -20,7 +20,7 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
       LogicClass = "Boomerang",
 
       Boomerang = {
-         Bounces = 2,
+         Bounces = 10,
          HitboxRadius = 1,
          Speed = 60
       }

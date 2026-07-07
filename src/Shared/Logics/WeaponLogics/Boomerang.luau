@@ -44,6 +44,10 @@ type ThrowInitOptions = {
    ThrowServerTime: number?
 }
 
+type RecallInitOptions = {
+   InitialSpeed: number?
+}
+
 local function getHorizontalDirection(direction: Vector3): Vector3
    local horizontal = Vector3.new(direction.X, 0, direction.Z)
    if horizontal.Magnitude <= 1e-5 then
@@ -184,7 +188,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    local raycastParams = RaycastsUtility.getProjectileObstructionParams({thrownWeaponData.Host}) -- TODO: add throwing player or anyone on the throwing player's team
    local nextReplicationAt = 0
 
-   local function simulateStep(deltaTime: number, shouldRecallOnExhaustion: boolean)
+   local function simulateStep(deltaTime: number, shouldRecallTransitions: boolean)
       if not thrownWeaponData.Host or not thrownWeaponData.Host.Parent then
          return false
       end
@@ -206,21 +210,49 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       -- Result
       if raycastResult then
          local struckObject = raycastResult.Instance
-         print(`Boomerang struck {struckObject.Name}`)
+
+         local function damagingPlayer(player: Player, struckObject: Instance): Player?
+            if struckObject:IsDescendantOf(Characters) then
+               local Model = struckObject:FindFirstAncestorOfClass("Model")
+               if Model then
+                  local otherPlayer = game.Players:GetPlayerFromCharacter(Model)
+                  local Humanoid = Model:FindFirstChildOfClass("Humanoid")
+                  if Humanoid and Humanoid.Health > 0 then
+                     return game.Players:GetPlayerFromCharacter(Model)
+                  end
+               end
+            end
+            return nil
+         end
 
          if struckObject:IsDescendantOf(Characters) then
+            local Model = struckObject:FindFirstAncestorOfClass("Model")
+            if Model then
+               local Humanoid = Model:FindFirstChildOfClass("Humanoid")
+               if Humanoid then
+                  if Humanoid.Health > 0 then
+                     
+                  end
+               end
+            end
             print('STRUCK A PLAYER')
             if energy > 0 and CurrentGameState.IsInRound then 
                print(`deal damage`)
+               if shouldRecallTransitions then
+                  Boomerang.recall(player, boomerangId, toolData, thrownWeaponData)
+               end
             else
                print(`hit player while on exhausted recoil`)
             end
+            thrownWeaponData.Direction = direction
+            thrownWeaponData.Speed = speed
+            return true
          else
             energy -= 1
             direction = direction - 2 * direction:Dot(raycastResult.Normal) * raycastResult.Normal
             direction = getHorizontalDirection(direction)
             if energy == 0 then
-               if shouldRecallOnExhaustion then
+               if shouldRecallTransitions then
                   Boomerang.recall(player, boomerangId, toolData, thrownWeaponData)
                else
                   thrownWeaponData.State = ThrownWeapons.StateEnum.Exhausted
@@ -285,7 +317,8 @@ function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapo
    ThrownWeapons.Data[player] = nil
 end
 
-function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.Tool, thrownWeaponData: ThrownWeapons.Data)
+function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.Tool, thrownWeaponData: ThrownWeapons.Data, options: RecallInitOptions?)
+   print("recall")
    if not toolData.Boomerang then
       warn(`this is not a boomerang`)
       return
@@ -312,10 +345,11 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
    end
 
    local maximumSpeed = toolData.Boomerang.Speed
-   local speed = 0
+   local speed = options and options.InitialSpeed or 0
    local slideSpeed = 0
    local hitboxRadius = toolData.Boomerang.HitboxRadius
    local raycastParams = RaycastsUtility.getProjectileObstructionParams({host, Characters})
+   local nextReplicationAt = 0
 
    local slideDirection = Vector3.new()
    local slideMomentum = 0 -- momentum carried by the slide
@@ -337,6 +371,10 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       -- // Prioritize movement towards the player
       local toPlayer = (rootPart.Position - host:GetPivot().Position)
       local distance = toPlayer.Magnitude
+      if distance <= 1e-5 then
+         Boomerang.removeFromField(player, thrownWeaponData)
+         return
+      end
       local direction = toPlayer.Unit
 
       -- // Raycast in that direction for an obstruction
@@ -393,11 +431,28 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          host:PivotTo(host:GetPivot() + blendedDirection * blendedSpeed * deltaTime)
       end
 
+      thrownWeaponData.Direction = direction
+      thrownWeaponData.Speed = math.max(speed, slideSpeed)
+
+      if isServer and os.clock() >= nextReplicationAt and host and host.Parent then
+         nextReplicationAt = os.clock() + REPLICATION_RATE
+         fireSnapshot(player.UserId, host:GetPivot().Position, direction, thrownWeaponData.Speed, thrownWeaponData.State)
+      end
+
       if distance <= speed * deltaTime then
          Boomerang.removeFromField(player, thrownWeaponData)
          return
       end
    end)
+
+   if isServer and host and host.Parent then
+      local rootPart = character and character.PrimaryPart
+      local immediateDirection = thrownWeaponData.Direction or Vector3.zero
+      if rootPart then
+         immediateDirection = getHorizontalDirection(rootPart.Position - host:GetPivot().Position)
+      end
+      fireSnapshot(player.UserId, host:GetPivot().Position, immediateDirection, thrownWeaponData.Speed or speed, thrownWeaponData.State)
+   end
 end
 
 return Boomerang
