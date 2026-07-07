@@ -50,11 +50,13 @@ local TeamOptions: {
    [string]: {
       Name: string,
       Color: BrickColor,
+      FriendlyFire: boolean?
    },
 } = {
    FreeForAll = {
       Name = "Free for All!",
       Color = BrickColor.new("White"),
+      FriendlyFire = true
    },
    TeamRed = {
       Name = "Team Red!",
@@ -80,14 +82,18 @@ local TeamOptions: {
 
 local function safeGetTeam(name: string): Team
    if not Teams[name] then
-      if not TeamOptions[name] then
+      local teamOptionData =  TeamOptions[name] 
+      if not teamOptionData then
          error("No team color defined for team: "..name)
       end
       local team = Instance.new("Team")
-      team.Name = TeamOptions[name].Name
-      team.TeamColor = TeamOptions[name].Color
+      team.Name = teamOptionData.Name
+      team.TeamColor = teamOptionData.Color
       team.Parent = TeamService
       team.AutoAssignable = false
+      if teamOptionData.FriendlyFire ~= nil then
+         team:SetAttribute("FriendlyFire", teamOptionData.FriendlyFire)
+      end
       Teams[name] = team
    end
    return Teams[name]

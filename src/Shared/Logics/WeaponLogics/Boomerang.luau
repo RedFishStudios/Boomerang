@@ -56,6 +56,7 @@ local function getHorizontalDirection(direction: Vector3): Vector3
    return horizontal.Unit
 end
 
+-- // Notify all users of a boomerang spawn
 local function fireSpawned(ownerUserId: number, boomerangId: string, position: Vector3, direction: Vector3, speed: number, throwServerTime: number)
    if not isServer then
       return
@@ -72,16 +73,17 @@ local function fireSpawned(ownerUserId: number, boomerangId: string, position: V
    thrownBoomerangSpawnedRemote:FireAllClients(boomerangId, payload)
 end
 
+-- // Notify all users of a boomerang despawn
 local function fireDespawned(ownerUserId: number)
    if not isServer then
       return
    end
    local payload = buffer.create(DESPAWN_PACKET_SIZE)
    BufferUtil.writei32(payload, 0, ownerUserId)
-   -- TODO: fire only for players that are currently in game or spectating? (if lobby is out of sight, they don't need to see this)
    thrownBoomerangDespawnedRemote:FireAllClients(payload)
 end
 
+-- // Notify all users of a boomerang simulation snapshot
 local function fireSnapshot(ownerUserId: number, position: Vector3, direction: Vector3, speed: number, state: number)
    if not isServer then
       return
@@ -100,6 +102,7 @@ local function fireSnapshot(ownerUserId: number, position: Vector3, direction: V
    thrownWeaponReplicationRemote:FireAllClients(payload)
 end
 
+-- // Raycasting horizontally for horizontal moving boomerang collisions
 local function raycastWithHorizontalHitbox(
    rayOrigin: Vector3,
    direction: Vector3,
@@ -167,7 +170,7 @@ local function damagingPlayer(player: Player, boomerangPosition: Vector3, struck
    if not Humanoid or Humanoid.Health <= 0 then
       return nil
    end
-   -- TODO: get proper radius of boomerang
+   -- TODO: get proper radius of boomerang for a player collision
    if (boomerangPosition - Model.PrimaryPart.Position).Magnitude > 5 then
       print("hit player, too far")
       return nil
@@ -251,6 +254,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       local raycastResult = raycastWithHorizontalHitbox(rayOrigin, direction, rayDistance, hitboxRadius, raycastParams, thrownWeaponData)
 
       -- Result
+      -- TODO: players should not be considered obstructions; raycast separately for obstructions and for player victims
       if raycastResult then
          local struckObject = raycastResult.Instance
          local victimPlayer, victimCharacter = damagingPlayer(player, rayOrigin, struckObject)
