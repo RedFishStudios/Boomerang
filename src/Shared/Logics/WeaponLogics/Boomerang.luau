@@ -2,8 +2,9 @@
 
 local Boomerang = {}
 
-
 local RunService = game:GetService("RunService")
+
+local isServer = RunService:IsServer()
 
 local ReplicatedStorage = game.ReplicatedStorage
 local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
@@ -15,6 +16,13 @@ local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local CurrentGameState = require(ReplicatedStorage.Shared.Referential.CurrentGameState)
 
+-- // Context-Specific Modules
+local CombatService
+if isServer then
+   CombatService = require(game.ServerStorage.Server.Core.CombatService)
+end
+
+-- // Values
 local Characters = game.Workspace.Characters
 local ThrownWeaponsFolder = game.Workspace.ThrownWeapons
 local ThrownWeaponReplicationPart = ReplicatedStorage.Shared.Assets.ThrownWeaponReplication
@@ -23,7 +31,6 @@ local thrownBoomerangSpawnedRemote = SimpleRemotes.getEvent("ThrownBoomerangSpaw
 local thrownBoomerangDespawnedRemote = SimpleRemotes.getEvent("ThrownBoomerangDespawned")
 local thrownWeaponReplicationRemote = SimpleRemotes.getUnreliableEvent("ThrownWeaponReplication")
 
-local isServer = RunService:IsServer()
 
 local SLOW_RATE = 5
 local UP_VECTOR = Vector3.new(0, 1, 0)
@@ -47,6 +54,7 @@ type ThrowInitOptions = {
 type RecallInitOptions = {
    InitialSpeed: number?
 }
+
 
 local function getHorizontalDirection(direction: Vector3): Vector3
    local horizontal = Vector3.new(direction.X, 0, direction.Z)
@@ -269,7 +277,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
             if isServer then
                local Humanoid = victimCharacter:FindFirstChildOfClass("Humanoid")
                if Humanoid and Humanoid.Health > 0 then
-                  Humanoid:TakeDamage(100000)
+                  CombatService.damagePlayer(player, boomerangId, victimPlayer, Humanoid, 100000)
                end
             else
                print("play effect on client")
