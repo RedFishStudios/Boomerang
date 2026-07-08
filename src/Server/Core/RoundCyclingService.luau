@@ -29,6 +29,7 @@ local GamemodeLogicModules = {}
 -------------------------------------------------------------------------------
 
 local INTERMISSION_DURATION = 10
+local VOTE_DURATION = 8
 
 -------------------------------------------------------------------------------
 -- TYPES
@@ -42,6 +43,12 @@ local roundDurationConnection: RBXScriptConnection? = nil
 local currentRoundEndsAt: number? = nil
 
 local IntermissionStartedEvent = SimpleRemotes.getEvent("IntermissionStarted")
+local VoteUpdatedEvent = SimpleRemotes.getEvent("VoteUpdated")
+
+local votes: {[Player]: number} = {}
+local totalVotes = {0, 0}
+local awaitingVotes: {Player} = {}
+local voting = false
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -111,7 +118,7 @@ function RoundCyclingService.getNextGamemodeChoices(): {string}
       if not table.find(availableForChoice, choice) then
          table.insert(availableForChoice, choice)
       end
-   until #availableForChoice >= 3
+   until #availableForChoice >= 2
    return availableForChoice
 end
 
@@ -181,6 +188,23 @@ function RoundCyclingService.init()
          CurrentGameState.LivingPlayersInArena:Set(livingPlayersInArena)
          CurrentGameState.LivingPlayersInArenaUpdatedTasks:Execute("parallel", livingPlayersInArena)
       end
+      i = table.find(awaitingVotes, player)
+      if i then
+         table.remove(awaitingVotes, i)
+      end
+   end)
+
+   VoteUpdatedEvent.OnServerEvent:Connect(function(player: Player, index: number)
+      if votes[player] then
+         return
+      end
+      votes[player] = index
+      totalVotes[index] += 1
+      local i = table.find(awaitingVotes, player)
+      if i then
+         table.remove(awaitingVotes, i)
+      end
+      VoteUpdatedEvent:FireAllClients(totalVotes[1], totalVotes[2], nil)
    end)
 
 	task.spawn(function()
@@ -190,8 +214,6 @@ function RoundCyclingService.init()
 
    CurrentGameState.RoundFinishedTasks:Add(function(winner: Player?, winMessage: string)
       print("A ROUND FINISHED - BEGINNING INTERMISSION -")
-      local intermissionNotificationTime = workspace:GetServerTimeNow()
-      IntermissionStartedEvent:FireAllClients(winner, winMessage, INTERMISSION_DURATION, intermissionNotificationTime)
 
       local livingPlayersInArena = CurrentGameState.LivingPlayersInArena:Get()
       table.clear(livingPlayersInArena)
@@ -203,25 +225,17 @@ function RoundCyclingService.init()
          currentRoundEndsAt = nil
       end
 
-      -- // Establish available options for next round
-      local possibleMaps = ArenaService.getNextMapChoices()
+      -- // Start voting process
       local possibleGamemodes = RoundCyclingService.getNextGamemodeChoices()
-      local options: {
-         {
-            Gamemode: string,
-            Map: string
-         }
-      } = {}
-      repeat
-         local chosenMapIndex = math.random(#possibleMaps)
-         local chosenGamemodeIndex = math.random(#possibleGamemodes)
-         table.insert(options, {
-            Gamemode = possibleGamemodes[chosenGamemodeIndex],
-            Map = possibleMaps[chosenMapIndex]
-         })
-         table.remove(possibleMaps, chosenMapIndex)
-         table.remove(possibleGamemodes, chosenGamemodeIndex)
-      until #options == 3
+      voting = true
+      totalVotes[1] = 0
+      totalVotes[2] = 0
+      table.clear(votes)
+      table.clear(awaitingVotes)
+      for _, p in pairs(game.Players:GetPlayers()) do
+         table.insert(awaitingVotes, p)
+      end
+      IntermissionStartedEvent:FireAllClients(winner, winMessage, possibleGamemodes, INTERMISSION_DURATION, workspace:GetServerTimeNow())
 
       CurrentGameState.IsInRound = false
       CurrentGameState.RoundTypeId = nil
@@ -229,15 +243,50 @@ function RoundCyclingService.init()
       CurrentGameState.RemainingTime = nil
       CurrentGameState.CanRespawn = nil
 
-      -- // PLACEHOLDER: automated inermission with randomly chosen next round
-      local ticks = 0
+      -- Wait for votes
+      local elapsed = 0
       repeat
-         task.wait(1)
-         ticks+=1
-         print("Intermission...")
-      until ticks >= INTERMISSION_DURATION
-      local choice = math.random(#options)
-		RoundCyclingService.setNextRound("Elimination", options[choice].Map)
+         local deltaTime = RunService.Heartbeat:Wait()
+         elapsed += deltaTime
+      until elapsed >= VOTE_DURATION or #awaitingVotes == 0
+      voting = false
+      print(elapsed, VOTE_DURATION, awaitingVotes)
+      
+      -- Tally votes
+      -- Restart tally, just for safety
+      totalVotes[1] = 0
+      totalVotes[2] = 0
+      for player, vote in pairs(votes) do
+         if vote == 1 then
+            totalVotes[1] += 1
+         elseif vote == 2 then
+            totalVotes[2] += 1
+         end
+      end
+      
+      local chosenGamemode
+      if totalVotes[1] > totalVotes[2] then
+         chosenGamemode = possibleGamemodes[1]
+      elseif totalVotes[2] > totalVotes[1] then
+         chosenGamemode = possibleGamemodes[2]
+      else
+         chosenGamemode = possibleGamemodes[math.random(#possibleGamemodes)]
+      end
+      local untilNewRound = INTERMISSION_DURATION - VOTE_DURATION
+
+      VoteUpdatedEvent:FireAllClients(totalVotes[1], totalVotes[2], chosenGamemode, untilNewRound, workspace:GetServerTimeNow())
+      
+      elapsed = 0
+      repeat
+         local deltaTime = RunService.Heartbeat:Wait()
+         elapsed += deltaTime
+      until elapsed >= untilNewRound
+      -- TODO: do not start new round until minimum players; cancel voting if not at minimum players; etc
+
+      local availableMaps = ArenaService.getAvailableMaps(chosenGamemode)
+      local map = availableMaps[math.random(#availableMaps)]
+
+      RoundCyclingService.setNextRound(chosenGamemode, map)
    end)
 end
 

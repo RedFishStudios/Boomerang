@@ -15,6 +15,7 @@ local SharedMods = ReplicatedStorage.Shared
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local Gamemodes = require(SharedMods.Constants.Gamemodes)
 local _UIController = require(ClientMods.UI.UIController)
+local Gamemodes = require(SharedMods.Constants.Gamemodes)
 
 -- // Gui Values // --
 
@@ -96,15 +97,42 @@ local function _init()
    local GamemodeLabel = Gui.Header.GamemodeLabel
    local SubheaderLabel = Gui.Header.SubheaderLabel
    TimerLabel = Gui.Header.TimerLabel
+
    local VoteContainer = Gui.VoteContainer
+   local OptionAButton = VoteContainer.OptionA
+   local OptionBButton = VoteContainer.OptionB
+   local OptionACount = VoteContainer.OptionA.VoteCount
+   local OptionBCount = VoteContainer.OptionB.VoteCount
 
    VoteContainer.Visible = false
 
-   SimpleRemotes.getEvent("IntermissionStarted").OnClientEvent:Connect(function(winner: Player?, winMessage: string, intermissionDuration: number?, serverNotificationTime: number?)
+   SimpleRemotes.getEvent("VoteUpdated").OnClientEvent:Connect(function(optionA: number, optionB: number, chosenGamemode: string?, intermissionDuration: number?, serverNotificationTime: number?)
+      if chosenGamemode and intermissionDuration and serverNotificationTime then
+         VoteContainer.Visible = false
+         startCountdown(intermissionDuration, serverNotificationTime, "")
+      else
+         OptionACount.Text = optionA
+         OptionBCount.Text = optionB
+      end
+   end)
+
+   OptionAButton.Activated:Connect(function()
+      SimpleRemotes.getEvent("VoteUpdated"):FireServer(1)
+   end)
+
+   OptionBButton.Activated:Connect(function()
+      SimpleRemotes.getEvent("VoteUpdated"):FireServer(2)
+   end)
+
+   SimpleRemotes.getEvent("IntermissionStarted").OnClientEvent:Connect(function(winner: Player?, winMessage: string, options: {string}, intermissionDuration: number?, serverNotificationTime: number?)
       VoteContainer.Visible = true
       GamemodeLabel.Text = "Intermission"
       SubheaderLabel.Text = winMessage
+      OptionACount.Text = ""
+      OptionBCount.Text = ""
 
+      OptionAButton.TextLabel.Text = Gamemodes[options[1]].Display or options[1]
+      OptionBButton.TextLabel.Text = Gamemodes[options[2]].Display or options[2] or ""
       startCountdown(intermissionDuration, serverNotificationTime, "")
    end)
 

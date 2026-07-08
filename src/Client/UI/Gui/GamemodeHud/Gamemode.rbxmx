@@ -469,7 +469,7 @@
 				</Item>
 			</Item>
 		</Item>
-		<Item class="Frame" referent="RBXBA93B16A90734B52934C775A29B20C36">
+		<Item class="Frame" referent="RBX6092B07400C2412B8F35EA5CBC0C837F">
 			<Properties>
 				<token name="Style">0</token>
 				<bool name="Active">false</bool>
@@ -517,7 +517,7 @@
 					<YO>0</YO>
 				</UDim2>
 				<token name="SizeConstraint">1</token>
-				<bool name="Visible">false</bool>
+				<bool name="Visible">true</bool>
 				<int name="ZIndex">1</int>
 				<bool name="AutoLocalize">true</bool>
 				<Ref name="RootLocalizationTable">null</Ref>
@@ -533,7 +533,7 @@
 				<int64 name="SourceAssetId">-1</int64>
 				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			</Properties>
-			<Item class="TextButton" referent="RBX3E970EE6FD2846B4A85D24A3119F3C8D">
+			<Item class="TextButton" referent="RBX568930559FD24775953C84B9E7AF639A">
 				<Properties>
 					<Font name="FontFace">
 						<Family><url>rbxasset://fonts/families/SourceSansPro.json</url></Family>
@@ -612,10 +612,10 @@
 					<Ref name="SelectionImageObject">null</Ref>
 					<int name="SelectionOrder">0</int>
 					<UDim2 name="Size">
-						<XS>0</XS>
-						<XO>200</XO>
-						<YS>0</YS>
-						<YO>50</YO>
+						<XS>0.400000006</XS>
+						<XO>0</XO>
+						<YS>0.400000006</YS>
+						<YO>0</YO>
 					</UDim2>
 					<token name="SizeConstraint">0</token>
 					<bool name="Visible">true</bool>
@@ -634,7 +634,7 @@
 					<int64 name="SourceAssetId">-1</int64>
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
-				<Item class="UICorner" referent="RBXEC72C547E07F4BDC822DD501CC9F77F4">
+				<Item class="UICorner" referent="RBX0D8CC4B1B179435F874831D26F97CCFC">
 					<Properties>
 						<UDim name="BottomLeftRadius">
 							<S>0.200000003</S>
@@ -660,7 +660,7 @@
 						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 					</Properties>
 				</Item>
-				<Item class="TextLabel" referent="RBX26B714B86F0F4241ADD28DCAA0BAAA8F">
+				<Item class="TextLabel" referent="RBXA55341BAE21A4F70B69D4CCBD839264F">
 					<Properties>
 						<Font name="FontFace">
 							<Family><url>rbxasset://fonts/families/ComicNeueAngular.json</url></Family>
@@ -754,7 +754,7 @@
 						<int64 name="SourceAssetId">-1</int64>
 						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 					</Properties>
-					<Item class="UIStroke" referent="RBX60653BBECD7B4A16908352D153F8D167">
+					<Item class="UIStroke" referent="RBXE23655FE86C24CD485B95B2D23816A53">
 						<Properties>
 							<token name="ApplyStrokeMode">0</token>
 							<UDim name="BorderOffset">
@@ -782,7 +782,7 @@
 						</Properties>
 					</Item>
 				</Item>
-				<Item class="TextLabel" referent="RBX72E4BDFCF3814ADFB2A12446D6920926">
+				<Item class="TextLabel" referent="RBX9425273BEEE04A6EA971DA9B3A38167C">
 					<Properties>
 						<Font name="FontFace">
 							<Family><url>rbxasset://fonts/families/SourceSansPro.json</url></Family>
@@ -876,7 +876,7 @@
 						<int64 name="SourceAssetId">-1</int64>
 						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 					</Properties>
-					<Item class="UIStroke" referent="RBXD16F5C4DFC764618A70E01BB67199E98">
+					<Item class="UIStroke" referent="RBXA07E228F64C14FC38E90BADF8FF3D1DC">
 						<Properties>
 							<token name="ApplyStrokeMode">0</token>
 							<UDim name="BorderOffset">
@@ -905,7 +905,7 @@
 					</Item>
 				</Item>
 			</Item>
-			<Item class="TextLabel" referent="RBXDA83A384DDC14AC989E51FD7BE9BC4FC">
+			<Item class="TextLabel" referent="RBX825E336380464388B78DFF523AEC9185">
 				<Properties>
 					<Font name="FontFace">
 						<Family><url>rbxasset://fonts/families/ComicNeueAngular.json</url></Family>
@@ -999,7 +999,7 @@
 					<int64 name="SourceAssetId">-1</int64>
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
-				<Item class="UIStroke" referent="RBXCB2387832CFE4114A4EDB6C18000161F">
+				<Item class="UIStroke" referent="RBXE625055ABDEA455CB4FD87AD880A34CA">
 					<Properties>
 						<token name="ApplyStrokeMode">0</token>
 						<UDim name="BorderOffset">
@@ -1027,7 +1027,7 @@
 					</Properties>
 				</Item>
 			</Item>
-			<Item class="UICorner" referent="RBX6EEB8655333740A58F1183551798AE22">
+			<Item class="UICorner" referent="RBX2BE65315BADF47B19BF03B0BAFEF3B2A">
 				<Properties>
 					<UDim name="BottomLeftRadius">
 						<S>0.100000001</S>
@@ -1053,7 +1053,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="TextButton" referent="RBXB5BF738CDE0F4280BB402ADFC599D18A">
+			<Item class="TextButton" referent="RBXD43AF8E5979147629B2AD749F90FE5C5">
 				<Properties>
 					<Font name="FontFace">
 						<Family><url>rbxasset://fonts/families/SourceSansPro.json</url></Family>
@@ -1132,10 +1132,10 @@
 					<Ref name="SelectionImageObject">null</Ref>
 					<int name="SelectionOrder">0</int>
 					<UDim2 name="Size">
-						<XS>0</XS>
-						<XO>200</XO>
-						<YS>0</YS>
-						<YO>50</YO>
+						<XS>0.400000006</XS>
+						<XO>0</XO>
+						<YS>0.400000006</YS>
+						<YO>0</YO>
 					</UDim2>
 					<token name="SizeConstraint">0</token>
 					<bool name="Visible">true</bool>
@@ -1154,7 +1154,7 @@
 					<int64 name="SourceAssetId">-1</int64>
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
-				<Item class="UICorner" referent="RBX1E4EEBAAB7FF486BBDF664282542C49F">
+				<Item class="UICorner" referent="RBX6590482AD88148F7B7462556DAE0A43A">
 					<Properties>
 						<UDim name="BottomLeftRadius">
 							<S>0.200000003</S>
@@ -1180,7 +1180,7 @@
 						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 					</Properties>
 				</Item>
-				<Item class="TextLabel" referent="RBX5821AE658D11488AB985D646C7C424B9">
+				<Item class="TextLabel" referent="RBX775ED22B4C55463181C33DC750CA98E8">
 					<Properties>
 						<Font name="FontFace">
 							<Family><url>rbxasset://fonts/families/ComicNeueAngular.json</url></Family>
@@ -1274,7 +1274,7 @@
 						<int64 name="SourceAssetId">-1</int64>
 						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 					</Properties>
-					<Item class="UIStroke" referent="RBX3B44708CCB014475B20CDC17487393C6">
+					<Item class="UIStroke" referent="RBX8F3EBC8A299547EAB7FB6D1001E35A2C">
 						<Properties>
 							<token name="ApplyStrokeMode">0</token>
 							<UDim name="BorderOffset">
@@ -1302,7 +1302,7 @@
 						</Properties>
 					</Item>
 				</Item>
-				<Item class="TextLabel" referent="RBX671502BDDAC8411781C6CC85BE377A81">
+				<Item class="TextLabel" referent="RBX40F40DA862E1434BB1F047E9C3BE7E32">
 					<Properties>
 						<Font name="FontFace">
 							<Family><url>rbxasset://fonts/families/SourceSansPro.json</url></Family>
@@ -1396,7 +1396,7 @@
 						<int64 name="SourceAssetId">-1</int64>
 						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 					</Properties>
-					<Item class="UIStroke" referent="RBXF47FF981063E4098A07F5FF00247C9B6">
+					<Item class="UIStroke" referent="RBX7CE0FA605E274912A18EF1E2125F11D8">
 						<Properties>
 							<token name="ApplyStrokeMode">0</token>
 							<UDim name="BorderOffset">

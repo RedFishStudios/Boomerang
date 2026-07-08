@@ -69,7 +69,7 @@ end
 -------------------------------------------------------------------------------
 
 -- // Return set of map names that can be chosen from for voting
-function ArenaService.getNextMapChoices(): {string}
+function ArenaService.getAvailableMaps(forGamemode: string): {string}
    local availableMapNames = {}
    for mapName, _ in pairs(registeredMaps) do
       table.insert(availableMapNames, mapName)
