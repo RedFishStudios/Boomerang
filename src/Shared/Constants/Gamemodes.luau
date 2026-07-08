@@ -26,14 +26,14 @@ local Gamemodes: {
       Id = "Elimination",
       Subheader = "Eliminate all opponents to win!",
       CanRespawn = false,
-      TimeLasts = 2
+      TimeLasts = 60
    },
    ThrowBoomerang = {
       Id = "ThrowBoomerang",
       Display = "Throw Boomerang",
       Subheader = "Throw the boomerang 12 times (test)",
       CanRespawn = true,
-      TimeLasts = 2
+      TimeLasts = 60
    },
 }
 

@@ -31,7 +31,6 @@ local thrownBoomerangSpawnedRemote = SimpleRemotes.getEvent("ThrownBoomerangSpaw
 local thrownBoomerangDespawnedRemote = SimpleRemotes.getEvent("ThrownBoomerangDespawned")
 local thrownWeaponReplicationRemote = SimpleRemotes.getUnreliableEvent("ThrownWeaponReplication")
 
-
 local SLOW_RATE = 5
 local UP_VECTOR = Vector3.new(0, 1, 0)
 local REPLICATION_RATE = 1 / 20
@@ -62,6 +61,15 @@ local function getHorizontalDirection(direction: Vector3): Vector3
       return Vector3.new(0, 0, -1)
    end
    return horizontal.Unit
+end
+
+local function getHorizontalRayOrigins(rayOrigin: Vector3, direction: Vector3, hitboxRadius: number): {Vector3}
+   local rightDirection = direction:Cross(UP_VECTOR).Unit
+   return {
+      rayOrigin,
+      rayOrigin - rightDirection * hitboxRadius,
+      rayOrigin + rightDirection * hitboxRadius,
+   }
 end
 
 -- // Notify all users of a boomerang spawn
@@ -127,12 +135,13 @@ local function raycastWithHorizontalHitbox(
    end
    rayDistance = math.max(rayDistance, hitboxRadius)
 
-   local rightDirection = direction:Cross(UP_VECTOR).Unit
-   local leftOrigin = rayOrigin - rightDirection * hitboxRadius
-   local rightOrigin = rayOrigin + rightDirection * hitboxRadius
+   local horizontalRayOrigins = getHorizontalRayOrigins(rayOrigin, direction, hitboxRadius)
+   local centerOrigin = horizontalRayOrigins[1]
+   local leftOrigin = horizontalRayOrigins[2]
+   local rightOrigin = horizontalRayOrigins[3]
 
    -- Position all 3 raycast visualizers at the predicted raycast endpoints
-   weaponData.TestRaycastVisualizers[1].Position = rayOrigin + direction * rayDistance
+   weaponData.TestRaycastVisualizers[1].Position = centerOrigin + direction * rayDistance
    weaponData.TestRaycastVisualizers[2].Position = leftOrigin + direction * rayDistance
    weaponData.TestRaycastVisualizers[3].Position = rightOrigin + direction * rayDistance
 
@@ -158,46 +167,34 @@ local function raycastWithHorizontalHitbox(
    return finalResult
 end
 
--- // If this raycast struck object is a player that should be damaged
-local function damagingPlayer(player: Player, boomerangPosition: Vector3, struckObject: Instance): (Player?, Model?)
-   if not struckObject then
-      return nil
-   end
-   if not struckObject:IsDescendantOf(Characters) then
-      return nil
-   end
-   local Model = struckObject:FindFirstAncestorOfClass("Model")
-   if not Model then
-      return nil
-   end
-   local otherPlayer = game.Players:GetPlayerFromCharacter(Model)
-   if not otherPlayer then
-      return nil
-   end
-   local Humanoid = Model:FindFirstChildOfClass("Humanoid")
-   if not Humanoid or Humanoid.Health <= 0 then
-      return nil
-   end
-   -- TODO: get proper radius of boomerang for a player collision
-   if (boomerangPosition - Model.PrimaryPart.Position).Magnitude > 5 then
-      print("hit player, too far")
-      return nil
-   end
-   if otherPlayer == player then
-      if GlobalConfig.CanHurtSelf then
-         return otherPlayer, Model
+local function raycastWithHorizontalCharacterHitbox(rayOrigin: Vector3, direction: Vector3, hitboxRadius: number): {Model}
+   local characterRaycastParams = RaycastParams.new()
+   characterRaycastParams.FilterType = Enum.RaycastFilterType.Include
+   characterRaycastParams.FilterDescendantsInstances = {Characters}
+   characterRaycastParams.IgnoreWater = true
+
+   local horizontalRayOrigins = getHorizontalRayOrigins(rayOrigin, direction, hitboxRadius)
+   local hitModels = {}
+   local seenModels = {}
+
+   local characterRayDistance = 2 -- TODO: adjust player detection ray length
+
+   for _, origin in ipairs(horizontalRayOrigins) do
+      local raycastResult = workspace:Raycast(origin, direction * characterRayDistance, characterRaycastParams)
+      if raycastResult then
+         local hitModel = raycastResult.Instance:FindFirstAncestorOfClass("Model")
+         if hitModel and not table.find(seenModels, hitModel) then
+            table.insert(seenModels, hitModel)
+
+            local humanoid = hitModel:FindFirstChildOfClass("Humanoid")
+            if humanoid and humanoid.Health > 0 then
+               table.insert(hitModels, hitModel)
+            end
+         end
       end
-      return nil
    end
-   local otherPlayerTeam = otherPlayer.Team
-   if otherPlayerTeam == player.Team then
-      if otherPlayerTeam:GetAttribute("FriendlyFire") then
-         return otherPlayer, Model
-      end
-      return nil
-   else
-      return otherPlayer, Model
-   end
+
+   return hitModels
 end
 
 -- // Throw a boomerang onto the field
@@ -239,7 +236,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       thrownWeaponData.Host = boomerangModel
    end
 
-   local raycastParams = RaycastsUtility.getProjectileObstructionParams({thrownWeaponData.Host}) -- TODO: add throwing player or anyone on the throwing player's team
+   local raycastParams = RaycastsUtility.getProjectileObstructionParams({thrownWeaponData.Host, Characters})
    local nextReplicationAt = 0
 
    local function simulateStep(deltaTime: number, shouldRecallTransitions: boolean)
@@ -259,46 +256,48 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       -- Raycast in front of the boomerang to detect collisions with walls or other obstacles
       local rayOrigin = thrownWeaponData.Host:GetPivot().Position
       local rayDistance = speed * deltaTime
-      local raycastResult = raycastWithHorizontalHitbox(rayOrigin, direction, rayDistance, hitboxRadius, raycastParams, thrownWeaponData)
 
-      -- Result
-      -- TODO: players should not be considered obstructions; raycast separately for obstructions and for player victims
-      if raycastResult then
-         local struckObject = raycastResult.Instance
-         local victimPlayer, victimCharacter = damagingPlayer(player, rayOrigin, struckObject)
-
-         if victimPlayer and victimCharacter then
-            if shouldRecallTransitions then
-                 Boomerang.recall(player, boomerangId, toolData, thrownWeaponData)
-            end
-            thrownWeaponData.Direction = direction
-            thrownWeaponData.Speed = speed
-
-            if isServer then
-               local Humanoid = victimCharacter:FindFirstChildOfClass("Humanoid")
-               if Humanoid and Humanoid.Health > 0 then
-                  CombatService.damagePlayer(player, boomerangId, victimPlayer, Humanoid, 100000)
-               end
-            else
-               print("play effect on client")
-            end
-
-            return true
-         else
-            energy -= 1
-            direction = direction - 2 * direction:Dot(raycastResult.Normal) * raycastResult.Normal
-            direction = getHorizontalDirection(direction)
-            if energy == 0 then
-               if shouldRecallTransitions then
-                  Boomerang.recall(player, boomerangId, toolData, thrownWeaponData)
+      local victimModels = raycastWithHorizontalCharacterHitbox(rayOrigin, direction, hitboxRadius)
+      local playerDamaged = false
+      for _, victimModel in ipairs(victimModels) do
+         local victimPlayer = victimModel and game.Players:GetPlayerFromCharacter(victimModel)
+         if victimPlayer and victimPlayer ~= player then
+            if victimPlayer.Team and (victimPlayer.Team ~= player.Team or victimPlayer.Team:GetAttribute("FriendlyFire") == true) then
+               playerDamaged = true
+               if isServer then
+                  local Humanoid = victimModel:FindFirstChildOfClass("Humanoid")
+                  if Humanoid and Humanoid.Health > 0 then
+                     CombatService.damagePlayer(player, boomerangId, victimPlayer, Humanoid, 100000)
+                  end
                else
-                  thrownWeaponData.State = ThrownWeapons.StateEnum.Exhausted
+                  print("play effect on client")
                end
             end
-            thrownWeaponData.Direction = direction
-            thrownWeaponData.Speed = speed
+         end
+      end
+
+      if playerDamaged then
+         if shouldRecallTransitions then
+            Boomerang.recall(player, boomerangId, toolData, thrownWeaponData)
             return true
          end
+      end
+
+      local obstructionRaycastResult = raycastWithHorizontalHitbox(rayOrigin, direction, rayDistance, hitboxRadius, raycastParams, thrownWeaponData)
+      if obstructionRaycastResult then
+         energy -= 1
+         direction = direction - 2 * direction:Dot(obstructionRaycastResult.Normal) * obstructionRaycastResult.Normal
+         direction = getHorizontalDirection(direction)
+         if energy == 0 then
+            if shouldRecallTransitions then
+               Boomerang.recall(player, boomerangId, toolData, thrownWeaponData)
+            else
+               thrownWeaponData.State = ThrownWeapons.StateEnum.Exhausted
+            end
+         end
+         thrownWeaponData.Direction = direction
+         thrownWeaponData.Speed = speed
+         return true
       end
 
       local currentCFrame = thrownWeaponData.Host:GetPivot()
