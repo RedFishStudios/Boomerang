@@ -93,34 +93,6 @@ function SpawnService.init()
             end)
          end
       end)
-      --[[
-      code for custom overwrite spawn location by teleporting new spawned players
-      player.CharacterAdded:Connect(function()
-         local character = safeGetPlayerCharacter(player)
-         if not character then
-            return
-         end
-         local humanoid = safeGetHumanoid(character)
-         if not humanoid then
-            return
-         end
-
-         -- Send to round arena or respawn location
-         if CurrentGameState.IsInRound and CurrentGameState.CanRespawn then
-            ArenaService.sendToArena(player)
-         else
-            local lobbySpawnPoint = LobbyService.getSpawnPoint()
-            if lobbySpawnPoint then
-               player.Character:SetPrimaryPartCFrame(lobbySpawnPoint.CFrame)
-            end
-         end
-
-         -- Death connection
-         humanoid.Died:Connect(function()
-            SpawnService.PlayerDiedTasks:Execute("parallel", player)
-            -- TODO: display death screen, respawn time, etc
-         end)
-      end)]]
 	end)
 end
 

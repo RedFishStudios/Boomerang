@@ -152,16 +152,28 @@ function ArenaService.sendToArena(player: Player)
    -- Choose a spawn point that is not occupied by enemies
    local MIN_DISTANCE = 75
    local spawnPoints = currentArenaModel:FindFirstChild("SpawnPoints"):GetChildren()
-   local validSpawns = {}
    local chosenSpawn = nil
-   for _, spawn in ipairs(spawnPoints) do
+
+   if #spawnPoints == 0 then
+      warn(`No spawn points found in arena for player: {player}`)
+      return
+   end
+
+   local startIndex = math.random(#spawnPoints)
+   for offset = 0, #spawnPoints - 1 do
+      local index = ((startIndex + offset - 1) % #spawnPoints) + 1
+      local spawn = spawnPoints[index]
       local valid = true
       for _, otherPlayer in ipairs(Players:GetPlayers()) do
-         if otherPlayer ~= player and otherPlayer.Team ~= player.Team then
+         if otherPlayer == player then
+            continue
+         end
+         if otherPlayer.Team ~= player.Team or player.Team:GetAttribute("FriendlyFire") == true then
             local character = otherPlayer.Character
             local root = character and character:FindFirstChild("HumanoidRootPart")
             if root then
                local distance = (root.Position - spawn.Position).Magnitude
+               print("distance to other player: ", distance)
                if distance < MIN_DISTANCE then
                   valid = false
                   break
@@ -170,14 +182,15 @@ function ArenaService.sendToArena(player: Player)
          end
       end
       if valid then
-         table.insert(validSpawns, spawn)
+         chosenSpawn = spawn
+         break
       end
    end
-   if #validSpawns > 0 then
-      chosenSpawn = validSpawns[math.random(#validSpawns)]
-   else
+
+   if not chosenSpawn then
       chosenSpawn = spawnPoints[math.random(#spawnPoints)]
    end
+
    if chosenSpawn then
       sendPlayerToSpawnPosition(player, chosenSpawn.Position)
    end
@@ -199,36 +212,10 @@ function ArenaService.setArena(mapName: string)
    local liveMap = map:Clone()
    liveMap.Parent = arenaFolder
 
-   -- Teleport players to arena
-   -- For each player, prioritize a random selection from unused spawn points; if none exist, prioritize random selection of least-used spawn points
-   local livingPlayersInArena = CurrentGameState.LivingPlayersInArena:Get()
-   local spawnPoints = liveMap:FindFirstChild("SpawnPoints"):GetChildren()
-   local spawnPointUsage: {[Part]: number} = {}
-   for _, spawnPoint in pairs(spawnPoints) do
-      spawnPointUsage[spawnPoint] = 0
-   end
-   for _, player in pairs(game.Players:GetPlayers()) do
-      if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-         local candidateSpawnPoints = {}
-         local minUsage = math.huge
-         for _, spawnPoint in pairs(spawnPoints) do
-            local usage = spawnPointUsage[spawnPoint]
-            if usage < minUsage then
-               minUsage = usage
-               candidateSpawnPoints = {spawnPoint}
-            elseif usage == minUsage then
-               table.insert(candidateSpawnPoints, spawnPoint)
-            end
-         end
-         local chosenSpawnPoint = candidateSpawnPoints[math.random(1, #candidateSpawnPoints)]
-         spawnPointUsage[chosenSpawnPoint] = spawnPointUsage[chosenSpawnPoint] + 1
-         sendPlayerToSpawnPosition(player, chosenSpawnPoint.Position)
-
-         if not table.find(livingPlayersInArena, player) then
-            table.insert(livingPlayersInArena, player)
-            CurrentGameState.LivingPlayersInArena:SilentSet(livingPlayersInArena)
-         end
-      end
+   local livingPlayersInArena = {}
+   for _, p in pairs(game.Players:GetPlayers()) do
+      table.insert(livingPlayersInArena, p)
+      ArenaService.sendToArena(p)
    end
 
    ArenaService.MapChangedTasks:Execute("parallel")

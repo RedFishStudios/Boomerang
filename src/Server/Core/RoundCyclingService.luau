@@ -176,7 +176,6 @@ function RoundCyclingService.init()
       if not table.find(livingPlayersInArena, player) then
          table.insert(livingPlayersInArena, player)
          CurrentGameState.LivingPlayersInArena:Set(livingPlayersInArena)
-         CurrentGameState.LivingPlayersInArenaUpdatedTasks:Execute("parallel", livingPlayersInArena)
       end
    end)
 
@@ -186,7 +185,6 @@ function RoundCyclingService.init()
       if i then 
          table.remove(livingPlayersInArena, i)
          CurrentGameState.LivingPlayersInArena:Set(livingPlayersInArena)
-         CurrentGameState.LivingPlayersInArenaUpdatedTasks:Execute("parallel", livingPlayersInArena)
       end
       i = table.find(awaitingVotes, player)
       if i then
