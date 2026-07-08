@@ -11,6 +11,7 @@ local CurrentGameState: {
 
    LivingPlayersInArena: {Player},
    LivingPlayersInArenaUpdatedTasks: TasksList.TasksList<({Player})->()>,
+   RoundStartingTasks: TasksList.TasksList<()->()>,
    RoundFinishedTasks: TasksList.TasksList<()->()>, -- Should be called only from within the GamemodeLogics module
 
    -- Copied over from Gamemodes data when a round is set
@@ -24,6 +25,7 @@ local CurrentGameState: {
 
    LivingPlayersInArena = {},
    LivingPlayersInArenaUpdatedTasks = TasksList.new(),
+   RoundStartingTasks = TasksList.new(),
    RoundFinishedTasks = TasksList.new()
 }
 

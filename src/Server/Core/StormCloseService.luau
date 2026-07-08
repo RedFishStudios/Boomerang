@@ -1,5 +1,5 @@
 --[[
-  StormCloseSystem
+  StormCloseService
 
   Description:
   Handles server-side player data
@@ -11,7 +11,7 @@
   20-02-2026
 ]]
 
-local StormCloseSystem = {}
+local StormCloseService = {}
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -24,6 +24,7 @@ local ProfileStore = require(ServerStorage.Packages.ProfileStore)
 local ProfileTemplate = require(ReplicatedStorage.Shared.Data.ProfileTemplate)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
+local CurrentGameState = require(ReplicatedStorage.Shared.Referential.CurrentGameState)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -112,7 +113,7 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
-function StormCloseSystem.begin(centrepoint: Vector3)
+function StormCloseService.begin(centrepoint: Vector3)
    local stormClosePart = visibleSafetyRadiusPart:Clone()
    stormClosePart.Position = Vector3.new(centrepoint.X, GlobalConfig.BoomerangHeight, centrepoint.Z)
    stormClosePart.Orientation = Vector3.new(0, 0, 90)
@@ -129,14 +130,21 @@ function StormCloseSystem.begin(centrepoint: Vector3)
    currentStormCloseConnection = RunService.Heartbeat:Connect(updateStormClose)
 end
 
-function StormCloseSystem.teardown()
+function StormCloseService.teardown()
+   if currentStormCloseConnection then
+      currentStormCloseConnection:Disconnect()
+      currentStormCloseConnection = nil
+   end
    if currentStormClosePart and currentStormClosePart.Parent then
       currentStormClosePart:Destroy()
    end
    currentStormClosePart = nil
    stormCloseElapsed = 0
    stormCloseShrinkCount = 0
+end
 
+-- // Disable further behavior without tearing down completely
+function StormCloseService.disable()
    if currentStormCloseConnection then
       currentStormCloseConnection:Disconnect()
       currentStormCloseConnection = nil
@@ -147,10 +155,16 @@ end
 -- CORE FUNCTIONS
 -------------------------------------------------------------------------------
 
-function StormCloseSystem.init()
+function StormCloseService.init()
+   CurrentGameState.RoundStartingTasks:Add(function()
+      StormCloseService.teardown()
+   end)
+   CurrentGameState.RoundFinishedTasks:Add(function()
+      StormCloseService.disable()
+   end)
 end
 
-function StormCloseSystem.start()
+function StormCloseService.start()
 end
 
-return StormCloseSystem
+return StormCloseService

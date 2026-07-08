@@ -112,6 +112,8 @@ function RoundCyclingService.getNextGamemodeChoices(): {string}
 end
 
 function RoundCyclingService.setNextRound(roundTypeId: string, mapName: string)
+   CurrentGameState.RoundStartingTasks:Execute("parallel")
+
    local roundType = Gamemodes[roundTypeId]
    local roundDuration = roundType.TimeLasts
    local notificationServerTime = workspace:GetServerTimeNow()

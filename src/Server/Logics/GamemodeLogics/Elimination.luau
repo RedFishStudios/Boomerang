@@ -8,7 +8,7 @@ local ArenaService = require(ServerStorage.Server.Core.ArenaService)
 local GameTeamService = require(ServerStorage.Server.Core.GameTeamService)
 local RoundCyclingService = require(ServerStorage.Server.Core.RoundCyclingService)
 local WeaponService = require(ServerStorage.Server.Core.WeaponService)
-local StormCloseSystem = require(ServerStorage.Server.Core.StormCloseSystem)
+local StormCloseService = require(ServerStorage.Server.Core.StormCloseService)
 local SpawnService = require(ServerStorage.Server.Core.SpawnService)
 
 local CurrentGameState = require(ReplicatedStorage.Shared.Referential.CurrentGameState)
@@ -25,7 +25,7 @@ end
 function EliminationRoundLogic.setup()
    clear()
    GameTeamService.setFreeForAll()
-   StormCloseSystem.begin(ArenaService.getCurrentArenaPosition() or Vector3.new(0, 0, 0))
+   StormCloseService.begin(ArenaService.getCurrentArenaPosition() or Vector3.new(0, 0, 0))
 
    table.insert(PerMatchDestroyerFunctions, CurrentGameState.LivingPlayersInArenaUpdatedTasks:Add(function(livingPlayers: {Player})
       if #livingPlayers <= 1 then
