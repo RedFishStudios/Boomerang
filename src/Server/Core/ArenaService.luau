@@ -201,6 +201,7 @@ function ArenaService.setArena(mapName: string)
 
    -- Teleport players to arena
    -- For each player, prioritize a random selection from unused spawn points; if none exist, prioritize random selection of least-used spawn points
+   local livingPlayersInArena = CurrentGameState.LivingPlayersInArena:Get()
    local spawnPoints = liveMap:FindFirstChild("SpawnPoints"):GetChildren()
    local spawnPointUsage: {[Part]: number} = {}
    for _, spawnPoint in pairs(spawnPoints) do
@@ -223,14 +224,15 @@ function ArenaService.setArena(mapName: string)
          spawnPointUsage[chosenSpawnPoint] = spawnPointUsage[chosenSpawnPoint] + 1
          sendPlayerToSpawnPosition(player, chosenSpawnPoint.Position)
 
-         if not table.find(CurrentGameState.LivingPlayersInArena, player) then
-            table.insert(CurrentGameState.LivingPlayersInArena, player)
+         if not table.find(livingPlayersInArena, player) then
+            table.insert(livingPlayersInArena, player)
+            CurrentGameState.LivingPlayersInArena:SilentSet(livingPlayersInArena)
          end
       end
    end
 
    ArenaService.MapChangedTasks:Execute("parallel")
-   CurrentGameState.LivingPlayersInArenaUpdatedTasks:Execute("parallel", CurrentGameState.LivingPlayersInArena)
+   CurrentGameState.LivingPlayersInArena:Set(livingPlayersInArena)
 end
 
 -------------------------------------------------------------------------------

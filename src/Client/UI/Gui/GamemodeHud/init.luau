@@ -20,9 +20,57 @@ local _UIController = require(ClientMods.UI.UIController)
 
 local Gui = script:WaitForChild("Gamemode")
 local countdownConnection: RBXScriptConnection?
+local TimerLabel: TextLabel?
+local timerEndsAt: number?
+local shownWholeSeconds: number?
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Local Functions
+
+local function stopCountdown()
+   if countdownConnection then
+      countdownConnection:Disconnect()
+      countdownConnection = nil
+   end
+   timerEndsAt = nil
+   shownWholeSeconds = nil
+end
+
+local function updateTimer()
+   if not TimerLabel or not timerEndsAt then
+      return
+   end
+
+   local secondsLeft = math.max(0, timerEndsAt - workspace:GetServerTimeNow())
+   local wholeSeconds = math.ceil(secondsLeft)
+   if shownWholeSeconds ~= wholeSeconds then
+      shownWholeSeconds = wholeSeconds
+      TimerLabel.Text = tostring(wholeSeconds)
+   end
+
+   if secondsLeft <= 0 then
+      stopCountdown()
+   end
+end
+
+local function startCountdown(totalDuration: number?, serverNotificationTime: number?, fallbackText: string)
+   stopCountdown()
+   if not TimerLabel then
+      return
+   end
+
+   if typeof(totalDuration) ~= "number" or typeof(serverNotificationTime) ~= "number" then
+      TimerLabel.Text = fallbackText
+      return
+   end
+
+   -- Compensate for network delay between server send and client receipt.
+   local estimatedRemaining = math.max(0, totalDuration - (workspace:GetServerTimeNow() - serverNotificationTime))
+   timerEndsAt = workspace:GetServerTimeNow() + estimatedRemaining
+   shownWholeSeconds = nil
+   updateTimer()
+   countdownConnection = RunService.Heartbeat:Connect(updateTimer)
+end
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Public Functions
@@ -47,45 +95,27 @@ local function _init()
 
    local GamemodeLabel = Gui.Header.GamemodeLabel
    local SubheaderLabel = Gui.Header.SubheaderLabel
-   local TimerLabel = Gui.Header.TimerLabel
+   TimerLabel = Gui.Header.TimerLabel
+   local VoteContainer = Gui.VoteContainer
+
+   VoteContainer.Visible = false
+
+   SimpleRemotes.getEvent("IntermissionStarted").OnClientEvent:Connect(function(winner: Player?, winMessage: string, intermissionDuration: number?, serverNotificationTime: number?)
+      VoteContainer.Visible = true
+      GamemodeLabel.Text = "Intermission"
+      SubheaderLabel.Text = winMessage
+
+      startCountdown(intermissionDuration, serverNotificationTime, "")
+   end)
 
    SimpleRemotes.getEvent("NewRoundStarted").OnClientEvent:Connect(function(newGamemode: string, totalRoundTime: number?, serverNotificationTime: number?)
+      VoteContainer.Visible = false
       local gamemodeData = Gamemodes[newGamemode]
       if gamemodeData then
          GamemodeLabel.Text = gamemodeData.Name or newGamemode
          SubheaderLabel.Text = gamemodeData.Subheader or ""
 
-         if countdownConnection then
-            countdownConnection:Disconnect()
-            countdownConnection = nil
-         end
-
-         if typeof(totalRoundTime) ~= "number" or typeof(serverNotificationTime) ~= "number" then
-            TimerLabel.Text = gamemodeData.Timer or ""
-            return
-         end
-
-         -- Compensate for network delay between server send and client receipt.
-         local estimatedRemaining = math.max(0, totalRoundTime - (workspace:GetServerTimeNow() - serverNotificationTime))
-         local roundEndsAt = workspace:GetServerTimeNow() + estimatedRemaining
-         local shownWholeSeconds: number? = nil
-
-         local function updateTimer()
-            local secondsLeft = math.max(0, roundEndsAt - workspace:GetServerTimeNow())
-            local wholeSeconds = math.ceil(secondsLeft)
-            if shownWholeSeconds ~= wholeSeconds then
-               shownWholeSeconds = wholeSeconds
-               TimerLabel.Text = tostring(wholeSeconds)
-            end
-
-            if secondsLeft <= 0 and countdownConnection then
-               countdownConnection:Disconnect()
-               countdownConnection = nil
-            end
-         end
-
-         updateTimer()
-         countdownConnection = RunService.Heartbeat:Connect(updateTimer)
+         startCountdown(totalRoundTime, serverNotificationTime, gamemodeData.Timer or "")
       end
    end)
 end

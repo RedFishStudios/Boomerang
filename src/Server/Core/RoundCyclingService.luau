@@ -28,6 +28,8 @@ local GamemodeLogicModules = {}
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
+local INTERMISSION_DURATION = 10
+
 -------------------------------------------------------------------------------
 -- TYPES
 -------------------------------------------------------------------------------
@@ -38,6 +40,8 @@ local GamemodeLogicModules = {}
 
 local roundDurationConnection: RBXScriptConnection? = nil
 local currentRoundEndsAt: number? = nil
+
+local IntermissionStartedEvent = SimpleRemotes.getEvent("IntermissionStarted")
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -145,28 +149,37 @@ end
 
 function RoundCyclingService.init()
    SimpleRemotes.getEvent("NewRoundStarted")
+   SimpleRemotes.getEvent("IntermissionStarted")
+   SimpleRemotes.getEvent("VoteUpdated")
 
    SpawnService.PlayerDiedTasks:Add(function(Player: Player)
-      print(CurrentGameState.LivingPlayersInArena)
-      local i = table.find(CurrentGameState.LivingPlayersInArena, Player)
+      local livingPlayersInArena = CurrentGameState.LivingPlayersInArena:Get()
+      local i = table.find(livingPlayersInArena, Player)
       if i then 
-         table.remove(CurrentGameState.LivingPlayersInArena, i)
-         CurrentGameState.LivingPlayersInArenaUpdatedTasks:Execute("parallel", CurrentGameState.LivingPlayersInArena)
+         table.remove(livingPlayersInArena, i)
+         CurrentGameState.LivingPlayersInArena:Set(livingPlayersInArena)
       end
    end)
 
    SpawnService.PlayerSpawnedTasks:Add(function(player: Player, inArena: boolean)
-      if not table.find(CurrentGameState.LivingPlayersInArena, player) then
-         table.insert(CurrentGameState.LivingPlayersInArena, player)
-         CurrentGameState.LivingPlayersInArenaUpdatedTasks:Execute("parallel", CurrentGameState.LivingPlayersInArena)
+      if not inArena then
+         return
+      end
+      local livingPlayersInArena = CurrentGameState.LivingPlayersInArena:Get()
+      if not table.find(livingPlayersInArena, player) then
+         table.insert(livingPlayersInArena, player)
+         CurrentGameState.LivingPlayersInArena:Set(livingPlayersInArena)
+         CurrentGameState.LivingPlayersInArenaUpdatedTasks:Execute("parallel", livingPlayersInArena)
       end
    end)
 
    PlayersUtil.onPlayerRemoving(function(player: Player)
-      local i = table.find(CurrentGameState.LivingPlayersInArena, player)
+      local livingPlayersInArena = CurrentGameState.LivingPlayersInArena:Get()
+      local i = table.find(livingPlayersInArena, player)
       if i then 
-         table.remove(CurrentGameState.LivingPlayersInArena, i)
-         CurrentGameState.LivingPlayersInArenaUpdatedTasks:Execute("parallel", CurrentGameState.LivingPlayersInArena)
+         table.remove(livingPlayersInArena, i)
+         CurrentGameState.LivingPlayersInArena:Set(livingPlayersInArena)
+         CurrentGameState.LivingPlayersInArenaUpdatedTasks:Execute("parallel", livingPlayersInArena)
       end
    end)
 
@@ -175,11 +188,14 @@ function RoundCyclingService.init()
       RoundCyclingService.setNextRound("ThrowBoomerang", "GenericA")
 	end)
 
-   CurrentGameState.RoundFinishedTasks:Add(function()
+   CurrentGameState.RoundFinishedTasks:Add(function(winner: Player?, winMessage: string)
       print("A ROUND FINISHED - BEGINNING INTERMISSION -")
+      local intermissionNotificationTime = workspace:GetServerTimeNow()
+      IntermissionStartedEvent:FireAllClients(winner, winMessage, INTERMISSION_DURATION, intermissionNotificationTime)
 
-      table.clear(CurrentGameState.LivingPlayersInArena)
-      CurrentGameState.LivingPlayersInArenaUpdatedTasks:Execute("parallel", CurrentGameState.LivingPlayersInArena)
+      local livingPlayersInArena = CurrentGameState.LivingPlayersInArena:Get()
+      table.clear(livingPlayersInArena)
+      CurrentGameState.LivingPlayersInArena:Set(livingPlayersInArena)
 
       if roundDurationConnection  then
          roundDurationConnection:Disconnect()
@@ -219,7 +235,7 @@ function RoundCyclingService.init()
          task.wait(1)
          ticks+=1
          print("Intermission...")
-      until ticks >= 3
+      until ticks >= INTERMISSION_DURATION
       local choice = math.random(#options)
 		RoundCyclingService.setNextRound("Elimination", options[choice].Map)
    end)

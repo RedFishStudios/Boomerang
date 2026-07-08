@@ -27,7 +27,8 @@ function EliminationRoundLogic.setup()
    GameTeamService.setFreeForAll()
    StormCloseService.begin(ArenaService.getCurrentArenaPosition() or Vector3.new(0, 0, 0))
 
-   table.insert(PerMatchDestroyerFunctions, CurrentGameState.LivingPlayersInArenaUpdatedTasks:Add(function(livingPlayers: {Player})
+   table.insert(PerMatchDestroyerFunctions, CurrentGameState.LivingPlayersInArena:Subscribe(function(livingPlayers: {Player})
+      print("new living player count: ", #livingPlayers)
       if #livingPlayers <= 1 then
          EliminationRoundLogic.teardown()
       end
@@ -35,8 +36,12 @@ function EliminationRoundLogic.setup()
 end
 
 function EliminationRoundLogic.teardown()
+   local winner = CurrentGameState.LivingPlayersInArena:Get()[1]
+   if not winner then
+      warn(`Elimination: no winner found`)
+   end
    clear()
-   CurrentGameState.RoundFinishedTasks:Execute("parallel")
+   CurrentGameState.RoundFinishedTasks:Execute("parallel", winner, winner and (winner.Name .. " won!") or "No winner")
 end
 
 return EliminationRoundLogic

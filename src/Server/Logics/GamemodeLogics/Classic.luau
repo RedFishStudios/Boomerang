@@ -12,7 +12,9 @@ function ClassicRoundLogic.setup()
 end
 
 function ClassicRoundLogic.teardown()
-   CurrentGameState.RoundFinishedTasks:Execute("parallel")
+   -- TODO: get winner by tracking kills
+   local winner = game.Players:FindFirstChildWhichIsA("Player")
+   CurrentGameState.RoundFinishedTasks:Execute("parallel", winner, "TODO: get winner")
 end
 
 return ClassicRoundLogic
