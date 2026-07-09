@@ -10,7 +10,7 @@ local SpawnService = {}
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
-local CurrentGameState = require(ReplicatedStorage.Shared.Referential.CurrentGameState)
+local CurrentGameState = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local ArenaService = require(ServerStorage.Server.Core.ArenaService)
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)

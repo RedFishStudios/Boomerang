@@ -12,7 +12,7 @@ local ArenaService = {}
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 
-local CurrentGameState = require(ReplicatedStorage.Shared.Referential.CurrentGameState)
+local CurrentGameState = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 

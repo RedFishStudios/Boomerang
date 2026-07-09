@@ -18,7 +18,7 @@ local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
 local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
-local CurrentGameState = require(ReplicatedStorage.Shared.Referential.CurrentGameState)
+local CurrentGameState = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local ArenaService = require(ServerStorage.Server.Core.ArenaService)
 
 -------------------------------------------------------------------------------

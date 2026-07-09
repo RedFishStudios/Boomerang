@@ -14,11 +14,10 @@ local ServerStorage = game:GetService("ServerStorage")
 local SharedConstants = ReplicatedStorage.Shared.Constants
 
 local Gamemodes = require(SharedConstants.Gamemodes)
-local CurrentGameState = require(ReplicatedStorage.Shared.Referential.CurrentGameState)
+local CurrentGameState = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local ArenaService = require(ServerStorage.Server.Core.ArenaService)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local SpawnService = require(ServerStorage.Server.Core.SpawnService)
-local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 
 local GamemodeLogics = ServerStorage.Server.Logics.GamemodeLogics
@@ -48,7 +47,6 @@ local VoteUpdatedEvent = SimpleRemotes.getEvent("VoteUpdated")
 local votes: {[Player]: number} = {}
 local totalVotes = {0, 0}
 local awaitingVotes: {Player} = {}
-local voting = false
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -71,7 +69,6 @@ local function updateRoundDuration()
       return
    end
    local secondsLeft = math.max(0, currentRoundEndsAt - workspace:GetServerTimeNow())
-   CurrentGameState.RemainingTime = secondsLeft
    if secondsLeft <= 0 and roundDurationConnection then
       roundDurationConnection:Disconnect()
       roundDurationConnection = nil
@@ -131,7 +128,6 @@ function RoundCyclingService.setNextRound(roundTypeId: string, mapName: string)
 
    CurrentGameState.Gamemode = roundTypeId
    CurrentGameState.CurrentMapName = mapName
-   CurrentGameState.RemainingTime = roundDuration
    CurrentGameState.IsInRound = true
    CurrentGameState.CanRespawn = roundType.CanRespawn
    ArenaService.setArena(mapName)
@@ -205,12 +201,16 @@ function RoundCyclingService.init()
       VoteUpdatedEvent:FireAllClients(totalVotes[1], totalVotes[2], nil)
    end)
 
-	task.spawn(function()
+   print(CurrentGameState)
+end
+
+function RoundCyclingService.start()
+   task.spawn(function()
       task.wait(2)
       RoundCyclingService.setNextRound("ThrowBoomerang", "GenericA")
 	end)
 
-   CurrentGameState.RoundFinishedTasks:Add(function(winner: Player?, winMessage: string)
+    CurrentGameState.RoundFinishedTasks:Add(function(winner: Player?, winMessage: string)
       print("A ROUND FINISHED - BEGINNING INTERMISSION -")
 
       local livingPlayersInArena = CurrentGameState.LivingPlayersInArena:Get()
@@ -225,7 +225,6 @@ function RoundCyclingService.init()
 
       -- // Start voting process
       local possibleGamemodes = RoundCyclingService.getNextGamemodeChoices()
-      voting = true
       totalVotes[1] = 0
       totalVotes[2] = 0
       table.clear(votes)
@@ -236,9 +235,7 @@ function RoundCyclingService.init()
       IntermissionStartedEvent:FireAllClients(winner, winMessage, possibleGamemodes, INTERMISSION_DURATION, workspace:GetServerTimeNow())
 
       CurrentGameState.IsInRound = false
-      CurrentGameState.RoundTypeId = nil
       CurrentGameState.CurrentMapName = nil
-      CurrentGameState.RemainingTime = nil
       CurrentGameState.CanRespawn = nil
 
       -- Wait for votes
@@ -247,7 +244,6 @@ function RoundCyclingService.init()
          local deltaTime = RunService.Heartbeat:Wait()
          elapsed += deltaTime
       until elapsed >= VOTE_DURATION or #awaitingVotes == 0
-      voting = false
       print(elapsed, VOTE_DURATION, awaitingVotes)
       
       -- Tally votes
@@ -287,8 +283,6 @@ function RoundCyclingService.init()
       RoundCyclingService.setNextRound(chosenGamemode, map)
    end)
 end
-
--- function RoundCyclingService.start() end
 
 -- function RoundCyclingService.test() end
 

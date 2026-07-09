@@ -24,7 +24,7 @@ local ProfileStore = require(ServerStorage.Packages.ProfileStore)
 local ProfileTemplate = require(ReplicatedStorage.Shared.Data.ProfileTemplate)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
-local CurrentGameState = require(ReplicatedStorage.Shared.Referential.CurrentGameState)
+local CurrentGameState = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -156,15 +156,15 @@ end
 -------------------------------------------------------------------------------
 
 function StormCloseService.init()
+end
+
+function StormCloseService.start()
    CurrentGameState.RoundStartingTasks:Add(function()
       StormCloseService.teardown()
    end)
    CurrentGameState.RoundFinishedTasks:Add(function()
       StormCloseService.disable()
    end)
-end
-
-function StormCloseService.start()
 end
 
 return StormCloseService

@@ -7,7 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GameTeamService = require(ServerStorage.Server.Core.GameTeamService)
 local RoundCyclingService = require(ServerStorage.Server.Core.RoundCyclingService)
 local WeaponService = require(ServerStorage.Server.Core.WeaponService)
-local CurrentGameState = require(ReplicatedStorage.Shared.Referential.CurrentGameState)
+local CurrentGameState = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 
 local PerPlayerCount: {
    [Player]: number

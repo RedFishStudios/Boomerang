@@ -4,7 +4,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GameTeamService = require(ServerStorage.Server.Core.GameTeamService)
 local RoundCyclingService = require(ServerStorage.Server.Core.RoundCyclingService)
-local CurrentGameState = require(ReplicatedStorage.Shared.Referential.CurrentGameState)
+local CurrentGameState = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local CombatService = require(ServerStorage.Server.Core.CombatService)
 
 local PerMatchDestroyerFunctions: {()->()} = {}

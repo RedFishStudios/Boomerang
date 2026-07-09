@@ -7,6 +7,7 @@ local RunService = game:GetService("RunService")
 -------------------------------------------------------------------------------
 
 local CLIENT = ReplicatedStorage.Client
+local SHARED = ReplicatedStorage.Shared
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
@@ -41,6 +42,18 @@ do
 		end
 	end
 
+	for _, module in next, SHARED.Library:GetChildren() do
+		if not module:IsA("ModuleScript") then
+			continue
+		end
+
+		if not module.Name:find("Library$") then
+			continue
+		end
+
+		table.insert(modules, { Name = module.Name, Module = require(module) })
+	end
+
 	-- Run .init
 	for _, m in next, modules do
 		if m.Module.init then
@@ -67,6 +80,6 @@ do
 		end
 	end
 
-	print(`Hello {player.DisplayName}, welcome!`)
+	--print(`Hello {player.DisplayName}, welcome!`)
 	print(string.format("✅ Client loaded in %.6f seconds", os.clock() - start))
 end

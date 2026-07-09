@@ -11,7 +11,7 @@ local WeaponService = require(ServerStorage.Server.Core.WeaponService)
 local StormCloseService = require(ServerStorage.Server.Core.StormCloseService)
 local SpawnService = require(ServerStorage.Server.Core.SpawnService)
 
-local CurrentGameState = require(ReplicatedStorage.Shared.Referential.CurrentGameState)
+local CurrentGameState = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 
 local PerMatchDestroyerFunctions: {()->()} = {}
 

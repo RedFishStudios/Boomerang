@@ -14,7 +14,7 @@ local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
 local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
-local CurrentGameState = require(ReplicatedStorage.Shared.Referential.CurrentGameState)
+local CurrentGameState = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 
 -- // Context-Specific Modules
 local CombatService
