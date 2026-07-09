@@ -13,8 +13,6 @@ local RaycastsUtility = require(ReplicatedStorage.Shared.Utils.RaycastsUtility)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
 local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
-local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
-local CurrentGameState = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 
 -- // Context-Specific Modules
 local CombatService
@@ -215,7 +213,6 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    local energy = toolData.Boomerang.Bounces
 
    local startPosition = (options and options.StartPosition) or (character.PrimaryPart.Position + character.PrimaryPart.CFrame.LookVector * 3)
-   startPosition = Vector3.new(startPosition.X, GlobalConfig.BoomerangHeight, startPosition.Z)
    local throwServerTime = (options and options.ThrowServerTime) or workspace:GetServerTimeNow()
 
    if isServer then
