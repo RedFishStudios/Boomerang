@@ -1,5 +1,6 @@
 --[[
-
+   - The camera's preferred centerpoint should be the center of the current map arena.
+     However, it can drift from this centerpoint towards the centerpoint calculated from the average center of all players or boomerangs on the map.
 ]]
 
 local CustomCameraController = {}
@@ -7,14 +8,15 @@ local CustomCameraController = {}
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local CurrentGameState = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
-
 local localPlayer = Players.LocalPlayer
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
 -------------------------------------------------------------------------------
+
+local CAMERA_HEIGHT = 60
+local CAMERA_TILT_DEGREES_FROM_VERTICAL = 30
+local CAMERA_BACK_OFFSET = CAMERA_HEIGHT * math.tan(math.rad(CAMERA_TILT_DEGREES_FROM_VERTICAL))
 
 -------------------------------------------------------------------------------
 -- TYPES
@@ -46,16 +48,12 @@ local function updateCamera()
       return
    end
 
-	-- Calculate position and rotation
-	local offset = Vector3.new(0, 100, 0)
-	local targetPosition = currentRootPart.Position + offset
-	local targetRotation = CFrame.Angles(-math.pi / 2, 0, 0)
-	
-	-- Apply camera CFrame
-	currentCamera.CFrame = CFrame.new(targetPosition) * targetRotation
-	currentCamera.Focus = currentRootPart.CFrame
+   local focusPosition = currentRootPart.Position
+   local targetPosition = focusPosition + Vector3.new(0, CAMERA_HEIGHT, CAMERA_BACK_OFFSET)
 
-   print(#CurrentGameState.LivingPlayersInArena:Get())
+   -- Look at the character from a mostly-overhead angle with a 30 degree tilt.
+   currentCamera.CFrame = CFrame.lookAt(targetPosition, focusPosition)
+	currentCamera.Focus = currentRootPart.CFrame
 end
 
 local function startTopDownMode()
