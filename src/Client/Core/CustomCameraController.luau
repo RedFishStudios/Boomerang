@@ -21,6 +21,12 @@ local CAMERA_TILT_DEGREES_FROM_VERTICAL = 15
 local CAMERA_YAW_DEGREES = 0
 local CAMERA_DISTANCE_PADDING = 20
 local CAMERA_MIN_DISTANCE = 40
+local CAMERA_FOCUS_SMOOTH_BASE = 11
+local CAMERA_FOCUS_SMOOTH_DISTANCE_FACTOR = 0.08
+local CAMERA_FOCUS_SMOOTH_MAX = 42
+local CAMERA_DISTANCE_SMOOTH_BASE = 9
+local CAMERA_DISTANCE_SMOOTH_DISTANCE_FACTOR = 0.04
+local CAMERA_DISTANCE_SMOOTH_MAX = 30
 
 -------------------------------------------------------------------------------
 -- TYPES
@@ -33,19 +39,22 @@ local CAMERA_MIN_DISTANCE = 40
 local thrownWeaponsFolder = game.Workspace:WaitForChild("ThrownWeapons")
 
 local currentCamera: Camera? = nil
-local topDownCameraConnection: RBXScriptConnection? = nil
+local overheadCameraConnection: RBXScriptConnection? = nil
+local smoothedFocusPosition: Vector3? = nil
+local smoothedCameraDistance: number? = nil
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
 -------------------------------------------------------------------------------
 
-CustomCameraController.Mode = "TopDown" :: "TopDown" | "Regular"
+CustomCameraController.Mode = "Overhead" :: "Overhead" | "Regular"
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
 
-local function getAllPlayersBoundingBox()
+-- // Get parameters for the Overhead camera to have these desired objects within its view
+local function getAllSubjectsBoundingBox()
    local min = Vector3.new(math.huge, math.huge, math.huge)
    local max = Vector3.new(-math.huge, -math.huge, -math.huge)
 
@@ -113,6 +122,7 @@ local function getAllPlayersBoundingBox()
    return center, size
 end
 
+-- // Get required camera distance for the camera to possess these subjects within its view
 local function getRequiredDistanceForSize(size: Vector3, cameraBasis: CFrame, aspectRatio: number, verticalFovRadians: number)
    local half = size / 2
    local halfWidth = 0
@@ -140,12 +150,32 @@ local function getRequiredDistanceForSize(size: Vector3, cameraBasis: CFrame, as
    return math.max(distanceFromWidth, distanceFromHeight)
 end
 
-local function updateCamera()
+-- // Smoothing functions for smooth camera motion
+local function expSmoothingAlpha(rate: number, deltaTime: number): number
+   return 1 - math.exp(-rate * deltaTime)
+end
+
+local function stepSmoothVector3(currentValue: Vector3, targetValue: Vector3, baseRate: number, distanceFactor: number, maxRate: number, deltaTime: number): Vector3
+   local distance = (targetValue - currentValue).Magnitude
+   local rate = math.clamp(baseRate + distance * distanceFactor, baseRate, maxRate)
+   local alpha = expSmoothingAlpha(rate, deltaTime)
+   return currentValue:Lerp(targetValue, alpha)
+end
+
+local function stepSmoothNumber(currentValue: number, targetValue: number, baseRate: number, distanceFactor: number, maxRate: number, deltaTime: number): number
+   local distance = math.abs(targetValue - currentValue)
+   local rate = math.clamp(baseRate + distance * distanceFactor, baseRate, maxRate)
+   local alpha = expSmoothingAlpha(rate, deltaTime)
+   return currentValue + (targetValue - currentValue) * alpha
+end
+
+-- // Update camera for overhead position
+local function updateCamera(deltaTime: number)
    if not currentCamera then
       return
    end
 
-   local focusPosition, boxSize = getAllPlayersBoundingBox()
+   local focusPosition, boxSize = getAllSubjectsBoundingBox()
    if not focusPosition or not boxSize then
       return
    end
@@ -157,16 +187,40 @@ local function updateCamera()
    local focusToCameraDirection = (Vector3.yAxis * math.cos(tiltRadians) + horizontalDirection * math.sin(tiltRadians)).Unit
 
    local baseCFrame = CFrame.lookAt(focusPosition + focusToCameraDirection, focusPosition)
-   local distance = getRequiredDistanceForSize(boxSize, baseCFrame, currentCamera.ViewportSize.X / currentCamera.ViewportSize.Y, math.rad(currentCamera.FieldOfView))
-   local targetPosition = focusPosition + focusToCameraDirection * math.max(CAMERA_MIN_DISTANCE, distance + CAMERA_DISTANCE_PADDING)
+   local requiredDistance = getRequiredDistanceForSize(boxSize, baseCFrame, currentCamera.ViewportSize.X / currentCamera.ViewportSize.Y, math.rad(currentCamera.FieldOfView))
+   local targetDistance = math.max(CAMERA_MIN_DISTANCE, requiredDistance + CAMERA_DISTANCE_PADDING)
 
-   -- Keep all active arena players in frame from a mostly-overhead tilted angle.
-   currentCamera.CFrame = CFrame.lookAt(targetPosition, focusPosition)
-	currentCamera.Focus = CFrame.new(focusPosition)
+   if not smoothedFocusPosition or not smoothedCameraDistance then
+      smoothedFocusPosition = focusPosition
+      smoothedCameraDistance = targetDistance
+   else
+      smoothedFocusPosition = stepSmoothVector3(
+         smoothedFocusPosition,
+         focusPosition,
+         CAMERA_FOCUS_SMOOTH_BASE,
+         CAMERA_FOCUS_SMOOTH_DISTANCE_FACTOR,
+         CAMERA_FOCUS_SMOOTH_MAX,
+         deltaTime
+      )
+      smoothedCameraDistance = stepSmoothNumber(
+         smoothedCameraDistance,
+         targetDistance,
+         CAMERA_DISTANCE_SMOOTH_BASE,
+         CAMERA_DISTANCE_SMOOTH_DISTANCE_FACTOR,
+         CAMERA_DISTANCE_SMOOTH_MAX,
+         deltaTime
+      )
+   end
+
+   local cameraPosition = smoothedFocusPosition + focusToCameraDirection * smoothedCameraDistance
+
+	-- Keep orientation stable by deriving camera position from fixed yaw/tilt and smoothed focus+distance.
+   currentCamera.CFrame = CFrame.lookAt(cameraPosition, smoothedFocusPosition, Vector3.yAxis)
+	currentCamera.Focus = CFrame.new(smoothedFocusPosition)
 end
 
-local function startTopDownMode()
-   if topDownCameraConnection then
+local function startOverheadMode()
+   if overheadCameraConnection then
       return
    end
    local character = localPlayer.Character
@@ -176,21 +230,39 @@ local function startTopDownMode()
          character = localPlayer.Character
       until character
    end
-   if topDownCameraConnection then
+   if overheadCameraConnection then
       return
    end
 
    currentCamera = workspace.CurrentCamera
    currentCamera.CameraType = Enum.CameraType.Scriptable
    currentCamera.FieldOfView = 60
-   topDownCameraConnection = RunService.RenderStepped:Connect(updateCamera)
+   smoothedFocusPosition = nil
+   smoothedCameraDistance = nil
+   overheadCameraConnection = RunService.RenderStepped:Connect(updateCamera)
 end
 
-local function stopTopDownMode()
-   if topDownCameraConnection then
-      topDownCameraConnection:Disconnect()
-      topDownCameraConnection = nil
+local function stopOverheadMode()
+   if overheadCameraConnection then
+      overheadCameraConnection:Disconnect()
+      overheadCameraConnection = nil
    end
+
+   -- I want to position the camera like this:
+   -- 3 studs above the player position
+   -- 10 studs away from the player position in a direction opposite of their rootpart's lookvector
+   local character = localPlayer.Character
+   if character then
+      local rootPart = character:FindFirstChild("HumanoidRootPart")
+      if rootPart then
+         local cameraPosition = rootPart.Position + Vector3.new(0, 3, 0) - rootPart.CFrame.LookVector * 10
+         currentCamera.CFrame = CFrame.lookAt(cameraPosition, rootPart.Position, Vector3.yAxis)
+      end
+   end
+
+   currentCamera.CameraType = Enum.CameraType.Custom
+   smoothedFocusPosition = nil
+   smoothedCameraDistance = nil
    currentCamera = nil
 end
 
@@ -198,15 +270,15 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
-function CustomCameraController.setMode(mode: "TopDown" | "Regular")
+function CustomCameraController.setMode(mode: "Overhead" | "Regular")
    if not GameStateLibrary.LivingPlayersInArena then
       error(`Do not call CustomCameraController.setMode before 'start'`)
    end
    CustomCameraController.Mode = mode
-   if mode == "TopDown" then
-      startTopDownMode()
+   if mode == "Overhead" then
+      startOverheadMode()
    elseif mode == "Regular" then
-      stopTopDownMode()
+      stopOverheadMode()
    end
 end
 
@@ -219,7 +291,7 @@ end
 
 function CustomCameraController.start()
    local function onCharacterAdded(character)
-      CustomCameraController.setMode("TopDown")
+      CustomCameraController.setMode("Overhead")
    end
 
    if localPlayer.Character then
@@ -227,6 +299,16 @@ function CustomCameraController.start()
    end
 
    localPlayer.CharacterAdded:Connect(onCharacterAdded)
+
+   game:GetService("ContextActionService"):BindAction("SwitchCameraMode", function(actionName, inputState, inputObject)
+      if inputState == Enum.UserInputState.Begin then
+         if CustomCameraController.Mode == "Overhead" then
+            CustomCameraController.setMode("Regular")
+         else
+            CustomCameraController.setMode("Overhead")
+         end
+      end
+   end, false, Enum.KeyCode.C)
 end
 
 function CustomCameraController.test() end
