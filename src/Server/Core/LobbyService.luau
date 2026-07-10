@@ -27,7 +27,7 @@ local SharedConstants = ReplicatedStorage.Shared.Constants
 -------------------------------------------------------------------------------
 
 local lobbyFolder = game.Workspace.Lobby
-local lobbySpawnPoint = lobbyFolder:FindFirstChildWhichIsA("SpawnLocation")
+local lobbySpawnPoint = lobbyFolder.LobbySpawnLocation
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES

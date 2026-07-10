@@ -75,6 +75,28 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
+function SpawnService.sendPlayerTo(player: Player, location: Vector3)
+   local character = safeGetPlayerCharacter(player)
+   if not character then
+      return
+   end
+   local rootPart = character:FindFirstChild("HumanoidRootPart")
+   if not rootPart then
+      return
+   end
+   local rayOrigin = location + Vector3.new(0, 5, 0)
+   local rayDirection = Vector3.new(0, -10, 0)
+   local raycastParams = RaycastParams.new()
+   raycastParams.FilterDescendantsInstances = {character}
+   raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+   local rayResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+   if rayResult then
+      character:PivotTo(CFrame.new(rayResult.Position + Vector3.new(0, 3, 0)))
+   else
+      character:PivotTo(CFrame.new(location))
+   end
+end
+
 -------------------------------------------------------------------------------
 -- CORE FUNCTIONS
 -------------------------------------------------------------------------------
