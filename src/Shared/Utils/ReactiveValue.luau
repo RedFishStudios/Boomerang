@@ -49,6 +49,9 @@ function ReactiveValue:Set(newValue: any)
 		end)
 	end
 	-- Set
+   if newValue == self.Value then
+      return
+   end
 	self.Value = newValue
 	for _, callback in ipairs(self.Listeners) do
 		callback(newValue)

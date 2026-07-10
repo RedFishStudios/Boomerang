@@ -110,10 +110,11 @@ local function getAllSubjectsBoundingBox()
    local parts: { BasePart | Model | Tool } = {}
    local sizes: {Vector3} = {}
 
-   local livingPlayersInArena = GameStateLibrary.getGameStateData().LivingPlayersInArena:Get()
+   local gameStateData = GameStateLibrary.getGameStateData()
+   local livingPlayersInArena = gameStateData.LivingPlayersInArena:Get()
 
-   if table.find(livingPlayersInArena, localPlayer) then
-      for _, player in ipairs(GameStateLibrary.getGameStateData().LivingPlayersInArena:Get()) do
+   if gameStateData.IsInRound:Get() == true and table.find(livingPlayersInArena, localPlayer) then
+      for _, player in ipairs(livingPlayersInArena) do
          if player.Character and player.Character.PrimaryPart then
             table.insert(parts, player.Character.PrimaryPart)
             table.insert(sizes, player.Character.PrimaryPart.Size)
@@ -318,6 +319,68 @@ local function updateCamera(deltaTime: number)
 	currentCamera.Focus = CFrame.new(smoothedFocusPosition)
 end
 
+-- // Instantly place overhead camera to fit all visible subjects with no smoothing
+local function placeCameraInstantly()
+   if not currentCamera then
+      return
+   end
+
+   local focusPosition, boxSize, allSubjects, allSubjectSizes = getAllSubjectsBoundingBox()
+   if not focusPosition or not boxSize or not allSubjects or not allSubjectSizes then
+      return
+   end
+
+   local tiltRadians = math.rad(CAMERA_TILT_DEGREES_FROM_VERTICAL)
+   local yawRadians = math.rad(CAMERA_YAW_DEGREES)
+
+   local horizontalDirection = Vector3.new(math.sin(yawRadians), 0, math.cos(yawRadians))
+   local focusToCameraDirection = (Vector3.yAxis * math.cos(tiltRadians) + horizontalDirection * math.sin(tiltRadians)).Unit
+
+   local targetDistance, _ = buildCameraTargetForFocus(focusPosition, boxSize, focusToCameraDirection, currentCamera)
+   local targetFocusPosition = focusPosition
+
+   local localCharacter = localPlayer.Character
+   local localRootPart = localCharacter and localCharacter.PrimaryPart
+   if localRootPart then
+      local playerFocusPosition = localRootPart.Position
+      local playerTargetDistance, playerCameraCFrame = buildCameraTargetForFocus(playerFocusPosition, boxSize, focusToCameraDirection, currentCamera)
+
+      if areAllSubjectsVisibleWithPadding(currentCamera, allSubjects, allSubjectSizes, CAMERA_VIEW_PADDING_RATIO, playerCameraCFrame) then
+         targetFocusPosition = playerFocusPosition
+         targetDistance = playerTargetDistance
+      else
+         local low = 0
+         local high = 1
+         local bestFocus = focusPosition
+         local bestDistance = targetDistance
+
+         for _ = 1, CAMERA_FOCUS_BIAS_SOLVE_STEPS do
+            local t = (low + high) * 0.5
+            local candidateFocus = playerFocusPosition:Lerp(focusPosition, t)
+            local candidateDistance, candidateCameraCFrame = buildCameraTargetForFocus(candidateFocus, boxSize, focusToCameraDirection, currentCamera)
+
+            if areAllSubjectsVisibleWithPadding(currentCamera, allSubjects, allSubjectSizes, CAMERA_VIEW_PADDING_RATIO, candidateCameraCFrame) then
+               bestFocus = candidateFocus
+               bestDistance = candidateDistance
+               high = t
+            else
+               low = t
+            end
+         end
+
+         targetFocusPosition = bestFocus
+         targetDistance = bestDistance
+      end
+   end
+
+   smoothedFocusPosition = targetFocusPosition
+   smoothedCameraDistance = targetDistance
+
+   local cameraPosition = targetFocusPosition + focusToCameraDirection * targetDistance
+   currentCamera.CFrame = CFrame.lookAt(cameraPosition, targetFocusPosition, Vector3.yAxis)
+   currentCamera.Focus = CFrame.new(targetFocusPosition)
+end
+
 local function startOverheadMode()
    if overheadCameraConnection then
       return
@@ -338,6 +401,7 @@ local function startOverheadMode()
    currentCamera.FieldOfView = 60
    smoothedFocusPosition = nil
    smoothedCameraDistance = nil
+   placeCameraInstantly()
    overheadCameraConnection = RunService.RenderStepped:Connect(updateCamera)
 end
 
@@ -397,6 +461,13 @@ function CustomCameraController.start()
    end
 
    localPlayer.CharacterAdded:Connect(onCharacterAdded)
+   
+   local gameStateData = GameStateLibrary.getGameStateData()
+   gameStateData.IsInRound:Subscribe(function(isInRound: boolean)
+      if CustomCameraController.Mode == "Overhead" then
+         placeCameraInstantly()
+      end
+   end)
 
    game:GetService("ContextActionService"):BindAction("SwitchCameraMode", function(actionName, inputState, inputObject)
       if inputState == Enum.UserInputState.Begin then
