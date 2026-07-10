@@ -59,6 +59,10 @@ local function getLogic(toolId: string)
 	return ToolLogicModules[toolId]
 end
 
+local function hasForceField(character: Model): boolean
+    return character:FindFirstChildWhichIsA("ForceField") ~= nil
+end
+
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
@@ -88,8 +92,7 @@ function WeaponService.init()
 
    -- // Throw boomerang
 	throwEvent.OnServerEvent:Connect(function(player: Player, toolId: string)
-      print(player)
-   if not CurrentGameState.getGameStateData().IsInRound:Get() then
+      if not CurrentGameState.getGameStateData().IsInRound:Get() then
          return
       end
       if ThrownWeapons.Data[player] then
@@ -103,6 +106,14 @@ function WeaponService.init()
       end
 
       -- TODO: validate that the player owns this weapon and has it equipped this round
+      local character = player.Character
+      if not character then
+         return
+      end
+      if hasForceField(character) then
+         print("player has forcefield")
+         return
+      end
 
       ThrownWeapons.Data[player] = {
          ToolId = toolId,

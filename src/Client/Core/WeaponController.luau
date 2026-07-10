@@ -43,6 +43,10 @@ local function getLogic(toolId: string)
 	return ToolLogicModules[toolId]
 end
 
+local function hasForceField(character: Model): boolean
+    return character:FindFirstChildWhichIsA("ForceField") ~= nil
+end
+
 local function createRaycastVisualizers()
    local visualizers = {}
    for i = 1, 3 do
@@ -254,6 +258,11 @@ function WeaponController.init()
 		end
 
 		if input.KeyCode == Enum.KeyCode.E then
+         local character = Players.LocalPlayer.Character
+         if character and hasForceField(character) then
+            print("cannot throw due to having forcefield")
+            return
+         end
 			throwEvent:FireServer("ClassicBoomerang")
 		end
 
