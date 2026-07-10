@@ -9,7 +9,10 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UIController = require(ReplicatedStorage.Client.UI.UIController)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
+
+local GamemodeHud = UIController.get("GamemodeHud")
 
 local localPlayer = Players.LocalPlayer
 
@@ -59,6 +62,8 @@ CustomCameraController.Mode = "Overhead" :: "Overhead" | "Regular"
 local function areAllSubjectsVisibleWithPadding(camera: Camera, parts: {BasePart | Model | Tool}, sizes: {Vector3}, paddingRatio: number, cameraCFrame: CFrame?): boolean
    local cameraFrame = cameraCFrame or camera.CFrame
    local aspectRatio = camera.ViewportSize.X / camera.ViewportSize.Y
+   local viewportHeight = math.max(camera.ViewportSize.Y, 1)
+   local topPaddingRatio = math.max(paddingRatio, GamemodeHud.getHeaderPaddingSizeOffset() / viewportHeight)
    local tanHalfVertical = math.tan(math.rad(camera.FieldOfView) / 2)
    local tanHalfHorizontal = tanHalfVertical * aspectRatio
 
@@ -86,7 +91,7 @@ local function areAllSubjectsVisibleWithPadding(camera: Camera, parts: {BasePart
                   return false
                end
 
-               if viewportY < paddingRatio or viewportY > (1 - paddingRatio) then
+               if viewportY < topPaddingRatio or viewportY > (1 - paddingRatio) then
                   return false
                end
             end

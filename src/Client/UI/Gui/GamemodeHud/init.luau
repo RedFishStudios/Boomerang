@@ -24,6 +24,7 @@ local countdownConnection: RBXScriptConnection?
 local TimerLabel: TextLabel?
 local shownWholeSeconds: number?
 
+local GuiHeader: Frame?
 local GamemodeLabel: TextLabel?
 local SubheaderLabel: TextLabel?
 local VoteContainer: Frame?
@@ -171,12 +172,20 @@ function GamemodeHudGui.close(Instant: boolean?)
 	Gui.Enabled = false
 end
 
+function GamemodeHudGui.getHeaderPaddingSizeOffset(): number
+   if not GuiHeader then
+      return 0
+   end
+   return GuiHeader.AbsoluteSize.Y * .75
+end
+
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 local function _init()
    Gui.Parent = Player.PlayerGui
    Gui.Enabled = true
 
+   GuiHeader = Gui.Header
    GamemodeLabel = Gui.Header.GamemodeLabel
    SubheaderLabel = Gui.Header.SubheaderLabel
    TimerLabel = Gui.Header.TimerLabel
