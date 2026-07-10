@@ -105,28 +105,32 @@ local function getAllSubjectsBoundingBox()
    local parts: { BasePart | Model | Tool } = {}
    local sizes: {Vector3} = {}
 
-   for _, player in ipairs(GameStateLibrary.getGameStateData().LivingPlayersInArena:Get()) do
-      if player.Character and player.Character.PrimaryPart then
-         table.insert(parts, player.Character.PrimaryPart)
-         table.insert(sizes, player.Character.PrimaryPart.Size)
-      end
-   end
-
-   for _, weapon in ipairs(thrownWeaponsFolder:GetChildren()) do
-      if weapon:IsA("BasePart") then
-         table.insert(parts, weapon)
-         table.insert(sizes, weapon.Size)
-      elseif weapon:IsA("Model") then
-         local primaryPart = weapon.PrimaryPart
-         if primaryPart then
-            table.insert(parts, primaryPart)
-            table.insert(sizes, primaryPart.Size)
+   local livingPlayersInArena = GameStateLibrary.getGameStateData().LivingPlayersInArena:Get()
+   
+   if table.find(livingPlayersInArena, localPlayer) then
+      for _, player in ipairs(GameStateLibrary.getGameStateData().LivingPlayersInArena:Get()) do
+         if player.Character and player.Character.PrimaryPart then
+            table.insert(parts, player.Character.PrimaryPart)
+            table.insert(sizes, player.Character.PrimaryPart.Size)
          end
-      elseif weapon:IsA("Tool") then
-         local handle = weapon:FindFirstChild("Handle")
-         if handle then
-            table.insert(parts, handle)
-            table.insert(sizes, handle.Size)
+      end
+
+      for _, weapon in ipairs(thrownWeaponsFolder:GetChildren()) do
+         if weapon:IsA("BasePart") then
+            table.insert(parts, weapon)
+            table.insert(sizes, weapon.Size)
+         elseif weapon:IsA("Model") then
+            local primaryPart = weapon.PrimaryPart
+            if primaryPart then
+               table.insert(parts, primaryPart)
+               table.insert(sizes, primaryPart.Size)
+            end
+         elseif weapon:IsA("Tool") then
+            local handle = weapon:FindFirstChild("Handle")
+            if handle then
+               table.insert(parts, handle)
+               table.insert(sizes, handle.Size)
+            end
          end
       end
    end
