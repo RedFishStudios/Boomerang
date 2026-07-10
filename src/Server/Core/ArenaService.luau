@@ -15,6 +15,7 @@ local Players = game:GetService("Players")
 local CurrentGameState = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
+local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -245,6 +246,16 @@ function ArenaService.init()
          end
       else
          warn(`map {c.Name} is missing Walls folder`)
+      end
+
+      local spawnpoints = c:FindFirstChild("SpawnPoints")
+      if not spawnpoints then
+         warn(`map {c.Name} is missing SpawnPoints folder`)
+      end
+      for _, c in pairs(spawnpoints:GetChildren()) do
+         if c:IsA("SpawnLocation") then
+            c.Duration = GlobalConfig.SpawnShieldDuration
+         end
       end
 
       registeredMaps[c.Name] = c
