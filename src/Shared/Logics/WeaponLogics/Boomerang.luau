@@ -414,9 +414,11 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       local rayOrigin = host:GetPivot().Position
       local rayDistance = (math.max(speed, hitboxRadius)) * deltaTime
       local raycastResult = raycastWithHorizontalHitbox(rayOrigin, direction, rayDistance, hitboxRadius, raycastParams, thrownWeaponData)
+      local sliding = false
 
       -- // If we hit something, adjust movement direction to move perpendicular to the obstruction
       if raycastResult and raycastResult.Instance then
+         sliding = true
          speed = 0
          slideMomentum = 1
 
@@ -443,7 +445,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          --   slideDirection * slideDistance,
          --   raycastParams
          --)
-         local slideHit = raycastWithHorizontalHitbox(rayOrigin, direction, rayDistance, hitboxRadius*.5, raycastParams, thrownWeaponData)
+         local slideHit = raycastWithHorizontalHitbox(rayOrigin, slideDirection, rayDistance, hitboxRadius*.5, raycastParams, thrownWeaponData)
 
          if slideHit and not slideHit.Instance:IsDescendantOf(Characters) then
             speed = 0
@@ -462,6 +464,23 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          speed = math.min(speed + deltaTime * 100, toolData.Boomerang.Speed)
          slideSpeed = speed
          host:PivotTo(host:GetPivot() + blendedDirection * blendedSpeed * deltaTime)
+      end
+
+      local victimModels = raycastWithHorizontalCharacterHitbox(rayOrigin, if sliding then slideDirection else direction, hitboxRadius)
+      for _, victimModel in ipairs(victimModels) do
+         local victimPlayer = victimModel and game.Players:GetPlayerFromCharacter(victimModel)
+         if victimPlayer and victimPlayer ~= player then
+            if victimPlayer.Team and (victimPlayer.Team ~= player.Team or victimPlayer.Team:GetAttribute("FriendlyFire") == true) then
+               if isServer then
+                  local Humanoid = victimModel:FindFirstChildOfClass("Humanoid")
+                  if Humanoid and Humanoid.Health > 0 then
+                     CombatService.damagePlayer(player, boomerangId, victimPlayer, Humanoid, 100000)
+                  end
+               else
+                  print("play effect on client")
+               end
+            end
+         end
       end
 
       thrownWeaponData.Direction = direction
