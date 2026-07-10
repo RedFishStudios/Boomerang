@@ -106,7 +106,7 @@ local function getAllSubjectsBoundingBox()
    local sizes: {Vector3} = {}
 
    local livingPlayersInArena = GameStateLibrary.getGameStateData().LivingPlayersInArena:Get()
-   
+
    if table.find(livingPlayersInArena, localPlayer) then
       for _, player in ipairs(GameStateLibrary.getGameStateData().LivingPlayersInArena:Get()) do
          if player.Character and player.Character.PrimaryPart then
@@ -342,15 +342,13 @@ local function stopOverheadMode()
       overheadCameraConnection = nil
    end
 
-   -- I want to position the camera like this:
-   -- 3 studs above the player position
-   -- 10 studs away from the player position in a direction opposite of their rootpart's lookvector
    local character = localPlayer.Character
    if character then
       local rootPart = character:FindFirstChild("HumanoidRootPart")
       if rootPart then
          local cameraPosition = rootPart.Position + Vector3.new(0, 3, 0) - rootPart.CFrame.LookVector * 10
          currentCamera.CFrame = CFrame.lookAt(cameraPosition, rootPart.Position, Vector3.yAxis)
+         currentCamera.CameraSubject = character.Humanoid
       end
    end
 
@@ -365,8 +363,9 @@ end
 -------------------------------------------------------------------------------
 
 function CustomCameraController.setMode(mode: "Overhead" | "Regular")
-   if not GameStateLibrary.getGameStateData().LivingPlayersInArena then
-      error(`Do not call CustomCameraController.setMode before 'start'`)
+   if not GameStateLibrary.Ready then
+      warn(`Do not call CustomCameraController.setMode before 'start'`)
+      return
    end
    CustomCameraController.Mode = mode
    if mode == "Overhead" then
