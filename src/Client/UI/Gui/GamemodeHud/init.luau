@@ -128,8 +128,8 @@ local function _init()
       VoteContainer.Visible = true
       GamemodeLabel.Text = "Intermission"
       SubheaderLabel.Text = winMessage
-      OptionACount.Text = ""
-      OptionBCount.Text = ""
+      OptionACount.Text = "0"
+      OptionBCount.Text = "0"
 
       OptionAButton.TextLabel.Text = Gamemodes[options[1]].Display or options[1]
       OptionBButton.TextLabel.Text = Gamemodes[options[2]].Display or options[2] or ""

@@ -189,11 +189,21 @@ function RoundCyclingService.init()
    end)
 
    VoteUpdatedEvent.OnServerEvent:Connect(function(player: Player, index: number)
-      if votes[player] then
+      -- same vote?
+      if votes[player] == index then
          return
       end
+
+      -- Remove previous vote
+      if votes[player] then
+         totalVotes[votes[player]] -= 1
+      end
+
+      -- Record new vote
       votes[player] = index
       totalVotes[index] += 1
+
+      
       local i = table.find(awaitingVotes, player)
       if i then
          table.remove(awaitingVotes, i)
