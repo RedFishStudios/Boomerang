@@ -20,7 +20,9 @@ local localPlayer = Players.LocalPlayer
 local CAMERA_TILT_DEGREES_FROM_VERTICAL = 15
 local CAMERA_YAW_DEGREES = 0
 local CAMERA_DISTANCE_PADDING = 20
-local CAMERA_MIN_DISTANCE = 40
+local CAMERA_MIN_DISTANCE = 60
+local CAMERA_VIEW_PADDING_RATIO = 0.08
+local CAMERA_FOCUS_BIAS_SOLVE_STEPS = 7
 local CAMERA_FOCUS_SMOOTH_BASE = 11
 local CAMERA_FOCUS_SMOOTH_DISTANCE_FACTOR = 0.08
 local CAMERA_FOCUS_SMOOTH_MAX = 42
@@ -52,6 +54,48 @@ CustomCameraController.Mode = "Overhead" :: "Overhead" | "Regular"
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
+
+-- // Ask if all subjects are visible within the camera's current size and position
+local function areAllSubjectsVisibleWithPadding(camera: Camera, parts: {BasePart | Model | Tool}, sizes: {Vector3}, paddingRatio: number, cameraCFrame: CFrame?): boolean
+   local cameraFrame = cameraCFrame or camera.CFrame
+   local aspectRatio = camera.ViewportSize.X / camera.ViewportSize.Y
+   local tanHalfVertical = math.tan(math.rad(camera.FieldOfView) / 2)
+   local tanHalfHorizontal = tanHalfVertical * aspectRatio
+
+   for i, part in ipairs(parts) do
+      local center = part:GetPivot().Position
+      local half = sizes[i] / 2
+
+      for x = -1, 1, 2 do
+         for y = -1, 1, 2 do
+            for z = -1, 1, 2 do
+               local worldPoint = center + Vector3.new(half.X * x, half.Y * y, half.Z * z)
+               local localPoint = cameraFrame:PointToObjectSpace(worldPoint)
+               local depth = -localPoint.Z
+               if depth <= 0 then
+                  return false
+               end
+
+               local normalizedX = localPoint.X / (depth * tanHalfHorizontal)
+               local normalizedY = localPoint.Y / (depth * tanHalfVertical)
+
+               local viewportX = normalizedX * 0.5 + 0.5
+               local viewportY = -normalizedY * 0.5 + 0.5
+
+               if viewportX < paddingRatio or viewportX > (1 - paddingRatio) then
+                  return false
+               end
+
+               if viewportY < paddingRatio or viewportY > (1 - paddingRatio) then
+                  return false
+               end
+            end
+         end
+      end
+   end
+
+   return true
+end
 
 -- // Get parameters for the Overhead camera to have these desired objects within its view
 local function getAllSubjectsBoundingBox()
@@ -119,7 +163,7 @@ local function getAllSubjectsBoundingBox()
 
    local center = (min + max) / 2
    local size = max - min
-   return center, size
+   return center, size, parts, sizes
 end
 
 -- // Get required camera distance for the camera to possess these subjects within its view
@@ -169,14 +213,27 @@ local function stepSmoothNumber(currentValue: number, targetValue: number, baseR
    return currentValue + (targetValue - currentValue) * alpha
 end
 
+local function buildCameraTargetForFocus(focusPosition: Vector3, boxSize: Vector3, focusToCameraDirection: Vector3, camera: Camera): (number, CFrame)
+   local cameraBasis = CFrame.lookAt(focusPosition + focusToCameraDirection, focusPosition)
+   local requiredDistance = getRequiredDistanceForSize(
+      boxSize,
+      cameraBasis,
+      camera.ViewportSize.X / camera.ViewportSize.Y,
+      math.rad(camera.FieldOfView)
+   )
+   local targetDistance = math.max(CAMERA_MIN_DISTANCE, requiredDistance + CAMERA_DISTANCE_PADDING)
+   local cameraPosition = focusPosition + focusToCameraDirection * targetDistance
+   return targetDistance, CFrame.lookAt(cameraPosition, focusPosition, Vector3.yAxis)
+end
+
 -- // Update camera for overhead position
 local function updateCamera(deltaTime: number)
    if not currentCamera then
       return
    end
 
-   local focusPosition, boxSize = getAllSubjectsBoundingBox()
-   if not focusPosition or not boxSize then
+   local focusPosition, boxSize, allSubjects, allSubjectSizes = getAllSubjectsBoundingBox()
+   if not focusPosition or not boxSize or not allSubjects or not allSubjectSizes then
       return
    end
 
@@ -186,17 +243,50 @@ local function updateCamera(deltaTime: number)
    local horizontalDirection = Vector3.new(math.sin(yawRadians), 0, math.cos(yawRadians))
    local focusToCameraDirection = (Vector3.yAxis * math.cos(tiltRadians) + horizontalDirection * math.sin(tiltRadians)).Unit
 
-   local baseCFrame = CFrame.lookAt(focusPosition + focusToCameraDirection, focusPosition)
-   local requiredDistance = getRequiredDistanceForSize(boxSize, baseCFrame, currentCamera.ViewportSize.X / currentCamera.ViewportSize.Y, math.rad(currentCamera.FieldOfView))
-   local targetDistance = math.max(CAMERA_MIN_DISTANCE, requiredDistance + CAMERA_DISTANCE_PADDING)
+   local targetDistance, _ = buildCameraTargetForFocus(focusPosition, boxSize, focusToCameraDirection, currentCamera)
+   local targetFocusPosition = focusPosition
+
+   local localCharacter = localPlayer.Character
+   local localRootPart = localCharacter and localCharacter.PrimaryPart
+   if localRootPart then
+      local playerFocusPosition = localRootPart.Position
+      local playerTargetDistance, playerCameraCFrame = buildCameraTargetForFocus(playerFocusPosition, boxSize, focusToCameraDirection, currentCamera)
+
+      if areAllSubjectsVisibleWithPadding(currentCamera, allSubjects, allSubjectSizes, CAMERA_VIEW_PADDING_RATIO, playerCameraCFrame) then
+         targetFocusPosition = playerFocusPosition
+         targetDistance = playerTargetDistance
+      else
+         local low = 0
+         local high = 1
+         local bestFocus = focusPosition
+         local bestDistance = targetDistance
+
+         for _ = 1, CAMERA_FOCUS_BIAS_SOLVE_STEPS do
+            local t = (low + high) * 0.5
+            local candidateFocus = playerFocusPosition:Lerp(focusPosition, t)
+            local candidateDistance, candidateCameraCFrame = buildCameraTargetForFocus(candidateFocus, boxSize, focusToCameraDirection, currentCamera)
+
+            if areAllSubjectsVisibleWithPadding(currentCamera, allSubjects, allSubjectSizes, CAMERA_VIEW_PADDING_RATIO, candidateCameraCFrame) then
+               bestFocus = candidateFocus
+               bestDistance = candidateDistance
+               high = t
+            else
+               low = t
+            end
+         end
+
+         targetFocusPosition = bestFocus
+         targetDistance = bestDistance
+      end
+   end
 
    if not smoothedFocusPosition or not smoothedCameraDistance then
-      smoothedFocusPosition = focusPosition
+      smoothedFocusPosition = targetFocusPosition
       smoothedCameraDistance = targetDistance
    else
       smoothedFocusPosition = stepSmoothVector3(
          smoothedFocusPosition,
-         focusPosition,
+         targetFocusPosition,
          CAMERA_FOCUS_SMOOTH_BASE,
          CAMERA_FOCUS_SMOOTH_DISTANCE_FACTOR,
          CAMERA_FOCUS_SMOOTH_MAX,
