@@ -15,15 +15,22 @@ local SharedMods = ReplicatedStorage.Shared
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local Gamemodes = require(SharedMods.Constants.Gamemodes)
 local _UIController = require(ClientMods.UI.UIController)
-local Gamemodes = require(SharedMods.Constants.Gamemodes)
+local GameStateLibrary = require(SharedMods.Library.GameStateLibrary)
 
 -- // Gui Values // --
 
 local Gui = script:WaitForChild("Gamemode")
 local countdownConnection: RBXScriptConnection?
 local TimerLabel: TextLabel?
-local timerEndsAt: number?
 local shownWholeSeconds: number?
+
+local GamemodeLabel: TextLabel?
+local SubheaderLabel: TextLabel?
+local VoteContainer: Frame?
+local OptionAButton: TextButton?
+local OptionBButton: TextButton?
+local OptionACount: TextLabel?
+local OptionBCount: TextLabel?
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Local Functions
@@ -33,16 +40,16 @@ local function stopCountdown()
       countdownConnection:Disconnect()
       countdownConnection = nil
    end
-   timerEndsAt = nil
    shownWholeSeconds = nil
 end
 
 local function updateTimer()
-   if not TimerLabel or not timerEndsAt then
+   local currentTimerEndsAt = GameStateLibrary.getGameStateData().CurrentTimerEndsAt:Get()
+   if not TimerLabel or not currentTimerEndsAt then
       return
    end
 
-   local secondsLeft = math.max(0, timerEndsAt - workspace:GetServerTimeNow())
+   local secondsLeft = math.max(0, currentTimerEndsAt - workspace:GetServerTimeNow())
    local wholeSeconds = math.ceil(secondsLeft)
    if shownWholeSeconds ~= wholeSeconds then
       shownWholeSeconds = wholeSeconds
@@ -54,23 +61,99 @@ local function updateTimer()
    end
 end
 
-local function startCountdown(totalDuration: number?, serverNotificationTime: number?, fallbackText: string)
+local function startCountdown(fallbackText: string)
    stopCountdown()
    if not TimerLabel then
       return
    end
 
-   if typeof(totalDuration) ~= "number" or typeof(serverNotificationTime) ~= "number" then
+   if typeof(GameStateLibrary.getGameStateData().CurrentTimerEndsAt:Get()) ~= "number" then
       TimerLabel.Text = fallbackText
       return
    end
 
-   -- Compensate for network delay between server send and client receipt.
-   local estimatedRemaining = math.max(0, totalDuration - (workspace:GetServerTimeNow() - serverNotificationTime))
-   timerEndsAt = workspace:GetServerTimeNow() + estimatedRemaining
    shownWholeSeconds = nil
    updateTimer()
    countdownConnection = RunService.Heartbeat:Connect(updateTimer)
+end
+
+local function updateVoteCounts(optionA: number, optionB: number)
+   if not OptionACount or not OptionBCount then
+      return
+   end
+
+   OptionACount.Text = tostring(optionA)
+   OptionBCount.Text = tostring(optionB)
+end
+
+-- // Apply in-intermission display
+local function applyIntermissionUi()
+   if not VoteContainer or not GamemodeLabel or not SubheaderLabel or not OptionAButton or not OptionBButton then
+      return
+   end
+
+   local gameStateData = GameStateLibrary.getGameStateData()
+   local options = gameStateData.IntermissionOptions:Get()
+   local optionA = options[1]
+   local optionB = options[2]
+   local votes = gameStateData.IntermissionVotes:Get()
+   local voteA = votes[1]
+   local voteB = votes[2]
+   local chosenGamemode = gameStateData.IntermissionChosenGamemode:Get()
+
+   VoteContainer.Visible = chosenGamemode == nil
+   GamemodeLabel.Text = "Intermission"
+   SubheaderLabel.Text = gameStateData.IntermissionWinMessage:Get() or ""
+   updateVoteCounts(voteA, voteB)
+
+   OptionAButton.TextLabel.Text = if optionA and Gamemodes[optionA] then (Gamemodes[optionA].Display or optionA) else (optionA or "")
+   OptionBButton.TextLabel.Text = if optionB and Gamemodes[optionB] then (Gamemodes[optionB].Display or optionB) else (optionB or "")
+
+   startCountdown("")
+end
+
+-- // Apply in-round display
+local function applyRoundUi()
+   if not VoteContainer or not GamemodeLabel or not SubheaderLabel then
+      return
+   end
+
+   VoteContainer.Visible = false
+   local newGamemode = GameStateLibrary.getGameStateData().Gamemode:Get()
+   local gamemodeData = newGamemode and Gamemodes[newGamemode] or nil
+   if gamemodeData and newGamemode then
+      GamemodeLabel.Text = gamemodeData.Name or newGamemode
+      SubheaderLabel.Text = gamemodeData.Subheader or ""
+      startCountdown(gamemodeData.Timer or "")
+      return
+   end
+
+   GamemodeLabel.Text = ""
+   SubheaderLabel.Text = ""
+   startCountdown("")
+end
+
+-- // Refresh hud display using current game state data
+local function refreshUiFromGameState()
+   local gameStateData = GameStateLibrary.getGameStateData()
+   if gameStateData.IsInRound:Get() and gameStateData.Gamemode:Get() then
+      applyRoundUi()
+      return
+   end
+
+   local options = gameStateData.IntermissionOptions:Get()
+   if #options > 0 then
+      applyIntermissionUi()
+      return
+   end
+
+   if VoteContainer then
+      VoteContainer.Visible = false
+   end
+   stopCountdown()
+   if TimerLabel then
+      TimerLabel.Text = ""
+   end
 end
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -94,27 +177,17 @@ local function _init()
    Gui.Parent = Player.PlayerGui
    Gui.Enabled = true
 
-   local GamemodeLabel = Gui.Header.GamemodeLabel
-   local SubheaderLabel = Gui.Header.SubheaderLabel
+   GamemodeLabel = Gui.Header.GamemodeLabel
+   SubheaderLabel = Gui.Header.SubheaderLabel
    TimerLabel = Gui.Header.TimerLabel
 
-   local VoteContainer = Gui.VoteContainer
-   local OptionAButton = VoteContainer.OptionA
-   local OptionBButton = VoteContainer.OptionB
-   local OptionACount = VoteContainer.OptionA.VoteCount
-   local OptionBCount = VoteContainer.OptionB.VoteCount
+   VoteContainer = Gui.VoteContainer
+   OptionAButton = VoteContainer.OptionA
+   OptionBButton = VoteContainer.OptionB
+   OptionACount = VoteContainer.OptionA.VoteCount
+   OptionBCount = VoteContainer.OptionB.VoteCount
 
    VoteContainer.Visible = false
-
-   SimpleRemotes.getEvent("VoteUpdated").OnClientEvent:Connect(function(optionA: number, optionB: number, chosenGamemode: string?, intermissionDuration: number?, serverNotificationTime: number?)
-      if chosenGamemode and intermissionDuration and serverNotificationTime then
-         VoteContainer.Visible = false
-         startCountdown(intermissionDuration, serverNotificationTime, "")
-      else
-         OptionACount.Text = optionA
-         OptionBCount.Text = optionB
-      end
-   end)
 
    OptionAButton.Activated:Connect(function()
       SimpleRemotes.getEvent("VoteUpdated"):FireServer(1)
@@ -123,33 +196,14 @@ local function _init()
    OptionBButton.Activated:Connect(function()
       SimpleRemotes.getEvent("VoteUpdated"):FireServer(2)
    end)
-
-   SimpleRemotes.getEvent("IntermissionStarted").OnClientEvent:Connect(function(winner: Player?, winMessage: string, options: {string}, intermissionDuration: number?, serverNotificationTime: number?)
-      VoteContainer.Visible = true
-      GamemodeLabel.Text = "Intermission"
-      SubheaderLabel.Text = winMessage
-      OptionACount.Text = "0"
-      OptionBCount.Text = "0"
-
-      OptionAButton.TextLabel.Text = Gamemodes[options[1]].Display or options[1]
-      OptionBButton.TextLabel.Text = Gamemodes[options[2]].Display or options[2] or ""
-      startCountdown(intermissionDuration, serverNotificationTime, "")
-   end)
-
-   SimpleRemotes.getEvent("NewRoundStarted").OnClientEvent:Connect(function(newGamemode: string, totalRoundTime: number?, serverNotificationTime: number?)
-      VoteContainer.Visible = false
-      local gamemodeData = Gamemodes[newGamemode]
-      if gamemodeData then
-         GamemodeLabel.Text = gamemodeData.Name or newGamemode
-         SubheaderLabel.Text = gamemodeData.Subheader or ""
-
-         startCountdown(totalRoundTime, serverNotificationTime, gamemodeData.Timer or "")
-      end
-   end)
 end
 _init()
 
 function GamemodeHudGui.start()
+   GameStateLibrary.GameStateSnapshotLoadedTasks:Add(function(_snapshot, _reason)
+      refreshUiFromGameState()
+   end)
+   refreshUiFromGameState()
 end
 
 return GamemodeHudGui

@@ -219,7 +219,9 @@ function ArenaService.setArena(mapName: string)
    end
 
    ArenaService.MapChangedTasks:Execute("parallel")
-   CurrentGameState.LivingPlayersInArena:Set(livingPlayersInArena)
+   CurrentGameState.applyValues({
+      LivingPlayersInArena = livingPlayersInArena,
+   })
 end
 
 -------------------------------------------------------------------------------

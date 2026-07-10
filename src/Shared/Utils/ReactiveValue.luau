@@ -1,22 +1,22 @@
 local ReactiveValue = {}
 ReactiveValue.__index = ReactiveValue
 
-export type ReactiveValue = {
-	Value: any,
-	Listeners: {callback: (newValue: any)->()},
+export type ReactiveValue<T> = {
+	Value: T,
+	Listeners: {callback: (newValue: T)->()},
 	Debounce: number?,
 	Debounced: true?,
 	_isReactive: true,
 	_DESTROYED: true?,
 
-	Get: (self: ReactiveValue)->(),
-	Set: (self: ReactiveValue, newValue: any)->(),
-	SilentSet: (self: ReactiveValue, newValue: any)->(),
-	Subscribe: (self: ReactiveValue, callback: (newValue: any)->())->(),
-	Destroy: (self: ReactiveValue)->()
+	Get: (self: ReactiveValue<T>)->(T),
+	Set: (self: ReactiveValue<T>, newValue: T)->(),
+	SilentSet: (self: ReactiveValue<T>, newValue: T)->(),
+	Subscribe: (self: ReactiveValue<T>, callback: (newValue: T)->())->(),
+	Destroy: (self: ReactiveValue<T>)->()
 }
 
-function ReactiveValue.new(initialValue: any, debounce: number?)
+function ReactiveValue.new<T>(initialValue: T, debounce: number?)
 	local self = setmetatable({
 		Value = initialValue,
 		Listeners = {},

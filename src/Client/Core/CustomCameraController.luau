@@ -105,7 +105,7 @@ local function getAllSubjectsBoundingBox()
    local parts: { BasePart | Model | Tool } = {}
    local sizes: {Vector3} = {}
 
-   for _, player in ipairs(GameStateLibrary.LivingPlayersInArena:Get()) do
+   for _, player in ipairs(GameStateLibrary.getGameStateData().LivingPlayersInArena:Get()) do
       if player.Character and player.Character.PrimaryPart then
          table.insert(parts, player.Character.PrimaryPart)
          table.insert(sizes, player.Character.PrimaryPart.Size)
@@ -361,7 +361,7 @@ end
 -------------------------------------------------------------------------------
 
 function CustomCameraController.setMode(mode: "Overhead" | "Regular")
-   if not GameStateLibrary.LivingPlayersInArena then
+   if not GameStateLibrary.getGameStateData().LivingPlayersInArena then
       error(`Do not call CustomCameraController.setMode before 'start'`)
    end
    CustomCameraController.Mode = mode

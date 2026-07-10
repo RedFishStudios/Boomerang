@@ -63,7 +63,8 @@ local function safeGetHumanoid(character)
 end
 
 local function setPlayerSpawnpoint(player: Player)
-   if CurrentGameState.IsInRound and CurrentGameState.CanRespawn then
+   local gameStateData = CurrentGameState.getGameStateData()
+   if gameStateData.IsInRound:Get() and gameStateData.CanRespawn:Get() then
       player.RespawnLocation = ArenaService.getSpawnPoint(player)
    else
       player.RespawnLocation = LobbyService.getSpawnPoint()
