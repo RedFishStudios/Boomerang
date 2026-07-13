@@ -7,6 +7,7 @@ local RunService = game:GetService("RunService")
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 local ReactiveValue = require(ReplicatedStorage.Shared.Utils.ReactiveValue)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
+local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
@@ -143,27 +144,62 @@ local function getSnapshot()
    } :: GameStateSnapshot
 end
 
+local function encodeReplicatedValue(value: any): any
+   if value == nil then
+      return GlobalConfig.NilDataType
+   end
+   return value
+end
+
+local function decodeReplicatedValue(value: any): any
+   if value == GlobalConfig.NilDataType then
+      return nil
+   end
+   return value
+end
+
+local function getReplicatedSnapshotPayload(): {[string]: any}
+   local snapshot = getSnapshot()
+   local payload = {}
+   for fieldName, _ in pairs(replicatedFieldNames) do
+      local value = snapshot[fieldName]
+      if fieldName == "IntermissionOptions" then
+         payload[fieldName] = cloneOptions(value)
+      elseif fieldName == "LivingPlayersInArena" then
+         payload[fieldName] = clonePlayers(value)
+      else
+         payload[fieldName] = encodeReplicatedValue(value)
+      end
+   end
+   return payload
+end
+
 local function applySnapshotLocal(snapshot: GameStateSnapshot)
    CurrentGameStateData.IsInRound:Set(snapshot.IsInRound)
-   CurrentGameStateData.Gamemode:Set(snapshot.Gamemode)
-   CurrentGameStateData.CurrentMapName:Set(snapshot.CurrentMapName)
-   CurrentGameStateData.CurrentTimerEndsAt:Set(snapshot.CurrentTimerEndsAt)
-   CurrentGameStateData.CanRespawn:Set(snapshot.CanRespawn)
-   CurrentGameStateData.IntermissionWinMessage:Set(snapshot.IntermissionWinMessage)
+   CurrentGameStateData.Gamemode:Set(decodeReplicatedValue(snapshot.Gamemode))
+   CurrentGameStateData.CurrentMapName:Set(decodeReplicatedValue(snapshot.CurrentMapName))
+   CurrentGameStateData.CurrentTimerEndsAt:Set(decodeReplicatedValue(snapshot.CurrentTimerEndsAt))
+   CurrentGameStateData.CanRespawn:Set(decodeReplicatedValue(snapshot.CanRespawn))
+   CurrentGameStateData.IntermissionWinMessage:Set(decodeReplicatedValue(snapshot.IntermissionWinMessage))
    CurrentGameStateData.IntermissionOptions:Set(cloneOptions(snapshot.IntermissionOptions))
    CurrentGameStateData.IntermissionVotes:Set(cloneOptions(snapshot.IntermissionVotes))
-   CurrentGameStateData.IntermissionChosenGamemode:Set(snapshot.IntermissionChosenGamemode)
+   CurrentGameStateData.IntermissionChosenGamemode:Set(decodeReplicatedValue(snapshot.IntermissionChosenGamemode))
    CurrentGameStateData.LivingPlayersInArena:Set(clonePlayers(snapshot.LivingPlayersInArena))
 end
 
-local function applyPartialLocal(payload: GameStatePatch)
+local function applyPartialLocal(payload: {[string]: any})
    for fieldName, _ in pairs(replicatedFieldNames) do
-      local value = payload[fieldName]
-      if value ~= nil then
+      local encodedValue = payload[fieldName]
+      if encodedValue ~= nil then
+         local value = decodeReplicatedValue(encodedValue)
          if fieldName == "IntermissionOptions" then
-            CurrentGameStateData[fieldName]:Set(cloneOptions(value))
+            if value ~= nil then
+               CurrentGameStateData[fieldName]:Set(cloneOptions(value))
+            end
          elseif fieldName == "LivingPlayersInArena" then
-            CurrentGameStateData[fieldName]:Set(clonePlayers(value))
+            if value ~= nil then
+               CurrentGameStateData[fieldName]:Set(clonePlayers(value))
+            end
          else
             CurrentGameStateData[fieldName]:Set(value)
          end
@@ -176,7 +212,7 @@ local function fireSnapshotLoaded(snapshot: GameStateSnapshot, reason: SnapshotL
 end
 
 local function sendInitialSnapshot(player: Player)
-   gameStateSyncEvent:FireClient(player, "InitialSnapshot", getSnapshot())
+   gameStateSyncEvent:FireClient(player, "InitialSnapshot", getReplicatedSnapshotPayload())
 end
 
 -------------------------------------------------------------------------------
@@ -192,72 +228,84 @@ function GameStateLibrary.getGameStateData(): CurrentGameStateDataType
 end
 
 function GameStateLibrary.applySnapshot(snapshot: GameStateSnapshot, replicateToClients: boolean?)
-   local valuesChanged = {} :: GameStatePatch
-   for k, v in pairs(snapshot) do
-      local originalValue = CurrentGameStateData[k]:Get()
-      if type(v) == "table" and type(originalValue) == "table" then
-         if #v ~= #originalValue then
-            valuesChanged[k] = v
+   local valuesChangedPayload = {}
+   for fieldName, _ in pairs(replicatedFieldNames) do
+      local value = snapshot[fieldName]
+      local originalValue = CurrentGameStateData[fieldName]:Get()
+      local hasChanged = false
+
+      if type(value) == "table" and type(originalValue) == "table" then
+         if #value ~= #originalValue then
+            hasChanged = true
          else
-            for i = 1, #v do
-               if v[i] ~= originalValue[i] then
-                  valuesChanged[k] = v
+            for i = 1, #value do
+               if value[i] ~= originalValue[i] then
+                  hasChanged = true
                   break
                end
             end
          end
       else
-         if originalValue ~= v then
-            valuesChanged[k] = v
+         hasChanged = originalValue ~= value
+      end
+
+      if hasChanged then
+         if fieldName == "IntermissionOptions" and type(value) == "table" then
+            valuesChangedPayload[fieldName] = cloneOptions(value)
+         elseif fieldName == "LivingPlayersInArena" and type(value) == "table" then
+            valuesChangedPayload[fieldName] = clonePlayers(value)
+         else
+            valuesChangedPayload[fieldName] = encodeReplicatedValue(value)
          end
       end
    end
 
    applySnapshotLocal(snapshot)
 
-   if isServer and replicateToClients ~= false and next(valuesChanged) ~= nil then
-      gameStateSyncEvent:FireAllClients("SnapshotApplied", valuesChanged)
+   if isServer and replicateToClients ~= false and next(valuesChangedPayload) ~= nil then
+      gameStateSyncEvent:FireAllClients("SnapshotApplied", valuesChangedPayload)
    end
 
    fireSnapshotLoaded(getSnapshot(), if isServer then "ServerApplied" else "ServerReplicated")
 end
 
 function GameStateLibrary.applyValues(patch: GameStatePatch, replicateToClients: boolean?)
-   local changedValues = {} :: GameStatePatch
+   local changedValuesPayload = {}
 
    for fieldName, _ in pairs(replicatedFieldNames) do
       local value = patch[fieldName]
       if value ~= nil then
+         local decodedValue = decodeReplicatedValue(value)
          local oldValue = CurrentGameStateData[fieldName]:Get()
          local hasChanged = false
 
-         if type(value) == "table" and type(oldValue) == "table" then
+         if type(decodedValue) == "table" and type(oldValue) == "table" then
             -- Table patches are treated as changed to avoid in-place mutation edge cases.
             hasChanged = true
          else
-            hasChanged = oldValue ~= value
+            hasChanged = oldValue ~= decodedValue
          end
 
          if hasChanged then
-            if fieldName == "IntermissionOptions" then
-               changedValues[fieldName] = cloneOptions(value)
-            elseif fieldName == "LivingPlayersInArena" then
-               changedValues[fieldName] = clonePlayers(value)
+            if fieldName == "IntermissionOptions" and type(decodedValue) == "table" then
+               changedValuesPayload[fieldName] = cloneOptions(decodedValue)
+            elseif fieldName == "LivingPlayersInArena" and type(decodedValue) == "table" then
+               changedValuesPayload[fieldName] = clonePlayers(decodedValue)
             else
-               changedValues[fieldName] = value
+               changedValuesPayload[fieldName] = encodeReplicatedValue(decodedValue)
             end
          end
       end
    end
 
-   if next(changedValues) == nil then
+   if next(changedValuesPayload) == nil then
       return
    end
 
-   applyPartialLocal(changedValues)
+   applyPartialLocal(changedValuesPayload)
 
    if isServer and replicateToClients ~= false then
-      gameStateSyncEvent:FireAllClients("SnapshotApplied", changedValues)
+      gameStateSyncEvent:FireAllClients("SnapshotApplied", changedValuesPayload)
    end
 
    fireSnapshotLoaded(getSnapshot(), if isServer then "ServerApplied" else "ServerReplicated")

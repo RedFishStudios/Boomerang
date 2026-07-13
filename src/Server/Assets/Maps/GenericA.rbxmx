@@ -2,7 +2,7 @@
 	<Meta name="ExplicitAutoJoints">true</Meta>
 	<External>null</External>
 	<External>nil</External>
-	<Item class="Model" referent="RBX52A2365CF0AF414BA2EA65CA23C5592B">
+	<Item class="Model" referent="RBXA63870FE06534D928BC2F92DC3F1DB86">
 		<Properties>
 			<token name="LevelOfDetail">0</token>
 			<CoordinateFrame name="ModelMeshCFrame">
@@ -53,7 +53,7 @@
 			<int64 name="SourceAssetId">-1</int64>
 			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 		</Properties>
-		<Item class="Folder" referent="RBXA7CC215E8B7D4908BD60CD51238E8791">
+		<Item class="Folder" referent="RBXF8E9B2ED9D444A11B0AFAC39428EC34B">
 			<Properties>
 				<BinaryString name="AttributesSerialize"></BinaryString>
 				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -62,7 +62,7 @@
 				<int64 name="SourceAssetId">-1</int64>
 				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			</Properties>
-			<Item class="SpawnLocation" referent="RBXF12BB767029C4ECABC79B80FF6B64828">
+			<Item class="SpawnLocation" referent="RBXAD0363D37A834DC39FE8B09A3DEA9FA4">
 				<Properties>
 					<bool name="AllowTeamChangeOnTouch">false</bool>
 					<int name="Duration">10</int>
@@ -82,118 +82,14 @@
 					<token name="BottomSurface">4</token>
 					<token name="BottomSurfaceInput">0</token>
 					<CoordinateFrame name="CFrame">
-						<X>341.576996</X>
-						<Y>6.61958122</Y>
-						<Z>-415.518433</Z>
-						<R00>-4.37113883e-08</R00>
-						<R01>-1</R01>
-						<R02>0</R02>
-						<R10>1</R10>
-						<R11>-4.37113883e-08</R11>
-						<R12>0</R12>
-						<R20>0</R20>
-						<R21>0</R21>
-						<R22>1</R22>
-					</CoordinateFrame>
-					<bool name="CanCollide">false</bool>
-					<bool name="CanQuery">false</bool>
-					<bool name="CanTouch">false</bool>
-					<bool name="CastShadow">true</bool>
-					<string name="CollisionGroup">Default</string>
-					<int name="CollisionGroupId">0</int>
-					<Color3uint8 name="Color3uint8">4288914085</Color3uint8>
-					<PhysicalProperties name="CustomPhysicalProperties">
-						<CustomPhysics>false</CustomPhysics>
-					</PhysicalProperties>
-					<bool name="EnableFluidForces">true</bool>
-					<float name="FrontParamA">-0.5</float>
-					<float name="FrontParamB">0.5</float>
-					<token name="FrontSurface">0</token>
-					<token name="FrontSurfaceInput">0</token>
-					<float name="LeftParamA">-0.5</float>
-					<float name="LeftParamB">0.5</float>
-					<token name="LeftSurface">0</token>
-					<token name="LeftSurfaceInput">0</token>
-					<bool name="Locked">false</bool>
-					<bool name="Massless">false</bool>
-					<token name="Material">256</token>
-					<string name="MaterialVariantSerialized"></string>
-					<CoordinateFrame name="PivotOffset">
-						<X>0</X>
-						<Y>0</Y>
-						<Z>0</Z>
-						<R00>1</R00>
-						<R01>0</R01>
-						<R02>0</R02>
-						<R10>0</R10>
-						<R11>1</R11>
-						<R12>0</R12>
-						<R20>0</R20>
-						<R21>0</R21>
-						<R22>1</R22>
-					</CoordinateFrame>
-					<float name="Reflectance">0</float>
-					<float name="RightParamA">-0.5</float>
-					<float name="RightParamB">0.5</float>
-					<token name="RightSurface">0</token>
-					<token name="RightSurfaceInput">0</token>
-					<int name="RootPriority">0</int>
-					<Vector3 name="RotVelocity">
-						<X>0</X>
-						<Y>0</Y>
-						<Z>0</Z>
-					</Vector3>
-					<float name="TopParamA">-0.5</float>
-					<float name="TopParamB">0.5</float>
-					<token name="TopSurface">3</token>
-					<token name="TopSurfaceInput">0</token>
-					<float name="Transparency">0</float>
-					<Vector3 name="Velocity">
-						<X>0</X>
-						<Y>0</Y>
-						<Z>0</Z>
-					</Vector3>
-					<Vector3 name="size">
-						<X>0.537403643</X>
-						<Y>7.52365112</Y>
-						<Z>7.52365112</Z>
-					</Vector3>
-					<BinaryString name="AttributesSerialize"></BinaryString>
-					<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
-					<bool name="DefinesCapabilities">false</bool>
-					<string name="Name">SpawnLocation</string>
-					<int64 name="SourceAssetId">-1</int64>
-					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
-				</Properties>
-			</Item>
-			<Item class="SpawnLocation" referent="RBX8493DB43C26342A59473C268CDCCD14B">
-				<Properties>
-					<bool name="AllowTeamChangeOnTouch">false</bool>
-					<int name="Duration">10</int>
-					<bool name="Enabled">true</bool>
-					<bool name="Neutral">true</bool>
-					<int name="TeamColor">194</int>
-					<token name="shape">1</token>
-					<token name="formFactorRaw">1</token>
-					<bool name="Anchored">true</bool>
-					<bool name="AudioCanCollide">false</bool>
-					<float name="BackParamA">-0.5</float>
-					<float name="BackParamB">0.5</float>
-					<token name="BackSurface">0</token>
-					<token name="BackSurfaceInput">0</token>
-					<float name="BottomParamA">-0.5</float>
-					<float name="BottomParamB">0.5</float>
-					<token name="BottomSurface">4</token>
-					<token name="BottomSurfaceInput">0</token>
-					<CoordinateFrame name="CFrame">
-						<X>240.545105</X>
+						<X>340.226013</X>
 						<Y>6.88828278</Y>
-						<Z>-371.451355</Z>
-						<R00>-4.37113883e-08</R00>
+						<Z>-414.904877</Z>
+						<R00>0</R00>
 						<R01>-1</R01>
 						<R02>0</R02>
 						<R10>1</R10>
-						<R11>-4.37113883e-08</R11>
+						<R11>0</R11>
 						<R12>0</R12>
 						<R20>0</R20>
 						<R21>0</R21>
@@ -270,7 +166,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="SpawnLocation" referent="RBX5466A94B6DF14C8A9D271D24B71EFAD0">
+			<Item class="SpawnLocation" referent="RBXC529D231EE594F83949E39044F70AEDA">
 				<Properties>
 					<bool name="AllowTeamChangeOnTouch">false</bool>
 					<int name="Duration">10</int>
@@ -290,14 +186,14 @@
 					<token name="BottomSurface">4</token>
 					<token name="BottomSurfaceInput">0</token>
 					<CoordinateFrame name="CFrame">
-						<X>223.885605</X>
+						<X>230.033646</X>
 						<Y>6.88828278</Y>
-						<Z>-420.892487</Z>
-						<R00>-4.37113883e-08</R00>
+						<Z>-460.286194</Z>
+						<R00>0</R00>
 						<R01>-1</R01>
 						<R02>0</R02>
 						<R10>1</R10>
-						<R11>-4.37113883e-08</R11>
+						<R11>0</R11>
 						<R12>0</R12>
 						<R20>0</R20>
 						<R21>0</R21>
@@ -374,7 +270,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="SpawnLocation" referent="RBX0A30FDC8C5574553A686904FC704AB2E">
+			<Item class="SpawnLocation" referent="RBX1EC5102C05C0464BBDED380D56D77FA8">
 				<Properties>
 					<bool name="AllowTeamChangeOnTouch">false</bool>
 					<int name="Duration">10</int>
@@ -394,118 +290,14 @@
 					<token name="BottomSurface">4</token>
 					<token name="BottomSurfaceInput">0</token>
 					<CoordinateFrame name="CFrame">
-						<X>300.19693</X>
-						<Y>6.61958122</Y>
-						<Z>-367.15213</Z>
-						<R00>-4.37113883e-08</R00>
-						<R01>-1</R01>
-						<R02>0</R02>
-						<R10>1</R10>
-						<R11>-4.37113883e-08</R11>
-						<R12>0</R12>
-						<R20>0</R20>
-						<R21>0</R21>
-						<R22>1</R22>
-					</CoordinateFrame>
-					<bool name="CanCollide">false</bool>
-					<bool name="CanQuery">false</bool>
-					<bool name="CanTouch">false</bool>
-					<bool name="CastShadow">true</bool>
-					<string name="CollisionGroup">Default</string>
-					<int name="CollisionGroupId">0</int>
-					<Color3uint8 name="Color3uint8">4288914085</Color3uint8>
-					<PhysicalProperties name="CustomPhysicalProperties">
-						<CustomPhysics>false</CustomPhysics>
-					</PhysicalProperties>
-					<bool name="EnableFluidForces">true</bool>
-					<float name="FrontParamA">-0.5</float>
-					<float name="FrontParamB">0.5</float>
-					<token name="FrontSurface">0</token>
-					<token name="FrontSurfaceInput">0</token>
-					<float name="LeftParamA">-0.5</float>
-					<float name="LeftParamB">0.5</float>
-					<token name="LeftSurface">0</token>
-					<token name="LeftSurfaceInput">0</token>
-					<bool name="Locked">false</bool>
-					<bool name="Massless">false</bool>
-					<token name="Material">256</token>
-					<string name="MaterialVariantSerialized"></string>
-					<CoordinateFrame name="PivotOffset">
-						<X>0</X>
-						<Y>0</Y>
-						<Z>0</Z>
-						<R00>1</R00>
-						<R01>0</R01>
-						<R02>0</R02>
-						<R10>0</R10>
-						<R11>1</R11>
-						<R12>0</R12>
-						<R20>0</R20>
-						<R21>0</R21>
-						<R22>1</R22>
-					</CoordinateFrame>
-					<float name="Reflectance">0</float>
-					<float name="RightParamA">-0.5</float>
-					<float name="RightParamB">0.5</float>
-					<token name="RightSurface">0</token>
-					<token name="RightSurfaceInput">0</token>
-					<int name="RootPriority">0</int>
-					<Vector3 name="RotVelocity">
-						<X>0</X>
-						<Y>0</Y>
-						<Z>0</Z>
-					</Vector3>
-					<float name="TopParamA">-0.5</float>
-					<float name="TopParamB">0.5</float>
-					<token name="TopSurface">3</token>
-					<token name="TopSurfaceInput">0</token>
-					<float name="Transparency">0</float>
-					<Vector3 name="Velocity">
-						<X>0</X>
-						<Y>0</Y>
-						<Z>0</Z>
-					</Vector3>
-					<Vector3 name="size">
-						<X>0.537403643</X>
-						<Y>7.52365112</Y>
-						<Z>7.52365112</Z>
-					</Vector3>
-					<BinaryString name="AttributesSerialize"></BinaryString>
-					<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
-					<bool name="DefinesCapabilities">false</bool>
-					<string name="Name">SpawnLocation</string>
-					<int64 name="SourceAssetId">-1</int64>
-					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
-				</Properties>
-			</Item>
-			<Item class="SpawnLocation" referent="RBX446095C813244E6E948D302565D27D27">
-				<Properties>
-					<bool name="AllowTeamChangeOnTouch">false</bool>
-					<int name="Duration">10</int>
-					<bool name="Enabled">true</bool>
-					<bool name="Neutral">true</bool>
-					<int name="TeamColor">194</int>
-					<token name="shape">1</token>
-					<token name="formFactorRaw">1</token>
-					<bool name="Anchored">true</bool>
-					<bool name="AudioCanCollide">false</bool>
-					<float name="BackParamA">-0.5</float>
-					<float name="BackParamB">0.5</float>
-					<token name="BackSurface">0</token>
-					<token name="BackSurfaceInput">0</token>
-					<float name="BottomParamA">-0.5</float>
-					<float name="BottomParamB">0.5</float>
-					<token name="BottomSurface">4</token>
-					<token name="BottomSurfaceInput">0</token>
-					<CoordinateFrame name="CFrame">
-						<X>283</X>
+						<X>273.950134</X>
 						<Y>6.88828278</Y>
-						<Z>-450.987091</Z>
-						<R00>-4.37113883e-08</R00>
+						<Z>-411.126892</Z>
+						<R00>0</R00>
 						<R01>-1</R01>
 						<R02>0</R02>
 						<R10>1</R10>
-						<R11>-4.37113883e-08</R11>
+						<R11>0</R11>
 						<R12>0</R12>
 						<R20>0</R20>
 						<R21>0</R21>
@@ -582,7 +374,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="SpawnLocation" referent="RBX614908E623444FE3A1D5719AC70A88E3">
+			<Item class="SpawnLocation" referent="RBX00C93E4311AD4DDDADF7C5717DC08A39">
 				<Properties>
 					<bool name="AllowTeamChangeOnTouch">false</bool>
 					<int name="Duration">10</int>
@@ -602,118 +394,14 @@
 					<token name="BottomSurface">4</token>
 					<token name="BottomSurfaceInput">0</token>
 					<CoordinateFrame name="CFrame">
-						<X>341.576996</X>
-						<Y>6.61958122</Y>
-						<Z>-415.518433</Z>
-						<R00>-4.37113883e-08</R00>
-						<R01>-1</R01>
-						<R02>0</R02>
-						<R10>1</R10>
-						<R11>-4.37113883e-08</R11>
-						<R12>0</R12>
-						<R20>0</R20>
-						<R21>0</R21>
-						<R22>1</R22>
-					</CoordinateFrame>
-					<bool name="CanCollide">false</bool>
-					<bool name="CanQuery">false</bool>
-					<bool name="CanTouch">false</bool>
-					<bool name="CastShadow">true</bool>
-					<string name="CollisionGroup">Default</string>
-					<int name="CollisionGroupId">0</int>
-					<Color3uint8 name="Color3uint8">4288914085</Color3uint8>
-					<PhysicalProperties name="CustomPhysicalProperties">
-						<CustomPhysics>false</CustomPhysics>
-					</PhysicalProperties>
-					<bool name="EnableFluidForces">true</bool>
-					<float name="FrontParamA">-0.5</float>
-					<float name="FrontParamB">0.5</float>
-					<token name="FrontSurface">0</token>
-					<token name="FrontSurfaceInput">0</token>
-					<float name="LeftParamA">-0.5</float>
-					<float name="LeftParamB">0.5</float>
-					<token name="LeftSurface">0</token>
-					<token name="LeftSurfaceInput">0</token>
-					<bool name="Locked">false</bool>
-					<bool name="Massless">false</bool>
-					<token name="Material">256</token>
-					<string name="MaterialVariantSerialized"></string>
-					<CoordinateFrame name="PivotOffset">
-						<X>0</X>
-						<Y>0</Y>
-						<Z>0</Z>
-						<R00>1</R00>
-						<R01>0</R01>
-						<R02>0</R02>
-						<R10>0</R10>
-						<R11>1</R11>
-						<R12>0</R12>
-						<R20>0</R20>
-						<R21>0</R21>
-						<R22>1</R22>
-					</CoordinateFrame>
-					<float name="Reflectance">0</float>
-					<float name="RightParamA">-0.5</float>
-					<float name="RightParamB">0.5</float>
-					<token name="RightSurface">0</token>
-					<token name="RightSurfaceInput">0</token>
-					<int name="RootPriority">0</int>
-					<Vector3 name="RotVelocity">
-						<X>0</X>
-						<Y>0</Y>
-						<Z>0</Z>
-					</Vector3>
-					<float name="TopParamA">-0.5</float>
-					<float name="TopParamB">0.5</float>
-					<token name="TopSurface">3</token>
-					<token name="TopSurfaceInput">0</token>
-					<float name="Transparency">0</float>
-					<Vector3 name="Velocity">
-						<X>0</X>
-						<Y>0</Y>
-						<Z>0</Z>
-					</Vector3>
-					<Vector3 name="size">
-						<X>0.537403643</X>
-						<Y>7.52365112</Y>
-						<Z>7.52365112</Z>
-					</Vector3>
-					<BinaryString name="AttributesSerialize"></BinaryString>
-					<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
-					<bool name="DefinesCapabilities">false</bool>
-					<string name="Name">SpawnLocation</string>
-					<int64 name="SourceAssetId">-1</int64>
-					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
-				</Properties>
-			</Item>
-			<Item class="SpawnLocation" referent="RBXE6370F9CD6FC4233BC68EFC756786E82">
-				<Properties>
-					<bool name="AllowTeamChangeOnTouch">false</bool>
-					<int name="Duration">10</int>
-					<bool name="Enabled">true</bool>
-					<bool name="Neutral">true</bool>
-					<int name="TeamColor">194</int>
-					<token name="shape">1</token>
-					<token name="formFactorRaw">1</token>
-					<bool name="Anchored">true</bool>
-					<bool name="AudioCanCollide">false</bool>
-					<float name="BackParamA">-0.5</float>
-					<float name="BackParamB">0.5</float>
-					<token name="BackSurface">0</token>
-					<token name="BackSurfaceInput">0</token>
-					<float name="BottomParamA">-0.5</float>
-					<float name="BottomParamB">0.5</float>
-					<token name="BottomSurface">4</token>
-					<token name="BottomSurfaceInput">0</token>
-					<CoordinateFrame name="CFrame">
-						<X>273.326721</X>
+						<X>235.614609</X>
 						<Y>6.88828278</Y>
-						<Z>-410.681824</Z>
-						<R00>-4.37113883e-08</R00>
+						<Z>-362.489624</Z>
+						<R00>0</R00>
 						<R01>-1</R01>
 						<R02>0</R02>
 						<R10>1</R10>
-						<R11>-4.37113883e-08</R11>
+						<R11>0</R11>
 						<R12>0</R12>
 						<R20>0</R20>
 						<R21>0</R21>
@@ -790,7 +478,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="SpawnLocation" referent="RBX2BE234DB2010475095EA2F8E9C742E6D">
+			<Item class="SpawnLocation" referent="RBX3A9A419DD8394F69A0B9C541CC4ADA23">
 				<Properties>
 					<bool name="AllowTeamChangeOnTouch">false</bool>
 					<int name="Duration">10</int>
@@ -810,14 +498,14 @@
 					<token name="BottomSurface">4</token>
 					<token name="BottomSurfaceInput">0</token>
 					<CoordinateFrame name="CFrame">
-						<X>223.885605</X>
+						<X>282.321838</X>
 						<Y>6.88828278</Y>
-						<Z>-420.892487</Z>
-						<R00>-4.37113883e-08</R00>
+						<Z>-451.845856</Z>
+						<R00>0</R00>
 						<R01>-1</R01>
 						<R02>0</R02>
 						<R10>1</R10>
-						<R11>-4.37113883e-08</R11>
+						<R11>0</R11>
 						<R12>0</R12>
 						<R20>0</R20>
 						<R21>0</R21>
@@ -894,7 +582,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="SpawnLocation" referent="RBXA088CE2E1301483F9B3EFF22216401E3">
+			<Item class="SpawnLocation" referent="RBX843E656EEC794895B5A1AE66AA56D479">
 				<Properties>
 					<bool name="AllowTeamChangeOnTouch">false</bool>
 					<int name="Duration">10</int>
@@ -914,326 +602,14 @@
 					<token name="BottomSurface">4</token>
 					<token name="BottomSurfaceInput">0</token>
 					<CoordinateFrame name="CFrame">
-						<X>273.326721</X>
+						<X>303.050995</X>
 						<Y>6.88828278</Y>
-						<Z>-410.681824</Z>
-						<R00>-4.37113883e-08</R00>
+						<Z>-363.63736</Z>
+						<R00>0</R00>
 						<R01>-1</R01>
 						<R02>0</R02>
 						<R10>1</R10>
-						<R11>-4.37113883e-08</R11>
-						<R12>0</R12>
-						<R20>0</R20>
-						<R21>0</R21>
-						<R22>1</R22>
-					</CoordinateFrame>
-					<bool name="CanCollide">false</bool>
-					<bool name="CanQuery">false</bool>
-					<bool name="CanTouch">false</bool>
-					<bool name="CastShadow">true</bool>
-					<string name="CollisionGroup">Default</string>
-					<int name="CollisionGroupId">0</int>
-					<Color3uint8 name="Color3uint8">4288914085</Color3uint8>
-					<PhysicalProperties name="CustomPhysicalProperties">
-						<CustomPhysics>false</CustomPhysics>
-					</PhysicalProperties>
-					<bool name="EnableFluidForces">true</bool>
-					<float name="FrontParamA">-0.5</float>
-					<float name="FrontParamB">0.5</float>
-					<token name="FrontSurface">0</token>
-					<token name="FrontSurfaceInput">0</token>
-					<float name="LeftParamA">-0.5</float>
-					<float name="LeftParamB">0.5</float>
-					<token name="LeftSurface">0</token>
-					<token name="LeftSurfaceInput">0</token>
-					<bool name="Locked">false</bool>
-					<bool name="Massless">false</bool>
-					<token name="Material">256</token>
-					<string name="MaterialVariantSerialized"></string>
-					<CoordinateFrame name="PivotOffset">
-						<X>0</X>
-						<Y>0</Y>
-						<Z>0</Z>
-						<R00>1</R00>
-						<R01>0</R01>
-						<R02>0</R02>
-						<R10>0</R10>
-						<R11>1</R11>
-						<R12>0</R12>
-						<R20>0</R20>
-						<R21>0</R21>
-						<R22>1</R22>
-					</CoordinateFrame>
-					<float name="Reflectance">0</float>
-					<float name="RightParamA">-0.5</float>
-					<float name="RightParamB">0.5</float>
-					<token name="RightSurface">0</token>
-					<token name="RightSurfaceInput">0</token>
-					<int name="RootPriority">0</int>
-					<Vector3 name="RotVelocity">
-						<X>0</X>
-						<Y>0</Y>
-						<Z>0</Z>
-					</Vector3>
-					<float name="TopParamA">-0.5</float>
-					<float name="TopParamB">0.5</float>
-					<token name="TopSurface">3</token>
-					<token name="TopSurfaceInput">0</token>
-					<float name="Transparency">0</float>
-					<Vector3 name="Velocity">
-						<X>0</X>
-						<Y>0</Y>
-						<Z>0</Z>
-					</Vector3>
-					<Vector3 name="size">
-						<X>0.537403643</X>
-						<Y>7.52365112</Y>
-						<Z>7.52365112</Z>
-					</Vector3>
-					<BinaryString name="AttributesSerialize"></BinaryString>
-					<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
-					<bool name="DefinesCapabilities">false</bool>
-					<string name="Name">SpawnLocation</string>
-					<int64 name="SourceAssetId">-1</int64>
-					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
-				</Properties>
-			</Item>
-			<Item class="SpawnLocation" referent="RBX89B9453080C0404BBEF57B8FCEEBA3C5">
-				<Properties>
-					<bool name="AllowTeamChangeOnTouch">false</bool>
-					<int name="Duration">10</int>
-					<bool name="Enabled">true</bool>
-					<bool name="Neutral">true</bool>
-					<int name="TeamColor">194</int>
-					<token name="shape">1</token>
-					<token name="formFactorRaw">1</token>
-					<bool name="Anchored">true</bool>
-					<bool name="AudioCanCollide">false</bool>
-					<float name="BackParamA">-0.5</float>
-					<float name="BackParamB">0.5</float>
-					<token name="BackSurface">0</token>
-					<token name="BackSurfaceInput">0</token>
-					<float name="BottomParamA">-0.5</float>
-					<float name="BottomParamB">0.5</float>
-					<token name="BottomSurface">4</token>
-					<token name="BottomSurfaceInput">0</token>
-					<CoordinateFrame name="CFrame">
-						<X>240.545105</X>
-						<Y>6.88828278</Y>
-						<Z>-371.451355</Z>
-						<R00>-4.37113883e-08</R00>
-						<R01>-1</R01>
-						<R02>0</R02>
-						<R10>1</R10>
-						<R11>-4.37113883e-08</R11>
-						<R12>0</R12>
-						<R20>0</R20>
-						<R21>0</R21>
-						<R22>1</R22>
-					</CoordinateFrame>
-					<bool name="CanCollide">false</bool>
-					<bool name="CanQuery">false</bool>
-					<bool name="CanTouch">false</bool>
-					<bool name="CastShadow">true</bool>
-					<string name="CollisionGroup">Default</string>
-					<int name="CollisionGroupId">0</int>
-					<Color3uint8 name="Color3uint8">4288914085</Color3uint8>
-					<PhysicalProperties name="CustomPhysicalProperties">
-						<CustomPhysics>false</CustomPhysics>
-					</PhysicalProperties>
-					<bool name="EnableFluidForces">true</bool>
-					<float name="FrontParamA">-0.5</float>
-					<float name="FrontParamB">0.5</float>
-					<token name="FrontSurface">0</token>
-					<token name="FrontSurfaceInput">0</token>
-					<float name="LeftParamA">-0.5</float>
-					<float name="LeftParamB">0.5</float>
-					<token name="LeftSurface">0</token>
-					<token name="LeftSurfaceInput">0</token>
-					<bool name="Locked">false</bool>
-					<bool name="Massless">false</bool>
-					<token name="Material">256</token>
-					<string name="MaterialVariantSerialized"></string>
-					<CoordinateFrame name="PivotOffset">
-						<X>0</X>
-						<Y>0</Y>
-						<Z>0</Z>
-						<R00>1</R00>
-						<R01>0</R01>
-						<R02>0</R02>
-						<R10>0</R10>
-						<R11>1</R11>
-						<R12>0</R12>
-						<R20>0</R20>
-						<R21>0</R21>
-						<R22>1</R22>
-					</CoordinateFrame>
-					<float name="Reflectance">0</float>
-					<float name="RightParamA">-0.5</float>
-					<float name="RightParamB">0.5</float>
-					<token name="RightSurface">0</token>
-					<token name="RightSurfaceInput">0</token>
-					<int name="RootPriority">0</int>
-					<Vector3 name="RotVelocity">
-						<X>0</X>
-						<Y>0</Y>
-						<Z>0</Z>
-					</Vector3>
-					<float name="TopParamA">-0.5</float>
-					<float name="TopParamB">0.5</float>
-					<token name="TopSurface">3</token>
-					<token name="TopSurfaceInput">0</token>
-					<float name="Transparency">0</float>
-					<Vector3 name="Velocity">
-						<X>0</X>
-						<Y>0</Y>
-						<Z>0</Z>
-					</Vector3>
-					<Vector3 name="size">
-						<X>0.537403643</X>
-						<Y>7.52365112</Y>
-						<Z>7.52365112</Z>
-					</Vector3>
-					<BinaryString name="AttributesSerialize"></BinaryString>
-					<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
-					<bool name="DefinesCapabilities">false</bool>
-					<string name="Name">SpawnLocation</string>
-					<int64 name="SourceAssetId">-1</int64>
-					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
-				</Properties>
-			</Item>
-			<Item class="SpawnLocation" referent="RBXDB13A7460AE047CBAF8FB403326CFFFF">
-				<Properties>
-					<bool name="AllowTeamChangeOnTouch">false</bool>
-					<int name="Duration">10</int>
-					<bool name="Enabled">true</bool>
-					<bool name="Neutral">true</bool>
-					<int name="TeamColor">194</int>
-					<token name="shape">1</token>
-					<token name="formFactorRaw">1</token>
-					<bool name="Anchored">true</bool>
-					<bool name="AudioCanCollide">false</bool>
-					<float name="BackParamA">-0.5</float>
-					<float name="BackParamB">0.5</float>
-					<token name="BackSurface">0</token>
-					<token name="BackSurfaceInput">0</token>
-					<float name="BottomParamA">-0.5</float>
-					<float name="BottomParamB">0.5</float>
-					<token name="BottomSurface">4</token>
-					<token name="BottomSurfaceInput">0</token>
-					<CoordinateFrame name="CFrame">
-						<X>283</X>
-						<Y>6.88828278</Y>
-						<Z>-450.987091</Z>
-						<R00>-4.37113883e-08</R00>
-						<R01>-1</R01>
-						<R02>0</R02>
-						<R10>1</R10>
-						<R11>-4.37113883e-08</R11>
-						<R12>0</R12>
-						<R20>0</R20>
-						<R21>0</R21>
-						<R22>1</R22>
-					</CoordinateFrame>
-					<bool name="CanCollide">false</bool>
-					<bool name="CanQuery">false</bool>
-					<bool name="CanTouch">false</bool>
-					<bool name="CastShadow">true</bool>
-					<string name="CollisionGroup">Default</string>
-					<int name="CollisionGroupId">0</int>
-					<Color3uint8 name="Color3uint8">4288914085</Color3uint8>
-					<PhysicalProperties name="CustomPhysicalProperties">
-						<CustomPhysics>false</CustomPhysics>
-					</PhysicalProperties>
-					<bool name="EnableFluidForces">true</bool>
-					<float name="FrontParamA">-0.5</float>
-					<float name="FrontParamB">0.5</float>
-					<token name="FrontSurface">0</token>
-					<token name="FrontSurfaceInput">0</token>
-					<float name="LeftParamA">-0.5</float>
-					<float name="LeftParamB">0.5</float>
-					<token name="LeftSurface">0</token>
-					<token name="LeftSurfaceInput">0</token>
-					<bool name="Locked">false</bool>
-					<bool name="Massless">false</bool>
-					<token name="Material">256</token>
-					<string name="MaterialVariantSerialized"></string>
-					<CoordinateFrame name="PivotOffset">
-						<X>0</X>
-						<Y>0</Y>
-						<Z>0</Z>
-						<R00>1</R00>
-						<R01>0</R01>
-						<R02>0</R02>
-						<R10>0</R10>
-						<R11>1</R11>
-						<R12>0</R12>
-						<R20>0</R20>
-						<R21>0</R21>
-						<R22>1</R22>
-					</CoordinateFrame>
-					<float name="Reflectance">0</float>
-					<float name="RightParamA">-0.5</float>
-					<float name="RightParamB">0.5</float>
-					<token name="RightSurface">0</token>
-					<token name="RightSurfaceInput">0</token>
-					<int name="RootPriority">0</int>
-					<Vector3 name="RotVelocity">
-						<X>0</X>
-						<Y>0</Y>
-						<Z>0</Z>
-					</Vector3>
-					<float name="TopParamA">-0.5</float>
-					<float name="TopParamB">0.5</float>
-					<token name="TopSurface">3</token>
-					<token name="TopSurfaceInput">0</token>
-					<float name="Transparency">0</float>
-					<Vector3 name="Velocity">
-						<X>0</X>
-						<Y>0</Y>
-						<Z>0</Z>
-					</Vector3>
-					<Vector3 name="size">
-						<X>0.537403643</X>
-						<Y>7.52365112</Y>
-						<Z>7.52365112</Z>
-					</Vector3>
-					<BinaryString name="AttributesSerialize"></BinaryString>
-					<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
-					<bool name="DefinesCapabilities">false</bool>
-					<string name="Name">SpawnLocation</string>
-					<int64 name="SourceAssetId">-1</int64>
-					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
-				</Properties>
-			</Item>
-			<Item class="SpawnLocation" referent="RBX7E49B0A310DD447AA242882E0F816635">
-				<Properties>
-					<bool name="AllowTeamChangeOnTouch">false</bool>
-					<int name="Duration">10</int>
-					<bool name="Enabled">true</bool>
-					<bool name="Neutral">true</bool>
-					<int name="TeamColor">194</int>
-					<token name="shape">1</token>
-					<token name="formFactorRaw">1</token>
-					<bool name="Anchored">true</bool>
-					<bool name="AudioCanCollide">false</bool>
-					<float name="BackParamA">-0.5</float>
-					<float name="BackParamB">0.5</float>
-					<token name="BackSurface">0</token>
-					<token name="BackSurfaceInput">0</token>
-					<float name="BottomParamA">-0.5</float>
-					<float name="BottomParamB">0.5</float>
-					<token name="BottomSurface">4</token>
-					<token name="BottomSurfaceInput">0</token>
-					<CoordinateFrame name="CFrame">
-						<X>300.19693</X>
-						<Y>6.61958122</Y>
-						<Z>-367.15213</Z>
-						<R00>-4.37113883e-08</R00>
-						<R01>-1</R01>
-						<R02>0</R02>
-						<R10>1</R10>
-						<R11>-4.37113883e-08</R11>
+						<R11>0</R11>
 						<R12>0</R12>
 						<R20>0</R20>
 						<R21>0</R21>
@@ -1311,7 +687,7 @@
 				</Properties>
 			</Item>
 		</Item>
-		<Item class="Folder" referent="RBXD70E68554A6F4C68AF892C4CEB3B3779">
+		<Item class="Folder" referent="RBX091FEEA69519426AAFBFCADF4D9C46DA">
 			<Properties>
 				<BinaryString name="AttributesSerialize"></BinaryString>
 				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -1320,7 +696,7 @@
 				<int64 name="SourceAssetId">-1</int64>
 				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			</Properties>
-			<Item class="Part" referent="RBXE8A8919F54FF42DAB4EC88A6AC8093DA">
+			<Item class="Part" referent="RBX799B360743524D4B9B86F73058A4AFED">
 				<Properties>
 					<token name="shape">1</token>
 					<token name="formFactorRaw">1</token>
@@ -1419,7 +795,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="Part" referent="RBX4A6336CD069541BF8B71D8DC8179D3A2">
+			<Item class="Part" referent="RBXCD9D52FB91204B55BEA6FD520101FE48">
 				<Properties>
 					<token name="shape">1</token>
 					<token name="formFactorRaw">1</token>
@@ -1518,7 +894,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="Part" referent="RBXDABB5FCC2B59461E9BC17E5F3EAE61A0">
+			<Item class="Part" referent="RBXC6CB87498A5649F3A79C0C2859C5D814">
 				<Properties>
 					<token name="shape">1</token>
 					<token name="formFactorRaw">1</token>
@@ -1617,7 +993,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="Part" referent="RBX39FF046937B24AF6BC346CBCBF1DA0B7">
+			<Item class="Part" referent="RBX0697759F800444DD9CFF75C762BD5C5C">
 				<Properties>
 					<token name="shape">1</token>
 					<token name="formFactorRaw">1</token>
@@ -1716,7 +1092,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="Part" referent="RBX2E8B51F1C13C43599D8AD6894870F261">
+			<Item class="Part" referent="RBX081748C29C7049D5A68B47C6148A209C">
 				<Properties>
 					<token name="shape">1</token>
 					<token name="formFactorRaw">1</token>
@@ -1815,7 +1191,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="Part" referent="RBX6201417EA9254A4CADD8FFD92267B87F">
+			<Item class="Part" referent="RBX392AF723070743DE945B5323DAD444F0">
 				<Properties>
 					<token name="shape">1</token>
 					<token name="formFactorRaw">1</token>
@@ -1914,7 +1290,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="Part" referent="RBX5FAEFDFC6517499F98D87E1AE621FEA2">
+			<Item class="Part" referent="RBX6A8D07E3932F4DD4894C63D2534DA6E6">
 				<Properties>
 					<token name="shape">1</token>
 					<token name="formFactorRaw">1</token>
@@ -2013,7 +1389,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="Part" referent="RBXD9EE741C4AA1421195EE946B5E4380F6">
+			<Item class="Part" referent="RBXE14AEF00F1D64C67835119A0B052F320">
 				<Properties>
 					<token name="shape">1</token>
 					<token name="formFactorRaw">1</token>
@@ -2112,7 +1488,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="Part" referent="RBXF176EC036BF84A4585301C31898FD05F">
+			<Item class="Part" referent="RBX844526CE61344ADDA057B61E3D628C0A">
 				<Properties>
 					<token name="shape">1</token>
 					<token name="formFactorRaw">1</token>
@@ -2211,7 +1587,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="Part" referent="RBX6ABD33EAFC3241BBABEE2F4DF6099EE9">
+			<Item class="Part" referent="RBXD70D0B35E205489AB8024A3A577813B3">
 				<Properties>
 					<token name="shape">1</token>
 					<token name="formFactorRaw">1</token>
@@ -2310,7 +1686,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="Part" referent="RBX873F2924FFB948908BE07DB2B6A1BBE2">
+			<Item class="Part" referent="RBXF1693DD9373046D48F5D402839BB20DB">
 				<Properties>
 					<token name="shape">1</token>
 					<token name="formFactorRaw">1</token>
@@ -2409,7 +1785,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="Part" referent="RBX709E2B4977184035AA9746B6FBC68A2E">
+			<Item class="Part" referent="RBX7EB28888204042E2B9D2F23FE4DF72C5">
 				<Properties>
 					<token name="shape">1</token>
 					<token name="formFactorRaw">1</token>
@@ -2508,7 +1884,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="Part" referent="RBXD97A54643AC24E638F64DBC29A89FE84">
+			<Item class="Part" referent="RBX899CEB1A866C44DAAE8097B7861CEFE2">
 				<Properties>
 					<token name="shape">1</token>
 					<token name="formFactorRaw">1</token>
@@ -2608,7 +1984,7 @@
 				</Properties>
 			</Item>
 		</Item>
-		<Item class="Part" referent="RBX2469CA0ACBEA4C8B9DB812DF739608EB">
+		<Item class="Part" referent="RBXFDF42D9739FC4E8392131E16D8827EDA">
 			<Properties>
 				<token name="shape">1</token>
 				<token name="formFactorRaw">1</token>

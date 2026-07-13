@@ -90,6 +90,14 @@ function BufferUtil.readi32(b: buffer, offset: number)
 	return buffer.readi32(b, offset), offset + 4
 end
 
+function BufferUtil.writeUserId(b: buffer, offset: number, value: number)
+	return BufferUtil.writef64(b, offset, value)
+end
+
+function BufferUtil.readUserId(b: buffer, offset: number)
+	return BufferUtil.readf64(b, offset)
+end
+
 function BufferUtil.writeColor_24(b: buffer, offset: number, color: Color3)
 	offset = BufferUtil.writeu8(b, offset, color.R * 255)
 	offset = BufferUtil.writeu8(b, offset, color.G * 255)

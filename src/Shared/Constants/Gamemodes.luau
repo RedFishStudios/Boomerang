@@ -31,7 +31,7 @@ local Gamemodes: {
    ThrowBoomerang = {
       Id = "ThrowBoomerang",
       Display = "Throw Boomerang",
-      Subheader = "Throw the boomerang 12 times (test)",
+      Subheader = "Throw the boomerang 5 times (test)",
       CanRespawn = true,
       TimeLasts = 60
    },

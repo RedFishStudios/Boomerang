@@ -119,6 +119,7 @@ function StormCloseService.begin(centrepoint: Vector3)
    stormClosePart.Orientation = Vector3.new(0, 0, 90)
    stormClosePart.Parent = workspace
    stormClosePart.Size = Vector3.new(1, 500, 500)
+   stormClosePart.Transparency = 1
    currentStormClosePart = stormClosePart
    stormCloseElapsed = 0
    stormCloseShrinkCount = 0

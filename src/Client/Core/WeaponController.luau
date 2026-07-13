@@ -104,7 +104,6 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
    thrownWeaponData.Speed = speed
 
    if previousState ~= ThrownWeapons.StateEnum.Returning and state == ThrownWeapons.StateEnum.Returning then
-      print(`client returning`)
       local toolData = Tools[thrownWeaponData.ToolId]
       if toolData then
          local logic = getLogic(toolData.LogicClass)
@@ -181,9 +180,8 @@ end
 -------------------------------------------------------------------------------
 
 function WeaponController.init()
-    thrownBoomerangSpawnedEvent.OnClientEvent:Connect(function(toolId: string, payload: buffer)
-      print("thrown boomerang spawned received!")
-      local ownerUserId, offset = BufferUtil.readi32(payload, 0)
+   thrownBoomerangSpawnedEvent.OnClientEvent:Connect(function(toolId: string, payload: buffer)
+   local ownerUserId, offset = BufferUtil.readUserId(payload, 0)
       local startPosition
       startPosition, offset = BufferUtil.readVector3_96(payload, offset)
       local direction
@@ -192,7 +190,6 @@ function WeaponController.init()
       speed, offset = BufferUtil.readf32(payload, offset)
       local throwServerTime
       throwServerTime, offset = BufferUtil.readf64(payload, offset)
-      print(ownerUserId, startPosition, direction, speed, throwServerTime)
 
       local forPlayer = Players:GetPlayerByUserId(ownerUserId)
       if not forPlayer then
@@ -215,7 +212,7 @@ function WeaponController.init()
    end)
 
    thrownBoomerangDespawnedEvent.OnClientEvent:Connect(function(payload: buffer)
-      local ownerUserId = BufferUtil.readi32(payload, 0)
+      local ownerUserId = BufferUtil.readUserId(payload, 0)
       local forPlayer = Players:GetPlayerByUserId(ownerUserId)
       if not forPlayer then
          return
@@ -230,7 +227,7 @@ function WeaponController.init()
       end
 
       local ownerUserId
-      ownerUserId, offset = BufferUtil.readi32(payload, offset)
+      ownerUserId, offset = BufferUtil.readUserId(payload, offset)
       local position
       position, offset = BufferUtil.readVector3_96(payload, offset)
       local direction
@@ -257,7 +254,7 @@ function WeaponController.init()
 			return
 		end
 
-		if input.KeyCode == Enum.KeyCode.E then
+      if input.UserInputType == Enum.UserInputType.MouseButton1 then
          local character = Players.LocalPlayer.Character
          if character and hasForceField(character) then
             print("cannot throw due to having forcefield")
@@ -266,7 +263,7 @@ function WeaponController.init()
 			throwEvent:FireServer("ClassicBoomerang")
 		end
 
-		if input.KeyCode == Enum.KeyCode.F then
+      if input.UserInputType == Enum.UserInputType.MouseButton2 then
 			recallEvent:FireServer()
 		end
 	end)

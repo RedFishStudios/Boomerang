@@ -37,9 +37,9 @@ local CATCHUP_STEP = 1 / 60
 
 local WEAPON_UNRELIABLE_CODES = RemoteCodes.Weapon.Unreliable
 
-local SPAWN_PACKET_SIZE = 4 + 12 + 12 + 4 + 8
-local DESPAWN_PACKET_SIZE = 4
-local SNAPSHOT_PACKET_SIZE = 1 + 4 + 12 + 12 + 4 + 1 + 8
+local SPAWN_PACKET_SIZE = 8 + 12 + 12 + 4 + 8
+local DESPAWN_PACKET_SIZE = 8
+local SNAPSHOT_PACKET_SIZE = 1 + 8 + 12 + 12 + 4 + 1 + 8
 
 type ThrowInitOptions = {
    StartPosition: Vector3?,
@@ -78,7 +78,7 @@ local function fireSpawned(ownerUserId: number, boomerangId: string, position: V
 
    local payload = buffer.create(SPAWN_PACKET_SIZE)
    local offset = 0
-   offset = BufferUtil.writei32(payload, offset, ownerUserId)
+   offset = BufferUtil.writeUserId(payload, offset, ownerUserId)
    offset = BufferUtil.writeVector3_96(payload, offset, position)
    offset = BufferUtil.writeVector3_96(payload, offset, direction)
    offset = BufferUtil.writef32(payload, offset, speed)
@@ -93,7 +93,7 @@ local function fireDespawned(ownerUserId: number)
       return
    end
    local payload = buffer.create(DESPAWN_PACKET_SIZE)
-   BufferUtil.writei32(payload, 0, ownerUserId)
+   BufferUtil.writeUserId(payload, 0, ownerUserId)
    thrownBoomerangDespawnedRemote:FireAllClients(payload)
 end
 
@@ -106,7 +106,7 @@ local function fireSnapshot(ownerUserId: number, position: Vector3, direction: V
    local payload = buffer.create(SNAPSHOT_PACKET_SIZE)
    local offset = 0
    offset = BufferUtil.writeu8(payload, offset, WEAPON_UNRELIABLE_CODES.BoomerangSnapshot)
-   offset = BufferUtil.writei32(payload, offset, ownerUserId)
+   offset = BufferUtil.writeUserId(payload, offset, ownerUserId)
    offset = BufferUtil.writeVector3_96(payload, offset, position)
    offset = BufferUtil.writeVector3_96(payload, offset, direction)
    offset = BufferUtil.writef32(payload, offset, speed)

@@ -17,8 +17,7 @@ local GameTeamService = {}
 local Players = game:GetService("Players")
 local TeamService = game:GetService("Teams")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerStorage = game:GetService("ServerStorage")
-local SharedConstants = ReplicatedStorage.Shared.Constants
+local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 
@@ -103,6 +102,39 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
+function GameTeamService.getOutOfGameTeam(): Team
+   return OutOfGameTeam
+end
+
+function GameTeamService.setOutOfGame(player: Player)
+   player.Team = OutOfGameTeam
+end
+
+function GameTeamService.setAllOutOfGame()
+   for _, player in ipairs(Players:GetPlayers()) do
+      player.Team = OutOfGameTeam
+   end
+end
+
+function GameTeamService.destroyRoundTeams()
+   for teamName, team in pairs(Teams) do
+      if team and team.Parent then
+         for _, player in ipairs(Players:GetPlayers()) do
+            if player.Team == team then
+               player.Team = OutOfGameTeam
+            end
+         end
+         team:Destroy()
+      end
+      Teams[teamName] = nil
+   end
+end
+
+function GameTeamService.beginIntermission()
+   GameTeamService.setAllOutOfGame()
+   GameTeamService.destroyRoundTeams()
+end
+
 -- // Set particpiating members to free-for-all team
 function GameTeamService.setFreeForAll()
    local team = safeGetTeam("FreeForAll")
@@ -124,9 +156,15 @@ end
 -------------------------------------------------------------------------------
 
 function GameTeamService.init()
-   GameTeamService.setFreeForAll()
+   GameTeamService.setAllOutOfGame()
 	PlayersUtil.onPlayerAdded(function(player: Player)
-      
+      local currentGameState = GameStateLibrary.getGameStateData()
+      if currentGameState.CanRespawn:Get() then
+         -- TODO: when team vs team gamemodes are added, assign player to a team
+         player.Team = safeGetTeam("FreeForAll")
+      else
+         GameTeamService.setOutOfGame(player)
+      end
 	end)
 end
 

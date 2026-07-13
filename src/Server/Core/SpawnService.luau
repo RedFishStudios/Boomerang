@@ -14,6 +14,7 @@ local CurrentGameState = require(ReplicatedStorage.Shared.Library.GameStateLibra
 local ArenaService = require(ServerStorage.Server.Core.ArenaService)
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
+local GameTeamService = require(ServerStorage.Server.Core.GameTeamService)
 
 local LobbyService = require(ServerStorage.Server.Core.LobbyService)
 
@@ -68,6 +69,7 @@ local function setPlayerSpawnpoint(player: Player)
       player.RespawnLocation = ArenaService.getSpawnPoint(player)
    else
       player.RespawnLocation = LobbyService.getSpawnPoint()
+      GameTeamService.setOutOfGame(player)
    end
 end
 

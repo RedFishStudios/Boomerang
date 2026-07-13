@@ -3,7 +3,8 @@ local GlobalConfig = {
    SkipVoting = false,
    CanHurtSelf = false,
    MinimumNeededPlayers = 1,
-   SpawnShieldDuration = 2
+   SpawnShieldDuration = 2,
+   NilDataType = "Nil"
 }
 
 return GlobalConfig

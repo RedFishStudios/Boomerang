@@ -191,6 +191,16 @@ end
 
 function CharacterController.init()
 	loadRemotes()
+   
+   player.CharacterAdded:Connect(function(character)
+      repeat
+         task.wait()
+      until character.Parent ~= nil
+      local humanoid: Humanoid = character:WaitForChild("Humanoid")
+      humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+      humanoid.JumpHeight = 0
+      humanoid.JumpPower = 0
+   end)
 
 	RunService.PreSimulation:Connect(onPreSimulation)
 	workspace.Characters.ChildRemoved:Connect(onAnyCharacterRemoved)

@@ -20,6 +20,7 @@ local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local SpawnService = require(ServerStorage.Server.Core.SpawnService)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local LobbyService = require(ServerStorage.Server.Core.LobbyService)
+local GameTeamService = require(ServerStorage.Server.Core.GameTeamService)
 
 local GamemodeLogics = ServerStorage.Server.Logics.GamemodeLogics
 local GamemodeLogicModules = {}
@@ -246,6 +247,8 @@ function RoundCyclingService.start()
 
    CurrentGameState.RoundFinishedTasks:Add(function(winner: Player?, winMessage: string)
       print("A ROUND FINISHED - BEGINNING INTERMISSION -")
+
+      GameTeamService.beginIntermission()
 
       for _, player in pairs(game.Players:GetPlayers()) do
          SpawnService.sendPlayerTo(player, LobbyService.getSpawnPoint().Position)
