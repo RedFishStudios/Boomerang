@@ -18,7 +18,7 @@ local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
 local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
-local CurrentGameState = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
+local GameStateLibrary= require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local ArenaService = require(ServerStorage.Server.Core.ArenaService)
 
 local ToolLogics = ReplicatedStorage.Shared.Logics.WeaponLogics
@@ -92,7 +92,7 @@ function WeaponService.init()
 
    -- // Throw boomerang
 	throwEvent.OnServerEvent:Connect(function(player: Player, toolId: string)
-      if not CurrentGameState.getGameStateData().IsInRound:Get() then
+      if not GameStateLibrary.getGameStateData().IsInRound:Get() then
          return
       end
       if ThrownWeapons.Data[player] then
@@ -150,14 +150,16 @@ function WeaponService.init()
       Logic.recall(Player, thrownWeaponData.ToolId, toolData, thrownWeaponData)
    end)
 
-   -- // Reset thrown boomerangs when map changes
-   ArenaService.MapChangedTasks:Add(function(newMapName: string)
+   -- // Reset boomerangs when starting/stopping game
+   local gameStateData = GameStateLibrary.getGameStateData()
+   gameStateData.IsInRound:Subscribe(function(isInRound: boolean)
       for player, thrownWeaponData in pairs(ThrownWeapons.Data) do
          local toolData = Tools[thrownWeaponData.ToolId]
          local Logic = getLogic(toolData.LogicClass)
          Logic.removeFromField(player, thrownWeaponData)
       end
    end)
+
 end
 
 function WeaponService.start() end
