@@ -254,7 +254,7 @@ function WeaponController.init()
 			return
 		end
 
-      if input.UserInputType == Enum.UserInputType.MouseButton1 then
+      if input.UserInputType == Enum.UserInputType.MouseButton2 then
          local character = Players.LocalPlayer.Character
          if character and hasForceField(character) then
             print("cannot throw due to having forcefield")
@@ -263,7 +263,7 @@ function WeaponController.init()
 			throwEvent:FireServer("ClassicBoomerang")
 		end
 
-      if input.UserInputType == Enum.UserInputType.MouseButton2 then
+      if input.KeyCode == Enum.KeyCode.E then
 			recallEvent:FireServer()
 		end
 	end)

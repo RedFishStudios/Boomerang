@@ -251,7 +251,7 @@ function RoundCyclingService.start()
       GameTeamService.beginIntermission()
 
       for _, player in pairs(game.Players:GetPlayers()) do
-         SpawnService.sendPlayerTo(player, LobbyService.getSpawnPoint().Position)
+         SpawnService.sendPlayerTo(player, LobbyService.getSpawnPoint().Position, true)
       end
 
       local livingPlayersInArena = table.create(0)

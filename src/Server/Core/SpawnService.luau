@@ -77,9 +77,21 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
-function SpawnService.sendPlayerTo(player: Player, location: Vector3)
+function SpawnService.sendPlayerTo(player: Player, location: Vector3, forceLive: boolean?)
    local character = safeGetPlayerCharacter(player)
    if not character then
+      return
+   end
+   local humanoid = character:FindFirstChildWhichIsA("Humanoid")
+   if not humanoid then
+      return
+   end
+   if forceLive and humanoid.Health <= 0 then
+      player.CharacterAdded:Once(function()
+         character = safeGetPlayerCharacter(player)
+         SpawnService.sendPlayerTo(player, location, true)
+      end)
+      player:LoadCharacterAsync()
       return
    end
    local rootPart = character:FindFirstChild("HumanoidRootPart")
