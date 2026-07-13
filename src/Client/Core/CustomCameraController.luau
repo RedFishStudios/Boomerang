@@ -9,10 +9,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UIController = require(ReplicatedStorage.Client.UI.UIController)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
-
-local GamemodeHud = UIController.get("GamemodeHud")
 
 local localPlayer = Players.LocalPlayer
 
@@ -24,8 +21,6 @@ local CAMERA_TILT_DEGREES_FROM_VERTICAL = 15
 local CAMERA_YAW_DEGREES = 0
 local CAMERA_DISTANCE_PADDING = 20
 local CAMERA_MIN_DISTANCE = 60
-local CAMERA_VIEW_PADDING_RATIO = 0.08
-local CAMERA_FOCUS_BIAS_SOLVE_STEPS = 7
 local CAMERA_FOCUS_SMOOTH_BASE = 11
 local CAMERA_FOCUS_SMOOTH_DISTANCE_FACTOR = 0.08
 local CAMERA_FOCUS_SMOOTH_MAX = 42
@@ -58,50 +53,6 @@ CustomCameraController.Mode = "Overhead" :: "Overhead" | "Regular"
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
 
--- // Ask if all subjects are visible within the camera's current size and position
-local function areAllSubjectsVisibleWithPadding(camera: Camera, parts: {BasePart | Model | Tool}, sizes: {Vector3}, paddingRatio: number, cameraCFrame: CFrame?): boolean
-   local cameraFrame = cameraCFrame or camera.CFrame
-   local aspectRatio = camera.ViewportSize.X / camera.ViewportSize.Y
-   local viewportHeight = math.max(camera.ViewportSize.Y, 1)
-   local topPaddingRatio = math.max(paddingRatio, GamemodeHud.getHeaderPaddingSizeOffset() / viewportHeight)
-   local tanHalfVertical = math.tan(math.rad(camera.FieldOfView) / 2)
-   local tanHalfHorizontal = tanHalfVertical * aspectRatio
-
-   for i, part in ipairs(parts) do
-      local center = part:GetPivot().Position
-      local half = sizes[i] / 2
-
-      for x = -1, 1, 2 do
-         for y = -1, 1, 2 do
-            for z = -1, 1, 2 do
-               local worldPoint = center + Vector3.new(half.X * x, half.Y * y, half.Z * z)
-               local localPoint = cameraFrame:PointToObjectSpace(worldPoint)
-               local depth = -localPoint.Z
-               if depth <= 0 then
-                  return false
-               end
-
-               local normalizedX = localPoint.X / (depth * tanHalfHorizontal)
-               local normalizedY = localPoint.Y / (depth * tanHalfVertical)
-
-               local viewportX = normalizedX * 0.5 + 0.5
-               local viewportY = -normalizedY * 0.5 + 0.5
-
-               if viewportX < paddingRatio or viewportX > (1 - paddingRatio) then
-                  return false
-               end
-
-               if viewportY < topPaddingRatio or viewportY > (1 - paddingRatio) then
-                  return false
-               end
-            end
-         end
-      end
-   end
-
-   return true
-end
-
 -- // Get parameters for the Overhead camera to have these desired objects within its view
 local function getAllSubjectsBoundingBox()
    local min = Vector3.new(math.huge, math.huge, math.huge)
@@ -109,34 +60,30 @@ local function getAllSubjectsBoundingBox()
 
    local parts: { BasePart | Model | Tool } = {}
    local sizes: {Vector3} = {}
-
    local gameStateData = GameStateLibrary.getGameStateData()
-   local livingPlayersInArena = gameStateData.LivingPlayersInArena:Get()
 
-   if gameStateData.IsInRound:Get() == true and table.find(livingPlayersInArena, localPlayer) then
-      for _, player in ipairs(livingPlayersInArena) do
-         if player.Character and player.Character.PrimaryPart then
-            table.insert(parts, player.Character.PrimaryPart)
-            table.insert(sizes, player.Character.PrimaryPart.Size)
-         end
+   for _, player in ipairs(gameStateData.LivingPlayersInArena:Get()) do
+      if player.Character and player.Character.PrimaryPart then
+         table.insert(parts, player.Character.PrimaryPart)
+         table.insert(sizes, player.Character.PrimaryPart.Size)
       end
+   end
 
-      for _, weapon in ipairs(thrownWeaponsFolder:GetChildren()) do
-         if weapon:IsA("BasePart") then
-            table.insert(parts, weapon)
-            table.insert(sizes, weapon.Size)
-         elseif weapon:IsA("Model") then
-            local primaryPart = weapon.PrimaryPart
-            if primaryPart then
-               table.insert(parts, primaryPart)
-               table.insert(sizes, primaryPart.Size)
-            end
-         elseif weapon:IsA("Tool") then
-            local handle = weapon:FindFirstChild("Handle")
-            if handle then
-               table.insert(parts, handle)
-               table.insert(sizes, handle.Size)
-            end
+   for _, weapon in ipairs(thrownWeaponsFolder:GetChildren()) do
+      if weapon:IsA("BasePart") then
+         table.insert(parts, weapon)
+         table.insert(sizes, weapon.Size)
+      elseif weapon:IsA("Model") then
+         local primaryPart = weapon.PrimaryPart
+         if primaryPart then
+            table.insert(parts, primaryPart)
+            table.insert(sizes, primaryPart.Size)
+         end
+      elseif weapon:IsA("Tool") then
+         local handle = weapon:FindFirstChild("Handle")
+         if handle then
+            table.insert(parts, handle)
+            table.insert(sizes, handle.Size)
          end
       end
    end
@@ -173,7 +120,7 @@ local function getAllSubjectsBoundingBox()
 
    local center = (min + max) / 2
    local size = max - min
-   return center, size, parts, sizes
+   return center, size
 end
 
 -- // Get required camera distance for the camera to possess these subjects within its view
@@ -223,27 +170,14 @@ local function stepSmoothNumber(currentValue: number, targetValue: number, baseR
    return currentValue + (targetValue - currentValue) * alpha
 end
 
-local function buildCameraTargetForFocus(focusPosition: Vector3, boxSize: Vector3, focusToCameraDirection: Vector3, camera: Camera): (number, CFrame)
-   local cameraBasis = CFrame.lookAt(focusPosition + focusToCameraDirection, focusPosition)
-   local requiredDistance = getRequiredDistanceForSize(
-      boxSize,
-      cameraBasis,
-      camera.ViewportSize.X / camera.ViewportSize.Y,
-      math.rad(camera.FieldOfView)
-   )
-   local targetDistance = math.max(CAMERA_MIN_DISTANCE, requiredDistance + CAMERA_DISTANCE_PADDING)
-   local cameraPosition = focusPosition + focusToCameraDirection * targetDistance
-   return targetDistance, CFrame.lookAt(cameraPosition, focusPosition, Vector3.yAxis)
-end
-
 -- // Update camera for overhead position
 local function updateCamera(deltaTime: number)
    if not currentCamera then
       return
    end
 
-   local focusPosition, boxSize, allSubjects, allSubjectSizes = getAllSubjectsBoundingBox()
-   if not focusPosition or not boxSize or not allSubjects or not allSubjectSizes then
+   local focusPosition, boxSize = getAllSubjectsBoundingBox()
+   if not focusPosition or not boxSize then
       return
    end
 
@@ -253,50 +187,17 @@ local function updateCamera(deltaTime: number)
    local horizontalDirection = Vector3.new(math.sin(yawRadians), 0, math.cos(yawRadians))
    local focusToCameraDirection = (Vector3.yAxis * math.cos(tiltRadians) + horizontalDirection * math.sin(tiltRadians)).Unit
 
-   local targetDistance, _ = buildCameraTargetForFocus(focusPosition, boxSize, focusToCameraDirection, currentCamera)
-   local targetFocusPosition = focusPosition
-
-   local localCharacter = localPlayer.Character
-   local localRootPart = localCharacter and localCharacter.PrimaryPart
-   if localRootPart then
-      local playerFocusPosition = localRootPart.Position
-      local playerTargetDistance, playerCameraCFrame = buildCameraTargetForFocus(playerFocusPosition, boxSize, focusToCameraDirection, currentCamera)
-
-      if areAllSubjectsVisibleWithPadding(currentCamera, allSubjects, allSubjectSizes, CAMERA_VIEW_PADDING_RATIO, playerCameraCFrame) then
-         targetFocusPosition = playerFocusPosition
-         targetDistance = playerTargetDistance
-      else
-         local low = 0
-         local high = 1
-         local bestFocus = focusPosition
-         local bestDistance = targetDistance
-
-         for _ = 1, CAMERA_FOCUS_BIAS_SOLVE_STEPS do
-            local t = (low + high) * 0.5
-            local candidateFocus = playerFocusPosition:Lerp(focusPosition, t)
-            local candidateDistance, candidateCameraCFrame = buildCameraTargetForFocus(candidateFocus, boxSize, focusToCameraDirection, currentCamera)
-
-            if areAllSubjectsVisibleWithPadding(currentCamera, allSubjects, allSubjectSizes, CAMERA_VIEW_PADDING_RATIO, candidateCameraCFrame) then
-               bestFocus = candidateFocus
-               bestDistance = candidateDistance
-               high = t
-            else
-               low = t
-            end
-         end
-
-         targetFocusPosition = bestFocus
-         targetDistance = bestDistance
-      end
-   end
+   local baseCFrame = CFrame.lookAt(focusPosition + focusToCameraDirection, focusPosition)
+   local requiredDistance = getRequiredDistanceForSize(boxSize, baseCFrame, currentCamera.ViewportSize.X / currentCamera.ViewportSize.Y, math.rad(currentCamera.FieldOfView))
+   local targetDistance = math.max(CAMERA_MIN_DISTANCE, requiredDistance + CAMERA_DISTANCE_PADDING)
 
    if not smoothedFocusPosition or not smoothedCameraDistance then
-      smoothedFocusPosition = targetFocusPosition
+      smoothedFocusPosition = focusPosition
       smoothedCameraDistance = targetDistance
    else
       smoothedFocusPosition = stepSmoothVector3(
          smoothedFocusPosition,
-         targetFocusPosition,
+         focusPosition,
          CAMERA_FOCUS_SMOOTH_BASE,
          CAMERA_FOCUS_SMOOTH_DISTANCE_FACTOR,
          CAMERA_FOCUS_SMOOTH_MAX,
@@ -319,68 +220,6 @@ local function updateCamera(deltaTime: number)
 	currentCamera.Focus = CFrame.new(smoothedFocusPosition)
 end
 
--- // Instantly place overhead camera to fit all visible subjects with no smoothing
-local function placeCameraInstantly()
-   if not currentCamera then
-      return
-   end
-
-   local focusPosition, boxSize, allSubjects, allSubjectSizes = getAllSubjectsBoundingBox()
-   if not focusPosition or not boxSize or not allSubjects or not allSubjectSizes then
-      return
-   end
-
-   local tiltRadians = math.rad(CAMERA_TILT_DEGREES_FROM_VERTICAL)
-   local yawRadians = math.rad(CAMERA_YAW_DEGREES)
-
-   local horizontalDirection = Vector3.new(math.sin(yawRadians), 0, math.cos(yawRadians))
-   local focusToCameraDirection = (Vector3.yAxis * math.cos(tiltRadians) + horizontalDirection * math.sin(tiltRadians)).Unit
-
-   local targetDistance, _ = buildCameraTargetForFocus(focusPosition, boxSize, focusToCameraDirection, currentCamera)
-   local targetFocusPosition = focusPosition
-
-   local localCharacter = localPlayer.Character
-   local localRootPart = localCharacter and localCharacter.PrimaryPart
-   if localRootPart then
-      local playerFocusPosition = localRootPart.Position
-      local playerTargetDistance, playerCameraCFrame = buildCameraTargetForFocus(playerFocusPosition, boxSize, focusToCameraDirection, currentCamera)
-
-      if areAllSubjectsVisibleWithPadding(currentCamera, allSubjects, allSubjectSizes, CAMERA_VIEW_PADDING_RATIO, playerCameraCFrame) then
-         targetFocusPosition = playerFocusPosition
-         targetDistance = playerTargetDistance
-      else
-         local low = 0
-         local high = 1
-         local bestFocus = focusPosition
-         local bestDistance = targetDistance
-
-         for _ = 1, CAMERA_FOCUS_BIAS_SOLVE_STEPS do
-            local t = (low + high) * 0.5
-            local candidateFocus = playerFocusPosition:Lerp(focusPosition, t)
-            local candidateDistance, candidateCameraCFrame = buildCameraTargetForFocus(candidateFocus, boxSize, focusToCameraDirection, currentCamera)
-
-            if areAllSubjectsVisibleWithPadding(currentCamera, allSubjects, allSubjectSizes, CAMERA_VIEW_PADDING_RATIO, candidateCameraCFrame) then
-               bestFocus = candidateFocus
-               bestDistance = candidateDistance
-               high = t
-            else
-               low = t
-            end
-         end
-
-         targetFocusPosition = bestFocus
-         targetDistance = bestDistance
-      end
-   end
-
-   smoothedFocusPosition = targetFocusPosition
-   smoothedCameraDistance = targetDistance
-
-   local cameraPosition = targetFocusPosition + focusToCameraDirection * targetDistance
-   currentCamera.CFrame = CFrame.lookAt(cameraPosition, targetFocusPosition, Vector3.yAxis)
-   currentCamera.Focus = CFrame.new(targetFocusPosition)
-end
-
 local function startOverheadMode()
    if overheadCameraConnection then
       return
@@ -401,7 +240,6 @@ local function startOverheadMode()
    currentCamera.FieldOfView = 60
    smoothedFocusPosition = nil
    smoothedCameraDistance = nil
-   placeCameraInstantly()
    overheadCameraConnection = RunService.RenderStepped:Connect(updateCamera)
 end
 
@@ -411,13 +249,15 @@ local function stopOverheadMode()
       overheadCameraConnection = nil
    end
 
+   -- I want to position the camera like this:
+   -- 3 studs above the player position
+   -- 10 studs away from the player position in a direction opposite of their rootpart's lookvector
    local character = localPlayer.Character
    if character then
       local rootPart = character:FindFirstChild("HumanoidRootPart")
       if rootPart then
          local cameraPosition = rootPart.Position + Vector3.new(0, 3, 0) - rootPart.CFrame.LookVector * 10
          currentCamera.CFrame = CFrame.lookAt(cameraPosition, rootPart.Position, Vector3.yAxis)
-         currentCamera.CameraSubject = character.Humanoid
       end
    end
 
@@ -432,10 +272,6 @@ end
 -------------------------------------------------------------------------------
 
 function CustomCameraController.setMode(mode: "Overhead" | "Regular")
-   if not GameStateLibrary.Ready then
-      warn(`Do not call CustomCameraController.setMode before 'start'`)
-      return
-   end
    CustomCameraController.Mode = mode
    if mode == "Overhead" then
       startOverheadMode()
@@ -461,13 +297,6 @@ function CustomCameraController.start()
    end
 
    localPlayer.CharacterAdded:Connect(onCharacterAdded)
-   
-   local gameStateData = GameStateLibrary.getGameStateData()
-   gameStateData.IsInRound:Subscribe(function(isInRound: boolean)
-      if CustomCameraController.Mode == "Overhead" then
-         placeCameraInstantly()
-      end
-   end)
 
    game:GetService("ContextActionService"):BindAction("SwitchCameraMode", function(actionName, inputState, inputObject)
       if inputState == Enum.UserInputState.Begin then
