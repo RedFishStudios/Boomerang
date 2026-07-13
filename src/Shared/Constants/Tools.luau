@@ -9,7 +9,8 @@ export type Tool = {
    Boomerang: {
       Bounces: number, -- How many times the boomerang can bounce off objects before exhaustion
       HitboxRadius: number,
-      Speed: number
+      Speed: number,
+      ThrowDistance: number
    }?
 }
 
@@ -22,7 +23,8 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
       Boomerang = {
          Bounces = 1,
          HitboxRadius = 2,
-         Speed = 60
+         Speed = 60,
+         ThrowDistance = 50
       }
    },
 

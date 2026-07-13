@@ -210,9 +210,11 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    local direction = getHorizontalDirection((options and options.Direction) or character.PrimaryPart.CFrame.LookVector)
    local speed = (options and options.Speed) or toolData.Boomerang.Speed
    local hitboxRadius = toolData.Boomerang.HitboxRadius
+   local throwDistance = toolData.Boomerang.ThrowDistance
    local energy = toolData.Boomerang.Bounces
 
    local startPosition = (options and options.StartPosition) or (character.PrimaryPart.Position + character.PrimaryPart.CFrame.LookVector * 3)
+   local throwOrigin = startPosition
    local throwServerTime = (options and options.ThrowServerTime) or workspace:GetServerTimeNow()
 
    if isServer then
@@ -253,6 +255,14 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       -- Raycast in front of the boomerang to detect collisions with walls or other obstacles
       local rayOrigin = thrownWeaponData.Host:GetPivot().Position
       local rayDistance = speed * deltaTime
+
+      -- Switch to recall once the boomerang has traveled far enough from where it was thrown.
+      if (rayOrigin - throwOrigin).Magnitude >= throwDistance then
+         if shouldRecallTransitions then
+            Boomerang.recall(player, boomerangId, toolData, thrownWeaponData)
+            return true
+         end
+      end
 
       local victimModels = raycastWithHorizontalCharacterHitbox(rayOrigin, direction, hitboxRadius)
       local playerDamaged = false
