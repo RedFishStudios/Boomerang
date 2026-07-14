@@ -170,8 +170,8 @@ end
 
 function ProductService.init()
 	MarketplaceService.ProcessReceipt = processReceipt
-	PlayersUtil.onPlayerAdded(onPlayerAdded)
-	Players.PlayerRemoving:Connect(onPlayerRemoving)
+	PlayersUtil.PlayerAdded:Add(onPlayerAdded)
+	PlayersUtil.PlayerRemoving:Add(onPlayerRemoving)
 	MarketplaceService.PromptGamePassPurchaseFinished:Connect(passPurchaseFinished)
 end
 

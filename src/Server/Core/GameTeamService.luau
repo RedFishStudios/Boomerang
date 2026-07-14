@@ -157,7 +157,7 @@ end
 
 function GameTeamService.init()
    GameTeamService.setAllOutOfGame()
-	PlayersUtil.onPlayerAdded(function(player: Player)
+	PlayersUtil.PlayerAdded:Add(function(player: Player)
       local currentGameState = GameStateLibrary.getGameStateData()
       if currentGameState.CanRespawn:Get() then
          -- TODO: when team vs team gamemodes are added, assign player to a team

@@ -3,7 +3,7 @@ local RaycastsUtility = {}
 function RaycastsUtility.getProjectileObstructionParams(filterDescendantsInstances: { Instance }): RaycastParams
 	local raycastParams = RaycastParams.new()
 	raycastParams.FilterDescendantsInstances = filterDescendantsInstances
-	raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+	raycastParams.FilterType = Enum.RaycastFilterType.Exclude
 	return raycastParams
 end
 

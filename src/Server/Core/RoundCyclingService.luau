@@ -169,7 +169,7 @@ function RoundCyclingService.init()
    SimpleRemotes.getEvent("VoteUpdated")
    local gameStateData = CurrentGameState.getGameStateData()
 
-   SpawnService.PlayerDiedTasks:Add(function(Player: Player)
+   PlayersUtil.CharacterDied:Add(function(Player: Player)
       local currentLivingPlayers = gameStateData.LivingPlayersInArena:Get()
       local livingPlayersInArena = table.clone(currentLivingPlayers)
       local i = table.find(livingPlayersInArena, Player)
@@ -181,7 +181,8 @@ function RoundCyclingService.init()
       end
    end)
 
-   SpawnService.PlayerSpawnedTasks:Add(function(player: Player, inArena: boolean)
+   PlayersUtil.RootPartLoaded:Add(function(player: Player, _character: Model, _rootPart: BasePart)
+      local inArena = if player.RespawnLocation then player.RespawnLocation:IsDescendantOf(game.Workspace.Arena) else false
       if not inArena then
          print("> exit")
          return
@@ -197,7 +198,7 @@ function RoundCyclingService.init()
       end
    end)
 
-   PlayersUtil.onPlayerRemoving(function(player: Player)
+   PlayersUtil.PlayerRemoving:Add(function(player: Player)
       local currentLivingPlayers = gameStateData.LivingPlayersInArena:Get()
       local livingPlayersInArena = table.clone(currentLivingPlayers)
       local i = table.find(livingPlayersInArena, player)

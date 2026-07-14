@@ -214,7 +214,7 @@ end
 
 function PlayerDataService.start()
 	-- On start, so this is absolute last.
-	PlayersUtil.onPlayerAdded(function(player: Player)
+	PlayersUtil.PlayerAdded:Add(function(player: Player)
 		local profile = store:StartSessionAsync(`{player.UserId}`, {
 			Cancel = function()
 				return not Players:IsAncestorOf(player)

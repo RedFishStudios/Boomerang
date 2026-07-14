@@ -132,10 +132,24 @@ end
 function CharacterService.init()
 	loadCharacterRemotes()
 
+   for _, p in pairs(game.Players:GetPlayers()) do
+      if p.Character then
+         onCharacterAdded(p.Character)
+      end
+   end
+
 	PlayerDataService.ProfileAddedTasks:Add(function(player)
 		playerConnections[player] = ConnectionsList.new({
-			PlayersUtil.onCharacterAdded(player, onCharacterAdded),
-			player.CharacterRemoving:Connect(onCharacterRemoving),
+			PlayersUtil.CharacterAdded:Add(function(addedPlayer: Player, character: Model)
+				if addedPlayer == player then
+					onCharacterAdded(character)
+				end
+			end),
+			PlayersUtil.CharacterDestroying:Add(function(destroyingPlayer: Player, character: Model)
+				if destroyingPlayer == player then
+					onCharacterRemoving(character)
+				end
+			end),
 		})
 	end)
 

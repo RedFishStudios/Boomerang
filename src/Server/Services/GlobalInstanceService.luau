@@ -122,7 +122,7 @@ end
 -------------------------------------------------------------------------------
 
 function GlobalInstanceService.init()
-	PlayersUtil.onPlayerAdded(function(player)
+	PlayersUtil.PlayerAdded:Add(function(player)
 		remoteEvent:FireClient(player, EVENT_CODES.SendAll, idList)
 	end)
 

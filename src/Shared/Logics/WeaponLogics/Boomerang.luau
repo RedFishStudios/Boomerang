@@ -10,6 +10,7 @@ local ReplicatedStorage = game.ReplicatedStorage
 local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
 local BufferUtil = require(ReplicatedStorage.Shared.Utils.BufferUtil)
 local RaycastsUtility = require(ReplicatedStorage.Shared.Utils.RaycastsUtility)
+local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
 local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
@@ -52,6 +53,12 @@ type RecallInitOptions = {
    InitialSpeed: number?
 }
 
+PlayersUtil.CharacterDestroying:Add(function(player: Player)
+   local thrownWeaponData = ThrownWeapons.Data[player]
+   if thrownWeaponData then
+      Boomerang.removeFromField(player, thrownWeaponData)
+   end
+end)
 
 local function getHorizontalDirection(direction: Vector3): Vector3
    local horizontal = Vector3.new(direction.X, 0, direction.Z)
@@ -144,7 +151,7 @@ local function raycastWithHorizontalHitbox(
    weaponData.TestRaycastVisualizers[3].Position = rightOrigin + direction * rayDistance
 
    local raycastResult = RaycastsUtility.raycastProjectileObstruction(rayOrigin, direction, rayDistance, raycastParams)
-   if raycastResult or hitboxRadius <= 0 then
+   if raycastResult then
       weaponData.TestRaycastVisualizers[1].Position = raycastResult.Position
       weaponData.TestRaycastVisualizers[1].Color = Color3.new(1, 0, 0)
       return raycastResult
@@ -235,7 +242,8 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       thrownWeaponData.Host = boomerangModel
    end
 
-   local raycastParams = RaycastsUtility.getProjectileObstructionParams({thrownWeaponData.Host, Characters})
+   local obstructionFilter = {thrownWeaponData.Host, Characters, character}
+   local raycastParams = RaycastsUtility.getProjectileObstructionParams(obstructionFilter)
    local nextReplicationAt = 0
 
    local function simulateStep(deltaTime: number, shouldRecallTransitions: boolean)
