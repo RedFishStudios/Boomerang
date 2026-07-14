@@ -74,7 +74,7 @@ local function getAllSubjectsBoundingBox()
    local min = Vector3.new(math.huge, math.huge, math.huge)
    local max = Vector3.new(-math.huge, -math.huge, -math.huge)
 
-   local parts: { BasePart | Model | Tool } = {}
+   local positions: {Vector3} = {}
    local sizes: {Vector3} = {}
    local gameStateData = GameStateLibrary.getGameStateData()
 
@@ -83,19 +83,19 @@ local function getAllSubjectsBoundingBox()
    if not localPlayerIsInArena then
       -- Client is not alive in the arena
       if localPlayer.Character and localPlayer.Character.PrimaryPart then
-         table.insert(parts, localPlayer.Character.PrimaryPart)
+         table.insert(positions, localPlayer.Character.PrimaryPart.Position)
          table.insert(sizes, localPlayer.Character.PrimaryPart.Size)
       end
    else
       -- Client is alive and in map
       for i, p in pairs(getImportantMapObjects()) do
          if p:IsA("BasePart") then
-            table.insert(parts, p)
+            table.insert(positions, p.Position)
             table.insert(sizes, p.Size)
          elseif p:IsA("Model") then
-            local bounds = p:FindFirstChild("Bounds") or p.PrimaryPart
+            local bounds = p:FindFirstChild("CameraBounds") or p.PrimaryPart
             if bounds then
-               table.insert(parts, bounds)
+               table.insert(positions, bounds.Position)
                table.insert(sizes, bounds.Size)
             end
          end
@@ -107,51 +107,47 @@ local function getAllSubjectsBoundingBox()
             continue
          end
          if player.Character and player.Character.PrimaryPart then
-            table.insert(parts, player.Character.PrimaryPart)
+            local position = player.Character.PrimaryPart.Position
+            position = Vector3.new(position.X, GlobalConfig.CharacterFocalHeight, position.Z)
+            table.insert(positions, position)
             table.insert(sizes, player.Character.PrimaryPart.Size)
          end
       end
       for _, weapon in ipairs(thrownWeaponsFolder:GetChildren()) do
          if weapon:IsA("BasePart") then
-            table.insert(parts, weapon)
+            table.insert(positions, weapon.Position)
             table.insert(sizes, weapon.Size)
          elseif weapon:IsA("Model") then
             local primaryPart = weapon.PrimaryPart
             if primaryPart then
-               table.insert(parts, primaryPart)
+               table.insert(positions, primaryPart.Position)
                table.insert(sizes, primaryPart.Size)
             end
          elseif weapon:IsA("Tool") then
             local handle = weapon:FindFirstChild("Handle")
             if handle then
-               table.insert(parts, handle)
+               table.insert(positions, handle.Position)
                table.insert(sizes, handle.Size)
             end
          end
       end
    end
 
-   if #parts == 0 then
+   if #positions == 0 then
       local character = localPlayer.Character
       local root = character and character.PrimaryPart
       if root then
-         table.insert(parts, root)
+         table.insert(positions, root.Position)
          table.insert(sizes, root.Size)
       end
    end
 
-   if #parts == 0 then
+   if #positions == 0 then
       return nil
    end
 
-   for i, part in ipairs(parts) do
-      local partPosition = part:GetPivot().Position
-      local p
-      if localPlayerIsInArena then
-         p = Vector3.new(partPosition.X, GlobalConfig.BoomerangHeight, partPosition.Z)
-      else
-         p = partPosition
-      end
+   for i, position in ipairs(positions) do
+      local p = position
       local s = sizes[i] / 2
 
       min = Vector3.new(
