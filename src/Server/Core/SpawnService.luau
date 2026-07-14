@@ -63,6 +63,10 @@ local function safeGetHumanoid(character)
    return character:WaitForChild("Humanoid", 5)
 end
 
+local function safeGetHumanoidRootPart(character)
+   return character:WaitForChild("HumanoidRootPart", 5)
+end
+
 local function setPlayerSpawnpoint(player: Player)
    print(`setting player spawnpoint: {player}`)
    local gameStateData = CurrentGameState.getGameStateData()
@@ -126,19 +130,36 @@ function SpawnService.init()
       end
    end
 
+   local function onCharacterAdded(player: Player)
+      SpawnService.PlayerSpawnedTasks:Execute("parallel", player, if player.RespawnLocation then player.RespawnLocation:IsDescendantOf(game.Workspace.Arena) else false)
+      local humanoid = safeGetHumanoid(safeGetPlayerCharacter(player))
+      if humanoid then
+         humanoid.Died:Connect(function()
+            setPlayerSpawnpoint(player)
+            SpawnService.PlayerDiedTasks:Execute("parallel", player)
+            -- TODO: display death screen, respawn time, etc
+         end)
+      end
+   end
+
 	PlayersUtil.onPlayerAdded(function(player: Player)
       setPlayerSpawnpoint(player)
       initialCharacterSend(player)
-      player.CharacterAdded:Connect(function()
-         SpawnService.PlayerSpawnedTasks:Execute("parallel", player, if player.RespawnLocation then player.RespawnLocation:IsDescendantOf(game.Workspace.Arena) else false)
-         local humanoid = safeGetHumanoid(safeGetPlayerCharacter(player))
-         if humanoid then
-            humanoid.Died:Connect(function()
-               setPlayerSpawnpoint(player)
-               SpawnService.PlayerDiedTasks:Execute("parallel", player)
-               -- TODO: display death screen, respawn time, etc
-            end)
+      
+      if player.Character then
+         local humanoid = safeGetHumanoid(player.Character)
+         if not humanoid then
+            return
          end
+         local humanoidRootPart = safeGetHumanoidRootPart(player.Character)
+         if not humanoidRootPart then
+            return
+         end
+      end
+      onCharacterAdded(player)
+
+      player.CharacterAdded:Connect(function()
+         onCharacterAdded(player)
       end)
 	end)
 end

@@ -182,7 +182,6 @@ function RoundCyclingService.init()
    end)
 
    SpawnService.PlayerSpawnedTasks:Add(function(player: Player, inArena: boolean)
-      print(`player spawned tasks: {player}`)
       if not inArena then
          print("> exit")
          return
