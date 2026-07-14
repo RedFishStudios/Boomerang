@@ -60,6 +60,21 @@ PlayersUtil.CharacterDestroying:Add(function(player: Player)
    end
 end)
 
+PlayersUtil.CharacterDied:Add(function(player: Player, character: Model)
+   local thrownWeaponData = ThrownWeapons.Data[player]
+   if not thrownWeaponData then
+      return
+   end
+   local host = thrownWeaponData.Host
+   if not host then
+      return
+   end
+   local character = player.Character
+   if not character or not character.PrimaryPart or not character.Parent or not character.PrimaryPart.Parent then
+      Boomerang.removeFromField(player, thrownWeaponData)
+   end
+end)
+
 local function getHorizontalDirection(direction: Vector3): Vector3
    local horizontal = Vector3.new(direction.X, 0, direction.Z)
    if horizontal.Magnitude <= 1e-5 then
