@@ -62,36 +62,41 @@ local function getAllSubjectsBoundingBox()
    local sizes: {Vector3} = {}
    local gameStateData = GameStateLibrary.getGameStateData()
 
-   local alphabet = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"}
-   local thisTick = alphabet[math.random(1, #alphabet)]
-   for _, player in ipairs(gameStateData.LivingPlayersInArena:Get()) do
-      --print(`{thisTick}: {player}`)
-      if player.Team and player.Team.Name == "OutOfGame" then
-         -- debug
-         warn(`player with out of game team is detected in living players list: {player}`)
-         continue
+   local livingPlayersInArena = gameStateData.LivingPlayersInArena:Get()
+   if not table.find(livingPlayersInArena, localPlayer) then
+      if localPlayer.Character and localPlayer.Character.PrimaryPart then
+         table.insert(parts, localPlayer.Character.PrimaryPart)
+         table.insert(sizes, localPlayer.Character.PrimaryPart.Size)
       end
-      if player.Character and player.Character.PrimaryPart then
-         table.insert(parts, player.Character.PrimaryPart)
-         table.insert(sizes, player.Character.PrimaryPart.Size)
-      end
-   end
-
-   for _, weapon in ipairs(thrownWeaponsFolder:GetChildren()) do
-      if weapon:IsA("BasePart") then
-         table.insert(parts, weapon)
-         table.insert(sizes, weapon.Size)
-      elseif weapon:IsA("Model") then
-         local primaryPart = weapon.PrimaryPart
-         if primaryPart then
-            table.insert(parts, primaryPart)
-            table.insert(sizes, primaryPart.Size)
+   else
+      for _, player in ipairs(gameStateData.LivingPlayersInArena:Get()) do
+         --print(`{thisTick}: {player}`)
+         if player.Team and player.Team.Name == "OutOfGame" then
+            -- debug
+            warn(`player with out of game team is detected in living players list: {player}`)
+            continue
          end
-      elseif weapon:IsA("Tool") then
-         local handle = weapon:FindFirstChild("Handle")
-         if handle then
-            table.insert(parts, handle)
-            table.insert(sizes, handle.Size)
+         if player.Character and player.Character.PrimaryPart then
+            table.insert(parts, player.Character.PrimaryPart)
+            table.insert(sizes, player.Character.PrimaryPart.Size)
+         end
+      end
+      for _, weapon in ipairs(thrownWeaponsFolder:GetChildren()) do
+         if weapon:IsA("BasePart") then
+            table.insert(parts, weapon)
+            table.insert(sizes, weapon.Size)
+         elseif weapon:IsA("Model") then
+            local primaryPart = weapon.PrimaryPart
+            if primaryPart then
+               table.insert(parts, primaryPart)
+               table.insert(sizes, primaryPart.Size)
+            end
+         elseif weapon:IsA("Tool") then
+            local handle = weapon:FindFirstChild("Handle")
+            if handle then
+               table.insert(parts, handle)
+               table.insert(sizes, handle.Size)
+            end
          end
       end
    end
