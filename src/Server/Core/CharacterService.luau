@@ -138,19 +138,12 @@ function CharacterService.init()
       end
    end
 
-	PlayerDataService.ProfileAddedTasks:Add(function(player)
-		playerConnections[player] = ConnectionsList.new({
-			PlayersUtil.CharacterAdded:Add(function(addedPlayer: Player, character: Model)
-				if addedPlayer == player then
-					onCharacterAdded(character)
-				end
-			end),
-			PlayersUtil.CharacterDestroying:Add(function(destroyingPlayer: Player, character: Model)
-				if destroyingPlayer == player then
-					onCharacterRemoving(character)
-				end
-			end),
-		})
+   PlayersUtil.CharacterAdded:Add(function(addedPlayer: Player, character: Model)
+		onCharacterAdded(character)
+	end)
+
+   PlayersUtil.CharacterDestroying:Add(function(destroyingPlayer: Player, character: Model)
+		onCharacterRemoving(character)
 	end)
 
 	Players.PlayerRemoving:Connect(function(player)

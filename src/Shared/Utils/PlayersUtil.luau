@@ -31,6 +31,7 @@ local function disconnectCharacterConnections(player: Player)
 end
 
 local function onCharacterAdded(player: Player, character: Model)
+   warn(`character added!`)
 	disconnectCharacterConnections(player)
 
 	local didFireDestroying = false
