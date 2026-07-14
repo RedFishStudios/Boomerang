@@ -335,6 +335,7 @@ local function stopOverheadMode()
       if rootPart then
          local cameraPosition = rootPart.Position + Vector3.new(0, 3, 0) - rootPart.CFrame.LookVector * 10
          currentCamera.CFrame = CFrame.lookAt(cameraPosition, rootPart.Position, Vector3.yAxis)
+         currentCamera.CameraSubject = character.Humanoid
       end
    end
 
