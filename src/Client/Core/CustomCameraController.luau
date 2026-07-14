@@ -62,7 +62,15 @@ local function getAllSubjectsBoundingBox()
    local sizes: {Vector3} = {}
    local gameStateData = GameStateLibrary.getGameStateData()
 
+   local alphabet = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"}
+   local thisTick = alphabet[math.random(1, #alphabet)]
    for _, player in ipairs(gameStateData.LivingPlayersInArena:Get()) do
+      print(`{thisTick}: {player}`)
+      if player.Team and player.Team.Name == "OutOfGame" then
+         -- debug
+         warn(`player with out of game team is detected in living players list: {player}`)
+         continue
+      end
       if player.Character and player.Character.PrimaryPart then
          table.insert(parts, player.Character.PrimaryPart)
          table.insert(sizes, player.Character.PrimaryPart.Size)

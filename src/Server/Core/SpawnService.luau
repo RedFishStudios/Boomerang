@@ -64,10 +64,13 @@ local function safeGetHumanoid(character)
 end
 
 local function setPlayerSpawnpoint(player: Player)
+   print(`setting player spawnpoint: {player}`)
    local gameStateData = CurrentGameState.getGameStateData()
    if gameStateData.IsInRound:Get() and gameStateData.CanRespawn:Get() then
+      print(`player will respawn in arena: {player}`)
       player.RespawnLocation = ArenaService.getSpawnPoint(player)
    else
+      print(`player will respawn in lobby: {player}`)
       player.RespawnLocation = LobbyService.getSpawnPoint()
       GameTeamService.setOutOfGame(player)
    end
@@ -116,9 +119,16 @@ end
 -------------------------------------------------------------------------------
 
 function SpawnService.init()
+   local function initialCharacterSend(player: Player)
+      if player.RespawnLocation then
+         print(`initial character {player} send to: {player.RespawnLocation}`)
+         SpawnService.sendPlayerTo(player, player.RespawnLocation.Position)
+      end
+   end
+
 	PlayersUtil.onPlayerAdded(function(player: Player)
       setPlayerSpawnpoint(player)
-
+      initialCharacterSend(player)
       player.CharacterAdded:Connect(function()
          SpawnService.PlayerSpawnedTasks:Execute("parallel", player, if player.RespawnLocation then player.RespawnLocation:IsDescendantOf(game.Workspace.Arena) else false)
          local humanoid = safeGetHumanoid(safeGetPlayerCharacter(player))

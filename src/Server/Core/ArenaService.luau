@@ -139,6 +139,38 @@ end
 
 -- // Send player to a random spawn point in the arena
 function ArenaService.sendToArena(player: Player)
+   local gameStateData = CurrentGameState.getGameStateData()
+   if not player.Character then
+      local elapsed = 0
+      repeat
+         task.wait(0.1)
+         elapsed += 0.1
+      until player.Character or elapsed >= 3
+      if not player.Character then
+         warn(`player character never loaded to send to arena: {player}`)
+         return
+      end
+      if not gameStateData.IsInRound:Get() then
+         warn(`round ended while awaiting character: {player}`)
+         return
+      end
+   end
+   if not player.Character.PrimaryPart then
+      local elapsed = 0
+      repeat
+         task.wait(0.1)
+         elapsed += 0.1
+      until player.Character.PrimaryPart or elapsed >= 3
+      if not player.Character.PrimaryPart then
+         warn(`player character has no primary part to send to arena: {player}`)
+         return
+      end
+      if not gameStateData.IsInRound:Get() then
+         warn(`round ended while awaiting player primary part: {player}`)
+         return
+      end
+   end
+
    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
       warn(`player has no character or hrp to send to arena: {player}`)
       return
@@ -216,7 +248,7 @@ function ArenaService.setArena(mapName: string)
    local livingPlayersInArena = {}
    for _, p in pairs(game.Players:GetPlayers()) do
       table.insert(livingPlayersInArena, p)
-      ArenaService.sendToArena(p)
+      task.spawn(ArenaService.sendToArena, p)
    end
 
    ArenaService.MapChangedTasks:Execute("parallel")

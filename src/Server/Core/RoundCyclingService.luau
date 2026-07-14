@@ -182,13 +182,16 @@ function RoundCyclingService.init()
    end)
 
    SpawnService.PlayerSpawnedTasks:Add(function(player: Player, inArena: boolean)
+      print(`player spawned tasks: {player}`)
       if not inArena then
+         print("> exit")
          return
       end
       local currentLivingPlayers = gameStateData.LivingPlayersInArena:Get()
       local livingPlayersInArena = table.clone(currentLivingPlayers)
       if not table.find(livingPlayersInArena, player) then
          table.insert(livingPlayersInArena, player)
+         print(`added player to living players in arena: {player}`)
          CurrentGameState.applyValues({
             LivingPlayersInArena = livingPlayersInArena,
          })
