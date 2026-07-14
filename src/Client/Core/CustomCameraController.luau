@@ -10,8 +10,11 @@ local RunService = game:GetService("RunService")
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
+local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 
 local localPlayer = Players.LocalPlayer
+
+local MapFolder = game.Workspace:WaitForChild("Arena")
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -53,6 +56,19 @@ CustomCameraController.Mode = "Overhead" :: "Overhead" | "Regular"
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
 
+-- // Get list of objects that should be included in view
+local function getImportantMapObjects(): {Instance?}
+   local currentMap = MapFolder:FindFirstChildWhichIsA("Model")
+   if not currentMap then
+      return {}
+   end
+   local Important = currentMap:FindFirstChild("Important")
+   if not Important then
+      return {}
+   end
+   return Important:GetChildren()
+end
+
 -- // Get parameters for the Overhead camera to have these desired objects within its view
 local function getAllSubjectsBoundingBox()
    local min = Vector3.new(math.huge, math.huge, math.huge)
@@ -63,16 +79,30 @@ local function getAllSubjectsBoundingBox()
    local gameStateData = GameStateLibrary.getGameStateData()
 
    local livingPlayersInArena = gameStateData.LivingPlayersInArena:Get()
-   if not table.find(livingPlayersInArena, localPlayer) then
+   local localPlayerIsInArena = table.find(livingPlayersInArena, localPlayer) ~= nil
+   if not localPlayerIsInArena then
+      -- Client is not alive in the arena
       if localPlayer.Character and localPlayer.Character.PrimaryPart then
          table.insert(parts, localPlayer.Character.PrimaryPart)
          table.insert(sizes, localPlayer.Character.PrimaryPart.Size)
       end
    else
+      -- Client is alive and in map
+      for i, p in pairs(getImportantMapObjects()) do
+         if p:IsA("BasePart") then
+            table.insert(parts, p)
+            table.insert(sizes, p.Size)
+         elseif p:IsA("Model") then
+            local bounds = p:FindFirstChild("Bounds") or p.PrimaryPart
+            if bounds then
+               table.insert(parts, bounds)
+               table.insert(sizes, bounds.Size)
+            end
+         end
+      end
+
       for _, player in ipairs(gameStateData.LivingPlayersInArena:Get()) do
-         --print(`{thisTick}: {player}`)
          if player.Team and player.Team.Name == "OutOfGame" then
-            -- debug
             warn(`player with out of game team is detected in living players list: {player}`)
             continue
          end
@@ -115,7 +145,13 @@ local function getAllSubjectsBoundingBox()
    end
 
    for i, part in ipairs(parts) do
-      local p = part:GetPivot().Position
+      local partPosition = part:GetPivot().Position
+      local p
+      if localPlayerIsInArena then
+         p = Vector3.new(partPosition.X, GlobalConfig.BoomerangHeight, partPosition.Z)
+      else
+         p = partPosition
+      end
       local s = sizes[i] / 2
 
       min = Vector3.new(
@@ -297,9 +333,6 @@ local function stopOverheadMode()
       overheadCameraConnection = nil
    end
 
-   -- I want to position the camera like this:
-   -- 3 studs above the player position
-   -- 10 studs away from the player position in a direction opposite of their rootpart's lookvector
    local character = localPlayer.Character
    if character then
       local rootPart = character:FindFirstChild("HumanoidRootPart")
