@@ -19,9 +19,8 @@ local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 
 local ConnectionsList = require(ReplicatedStorage.Shared.Classes.ConnectionsList)
-local PlayerDataService = require(ServerStorage.Server.Core.PlayerDataService)
 local GlobalInstanceService = require(ServerStorage.Server.Services.GlobalInstanceService)
-local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
+local CharacterLogic = require(ReplicatedStorage.Shared.Logics.CharacterLogic)
 local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
@@ -50,15 +49,13 @@ type CharacterRemovingTask = (character: Model, player: Player) -> ()
 
 local unreliableEvent = SimpleRemotes.getUnreliableEvent("Character")
 local solverTargetReplicationSchedule: { { Player: Player, SolverTarget: Vector3 } } = {}
+local playersSolverTarget: { [Player]: Vector3 } = {}
 
 local playerConnections: { [Player]: ConnectionsList.ConnectionsList } = {}
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
 -------------------------------------------------------------------------------
-
-CharacterService.CharacterAddedTasks = TasksList.new() :: TasksList.TasksList<CharacterAddedTask>
-CharacterService.CharacterRemovingTasks = TasksList.new() :: TasksList.TasksList<CharacterRemovingTask>
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -68,6 +65,7 @@ local function onCharacterAdded(character: Model)
 	-- Prepare character
 	local hitbox = PartUtil.createHitbox(character)
 	hitbox.CanQuery = false -- This hitbox isn't for raycasts
+   -- TODO: lars left this here. brother if its not for raycasts then WHAT IS IT FOR
 
 	character.Parent = workspace.Characters
 
@@ -77,13 +75,27 @@ local function onCharacterAdded(character: Model)
 	for _, v in next, character:QueryDescendants("BasePart") :: { BasePart } do
 		v.CollisionGroup = COLLISION_GROUP
 	end
-
-	-- Execute tasks
-	CharacterService.CharacterAddedTasks:Execute("parallel", character, Players:GetPlayerFromCharacter(character))
 end
 
 local function onCharacterRemoving(character: Model)
-	CharacterService.CharacterRemovingTasks:Execute("parallel", character, Players:GetPlayerFromCharacter(character))
+end
+
+local function applyAuthoritativeRotation(deltaTime: number)
+	for player, solverTarget in playersSolverTarget do
+		local character = player.Character
+		if not character then
+			continue
+		end
+
+		local rootPart = character:FindFirstChild("HumanoidRootPart")
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+		if not rootPart or not humanoid or humanoid.SeatPart then
+			continue
+		end
+
+      humanoid.AutoRotate = false
+		rootPart.CFrame = CharacterLogic.stepRootYaw(rootPart.CFrame, solverTarget, deltaTime)
+	end
 end
 
 local function dispatchSchedule()
@@ -98,6 +110,9 @@ local function dispatchSchedule()
 
 		for i = 1, len do
 			local v = solverTargetReplicationSchedule[i]
+			if not v.Player.Character then
+				continue
+			end
 
 			offset = BufferUtil.writeu32(b, offset, GlobalInstanceService.getId(v.Player.Character))
 			offset = BufferUtil.writeVector3_96(b, offset, v.SolverTarget)
@@ -108,6 +123,13 @@ local function dispatchSchedule()
 	end)
 end
 
+local function onPostSimulation(deltaTime: number)
+	dispatchSchedule()
+
+	-- Apply authoritative root rotation at the end of the frame so movement/physics systems resolve first.
+	task.defer(applyAuthoritativeRotation, deltaTime)
+end
+
 local function loadCharacterRemotes()
 	SimpleRemotesUtil.bindRemoteEventActions(unreliableEvent, {
 		[UNRELIABLE_CODES.SetTargetsBulk] = function(player: Player, b: buffer)
@@ -115,10 +137,18 @@ local function loadCharacterRemotes()
 			local offset = 0
 
 			solverTarget, offset = BufferUtil.readVector3_96(b, offset)
+			playersSolverTarget[player] = solverTarget
 
 			table.insert(solverTargetReplicationSchedule, { Player = player, SolverTarget = solverTarget })
 		end,
 	}, SimpleRemotesUtil.DecodeActionBuffer)
+end
+
+local function onCharacterLoaded(player: Player, character: Model, humanoid: Humanoid, rootPart: BasePart)
+   humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+   humanoid.JumpHeight = 0
+   humanoid.JumpPower = 0
+   humanoid.AutoRotate = false
 end
 
 -------------------------------------------------------------------------------
@@ -135,6 +165,12 @@ function CharacterService.init()
    for _, p in pairs(game.Players:GetPlayers()) do
       if p.Character then
          onCharacterAdded(p.Character)
+
+         local rootPart = p.Character:FindFirstChild("HumanoidRootPart")
+         local humanoid = p.Character:FindFirstChildOfClass("Humanoid")
+         if humanoid and rootPart then
+            onCharacterLoaded(p, p.Character, humanoid, rootPart)
+         end
       end
    end
 
@@ -142,11 +178,16 @@ function CharacterService.init()
 		onCharacterAdded(character)
 	end)
 
+   PlayersUtil.CharacterLoaded:Add(onCharacterLoaded)
+
    PlayersUtil.CharacterDestroying:Add(function(destroyingPlayer: Player, character: Model)
+		playersSolverTarget[destroyingPlayer] = nil
 		onCharacterRemoving(character)
 	end)
 
 	Players.PlayerRemoving:Connect(function(player)
+		playersSolverTarget[player] = nil
+
 		local playerConnectionList = playerConnections[player]
 		if playerConnectionList then
 			playerConnectionList:Destroy()
@@ -155,7 +196,7 @@ function CharacterService.init()
 		playerConnections[player] = nil
 	end)
 
-	RunService.PostSimulation:Connect(dispatchSchedule)
+	RunService.PostSimulation:Connect(onPostSimulation)
 end
 
 function CharacterService.start() end

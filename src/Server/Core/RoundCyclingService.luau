@@ -181,7 +181,7 @@ function RoundCyclingService.init()
       end
    end)
 
-   PlayersUtil.RootPartLoaded:Add(function(player: Player, _character: Model, _rootPart: BasePart)
+   PlayersUtil.CharacterLoaded:Add(function(player: Player, _character: Model, _rootPart: BasePart, _humanoid: Humanoid)
       local inArena = if player.RespawnLocation then player.RespawnLocation:IsDescendantOf(game.Workspace.Arena) else false
       if not inArena then
          print("> exit")

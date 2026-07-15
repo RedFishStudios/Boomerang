@@ -12,7 +12,7 @@ PlayersUtil.PlayerRemoving = TasksList.new()
 PlayersUtil.CharacterAdded = TasksList.new()
 PlayersUtil.CharacterDestroying = TasksList.new()
 PlayersUtil.CharacterDied = TasksList.new()
-PlayersUtil.RootPartLoaded = TasksList.new()
+PlayersUtil.CharacterLoaded = TasksList.new() :: TasksList.TasksList<(player: Player, character: Model, humanoid: Humanoid, rootPart: BasePart) -> ()> -- character's vitals (rootpart and humanoid) have loaded
 
 local playerAddedConnections: { [Player]: RBXScriptConnection } = {}
 local playerCharacterConnections: { [Player]: { [string]: RBXScriptConnection } } = {}
@@ -58,9 +58,10 @@ local function onCharacterAdded(player: Player, character: Model)
 		end
 	end)
 
+   local humanoid = character:WaitForChild("Humanoid", ROOT_PART_LOAD_TIMEOUT_SECONDS)
 	local rootPart = character:WaitForChild("HumanoidRootPart", ROOT_PART_LOAD_TIMEOUT_SECONDS)
-   if rootPart then
-      PlayersUtil.RootPartLoaded:Execute("deferred", player, character, rootPart)
+   if rootPart and humanoid and character.Parent then
+      PlayersUtil.CharacterLoaded:Execute("deferred", player, character, humanoid, rootPart)
    end
 
    if not character.Parent then
