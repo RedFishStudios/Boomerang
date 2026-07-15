@@ -2,6 +2,12 @@ local Dash = {}
 
 local RunService = game:GetService("RunService")
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
+local Gamemodes = require(ReplicatedStorage.Shared.Constants.Gamemodes)
+local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
+
 -------------------------------------------------------------------------------
 -- LOCAL VARIABLES
 -------------------------------------------------------------------------------
@@ -34,6 +40,16 @@ end
 -------------------------------------------------------------------------------
 
 function Dash.canActivate(player: Player)
+   local gameStateData = GameStateLibrary.getGameStateData()
+   local currentGameMode = gameStateData.Gamemode:Get()
+   if currentGameMode then
+      local gameModeData = Gamemodes[currentGameMode]
+      if gameModeData and gameModeData.DashDisabled then
+         print("dash disabled in this gamemode")
+         return false
+      end
+   end
+
    local character = player.Character
    if not character then
       warn(`Dash.activate: No character found for player {player.Name}`)
@@ -124,5 +140,23 @@ function Dash.activate(player: Player)
       -- TODO: sound, vfx, etc
    end
 end
+
+-------------------------------------------------------------------------------
+-- RUNTIME
+-------------------------------------------------------------------------------
+
+PlayersUtil.PlayerRemoving:Add(function(player: Player)
+   Cooldowns[player] = nil
+end)
+
+PlayersUtil.CharacterDestroying:Add(function(player: Player, character: Model)
+   stopDash(character)
+   Cooldowns[player] = nil
+end)
+
+PlayersUtil.CharacterDied:Add(function(player: Player, character: Model, humanoid: Humanoid)
+   stopDash(character)
+   Cooldowns[player] = nil
+end)
 
 return Dash

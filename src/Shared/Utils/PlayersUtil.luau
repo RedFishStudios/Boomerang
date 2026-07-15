@@ -7,11 +7,11 @@ local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 
 local ROOT_PART_LOAD_TIMEOUT_SECONDS = 10
 
-PlayersUtil.PlayerAdded = TasksList.new()
-PlayersUtil.PlayerRemoving = TasksList.new()
-PlayersUtil.CharacterAdded = TasksList.new()
-PlayersUtil.CharacterDestroying = TasksList.new()
-PlayersUtil.CharacterDied = TasksList.new()
+PlayersUtil.PlayerAdded = TasksList.new() :: TasksList.TasksList<(player: Player) -> ()>
+PlayersUtil.PlayerRemoving = TasksList.new() :: TasksList.TasksList<(player: Player) -> ()>
+PlayersUtil.CharacterAdded = TasksList.new() :: TasksList.TasksList<(player: Player, character: Model) -> ()>
+PlayersUtil.CharacterDestroying = TasksList.new() :: TasksList.TasksList<(player: Player, character: Model) -> ()>
+PlayersUtil.CharacterDied = TasksList.new() :: TasksList.TasksList<(player: Player, character: Model, humanoid: Humanoid) -> ()>
 PlayersUtil.CharacterLoaded = TasksList.new() :: TasksList.TasksList<(player: Player, character: Model, humanoid: Humanoid, rootPart: BasePart) -> ()> -- character's vitals (rootpart and humanoid) have loaded
 
 local playerAddedConnections: { [Player]: RBXScriptConnection } = {}

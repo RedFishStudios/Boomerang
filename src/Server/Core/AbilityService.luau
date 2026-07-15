@@ -55,11 +55,9 @@ end
 -------------------------------------------------------------------------------
 
 function AbilityService.init()
-   warn("ability service init")
    SimpleRemotes.getUnreliableEvent("AbilityReplication")
 
    abilityUsed.OnServerEvent:Connect(function(player: Player, abilityId: string, ...)
-      print("server detected")
       local logic = getLogic(abilityId)
       if not logic then
          warn(`AbilityService.init: No logic found for ability {abilityId}`)
