@@ -10,28 +10,33 @@ local function hasForceField(character: Model): boolean
    return character:FindFirstChildWhichIsA("ForceField") ~= nil
 end
 
-function WeaponLibrary.canThrow(player: Player, toolId: string): (boolean, string?)
+function WeaponLibrary.canThrow(player: Player, toolId: string): boolean
    local gameStateData = GameStateLibrary.getGameStateData()
    if not gameStateData.IsInRound:Get() then
-      return false, "NotInRound"
+      print("not in round")
+      return false
    end
 
    if ThrownWeapons.Data[player] then
-      return false, "AlreadyThrown"
+      print("player already has thrown weapon")
+      return false
    end
 
    local toolData = Tools[toolId]
    if not toolData then
-      return false, "InvalidToolId"
+      warn(`WeaponLibrary.canThrow: Tool data not found for toolId {toolId}`)
+      return false
    end
 
    local character = player.Character
    if not character then
-      return false, "NoCharacter"
+      warn(`WeaponLibrary.canThrow: No character found for player {player.Name}`)
+      return false
    end
 
    if hasForceField(character) then
-      return false, "HasForceField"
+      print("player has forcefield")
+      return false
    end
 
    return true

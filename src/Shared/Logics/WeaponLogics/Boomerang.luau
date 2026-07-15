@@ -35,6 +35,8 @@ local UP_VECTOR = Vector3.new(0, 1, 0)
 local REPLICATION_RATE = 1 / 20
 local MAX_CATCHUP_SECONDS = 1.25
 local CATCHUP_STEP = 1 / 60
+local AIM_START_SPEED_BONUS_MULTIPLIER = 1.0
+local AIM_SPEED_FADE_RATE = 2.0
 
 local WEAPON_UNRELIABLE_CODES = RemoteCodes.Weapon.Unreliable
 
@@ -46,7 +48,9 @@ type ThrowInitOptions = {
    StartPosition: Vector3?,
    Direction: Vector3?,
    Speed: number?,
-   ThrowServerTime: number?
+   ThrowServerTime: number?,
+   TimeSinceAiming: number?,
+   AimStrengthAlpha: number?
 }
 
 type RecallInitOptions = {
@@ -60,7 +64,7 @@ PlayersUtil.CharacterDestroying:Add(function(player: Player)
    end
 end)
 
-PlayersUtil.CharacterDied:Add(function(player: Player, character: Model)
+PlayersUtil.CharacterDied:Add(function(player: Player, _character: Model, _humanoid: Humanoid)
    local thrownWeaponData = ThrownWeapons.Data[player]
    if not thrownWeaponData then
       return
@@ -69,8 +73,8 @@ PlayersUtil.CharacterDied:Add(function(player: Player, character: Model)
    if not host then
       return
    end
-   local character = player.Character
-   if not character or not character.PrimaryPart or not character.Parent or not character.PrimaryPart.Parent then
+   local currentCharacter = player.Character
+   if not currentCharacter or not currentCharacter.PrimaryPart or not currentCharacter.Parent or not currentCharacter.PrimaryPart.Parent then
       Boomerang.removeFromField(player, thrownWeaponData)
    end
 end)
@@ -238,7 +242,12 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    end
 
    local direction = getHorizontalDirection((options and options.Direction) or character.PrimaryPart.CFrame.LookVector)
-   local speed = (options and options.Speed) or toolData.Boomerang.Speed
+   local defaultSpeed = toolData.Boomerang.Speed
+   local speed = (options and options.Speed) or defaultSpeed
+   local aimStrengthAlpha = math.clamp((options and options.AimStrengthAlpha) or 0, 0, 1)
+   if aimStrengthAlpha > 0 and (not options or options.Speed == nil) then
+      speed = defaultSpeed * (1 + aimStrengthAlpha * AIM_START_SPEED_BONUS_MULTIPLIER)
+   end
    local hitboxRadius = toolData.Boomerang.HitboxRadius
    local throwDistance = toolData.Boomerang.ThrowDistance
    local energy = toolData.Boomerang.Bounces
@@ -272,6 +281,11 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    local function simulateStep(deltaTime: number, shouldRecallTransitions: boolean)
       if not thrownWeaponData.Host or not thrownWeaponData.Host.Parent then
          return false
+      end
+
+      if energy > 0 and speed > defaultSpeed then
+         local fadeAlpha = math.clamp(deltaTime * AIM_SPEED_FADE_RATE, 0, 1)
+         speed = speed + (defaultSpeed - speed) * fadeAlpha
       end
 
       -- Exhaustion

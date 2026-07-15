@@ -246,26 +246,39 @@ function WeaponController.init()
 
    RunService.PreSimulation:Connect(updateSmoothing)
 
+   local aiming = false
+
 	UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessed: boolean)
 		if gameProcessed then
 			return
 		end
 
       if input.UserInputType == Enum.UserInputType.MouseButton2 then
-         local canThrow, reason = WeaponLibrary.canThrow(Players.LocalPlayer, "ClassicBoomerang")
+         local canThrow = WeaponLibrary.canThrow(Players.LocalPlayer, "ClassicBoomerang")
          if not canThrow then
-            if reason == "HasForceField" then
-               print("cannot throw due to having forcefield")
-            end
             return
          end
-			throwEvent:FireServer("ClassicBoomerang")
+         SimpleRemotes.getEvent("WeaponAim"):FireServer("ClassicBoomerang")
+			aiming = true
 		end
 
       if input.KeyCode == Enum.KeyCode.E then
 			recallEvent:FireServer()
 		end
 	end)
+
+   UserInputService.InputEnded:Connect(function(input: InputObject, gameProcessed: boolean)
+      if gameProcessed then
+         return
+      end 
+
+      if input.UserInputType == Enum.UserInputType.MouseButton2 then
+         if aiming then
+            aiming = false
+            throwEvent:FireServer("ClassicBoomerang")
+         end
+      end
+   end)
 end
 
 function WeaponController.start() end

@@ -29,6 +29,8 @@ local ToolLogicModules = {}
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
+local AIM_MAX_STRENGTH = 2.0
+
 -------------------------------------------------------------------------------
 -- TYPES
 -------------------------------------------------------------------------------
@@ -39,8 +41,11 @@ type WeaponThrownTask = (player: Player, toolId: string) -> ()
 -- PRIVATE VARIABLES
 -------------------------------------------------------------------------------
 
+local aimEvent = SimpleRemotes.getEvent("WeaponAim")
 local throwEvent = SimpleRemotes.getEvent("Weapon")
 local recallEvent = SimpleRemotes.getEvent("WeaponRecall")
+
+local aiming: {[Player]: number} = {}
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -92,8 +97,40 @@ function WeaponService.init()
    replicationPart.Transparency = 1
    replicationPart.Parent = game.ReplicatedStorage.Shared.Assets
 
+   aimEvent.OnServerEvent:Connect(function(player: Player, toolId)
+      local canAim = WeaponLibrary.canThrow(player, toolId)
+      if not canAim then
+         return
+      end
+
+      local character = player.Character
+      if not character then
+         return
+      end
+
+      local humanoid = character:FindFirstChildWhichIsA("Humanoid")
+      if not humanoid then
+         return
+      end
+
+      aiming[player] = os.clock()
+      humanoid.WalkSpeed = 0
+   end)
+
    -- // Throw boomerang
 	throwEvent.OnServerEvent:Connect(function(player: Player, toolId: string)
+      local timeSinceAiming = os.clock() - (aiming[player] or os.clock())
+      timeSinceAiming = math.clamp(timeSinceAiming, 0, AIM_MAX_STRENGTH)
+      local aimStrengthAlpha = timeSinceAiming / AIM_MAX_STRENGTH
+      print("aim strength alpha: ", aimStrengthAlpha)
+
+      aiming[player] = nil
+      local character = player.Character
+      local humanoid = character and character:FindFirstChildWhichIsA("Humanoid")
+      if humanoid then
+         humanoid.WalkSpeed = 16
+      end
+
       local canThrow, reason = WeaponLibrary.canThrow(player, toolId)
       if not canThrow then
          if reason == "AlreadyThrown" then
@@ -125,7 +162,14 @@ function WeaponService.init()
       end
 
       local Logic = getLogic(toolData.LogicClass)
-      Logic.throw(player, toolId, toolData, ThrownWeapons.Data[player])
+      if not Logic or not Logic.throw then
+         warn(`WeaponService: no throw logic found for {toolData.LogicClass}`)
+         return
+      end
+      Logic.throw(player, toolId, toolData, ThrownWeapons.Data[player], {
+         TimeSinceAiming = timeSinceAiming,
+         AimStrengthAlpha = aimStrengthAlpha,
+      })
       WeaponService.WeaponThrownTasks:Execute("parallel", player, toolId)
 	end)
 
@@ -150,8 +194,10 @@ function WeaponService.init()
          local Logic = getLogic(toolData.LogicClass)
          Logic.removeFromField(player, thrownWeaponData)
       end
+      for p, _ in pairs(aiming) do
+         aiming[p] = nil
+      end
    end)
-
 end
 
 function WeaponService.start() end
