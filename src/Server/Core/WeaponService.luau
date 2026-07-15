@@ -54,7 +54,12 @@ WeaponService.WeaponThrownTasks = TasksList.new() :: TasksList.TasksList<WeaponT
 
 local function getLogic(toolId: string)
 	if not ToolLogicModules[toolId] then
-		local module = require(ToolLogics:WaitForChild(toolId))
+      local _module = ToolLogics:WaitForChild(toolId, 5)
+      if not _module then
+         warn(`WeaponService.getLogic: Tool logic module {toolId} not found`)
+         return
+      end
+		local module = require(_module)
 		ToolLogicModules[toolId] = module
 	end
 	return ToolLogicModules[toolId]
