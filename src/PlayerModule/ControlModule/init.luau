@@ -882,8 +882,24 @@ function ControlModule:ProcessInputs(player:Player, dt:number)
 
 			local moveVector = cameraVector3D * moveVector2D.Y + rightVector * moveVector2D.X
 			humanoid:Move(moveVector)
-			-- CharacterService owns facing direction; keep movement without movement-driven yaw.
-			humanoid.AutoRotate = false
+			
+			-- This code determines the player's facing rotation to face with their movement direction
+			-- It has been commented out so that CharacterService/CharacterController/CharacterLogic supercedes this
+			
+			--humanoid.AutoRotate = false
+			--humanoid.RootPart.CFrame = CFrame.new(humanoid.RootPart.CFrame.Position) * CFrame.Angles(0, 0, 0)
+			--local rotationIsCameraRelative = rotationAction:GetState()
+			--if rotationIsCameraRelative then
+			--	humanoid.AutoRotate = false
+			--	if humanoid.SeatPart == nil and humanoid.RootPart ~= nil and not humanoid.Sit and not humanoid.RootPart:IsGrounded() then
+					--[[humanoid.RootPart.CFrame = CFrame.new(
+						humanoid.RootPart.CFrame.Position,
+						humanoid.RootPart.CFrame.Position + cameraVector3D
+					)]]
+			--	end
+			--else
+				--humanoid.AutoRotate = true
+			--end
 		end
 
 		local jumpBool = if jumpAction ~= nil then jumpAction:GetState() else false

@@ -197,10 +197,10 @@ function InputReplication.SendInputToHumanoidForServerAuth(player: Player)
 
     if cameraRelativeRotation then
         if humanoid.SeatPart == nil and humanoid.RootPart ~= nil and not humanoid.Sit and not humanoid.RootPart:IsGrounded() then
-            humanoid.RootPart.CFrame = CFrame.new(
+           --[[ humanoid.RootPart.CFrame = CFrame.new(
                 humanoid.RootPart.CFrame.Position,
                 humanoid.RootPart.CFrame.Position + cameraVector3D
-            )
+            )]]
         end
     end    
 

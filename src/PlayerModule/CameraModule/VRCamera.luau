@@ -36,7 +36,7 @@ function VRCamera.new()
 	self:Reset()
 
 	self.controlModule = require(script.Parent.Parent:WaitForChild("ControlModule"))
-	self.savedAutoRotate = false -- override by characterservice
+	self.savedAutoRotate = true 
 
 	return self
 end

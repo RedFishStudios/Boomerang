@@ -1,0 +1,127 @@
+<roblox xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4">
+	<Meta name="ExplicitAutoJoints">true</Meta>
+	<External>null</External>
+	<External>nil</External>
+	<Item class="InputContext" referent="RBX89F27F36E3B349F5AE858B7C0872B774">
+		<Properties>
+			<bool name="Enabled">false</bool>
+			<int name="Priority">200</int>
+			<bool name="Sink">true</bool>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<string name="Name">VehicleContext</string>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+		</Properties>
+		<Item class="InputAction" referent="RBXD48B9666594F4F919BBE2613A7654828">
+			<Properties>
+				<bool name="Enabled">true</bool>
+				<token name="Type">1</token>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<string name="Name">SteerAction</string>
+				<int64 name="SourceAssetId">-1</int64>
+				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			</Properties>
+			<Item class="InputBinding" referent="RBXC8766C42EC4C45F8AC5C06288412FE39">
+				<Properties>
+					<token name="Backward">0</token>
+					<bool name="ClampMagnitudeToOne">true</bool>
+					<Content name="DisplayImage">
+						<null></null>
+					</Content>
+					<string name="DisplayName"></string>
+					<token name="Down">276</token>
+					<token name="Forward">0</token>
+					<token name="KeyCode">0</token>
+					<token name="Left">0</token>
+					<int name="PointerIndex">0</int>
+					<float name="PressedThreshold">0.5</float>
+					<token name="PrimaryModifier">0</token>
+					<float name="ReleasedThreshold">0.200000003</float>
+					<float name="ResponseCurve">1</float>
+					<token name="Right">0</token>
+					<float name="Scale">1</float>
+					<token name="SecondaryModifier">0</token>
+					<token name="Type">0</token>
+					<Ref name="UIButton">null</Ref>
+					<Ref name="UIModifier">null</Ref>
+					<token name="Up">275</token>
+					<Vector2 name="Vector2Scale">
+						<X>1</X>
+						<Y>1</Y>
+					</Vector2>
+					<Vector3 name="Vector3Scale">
+						<X>1</X>
+						<Y>1</Y>
+						<Z>1</Z>
+					</Vector3>
+					<BinaryString name="AttributesSerialize"></BinaryString>
+					<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+					<bool name="DefinesCapabilities">false</bool>
+					<string name="Name">KeyboardBinding</string>
+					<int64 name="SourceAssetId">-1</int64>
+					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+				</Properties>
+			</Item>
+		</Item>
+		<Item class="InputAction" referent="RBX4110D90C287F470786EABB180D3F6308">
+			<Properties>
+				<bool name="Enabled">true</bool>
+				<token name="Type">1</token>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<string name="Name">ThrottleAction</string>
+				<int64 name="SourceAssetId">-1</int64>
+				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			</Properties>
+			<Item class="InputBinding" referent="RBXF1601217A0E44291B0FA01C150D6F674">
+				<Properties>
+					<token name="Backward">0</token>
+					<bool name="ClampMagnitudeToOne">true</bool>
+					<Content name="DisplayImage">
+						<null></null>
+					</Content>
+					<string name="DisplayName"></string>
+					<token name="Down">1007</token>
+					<token name="Forward">0</token>
+					<token name="KeyCode">0</token>
+					<token name="Left">0</token>
+					<int name="PointerIndex">0</int>
+					<float name="PressedThreshold">0.5</float>
+					<token name="PrimaryModifier">0</token>
+					<float name="ReleasedThreshold">0.200000003</float>
+					<float name="ResponseCurve">1</float>
+					<token name="Right">0</token>
+					<float name="Scale">1</float>
+					<token name="SecondaryModifier">0</token>
+					<token name="Type">0</token>
+					<Ref name="UIButton">null</Ref>
+					<Ref name="UIModifier">null</Ref>
+					<token name="Up">1006</token>
+					<Vector2 name="Vector2Scale">
+						<X>1</X>
+						<Y>1</Y>
+					</Vector2>
+					<Vector3 name="Vector3Scale">
+						<X>1</X>
+						<Y>1</Y>
+						<Z>1</Z>
+					</Vector3>
+					<BinaryString name="AttributesSerialize"></BinaryString>
+					<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+					<bool name="DefinesCapabilities">false</bool>
+					<string name="Name">GamepadBinding</string>
+					<int64 name="SourceAssetId">-1</int64>
+					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+				</Properties>
+			</Item>
+		</Item>
+	</Item>
+	<SharedStrings>
+		<SharedString md5="yuZpQdnvvUBOTYh1jqZ2cA=="></SharedString>
+	</SharedStrings>
+</roblox>
