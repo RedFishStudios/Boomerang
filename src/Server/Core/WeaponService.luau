@@ -19,6 +19,7 @@ local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
 local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
 local GameStateLibrary= require(ReplicatedStorage.Shared.Library.GameStateLibrary)
+local WeaponLibrary = require(ReplicatedStorage.Shared.Library.WeaponLibrary)
 local ArenaService = require(ServerStorage.Server.Core.ArenaService)
 
 local ToolLogics = ReplicatedStorage.Shared.Logics.WeaponLogics
@@ -59,10 +60,6 @@ local function getLogic(toolId: string)
 	return ToolLogicModules[toolId]
 end
 
-local function hasForceField(character: Model): boolean
-    return character:FindFirstChildWhichIsA("ForceField") ~= nil
-end
-
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
@@ -92,28 +89,18 @@ function WeaponService.init()
 
    -- // Throw boomerang
 	throwEvent.OnServerEvent:Connect(function(player: Player, toolId: string)
-      if not GameStateLibrary.getGameStateData().IsInRound:Get() then
-         return
-      end
-      if ThrownWeapons.Data[player] then
-         print(`player already has a thrown weapon`)
+      local canThrow, reason = WeaponLibrary.canThrow(player, toolId)
+      if not canThrow then
+         if reason == "AlreadyThrown" then
+            print(`player already has a thrown weapon`)
+         elseif reason == "InvalidToolId" then
+            print(`invalid toolId`)
+         elseif reason == "HasForceField" then
+            print("player has forcefield")
+         end
          return
       end
       local toolData = Tools[toolId]
-      if not toolData then
-         print(`invalid toolId`)
-         return
-      end
-
-      -- TODO: validate that the player owns this weapon and has it equipped this round
-      local character = player.Character
-      if not character then
-         return
-      end
-      if hasForceField(character) then
-         print("player has forcefield")
-         return
-      end
 
       ThrownWeapons.Data[player] = {
          ToolId = toolId,

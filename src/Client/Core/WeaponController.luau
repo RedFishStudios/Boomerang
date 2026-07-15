@@ -12,6 +12,7 @@ local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
 local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
+local WeaponLibrary = require(ReplicatedStorage.Shared.Library.WeaponLibrary)
 
 local ToolLogics = ReplicatedStorage.Shared.Logics.WeaponLogics
 local ToolLogicModules = {}
@@ -41,10 +42,6 @@ local function getLogic(toolId: string)
 		ToolLogicModules[toolId] = module
 	end
 	return ToolLogicModules[toolId]
-end
-
-local function hasForceField(character: Model): boolean
-    return character:FindFirstChildWhichIsA("ForceField") ~= nil
 end
 
 local function createRaycastVisualizers()
@@ -255,9 +252,11 @@ function WeaponController.init()
 		end
 
       if input.UserInputType == Enum.UserInputType.MouseButton2 then
-         local character = Players.LocalPlayer.Character
-         if character and hasForceField(character) then
-            print("cannot throw due to having forcefield")
+         local canThrow, reason = WeaponLibrary.canThrow(Players.LocalPlayer, "ClassicBoomerang")
+         if not canThrow then
+            if reason == "HasForceField" then
+               print("cannot throw due to having forcefield")
+            end
             return
          end
 			throwEvent:FireServer("ClassicBoomerang")

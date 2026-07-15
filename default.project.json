@@ -39,9 +39,6 @@
             "Client": {
                "$path": "src/Client.client.luau"
             }
-         },
-         "PlayerModule": {
-            "$path": "src/PlayerModule"
          }
       }
    }

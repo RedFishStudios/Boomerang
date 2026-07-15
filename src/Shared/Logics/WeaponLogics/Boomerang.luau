@@ -75,6 +75,14 @@ PlayersUtil.CharacterDied:Add(function(player: Player, character: Model)
    end
 end)
 
+local function getCurrentArena(): Model?
+   local arenaFolder = workspace:FindFirstChild("Arenas")
+   if not arenaFolder then
+      return nil
+   end
+   return arenaFolder:FindFirstChildWhichIsA("Model")
+end
+
 local function getHorizontalDirection(direction: Vector3): Vector3
    local horizontal = Vector3.new(direction.X, 0, direction.Z)
    if horizontal.Magnitude <= 1e-5 then
