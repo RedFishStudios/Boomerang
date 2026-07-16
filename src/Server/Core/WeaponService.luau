@@ -21,6 +21,7 @@ local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
 local GameStateLibrary= require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local WeaponLibrary = require(ReplicatedStorage.Shared.Library.WeaponLibrary)
 local ArenaService = require(ServerStorage.Server.Core.ArenaService)
+local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 
 local ToolLogics = ReplicatedStorage.Shared.Logics.WeaponLogics
 local ToolLogicModules = {}
@@ -42,6 +43,7 @@ type WeaponThrownTask = (player: Player, toolId: string) -> ()
 -------------------------------------------------------------------------------
 
 local aimEvent = SimpleRemotes.getEvent("WeaponAim")
+local aimStateEvent = SimpleRemotes.getEvent("WeaponAimState")
 local throwEvent = SimpleRemotes.getEvent("Weapon")
 local recallEvent = SimpleRemotes.getEvent("WeaponRecall")
 
@@ -115,13 +117,14 @@ function WeaponService.init()
 
       aiming[player] = os.clock()
       humanoid.WalkSpeed = 0
+      aimStateEvent:FireAllClients(player.UserId, true)
    end)
 
    -- // Throw boomerang
 	throwEvent.OnServerEvent:Connect(function(player: Player, toolId: string)
       local timeSinceAiming = os.clock() - (aiming[player] or os.clock())
-      timeSinceAiming = math.clamp(timeSinceAiming, 0, AIM_MAX_STRENGTH)
-      local aimStrengthAlpha = timeSinceAiming / AIM_MAX_STRENGTH
+      timeSinceAiming = math.clamp(timeSinceAiming, 0, GlobalConfig.AimFullStrength)
+      local aimStrengthAlpha = timeSinceAiming / GlobalConfig.AimFullStrength
       print("aim strength alpha: ", aimStrengthAlpha)
 
       aiming[player] = nil
@@ -130,6 +133,7 @@ function WeaponService.init()
       if humanoid then
          humanoid.WalkSpeed = 16
       end
+      aimStateEvent:FireAllClients(player.UserId, false)
 
       local canThrow, reason = WeaponLibrary.canThrow(player, toolId)
       if not canThrow then
@@ -196,6 +200,7 @@ function WeaponService.init()
       end
       for p, _ in pairs(aiming) do
          aiming[p] = nil
+         aimStateEvent:FireAllClients(p.UserId, false)
       end
    end)
 end

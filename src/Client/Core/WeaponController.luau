@@ -13,6 +13,8 @@ local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
 local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
 local WeaponLibrary = require(ReplicatedStorage.Shared.Library.WeaponLibrary)
+local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
+local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 
 local ToolLogics = ReplicatedStorage.Shared.Logics.WeaponLogics
 local ToolLogicModules = {}
@@ -21,16 +23,27 @@ local ToolLogicModules = {}
 -- PRIVATE VARIABLES
 -------------------------------------------------------------------------------
 
+local aimEvent = SimpleRemotes.getEvent("WeaponAim")
+local aimStateEvent = SimpleRemotes.getEvent("WeaponAimState")
 local throwEvent = SimpleRemotes.getEvent("Weapon")
 local recallEvent = SimpleRemotes.getEvent("WeaponRecall")
 local thrownBoomerangSpawnedEvent = SimpleRemotes.getEvent("ThrownBoomerangSpawned")
 local thrownBoomerangDespawnedEvent = SimpleRemotes.getEvent("ThrownBoomerangDespawned")
 local thrownWeaponReplicationEvent = SimpleRemotes.getUnreliableEvent("ThrownWeaponReplication")
 
+local aimArrowTemplate = ReplicatedStorage.Shared.Assets.Gui.AimArrow
+
 local UNRELIABLE_CODES = RemoteCodes.Weapon.Unreliable
 local SOFT_CORRECTION_RATE = 14
 local HARD_SNAP_DISTANCE = 14
 local MAX_SNAPSHOT_CATCHUP = 0.35
+
+local aimArrows: {
+   [Player]: {
+      Instance: Instance,
+      AimStart: number
+   }
+} = {}
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -151,6 +164,81 @@ local function updateSmoothing(deltaTime: number)
    end
 end
 
+local function destroyAimArrows(player: Player)
+   local aimArrow = aimArrows[player]
+   if aimArrow then
+      aimArrow.Instance:Destroy()
+      aimArrows[player] = nil
+   end
+end
+
+local aimArrowConnection: RBXScriptConnection? = nil
+
+local function renderAimArrows()
+   if aimArrowConnection then
+      return
+   end
+   aimArrowConnection = RunService.RenderStepped:Connect(function()
+      if not next(aimArrows) then
+         aimArrowConnection:Disconnect()
+         aimArrowConnection = nil
+         return
+      end
+      for p, arrows in pairs(aimArrows) do
+         local character = p.Character
+         if not character then
+            destroyAimArrows(p)
+            continue
+         end
+
+         local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+         if not humanoidRootPart then
+            destroyAimArrows(p)
+            continue
+         end
+
+         local fullSize = aimArrowTemplate.PrimaryPart.Size
+         local startSize = fullSize * .8
+         local timeSinceAimStart = os.clock() - arrows.AimStart
+         local aimStrengthAlpha = math.clamp(timeSinceAimStart / GlobalConfig.AimFullStrength, 0, 1)
+         local currentSize = startSize:Lerp(fullSize, aimStrengthAlpha)
+         arrows.Instance.PrimaryPart.Size = currentSize
+         arrows.Instance.PrimaryPart.SurfaceGui.ImageLabel.ImageTransparency = 1 - aimStrengthAlpha
+
+         local aimArrow = arrows.Instance
+         local arrowOffset = Vector3.new(0, -2, 0) + (humanoidRootPart.CFrame.LookVector.Unit * 3)
+         local arrowPosition = humanoidRootPart.Position + arrowOffset
+         aimArrow:PivotTo(CFrame.new(arrowPosition, arrowPosition + humanoidRootPart.CFrame.LookVector))
+      end
+   end)
+end
+
+local function spawnAimArrows(player: Player)
+   local character = player.Character
+   if not character then
+      return
+   end
+
+   local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+   if not humanoidRootPart then
+      return
+   end
+
+   if aimArrows[player] then
+      destroyAimArrows(player)
+   end
+
+   local aimArrow = aimArrowTemplate:Clone()
+   aimArrow.Name = `AimArrow_{player.UserId}`
+   aimArrow.Parent = game.Workspace
+   aimArrow.PrimaryPart.Anchored = true
+   aimArrows[player] = {
+      Instance = aimArrow,
+      AimStart = os.clock()
+   }
+   renderAimArrows()
+end
+
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
@@ -177,6 +265,19 @@ end
 -------------------------------------------------------------------------------
 
 function WeaponController.init()
+   aimStateEvent.OnClientEvent:Connect(function(playerUserId: number, isAiming: boolean)
+      local forPlayer = Players:GetPlayerByUserId(playerUserId)
+      if not forPlayer then
+         return
+      end
+
+      if isAiming then
+         spawnAimArrows(forPlayer)
+      else
+         destroyAimArrows(forPlayer)
+      end
+   end)
+
    thrownBoomerangSpawnedEvent.OnClientEvent:Connect(function(toolId: string, payload: buffer)
    local ownerUserId, offset = BufferUtil.readUserId(payload, 0)
       local startPosition
@@ -258,7 +359,7 @@ function WeaponController.init()
          if not canThrow then
             return
          end
-         SimpleRemotes.getEvent("WeaponAim"):FireServer("ClassicBoomerang")
+         aimEvent:FireServer("ClassicBoomerang")
 			aiming = true
 		end
 
@@ -278,6 +379,14 @@ function WeaponController.init()
             throwEvent:FireServer("ClassicBoomerang")
          end
       end
+   end)
+
+   PlayersUtil.CharacterDestroying:Add(function(player: Player, character: Model)
+      destroyAimArrows(player)
+   end)
+
+   PlayersUtil.CharacterDied:Add(function(player: Player, character: Model, humanoid: Humanoid)
+      destroyAimArrows(player)
    end)
 end
 
