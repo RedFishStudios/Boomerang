@@ -67,6 +67,7 @@ local characterInstances: { [GameTypes.R15Character]: RequiredCharacterInstances
 local motorsBaseC0: { [Motor6D]: CFrame } = {}
 
 local nextReplicationAt = 0
+local latestLocalTarget: Vector3? = nil
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -75,6 +76,27 @@ local nextReplicationAt = 0
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
+
+local function applyLocalPredictedRootYaw(lookAt: Vector3)
+	if not PlayersUtil.isAlive(player) then
+		return
+	end
+
+	local character = player.Character
+	if not character then
+		return
+	end
+
+	local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not humanoidRootPart or not humanoid or humanoid.SeatPart then
+		return
+	end
+
+	local delta = lookAt - humanoidRootPart.Position
+	local yawAngle = math.atan2(-delta.X, -delta.Z)
+	humanoidRootPart.CFrame = CFrame.Angles(0, yawAngle, 0) + humanoidRootPart.Position
+end
 
 local function solveMotorsForCharacter(character: GameTypes.R15Character, lookAt: Vector3, dT: number)
 	local instances = characterInstances[character]
@@ -102,7 +124,7 @@ local function solveMotorsForCharacter(character: GameTypes.R15Character, lookAt
 		characterInstances[character] = instances
 	end
 
-	local humanoidRootPart, humanoid, waistM6D = instances.HumanoidRootPart, instances.Humanoid, instances.Waist
+	local waistM6D = instances.Waist
 	local waistBaseC0 = motorsBaseC0[waistM6D]
 
 	-- compute waist
@@ -112,17 +134,11 @@ local function solveMotorsForCharacter(character: GameTypes.R15Character, lookAt
 
 	waistM6D.Attachment0.CFrame = waistM6D.Attachment0.CFrame:Lerp(waistBaseC0 * CFrame.fromOrientation(waistPitchAngle, waistYawAngle, 0), dT * ANIMATION_SPEEDS.Waist)
 
-	-- Compute root (local player only)
-	if character == player.Character and not humanoid.SeatPart then
-		local delta = lookAt - humanoidRootPart.Position
-		local yawAngle = math.atan2(-delta.X, -delta.Z)
-
-		humanoidRootPart.CFrame = humanoidRootPart.CFrame:Lerp(CFrame.Angles(0, yawAngle, 0) + humanoidRootPart.Position, dT * ANIMATION_SPEEDS.Root)
-	end
 end
 
 local function onPreSimulation(dT: number)
 	local localTarget = mouse.Hit.Position
+	latestLocalTarget = localTarget
 	playersSolverTarget[player] = localTarget
 
 	if PlayersUtil.isAlive(player) then
@@ -141,6 +157,13 @@ local function onPreSimulation(dT: number)
 		if PlayersUtil.isAlive(forPlayer) then
 			solveMotorsForCharacter(forPlayer.Character, solverTarget, dT)
 		end
+	end
+
+end
+
+local function onRenderStepped()
+	if latestLocalTarget then
+		applyLocalPredictedRootYaw(latestLocalTarget)
 	end
 end
 
@@ -193,6 +216,7 @@ function CharacterController.init()
 	loadRemotes()
 
 	RunService.PreSimulation:Connect(onPreSimulation)
+	RunService.RenderStepped:Connect(onRenderStepped)
 	workspace.Characters.ChildRemoved:Connect(onAnyCharacterRemoved)
 	Players.PlayerRemoving:Connect(onPlayerRemoving)
 end
