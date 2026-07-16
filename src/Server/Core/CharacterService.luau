@@ -52,6 +52,7 @@ local solverTargetReplicationSchedule: { { Player: Player, SolverTarget: Vector3
 local playersSolverTarget: { [Player]: Vector3 } = {}
 
 local playerConnections: { [Player]: ConnectionsList.ConnectionsList } = {}
+local hitboxes: {[Player]: BasePart} = {}
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -62,22 +63,17 @@ local playerConnections: { [Player]: ConnectionsList.ConnectionsList } = {}
 -------------------------------------------------------------------------------
 
 local function onCharacterAdded(character: Model)
-	-- Prepare character
-	local hitbox = PartUtil.createHitbox(character)
-	hitbox.CanQuery = false -- This hitbox isn't for raycasts
-   -- TODO: lars left this here. brother if its not for raycasts then WHAT IS IT FOR
-
 	character.Parent = workspace.Characters
-
-	local humanoid = character:WaitForChild("Humanoid") :: Humanoid
-	humanoid.AutoRotate = false
-
-	for _, v in next, character:QueryDescendants("BasePart") :: { BasePart } do
-		v.CollisionGroup = COLLISION_GROUP
-	end
+	--for _, v in next, character:QueryDescendants("BasePart") :: { BasePart } do
+	--	v.CollisionGroup = COLLISION_GROUP
+	--end
 end
 
-local function onCharacterRemoving(character: Model)
+local function onCharacterRemoving(player: Player, character: Model)
+   if hitboxes[player] then
+      hitboxes[player]:Destroy()
+      hitboxes[player] = nil
+   end
 end
 
 local function applyAuthoritativeRotation(deltaTime: number)
@@ -93,8 +89,11 @@ local function applyAuthoritativeRotation(deltaTime: number)
 			continue
 		end
 
-      humanoid.AutoRotate = false
-		rootPart.CFrame = CharacterLogic.stepRootYaw(rootPart.CFrame, solverTarget, deltaTime)
+      local cframe = CharacterLogic.stepRootYaw(rootPart.CFrame, solverTarget, deltaTime)
+      if hitboxes[player] then
+         hitboxes[player].CFrame = cframe
+      end
+		rootPart.CFrame = cframe
 	end
 end
 
@@ -149,6 +148,35 @@ local function onCharacterLoaded(player: Player, character: Model, humanoid: Hum
    humanoid.JumpHeight = 0
    humanoid.JumpPower = 0
    humanoid.AutoRotate = false
+
+   for _, d in pairs(character:GetDescendants()) do
+      if d:IsA("BasePart") or d:IsA("MeshPart") or d:IsA("Part") then
+         d.CanCollide = false
+         d.CanTouch = false
+         d.CanQuery = false
+      end
+   end
+
+   local hitbox = rootPart:Clone()
+   for _, c in pairs(hitbox:GetChildren()) do
+      c:Destroy()
+   end
+   hitbox.Name = "Hitbox"
+   hitbox.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
+   hitbox.Parent = character
+   hitboxes[player] = hitbox
+   hitbox.CollisionGroup = COLLISION_GROUP
+   hitbox.CanTouch = true
+   hitbox.CanQuery = true
+   hitbox.Transparency = .5
+
+   character.DescendantAdded:Connect(function(d)
+      if d:IsA("BasePart") or d:IsA("MeshPart") or d:IsA("Part") then
+         d.CanCollide = false
+         d.CanTouch = false
+         d.CanQuery = false
+      end
+   end)
 end
 
 -------------------------------------------------------------------------------
@@ -182,7 +210,7 @@ function CharacterService.init()
 
    PlayersUtil.CharacterDestroying:Add(function(destroyingPlayer: Player, character: Model)
 		playersSolverTarget[destroyingPlayer] = nil
-		onCharacterRemoving(character)
+		onCharacterRemoving(destroyingPlayer, character)
 	end)
 
 	Players.PlayerRemoving:Connect(function(player)
@@ -192,6 +220,11 @@ function CharacterService.init()
 		if playerConnectionList then
 			playerConnectionList:Destroy()
 		end
+
+      if hitboxes[player] then
+         hitboxes[player]:Destroy()
+         hitboxes[player] = nil
+      end
 
 		playerConnections[player] = nil
 	end)
