@@ -24,7 +24,7 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
          Bounces = 2,
          HitboxRadius = 2,
          Speed = 60,
-         ThrowDistance = 50
+         ThrowDistance = 30
       }
    },
 

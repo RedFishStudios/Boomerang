@@ -198,17 +198,41 @@ local function renderAimArrows()
          end
 
          local fullSize = aimArrowTemplate.PrimaryPart.Size
-         local startSize = fullSize * .8
+         local startSize = fullSize * .7
          local timeSinceAimStart = os.clock() - arrows.AimStart
          local aimStrengthAlpha = math.clamp(timeSinceAimStart / GlobalConfig.AimFullStrength, 0, 1)
          local currentSize = startSize:Lerp(fullSize, aimStrengthAlpha)
          arrows.Instance.PrimaryPart.Size = currentSize
-         arrows.Instance.PrimaryPart.SurfaceGui.ImageLabel.ImageTransparency = 1 - aimStrengthAlpha
+         arrows.Instance.PrimaryPart.SurfaceGui.CanvasGroup.GroupTransparency = (1 - aimStrengthAlpha)
 
+         local distance = 3 + ((GlobalConfig.AimFullStrength * aimStrengthAlpha)*2.5)
          local aimArrow = arrows.Instance
-         local arrowOffset = Vector3.new(0, -2, 0) + (humanoidRootPart.CFrame.LookVector.Unit * 3)
+         local arrowOffset = Vector3.new(0, -2, 0) + (humanoidRootPart.CFrame.LookVector.Unit * distance)
          local arrowPosition = humanoidRootPart.Position + arrowOffset
          aimArrow:PivotTo(CFrame.new(arrowPosition, arrowPosition + humanoidRootPart.CFrame.LookVector))
+
+         -- Shaking
+         local frameThatShakes = arrows.Instance.PrimaryPart.SurfaceGui.CanvasGroup.Arrows
+         local defaultPosition = aimArrowTemplate.PrimaryPart.SurfaceGui.CanvasGroup.Arrows.Position
+         if aimStrengthAlpha > .8 then
+            local now = os.clock()
+            local shakeAlpha = (aimStrengthAlpha - 0.8) / 0.2
+            local defaultOffsetMagnitude = math.max(1, math.abs(defaultPosition.X.Offset) + math.abs(defaultPosition.Y.Offset))
+            local maxShakePixels = defaultOffsetMagnitude * 0.25
+            local shakePixels = maxShakePixels * shakeAlpha
+
+            -- Use smooth noise so direction shifts fluidly over multiple frames.
+            local shakeX = (math.noise(p.UserId * 0.11, now * 4.5, 0) * shakePixels) * 100
+            local shakeY = (math.noise((p.UserId + 97) * 0.11, now * 4.5, 0) * shakePixels) * 100
+            frameThatShakes.Position = UDim2.new(
+               defaultPosition.X.Scale,
+               defaultPosition.X.Offset + shakeX,
+               defaultPosition.Y.Scale,
+               defaultPosition.Y.Offset + shakeY
+            )
+         else
+            frameThatShakes.Position = defaultPosition
+         end
       end
    end)
 end
