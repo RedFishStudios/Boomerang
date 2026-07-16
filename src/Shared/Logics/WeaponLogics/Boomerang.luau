@@ -247,14 +247,17 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    local aimStrengthAlpha = math.clamp((options and options.AimStrengthAlpha) or 0, 0, 1)
    if aimStrengthAlpha > 0 and (not options or options.Speed == nil) then
       speed = defaultSpeed * (1 + aimStrengthAlpha * AIM_START_SPEED_BONUS_MULTIPLIER)
-   end
+   end 
    local hitboxRadius = toolData.Boomerang.HitboxRadius
-   local throwDistance = toolData.Boomerang.ThrowDistance
+   local bounceDistance = toolData.Boomerang.ThrowDistance
+   local initThrowDistance = bounceDistance * (1 + aimStrengthAlpha)
    local energy = toolData.Boomerang.Bounces
 
    local startPosition = (options and options.StartPosition) or (character.PrimaryPart.Position + character.PrimaryPart.CFrame.LookVector * 3)
    local throwOrigin = startPosition
    local throwServerTime = (options and options.ThrowServerTime) or workspace:GetServerTimeNow()
+   local lastBounceOrigin = throwOrigin
+   local bounced = false
 
    if isServer then
       -- Server creates and monitors a simple representation part
@@ -301,8 +304,8 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       local rayOrigin = thrownWeaponData.Host:GetPivot().Position
       local rayDistance = speed * deltaTime
 
-      -- Switch to recall once the boomerang has traveled far enough from where it was thrown.
-      if (rayOrigin - throwOrigin).Magnitude >= throwDistance then
+      -- Distance-based recall
+      if (rayOrigin - lastBounceOrigin).Magnitude >= (if bounced then bounceDistance else initThrowDistance) then
          if shouldRecallTransitions then
             Boomerang.recall(player, boomerangId, toolData, thrownWeaponData)
             return true
@@ -338,6 +341,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       local obstructionRaycastResult = raycastWithHorizontalHitbox(rayOrigin, direction, rayDistance, hitboxRadius, raycastParams, thrownWeaponData)
       if obstructionRaycastResult then
          energy -= 1
+         bounced = true
          direction = direction - 2 * direction:Dot(obstructionRaycastResult.Normal) * obstructionRaycastResult.Normal
          direction = getHorizontalDirection(direction)
          if energy == 0 then

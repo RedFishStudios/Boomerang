@@ -30,8 +30,6 @@ local ToolLogicModules = {}
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
-local AIM_MAX_STRENGTH = 2.0
-
 -------------------------------------------------------------------------------
 -- TYPES
 -------------------------------------------------------------------------------
@@ -125,7 +123,6 @@ function WeaponService.init()
       local timeSinceAiming = os.clock() - (aiming[player] or os.clock())
       timeSinceAiming = math.clamp(timeSinceAiming, 0, GlobalConfig.AimFullStrength)
       local aimStrengthAlpha = timeSinceAiming / GlobalConfig.AimFullStrength
-      print("aim strength alpha: ", aimStrengthAlpha)
 
       aiming[player] = nil
       local character = player.Character
