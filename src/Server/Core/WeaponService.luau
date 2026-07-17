@@ -149,7 +149,7 @@ function WeaponService.init()
       end
       aimStateEvent:FireAllClients(player.UserId, false)
       
-      AnimationService.stopCoreAnimation(player, "Charging")
+      AnimationService.playCoreAnimation(player, "Throw")
 
       local canThrow, reason = WeaponLibrary.canThrow(player, toolId)
       if not canThrow then

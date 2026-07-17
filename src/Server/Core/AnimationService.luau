@@ -13,13 +13,14 @@ local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 -- TYPES
 -------------------------------------------------------------------------------
 
-export type CoreTrackNames = "Charging"
+export type CoreTrackNames = "Charging" | "Throw"
 
 type PlayerTracks = {
    [CoreTrackNames | string]: {
       Track: AnimationTrack,
       LoadedAnimationKey: string,
       AnimationObject: Animation,
+      Layer: string
    }
 }
 
@@ -72,6 +73,7 @@ local function createTrackEntry(animator: Animator, trackName: string, animation
       Track = track,
       LoadedAnimationKey = animationName,
       AnimationObject = animation,
+      Layer = animationData.Layer
    }
 end
 
@@ -103,7 +105,7 @@ local function characterLoaded(player: Player, character: Model, humanoid: Human
       
    local tracks: PlayerTracks = {}
 
-   local necessaryAnimationNames = { "Charging" }
+   local necessaryAnimationNames = { "Charging", "Throw" }
    for _, animationName in ipairs(necessaryAnimationNames) do
       local entry = createTrackEntry(animator, animationName, animationName)
       if not entry then
@@ -140,11 +142,6 @@ function AnimationService.playCoreAnimation(player: Player, coreTrackName: CoreT
       return
    end
 
-   if not trackData then
-      warn(`animation track data not foundfor {coreTrackName} and {player}`)
-      return
-   end
-
    local animation = trackData.LoadedAnimationKey
    local animationData = Animations[animation]
    if not animationData then
@@ -153,10 +150,18 @@ function AnimationService.playCoreAnimation(player: Player, coreTrackName: CoreT
 
    local track = trackData.Track
    track:Play(animationData.FadeIn)
+
+   task.spawn(function()
+      local layer = trackData.Layer
+      for _coreTrackName, _trackData in pairs(tracks) do
+         if _coreTrackName ~= coreTrackName and _trackData.Layer == layer and _trackData.Track and _trackData.Track.IsPlaying then
+            AnimationService.stopCoreAnimation(player, _coreTrackName)
+         end
+      end
+   end)
 end
 
 function AnimationService.stopCoreAnimation(player: Player, coreTrackName: CoreTrackNames)
-   print("stop 1")
    local tracks = AnimationTracks[player]
    if not tracks then
       warn(`animationtracks.stopCoreAnimation failed, no tracks for {player}`)

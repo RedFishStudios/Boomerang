@@ -16,9 +16,17 @@ local Animations: {
    Charging = {
       Id = 130007850779400,
       Layer = "WeaponAction",
-      FadeIn = .2,
-      FadeOut = .2,
+      FadeIn = .8,
+      FadeOut = .8,
       Looping = true
+   },
+
+   Throw = {
+      Id = 83626657502858,
+      Layer = "WeaponAction",
+      FadeIn = .2,
+      FadeOut = .8,
+      Looping = false
    }
 }
 
