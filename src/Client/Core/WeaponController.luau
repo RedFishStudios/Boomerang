@@ -386,7 +386,7 @@ function WeaponController.init()
          if not canThrow then
             return
          end
-         aimEvent:FireServer("ClassicBoomerang")
+         aimEvent:FireServer("ClassicBoomerang", Players.LocalPlayer.Character:GetPivot().Position)
 			aiming = true
 		end
 

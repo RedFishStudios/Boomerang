@@ -97,7 +97,7 @@ function WeaponService.init()
    replicationPart.Transparency = 1
    replicationPart.Parent = game.ReplicatedStorage.Shared.Assets
 
-   aimEvent.OnServerEvent:Connect(function(player: Player, toolId)
+   aimEvent.OnServerEvent:Connect(function(player: Player, toolId, clientPosition: Vector3)
       local canAim = WeaponLibrary.canThrow(player, toolId)
       if not canAim then
          return
@@ -112,6 +112,10 @@ function WeaponService.init()
       if not humanoid then
          return
       end
+      
+      local serverPosition = character.Hitbox:GetPivot().Position
+      local authoritativePosition = serverPosition + (clientPosition - serverPosition) * 0.5
+      character:PivotTo(CFrame.new(authoritativePosition))
 
       aiming[player] = os.clock()
       humanoid.WalkSpeed = 0
