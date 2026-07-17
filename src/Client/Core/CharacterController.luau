@@ -7,8 +7,8 @@
   Author:
   @SixthAtom
 
-  Date:
-  05-04-2026
+  Heavily modified and taken over by:
+  @Soulsplosion
 ]]
 
 local CharacterController = {}
@@ -73,11 +73,14 @@ local latestLocalTarget: Vector3? = nil
 -- PUBLIC VARIABLES
 -------------------------------------------------------------------------------
 
+CharacterController.LastCFrame = CFrame.new()
+
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
 
-local function applyLocalPredictedRootYaw(lookAt: Vector3)
+-- // Apply local yaw to alleviate conflicts with server authoritative yaw
+local function applyLocalAuthoritativeRotation(lookAt: Vector3)
 	if not PlayersUtil.isAlive(player) then
 		return
 	end
@@ -95,7 +98,9 @@ local function applyLocalPredictedRootYaw(lookAt: Vector3)
 
 	local delta = lookAt - humanoidRootPart.Position
 	local yawAngle = math.atan2(-delta.X, -delta.Z)
-	humanoidRootPart.CFrame = CFrame.Angles(0, yawAngle, 0) + humanoidRootPart.Position
+   local cf = CFrame.Angles(0, yawAngle, 0) + humanoidRootPart.Position
+	CharacterController.LastCFrame = cf
+	humanoidRootPart.CFrame = cf
 end
 
 local function solveMotorsForCharacter(character: GameTypes.R15Character, lookAt: Vector3, dT: number)
@@ -163,7 +168,7 @@ end
 
 local function onRenderStepped()
 	if latestLocalTarget then
-		applyLocalPredictedRootYaw(latestLocalTarget)
+		applyLocalAuthoritativeRotation(latestLocalTarget)
 	end
 end
 

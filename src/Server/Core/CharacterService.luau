@@ -162,6 +162,7 @@ local function onCharacterLoaded(player: Player, character: Model, humanoid: Hum
       c:Destroy()
    end
    hitbox.Name = "Hitbox"
+   hitbox.Size = Vector3.new(2.2, 2.2, 2.2)
    hitbox.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
    hitbox.Parent = character
    hitboxes[player] = hitbox

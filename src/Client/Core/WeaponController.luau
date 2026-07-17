@@ -15,6 +15,7 @@ local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
 local WeaponLibrary = require(ReplicatedStorage.Shared.Library.WeaponLibrary)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
+local CharacterController = require(ReplicatedStorage.Client.Core.CharacterController)
 
 local ToolLogics = ReplicatedStorage.Shared.Logics.WeaponLogics
 local ToolLogicModules = {}
@@ -205,11 +206,13 @@ local function renderAimArrows()
          arrows.Instance.PrimaryPart.Size = currentSize
          arrows.Instance.PrimaryPart.SurfaceGui.CanvasGroup.GroupTransparency = (1 - aimStrengthAlpha)
 
+         local characterCFrame = if p == Players.LocalPlayer then CharacterController.LastCFrame else humanoidRootPart.CFrame
+
          local distance = 3 + ((GlobalConfig.AimFullStrength * aimStrengthAlpha)*2.5)
          local aimArrow = arrows.Instance
-         local arrowOffset = Vector3.new(0, -2, 0) + (humanoidRootPart.CFrame.LookVector.Unit * distance)
+         local arrowOffset = Vector3.new(0, -2, 0) + (characterCFrame.LookVector.Unit * distance)
          local arrowPosition = humanoidRootPart.Position + arrowOffset
-         aimArrow:PivotTo(CFrame.new(arrowPosition, arrowPosition + humanoidRootPart.CFrame.LookVector))
+         aimArrow:PivotTo(CFrame.new(arrowPosition, arrowPosition + characterCFrame.LookVector))
 
          -- Shaking
          local frameThatShakes = arrows.Instance.PrimaryPart.SurfaceGui.CanvasGroup.Arrows
