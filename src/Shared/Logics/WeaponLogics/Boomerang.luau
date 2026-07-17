@@ -16,9 +16,10 @@ local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
 local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
 
 -- // Context-Specific Modules
-local CombatService
+local CombatService, WeaponService
 if isServer then
    CombatService = require(game.ServerStorage.Server.Core.CombatService)
+   WeaponService = require(game.ServerStorage.Server.Core.WeaponService)
 end
 
 -- // Values
@@ -56,28 +57,6 @@ type ThrowInitOptions = {
 type RecallInitOptions = {
    InitialSpeed: number?
 }
-
-PlayersUtil.CharacterDestroying:Add(function(player: Player)
-   local thrownWeaponData = ThrownWeapons.Data[player]
-   if thrownWeaponData then
-      Boomerang.removeFromField(player, thrownWeaponData)
-   end
-end)
-
-PlayersUtil.CharacterDied:Add(function(player: Player, _character: Model, _humanoid: Humanoid)
-   local thrownWeaponData = ThrownWeapons.Data[player]
-   if not thrownWeaponData then
-      return
-   end
-   local host = thrownWeaponData.Host
-   if not host then
-      return
-   end
-   local currentCharacter = player.Character
-   if not currentCharacter or not currentCharacter.PrimaryPart or not currentCharacter.Parent or not currentCharacter.PrimaryPart.Parent then
-      Boomerang.removeFromField(player, thrownWeaponData)
-   end
-end)
 
 local function getCurrentArena(): Model?
    local arenaFolder = workspace:FindFirstChild("Arenas")
@@ -271,6 +250,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    else
       -- Client creates and monitors the actual 3D model of the projectile
       local boomerangModel = ReplicatedStorage.Shared.Assets.Tools.ClassicBoomerang:Clone()
+      boomerangModel.Handle.Anchored = true
       boomerangModel.Name = `Boomerang_{player.Name}`
       boomerangModel:PivotTo(CFrame.new(startPosition))
       boomerangModel.Parent = workspace
@@ -396,6 +376,7 @@ function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapo
    end
    if isServer then
       fireDespawned(player.UserId)
+      WeaponService.WeaponReturnedTasks:Execute("parallel", player, thrownWeaponData.ToolId)
    end
    for _, part in ipairs(thrownWeaponData.TestRaycastVisualizers) do
       if part and part.Parent then

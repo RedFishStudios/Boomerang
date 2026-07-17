@@ -2,7 +2,7 @@
 	<Meta name="ExplicitAutoJoints">true</Meta>
 	<External>null</External>
 	<External>nil</External>
-	<Item class="Tool" referent="RBX91E055CEA782415684AE350C189BA9D2">
+	<Item class="Tool" referent="RBXB165B911E6A94764B3581FA032257F73">
 		<Properties>
 			<bool name="CanBeDropped">false</bool>
 			<bool name="Enabled">true</bool>
@@ -73,7 +73,7 @@
 			<int64 name="SourceAssetId">6548275326</int64>
 			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 		</Properties>
-		<Item class="MeshPart" referent="RBX1226FA6EE17E41C0AF91684A836FB153">
+		<Item class="MeshPart" referent="RBX7F30302A7F204046B56076DC87AEE536">
 			<Properties>
 				<bool name="DoubleSided">false</bool>
 				<bool name="HasJointOffset">false</bool>
@@ -113,7 +113,7 @@
 					<Z>-0.000703187427</Z>
 				</Vector3>
 				<float name="UnscaledVolume">0.198720247</float>
-				<bool name="Anchored">true</bool>
+				<bool name="Anchored">false</bool>
 				<bool name="AudioCanCollide">false</bool>
 				<float name="BackParamA">-0.5</float>
 				<float name="BackParamB">0.5</float>

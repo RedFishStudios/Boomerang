@@ -22,9 +22,15 @@ local GameStateLibrary= require(ReplicatedStorage.Shared.Library.GameStateLibrar
 local WeaponLibrary = require(ReplicatedStorage.Shared.Library.WeaponLibrary)
 local ArenaService = require(ServerStorage.Server.Core.ArenaService)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
+local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 
 local ToolLogics = ReplicatedStorage.Shared.Logics.WeaponLogics
 local ToolLogicModules = {}
+
+local ToolModels = {}
+for _, tool in pairs(ReplicatedStorage.Shared.Assets.Tools:GetChildren()) do
+   ToolModels[tool.Name] = tool
+end
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -35,6 +41,7 @@ local ToolLogicModules = {}
 -------------------------------------------------------------------------------
 
 type WeaponThrownTask = (player: Player, toolId: string) -> ()
+type WeaponReturnedTask = (player: Player, toolId: string) -> ()
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
@@ -46,12 +53,14 @@ local throwEvent = SimpleRemotes.getEvent("Weapon")
 local recallEvent = SimpleRemotes.getEvent("WeaponRecall")
 
 local aiming: {[Player]: number} = {}
+local equippedTools: {[Player]: Tool} = {}
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
 -------------------------------------------------------------------------------
 
 WeaponService.WeaponThrownTasks = TasksList.new() :: TasksList.TasksList<WeaponThrownTask>
+WeaponService.WeaponReturnedTasks = TasksList.new() :: TasksList.TasksList<WeaponReturnedTask>
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -179,6 +188,27 @@ function WeaponService.init()
       WeaponService.WeaponThrownTasks:Execute("parallel", player, toolId)
 	end)
 
+   -- // Boomerang visibility/removing visibility from client
+   -- TODO: This will likely later be clientside rendered using animation events to appear/disappear at the right point in the throw/catch animation
+   WeaponService.WeaponThrownTasks:Add(function(player: Player, toolId: string)
+      if equippedTools[player] and equippedTools[player]:IsDescendantOf(game.Workspace) then
+         for _, part in ipairs(equippedTools[player]:GetDescendants()) do
+            if part:IsA("BasePart") or part:IsA("MeshPart") then
+               part.Transparency = 1
+            end
+         end
+      end
+   end)
+   WeaponService.WeaponReturnedTasks:Add(function(player: Player, toolId: string)
+      if equippedTools[player] and equippedTools[player]:IsDescendantOf(game.Workspace) then
+         for _, part in ipairs(equippedTools[player]:GetDescendants()) do
+            if part:IsA("BasePart") or part:IsA("MeshPart") then
+               part.Transparency = 0
+            end
+         end
+      end
+   end)
+
    -- // Manual recall boomerang
    recallEvent.OnServerEvent:Connect(function(Player: Player)
       local thrownWeaponData = ThrownWeapons.Data[Player]
@@ -190,6 +220,50 @@ function WeaponService.init()
       local toolData = Tools[thrownWeaponData.ToolId]
       local Logic = getLogic(toolData.LogicClass)
       Logic.recall(Player, thrownWeaponData.ToolId, toolData, thrownWeaponData)
+   end)
+
+   PlayersUtil.CharacterLoaded:Add(function(player: Player, character: Model, humanoid: Humanoid, rootPart: BasePart)
+      if equippedTools[player] then
+         equippedTools[player]:Destroy()
+         equippedTools[player] = nil
+      end
+      local equippedBoomerang = "ClassicBoomerang" -- TODO: get from player data
+      local toolModel = ToolModels[equippedBoomerang] and ToolModels[equippedBoomerang]:Clone()
+      if toolModel then
+         humanoid:EquipTool(toolModel)
+         equippedTools[player] = toolModel
+      end
+   end)
+
+   PlayersUtil.CharacterDestroying:Add(function(player: Player, character: Model)
+      if equippedTools[player] then
+         equippedTools[player]:Destroy()
+         equippedTools[player] = nil
+      end
+
+      local thrownWeaponData = ThrownWeapons.Data[player]
+      if thrownWeaponData then
+         local toolData = Tools[thrownWeaponData.ToolId]
+         local Logic = getLogic(toolData.LogicClass)
+         Logic.removeFromField(player, thrownWeaponData)
+      end
+   end)
+
+   PlayersUtil.CharacterDied:Add(function(player: Player, _character: Model, _humanoid: Humanoid)
+      local thrownWeaponData = ThrownWeapons.Data[player]
+      if not thrownWeaponData then
+         return
+      end
+      local host = thrownWeaponData.Host
+      if not host then
+         return
+      end
+      local currentCharacter = player.Character
+      if not currentCharacter or not currentCharacter.PrimaryPart or not currentCharacter.Parent or not currentCharacter.PrimaryPart.Parent then
+         local toolData = Tools[thrownWeaponData.ToolId]
+         local Logic = getLogic(toolData.LogicClass)
+         Logic.removeFromField(player, thrownWeaponData)
+      end
    end)
 
    -- // Reset boomerangs when starting/stopping game
