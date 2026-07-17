@@ -91,6 +91,7 @@ local function applyAuthoritativeRotation(deltaTime: number)
 
       local cframe = CharacterLogic.stepRootYaw(rootPart.CFrame, solverTarget, deltaTime)
       if hitboxes[player] then
+         hitboxes[player].Parent = character
          hitboxes[player].CFrame = cframe
       end
 		rootPart.CFrame = cframe

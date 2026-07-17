@@ -24,6 +24,7 @@ local ArenaService = require(ServerStorage.Server.Core.ArenaService)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local AnimationService = require(ServerStorage.Server.Core.AnimationService)
+local CharacterService = require(ServerStorage.Server.Core.CharacterService)
 
 local ToolLogics = ReplicatedStorage.Shared.Logics.WeaponLogics
 local ToolLogicModules = {}
