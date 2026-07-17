@@ -3,8 +3,7 @@ local AnimationService = {}
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Animations = require(ReplicatedStorage.Shared.Constants.Animations)
-local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
-local SimpleRemotesUtil = require(ReplicatedStorage.Shared.Networking.SimpleRemotesUtil)
+local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -14,18 +13,22 @@ local SimpleRemotesUtil = require(ReplicatedStorage.Shared.Networking.SimpleRemo
 -- TYPES
 -------------------------------------------------------------------------------
 
+export type CoreTrackNames = "Charging"
+
+type PlayerTracks = {
+   [CoreTrackNames | string]: {
+      Track: AnimationTrack,
+      LoadedAnimationKey: string,
+      AnimationObject: Animation,
+   }
+}
+
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
 -------------------------------------------------------------------------------
 
-local animationRemote = SimpleRemotes.getEvent("Animation")
-
-local ACTION_PLAY_TEST = "PlayTest"
-
 local AnimationTracks: {
-   [Player]: {
-      [string]: AnimationTrack
-   }
+   [Player]: PlayerTracks
 } = {}
 
 -------------------------------------------------------------------------------
@@ -36,54 +39,218 @@ local AnimationTracks: {
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
 
-local function playAnimationOnPlayerCharacter(player: Player, animationName: string)
-	local animationData = Animations[animationName]
-	if not animationData then
-		return
-	end
+local function destroyTrackEntry(entry: { Track: AnimationTrack, AnimationObject: Animation })
+   if entry.Track.IsPlaying then
+      entry.Track:Stop()
+   end
 
-	local character = player.Character
-	if not character then
-		return
-	end
+   if entry.Track.Parent then
+      entry.Track:Destroy()
+   end
 
-	local humanoid = character:FindFirstChildOfClass("Humanoid")
-	if not humanoid then
-		return
-	end
-
-	local animator = humanoid:FindFirstChildOfClass("Animator")
-	if not animator then
-		animator = Instance.new("Animator")
-		animator.Parent = humanoid
-	end
-
-	local animation = Instance.new("Animation")
-	animation.AnimationId = string.format("rbxassetid://%d", animationData.Id)
-
-	local track = animator:LoadAnimation(animation)
-	track.Looped = animationData.Looping
-	track:Play()
+   if entry.AnimationObject.Parent then
+      entry.AnimationObject:Destroy()
+   end
 end
 
-local function loadRemotes()
-	SimpleRemotesUtil.bindRemoteEventActions(animationRemote, {
-		[ACTION_PLAY_TEST] = function(player: Player)
-			playAnimationOnPlayerCharacter(player, "Test")
-		end,
-	})
+local function createTrackEntry(animator: Animator, trackName: string, animationName: string)
+   local animationData = Animations[animationName]
+   if not animationData then
+      return nil
+   end
+
+   local animation = Instance.new("Animation")
+   animation.Name = trackName
+   animation.AnimationId = string.format("rbxassetid://%d", animationData.Id)
+   animation.Parent = animator
+
+   local track = animator:LoadAnimation(animation)
+   track.Name = trackName
+   track.Looped = animationData.Looping
+
+   return {
+      Track = track,
+      LoadedAnimationKey = animationName,
+      AnimationObject = animation,
+   }
+end
+
+local function unloadAnimationTracks(Player: Player)
+   local tracks = AnimationTracks[Player]
+   if tracks then
+      for name, entry in pairs(tracks) do
+         destroyTrackEntry(entry)
+         tracks[name] = nil
+      end
+   end
+   AnimationTracks[Player] = nil
+end
+
+local function characterLoaded(player: Player, character: Model, humanoid: Humanoid, rootPart: BasePart)
+   if AnimationTracks[player] then
+      unloadAnimationTracks(player)
+   end
+
+   local animator = humanoid:WaitForChild("Animator", 10)
+   if not animator then
+      print(`animator never loaded for {player}`)
+      return
+   end
+
+   if AnimationTracks[player] then
+     unloadAnimationTracks(player)
+   end
+      
+   local tracks: PlayerTracks = {}
+
+   local necessaryAnimationNames = { "Charging" }
+   for _, animationName in ipairs(necessaryAnimationNames) do
+      local entry = createTrackEntry(animator, animationName, animationName)
+      if not entry then
+         print(`animation service setup: no animation {animationName}`)
+         continue
+      end
+
+      tracks[animationName] = entry
+   end
+
+   AnimationTracks[player] = tracks
 end
 
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
+function AnimationService.playCoreAnimation(player: Player, coreTrackName: CoreTrackNames)
+   local humanoid = PlayersUtil.getHumanoid(player)
+   if not humanoid then
+      print("no humanoid")
+      return
+   end
+
+   local tracks = AnimationTracks[player]
+   if not tracks then
+      warn(`animationtracks.playCoreAnimation failed, no tracks for {player}`)
+      return
+   end
+
+   local trackData = tracks[coreTrackName]
+   if not trackData then
+      warn(`animationtracks.playCoreAnimation failed, no track for {coreTrackName} and {player}`)
+      return
+   end
+
+   if not trackData then
+      warn(`animation track data not foundfor {coreTrackName} and {player}`)
+      return
+   end
+
+   local animation = trackData.LoadedAnimationKey
+   local animationData = Animations[animation]
+   if not animationData then
+      return
+   end
+
+   local track = trackData.Track
+   track:Play(animationData.FadeIn)
+end
+
+function AnimationService.stopCoreAnimation(player: Player, coreTrackName: CoreTrackNames)
+   print("stop 1")
+   local tracks = AnimationTracks[player]
+   if not tracks then
+      warn(`animationtracks.stopCoreAnimation failed, no tracks for {player}`)
+      return
+   end
+
+   local trackData = tracks[coreTrackName]
+   if not trackData then
+      warn(`animationtracks.stopCoreAnimation failed, no track for {coreTrackName} and {player}`)
+      return
+   end
+
+   local track = trackData.Track
+   if not track.IsPlaying then
+      print("track is not playing")
+      return
+   end
+
+   local animation = trackData.LoadedAnimationKey
+   local animationData = Animations[animation]
+   if not animationData then
+      print("no animation data found for ", animation)
+      return
+   end
+
+   track:Stop(animationData.FadeOut)
+end
+
+function AnimationService.setCoreAnimation(player: Player, trackName: string, animation: string)
+   local animationData = Animations[animation]
+   if not animationData then
+      warn(`animation not found: {animation}`)
+      return
+   end
+
+   local humanoid = PlayersUtil.getHumanoid(player)
+   if not humanoid then
+      warn(`setCoreAnimation failed, no humanoid for {player}`)
+      return
+   end
+
+   local animator = humanoid:FindFirstChildOfClass("Animator")
+   if not animator then
+      animator = Instance.new("Animator")
+      animator.Parent = humanoid
+   end
+
+   local tracks = AnimationTracks[player]
+   if not tracks then
+      tracks = {}
+      AnimationTracks[player] = tracks
+   end
+
+   local existing = tracks[trackName]
+   if existing then
+      destroyTrackEntry(existing)
+      tracks[trackName] = nil
+   end
+
+   local newEntry = createTrackEntry(animator, trackName, animation)
+   if not newEntry then
+      warn(`failed to create animation track {trackName} using {animation}`)
+      return
+   end
+
+   tracks[trackName] = newEntry
+end
+
+function AnimationService.playVariableAnimation(player: Player, animation: string)
+   
+end
+
 -------------------------------------------------------------------------------
 -- CORE FUNCTIONS
 -------------------------------------------------------------------------------
 
 function AnimationService.init()
-	loadRemotes()
+   for _, p in pairs(PlayersUtil.getPlayersWithLoadedCharacters()) do
+      characterLoaded(p, p.Character, p.Character.Humanoid, p.Character.PrimaryPart)
+   end
+
+   PlayersUtil.CharacterLoaded:Add(characterLoaded)
+
+   PlayersUtil.CharacterDestroying:Add(function(player: Player)
+      if AnimationTracks[player] then
+         unloadAnimationTracks(player)
+      end
+   end)
+
+   PlayersUtil.PlayerRemoving:Add(function(player: Player)
+      if AnimationTracks[player] then
+         unloadAnimationTracks(player)
+      end
+   end)
 end
 
 -- function AnimationService.start() end

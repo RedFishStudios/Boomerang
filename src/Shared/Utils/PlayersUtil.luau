@@ -137,11 +137,26 @@ function PlayersUtil.isAlive(player: Player)
 	return humanoid and humanoid.Health > 0
 end
 
-function PlayersUtil.getHumanoid(player: Player): Humanoid?
-	if PlayersUtil.isAlive(player) then
-		return player.Character:FindFirstChildOfClass("Humanoid")
+function PlayersUtil.getHumanoid(player: Player, waitTime: number?): Humanoid?
+   local character = player.Character
+   if not character then
+      return
+   end
+   local humanoid = if waitTime then character:WaitForChild("Humanoid", waitTime) else character:FindFirstChildOfClass("Humanoid")
+	if humanoid and humanoid.Health > 0 then
+		return humanoid
 	end
 	return nil
+end
+
+function PlayersUtil.getPlayersWithLoadedCharacters()
+	local playersWithLoadedCharacters = {}
+	for _, player in Players:GetPlayers() do
+		if player.Character and player.Character.PrimaryPart and player.Character:FindFirstChild("Humanoid") then
+			table.insert(playersWithLoadedCharacters, player)
+		end
+	end
+	return playersWithLoadedCharacters
 end
 
 return PlayersUtil

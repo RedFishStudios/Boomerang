@@ -23,6 +23,7 @@ local WeaponLibrary = require(ReplicatedStorage.Shared.Library.WeaponLibrary)
 local ArenaService = require(ServerStorage.Server.Core.ArenaService)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
+local AnimationService = require(ServerStorage.Server.Core.AnimationService)
 
 local ToolLogics = ReplicatedStorage.Shared.Logics.WeaponLogics
 local ToolLogicModules = {}
@@ -129,6 +130,8 @@ function WeaponService.init()
       aiming[player] = os.clock()
       humanoid.WalkSpeed = 0
       aimStateEvent:FireAllClients(player.UserId, true)
+
+      AnimationService.playCoreAnimation(player, "Charging")
    end)
 
    -- // Throw boomerang
@@ -145,6 +148,8 @@ function WeaponService.init()
          humanoid.WalkSpeed = 16
       end
       aimStateEvent:FireAllClients(player.UserId, false)
+      
+      AnimationService.stopCoreAnimation(player, "Charging")
 
       local canThrow, reason = WeaponLibrary.canThrow(player, toolId)
       if not canThrow then

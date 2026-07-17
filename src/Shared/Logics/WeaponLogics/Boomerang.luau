@@ -391,7 +391,6 @@ function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapo
 end
 
 function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.Tool, thrownWeaponData: ThrownWeapons.Data, options: RecallInitOptions?)
-   print("recall")
    if not toolData.Boomerang then
       warn(`this is not a boomerang`)
       return
