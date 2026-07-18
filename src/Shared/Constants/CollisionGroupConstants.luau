@@ -21,17 +21,17 @@ local function deepRegisterCollisionGroups(setupData): string
 end
 
 local SetupData = {
-   Players = createCollisionGroup("Players", {"ArenaObstructions"}),
-   ThrownWeapons = createCollisionGroup("ThrownWeapons", {"ArenaObstructions", "Players"}),
+   Players = createCollisionGroup("Players", {"ArenaWalls"}),
+   ThrownWeapons = createCollisionGroup("ThrownWeapons", {"ArenaWalls", "Players"}),
    HandWeapons = createCollisionGroup("HandWeapons", {"Players"}),
-   ArenaObstructions = createCollisionGroup("ArenaObstructions", {"Players", "ThrownWeapons"})
+   ArenaWalls = createCollisionGroup("ArenaWalls", {"Players", "ThrownWeapons"})
 }
 
 local CollisionGroups = {
    Players = deepRegisterCollisionGroups(SetupData.Players),
    ThrownWeapons = deepRegisterCollisionGroups(SetupData.ThrownWeapons),
    HandWeapons = deepRegisterCollisionGroups(SetupData.HandWeapons),
-   ArenaObstructions = deepRegisterCollisionGroups(SetupData.ArenaObstructions)
+   ArenaWalls = deepRegisterCollisionGroups(SetupData.ArenaWalls)
 }
 
 return CollisionGroups

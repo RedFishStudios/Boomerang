@@ -273,7 +273,7 @@ function ArenaService.init()
       if walls then
          for _, wall in pairs(walls:GetDescendants()) do
             if (wall:IsA("MeshPart") or wall:IsA("BasePart")) and wall.CanCollide then
-               wall.CollisionGroup = CollisionGroupConstants.ArenaObstructions
+               wall.CollisionGroup = CollisionGroupConstants.ArenaWalls
             end
          end
       else
