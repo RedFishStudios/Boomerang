@@ -439,7 +439,6 @@ end
 
 -- // Restore to player / remove from field
 function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapons.Data)
-   warn(`removing boomerang from field`)
    if thrownWeaponData.Host then
       thrownWeaponData.Host:Destroy()
    end
@@ -458,7 +457,6 @@ function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapo
       thrownWeaponData.MovementConnection = nil
    end
    thrownWeaponData.CFrame = nil
-   print("setting data to nil")
    ThrownWeapons.Data[player] = nil
 end
 

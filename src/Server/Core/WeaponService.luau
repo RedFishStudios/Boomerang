@@ -26,6 +26,7 @@ local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local AnimationService = require(ServerStorage.Server.Core.AnimationService)
 local AnimationLibrary = require(ReplicatedStorage.Shared.Library.AnimationLibrary)
 local CharacterService = require(ServerStorage.Server.Core.CharacterService)
+local HitboxService = require(ServerStorage.Server.Core.HitboxService)
 
 local ToolLogics = ReplicatedStorage.Shared.Logics.WeaponLogics
 local ToolLogicModules = {}
@@ -125,9 +126,10 @@ function WeaponService.init()
          return
       end
       
-      local serverPosition = character.Hitbox:GetPivot().Position
-      local authoritativePosition = serverPosition + (clientPosition - serverPosition) * 0.5
-      character:PivotTo(CFrame.new(authoritativePosition))
+      -- TODO: compensate this without using the hitbox and with a better authoritative positioning system
+      --local serverPosition = character.Hitbox:GetPivot().Position
+      --local authoritativePosition = serverPosition + (clientPosition - serverPosition) * 0.5
+      --character:PivotTo(CFrame.new(authoritativePosition))
 
       aiming[player] = os.clock()
       humanoid.WalkSpeed = 0

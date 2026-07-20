@@ -52,7 +52,6 @@ local solverTargetReplicationSchedule: { { Player: Player, SolverTarget: Vector3
 local playersSolverTarget: { [Player]: Vector3 } = {}
 
 local playerConnections: { [Player]: ConnectionsList.ConnectionsList } = {}
-local hitboxes: {[Player]: BasePart} = {}
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -70,10 +69,6 @@ local function onCharacterAdded(character: Model)
 end
 
 local function onCharacterRemoving(player: Player, character: Model)
-   if hitboxes[player] then
-      hitboxes[player]:Destroy()
-      hitboxes[player] = nil
-   end
 end
 
 local function applyAuthoritativeRotation(deltaTime: number)
@@ -90,10 +85,6 @@ local function applyAuthoritativeRotation(deltaTime: number)
 		end
 
       local cframe = CharacterLogic.stepRootYaw(rootPart.CFrame, solverTarget, deltaTime)
-      if hitboxes[player] then
-         hitboxes[player].Parent = character
-         hitboxes[player].CFrame = cframe
-      end
 		--rootPart.CFrame = cframe
 	end
 end
@@ -158,21 +149,6 @@ local function onCharacterLoaded(player: Player, character: Model, humanoid: Hum
       end
    end
 
-   local hitbox = rootPart:Clone()
-   for _, c in pairs(hitbox:GetChildren()) do
-      c:Destroy()
-   end
-   warn(`CREATING HITBOX!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!`)
-   hitbox.Name = "Hitbox"
-   hitbox.Size = Vector3.new(2.2, 2.2, 2.2)
-   hitbox.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
-   hitbox.Parent = character
-   hitboxes[player] = hitbox
-   hitbox.CollisionGroup = COLLISION_GROUP
-   hitbox.CanTouch = true
-   hitbox.CanQuery = true
-   hitbox.Transparency = .5
-
    character.DescendantAdded:Connect(function(d)
       if d:IsA("BasePart") or d:IsA("MeshPart") or d:IsA("Part") then
          d.CanCollide = false
@@ -223,11 +199,6 @@ function CharacterService.init()
 		if playerConnectionList then
 			playerConnectionList:Destroy()
 		end
-
-      if hitboxes[player] then
-         hitboxes[player]:Destroy()
-         hitboxes[player] = nil
-      end
 
 		playerConnections[player] = nil
 	end)
