@@ -42,6 +42,7 @@ do
 			if not module.Name:find("Service") then
 				continue
 			end
+         print("Requiring " .. module.Name)
 			table.insert(modules, { Name = module.Name, Module = require(module) })
 		end
 	end
@@ -55,6 +56,7 @@ do
 			continue
 		end
 
+      print("Requiring " .. module.Name)
 		table.insert(modules, { Name = module.Name, Module = require(module) })
 	end
 

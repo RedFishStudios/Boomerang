@@ -16,6 +16,8 @@ local WeaponLibrary = require(ReplicatedStorage.Shared.Library.WeaponLibrary)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local CharacterController = require(ReplicatedStorage.Client.Core.CharacterController)
+local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
+local AnimationLibrary = require(ReplicatedStorage.Shared.Library.AnimationLibrary)
 
 local ToolLogics = ReplicatedStorage.Shared.Logics.WeaponLogics
 local ToolLogicModules = {}
@@ -376,6 +378,15 @@ function WeaponController.init()
 
    local aiming = false
 
+   local gameStateData = GameStateLibrary.getGameStateData()
+   gameStateData.IsInRound:Subscribe(function(newValue: boolean)
+      if not newValue then
+         aiming = false
+         AnimationLibrary.stopCoreAnimation(Players.LocalPlayer, "Charging")
+         AnimationLibrary.stopCoreAnimation(Players.LocalPlayer, "Throw")
+      end
+   end)
+
 	UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessed: boolean)
 		if gameProcessed then
 			return
@@ -388,6 +399,7 @@ function WeaponController.init()
          end
          aimEvent:FireServer("ClassicBoomerang", Players.LocalPlayer.Character:GetPivot().Position)
 			aiming = true
+         AnimationLibrary.playCoreAnimation(Players.LocalPlayer, "Charging")
 		end
 
       if input.KeyCode == Enum.KeyCode.E then
@@ -404,6 +416,7 @@ function WeaponController.init()
          if aiming then
             aiming = false
             throwEvent:FireServer("ClassicBoomerang")
+            AnimationLibrary.playCoreAnimation(Players.LocalPlayer, "Throw")
          end
       end
    end)

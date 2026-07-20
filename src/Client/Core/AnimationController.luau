@@ -5,9 +5,13 @@
 
 local AnimationController = {}
 
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game.ReplicatedStorage
 
+local Animations = require(ReplicatedStorage.Shared.Constants.Animations)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
+local AnimationLibrary = require(ReplicatedStorage.Shared.Library.AnimationLibrary)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -21,6 +25,8 @@ local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 -- PRIVATE VARIABLES
 -------------------------------------------------------------------------------
 
+local player = Players.LocalPlayer
+
 local AnimationPlayedConnections: {
    [Player]: RBXScriptConnection
 } = {}
@@ -33,6 +39,42 @@ local AnimationPlayedConnections: {
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
 
+local function playLocalTestAnimation()
+   local humanoid = PlayersUtil.getHumanoid(player)
+   if not humanoid then
+      return
+   end
+
+   local animator = humanoid:FindFirstChildOfClass("Animator")
+   if not animator then
+      animator = Instance.new("Animator")
+      animator.Parent = humanoid
+   end
+
+   local animationData = Animations.Test
+   if not animationData then
+      return
+   end
+
+   local animation = Instance.new("Animation")
+   animation.AnimationId = string.format("rbxassetid://%d", animationData.Id)
+
+   local track = animator:LoadAnimation(animation)
+   animation:Destroy()
+   track.Looped = animationData.Looping
+   track:Play(animationData.FadeIn)
+end
+
+local function onInputBegan(input: InputObject, gameProcessedEvent: boolean)
+   if gameProcessedEvent then
+      return
+   end
+
+   if input.KeyCode == Enum.KeyCode.F then
+      playLocalTestAnimation()
+   end
+end
+
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
@@ -43,6 +85,8 @@ local AnimationPlayedConnections: {
 -------------------------------------------------------------------------------
 
 function AnimationController.init()
+   UserInputService.InputBegan:Connect(onInputBegan)
+
    PlayersUtil.CharacterLoaded:Add(function(player: Player, character: Model, humanoid: Humanoid)
       if AnimationPlayedConnections[player] then
          AnimationPlayedConnections[player]:Disconnect()
