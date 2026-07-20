@@ -136,7 +136,9 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
    local errorDistance = (authoritativePosition - currentPosition).Magnitude
    if errorDistance >= HARD_SNAP_DISTANCE then
       local currentPivot = thrownWeaponData.Host:GetPivot()
-      thrownWeaponData.Host:PivotTo((currentPivot - currentPivot.Position) + authoritativePosition)
+      local snappedCFrame = (currentPivot - currentPivot.Position) + authoritativePosition
+      thrownWeaponData.CFrame = snappedCFrame
+      thrownWeaponData.Host:PivotTo(snappedCFrame)
       thrownWeaponData.SyncTargetPosition = nil
       return
    end
@@ -167,7 +169,9 @@ local function updateSmoothing(deltaTime: number)
 
       local alpha = math.clamp(deltaTime * SOFT_CORRECTION_RATE, 0, 1)
       local correctedPosition = currentPosition:Lerp(targetPosition, alpha)
-      host:PivotTo((currentPivot - currentPivot.Position) + correctedPosition)
+      local correctedCFrame = (currentPivot - currentPivot.Position) + correctedPosition
+      thrownWeaponData.CFrame = correctedCFrame
+      host:PivotTo(correctedCFrame)
    end
 end
 

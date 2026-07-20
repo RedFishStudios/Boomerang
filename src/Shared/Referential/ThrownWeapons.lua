@@ -17,7 +17,7 @@ export type Data = {
    State: number,
 
    Host: (Part | Model)?,
-   ServerPivot: CFrame?,
+   CFrame: CFrame?,
    Direction: Vector3?,
    Speed: number?,
    SyncTargetPosition: Vector3?,
