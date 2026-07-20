@@ -170,7 +170,7 @@ local function onCharacterLoaded(player: Player, character: Model, humanoid: Hum
    hitbox.CollisionGroup = COLLISION_GROUP
    hitbox.CanTouch = true
    hitbox.CanQuery = true
-   hitbox.Transparency = 1
+   hitbox.Transparency = .5
 
    character.DescendantAdded:Connect(function(d)
       if d:IsA("BasePart") or d:IsA("MeshPart") or d:IsA("Part") then
@@ -231,6 +231,9 @@ function CharacterService.init()
 		playerConnections[player] = nil
 	end)
 
+   if 1==1 then
+      return
+   end
 	RunService.PostSimulation:Connect(onPostSimulation)
 end
 

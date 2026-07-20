@@ -218,12 +218,12 @@ end
 -------------------------------------------------------------------------------
 
 function CharacterController.init()
-	loadRemotes()
+	--loadRemotes()
 
-	RunService.PreSimulation:Connect(onPreSimulation)
-	RunService.RenderStepped:Connect(onRenderStepped)
-	workspace.Characters.ChildRemoved:Connect(onAnyCharacterRemoved)
-	Players.PlayerRemoving:Connect(onPlayerRemoving)
+	--RunService.PreSimulation:Connect(onPreSimulation)
+	--RunService.RenderStepped:Connect(onRenderStepped)
+	--workspace.Characters.ChildRemoved:Connect(onAnyCharacterRemoved)
+	--Players.PlayerRemoving:Connect(onPlayerRemoving)
 end
 
 function CharacterController.start() end

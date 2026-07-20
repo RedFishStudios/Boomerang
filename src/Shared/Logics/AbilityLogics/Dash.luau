@@ -12,8 +12,8 @@ local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 -- LOCAL VARIABLES
 -------------------------------------------------------------------------------
 
-local DASH_SPEED = 120
-local DASH_DURATION_SECONDS = 0.22
+local DASH_SPEED = 100
+local DASH_DURATION_SECONDS = 0.15
 local DASH_COOLDOWN_SECONDS = 1
 
 local activeDashConnections: {[Model]: RBXScriptConnection} = {}
