@@ -8,9 +8,9 @@ local isServer = RunService:IsServer()
 
 local ReplicatedStorage = game.ReplicatedStorage
 local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
+local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local BufferUtil = require(ReplicatedStorage.Shared.Utils.BufferUtil)
 local RaycastsUtility = require(ReplicatedStorage.Shared.Utils.RaycastsUtility)
-local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
 local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
@@ -44,6 +44,8 @@ local WEAPON_UNRELIABLE_CODES = RemoteCodes.Weapon.Unreliable
 local SPAWN_PACKET_SIZE = 8 + 12 + 12 + 4 + 8
 local DESPAWN_PACKET_SIZE = 8
 local SNAPSHOT_PACKET_SIZE = 1 + 8 + 12 + 12 + 4 + 1 + 8
+local RAYCAST_VISUALIZERS_ENABLED = GlobalConfig.RaycastVisualizersEnabled
+local PROJECTILE_HITBOX_VISUALIZER_ENABLED = GlobalConfig.ProjectileHitboxVisualizerEnabled
 
 type ThrowInitOptions = {
    StartPosition: Vector3?,
@@ -58,7 +60,7 @@ type RecallInitOptions = {
    InitialSpeed: number?
 }
 
-local function getCurrentArena(): Model?
+local function _getCurrentArena(): Model?
    local arenaFolder = workspace:FindFirstChild("Arenas")
    if not arenaFolder then
       return nil
@@ -81,6 +83,56 @@ local function getHorizontalRayOrigins(rayOrigin: Vector3, direction: Vector3, h
       rayOrigin - rightDirection * hitboxRadius,
       rayOrigin + rightDirection * hitboxRadius,
    }
+end
+
+local function getWeaponPivot(thrownWeaponData: ThrownWeapons.Data): CFrame?
+   local host = thrownWeaponData.Host
+   if host and host.Parent then
+      return host:GetPivot()
+   end
+
+   return thrownWeaponData.ServerPivot
+end
+
+local function setWeaponPivot(thrownWeaponData: ThrownWeapons.Data, pivot: CFrame)
+   thrownWeaponData.ServerPivot = pivot
+
+   local host = thrownWeaponData.Host
+   if host and host.Parent then
+      host:PivotTo(pivot)
+   end
+end
+
+local function updateRaycastVisualizers(weaponData: ThrownWeapons.Data, rayOrigin: Vector3, direction: Vector3, rayDistance: number, hitboxRadius: number, raycastResult: RaycastResult?, finalResult: RaycastResult?)
+   if not RAYCAST_VISUALIZERS_ENABLED then
+      return
+   end
+
+   for i, p in pairs(weaponData.TestRaycastVisualizers) do
+      if p and p.Parent then
+         p.Color = Color3.new(0.164706, 0.960784, 0.007843)
+         p.Transparency = .5
+      end
+   end
+
+   rayDistance = math.max(rayDistance, hitboxRadius)
+   local horizontalRayOrigins = getHorizontalRayOrigins(rayOrigin, direction, hitboxRadius)
+   local leftOrigin = horizontalRayOrigins[2]
+   local rightOrigin = horizontalRayOrigins[3]
+
+   weaponData.TestRaycastVisualizers[1].Position = rayOrigin + direction * rayDistance
+   weaponData.TestRaycastVisualizers[2].Position = leftOrigin + direction * rayDistance
+   weaponData.TestRaycastVisualizers[3].Position = rightOrigin + direction * rayDistance
+
+   if raycastResult then
+      weaponData.TestRaycastVisualizers[1].Position = raycastResult.Position
+      weaponData.TestRaycastVisualizers[1].Color = Color3.new(1, 0, 0)
+   end
+
+   if finalResult then
+      weaponData.TestRaycastVisualizers[3].Position = finalResult.Position
+      weaponData.TestRaycastVisualizers[3].Color = Color3.new(1, 0, 0)
+   end
 end
 
 -- // Notify all users of a boomerang spawn
@@ -138,42 +190,27 @@ local function raycastWithHorizontalHitbox(
    raycastParams: RaycastParams,
    weaponData: ThrownWeapons.Data
 ): RaycastResult?
-   for i, p in pairs(weaponData.TestRaycastVisualizers) do
-      if p and p.Parent then
-         p.Color = Color3.new(0.164706, 0.960784, 0.007843)
-         p.Transparency = 1
-      end
-   end
    rayDistance = math.max(rayDistance, hitboxRadius)
 
    local horizontalRayOrigins = getHorizontalRayOrigins(rayOrigin, direction, hitboxRadius)
-   local centerOrigin = horizontalRayOrigins[1]
    local leftOrigin = horizontalRayOrigins[2]
    local rightOrigin = horizontalRayOrigins[3]
 
-   -- Position all 3 raycast visualizers at the predicted raycast endpoints
-   weaponData.TestRaycastVisualizers[1].Position = centerOrigin + direction * rayDistance
-   weaponData.TestRaycastVisualizers[2].Position = leftOrigin + direction * rayDistance
-   weaponData.TestRaycastVisualizers[3].Position = rightOrigin + direction * rayDistance
-
    local raycastResult = RaycastsUtility.raycastProjectileObstruction(rayOrigin, direction, rayDistance, raycastParams)
    if raycastResult then
-      weaponData.TestRaycastVisualizers[1].Position = raycastResult.Position
-      weaponData.TestRaycastVisualizers[1].Color = Color3.new(1, 0, 0)
+      updateRaycastVisualizers(weaponData, rayOrigin, direction, rayDistance, hitboxRadius, raycastResult, nil)
       return raycastResult
    end
 
    raycastResult = RaycastsUtility.raycastProjectileObstruction(leftOrigin, direction, rayDistance, raycastParams)
    if raycastResult then
-      weaponData.TestRaycastVisualizers[2].Position = raycastResult.Position
-      weaponData.TestRaycastVisualizers[2].Color = Color3.new(1, 0, 0)
+      updateRaycastVisualizers(weaponData, rayOrigin, direction, rayDistance, hitboxRadius, raycastResult, nil)
       return raycastResult
    end
 
    local finalResult = RaycastsUtility.raycastProjectileObstruction(rightOrigin, direction, rayDistance, raycastParams)
    if finalResult then
-      weaponData.TestRaycastVisualizers[3].Position = finalResult.Position
-      weaponData.TestRaycastVisualizers[3].Color = Color3.new(1, 0, 0)
+      updateRaycastVisualizers(weaponData, rayOrigin, direction, rayDistance, hitboxRadius, nil, finalResult)
    end
    return finalResult
 end
@@ -239,14 +276,18 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    local bounced = false
 
    if isServer then
-      -- Server creates and monitors a simple representation part
-      local partHost = ThrownWeaponReplicationPart:Clone()
-      partHost.Name = `BoomerangReplication_{player.Name}`
-      partHost.Position = startPosition
-      partHost.Parent = ThrownWeaponsFolder
       fireSpawned(player.UserId, boomerangId, startPosition, direction, speed, throwServerTime)
-      thrownWeaponData.Host = partHost
       thrownWeaponData.State = ThrownWeapons.StateEnum.Outgoing
+      if PROJECTILE_HITBOX_VISUALIZER_ENABLED then
+         -- Server creates and monitors a simple representation part for debugging.
+         local partHost = ThrownWeaponReplicationPart:Clone()
+         partHost.Name = `BoomerangReplication_{player.Name}`
+         partHost.Position = startPosition
+         partHost.Parent = ThrownWeaponsFolder
+         thrownWeaponData.Host = partHost
+      else
+         thrownWeaponData.ServerPivot = CFrame.new(startPosition)
+      end
    else
       -- Client creates and monitors the actual 3D model of the projectile
       local boomerangModel = ReplicatedStorage.Shared.Assets.Tools.ClassicBoomerang:Clone()
@@ -257,7 +298,10 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       thrownWeaponData.Host = boomerangModel
    end
 
-   local obstructionFilter = {thrownWeaponData.Host, Characters, character}
+   local obstructionFilter = {Characters, character}
+   if thrownWeaponData.Host then
+      table.insert(obstructionFilter, 1, thrownWeaponData.Host)
+   end
    local raycastParams = RaycastsUtility.getProjectileObstructionParams(obstructionFilter)
    local nextReplicationAt = 0
 
@@ -281,7 +325,12 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       end
 
       -- Raycast in front of the boomerang to detect collisions with walls or other obstacles
-      local rayOrigin = thrownWeaponData.Host:GetPivot().Position
+      local pivot = getWeaponPivot(thrownWeaponData)
+      if not pivot then
+         return false
+      end
+
+      local rayOrigin = pivot.Position
       local rayDistance = speed * deltaTime
 
       -- Distance-based recall
@@ -336,8 +385,8 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          return true
       end
 
-      local currentCFrame = thrownWeaponData.Host:GetPivot()
-      thrownWeaponData.Host:PivotTo(currentCFrame + direction * speed * deltaTime)
+      local currentCFrame = pivot
+      setWeaponPivot(thrownWeaponData, currentCFrame + direction * speed * deltaTime)
       thrownWeaponData.Direction = direction
       thrownWeaponData.Speed = speed
       return true
@@ -362,9 +411,10 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          return
       end
 
-      if isServer and time >= nextReplicationAt and thrownWeaponData.Host and thrownWeaponData.Host.Parent then
+      local currentPivot = getWeaponPivot(thrownWeaponData)
+      if isServer and time >= nextReplicationAt and currentPivot then
          nextReplicationAt = time + REPLICATION_RATE
-         fireSnapshot(player.UserId, thrownWeaponData.Host:GetPivot().Position, direction, speed, thrownWeaponData.State)
+         fireSnapshot(player.UserId, currentPivot.Position, direction, speed, thrownWeaponData.State)
       end
    end)
 end
@@ -387,6 +437,7 @@ function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapo
       thrownWeaponData.MovementConnection:Disconnect()
       thrownWeaponData.MovementConnection = nil
    end
+   thrownWeaponData.ServerPivot = nil
    ThrownWeapons.Data[player] = nil
 end
 
@@ -400,9 +451,10 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       print(`no character`)
       return
    end
-   local host = thrownWeaponData.Host  
-   if not host or not host.Parent then
-      warn(`no host found for thrown tool`)
+   local host = thrownWeaponData.Host
+   local hostPivot = getWeaponPivot(thrownWeaponData)
+   if not host and not hostPivot then
+      warn(`no host position found for thrown tool`)
       return
    end
    if thrownWeaponData.State == ThrownWeapons.StateEnum.Returning then
@@ -441,7 +493,14 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       end
 
       -- // Prioritize movement towards the player
-      local toPlayer = (rootPart.Position - host:GetPivot().Position)
+      local hostPivot = getWeaponPivot(thrownWeaponData)
+      if not hostPivot then
+         thrownWeaponData.MovementConnection:Disconnect()
+         thrownWeaponData.MovementConnection = nil
+         return
+      end
+
+      local toPlayer = (rootPart.Position - hostPivot.Position)
       local distance = toPlayer.Magnitude
       if distance <= 1e-5 then
          Boomerang.removeFromField(player, thrownWeaponData)
@@ -450,7 +509,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       local direction = toPlayer.Unit
 
       -- // Raycast in that direction for an obstruction
-      local rayOrigin = host:GetPivot().Position
+      local rayOrigin = hostPivot.Position
       local rayDistance = (math.max(speed, hitboxRadius)) * deltaTime
       local raycastResult = raycastWithHorizontalHitbox(rayOrigin, direction, rayDistance, hitboxRadius, raycastParams, thrownWeaponData)
       local sliding = false
@@ -491,9 +550,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
             return
          end
 
-         host:PivotTo(
-            host:GetPivot() + slideDirection * slideDistance
-         )
+         setWeaponPivot(thrownWeaponData, hostPivot + slideDirection * slideDistance)
       else
          slideMomentum = math.clamp(slideMomentum - (deltaTime * 10), 0, 1)
          local blendedDirection = slideDirection * slideMomentum + direction * (1 - slideMomentum)
@@ -502,7 +559,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
 
          speed = math.min(speed + deltaTime * 100, toolData.Boomerang.Speed)
          slideSpeed = speed
-         host:PivotTo(host:GetPivot() + blendedDirection * blendedSpeed * deltaTime)
+         setWeaponPivot(thrownWeaponData, hostPivot + blendedDirection * blendedSpeed * deltaTime)
       end
 
       local victimModels = raycastWithHorizontalCharacterHitbox(rayOrigin, if sliding then slideDirection else direction, hitboxRadius)
@@ -525,9 +582,10 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       thrownWeaponData.Direction = direction
       thrownWeaponData.Speed = math.max(speed, slideSpeed)
 
-      if isServer and os.clock() >= nextReplicationAt and host and host.Parent then
+      local currentPivot = getWeaponPivot(thrownWeaponData)
+      if isServer and os.clock() >= nextReplicationAt and currentPivot then
          nextReplicationAt = os.clock() + REPLICATION_RATE
-         fireSnapshot(player.UserId, host:GetPivot().Position, direction, thrownWeaponData.Speed, thrownWeaponData.State)
+         fireSnapshot(player.UserId, currentPivot.Position, direction, thrownWeaponData.Speed, thrownWeaponData.State)
       end
 
       if distance <= speed * deltaTime then
@@ -536,13 +594,14 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       end
    end)
 
-   if isServer and host and host.Parent then
+   local currentPivot = getWeaponPivot(thrownWeaponData)
+   if isServer and currentPivot then
       local rootPart = character and character.PrimaryPart
       local immediateDirection = thrownWeaponData.Direction or Vector3.zero
       if rootPart then
-         immediateDirection = getHorizontalDirection(rootPart.Position - host:GetPivot().Position)
+         immediateDirection = getHorizontalDirection(rootPart.Position - currentPivot.Position)
       end
-      fireSnapshot(player.UserId, host:GetPivot().Position, immediateDirection, thrownWeaponData.Speed or speed, thrownWeaponData.State)
+      fireSnapshot(player.UserId, currentPivot.Position, immediateDirection, thrownWeaponData.Speed or speed, thrownWeaponData.State)
    end
 end
 

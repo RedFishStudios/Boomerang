@@ -172,16 +172,6 @@ function WeaponService.init()
          ReplicationPart = nil,
          TestRaycastVisualizers = {}
       }
-      for i = 1, 3 do
-         local part = Instance.new("Part")
-         part.Size = Vector3.new(1, 1, 1)
-         part.Anchored = true
-         part.CanTouch = false
-         part.CanQuery = false
-         part.CanCollide = false
-         part.Parent = workspace
-         ThrownWeapons.Data[player].TestRaycastVisualizers[i] = part
-      end
 
       local Logic = getLogic(toolData.LogicClass)
       if not Logic or not Logic.throw then
@@ -230,23 +220,23 @@ function WeaponService.init()
    end)
 
    PlayersUtil.CharacterLoaded:Add(function(player: Player, character: Model, humanoid: Humanoid, rootPart: BasePart)
-      if equippedTools[player] then
-         equippedTools[player]:Destroy()
-         equippedTools[player] = nil
-      end
-      local equippedBoomerang = "ClassicBoomerang" -- TODO: get from player data
-      local toolModel = ToolModels[equippedBoomerang] and ToolModels[equippedBoomerang]:Clone()
-      if toolModel then
-         humanoid:EquipTool(toolModel)
-         equippedTools[player] = toolModel
-      end
+      -- if equippedTools[player] then
+      --    equippedTools[player]:Destroy()
+      --    equippedTools[player] = nil
+      -- end
+      -- local equippedBoomerang = "ClassicBoomerang" -- TODO: get from player data
+      -- local toolModel = ToolModels[equippedBoomerang] and ToolModels[equippedBoomerang]:Clone()
+      -- if toolModel then
+      --    humanoid:EquipTool(toolModel)
+      --    equippedTools[player] = toolModel
+      -- end
    end)
 
    PlayersUtil.CharacterDestroying:Add(function(player: Player, character: Model)
-      if equippedTools[player] then
-         equippedTools[player]:Destroy()
-         equippedTools[player] = nil
-      end
+      -- if equippedTools[player] then
+      --    equippedTools[player]:Destroy()
+      --    equippedTools[player] = nil
+      -- end
 
       local thrownWeaponData = ThrownWeapons.Data[player]
       if thrownWeaponData then

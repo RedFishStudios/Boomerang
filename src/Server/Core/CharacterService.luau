@@ -94,7 +94,7 @@ local function applyAuthoritativeRotation(deltaTime: number)
          hitboxes[player].Parent = character
          hitboxes[player].CFrame = cframe
       end
-		rootPart.CFrame = cframe
+		--rootPart.CFrame = cframe
 	end
 end
 
@@ -162,6 +162,7 @@ local function onCharacterLoaded(player: Player, character: Model, humanoid: Hum
    for _, c in pairs(hitbox:GetChildren()) do
       c:Destroy()
    end
+   warn(`CREATING HITBOX!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!`)
    hitbox.Name = "Hitbox"
    hitbox.Size = Vector3.new(2.2, 2.2, 2.2)
    hitbox.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
@@ -231,9 +232,6 @@ function CharacterService.init()
 		playerConnections[player] = nil
 	end)
 
-   if 1==1 then
-      return
-   end
 	RunService.PostSimulation:Connect(onPostSimulation)
 end
 

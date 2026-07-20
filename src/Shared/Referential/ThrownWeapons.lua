@@ -16,7 +16,8 @@ export type Data = {
    ToolId: string,
    State: number,
 
-   Host: Part | Model,
+   Host: (Part | Model)?,
+   ServerPivot: CFrame?,
    Direction: Vector3?,
    Speed: number?,
    SyncTargetPosition: Vector3?,

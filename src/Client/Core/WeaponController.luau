@@ -61,6 +61,10 @@ local function getLogic(toolId: string)
 end
 
 local function createRaycastVisualizers()
+   if not GlobalConfig.RaycastVisualizersEnabled then
+      return {}
+   end
+
    local visualizers = {}
    for i = 1, 3 do
       local part = Instance.new("Part")
