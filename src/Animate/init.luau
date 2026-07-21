@@ -44,6 +44,12 @@ local function printAnimState(animState: AnimationStateAttributesType)
 end
 
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+
+local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
+
+local animationReplicationEvent = SimpleRemotes.getEvent("AnimateReplication")
 
 --------------------------------------------------------------------------------
 -- CONSTANTS (rig-independent)
@@ -223,6 +229,8 @@ function module.setupAnimation(character)
 	local frameRngTime = -1 -- The time() for which frameRng was created
 	local player = Players:GetPlayerFromCharacter(character)
 	local animateUserId = if player then player.UserId else 0
+	local localPlayer = Players.LocalPlayer
+	local shouldReplicateAnimationPlays = localPlayer ~= nil and localPlayer.Character == character
 
 	---------------------------------------------------------
 	-- FOR DEBUGGING:
@@ -590,6 +598,14 @@ function module.setupAnimation(character)
 		animState.currentAnimTimeRemaining = timeToNextAnimation or 0
 	end
 
+	local function replicateAnimationPlay(animationId: number, startedAt: number, speed: number, isLooped: boolean, transitionTime: number)
+		if not shouldReplicateAnimationPlays then
+			return
+		end
+
+		animationReplicationEvent:FireServer(animationId, startedAt, speed, isLooped, transitionTime)
+	end
+
     local function transitionToQueuedAnimation(animState: AnimationStateAttributesType)
 		local queuedPose = animState.queuedPose
 		local queuedAnimIsEmote = queuedPose:sub(1, 6) == "EMOTE_"
@@ -722,6 +738,8 @@ function module.setupAnimation(character)
 			animState.queuedAnimSpeed = 0
 			animState.queuedTransitionTime = 0
 		end
+
+		replicateAnimationPlay(newAnimId, Workspace:GetServerTimeNow(), animTrack.Speed, animTrack.Looped, animState.queuedTransitionTime)
 	end
 
 	------------------------------------------------------------------------------------------------------------

@@ -59,6 +59,14 @@ local recallEvent = SimpleRemotes.getEvent("WeaponRecall")
 local aiming: {[Player]: number} = {}
 local equippedTools: {[Player]: Tool} = {}
 
+local function getHorizontalDirection(direction: Vector3): Vector3
+   local horizontal = Vector3.new(direction.X, 0, direction.Z)
+   if horizontal.Magnitude <= 1e-5 then
+      return Vector3.new(0, 0, -1)
+   end
+   return horizontal.Unit
+end
+
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
 -------------------------------------------------------------------------------
@@ -139,7 +147,7 @@ function WeaponService.init()
    end)
 
    -- // Throw boomerang
-	throwEvent.OnServerEvent:Connect(function(player: Player, toolId: string)
+	throwEvent.OnServerEvent:Connect(function(player: Player, toolId: string, clientDirection: Vector3?)
       local timeSinceAiming = os.clock() - (aiming[player] or os.clock())
       timeSinceAiming = math.clamp(timeSinceAiming, 0, GlobalConfig.AimFullStrength)
       local aimStrengthAlpha = timeSinceAiming / GlobalConfig.AimFullStrength
@@ -168,6 +176,15 @@ function WeaponService.init()
       end
       local toolData = Tools[toolId]
 
+      if not character or not character.PrimaryPart then
+         return
+      end
+
+      local trustedDirection = getHorizontalDirection(
+         if typeof(clientDirection) == "Vector3" then clientDirection else character.PrimaryPart.CFrame.LookVector
+      )
+      local trustedStartPosition = character.PrimaryPart.Position + trustedDirection * 3
+
       ThrownWeapons.Data[player] = {
          ToolId = toolId,
          State = ThrownWeapons.StateEnum.Outgoing,
@@ -181,6 +198,8 @@ function WeaponService.init()
          return
       end
       Logic.throw(player, toolId, toolData, ThrownWeapons.Data[player], {
+         Direction = trustedDirection,
+         StartPosition = trustedStartPosition,
          TimeSinceAiming = timeSinceAiming,
          AimStrengthAlpha = aimStrengthAlpha,
       })

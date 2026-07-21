@@ -4,11 +4,13 @@ local CharacterReplicationService = {}
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 
 local GlobalInstanceService = require(ServerStorage.Server.Services.GlobalInstanceService)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
-local animationReplicationEvent = SimpleRemotes.getEvent("CharacterAnimationReplication")
+local BufferUtil = require(ReplicatedStorage.Shared.Utils.BufferUtil)
+local unreliableEvent = SimpleRemotes.getUnreliableEvent("CharacterReplication")
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -27,21 +29,10 @@ local animationReplicationEvent = SimpleRemotes.getEvent("CharacterAnimationRepl
 -------------------------------------------------------------------------------
 
 function CharacterReplicationService.init()
-	animationReplicationEvent.OnServerEvent:Connect(function(player: Player, animationState: string, startedAt: number)
-		if animationState ~= "Walk" and animationState ~= "Idle" then
-			return
-		end
-
-		local character = player.Character
-		if not character then
-			return
-		end
-
-		animationReplicationEvent:FireAllClients(GlobalInstanceService.getId(character), animationState, startedAt)
-	end)
 end
 
-function CharacterReplicationService.start() end
+function CharacterReplicationService.start()
+end
 
 function CharacterReplicationService.test() end
 

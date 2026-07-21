@@ -20,15 +20,6 @@ local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 -------------------------------------------------------------------------------
 
 local CharactersFolder = game.Workspace.Characters
-local unreliableEvent = SimpleRemotes.getUnreliableEvent("CharacterReplication")
-
-local renders: {
-   [Model]: {
-      Model: Model,
-      HipHeight: number,
-      LastPosition: Vector3?
-   }
-} = {}
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -39,9 +30,7 @@ local renders: {
 -------------------------------------------------------------------------------
 
 local function onCharacterLoaded(player, character, humanoid: Humanoid, primaryPart: Part)
-   humanoid.StateChanged:Connect(function(oldState, newState)
-      print(newState)
-   end)
+
 end
 
 -------------------------------------------------------------------------------

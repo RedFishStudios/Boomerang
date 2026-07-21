@@ -423,7 +423,11 @@ function WeaponController.init()
       if input.UserInputType == Enum.UserInputType.MouseButton2 then
          if aiming then
             aiming = false
-            throwEvent:FireServer("ClassicBoomerang")
+            local localCharacter = Players.LocalPlayer.Character
+            local direction = if localCharacter and localCharacter.PrimaryPart
+               then getHorizontalDirection(localCharacter.PrimaryPart.CFrame.LookVector)
+               else Vector3.new(0, 0, -1)
+            throwEvent:FireServer("ClassicBoomerang", direction)
             AnimationLibrary.playCoreAnimation(Players.LocalPlayer, "Throw")
          end
       end

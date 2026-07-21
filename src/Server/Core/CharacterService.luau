@@ -93,9 +93,7 @@ local function applyAuthoritativeRotation(deltaTime: number)
 
 		local cframe = CharacterLogic.stepRootYawToAngle(rootPart.CFrame, solverAngles.Yaw, deltaTime)
       local hitbox = HitboxService.getHitbox(player)
-      if hitbox then
-       --  hitbox.CFrame = cframe
-      end
+      rootPart.CFrame = cframe
 	end
 end
 
