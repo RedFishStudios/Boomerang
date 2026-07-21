@@ -54,7 +54,7 @@ local function onCharacterLoaded(player: Player, character: Model, humanoid: Hum
    local hitbox = Instance.new("Part")
    hitbox.Size = Vector3.new(2.2, 2.2, 2.2)
    hitbox.CustomPhysicalProperties = PhysicalProperties.new(.1, .1, .1, .1, .1)
-   hitbox.Anchored = true
+   hitbox.Anchored = false
    hitbox.CFrame = rootPart.CFrame
    hitbox.Parent = character
    hitbox.CanCollide = false
@@ -62,6 +62,11 @@ local function onCharacterLoaded(player: Player, character: Model, humanoid: Hum
    hitbox.CanQuery = true
    hitbox.Transparency = .5
    hitbox.Name = "Hitbox"
+
+   local weld = Instance.new("WeldConstraint")
+   weld.Part0 = hitbox
+   weld.Part1 = rootPart
+   weld.Parent = hitbox
 
    hitboxes[player] = hitbox
 end
