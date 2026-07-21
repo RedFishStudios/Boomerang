@@ -467,7 +467,7 @@ function ClickToMoveDisplay.PlayFailureAnimation()
 	local myHumanoid = findPlayerHumanoid()
 	if myHumanoid then
 		local animationTrack = getFailureAnimationTrack(myHumanoid)
-		-- animationTrack:Play() -- Disabled on startup; leave setup intact so this can be re-enabled quickly.
+		animationTrack:Play()
 	end
 end
 

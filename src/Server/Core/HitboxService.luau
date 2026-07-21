@@ -56,7 +56,7 @@ local function onCharacterLoaded(player: Player, character: Model, humanoid: Hum
    hitbox.CustomPhysicalProperties = PhysicalProperties.new(.1, .1, .1, .1, .1)
    hitbox.Anchored = true
    hitbox.CFrame = rootPart.CFrame
-   hitbox.Parent = workspace
+   hitbox.Parent = character
    hitbox.CanCollide = false
    hitbox.CanTouch = true
    hitbox.CanQuery = true
@@ -81,6 +81,9 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
+function HitboxService.getHitbox(player)
+   return hitboxes[player]
+end
 
 -------------------------------------------------------------------------------
 -- CORE FUNCTIONS

@@ -35,6 +35,21 @@
       "StarterPlayer": {
          "$className": "StarterPlayer",
          "$ignoreUnknownInstances": true,
+         "PlayerModule": {
+            "$path": "src/PlayerModule",
+            "ServerAuthority": {
+               "ServerAuthorityClient": {
+                  "$properties": {
+                     "Enabled": false
+                  }
+               },
+               "ServerAuthorityServer": {
+                  "$properties": {
+                     "Enabled": false
+                  }
+               }
+            }
+         },
          "StarterPlayerScripts": {
             "Client": {
                "$path": "src/Client.client.luau"

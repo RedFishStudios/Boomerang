@@ -2,7 +2,7 @@
 	<Meta name="ExplicitAutoJoints">true</Meta>
 	<External>null</External>
 	<External>nil</External>
-	<Item class="InputContext" referent="RBX1864C78C33294E30B537AB9313E9EE3F">
+	<Item class="InputContext" referent="RBX65B4B7FC6B044D328A082078E0201729">
 		<Properties>
 			<bool name="Enabled">true</bool>
 			<int name="Priority">100</int>
@@ -14,7 +14,7 @@
 			<int64 name="SourceAssetId">-1</int64>
 			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 		</Properties>
-		<Item class="InputAction" referent="RBXEA9B827416604B82BABDB25145D04530">
+		<Item class="InputAction" referent="RBX7F21F422D2E94FB6B096D8001E24564D">
 			<Properties>
 				<bool name="Enabled">false</bool>
 				<token name="Type">0</token>
@@ -25,7 +25,7 @@
 				<int64 name="SourceAssetId">-1</int64>
 				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			</Properties>
-			<Item class="InputBinding" referent="RBX7F28FA1090CB49548467F204BEE95EAD">
+			<Item class="InputBinding" referent="RBX54B54BB63C6A486AB36C0EDB2C96335E">
 				<Properties>
 					<token name="Backward">0</token>
 					<bool name="ClampMagnitudeToOne">true</bool>
@@ -66,7 +66,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="InputBinding" referent="RBX2102A8A297EE4BB7A6DD0E8EA737773E">
+			<Item class="InputBinding" referent="RBXAC700861F3F0472AA51BA46F4EF36EC4">
 				<Properties>
 					<token name="Backward">0</token>
 					<bool name="ClampMagnitudeToOne">true</bool>
@@ -108,7 +108,7 @@
 				</Properties>
 			</Item>
 		</Item>
-		<Item class="InputAction" referent="RBX4E039BC7DBF1424584BA40142CD5197E">
+		<Item class="InputAction" referent="RBX50B15F89495240D587A761252435EEA1">
 			<Properties>
 				<bool name="Enabled">false</bool>
 				<token name="Type">0</token>
@@ -119,7 +119,7 @@
 				<int64 name="SourceAssetId">-1</int64>
 				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			</Properties>
-			<Item class="InputBinding" referent="RBX5CF5D0EEB56343EEA2CE35B7B5021888">
+			<Item class="InputBinding" referent="RBX710E6BE782A94C4D914C1DB2AB273074">
 				<Properties>
 					<token name="Backward">0</token>
 					<bool name="ClampMagnitudeToOne">true</bool>
@@ -161,7 +161,7 @@
 				</Properties>
 			</Item>
 		</Item>
-		<Item class="InputAction" referent="RBX722BF2ADED2B462B90117BDFCC51FF30">
+		<Item class="InputAction" referent="RBX023C28651A5F4C8C8843C1CC5EE0AA38">
 			<Properties>
 				<bool name="Enabled">false</bool>
 				<token name="Type">0</token>
@@ -172,7 +172,7 @@
 				<int64 name="SourceAssetId">-1</int64>
 				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			</Properties>
-			<Item class="InputBinding" referent="RBXCACC9AA0CDB244EF8CFC2012861F7AED">
+			<Item class="InputBinding" referent="RBX349E5BBE731F4D3981B0C0C9A529E178">
 				<Properties>
 					<token name="Backward">0</token>
 					<bool name="ClampMagnitudeToOne">true</bool>
@@ -213,7 +213,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="InputBinding" referent="RBX2FB648AD3FCB4D77BEE60A8BBAC2E148">
+			<Item class="InputBinding" referent="RBXC79713F0174F43E39D8C28F424808F2D">
 				<Properties>
 					<token name="Backward">0</token>
 					<bool name="ClampMagnitudeToOne">true</bool>
@@ -255,7 +255,7 @@
 				</Properties>
 			</Item>
 		</Item>
-		<Item class="InputAction" referent="RBXFCD2629A932D413086237A398823C591">
+		<Item class="InputAction" referent="RBXCEA36479A30646DCB2FDFA1C6E898019">
 			<Properties>
 				<bool name="Enabled">false</bool>
 				<token name="Type">1</token>
@@ -266,7 +266,7 @@
 				<int64 name="SourceAssetId">-1</int64>
 				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			</Properties>
-			<Item class="InputBinding" referent="RBXA2DF5F3C12FB4D96B48009CD6ADD84A8">
+			<Item class="InputBinding" referent="RBX84AE2F5D7270443CBCA699E7C62C3C98">
 				<Properties>
 					<token name="Backward">0</token>
 					<bool name="ClampMagnitudeToOne">true</bool>
@@ -307,7 +307,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="InputBinding" referent="RBX45FA03F3E02F47D7AEB39D3E87975B75">
+			<Item class="InputBinding" referent="RBX156E23391EF24A6BAACC266AE85709B5">
 				<Properties>
 					<token name="Backward">0</token>
 					<bool name="ClampMagnitudeToOne">true</bool>
@@ -348,7 +348,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="InputBinding" referent="RBXD75680FE28FD407BAA8CB13A1CFEE725">
+			<Item class="InputBinding" referent="RBXF6B5D84FE4394343ACF5491FAFAF7FD1">
 				<Properties>
 					<token name="Backward">0</token>
 					<bool name="ClampMagnitudeToOne">true</bool>
@@ -389,7 +389,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="InputBinding" referent="RBXB79ED0A959584674A6421F8D5FA71901">
+			<Item class="InputBinding" referent="RBX3987C194C9734314B84DE38F77B4D4C1">
 				<Properties>
 					<token name="Backward">0</token>
 					<bool name="ClampMagnitudeToOne">true</bool>
@@ -431,7 +431,7 @@
 				</Properties>
 			</Item>
 		</Item>
-		<Item class="InputAction" referent="RBX41EF2D56455F4802ADC81F2271262E98">
+		<Item class="InputAction" referent="RBX5516D98F7921458F9703BD039CAC59F8">
 			<Properties>
 				<bool name="Enabled">true</bool>
 				<token name="Type">3</token>
@@ -442,7 +442,7 @@
 				<int64 name="SourceAssetId">-1</int64>
 				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			</Properties>
-			<Item class="InputBinding" referent="RBX31D06C32095B4268A6D60E60D87280C6">
+			<Item class="InputBinding" referent="RBXDE97E519EE434D769B6EC1873F20EAA6">
 				<Properties>
 					<token name="Backward">0</token>
 					<bool name="ClampMagnitudeToOne">true</bool>
@@ -484,7 +484,7 @@
 				</Properties>
 			</Item>
 		</Item>
-		<Item class="InputAction" referent="RBX0F0DF3C79B4C4A218A98DFF5B35F15C2">
+		<Item class="InputAction" referent="RBX77FF9F27E6004F1BBB0BABF4DA9891B6">
 			<Properties>
 				<bool name="Enabled">false</bool>
 				<token name="Type">2</token>
@@ -495,7 +495,7 @@
 				<int64 name="SourceAssetId">-1</int64>
 				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			</Properties>
-			<Item class="InputBinding" referent="RBX8AAE1BE91632478C8F5E9132D55228B0">
+			<Item class="InputBinding" referent="RBXAE3B3B24C1F4485CB23692CA9E7F62B0">
 				<Properties>
 					<token name="Backward">0</token>
 					<bool name="ClampMagnitudeToOne">true</bool>
@@ -536,7 +536,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="InputBinding" referent="RBX1A7902B0CCE743AEAB29E08832F59D30">
+			<Item class="InputBinding" referent="RBXF190D55DCCED4DB0ABEDFDE60FABA420">
 				<Properties>
 					<token name="Backward">0</token>
 					<bool name="ClampMagnitudeToOne">true</bool>
@@ -577,7 +577,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="InputBinding" referent="RBX58964B860F9E4A3ABA1EFE5E37DBE97F">
+			<Item class="InputBinding" referent="RBX4B458A2E14B1422CB5831FFB65D34278">
 				<Properties>
 					<token name="Backward">0</token>
 					<bool name="ClampMagnitudeToOne">true</bool>
@@ -618,7 +618,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="InputBinding" referent="RBX0BDC226F776143A0A1F6A8AFF1D94C34">
+			<Item class="InputBinding" referent="RBX8C1903C126B541FE9390993F934D0DEA">
 				<Properties>
 					<token name="Backward">0</token>
 					<bool name="ClampMagnitudeToOne">true</bool>
@@ -659,7 +659,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="InputBinding" referent="RBX039EEF8FA1614192ABB205D7B9940AA4">
+			<Item class="InputBinding" referent="RBXDB0A4B65270C4C5F8F733689EA62A4EA">
 				<Properties>
 					<token name="Backward">0</token>
 					<bool name="ClampMagnitudeToOne">true</bool>
@@ -701,7 +701,7 @@
 				</Properties>
 			</Item>
 		</Item>
-		<Item class="InputAction" referent="RBXD9C53C4E785E404A9D7DACAAAA62B98D">
+		<Item class="InputAction" referent="RBX972F0EF0E20D4AD7AD66BF19511ECFE1">
 			<Properties>
 				<bool name="Enabled">false</bool>
 				<token name="Type">0</token>
@@ -712,7 +712,7 @@
 				<int64 name="SourceAssetId">-1</int64>
 				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			</Properties>
-			<Item class="InputBinding" referent="RBX44C73770933C4837890D2D6B6A0C1DEC">
+			<Item class="InputBinding" referent="RBXE5DCDFD7C4444FFB80A309EE46227570">
 				<Properties>
 					<token name="Backward">0</token>
 					<bool name="ClampMagnitudeToOne">true</bool>
@@ -754,7 +754,7 @@
 				</Properties>
 			</Item>
 		</Item>
-		<Item class="InputAction" referent="RBX339743A7E85547A5937830799A890A5E">
+		<Item class="InputAction" referent="RBXFACB90A878CF4945808AE39986FE080E">
 			<Properties>
 				<bool name="Enabled">false</bool>
 				<token name="Type">0</token>
@@ -765,7 +765,7 @@
 				<int64 name="SourceAssetId">-1</int64>
 				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			</Properties>
-			<Item class="InputBinding" referent="RBX6741929B7F7E49BC89A2214414CBE087">
+			<Item class="InputBinding" referent="RBX35FF1DE1031B41689BEF4B2D986F8B5B">
 				<Properties>
 					<token name="Backward">0</token>
 					<bool name="ClampMagnitudeToOne">true</bool>

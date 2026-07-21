@@ -2,7 +2,7 @@
 	<Meta name="ExplicitAutoJoints">true</Meta>
 	<External>null</External>
 	<External>nil</External>
-	<Item class="InputContext" referent="RBX046F1844D97A4DE091150CF9BB641BBA">
+	<Item class="InputContext" referent="RBX89F27F36E3B349F5AE858B7C0872B774">
 		<Properties>
 			<bool name="Enabled">false</bool>
 			<int name="Priority">200</int>
@@ -14,7 +14,7 @@
 			<int64 name="SourceAssetId">-1</int64>
 			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 		</Properties>
-		<Item class="InputAction" referent="RBXCFB7561786B04E04B895B4398CFC2973">
+		<Item class="InputAction" referent="RBXD48B9666594F4F919BBE2613A7654828">
 			<Properties>
 				<bool name="Enabled">true</bool>
 				<token name="Type">1</token>
@@ -25,7 +25,7 @@
 				<int64 name="SourceAssetId">-1</int64>
 				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			</Properties>
-			<Item class="InputBinding" referent="RBX25EC20B8BDCD47E29C7A1F1D13999F6D">
+			<Item class="InputBinding" referent="RBXC8766C42EC4C45F8AC5C06288412FE39">
 				<Properties>
 					<token name="Backward">0</token>
 					<bool name="ClampMagnitudeToOne">true</bool>
@@ -67,7 +67,7 @@
 				</Properties>
 			</Item>
 		</Item>
-		<Item class="InputAction" referent="RBXF1CA68981EF44675AF34CF3BE1CD1B08">
+		<Item class="InputAction" referent="RBX4110D90C287F470786EABB180D3F6308">
 			<Properties>
 				<bool name="Enabled">true</bool>
 				<token name="Type">1</token>
@@ -78,7 +78,7 @@
 				<int64 name="SourceAssetId">-1</int64>
 				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			</Properties>
-			<Item class="InputBinding" referent="RBX7A546C9DE5E145A589C6E7FB299994E0">
+			<Item class="InputBinding" referent="RBXF1601217A0E44291B0FA01C150D6F674">
 				<Properties>
 					<token name="Backward">0</token>
 					<bool name="ClampMagnitudeToOne">true</bool>

@@ -26,15 +26,17 @@ local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local SimpleRemotesUtil = require(ReplicatedStorage.Shared.Networking.SimpleRemotesUtil)
 local BufferUtil = require(ReplicatedStorage.Shared.Utils.BufferUtil)
-local PartUtil = require(ReplicatedStorage.Shared.Utils.PartUtil)
+local _PartUtil = require(ReplicatedStorage.Shared.Utils.PartUtil)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
+local HitboxService = require(ServerStorage.Server.Core.HitboxService)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
 local UNRELIABLE_CODES = RemoteCodes.Character.Unreliable
-local COLLISION_GROUP = CollisionGroupConstants.Players
+local _COLLISION_GROUP = CollisionGroupConstants.Players
+local REPLICATION_FLUSH_RATE = 1 / 12
 
 -------------------------------------------------------------------------------
 -- TYPES
@@ -48,8 +50,13 @@ type CharacterRemovingTask = (character: Model, player: Player) -> ()
 -------------------------------------------------------------------------------
 
 local unreliableEvent = SimpleRemotes.getUnreliableEvent("Character")
-local solverTargetReplicationSchedule: { { Player: Player, SolverTarget: Vector3 } } = {}
-local playersSolverTarget: { [Player]: Vector3 } = {}
+type SolverAngles = {
+	Yaw: number,
+}
+
+local playersSolverTarget: { [Player]: SolverAngles } = {}
+local pendingSolverReplication: { [Player]: SolverAngles } = {}
+local nextReplicationFlushAt = 0
 
 local playerConnections: { [Player]: ConnectionsList.ConnectionsList } = {}
 
@@ -72,7 +79,7 @@ local function onCharacterRemoving(player: Player, character: Model)
 end
 
 local function applyAuthoritativeRotation(deltaTime: number)
-	for player, solverTarget in playersSolverTarget do
+	for player, solverAngles in playersSolverTarget do
 		local character = player.Character
 		if not character then
 			continue
@@ -84,38 +91,60 @@ local function applyAuthoritativeRotation(deltaTime: number)
 			continue
 		end
 
-      local cframe = CharacterLogic.stepRootYaw(rootPart.CFrame, solverTarget, deltaTime)
-		--rootPart.CFrame = cframe
+		local cframe = CharacterLogic.stepRootYawToAngle(rootPart.CFrame, solverAngles.Yaw, deltaTime)
+      local hitbox = HitboxService.getHitbox(player)
+      if hitbox then
+       --  hitbox.CFrame = cframe
+      end
 	end
 end
 
 local function dispatchSchedule()
-	if #solverTargetReplicationSchedule <= 0 then
+	if not next(pendingSolverReplication) then
 		return
 	end
 
 	task.defer(task.defer, function()
-		local len = #solverTargetReplicationSchedule
-		local b, offset = buffer.create(1 + len * 16), 0
-		offset = BufferUtil.writeu8(b, offset, UNRELIABLE_CODES.SetTargetsBulk)
+		local validEntries: { { Id: number, Yaw: number } } = {}
 
-		for i = 1, len do
-			local v = solverTargetReplicationSchedule[i]
-			if not v.Player.Character then
+		for player, solverAngles in pendingSolverReplication do
+			local character = player.Character
+			if not character then
 				continue
 			end
 
-			offset = BufferUtil.writeu32(b, offset, GlobalInstanceService.getId(v.Player.Character))
-			offset = BufferUtil.writeVector3_96(b, offset, v.SolverTarget)
+			table.insert(validEntries, {
+				Id = GlobalInstanceService.getId(character),
+				Yaw = solverAngles.Yaw,
+			})
+		end
+
+		table.clear(pendingSolverReplication)
+
+		local len = #validEntries
+		if len <= 0 then
+			return
+		end
+
+		local b, offset = buffer.create(1 + len * 6), 0
+		offset = BufferUtil.writeu8(b, offset, UNRELIABLE_CODES.SetTargetsBulk)
+
+		for i = 1, len do
+			local v = validEntries[i]
+			offset = BufferUtil.writeu32(b, offset, v.Id)
+			offset = BufferUtil.writeu16(b, offset, CharacterLogic.quantizeYaw(v.Yaw))
 		end
 
 		unreliableEvent:FireAllClients(b)
-		solverTargetReplicationSchedule = {}
 	end)
 end
 
 local function onPostSimulation(deltaTime: number)
-	dispatchSchedule()
+	local now = os.clock()
+	if now >= nextReplicationFlushAt then
+		nextReplicationFlushAt = now + REPLICATION_FLUSH_RATE
+		dispatchSchedule()
+	end
 
 	-- Apply authoritative root rotation at the end of the frame so movement/physics systems resolve first.
 	task.defer(applyAuthoritativeRotation, deltaTime)
@@ -124,13 +153,22 @@ end
 local function loadCharacterRemotes()
 	SimpleRemotesUtil.bindRemoteEventActions(unreliableEvent, {
 		[UNRELIABLE_CODES.SetTargetsBulk] = function(player: Player, b: buffer)
-			local solverTarget
+			local quantizedYaw
 			local offset = 0
 
-			solverTarget, offset = BufferUtil.readVector3_96(b, offset)
-			playersSolverTarget[player] = solverTarget
+			quantizedYaw, offset = BufferUtil.readu16(b, offset)
 
-			table.insert(solverTargetReplicationSchedule, { Player = player, SolverTarget = solverTarget })
+			local state = playersSolverTarget[player]
+			if state then
+				state.Yaw = CharacterLogic.dequantizeYaw(quantizedYaw)
+			else
+				state = {
+					Yaw = CharacterLogic.dequantizeYaw(quantizedYaw),
+				}
+				playersSolverTarget[player] = state
+			end
+
+			pendingSolverReplication[player] = state
 		end,
 	}, SimpleRemotesUtil.DecodeActionBuffer)
 end
@@ -194,6 +232,7 @@ function CharacterService.init()
 
 	Players.PlayerRemoving:Connect(function(player)
 		playersSolverTarget[player] = nil
+		pendingSolverReplication[player] = nil
 
 		local playerConnectionList = playerConnections[player]
 		if playerConnectionList then

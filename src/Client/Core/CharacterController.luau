@@ -19,6 +19,7 @@ local RunService = game:GetService("RunService")
 
 local GlobalInstanceController = require(ReplicatedStorage.Client.Controllers.GlobalInstanceController)
 local GameTypes = require(ReplicatedStorage.Shared.GameTypes)
+local CharacterLogic = require(ReplicatedStorage.Shared.Logics.CharacterLogic)
 local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local SimpleRemotesUtil = require(ReplicatedStorage.Shared.Networking.SimpleRemotesUtil)
@@ -29,7 +30,10 @@ local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
-local REPLICATION_RATE = 1 / 15
+local REPLICATION_RATE = 1 / 12
+local REPLICATION_HEARTBEAT = 0.3
+local REPLICATION_YAW_DEADBAND = math.rad(2.5)
+local REMOTE_ANGLE_SMOOTH_SPEED = 16
 
 local ANIMATION_SPEEDS = table.freeze({
 	Waist = 14,
@@ -38,7 +42,7 @@ local ANIMATION_SPEEDS = table.freeze({
 
 local ANGLE_LIMITS = table.freeze({
 	WaistYaw = math.rad(35),
-	WaistPitch = math.rad(45),
+	--WaistPitch = math.rad(45), -- Keep for optional vertical aim support.
 })
 
 local UNRELIABLE_CODES = RemoteCodes.Character.Unreliable
@@ -53,6 +57,11 @@ type RequiredCharacterInstances = {
 	Humanoid: Humanoid,
 }
 
+type SolverState = {
+	TargetYaw: number,
+	RenderYaw: number,
+}
+
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
 -------------------------------------------------------------------------------
@@ -62,12 +71,14 @@ local mouse = player:GetMouse()
 
 local unreliableEvent = SimpleRemotes.getUnreliableEvent("Character")
 
-local playersSolverTarget: { [Player]: Vector3 } = {}
+local playersSolverState: { [Player]: SolverState } = {}
 local characterInstances: { [GameTypes.R15Character]: RequiredCharacterInstances } = {}
 local motorsBaseC0: { [Motor6D]: CFrame } = {}
 
 local nextReplicationAt = 0
-local latestLocalTarget: Vector3? = nil
+local latestLocalYaw: number? = nil
+local lastSentYaw: number? = nil
+local lastSentAt = 0
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -80,7 +91,7 @@ CharacterController.LastCFrame = CFrame.new()
 -------------------------------------------------------------------------------
 
 -- // Apply local yaw to alleviate conflicts with server authoritative yaw
-local function applyLocalAuthoritativeRotation(lookAt: Vector3)
+local function applyLocalAuthoritativeRotation(yawAngle: number)
 	if not PlayersUtil.isAlive(player) then
 		return
 	end
@@ -96,14 +107,28 @@ local function applyLocalAuthoritativeRotation(lookAt: Vector3)
 		return
 	end
 
-	local delta = lookAt - humanoidRootPart.Position
-	local yawAngle = math.atan2(-delta.X, -delta.Z)
-   local cf = CFrame.Angles(0, yawAngle, 0) + humanoidRootPart.Position
+	local cf = CFrame.Angles(0, yawAngle, 0) + humanoidRootPart.Position
 	CharacterController.LastCFrame = cf
 	humanoidRootPart.CFrame = cf
 end
 
-local function solveMotorsForCharacter(character: GameTypes.R15Character, lookAt: Vector3, dT: number)
+local function getOrCreateSolverState(forPlayer: Player, yaw: number): SolverState
+	local state = playersSolverState[forPlayer]
+	if state then
+		state.TargetYaw = yaw
+		return state
+	end
+
+	state = {
+		TargetYaw = yaw,
+		RenderYaw = yaw,
+	}
+
+	playersSolverState[forPlayer] = state
+	return state
+end
+
+local function solveMotorsForCharacter(character: GameTypes.R15Character, solverState: SolverState, dT: number)
 	local instances = characterInstances[character]
 	if not instances then
 		local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
@@ -131,11 +156,17 @@ local function solveMotorsForCharacter(character: GameTypes.R15Character, lookAt
 
 	local waistM6D = instances.Waist
 	local waistBaseC0 = motorsBaseC0[waistM6D]
+	local smoothAlpha = math.clamp(dT * REMOTE_ANGLE_SMOOTH_SPEED, 0, 1)
+
+	solverState.RenderYaw = CharacterLogic.lerpAngle(solverState.RenderYaw, solverState.TargetYaw, smoothAlpha)
+	local lookVector = CharacterLogic.getLookVectorFromYaw(solverState.RenderYaw)
+	local lookAt = instances.HumanoidRootPart.Position + lookVector * 100
 
 	-- compute waist
 	local waistTarget = (waistM6D.Part0.CFrame * waistBaseC0):PointToObjectSpace(lookAt)
 	local waistYawAngle = math.clamp(math.atan2(-waistTarget.X, -waistTarget.Z), -ANGLE_LIMITS.WaistYaw, ANGLE_LIMITS.WaistYaw)
-	local waistPitchAngle = math.clamp(math.atan2(waistTarget.Y, Vector2.new(waistTarget.X, waistTarget.Z).Magnitude), -ANGLE_LIMITS.WaistPitch, ANGLE_LIMITS.WaistPitch)
+	--local waistPitchAngle = math.clamp(math.atan2(waistTarget.Y, Vector2.new(waistTarget.X, waistTarget.Z).Magnitude), -ANGLE_LIMITS.WaistPitch, ANGLE_LIMITS.WaistPitch)
+	local waistPitchAngle = 0
 
 	waistM6D.Attachment0.CFrame = waistM6D.Attachment0.CFrame:Lerp(waistBaseC0 * CFrame.fromOrientation(waistPitchAngle, waistYawAngle, 0), dT * ANIMATION_SPEEDS.Waist)
 
@@ -143,32 +174,55 @@ end
 
 local function onPreSimulation(dT: number)
 	local localTarget = mouse.Hit.Position
-	latestLocalTarget = localTarget
-	playersSolverTarget[player] = localTarget
+	local localYaw = 0
+
+	if PlayersUtil.isAlive(player) and player.Character then
+		local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
+		if rootPart then
+			localYaw = CharacterLogic.getYawFromLookAt(rootPart.Position, localTarget)
+		end
+	end
+
+	latestLocalYaw = localYaw
+	getOrCreateSolverState(player, localYaw)
 
 	if PlayersUtil.isAlive(player) then
 		local now = os.clock()
 		if now >= nextReplicationAt then
 			nextReplicationAt = now + REPLICATION_RATE
 
-			unreliableEvent:FireServer(BufferUtil.construct({
-				{ Type = "U8", Value = UNRELIABLE_CODES.SetTargetsBulk },
-				{ Type = "VECTOR3_96", Value = localTarget },
-			}))
+			local shouldSend = false
+			if not lastSentYaw then
+				shouldSend = true
+			else
+				local yawDelta = math.abs(CharacterLogic.getShortestAngleDelta(lastSentYaw, localYaw))
+				shouldSend = yawDelta >= REPLICATION_YAW_DEADBAND
+					or (now - lastSentAt) >= REPLICATION_HEARTBEAT
+			end
+
+			if shouldSend then
+				lastSentYaw = localYaw
+				lastSentAt = now
+
+				unreliableEvent:FireServer(BufferUtil.construct({
+					{ Type = "U8", Value = UNRELIABLE_CODES.SetTargetsBulk },
+					{ Type = "U16", Value = CharacterLogic.quantizeYaw(localYaw) },
+				}))
+			end
 		end
 	end
 
-	for forPlayer, solverTarget in next, playersSolverTarget do
+	for forPlayer, solverState in next, playersSolverState do
 		if PlayersUtil.isAlive(forPlayer) then
-			solveMotorsForCharacter(forPlayer.Character, solverTarget, dT)
+			solveMotorsForCharacter(forPlayer.Character, solverState, dT)
 		end
 	end
 
 end
 
 local function onRenderStepped()
-	if latestLocalTarget then
-		applyLocalAuthoritativeRotation(latestLocalTarget)
+	if latestLocalYaw then
+		applyLocalAuthoritativeRotation(latestLocalYaw)
 	end
 end
 
@@ -181,17 +235,17 @@ local function onAnyCharacterRemoved(character: GameTypes.R15Character)
 end
 
 local function onPlayerRemoving(removingPlayer: Player)
-	playersSolverTarget[removingPlayer] = nil
+	playersSolverState[removingPlayer] = nil
 end
 
 local function loadRemotes()
 	SimpleRemotesUtil.bindRemoteEventActions(unreliableEvent, {
 		[UNRELIABLE_CODES.SetTargetsBulk] = function(b: buffer)
-			local len, offset = buffer.len(b) / 16, 0
+			local len, offset = buffer.len(b) / 6, 0
 			for _ = 1, len do
-				local instanceId, solverTarget
+				local instanceId, quantizedYaw
 				instanceId, offset = BufferUtil.readu32(b, offset)
-				solverTarget, offset = BufferUtil.readVector3_96(b, offset)
+				quantizedYaw, offset = BufferUtil.readu16(b, offset)
 
 				local character = GlobalInstanceController.getInstance(instanceId)
 				if not character then
@@ -203,7 +257,10 @@ local function loadRemotes()
 					continue
 				end
 
-				playersSolverTarget[forPlayer] = solverTarget
+				getOrCreateSolverState(
+					forPlayer,
+					CharacterLogic.dequantizeYaw(quantizedYaw)
+				)
 			end
 		end,
 	}, SimpleRemotesUtil.DecodeActionBuffer)
