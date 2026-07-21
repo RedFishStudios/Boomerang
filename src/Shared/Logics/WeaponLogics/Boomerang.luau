@@ -9,6 +9,7 @@ local isServer = RunService:IsServer()
 local ReplicatedStorage = game.ReplicatedStorage
 local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
+local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 local BufferUtil = require(ReplicatedStorage.Shared.Utils.BufferUtil)
 local RaycastsUtility = require(ReplicatedStorage.Shared.Utils.RaycastsUtility)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
@@ -40,6 +41,7 @@ local AIM_START_SPEED_BONUS_MULTIPLIER = 1.0
 local AIM_SPEED_FADE_RATE = 2.0
 
 local WEAPON_UNRELIABLE_CODES = RemoteCodes.Weapon.Unreliable
+local WEAPON_RAYCAST_COLLISION_GROUP = CollisionGroupConstants.ThrownWeapons
 
 local SPAWN_PACKET_SIZE = 8 + 12 + 12 + 4 + 8
 local DESPAWN_PACKET_SIZE = 8
@@ -217,9 +219,10 @@ end
 
 local function raycastWithHorizontalCharacterHitbox(rayOrigin: Vector3, direction: Vector3, hitboxRadius: number): {Model}
    local characterRaycastParams = RaycastParams.new()
-   characterRaycastParams.FilterType = Enum.RaycastFilterType.Include
-   characterRaycastParams.FilterDescendantsInstances = {Characters}
+   --characterRaycastParams.FilterType = Enum.RaycastFilterType.Include
+   --characterRaycastParams.FilterDescendantsInstances = {Characters}
    characterRaycastParams.IgnoreWater = true
+   characterRaycastParams.CollisionGroup = WEAPON_RAYCAST_COLLISION_GROUP
 
    local horizontalRayOrigins = getHorizontalRayOrigins(rayOrigin, direction, hitboxRadius)
    local hitModels = {}
@@ -229,6 +232,7 @@ local function raycastWithHorizontalCharacterHitbox(rayOrigin: Vector3, directio
 
    for _, origin in ipairs(horizontalRayOrigins) do
       local raycastResult = workspace:Raycast(origin, direction * characterRayDistance, characterRaycastParams)
+      print(raycastResult)
       if raycastResult then
          local hitModel = raycastResult.Instance:FindFirstAncestorOfClass("Model")
          if hitModel and not table.find(seenModels, hitModel) then

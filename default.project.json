@@ -38,12 +38,15 @@
          "PlayerModule": {
             "$path": "src/PlayerModule",
             "ServerAuthority": {
+               "$className": "ModuleScript",
                "ServerAuthorityClient": {
+                  "$className": "LocalScript",
                   "$properties": {
                      "Enabled": false
                   }
                },
                "ServerAuthorityServer": {
+                  "$className": "Script",
                   "$properties": {
                      "Enabled": false
                   }

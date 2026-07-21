@@ -14,11 +14,12 @@ dealing with default roblox system might be good for an MVP since it visualizes 
 
 local HitboxService = {}
 
-local Players = game:GetService("Players")
+local _Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local ServerStorage = game:GetService("ServerStorage")
+local _ServerStorage = game:GetService("ServerStorage")
 
+local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 
 -------------------------------------------------------------------------------
@@ -36,6 +37,7 @@ local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 -------------------------------------------------------------------------------
 
 local hitboxes: {[Player]: Part} = {}
+local HITBOX_COLLISION_GROUP = CollisionGroupConstants.Players
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -62,6 +64,7 @@ local function onCharacterLoaded(player: Player, character: Model, humanoid: Hum
    hitbox.CanQuery = true
    hitbox.Transparency = .5
    hitbox.Name = "Hitbox"
+   hitbox.CollisionGroup = HITBOX_COLLISION_GROUP
 
    local weld = Instance.new("WeldConstraint")
    weld.Part0 = hitbox
