@@ -109,7 +109,7 @@ local function applyLocalAuthoritativeRotation(yawAngle: number)
 
 	local cf = CFrame.Angles(0, yawAngle, 0) + humanoidRootPart.Position
 	CharacterController.LastCFrame = cf
-	humanoidRootPart.CFrame = cf
+   character:PivotTo(cf)
 end
 
 local function getOrCreateSolverState(forPlayer: Player, yaw: number): SolverState

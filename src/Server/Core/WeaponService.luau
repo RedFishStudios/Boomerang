@@ -11,6 +11,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 local CollectionService = game:GetService("CollectionService")
+local RunService = game:GetService("RunService")
 
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 local PlayerDataService = require(ServerStorage.Server.Core.PlayerDataService)
@@ -37,6 +38,11 @@ local ToolLogicModules = {}
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
+local AIM_WALK_SPEED_TWEEN_DURATION = 0.495
+local AIM_WALK_SPEED_TWEEN_EXPONENT = 2.4
+local AIM_WALK_SPEED_RETURN_TWEEN_DURATION = 0.42
+local AIM_WALK_SPEED_RETURN_TWEEN_EXPONENT = 2.0
+
 -------------------------------------------------------------------------------
 -- TYPES
 -------------------------------------------------------------------------------
@@ -57,6 +63,57 @@ local weaponEquipStateEvent = SimpleRemotes.getEvent("WeaponEquipState")
 local aiming: {[Player]: number} = {}
 local equippedToolIds: {[Player]: string} = {}
 local equippedToolVisible: {[Player]: boolean} = {}
+
+local function tweenWalkSpeed(humanoid: Humanoid, targetWalkSpeed: number, tweenDuration: number, tweenExponent: number, shouldContinue: (() -> boolean)?): boolean
+   local initialWalkSpeed = humanoid.WalkSpeed
+   local elapsed = 0
+
+   while humanoid.Parent and elapsed < tweenDuration do
+      local _, deltaTime = RunService.Stepped:Wait()
+      if not humanoid.Parent then
+         return false
+      end
+      if shouldContinue and not shouldContinue() then
+         return false
+      end
+
+      elapsed += deltaTime
+      local alpha = math.clamp(elapsed / tweenDuration, 0, 1)
+      local easedAlpha = alpha ^ tweenExponent
+      humanoid.WalkSpeed = initialWalkSpeed + (targetWalkSpeed - initialWalkSpeed) * easedAlpha
+   end
+
+   if humanoid.Parent and (not shouldContinue or shouldContinue()) then
+      humanoid.WalkSpeed = targetWalkSpeed
+      return true
+   end
+
+   return false
+end
+
+local function tweenWalkSpeedInverse(humanoid: Humanoid, targetWalkSpeed: number, tweenDuration: number, tweenExponent: number): boolean
+   local initialWalkSpeed = humanoid.WalkSpeed
+   local elapsed = 0
+
+   while humanoid.Parent and elapsed < tweenDuration do
+      local _, deltaTime = RunService.Stepped:Wait()
+      if not humanoid.Parent then
+         return false
+      end
+
+      elapsed += deltaTime
+      local alpha = math.clamp(elapsed / tweenDuration, 0, 1)
+      local easedAlpha = 1 - ((1 - alpha) ^ tweenExponent)
+      humanoid.WalkSpeed = initialWalkSpeed + (targetWalkSpeed - initialWalkSpeed) * easedAlpha
+   end
+
+   if humanoid.Parent then
+      humanoid.WalkSpeed = targetWalkSpeed
+      return true
+   end
+
+   return false
+end
 
 local function getHorizontalDirection(direction: Vector3): Vector3
    local horizontal = Vector3.new(direction.X, 0, direction.Z)
@@ -133,14 +190,21 @@ function WeaponService.init()
       if not humanoid then
          return
       end
-      
-      -- TODO: compensate this without using the hitbox and with a better authoritative positioning system
-      --local serverPosition = character.Hitbox:GetPivot().Position
-      --local authoritativePosition = serverPosition + (clientPosition - serverPosition) * 0.5
-      --character:PivotTo(CFrame.new(authoritativePosition))
 
       aiming[player] = os.clock()
-      humanoid.WalkSpeed = GlobalConfig.AimingWalkSpeed
+
+      task.spawn(function()
+         tweenWalkSpeed(
+            humanoid,
+            GlobalConfig.AimingWalkSpeed,
+            AIM_WALK_SPEED_TWEEN_DURATION,
+            AIM_WALK_SPEED_TWEEN_EXPONENT,
+            function()
+               return aiming[player] ~= nil
+            end
+         )
+      end)
+
       aimStateEvent:FireAllClients(player.UserId, true)
 
       AnimationLibrary.playCoreAnimation(player, "Charging")
@@ -157,7 +221,14 @@ function WeaponService.init()
       local character = player.Character
       local humanoid = character and character:FindFirstChildWhichIsA("Humanoid")
       if humanoid then
-         humanoid.WalkSpeed = GlobalConfig.DefaultWalkSpeed
+         task.spawn(function()
+            tweenWalkSpeedInverse(
+               humanoid,
+               GlobalConfig.DefaultWalkSpeed,
+               AIM_WALK_SPEED_RETURN_TWEEN_DURATION,
+               AIM_WALK_SPEED_RETURN_TWEEN_EXPONENT
+            )
+         end)
       end
       aimStateEvent:FireAllClients(player.UserId, false)
       

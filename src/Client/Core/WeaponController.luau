@@ -458,7 +458,7 @@ function WeaponController.init()
          if not canThrow then
             return
          end
-         aimEvent:FireServer("ClassicBoomerang", Players.LocalPlayer.Character:GetPivot().Position)
+		 aimEvent:FireServer("ClassicBoomerang")
 			aiming = true
          AnimationLibrary.playCoreAnimation(Players.LocalPlayer, "Charging")
          LocalPlayer.Character.Humanoid.WalkSpeed = GlobalConfig.AimingWalkSpeed
