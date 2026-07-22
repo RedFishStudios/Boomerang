@@ -25,6 +25,7 @@ local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local SimpleRemotesUtil = require(ReplicatedStorage.Shared.Networking.SimpleRemotesUtil)
 local BufferUtil = require(ReplicatedStorage.Shared.Utils.BufferUtil)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
+local RaycastsUtility = require(ReplicatedStorage.Shared.Utils.RaycastsUtility)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -67,7 +68,6 @@ type SolverState = {
 -------------------------------------------------------------------------------
 
 local player = Players.LocalPlayer
-local mouse = player:GetMouse()
 
 local unreliableEvent = SimpleRemotes.getUnreliableEvent("Character")
 
@@ -173,12 +173,12 @@ local function solveMotorsForCharacter(character: GameTypes.R15Character, solver
 end
 
 local function onPreSimulation(dT: number)
-	local localTarget = mouse.Hit.Position
+	local localTarget = RaycastsUtility.getMouseWorldPosition(2048)
 	local localYaw = 0
 
 	if PlayersUtil.isAlive(player) and player.Character then
 		local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
-		if rootPart then
+		if rootPart and localTarget then
 			localYaw = CharacterLogic.getYawFromLookAt(rootPart.Position, localTarget)
 		end
 	end

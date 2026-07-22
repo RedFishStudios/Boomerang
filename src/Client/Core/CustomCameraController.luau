@@ -39,7 +39,7 @@ local CAMERA_DISTANCE_SMOOTH_MAX = 30
 -- PRIVATE VARIABLES
 -------------------------------------------------------------------------------
 
-local thrownWeaponsFolder = game.Workspace:WaitForChild("ThrownWeapons")
+local thrownWeaponsFolder = game.Workspace:WaitForChild("Weapons")
 
 local currentCamera: Camera? = nil
 local overheadCameraConnection: RBXScriptConnection? = nil

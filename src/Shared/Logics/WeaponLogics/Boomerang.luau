@@ -15,17 +15,20 @@ local RaycastsUtility = require(ReplicatedStorage.Shared.Utils.RaycastsUtility)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
 local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
+local AnimationLibrary = require(ReplicatedStorage.Shared.Library.AnimationLibrary)
 
 -- // Context-Specific Modules
-local CombatService, WeaponService
+local CombatService, WeaponService, ToolController
 if isServer then
    CombatService = require(game.ServerStorage.Server.Core.CombatService)
    WeaponService = require(game.ServerStorage.Server.Core.WeaponService)
+else
+   ToolController = require(ReplicatedStorage.Client.Core.ToolController)
 end
 
 -- // Values
 local Characters = game.Workspace.Characters
-local ThrownWeaponsFolder = game.Workspace.ThrownWeapons
+local WeaponsFolder = game.Workspace:WaitForChild("Weapons")
 local ThrownWeaponReplicationPart = ReplicatedStorage.Shared.Assets.ThrownWeaponReplication
 
 local thrownBoomerangSpawnedRemote = SimpleRemotes.getEvent("ThrownBoomerangSpawned")
@@ -55,7 +58,8 @@ type ThrowInitOptions = {
    Speed: number?,
    ThrowServerTime: number?,
    TimeSinceAiming: number?,
-   AimStrengthAlpha: number?
+   AimStrengthAlpha: number?,
+   ExistingHost: Model?
 }
 
 type RecallInitOptions = {
@@ -288,18 +292,30 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          local partHost = ThrownWeaponReplicationPart:Clone()
          partHost.Name = `BoomerangReplication_{player.Name}`
          partHost.Position = startPosition
-         partHost.Parent = ThrownWeaponsFolder
+         partHost.Parent = WeaponsFolder
          thrownWeaponData.Host = partHost
       else
          thrownWeaponData.CFrame = startCFrame
       end
    else
-      -- Client creates and monitors the actual 3D model of the projectile
-      local boomerangModel = ReplicatedStorage.Shared.Assets.Tools.ClassicBoomerang:Clone()
-      boomerangModel.Handle.Anchored = true
-      boomerangModel.Name = `Boomerang_{player.Name}`
+      local boomerangModel = options and options.ExistingHost
+      if boomerangModel and boomerangModel.Parent then
+         thrownWeaponData.ReuseEquippedHost = true
+         boomerangModel.Name = `Boomerang_{player.Name}`
+      else
+         -- Client creates and monitors the actual 3D model of the projectile
+         boomerangModel = ReplicatedStorage.Shared.Assets.Tools.ClassicBoomerang:Clone()
+         boomerangModel.Name = `Boomerang_{player.Name}`
+      end
+
+      for _, descendant in ipairs(boomerangModel:GetDescendants()) do
+         if descendant:IsA("BasePart") then
+            descendant.Anchored = true
+         end
+      end
+
       boomerangModel:PivotTo(startCFrame)
-      boomerangModel.Parent = workspace
+      boomerangModel.Parent = WeaponsFolder
       thrownWeaponData.Host = boomerangModel
    end
 
@@ -442,8 +458,14 @@ end
 
 -- // Restore to player / remove from field
 function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapons.Data)
+   local shouldReattachLocally = (not isServer) and thrownWeaponData.ReuseEquippedHost == true
+
+   AnimationLibrary.playCoreAnimation(player, "Catch")
+
    if thrownWeaponData.Host then
-      thrownWeaponData.Host:Destroy()
+      if not (thrownWeaponData.ReuseEquippedHost and not isServer) then
+         thrownWeaponData.Host:Destroy()
+      end
    end
    if isServer then
       print("is server")
@@ -461,6 +483,10 @@ function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapo
    end
    thrownWeaponData.CFrame = nil
    ThrownWeapons.Data[player] = nil
+
+   if shouldReattachLocally and ToolController then
+      ToolController.finishToolThrow(player)
+   end
 end
 
 function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.Tool, thrownWeaponData: ThrownWeapons.Data, options: RecallInitOptions?)

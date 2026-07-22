@@ -27,6 +27,14 @@ local Animations: {
       FadeIn = .2,
       FadeOut = .8,
       Looping = false
+   },
+
+   Catch = {
+      Id = 111625966555407,
+      Layer = "WeaponAction",
+      FadeIn = .2,
+      FadeOut = .2,
+      Looping = false
    }
 }
 

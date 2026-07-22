@@ -15,6 +15,7 @@ local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
 local WeaponLibrary = require(ReplicatedStorage.Shared.Library.WeaponLibrary)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
+local RaycastsUtility = require(ReplicatedStorage.Shared.Utils.RaycastsUtility)
 local CharacterController = require(ReplicatedStorage.Client.Core.CharacterController)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local AnimationLibrary = require(ReplicatedStorage.Shared.Library.AnimationLibrary)
@@ -49,6 +50,11 @@ local aimArrows: {
       AimStart: number
    }
 } = {}
+local pendingLocalThrow: {
+   Token: {},
+   ToolId: string,
+   Host: Model,
+}? = nil
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -104,6 +110,10 @@ local function clearThrownWeapon(forPlayer: Player)
 
    local logic = getLogic(toolData.LogicClass)
    logic.removeFromField(forPlayer, thrownWeaponData)
+
+   if forPlayer ~= Players.LocalPlayer then
+      ToolController.setToolVisible(forPlayer, true)
+   end
 end
 
 -- // Register a snapshot of a server-authoritative position
@@ -317,6 +327,9 @@ function WeaponController.init()
       elseif action == "Unequip" then
          ToolController.unequipTool(forPlayer)
       elseif action == "SetVisible" then
+         if forPlayer == Players.LocalPlayer then
+            return
+         end
          if typeof(value) == "boolean" then
             ToolController.setToolVisible(forPlayer, value)
          end
@@ -359,12 +372,30 @@ function WeaponController.init()
          return
       end
 
-      WeaponController.startThrownWeapon(forPlayer, toolId, toolData, {
+      local startOptions = {
          StartPosition = startPosition,
          Direction = getHorizontalDirection(direction),
          Speed = speed,
          ThrowServerTime = throwServerTime,
-      })
+      }
+
+      if forPlayer == Players.LocalPlayer then
+         local existingHost: Model? = nil
+         if pendingLocalThrow and pendingLocalThrow.ToolId == toolId then
+            existingHost = pendingLocalThrow.Host
+            pendingLocalThrow = nil
+         else
+            existingHost = select(1, ToolController.prepareToolForThrow(forPlayer))
+         end
+
+         if existingHost then
+            startOptions.ExistingHost = existingHost
+         end
+      else
+         ToolController.setToolVisible(forPlayer, false)
+      end
+
+      WeaponController.startThrownWeapon(forPlayer, toolId, toolData, startOptions)
    end)
 
    thrownBoomerangDespawnedEvent.OnClientEvent:Connect(function(payload: buffer)
@@ -447,10 +478,41 @@ function WeaponController.init()
          if aiming then
             aiming = false
             local localCharacter = Players.LocalPlayer.Character
-            local direction = if localCharacter and localCharacter.PrimaryPart
+            local pendingHost, releasePosition = ToolController.prepareToolForThrow(Players.LocalPlayer)
+
+            local throwOrigin = releasePosition
+            if not throwOrigin and localCharacter and localCharacter.PrimaryPart then
+               throwOrigin = localCharacter.PrimaryPart.Position
+            end
+
+            local mouseWorldPosition = RaycastsUtility.getMouseWorldPosition(2048)
+            local direction = if throwOrigin and mouseWorldPosition
+               then getHorizontalDirection(mouseWorldPosition - throwOrigin)
+               elseif localCharacter and localCharacter.PrimaryPart
                then getHorizontalDirection(localCharacter.PrimaryPart.CFrame.LookVector)
                else Vector3.new(0, 0, -1)
-            throwEvent:FireServer("ClassicBoomerang", direction)
+
+            if not releasePosition and throwOrigin then
+               releasePosition = throwOrigin + direction * 3
+            end
+
+            if pendingHost then
+               local pendingToken = {}
+               pendingLocalThrow = {
+                  Token = pendingToken,
+                  ToolId = "ClassicBoomerang",
+                  Host = pendingHost,
+               }
+
+               task.delay(0.75, function()
+                  if pendingLocalThrow and pendingLocalThrow.Token == pendingToken then
+                     pendingLocalThrow = nil
+                     ToolController.finishToolThrow(Players.LocalPlayer)
+                  end
+               end)
+            end
+
+            throwEvent:FireServer("ClassicBoomerang", direction, releasePosition)
             AnimationLibrary.playCoreAnimation(Players.LocalPlayer, "Throw")
          end
       end
@@ -458,6 +520,9 @@ function WeaponController.init()
 
    PlayersUtil.CharacterDestroying:Add(function(player: Player, character: Model)
       destroyAimArrows(player)
+      if player == Players.LocalPlayer then
+         pendingLocalThrow = nil
+      end
       ToolController.unequipTool(player)
    end)
 

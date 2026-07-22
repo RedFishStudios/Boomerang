@@ -23,6 +23,8 @@ export type Data = {
    SyncTargetPosition: Vector3?,
    ServerDirection: Vector3?,
    ServerSpeed: number?,
+   ReuseEquippedHost: boolean?,
+   ExistingHost: Model?,
    
    MovementConnection: RBXScriptConnection?,
    TestRaycastVisualizers: {Part}

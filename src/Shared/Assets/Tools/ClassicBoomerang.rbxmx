@@ -2,33 +2,13 @@
 	<Meta name="ExplicitAutoJoints">true</Meta>
 	<External>null</External>
 	<External>nil</External>
-	<Item class="Tool" referent="RBXB165B911E6A94764B3581FA032257F73">
+	<Item class="Model" referent="RBXC0777A72E52F4C51AE85A6A2ACE911AB">
 		<Properties>
-			<bool name="CanBeDropped">false</bool>
-			<bool name="Enabled">true</bool>
-			<CoordinateFrame name="Grip">
-				<X>0.997180939</X>
-				<Y>-0.370615005</Y>
-				<Z>-0.0468540192</Z>
-				<R00>-0.0252895486</R00>
-				<R01>-0.803891718</R01>
-				<R02>-0.594237864</R02>
-				<R10>0.00671476265</R10>
-				<R11>0.594277978</R11>
-				<R12>-0.804231703</R12>
-				<R20>0.999657631</R20>
-				<R21>-0.0243288241</R21>
-				<R22>-0.00963107962</R22>
-			</CoordinateFrame>
-			<bool name="ManualActivationOnly">false</bool>
-			<bool name="RequiresHandle">true</bool>
-			<string name="ToolTip">Throw it and it&apos;ll get back</string>
-			<Content name="TextureId"><url>http://www.roblox.com/asset/?id=6548092989</url></Content>
 			<token name="LevelOfDetail">0</token>
 			<CoordinateFrame name="ModelMeshCFrame">
-				<X>-9.61643982</X>
-				<Y>1.9999752</Y>
-				<Z>27.3305893</Z>
+				<X>0</X>
+				<Y>0</Y>
+				<Z>0</Z>
 				<R00>1</R00>
 				<R01>0</R01>
 				<R02>0</R02>
@@ -47,33 +27,19 @@
 			</Vector3>
 			<token name="ModelStreamingMode">0</token>
 			<bool name="NeedsPivotMigration">false</bool>
-			<Ref name="PrimaryPart">null</Ref>
+			<Ref name="PrimaryPart">RBX084C11783B924CD888525CA3C8E7B043</Ref>
 			<float name="ScaleFactor">1</float>
 			<SharedString name="SlimHash">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
-			<OptionalCoordinateFrame name="WorldPivotData">
-				<CFrame>
-					<X>86.1125641</X>
-					<Y>2.08390045</Y>
-					<Z>-85.2169418</Z>
-					<R00>-1</R00>
-					<R01>0</R01>
-					<R02>0</R02>
-					<R10>0</R10>
-					<R11>1</R11>
-					<R12>0</R12>
-					<R20>0</R20>
-					<R21>0</R21>
-					<R22>-1</R22>
-				</CFrame>
-			</OptionalCoordinateFrame>
-			<BinaryString name="AttributesSerialize"></BinaryString>
+			<OptionalCoordinateFrame name="WorldPivotData"></OptionalCoordinateFrame>
+			<BinaryString name="AttributesSerialize"><![CDATA[AQAAAAcAAABNb3RvckMwFM3MTD4AAAAAAAAAAAC7jSS/OryIvXJcQ794gyE0ngZ/v7Z+sj18
+G0S/33dlPW7tIz8=]]></BinaryString>
 			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
 			<bool name="DefinesCapabilities">false</bool>
 			<string name="Name">ClassicBoomerang</string>
-			<int64 name="SourceAssetId">6548275326</int64>
+			<int64 name="SourceAssetId">-1</int64>
 			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 		</Properties>
-		<Item class="MeshPart" referent="RBX7F30302A7F204046B56076DC87AEE536">
+		<Item class="MeshPart" referent="RBX084C11783B924CD888525CA3C8E7B043">
 			<Properties>
 				<bool name="DoubleSided">false</bool>
 				<bool name="HasJointOffset">false</bool>

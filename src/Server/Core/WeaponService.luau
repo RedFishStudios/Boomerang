@@ -7,6 +7,7 @@
 
 local WeaponService = {}
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 local CollectionService = game:GetService("CollectionService")
@@ -146,7 +147,7 @@ function WeaponService.init()
    end)
 
    -- // Throw boomerang
-	throwEvent.OnServerEvent:Connect(function(player: Player, toolId: string, clientDirection: Vector3?)
+   throwEvent.OnServerEvent:Connect(function(player: Player, toolId: string, clientDirection: Vector3?, clientStartPosition: Vector3?)
       local timeSinceAiming = os.clock() - (aiming[player] or os.clock())
       timeSinceAiming = math.clamp(timeSinceAiming, 0, GlobalConfig.AimFullStrength)
       local aimStrengthAlpha = timeSinceAiming / GlobalConfig.AimFullStrength
@@ -183,6 +184,13 @@ function WeaponService.init()
          if typeof(clientDirection) == "Vector3" then clientDirection else character.PrimaryPart.CFrame.LookVector
       )
       local trustedStartPosition = character.PrimaryPart.Position + trustedDirection * 3
+      if typeof(clientStartPosition) == "Vector3" then
+         local maxStartDistanceFromCharacter = 12
+         local distanceFromCharacter = (clientStartPosition - character.PrimaryPart.Position).Magnitude
+         if distanceFromCharacter <= maxStartDistanceFromCharacter then
+            trustedStartPosition = clientStartPosition
+         end
+      end
 
       ThrownWeapons.Data[player] = {
          ToolId = toolId,
