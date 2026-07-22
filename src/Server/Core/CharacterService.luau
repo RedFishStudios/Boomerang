@@ -4,11 +4,11 @@
   Description:
   Handles server-side character management
 
-  Author:
+  Original Author:
   @SixthAtom
 
-  Date:
-  28-02-2026
+   Absolutely gutted and demolished by:
+   @Soulsplosion
 ]]
 
 local CharacterService = {}
@@ -29,6 +29,7 @@ local BufferUtil = require(ReplicatedStorage.Shared.Utils.BufferUtil)
 local _PartUtil = require(ReplicatedStorage.Shared.Utils.PartUtil)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local HitboxService = require(ServerStorage.Server.Core.HitboxService)
+local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -176,6 +177,7 @@ local function onCharacterLoaded(player: Player, character: Model, humanoid: Hum
    humanoid.JumpHeight = 0
    humanoid.JumpPower = 0
    humanoid.AutoRotate = false
+   humanoid.WalkSpeed = GlobalConfig.DefaultWalkSpeed
 
    for _, d in pairs(character:GetDescendants()) do
       if d:IsA("BasePart") or d:IsA("MeshPart") or d:IsA("Part") then

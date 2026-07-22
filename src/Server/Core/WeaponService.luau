@@ -27,6 +27,7 @@ local AnimationService = require(ServerStorage.Server.Core.AnimationService)
 local AnimationLibrary = require(ReplicatedStorage.Shared.Library.AnimationLibrary)
 local CharacterService = require(ServerStorage.Server.Core.CharacterService)
 local HitboxService = require(ServerStorage.Server.Core.HitboxService)
+local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 
 local ToolLogics = ReplicatedStorage.Shared.Logics.WeaponLogics
 local ToolLogicModules = {}
@@ -140,7 +141,7 @@ function WeaponService.init()
       --character:PivotTo(CFrame.new(authoritativePosition))
 
       aiming[player] = os.clock()
-      humanoid.WalkSpeed = 0
+      humanoid.WalkSpeed = GlobalConfig.AimingWalkSpeed
       aimStateEvent:FireAllClients(player.UserId, true)
 
       AnimationLibrary.playCoreAnimation(player, "Charging")
@@ -157,7 +158,7 @@ function WeaponService.init()
       local character = player.Character
       local humanoid = character and character:FindFirstChildWhichIsA("Humanoid")
       if humanoid then
-         humanoid.WalkSpeed = 16
+         humanoid.WalkSpeed = GlobalConfig.DefaultWalkSpeed
       end
       aimStateEvent:FireAllClients(player.UserId, false)
       

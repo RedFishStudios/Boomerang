@@ -385,6 +385,7 @@ function WeaponController.init()
    RunService.PreSimulation:Connect(updateSmoothing)
 
    local aiming = false
+   local LocalPlayer = Players.LocalPlayer
 
    local gameStateData = GameStateLibrary.getGameStateData()
    gameStateData.IsInRound:Subscribe(function(newValue: boolean)
@@ -408,6 +409,7 @@ function WeaponController.init()
          aimEvent:FireServer("ClassicBoomerang", Players.LocalPlayer.Character:GetPivot().Position)
 			aiming = true
          AnimationLibrary.playCoreAnimation(Players.LocalPlayer, "Charging")
+         LocalPlayer.Character.Humanoid.WalkSpeed = GlobalConfig.AimingWalkSpeed
 		end
 
       if input.KeyCode == Enum.KeyCode.E then

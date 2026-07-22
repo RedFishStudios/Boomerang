@@ -8,6 +8,9 @@ local GlobalConfig = {
    NilDataType = "Nil",
    AimFullStrength = 2.0,
 
+   DefaultWalkSpeed = 16,
+   AimingWalkSpeed = (16 * .3),
+
    -- Use for debugging
    -- Enabling these can greatly increase lag or network traffic
    RaycastVisualizersEnabled = false,
