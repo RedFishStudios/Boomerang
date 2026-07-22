@@ -179,6 +179,9 @@ local function onCharacterLoaded(player: Player, character: Model, humanoid: Hum
 
    for _, d in pairs(character:GetDescendants()) do
       if d:IsA("BasePart") or d:IsA("MeshPart") or d:IsA("Part") then
+         if d.Name:match("Hitbox") then
+            continue
+         end
          d.CanCollide = false
          d.CanTouch = false
          d.CanQuery = false
@@ -187,6 +190,9 @@ local function onCharacterLoaded(player: Player, character: Model, humanoid: Hum
 
    character.DescendantAdded:Connect(function(d)
       if d:IsA("BasePart") or d:IsA("MeshPart") or d:IsA("Part") then
+         if d.Name:match("Hitbox") then
+            return
+         end
          d.CanCollide = false
          d.CanTouch = false
          d.CanQuery = false
