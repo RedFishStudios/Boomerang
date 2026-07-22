@@ -64,6 +64,8 @@ local aiming: {[Player]: number} = {}
 local equippedToolIds: {[Player]: string} = {}
 local equippedToolVisible: {[Player]: boolean} = {}
 
+-- The TweenWalkSpeed functions exclusively and purely exist to hide conflicts between CharacterController and server authoritative positioning
+
 local function tweenWalkSpeed(humanoid: Humanoid, targetWalkSpeed: number, tweenDuration: number, tweenExponent: number, shouldContinue: (() -> boolean)?): boolean
    local initialWalkSpeed = humanoid.WalkSpeed
    local elapsed = 0
