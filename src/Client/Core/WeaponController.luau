@@ -18,6 +18,7 @@ local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local CharacterController = require(ReplicatedStorage.Client.Core.CharacterController)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local AnimationLibrary = require(ReplicatedStorage.Shared.Library.AnimationLibrary)
+local ToolController = require(ReplicatedStorage.Client.Core.ToolController)
 
 local ToolLogics = ReplicatedStorage.Shared.Logics.WeaponLogics
 local ToolLogicModules = {}
@@ -30,6 +31,7 @@ local aimEvent = SimpleRemotes.getEvent("WeaponAim")
 local aimStateEvent = SimpleRemotes.getEvent("WeaponAimState")
 local throwEvent = SimpleRemotes.getEvent("Weapon")
 local recallEvent = SimpleRemotes.getEvent("WeaponRecall")
+local weaponEquipStateEvent = SimpleRemotes.getEvent("WeaponEquipState")
 local thrownBoomerangSpawnedEvent = SimpleRemotes.getEvent("ThrownBoomerangSpawned")
 local thrownBoomerangDespawnedEvent = SimpleRemotes.getEvent("ThrownBoomerangDespawned")
 local thrownWeaponReplicationEvent = SimpleRemotes.getUnreliableEvent("ThrownWeaponReplication")
@@ -302,6 +304,25 @@ end
 -------------------------------------------------------------------------------
 
 function WeaponController.init()
+   weaponEquipStateEvent.OnClientEvent:Connect(function(playerUserId: number, action: string, value)
+      local forPlayer = Players:GetPlayerByUserId(playerUserId)
+      if not forPlayer then
+         return
+      end
+
+      if action == "Equip" then
+         if typeof(value) == "string" then
+            ToolController.equipTool(forPlayer, value)
+         end
+      elseif action == "Unequip" then
+         ToolController.unequipTool(forPlayer)
+      elseif action == "SetVisible" then
+         if typeof(value) == "boolean" then
+            ToolController.setToolVisible(forPlayer, value)
+         end
+      end
+   end)
+
    aimStateEvent.OnClientEvent:Connect(function(playerUserId: number, isAiming: boolean)
       local forPlayer = Players:GetPlayerByUserId(playerUserId)
       if not forPlayer then
@@ -437,6 +458,7 @@ function WeaponController.init()
 
    PlayersUtil.CharacterDestroying:Add(function(player: Player, character: Model)
       destroyAimArrows(player)
+      ToolController.unequipTool(player)
    end)
 
    PlayersUtil.CharacterDied:Add(function(player: Player, character: Model, humanoid: Humanoid)

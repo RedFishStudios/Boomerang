@@ -32,11 +32,6 @@ local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local ToolLogics = ReplicatedStorage.Shared.Logics.WeaponLogics
 local ToolLogicModules = {}
 
-local ToolModels = {}
-for _, tool in pairs(ReplicatedStorage.Shared.Assets.Tools:GetChildren()) do
-   ToolModels[tool.Name] = tool
-end
-
 -------------------------------------------------------------------------------
 -- CONSTANTS
 -------------------------------------------------------------------------------
@@ -56,9 +51,11 @@ local aimEvent = SimpleRemotes.getEvent("WeaponAim")
 local aimStateEvent = SimpleRemotes.getEvent("WeaponAimState")
 local throwEvent = SimpleRemotes.getEvent("Weapon")
 local recallEvent = SimpleRemotes.getEvent("WeaponRecall")
+local weaponEquipStateEvent = SimpleRemotes.getEvent("WeaponEquipState")
 
 local aiming: {[Player]: number} = {}
-local equippedTools: {[Player]: Tool} = {}
+local equippedToolIds: {[Player]: string} = {}
+local equippedToolVisible: {[Player]: boolean} = {}
 
 local function getHorizontalDirection(direction: Vector3): Vector3
    local horizontal = Vector3.new(direction.X, 0, direction.Z)
@@ -104,6 +101,7 @@ function WeaponService.init()
    -- Ensure boomerang replication remotes exist at server startup.
    SimpleRemotes.getEvent("ThrownBoomerangSpawned")
    SimpleRemotes.getEvent("ThrownBoomerangDespawned")
+   SimpleRemotes.getEvent("WeaponEquipState")
    SimpleRemotes.getUnreliableEvent("ThrownWeaponReplication")
 
    -- // Create thrown weapon replication part
@@ -210,21 +208,15 @@ function WeaponService.init()
    -- // Boomerang visibility/removing visibility from client
    -- TODO: This will likely later be clientside rendered using animation events to appear/disappear at the right point in the throw/catch animation
    WeaponService.WeaponThrownTasks:Add(function(player: Player, toolId: string)
-      if equippedTools[player] and equippedTools[player]:IsDescendantOf(game.Workspace) then
-         for _, part in ipairs(equippedTools[player]:GetDescendants()) do
-            if part:IsA("BasePart") or part:IsA("MeshPart") then
-               part.Transparency = 1
-            end
-         end
+      if equippedToolIds[player] then
+         equippedToolVisible[player] = false
+         weaponEquipStateEvent:FireAllClients(player.UserId, "SetVisible", false)
       end
    end)
    WeaponService.WeaponReturnedTasks:Add(function(player: Player, toolId: string)
-      if equippedTools[player] and equippedTools[player]:IsDescendantOf(game.Workspace) then
-         for _, part in ipairs(equippedTools[player]:GetDescendants()) do
-            if part:IsA("BasePart") or part:IsA("MeshPart") then
-               part.Transparency = 0
-            end
-         end
+      if equippedToolIds[player] then
+         equippedToolVisible[player] = true
+         weaponEquipStateEvent:FireAllClients(player.UserId, "SetVisible", true)
       end
    end)
 
@@ -242,23 +234,18 @@ function WeaponService.init()
    end)
 
    PlayersUtil.CharacterLoaded:Add(function(player: Player, character: Model, humanoid: Humanoid, rootPart: BasePart)
-      -- if equippedTools[player] then
-      --    equippedTools[player]:Destroy()
-      --    equippedTools[player] = nil
-      -- end
-      -- local equippedBoomerang = "ClassicBoomerang" -- TODO: get from player data
-      -- local toolModel = ToolModels[equippedBoomerang] and ToolModels[equippedBoomerang]:Clone()
-      -- if toolModel then
-      --    humanoid:EquipTool(toolModel)
-      --    equippedTools[player] = toolModel
-      -- end
+      local equippedBoomerang = "ClassicBoomerang" -- TODO: get from player data
+        equippedToolIds[player] = equippedBoomerang
+        equippedToolVisible[player] = true
+        weaponEquipStateEvent:FireAllClients(player.UserId, "Equip", equippedBoomerang)
    end)
 
    PlayersUtil.CharacterDestroying:Add(function(player: Player, character: Model)
-      -- if equippedTools[player] then
-      --    equippedTools[player]:Destroy()
-      --    equippedTools[player] = nil
-      -- end
+        if equippedToolIds[player] then
+          weaponEquipStateEvent:FireAllClients(player.UserId, "Unequip")
+      end
+        equippedToolIds[player] = nil
+        equippedToolVisible[player] = nil
 
       local thrownWeaponData = ThrownWeapons.Data[player]
       if thrownWeaponData then
@@ -266,6 +253,22 @@ function WeaponService.init()
          local Logic = getLogic(toolData.LogicClass)
          Logic.removeFromField(player, thrownWeaponData)
       end
+   end)
+
+   PlayersUtil.PlayerAdded:Add(function(joiningPlayer: Player)
+      for player, equippedToolId in pairs(equippedToolIds) do
+         if player.Character and player.Character.Parent then
+            weaponEquipStateEvent:FireClient(joiningPlayer, player.UserId, "Equip", equippedToolId)
+            if equippedToolVisible[player] == false then
+               weaponEquipStateEvent:FireClient(joiningPlayer, player.UserId, "SetVisible", false)
+            end
+         end
+      end
+   end)
+
+   PlayersUtil.PlayerRemoving:Add(function(player: Player)
+      equippedToolIds[player] = nil
+      equippedToolVisible[player] = nil
    end)
 
    PlayersUtil.CharacterDied:Add(function(player: Player, _character: Model, _humanoid: Humanoid)

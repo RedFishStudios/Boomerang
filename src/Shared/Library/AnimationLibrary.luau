@@ -132,9 +132,6 @@ end
 -------------------------------------------------------------------------------
 
 function AnimationLibrary.playCoreAnimation(player: Player, coreTrackName: CoreTrackNames)
-   if 1==1 then
-      return
-   end
 	local humanoid = PlayersUtil.getHumanoid(player)
 	if not humanoid then
 		print("no humanoid")
@@ -173,9 +170,6 @@ function AnimationLibrary.playCoreAnimation(player: Player, coreTrackName: CoreT
 end
 
 function AnimationLibrary.stopCoreAnimation(player: Player, coreTrackName: CoreTrackNames)
-   if 1==1 then 
-      return
-   end
 	local tracks = AnimationTracks[player]
 	if not tracks then
 		warn(`animationtracks.stopCoreAnimation failed, no tracks for {player}`)

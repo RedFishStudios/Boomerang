@@ -232,7 +232,6 @@ local function raycastWithHorizontalCharacterHitbox(rayOrigin: Vector3, directio
 
    for _, origin in ipairs(horizontalRayOrigins) do
       local raycastResult = workspace:Raycast(origin, direction * characterRayDistance, characterRaycastParams)
-      print(raycastResult)
       if raycastResult then
          local hitModel = raycastResult.Instance:FindFirstAncestorOfClass("Model")
          if hitModel and not table.find(seenModels, hitModel) then
