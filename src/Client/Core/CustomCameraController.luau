@@ -8,6 +8,7 @@ local CustomCameraController = {}
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
+local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
@@ -314,6 +315,9 @@ local function startOverheadMode()
       return
    end
 
+   UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+   UserInputService.MouseIconEnabled = true
+
    currentCamera = workspace.CurrentCamera
    currentCamera.CameraType = Enum.CameraType.Scriptable
    currentCamera.FieldOfView = 60
@@ -328,6 +332,9 @@ local function stopOverheadMode()
       overheadCameraConnection:Disconnect()
       overheadCameraConnection = nil
    end
+
+   UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+   UserInputService.MouseIconEnabled = false
 
    local character = localPlayer.Character
    if character then
