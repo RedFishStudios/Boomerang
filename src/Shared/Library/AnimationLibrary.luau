@@ -17,7 +17,7 @@ local IS_SERVER = RunService:IsServer()
 -- TYPES
 -------------------------------------------------------------------------------
 
-export type CoreTrackNames = "Charging" | "Throw" | "Catch"
+export type CoreTrackNames = "Charging" | "Throw" | "Catch" | "Stab"
 
 type PlayerTracks = {
 	[CoreTrackNames | string]: {
@@ -113,7 +113,7 @@ local function characterLoaded(player: Player, character: Model, humanoid: Human
 
 	local tracks: PlayerTracks = {}
 
-	local necessaryAnimationNames = { "Charging", "Throw", "Catch" }
+	local necessaryAnimationNames = { "Charging", "Throw", "Catch", "Stab" }
 	for _, animationName in ipairs(necessaryAnimationNames) do
 		local entry = createTrackEntry(animator, animationName, animationName)
 		if not entry then

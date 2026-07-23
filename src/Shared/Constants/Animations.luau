@@ -35,6 +35,14 @@ local Animations: {
       FadeIn = .2,
       FadeOut = .2,
       Looping = false
+   },
+
+   Stab = {
+      Id = 137065689006321,
+      Layer = "WeaponAction",
+      FadeIn = .1,
+      FadeOut = .2,
+      Looping = false
    }
 }
 

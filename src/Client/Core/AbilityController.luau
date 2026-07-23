@@ -80,6 +80,10 @@ function AbilityController.init()
       if input.KeyCode == Enum.KeyCode.Space then
          AbilityController.activate("Dash")
 		end
+
+      if input.UserInputType == Enum.UserInputType.MouseButton1 then
+         AbilityController.activate("Stab")
+      end
 	end)
 end
 

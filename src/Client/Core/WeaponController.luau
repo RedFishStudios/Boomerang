@@ -469,6 +469,8 @@ function WeaponController.init()
 		end
 	end)
 
+   -- NOTE: Parrying is registered as an Ability and handled via AbilityController
+
    UserInputService.InputEnded:Connect(function(input: InputObject, gameProcessed: boolean)
       if gameProcessed then
          return
