@@ -1,7 +1,17 @@
 local ToolController = {}
 
+local localPlayer = game.Players.LocalPlayer
+local TweenService = game:GetService("TweenService")
+
 local EquippedTools: {[Player]: Model} = {}
 local DetachedTools: {[Player]: Model} = {}
+local Highlights: {
+   {
+      Highlight: Highlight,
+      In: true?,
+      Out: true?
+   }
+} = {}
 
 local ToolAssets = game:GetService("ReplicatedStorage").Shared.Assets.Tools
 local WeaponsFolder = workspace:WaitForChild("Weapons")
@@ -49,6 +59,8 @@ local function attachToolModelToCharacter(player: Player, toolModel: Model)
 	end
 
 	motor.Parent = handle
+
+   ToolController.applyHighlight(false)
 	return true
 end
 
@@ -123,6 +135,8 @@ function ToolController.unequipTool(player: Player)
 		detachedTool:Destroy()
 		DetachedTools[player] = nil
 	end
+
+   ToolController.applyHighlight(false)
 end
 
 function ToolController.setToolVisible(player: Player, isVisible: boolean)
@@ -167,7 +181,6 @@ function ToolController.finishToolThrow(player: Player)
 	if not detachedTool then
 		return
 	end
-
 	removeWeaponWeld(detachedTool)
 	if attachToolModelToCharacter(player, detachedTool) then
 		DetachedTools[player] = nil
@@ -177,5 +190,43 @@ function ToolController.finishToolThrow(player: Player)
 		DetachedTools[player] = nil
 	end
 end
+
+function ToolController.applyHighlight(enabled: boolean)
+   if enabled then
+      for _, highlightData in ipairs(Highlights) do
+         if highlightData.In then
+            return
+         end
+      end
+      local myTool = getDetachedTool(localPlayer)
+      if not myTool then
+         return
+      end
+      local highlight = Instance.new("Highlight")
+      highlight.Adornee = myTool
+      highlight.Parent = myTool
+      highlight.OutlineColor = Color3.new(0.976471, 0.247059, 1)
+      highlight.OutlineTransparency = 0
+      highlight.FillTransparency = 1
+      highlight.Enabled = true
+      table.insert(Highlights, {Highlight = highlight, In = true})
+      TweenService:Create(highlight, TweenInfo.new(0.1), {OutlineTransparency = 0}):Play()
+   else
+      for _, highlightData in ipairs(Highlights) do
+         if highlightData.In then
+            local highlight = highlightData.Highlight
+            TweenService:Create(highlight, TweenInfo.new(0.1), {OutlineTransparency = 1}):Play()
+            highlightData.In = nil
+            highlightData.Out = true
+         end
+      end
+   end
+end
+
+--function ToolController.init()
+--end
+
+--function ToolController.start() 
+--end
 
 return ToolController

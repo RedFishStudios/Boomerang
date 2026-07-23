@@ -252,6 +252,45 @@ local function raycastWithHorizontalCharacterHitbox(rayOrigin: Vector3, directio
    return hitModels
 end
 
+local function isFullyVisibleObstruction(hitInstance: Instance): boolean
+   if hitInstance:IsA("BasePart") then
+      -- Exclude transparent geometry from obstruction checks.
+      return (hitInstance.Transparency + hitInstance.LocalTransparencyModifier) <= 0
+   end
+
+   return true
+end
+
+local function isCameraObstructedToPoint(cameraPosition: Vector3, targetPosition: Vector3, filter: {Instance}?): boolean
+   local toTarget = targetPosition - cameraPosition
+   local distance = toTarget.Magnitude
+   if distance <= 1e-5 then
+      return false
+   end
+
+   local direction = toTarget.Unit
+   local raycastParams = RaycastParams.new()
+   raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+   raycastParams.IgnoreWater = true
+
+   local excludedInstances = filter or {}
+   for _ = 1, 12 do
+      raycastParams.FilterDescendantsInstances = excludedInstances
+      local raycastResult = workspace:Raycast(cameraPosition, direction * distance, raycastParams)
+      if not raycastResult then
+         return false
+      end
+
+      if isFullyVisibleObstruction(raycastResult.Instance) then
+         return true
+      end
+
+      table.insert(excludedInstances, raycastResult.Instance)
+   end
+
+   return false
+end
+
 -- // Throw a boomerang onto the field
 function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.Tool, thrownWeaponData: ThrownWeapons.Data, options: ThrowInitOptions?)
    if not toolData.Boomerang then
@@ -326,13 +365,32 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    local raycastParams = RaycastsUtility.getProjectileObstructionParams(obstructionFilter)
    local nextReplicationAt = 0
 
+   -- // Simulate a frame of boomerang movement
    local function simulateStep(deltaTime: number, shouldRecallTransitions: boolean)
-      if isServer and PROJECTILE_HITBOX_VISUALIZER_ENABLED then
+      local pivot = getWeaponCFrame(thrownWeaponData)
+      if not pivot then
+         return false
+      end
+
+      if isServer then
+         if PROJECTILE_HITBOX_VISUALIZER_ENABLED then
+            if not thrownWeaponData.Host or not thrownWeaponData.Host.Parent then
+               return false
+            end
+         end
+      else
          if not thrownWeaponData.Host or not thrownWeaponData.Host.Parent then
             return false
          end
-      elseif not isServer and (not thrownWeaponData.Host or not thrownWeaponData.Host.Parent) then
-         return false
+         if ToolController then
+            local camera = workspace.CurrentCamera
+            if camera then
+               local isObstructed = isCameraObstructedToPoint(camera.CFrame.Position, pivot.Position, {character, thrownWeaponData.Host})
+               ToolController.applyHighlight(isObstructed)
+            else
+               ToolController.applyHighlight(false)
+            end
+         end
       end
 
       if energy > 0 and speed > defaultSpeed then
@@ -347,12 +405,6 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          if speed <= .1 then
             return false
          end
-      end
-
-      -- Raycast in front of the boomerang to detect collisions with walls or other obstacles
-      local pivot = getWeaponCFrame(thrownWeaponData)
-      if not pivot then
-         return false
       end
 
       local rayOrigin = pivot.Position
@@ -417,7 +469,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       return true
    end
 
-   -- Fast-forward newly replicated boomerangs to the best estimate of where they should be now.
+   -- Fast-forward newly replicated boomerangs to the best estimate of where they should be now
    if not isServer and options and options.ThrowServerTime then
       local catchup = math.clamp(workspace:GetServerTimeNow() - options.ThrowServerTime, 0, MAX_CATCHUP_SECONDS)
       while catchup > 0 do
@@ -552,6 +604,16 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          thrownWeaponData.MovementConnection:Disconnect()
          thrownWeaponData.MovementConnection = nil
          return
+      end
+
+      if not isServer and ToolController then
+         local camera = workspace.CurrentCamera
+         if camera then
+            local isObstructed = isCameraObstructedToPoint(camera.CFrame.Position, hostPivot.Position, {character, hostPart})
+            ToolController.applyHighlight(isObstructed)
+         else
+            ToolController.applyHighlight(false)
+         end
       end
 
       local toPlayer = (rootPart.Position - hostPivot.Position)
