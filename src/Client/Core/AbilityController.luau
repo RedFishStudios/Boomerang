@@ -63,6 +63,7 @@ function AbilityController.activate(abilityId: string, ...)
       warn(`AbilityController: Player {localPlayer.Name} cannot activate ability {abilityId}`)
       return
    end
+   logic.activate(localPlayer, ...)
 	abilityUsed:FireServer(abilityId)
 end
 

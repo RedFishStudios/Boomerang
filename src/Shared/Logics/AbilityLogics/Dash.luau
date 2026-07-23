@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local Gamemodes = require(ReplicatedStorage.Shared.Constants.Gamemodes)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
+local ParticlesLibrary = require(ReplicatedStorage.Shared.Library.ParticlesLibrary)
 
 -------------------------------------------------------------------------------
 -- LOCAL VARIABLES
@@ -69,13 +70,11 @@ function Dash.canActivate(player: Player)
    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
    local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
    if not raycastResult then
-      print("dash denied: not grounded")
       return false
    end
 
    local cooldown = Cooldowns[player]
    if cooldown and os.clock() < cooldown then
-      print("dash cooldown")
       return false
    end
    return true
@@ -137,7 +136,24 @@ function Dash.activate(player: Player)
       end)
    else
       -- Client context
-      -- TODO: sound, vfx, etc
+      local particle = ParticlesLibrary.play("Dash", humanoidRootPart:GetPivot().Position, 6, DASH_DURATION_SECONDS*.3)
+      task.spawn(function()
+      while particle and particle.Parent do
+        local dir = humanoid.MoveDirection
+        dir = Vector3.new(dir.X, 0, dir.Z)
+
+        if dir.Magnitude > 0 then
+            particle:PivotTo(
+                CFrame.lookAt(
+                    humanoidRootPart.Position,
+                    humanoidRootPart.Position + dir
+                ) * CFrame.Angles(0, math.rad(-90), 0)
+            )
+        end
+
+        task.wait()
+          end
+      end)
    end
 end
 
