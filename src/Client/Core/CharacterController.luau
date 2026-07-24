@@ -313,6 +313,7 @@ end
 function CharacterController.init()
 	loadRemotes()
 
+   -- I Am Sick And Tired Of Physics Conflicts With Native Server Authority
 	--RunService.PreSimulation:Connect(onPreSimulation)
    RunService.PostSimulation:Connect(onPreSimulation)
    RunService:BindToRenderStep("CharacterControllerRenderStep", Enum.RenderPriority.Last.Value, onPreSimulation)

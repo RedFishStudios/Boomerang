@@ -31,6 +31,10 @@ local CAMERA_FOCUS_SMOOTH_MAX = 42
 local CAMERA_DISTANCE_SMOOTH_BASE = 9
 local CAMERA_DISTANCE_SMOOTH_DISTANCE_FACTOR = 0.04
 local CAMERA_DISTANCE_SMOOTH_MAX = 30
+local PARRY_SHAKE_DURATION = 0.28
+local PARRY_SHAKE_POSITION = 0.9
+local PARRY_SHAKE_ROTATION_DEGREES = 7
+local PARRY_SHAKE_FREQUENCY = 34
 
 -------------------------------------------------------------------------------
 -- TYPES
@@ -44,8 +48,11 @@ local thrownWeaponsFolder = game.Workspace:WaitForChild("Weapons")
 
 local currentCamera: Camera? = nil
 local overheadCameraConnection: RBXScriptConnection? = nil
+local cameraShakeConnection: RBXScriptConnection? = nil
 local smoothedFocusPosition: Vector3? = nil
 local smoothedCameraDistance: number? = nil
+local parryShakeStart: number? = nil
+local parryShakeEnd: number? = nil
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -216,6 +223,43 @@ local function stepSmoothNumber(currentValue: number, targetValue: number, baseR
    return currentValue + (targetValue - currentValue) * alpha
 end
 
+local function getParryShakeAlpha(now: number): number
+   if not parryShakeStart or not parryShakeEnd then
+      return 0
+   end
+
+   if now >= parryShakeEnd then
+      return 0
+   end
+
+   local duration = math.max(parryShakeEnd - parryShakeStart, 1e-4)
+   local elapsed = now - parryShakeStart
+   local t = math.clamp(elapsed / duration, 0, 1)
+   return (1 - t) ^ 2
+end
+
+local function applyParryShake(baseCFrame: CFrame, now: number): CFrame
+   local alpha = getParryShakeAlpha(now)
+   if alpha <= 0 then
+      return baseCFrame
+   end
+
+   local shakeSeed = now * PARRY_SHAKE_FREQUENCY
+   local offset = Vector3.new(
+      math.noise(shakeSeed, 0, 0),
+      math.noise(0, shakeSeed, 0),
+      math.noise(0, 0, shakeSeed)
+   ) * (PARRY_SHAKE_POSITION * alpha)
+
+   local rotation = CFrame.fromOrientation(
+      math.rad(math.noise(shakeSeed + 11, 0, 0) * PARRY_SHAKE_ROTATION_DEGREES * alpha),
+      math.rad(math.noise(0, shakeSeed + 17, 0) * PARRY_SHAKE_ROTATION_DEGREES * alpha),
+      math.rad(math.noise(0, 0, shakeSeed + 23) * PARRY_SHAKE_ROTATION_DEGREES * alpha)
+   )
+
+   return baseCFrame * CFrame.new(offset) * rotation
+end
+
 -- // Instantly place overhead camera to fit all visible subjects with no smoothing
 local function placeCameraInstantly()
    if not currentCamera then
@@ -294,10 +338,24 @@ local function updateCamera(deltaTime: number)
    end
 
    local cameraPosition = smoothedFocusPosition + focusToCameraDirection * smoothedCameraDistance
+   local now = os.clock()
 
 	-- Keep orientation stable by deriving camera position from fixed yaw/tilt and smoothed focus+distance.
-   currentCamera.CFrame = CFrame.lookAt(cameraPosition, smoothedFocusPosition, Vector3.yAxis)
+	currentCamera.CFrame = applyParryShake(CFrame.lookAt(cameraPosition, smoothedFocusPosition, Vector3.yAxis), now)
 	currentCamera.Focus = CFrame.new(smoothedFocusPosition)
+end
+
+local function updateCameraShake()
+   if not currentCamera then
+      return
+   end
+
+   if CustomCameraController.Mode == "Overhead" then
+      return
+   end
+
+   local now = os.clock()
+   currentCamera.CFrame = applyParryShake(currentCamera.CFrame, now)
 end
 
 local function startOverheadMode()
@@ -365,6 +423,13 @@ function CustomCameraController.setMode(mode: "Overhead" | "Regular")
    end
 end
 
+function CustomCameraController.parryEffect()
+   print("PARRY EFFECT")
+   local now = os.clock()
+   parryShakeStart = now
+   parryShakeEnd = now + PARRY_SHAKE_DURATION
+end
+
 -------------------------------------------------------------------------------
 -- CORE FUNCTIONS
 -------------------------------------------------------------------------------
@@ -399,6 +464,15 @@ function CustomCameraController.start()
          end
       end
    end, false, Enum.KeyCode.C)
+   game:GetService("ContextActionService"):BindAction("ParryTest", function(actionName, inputState, inputObject)
+      if inputState == Enum.UserInputState.Begin then
+         CustomCameraController.parryEffect()
+      end
+   end, false, Enum.KeyCode.P)
+
+   if not cameraShakeConnection then
+      cameraShakeConnection = RunService:BindToRenderStep("CustomCameraParryShake", Enum.RenderPriority.Camera.Value + 1, updateCameraShake)
+   end
 end
 
 function CustomCameraController.test() end

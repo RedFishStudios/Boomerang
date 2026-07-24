@@ -10,6 +10,8 @@ local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.Colli
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local AnimationLibrary = require(ReplicatedStorage.Shared.Library.AnimationLibrary)
 
+local CameraController
+
 local CombatService
 
 -------------------------------------------------------------------------------
@@ -34,6 +36,8 @@ local HITBOX_CHECK_INTERVAL = 1/20
 local isServer = RunService:IsServer()
 if isServer then
    CombatService = require(game.ServerStorage.Server.Core.CombatService)
+else
+   CameraController = require(ReplicatedStorage.Client.Core.CustomCameraController)
 end
 
 local Cooldowns: {[Player]: number} = {}
@@ -245,6 +249,9 @@ function Stab.activate(player: Player)
          if victimIsStabbing then
             if targetDistance <= PARRY_DISTANCE then
                print("[Stab] Hit player to parry:", player.Name, "<->", victimPlayer.Name)
+               if CameraController then
+                  CameraController.parryEffect()
+               end
             end
          else
             if targetDistance <= STAB_DISTANCE and not registeredKillHits[victimPlayer] then
