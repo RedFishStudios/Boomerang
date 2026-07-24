@@ -12,34 +12,39 @@ local AnimationLibrary = require(ReplicatedStorage.Shared.Library.AnimationLibra
 
 local CombatService
 
-local Cooldowns: {[Player]: number} = {}
-local ActiveStabs: {[Player]: boolean} = {}
-
 -------------------------------------------------------------------------------
 -- LOCAL VARIABLES
 -------------------------------------------------------------------------------
 
 local STAB_COOLDOWN = 1
 
-local HITBOX_KILL_SIZE = Vector3.new(2, 2, 2)
-local HITBOX_PARRY_FORWARD_EXTENSION = 1
-local HITBOX_PARRY_SIZE = Vector3.new(HITBOX_KILL_SIZE.X, HITBOX_KILL_SIZE.Y, HITBOX_KILL_SIZE.Z + HITBOX_PARRY_FORWARD_EXTENSION)
-local HITBOX_DURATION = .6
+local HITBOX_SIZE = Vector3.new(2, 2, 3)
+local HITBOX_DURATION = .2
 local HITBOX_DELAY = .08
-local HITBOX_INTERVAL = .1
 local HITBOX_DISTANCE = 1
 local STAB_KILL_DAMAGE = 100000
+local STAB_DISTANCE = 2 + HITBOX_DISTANCE
+local PARRY_DISTANCE = 3 + HITBOX_DISTANCE
 
 local HITBOX_COLLISION_GROUP = CollisionGroupConstants.Players
-local KILL_VISUALIZER_COLOR = Color3.new(0.164706, 0.960784, 0.007843)
-local PARRY_VISUALIZER_COLOR = Color3.new(1, 0.647059, 0)
+local HITBOX_VISUALIZER_COLOR = Color3.new(0.164706, 0.960784, 0.007843)
+
+local HITBOX_CHECK_INTERVAL = 1/20
 
 local isServer = RunService:IsServer()
 if isServer then
    CombatService = require(game.ServerStorage.Server.Core.CombatService)
 end
 
-local ActiveStabRunIds: {[Player]: number} = {}
+
+local Cooldowns: {[Player]: number} = {}
+local ActiveStabs: {
+   [Player]: {
+      RunId: number,
+      Connection: RBXScriptConnection?,
+      Visualizer: BasePart?
+   }
+} = {}
 
 -------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS
@@ -51,6 +56,11 @@ local function getHorizontalLookDirection(rootPart: BasePart): Vector3
       return Vector3.new(0, 0, -1)
    end
    return horizontalLook.Unit
+end
+
+local function getHorizontalDistance(fromPart: BasePart, toPart: BasePart): number
+   local delta = Vector3.new(toPart.Position.X - fromPart.Position.X, 0, toPart.Position.Z - fromPart.Position.Z)
+   return delta.Magnitude
 end
 
 local function getHitboxCFrame(rootPart: BasePart, forwardExtension: number?): CFrame
@@ -110,6 +120,20 @@ local function getHitPlayers(player: Player, character: Model, cframe: CFrame, s
    return hitPlayers
 end
 
+local function disconnect(player: Player)
+   local stabState = ActiveStabs[player]
+   if stabState and stabState.Connection then
+      stabState.Connection:Disconnect()
+   end
+
+   if stabState and stabState.Visualizer then
+      destroyHitboxVisualizer(stabState.Visualizer)
+   end
+
+   Cooldowns[player] = nil
+   ActiveStabs[player] = nil
+end
+
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
@@ -141,10 +165,9 @@ function Stab.activate(player: Player)
 
    Cooldowns[player] = os.clock() + STAB_COOLDOWN
 
-   local previousRunId = ActiveStabRunIds[player] or 0
+   local previousRunId = ActiveStabs[player] and ActiveStabs[player].RunId or 0
    local runId = previousRunId + 1
-   ActiveStabRunIds[player] = runId
-   ActiveStabs[player] = true
+   local shouldShowVisualizer = isServer and GlobalConfig.ParryVisualizersEnabled
 
    AnimationLibrary.playCoreAnimation(player, "Stab")
    -- TODO: Stab sound
@@ -155,83 +178,93 @@ function Stab.activate(player: Player)
    overlapParams.CollisionGroup = HITBOX_COLLISION_GROUP
 
    local registeredKillHits: {[Player]: boolean} = {}
-   local killVisualizer: BasePart? = nil
-   local parryVisualizer: BasePart? = nil
 
-   task.spawn(function()
-      task.wait(HITBOX_DELAY)
+   local startedAt = os.clock()
+   local stabState = {
+      RunId = runId,
+      Connection = nil :: RBXScriptConnection?,
+      Visualizer = nil :: BasePart?
+   }
+   ActiveStabs[player] = stabState
+   
+   local accumulator = 0
 
-      local startedAt = os.clock()
-      while ActiveStabRunIds[player] == runId and (os.clock() - startedAt) <= HITBOX_DURATION do
-         local latestCharacter = player.Character
-         local latestRootPart = latestCharacter and latestCharacter.PrimaryPart
-         if not latestCharacter or not latestRootPart then
-            break
+   local function everyFrame(dt)
+      if not ActiveStabs[player] or ActiveStabs[player].RunId ~= runId then
+         return
+      end
+
+      local elapsed = os.clock() - startedAt
+      if elapsed < HITBOX_DELAY then
+         return
+      end
+
+      accumulator = accumulator + dt
+      if accumulator < HITBOX_CHECK_INTERVAL then
+         return
+      end
+      accumulator = 0
+
+      if elapsed > HITBOX_DURATION then
+         disconnect(player)
+         return
+      end
+
+      local latestCharacter = player.Character
+      local latestRootPart = latestCharacter and latestCharacter.PrimaryPart
+      if not latestCharacter or not latestRootPart then
+         disconnect(player)
+         return
+      end
+
+      overlapParams.FilterDescendantsInstances = {latestCharacter}
+
+      local hitboxCFrame = getHitboxCFrame(latestRootPart)
+
+      if shouldShowVisualizer then
+         if not stabState.Visualizer or not stabState.Visualizer.Parent then
+            stabState.Visualizer = createHitboxVisualizer(hitboxCFrame, HITBOX_SIZE, HITBOX_VISUALIZER_COLOR)
+         else
+            updateHitboxVisualizer(stabState.Visualizer, hitboxCFrame)
+         end
+      else
+         destroyHitboxVisualizer(stabState.Visualizer)
+         stabState.Visualizer = nil
+      end
+
+      local hitTargets = getHitPlayers(player, latestCharacter, hitboxCFrame, HITBOX_SIZE, overlapParams)
+      for _, victimPlayer in ipairs(hitTargets) do
+         local victimCharacter = victimPlayer.Character
+         local victimRootPart = victimCharacter and victimCharacter.PrimaryPart
+         if not victimRootPart then
+            continue
          end
 
-         overlapParams.FilterDescendantsInstances = {latestCharacter}
+         local targetDistance = getHorizontalDistance(latestRootPart, victimRootPart)
+         local victimIsStabbing = ActiveStabs[victimPlayer] ~= nil
 
-         local killCFrame = getHitboxCFrame(latestRootPart)
-         local parryCFrame = getHitboxCFrame(latestRootPart, HITBOX_PARRY_FORWARD_EXTENSION)
-
-         if isServer and GlobalConfig.ParryVisualizersEnabled then
-            if not killVisualizer or not killVisualizer.Parent then
-               killVisualizer = createHitboxVisualizer(killCFrame, HITBOX_KILL_SIZE, KILL_VISUALIZER_COLOR)
-            else
-               updateHitboxVisualizer(killVisualizer, killCFrame)
-            end
-
-            if not parryVisualizer or not parryVisualizer.Parent then
-               parryVisualizer = createHitboxVisualizer(parryCFrame, HITBOX_PARRY_SIZE, PARRY_VISUALIZER_COLOR)
-            else
-               updateHitboxVisualizer(parryVisualizer, parryCFrame)
+         if victimIsStabbing then
+            if targetDistance <= PARRY_DISTANCE then
+               print("[Stab] Hit player to parry:", player.Name, "<->", victimPlayer.Name)
             end
          else
-            destroyHitboxVisualizer(killVisualizer)
-            destroyHitboxVisualizer(parryVisualizer)
-            killVisualizer = nil
-            parryVisualizer = nil
-         end
-
-         local killTargets = getHitPlayers(player, latestCharacter, killCFrame, HITBOX_KILL_SIZE, overlapParams)
-         for _, victimPlayer in ipairs(killTargets) do
-            print("[Stab] Hit player to kill:", player.Name, "->", victimPlayer.Name)
-
-            if not registeredKillHits[victimPlayer] then
+            if targetDistance <= STAB_DISTANCE and not registeredKillHits[victimPlayer] then
                registeredKillHits[victimPlayer] = true
 
-               if not ActiveStabs[victimPlayer] then
-                  if isServer then
-                     local victimCharacter = victimPlayer.Character
-                     local victimHumanoid = victimCharacter and victimCharacter:FindFirstChildOfClass("Humanoid")
-                     if victimHumanoid and victimHumanoid.Health > 0 then
-                        CombatService.damagePlayer(player, "Stab", victimPlayer, victimHumanoid, STAB_KILL_DAMAGE)
-                     end
-                  else
-                     -- CLIENTSIDE STAB DETECTED
+               if isServer then
+                  local victimHumanoid = victimCharacter:FindFirstChildOfClass("Humanoid")
+                  if victimHumanoid and victimHumanoid.Health > 0 then
+                     CombatService.damagePlayer(player, "Stab", victimPlayer, victimHumanoid, STAB_KILL_DAMAGE)
                   end
+               else
+                  -- CLIENTSIDE STAB DETECTED
                end
             end
          end
-
-         local parryTargets = getHitPlayers(player, latestCharacter, parryCFrame, HITBOX_PARRY_SIZE, overlapParams)
-         for _, victimPlayer in ipairs(parryTargets) do
-            if ActiveStabs[victimPlayer] then
-               print("[Stab] Hit player to parry:", player.Name, "<->", victimPlayer.Name)
-            end
-         end
-
-         task.wait(HITBOX_INTERVAL)
       end
+   end
 
-      destroyHitboxVisualizer(killVisualizer)
-      destroyHitboxVisualizer(parryVisualizer)
-
-      if ActiveStabRunIds[player] == runId then
-         ActiveStabRunIds[player] = nil
-      end
-      ActiveStabs[player] = nil
-   end)
+   stabState.Connection = RunService.Heartbeat:Connect(everyFrame)
 end
 
 -------------------------------------------------------------------------------
@@ -239,21 +272,15 @@ end
 -------------------------------------------------------------------------------
 
 PlayersUtil.PlayerRemoving:Add(function(player: Player)
-   Cooldowns[player] = nil
-   ActiveStabs[player] = nil
-   ActiveStabRunIds[player] = nil
+   disconnect(player)
 end)
 
 PlayersUtil.CharacterDestroying:Add(function(player: Player, character: Model)
-   Cooldowns[player] = nil
-   ActiveStabs[player] = nil
-   ActiveStabRunIds[player] = nil
+   disconnect(player)
 end)
 
 PlayersUtil.CharacterDied:Add(function(player: Player, character: Model, humanoid: Humanoid)
-   Cooldowns[player] = nil
-   ActiveStabs[player] = nil
-   ActiveStabRunIds[player] = nil
+   disconnect(player)
 end)
 
 return Stab
