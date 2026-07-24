@@ -189,8 +189,8 @@ local function onPostSimulation(deltaTime: number)
 		dispatchSchedule()
 	end
 
-	-- Apply authoritative facing at the end of the frame so movement/physics systems resolve first.
-	task.defer(applyAuthoritativeFacing, deltaTime)
+	-- DO NOT TASK DEFER.
+	applyAuthoritativeFacing(deltaTime)
 end
 
 local function loadCharacterRemotes()

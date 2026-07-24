@@ -195,7 +195,6 @@ local function solveMotorsForCharacter(character: GameTypes.R15Character, solver
 	local waistPitchAngle = 0
 
 	waistM6D.Attachment0.CFrame = waistM6D.Attachment0.CFrame:Lerp(waistBaseC0 * CFrame.fromOrientation(waistPitchAngle, waistYawAngle, 0), dT * ANIMATION_SPEEDS.Waist)
-
 end
 
 local function onPreSimulation(dT: number)
@@ -248,6 +247,18 @@ local function onPreSimulation(dT: number)
 end
 
 local function onRenderStepped()
+   local localTarget = RaycastsUtility.getMouseWorldPosition(2048)
+	local localYaw = 0
+	if PlayersUtil.isAlive(player) and player.Character then
+		local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
+		if rootPart and localTarget then
+			localYaw = CharacterLogic.getYawFromLookAt(rootPart.Position, localTarget)
+		end
+	end
+   -- // THIS NEEDS TO BE DONE IN RENDER STEPPED. THIS HAS TO BE DONE IN RENDERSTEPPED.
+   -- THE LOCAL AUTHORITATIVE ROTATION NEEDS TO BE DONE IN RENDERSTEPPED. IF IT IS NOT, IT WILL CONFLICT WITH THE SERVER.
+   -- THE LOCAL AUTHORITATIVE ROTATION NEEDS TO BE DONE ON RENDERSTEPPED TO PREVENT JITTERINESS.
+	applyLocalAuthoritativeRotation(localYaw)
 end
 
 local function onAnyCharacterRemoved(character: GameTypes.R15Character)
@@ -302,9 +313,11 @@ end
 function CharacterController.init()
 	loadRemotes()
 
-	RunService.PreSimulation:Connect(onPreSimulation)
-	RunService.RenderStepped:Connect(onRenderStepped)
-	workspace.Characters.ChildRemoved:Connect(onAnyCharacterRemoved)
+	--RunService.PreSimulation:Connect(onPreSimulation)
+   RunService.PostSimulation:Connect(onPreSimulation)
+   RunService:BindToRenderStep("CharacterControllerRenderStep", Enum.RenderPriority.Last.Value, onPreSimulation)
+	RunService:BindToRenderStep("CharacterControllerRenderStep", Enum.RenderPriority.First.Value, onPreSimulation)
+   workspace.Characters.ChildRemoved:Connect(onAnyCharacterRemoved)
 	Players.PlayerRemoving:Connect(onPlayerRemoving)
 end
 
