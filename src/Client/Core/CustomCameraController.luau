@@ -346,7 +346,8 @@ local function updateCamera(deltaTime: number)
 end
 
 local function updateCameraShake()
-   if not currentCamera then
+   local camera = workspace.CurrentCamera
+   if not camera then
       return
    end
 
@@ -355,7 +356,7 @@ local function updateCameraShake()
    end
 
    local now = os.clock()
-   currentCamera.CFrame = applyParryShake(currentCamera.CFrame, now)
+   camera.CFrame = applyParryShake(camera.CFrame, now)
 end
 
 local function startOverheadMode()
@@ -423,8 +424,11 @@ function CustomCameraController.setMode(mode: "Overhead" | "Regular")
    end
 end
 
+function CustomCameraController.getMode()
+   return CustomCameraController.Mode
+end
+
 function CustomCameraController.parryEffect()
-   print("PARRY EFFECT")
    local now = os.clock()
    parryShakeStart = now
    parryShakeEnd = now + PARRY_SHAKE_DURATION
