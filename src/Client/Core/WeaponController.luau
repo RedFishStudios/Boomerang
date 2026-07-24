@@ -20,11 +20,24 @@ local CharacterController = require(ReplicatedStorage.Client.Core.CharacterContr
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local AnimationLibrary = require(ReplicatedStorage.Shared.Library.AnimationLibrary)
 local ToolController = require(ReplicatedStorage.Client.Core.ToolController)
+local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 
 local ToolLogics = ReplicatedStorage.Shared.Logics.WeaponLogics
 local ToolLogicModules = {}
 
 -------------------------------------------------------------------------------
+-- PUBLIC VARIABLES
+-------------------------------------------------------------------------------
+
+WeaponController.CurrentWeaponState = {
+   InHand = 0,
+   Aiming = 1,
+   OnField = 2
+}
+
+WeaponController.WeaponStateChanged = TasksList.new() :: TasksList.TasksList<number>
+
+------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
 -------------------------------------------------------------------------------
 
@@ -43,6 +56,7 @@ local UNRELIABLE_CODES = RemoteCodes.Weapon.Unreliable
 local SOFT_CORRECTION_RATE = 14
 local HARD_SNAP_DISTANCE = 14
 local MAX_SNAPSHOT_CATCHUP = 0.35
+local CLASSIC_BOOMERANG_TOOL_ID = "ClassicBoomerang"
 
 local aimArrows: {
    [Player]: {
@@ -55,6 +69,8 @@ local pendingLocalThrow: {
    ToolId: string,
    Host: Model,
 }? = nil
+local isAiming = false
+local currentWeaponState = WeaponController.CurrentWeaponState.InHand
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -96,6 +112,28 @@ local function getHorizontalDirection(direction: Vector3): Vector3
    return horizontal.Unit
 end
 
+local function getWeaponState(): string
+   if ThrownWeapons.Data[Players.LocalPlayer] then
+      return WeaponController.CurrentWeaponState.OnField
+   end
+
+   if isAiming then
+      return WeaponController.CurrentWeaponState.Aiming
+   end
+
+   return WeaponController.CurrentWeaponState.InHand
+end
+
+local function syncWeaponStateChanged()
+   local newWeaponState = getWeaponState()
+   if newWeaponState == currentWeaponState then
+      return
+   end
+
+   currentWeaponState = newWeaponState
+   WeaponController.WeaponStateChanged:Execute("serial", newWeaponState)
+end
+
 local function clearThrownWeapon(forPlayer: Player)
    local thrownWeaponData = ThrownWeapons.Data[forPlayer]
    if not thrownWeaponData then
@@ -113,7 +151,107 @@ local function clearThrownWeapon(forPlayer: Player)
 
    if forPlayer ~= Players.LocalPlayer then
       ToolController.setToolVisible(forPlayer, true)
+   else
+      syncWeaponStateChanged()
    end
+end
+
+local function beginClassicBoomerangAim(): boolean
+   if isAiming then
+      return true
+   end
+
+   local canThrow = WeaponLibrary.canThrow(Players.LocalPlayer, CLASSIC_BOOMERANG_TOOL_ID)
+   if not canThrow then
+      return false
+   end
+
+	 aimEvent:FireServer(CLASSIC_BOOMERANG_TOOL_ID)
+	 isAiming = true
+   syncWeaponStateChanged()
+   local localCharacter = Players.LocalPlayer.Character
+   if localCharacter and localCharacter:FindFirstChildOfClass("Humanoid") then
+      AnimationLibrary.playCoreAnimation(Players.LocalPlayer, "Charging")
+      localCharacter.Humanoid.WalkSpeed = GlobalConfig.AimingWalkSpeed
+   end
+
+   return true
+end
+
+local function throwClassicBoomerang(): boolean
+   if not isAiming then
+      return false
+   end
+
+	 isAiming = false
+	 local localCharacter = Players.LocalPlayer.Character
+	 local pendingHost, releasePosition = ToolController.prepareToolForThrow(Players.LocalPlayer)
+   syncWeaponStateChanged()
+
+	 local throwOrigin = releasePosition
+	 if not throwOrigin and localCharacter and localCharacter.PrimaryPart then
+		throwOrigin = localCharacter.PrimaryPart.Position
+	 end
+
+	 local mouseWorldPosition = RaycastsUtility.getMouseWorldPosition(2048)
+    local direction
+    if throwOrigin and mouseWorldPosition then
+      direction = getHorizontalDirection(mouseWorldPosition - throwOrigin)
+    elseif localCharacter and localCharacter.PrimaryPart then
+      direction = getHorizontalDirection(localCharacter.PrimaryPart.CFrame.LookVector)
+    else
+      direction = Vector3.new(0, 0, -1)
+    end
+
+	 if not releasePosition and throwOrigin then
+		releasePosition = throwOrigin + direction * 3
+	 end
+
+	 if pendingHost then
+		local pendingToken = {}
+		pendingLocalThrow = {
+			Token = pendingToken,
+			ToolId = CLASSIC_BOOMERANG_TOOL_ID,
+			Host = pendingHost,
+		}
+
+		task.delay(0.75, function()
+			if pendingLocalThrow and pendingLocalThrow.Token == pendingToken then
+				pendingLocalThrow = nil
+				ToolController.finishToolThrow(Players.LocalPlayer)
+			end
+		end)
+	 end
+
+	 throwEvent:FireServer(CLASSIC_BOOMERANG_TOOL_ID, direction, releasePosition)
+	 AnimationLibrary.playCoreAnimation(Players.LocalPlayer, "Throw")
+
+   return true
+end
+
+local function recallClassicBoomerang(): boolean
+   if not ThrownWeapons.Data[Players.LocalPlayer] then
+      return false
+   end
+
+   recallEvent:FireServer()
+   return true
+end
+
+function WeaponController.getWeaponState(): string
+   return getWeaponState()
+end
+
+function WeaponController.handleClassicBoomerangButton(): string
+   if ThrownWeapons.Data[Players.LocalPlayer] then
+      recallClassicBoomerang()
+   elseif isAiming then
+      throwClassicBoomerang()
+   else
+      beginClassicBoomerangAim()
+   end
+
+   return getWeaponState()
 end
 
 -- // Register a snapshot of a server-authoritative position
@@ -307,6 +445,10 @@ function WeaponController.startThrownWeapon(forPlayer: Player, toolId: string, t
 
    local logic = getLogic(toolData.LogicClass)
    logic.throw(forPlayer, toolId, toolData, ThrownWeapons.Data[forPlayer], initOptions)
+
+   if forPlayer == Players.LocalPlayer then
+      syncWeaponStateChanged()
+   end
 end
 
 -------------------------------------------------------------------------------
@@ -436,15 +578,13 @@ function WeaponController.init()
 
    RunService.PreSimulation:Connect(updateSmoothing)
 
-   local aiming = false
-   local LocalPlayer = Players.LocalPlayer
-
    local gameStateData = GameStateLibrary.getGameStateData()
    gameStateData.IsInRound:Subscribe(function(newValue: boolean)
       if not newValue then
-         aiming = false
+         isAiming = false
          AnimationLibrary.stopCoreAnimation(Players.LocalPlayer, "Charging")
          AnimationLibrary.stopCoreAnimation(Players.LocalPlayer, "Throw")
+         syncWeaponStateChanged()
       end
    end)
 
@@ -454,14 +594,7 @@ function WeaponController.init()
 		end
 
       if input.UserInputType == Enum.UserInputType.MouseButton2 then
-         local canThrow = WeaponLibrary.canThrow(Players.LocalPlayer, "ClassicBoomerang")
-         if not canThrow then
-            return
-         end
-		 aimEvent:FireServer("ClassicBoomerang")
-			aiming = true
-         AnimationLibrary.playCoreAnimation(Players.LocalPlayer, "Charging")
-         LocalPlayer.Character.Humanoid.WalkSpeed = GlobalConfig.AimingWalkSpeed
+		 beginClassicBoomerangAim()
 		end
 
       if input.KeyCode == Enum.KeyCode.E then
@@ -477,46 +610,7 @@ function WeaponController.init()
       end 
 
       if input.UserInputType == Enum.UserInputType.MouseButton2 then
-         if aiming then
-            aiming = false
-            local localCharacter = Players.LocalPlayer.Character
-            local pendingHost, releasePosition = ToolController.prepareToolForThrow(Players.LocalPlayer)
-
-            local throwOrigin = releasePosition
-            if not throwOrigin and localCharacter and localCharacter.PrimaryPart then
-               throwOrigin = localCharacter.PrimaryPart.Position
-            end
-
-            local mouseWorldPosition = RaycastsUtility.getMouseWorldPosition(2048)
-            local direction = if throwOrigin and mouseWorldPosition
-               then getHorizontalDirection(mouseWorldPosition - throwOrigin)
-               elseif localCharacter and localCharacter.PrimaryPart
-               then getHorizontalDirection(localCharacter.PrimaryPart.CFrame.LookVector)
-               else Vector3.new(0, 0, -1)
-
-            if not releasePosition and throwOrigin then
-               releasePosition = throwOrigin + direction * 3
-            end
-
-            if pendingHost then
-               local pendingToken = {}
-               pendingLocalThrow = {
-                  Token = pendingToken,
-                  ToolId = "ClassicBoomerang",
-                  Host = pendingHost,
-               }
-
-               task.delay(0.75, function()
-                  if pendingLocalThrow and pendingLocalThrow.Token == pendingToken then
-                     pendingLocalThrow = nil
-                     ToolController.finishToolThrow(Players.LocalPlayer)
-                  end
-               end)
-            end
-
-            throwEvent:FireServer("ClassicBoomerang", direction, releasePosition)
-            AnimationLibrary.playCoreAnimation(Players.LocalPlayer, "Throw")
-         end
+       throwClassicBoomerang()
       end
    end)
 
@@ -524,6 +618,7 @@ function WeaponController.init()
       destroyAimArrows(player)
       if player == Players.LocalPlayer then
          pendingLocalThrow = nil
+         syncWeaponStateChanged()
       end
       ToolController.unequipTool(player)
    end)

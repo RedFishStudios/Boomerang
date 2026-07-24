@@ -193,7 +193,7 @@ function InputReplication.SendInputToHumanoidForServerAuth(player: Player)
 
     local moveVector, cameraVector3D, cameraRelativeRotation = InputReplication._calculatePlayerInputValues(player)
     humanoid:Move(moveVector)
-    humanoid.AutoRotate = not cameraRelativeRotation
+    humanoid.AutoRotate = false
 
     if cameraRelativeRotation then
         if humanoid.SeatPart == nil and humanoid.RootPart ~= nil and not humanoid.Sit and not humanoid.RootPart:IsGrounded() then
