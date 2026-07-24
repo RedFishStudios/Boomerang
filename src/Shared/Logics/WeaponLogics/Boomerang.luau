@@ -520,7 +520,6 @@ function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapo
       end
    end
    if isServer then
-      print("is server")
       fireDespawned(player.UserId)
       WeaponService.WeaponReturnedTasks:Execute("parallel", player, thrownWeaponData.ToolId)
    end

@@ -56,7 +56,7 @@ type WeaponReturnedTask = (player: Player, toolId: string) -> ()
 
 local aimEvent = SimpleRemotes.getEvent("WeaponAim")
 local aimStateEvent = SimpleRemotes.getEvent("WeaponAimState")
-local throwEvent = SimpleRemotes.getEvent("Weapon")
+local throwFunction = SimpleRemotes.getFunction("Weapon")
 local recallEvent = SimpleRemotes.getEvent("WeaponRecall")
 local weaponEquipStateEvent = SimpleRemotes.getEvent("WeaponEquipState")
 
@@ -213,11 +213,10 @@ function WeaponService.init()
    end)
 
    -- // Throw boomerang
-   throwEvent.OnServerEvent:Connect(function(player: Player, toolId: string, clientDirection: Vector3?, clientStartPosition: Vector3?)
+   throwFunction.OnServerInvoke = function(player: Player, toolId: string, clientDirection: Vector3?, clientStartPosition: Vector3?)
       local timeSinceAiming = os.clock() - (aiming[player] or os.clock())
       timeSinceAiming = math.clamp(timeSinceAiming, 0, GlobalConfig.AimFullStrength)
       local aimStrengthAlpha = timeSinceAiming / GlobalConfig.AimFullStrength
-      print("aim strength alpha: ", aimStrengthAlpha)
 
       aiming[player] = nil
       local character = player.Character
@@ -284,7 +283,7 @@ function WeaponService.init()
          AimStrengthAlpha = aimStrengthAlpha,
       })
       WeaponService.WeaponThrownTasks:Execute("parallel", player, toolId)
-	end)
+	end
 
    -- // Boomerang visibility/removing visibility from client
    -- TODO: This will likely later be clientside rendered using animation events to appear/disappear at the right point in the throw/catch animation

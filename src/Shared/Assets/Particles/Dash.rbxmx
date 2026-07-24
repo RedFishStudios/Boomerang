@@ -2,7 +2,7 @@
 	<Meta name="ExplicitAutoJoints">true</Meta>
 	<External>null</External>
 	<External>nil</External>
-	<Item class="Part" referent="1">
+	<Item class="Part" referent="RBX40DB0EB67EB94F53B6258E5EF1F4D91C">
 		<Properties>
 			<token name="shape">1</token>
 			<token name="formFactorRaw">1</token>
@@ -17,9 +17,9 @@
 			<token name="BottomSurface">0</token>
 			<token name="BottomSurfaceInput">0</token>
 			<CoordinateFrame name="CFrame">
-				<X>131.180588</X>
-				<Y>-15.61549</Y>
-				<Z>-187.445267</Z>
+				<X>0</X>
+				<Y>0</Y>
+				<Z>0</Z>
 				<R00>0</R00>
 				<R01>-1</R01>
 				<R02>0</R02>
@@ -57,15 +57,15 @@
 				<X>0</X>
 				<Y>0</Y>
 				<Z>0</Z>
-				<R00>1</R00>
+				<R00>0</R00>
 				<R01>0</R01>
-				<R02>0</R02>
-				<R10>0</R10>
-				<R11>1</R11>
+				<R02>-1</R02>
+				<R10>-1</R10>
+				<R11>0</R11>
 				<R12>0</R12>
 				<R20>0</R20>
-				<R21>0</R21>
-				<R22>1</R22>
+				<R21>1</R21>
+				<R22>0</R22>
 			</CoordinateFrame>
 			<float name="Reflectance">0</float>
 			<float name="RightParamA">-0.5</float>
@@ -100,7 +100,7 @@
 			<int64 name="SourceAssetId">16703877340</int64>
 			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 		</Properties>
-		<Item class="ParticleEmitter" referent="9">
+		<Item class="ParticleEmitter" referent="RBX99F610E1625D4767BEE97BF79D0697DB">
 			<Properties>
 				<Vector3 name="Acceleration">
 					<X>0</X>
@@ -120,12 +120,12 @@
 				<int name="FlipbookSizeX">1</int>
 				<int name="FlipbookSizeY">1</int>
 				<bool name="FlipbookStartRandom">false</bool>
-				<NumberRange name="Lifetime">1 1 </NumberRange>
+				<NumberRange name="Lifetime">0.8 0.8 </NumberRange>
 				<float name="LightEmission">1</float>
 				<float name="LightInfluence">0</float>
 				<bool name="LockedToPart">false</bool>
 				<token name="Orientation">2</token>
-				<float name="Rate">8</float>
+				<float name="Rate">30</float>
 				<NumberRange name="RotSpeed">0 0 </NumberRange>
 				<NumberRange name="Rotation">0 0 </NumberRange>
 				<token name="Shape">0</token>
@@ -141,7 +141,7 @@
 				<NumberSequence name="Squash">0 -4.19669 0 1 -2.2 0 </NumberSequence>
 				<Content name="Texture"><url>rbxassetid://7216979807</url></Content>
 				<float name="TimeScale">1</float>
-				<NumberSequence name="Transparency">0 0 0 0.200678 0 0 0.598678 0 0 1 1 0 </NumberSequence>
+				<NumberSequence name="Transparency">0 1 0 0.021197 1 0 0.0598504 0.814815 0 0.102244 0.462963 0 0.124688 0.216049 0 0.164589 0.0617284 0 0.200678 0 0 0.598678 0 0 0.658354 0.0925926 0 0.725686 0.290123 0 0.761845 0.475309 0 0.78803 0.746914 0 0.84414 0.919753 0 0.901496 1 0 1 1 0 </NumberSequence>
 				<float name="VelocityInheritance">0</float>
 				<bool name="WindAffectsDrag">false</bool>
 				<float name="ZOffset">0</float>

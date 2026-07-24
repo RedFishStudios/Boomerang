@@ -43,7 +43,7 @@ WeaponController.WeaponStateChanged = TasksList.new() :: TasksList.TasksList<num
 
 local aimEvent = SimpleRemotes.getEvent("WeaponAim")
 local aimStateEvent = SimpleRemotes.getEvent("WeaponAimState")
-local throwEvent = SimpleRemotes.getEvent("Weapon")
+local throwFunction = SimpleRemotes.getFunction("Weapon")
 local recallEvent = SimpleRemotes.getEvent("WeaponRecall")
 local weaponEquipStateEvent = SimpleRemotes.getEvent("WeaponEquipState")
 local thrownBoomerangSpawnedEvent = SimpleRemotes.getEvent("ThrownBoomerangSpawned")
@@ -139,7 +139,6 @@ local function clearThrownWeapon(forPlayer: Player)
    if not thrownWeaponData then
       return
    end
-
    local toolData = Tools[thrownWeaponData.ToolId]
    if not toolData then
       ThrownWeapons.Data[forPlayer] = nil
@@ -151,8 +150,6 @@ local function clearThrownWeapon(forPlayer: Player)
 
    if forPlayer ~= Players.LocalPlayer then
       ToolController.setToolVisible(forPlayer, true)
-   else
-      syncWeaponStateChanged()
    end
 end
 
@@ -166,9 +163,8 @@ local function beginClassicBoomerangAim(): boolean
       return false
    end
 
-	 aimEvent:FireServer(CLASSIC_BOOMERANG_TOOL_ID)
-	 isAiming = true
-   syncWeaponStateChanged()
+	aimEvent:FireServer(CLASSIC_BOOMERANG_TOOL_ID)
+	isAiming = true
    local localCharacter = Players.LocalPlayer.Character
    if localCharacter and localCharacter:FindFirstChildOfClass("Humanoid") then
       AnimationLibrary.playCoreAnimation(Players.LocalPlayer, "Charging")
@@ -183,10 +179,8 @@ local function throwClassicBoomerang(): boolean
       return false
    end
 
-	 isAiming = false
-	 local localCharacter = Players.LocalPlayer.Character
-	 local pendingHost, releasePosition = ToolController.prepareToolForThrow(Players.LocalPlayer)
-   syncWeaponStateChanged()
+	local localCharacter = Players.LocalPlayer.Character
+	local pendingHost, releasePosition = ToolController.prepareToolForThrow(Players.LocalPlayer)
 
 	 local throwOrigin = releasePosition
 	 if not throwOrigin and localCharacter and localCharacter.PrimaryPart then
@@ -223,8 +217,10 @@ local function throwClassicBoomerang(): boolean
 		end)
 	 end
 
-	 throwEvent:FireServer(CLASSIC_BOOMERANG_TOOL_ID, direction, releasePosition)
-	 AnimationLibrary.playCoreAnimation(Players.LocalPlayer, "Throw")
+    
+	throwFunction:InvokeServer(CLASSIC_BOOMERANG_TOOL_ID, direction, releasePosition)
+	AnimationLibrary.playCoreAnimation(Players.LocalPlayer, "Throw")
+   isAiming = false
 
    return true
 end
@@ -445,10 +441,6 @@ function WeaponController.startThrownWeapon(forPlayer: Player, toolId: string, t
 
    local logic = getLogic(toolData.LogicClass)
    logic.throw(forPlayer, toolId, toolData, ThrownWeapons.Data[forPlayer], initOptions)
-
-   if forPlayer == Players.LocalPlayer then
-      syncWeaponStateChanged()
-   end
 end
 
 -------------------------------------------------------------------------------
@@ -456,6 +448,10 @@ end
 -------------------------------------------------------------------------------
 
 function WeaponController.init()
+   RunService.Heartbeat:Connect(function(dt)
+      syncWeaponStateChanged()
+   end)
+
    weaponEquipStateEvent.OnClientEvent:Connect(function(playerUserId: number, action: string, value)
       local forPlayer = Players:GetPlayerByUserId(playerUserId)
       if not forPlayer then
@@ -584,7 +580,6 @@ function WeaponController.init()
          isAiming = false
          AnimationLibrary.stopCoreAnimation(Players.LocalPlayer, "Charging")
          AnimationLibrary.stopCoreAnimation(Players.LocalPlayer, "Throw")
-         syncWeaponStateChanged()
       end
    end)
 
@@ -618,7 +613,6 @@ function WeaponController.init()
       destroyAimArrows(player)
       if player == Players.LocalPlayer then
          pendingLocalThrow = nil
-         syncWeaponStateChanged()
       end
       ToolController.unequipTool(player)
    end)

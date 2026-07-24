@@ -20,6 +20,8 @@ local WeaponController = require(ClientMods.Core.WeaponController)
 -- // Gui Values // --
 
 local Gui = script.Hud
+Gui.ResetOnSpawn = false
+Gui.IgnoreGuiInset = true
 local BoomerangThrowButton = Gui.Frame.Throw :: TextButton
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -65,7 +67,9 @@ local function _init()
    setupGuiForNewRound()
 
    local function syncBoomerangThrowButton()
-      BoomerangThrowButton.Text = weaponStateToDisplayString(WeaponController.getWeaponState())
+      task.spawn(function()
+         BoomerangThrowButton.Text = weaponStateToDisplayString(WeaponController.getWeaponState())
+      end)
    end
 
    Gui.Frame.Dash.Activated:Connect(function()
