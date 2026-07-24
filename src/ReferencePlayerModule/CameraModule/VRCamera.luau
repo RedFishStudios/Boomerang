@@ -36,7 +36,7 @@ function VRCamera.new()
 	self:Reset()
 
 	self.controlModule = require(script.Parent.Parent:WaitForChild("ControlModule"))
-	self.savedAutoRotate = true 
+	self.savedAutoRotate = false 
 
 	return self
 end
@@ -186,7 +186,7 @@ function VRCamera:UpdateImmersionCamera(timeDelta, newCameraCFrame, newCameraFoc
 	if self.needsReset then
 		self.needsReset = false
 		
-		self.savedAutoRotate = humanoid.AutoRotate
+		self.savedAutoRotate = false
 		humanoid.AutoRotate = false
 
 		if self.NoRecenter then
@@ -420,7 +420,7 @@ function VRCamera:LeaveFirstPerson()
 	end
 	local humanoid = self:GetHumanoid()
 	if humanoid then
-		humanoid.AutoRotate = self.savedAutoRotate
+		humanoid.AutoRotate = false
 	end
 end
 

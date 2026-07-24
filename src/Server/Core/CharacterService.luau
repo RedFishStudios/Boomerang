@@ -28,7 +28,6 @@ local SimpleRemotesUtil = require(ReplicatedStorage.Shared.Networking.SimpleRemo
 local BufferUtil = require(ReplicatedStorage.Shared.Utils.BufferUtil)
 local _PartUtil = require(ReplicatedStorage.Shared.Utils.PartUtil)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
-local HitboxService = require(ServerStorage.Server.Core.HitboxService)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 
 -------------------------------------------------------------------------------
@@ -45,6 +44,9 @@ local REPLICATION_FLUSH_RATE = 1 / 12
 
 type CharacterAddedTask = (character: Model, player: Player) -> ()
 type CharacterRemovingTask = (character: Model, player: Player) -> ()
+type FacingConstraintState = {
+	Orientation: AlignOrientation,
+}
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
@@ -57,6 +59,7 @@ type SolverAngles = {
 
 local playersSolverTarget: { [Player]: SolverAngles } = {}
 local pendingSolverReplication: { [Player]: SolverAngles } = {}
+local playerFacingConstraints: { [Player]: FacingConstraintState } = {}
 local nextReplicationFlushAt = 0
 
 local playerConnections: { [Player]: ConnectionsList.ConnectionsList } = {}
@@ -79,10 +82,52 @@ end
 local function onCharacterRemoving(player: Player, character: Model)
 end
 
-local function applyAuthoritativeRotation(deltaTime: number)
+local function getFacingConstraintState(player: Player, character: Model): FacingConstraintState?
+	local rootPart = character:FindFirstChild("HumanoidRootPart")
+	if not rootPart then
+		return nil
+	end
+
+	local rootAttachment = rootPart:FindFirstChild("RootAttachment")
+	if not rootAttachment or not rootAttachment:IsA("Attachment") then
+		return nil
+	end
+
+	local state = playerFacingConstraints[player]
+	if state and state.Orientation.Parent == rootPart then
+		return state
+	end
+
+	local orientation = rootPart:FindFirstChild("CharacterFacingOrientation")
+	if orientation and not orientation:IsA("AlignOrientation") then
+		orientation = nil
+	end
+	if not orientation then
+		orientation = Instance.new("AlignOrientation")
+		orientation.Name = "CharacterFacingOrientation"
+		orientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
+		orientation.Attachment0 = rootAttachment
+		orientation.RigidityEnabled = true
+		orientation.Enabled = true
+		orientation.Parent = rootPart
+	end
+
+	state = {
+		Orientation = orientation,
+	}
+	playerFacingConstraints[player] = state
+	return state
+end
+
+local function applyAuthoritativeFacing(deltaTime: number)
 	for player, solverAngles in playersSolverTarget do
 		local character = player.Character
 		if not character then
+			continue
+		end
+
+		local facingConstraintState = getFacingConstraintState(player, character)
+		if not facingConstraintState then
 			continue
 		end
 
@@ -92,9 +137,8 @@ local function applyAuthoritativeRotation(deltaTime: number)
 			continue
 		end
 
-		local cframe = CharacterLogic.stepRootYawToAngle(rootPart.CFrame, solverAngles.Yaw, deltaTime)
-      local hitbox = HitboxService.getHitbox(player)
-      rootPart.CFrame = cframe
+		local lookVector = CharacterLogic.getLookVectorFromYaw(solverAngles.Yaw)
+		facingConstraintState.Orientation.CFrame = CFrame.new(rootPart.Position, rootPart.Position + lookVector)
 	end
 end
 
@@ -145,8 +189,8 @@ local function onPostSimulation(deltaTime: number)
 		dispatchSchedule()
 	end
 
-	-- Apply authoritative root rotation at the end of the frame so movement/physics systems resolve first.
-	task.defer(applyAuthoritativeRotation, deltaTime)
+	-- Apply authoritative facing at the end of the frame so movement/physics systems resolve first.
+	task.defer(applyAuthoritativeFacing, deltaTime)
 end
 
 local function loadCharacterRemotes()
@@ -173,6 +217,8 @@ local function loadCharacterRemotes()
 end
 
 local function onCharacterLoaded(player: Player, character: Model, humanoid: Humanoid, rootPart: BasePart)
+	getFacingConstraintState(player, character)
+
    humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
    humanoid.JumpHeight = 0
    humanoid.JumpPower = 0
@@ -233,12 +279,14 @@ function CharacterService.init()
 
    PlayersUtil.CharacterDestroying:Add(function(destroyingPlayer: Player, character: Model)
 		playersSolverTarget[destroyingPlayer] = nil
+		playerFacingConstraints[destroyingPlayer] = nil
 		onCharacterRemoving(destroyingPlayer, character)
 	end)
 
 	Players.PlayerRemoving:Connect(function(player)
 		playersSolverTarget[player] = nil
 		pendingSolverReplication[player] = nil
+		playerFacingConstraints[player] = nil
 
 		local playerConnectionList = playerConnections[player]
 		if playerConnectionList then

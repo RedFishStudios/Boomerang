@@ -63,6 +63,10 @@ type SolverState = {
 	RenderYaw: number,
 }
 
+type FacingConstraintState = {
+	Orientation: AlignOrientation,
+}
+
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
 -------------------------------------------------------------------------------
@@ -74,6 +78,7 @@ local unreliableEvent = SimpleRemotes.getUnreliableEvent("Character")
 local playersSolverState: { [Player]: SolverState } = {}
 local characterInstances: { [GameTypes.R15Character]: RequiredCharacterInstances } = {}
 local motorsBaseC0: { [Motor6D]: CFrame } = {}
+local facingConstraintStates: { [GameTypes.R15Character]: FacingConstraintState } = {}
 
 local nextReplicationAt = 0
 local latestLocalYaw: number? = nil
@@ -107,9 +112,30 @@ local function applyLocalAuthoritativeRotation(yawAngle: number)
 		return
 	end
 
-	local cf = CFrame.Angles(0, yawAngle, 0) + humanoidRootPart.Position
+	local rootAttachment = humanoidRootPart:FindFirstChild("RootAttachment")
+	if not rootAttachment or not rootAttachment:IsA("Attachment") then
+		return
+	end
+
+	local orientationState = facingConstraintStates[character]
+	if not orientationState then
+		local orientation = humanoidRootPart:FindFirstChild("CharacterFacingOrientation")
+		if not orientation or not orientation:IsA("AlignOrientation") then
+			return
+		end
+
+		orientationState = {
+			Orientation = orientation,
+		}
+		facingConstraintStates[character] = orientationState
+	elseif orientationState.Orientation.Parent ~= humanoidRootPart then
+		facingConstraintStates[character] = nil
+		return
+	end
+
+	local cf = CFrame.new(humanoidRootPart.Position, humanoidRootPart.Position + CharacterLogic.getLookVectorFromYaw(yawAngle))
 	CharacterController.LastCFrame = cf
-   character:PivotTo(cf)
+	orientationState.Orientation.CFrame = cf
 end
 
 local function getOrCreateSolverState(forPlayer: Player, yaw: number): SolverState
@@ -185,6 +211,7 @@ local function onPreSimulation(dT: number)
 
 	latestLocalYaw = localYaw
 	getOrCreateSolverState(player, localYaw)
+	applyLocalAuthoritativeRotation(localYaw)
 
 	if PlayersUtil.isAlive(player) then
 		local now = os.clock()
@@ -221,9 +248,6 @@ local function onPreSimulation(dT: number)
 end
 
 local function onRenderStepped()
-	if latestLocalYaw then
-		applyLocalAuthoritativeRotation(latestLocalYaw)
-	end
 end
 
 local function onAnyCharacterRemoved(character: GameTypes.R15Character)
@@ -232,6 +256,7 @@ local function onAnyCharacterRemoved(character: GameTypes.R15Character)
 		motorsBaseC0[instances.Waist] = nil
 	end
 	characterInstances[character] = nil
+	facingConstraintStates[character] = nil
 end
 
 local function onPlayerRemoving(removingPlayer: Player)

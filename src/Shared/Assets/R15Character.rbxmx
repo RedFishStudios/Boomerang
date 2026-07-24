@@ -250,7 +250,7 @@
 		<Item class="Humanoid" referent="RBX2D85A7F93691482E92E8D6E67B880F6E">
 			<Properties>
 				<bool name="AutoJumpEnabled">true</bool>
-				<bool name="AutoRotate">true</bool>
+				<bool name="AutoRotate">false</bool>
 				<bool name="AutomaticScalingEnabled">true</bool>
 				<bool name="BreakJointsOnDeath">true</bool>
 				<token name="CollisionType">0</token>
