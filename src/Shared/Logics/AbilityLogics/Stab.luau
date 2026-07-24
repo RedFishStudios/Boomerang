@@ -36,7 +36,6 @@ if isServer then
    CombatService = require(game.ServerStorage.Server.Core.CombatService)
 end
 
-
 local Cooldowns: {[Player]: number} = {}
 local ActiveStabs: {
    [Player]: {

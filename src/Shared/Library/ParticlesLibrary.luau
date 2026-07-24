@@ -38,9 +38,6 @@ function ParticlesLibrary.play(particleName: string, host: Instance | Vector3, s
    for _, d in pairs(particle:GetChildren()) do
       if d:IsA("ParticleEmitter") then
          d.Enabled = true
-         if startEmit then
-             d:Emit(startEmit)
-         end
       end
    end
 
@@ -48,8 +45,8 @@ function ParticlesLibrary.play(particleName: string, host: Instance | Vector3, s
       for _, d in pairs(particle:GetChildren()) do
          if d:IsA("ParticleEmitter") then
             task.spawn(function()
-               local emitterLifetime = math.max(d.Lifetime.Max, particleLifetime)
-               local interval = emitterLifetime / startEmit
+               local emitterLifetime = math.max(d.Lifetime.Min, particleLifetime)
+               local interval = (emitterLifetime / startEmit)*.07
                for i = 1, startEmit do
                   d:Emit(1)
                   task.wait(interval)

@@ -136,7 +136,7 @@ function Dash.activate(player: Player)
       end)
    else
       -- Client context
-      local particle = ParticlesLibrary.play("Dash", humanoidRootPart:GetPivot().Position, 6, DASH_DURATION_SECONDS*.3)
+      local particle = ParticlesLibrary.play("Dash", humanoidRootPart:GetPivot().Position, 3, DASH_DURATION_SECONDS*.5)
       task.spawn(function()
       while particle and particle.Parent do
         local dir = humanoid.MoveDirection
