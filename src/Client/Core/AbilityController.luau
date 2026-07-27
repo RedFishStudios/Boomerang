@@ -4,7 +4,6 @@ local UserInputService = game:GetService("UserInputService")
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local LightingService = game:GetService("Lighting")
 
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 
@@ -26,7 +25,7 @@ local AbilityLogicModules = {}
 -------------------------------------------------------------------------------
 
 local abilityUsed = SimpleRemotes.getEvent("AbilityUsed")
-local abilityStopped = SimpleRemotes.getEvent("AbilityStopped")
+local abilityReplication = SimpleRemotes.getUnreliableEvent("AbilityReplication")
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -48,6 +47,19 @@ local function getLogic(abilityId: string)
 	end
 	return AbilityLogicModules[abilityId]
 end
+
+abilityReplication.OnClientEvent:Connect(function(abilityId: string, userId: number, timestamp: number)
+   if userId == localPlayer.UserId or typeof(timestamp) ~= "number" then
+      return
+   end
+
+   local logic = getLogic(abilityId)
+   if not logic or not logic.simulateActivation then
+      return
+   end
+
+   logic.simulateActivation(userId, timestamp)
+end)
 
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS

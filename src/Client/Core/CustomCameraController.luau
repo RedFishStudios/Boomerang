@@ -429,9 +429,15 @@ function CustomCameraController.getMode()
 end
 
 function CustomCameraController.parryEffect()
+   print('start parry effect')
    local now = os.clock()
    parryShakeStart = now
    parryShakeEnd = now + PARRY_SHAKE_DURATION
+end
+
+function CustomCameraController.cancelParryEffect()
+   print('end parry effect')
+   parryShakeEnd = os.clock()
 end
 
 -------------------------------------------------------------------------------
@@ -454,6 +460,7 @@ function CustomCameraController.start()
 
    local gameStateData = GameStateLibrary.getGameStateData()
    gameStateData.IsInRound:Subscribe(function(isInRound: boolean)
+      CustomCameraController.cancelParryEffect()
       if CustomCameraController.Mode == "Overhead" then
          placeCameraInstantly()
       end

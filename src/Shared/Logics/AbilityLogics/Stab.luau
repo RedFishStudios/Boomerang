@@ -1,6 +1,7 @@
 local Stab = {}
 
 local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -28,6 +29,11 @@ local STAB_KILL_DAMAGE = 100000
 local STAB_DISTANCE = 2 + HITBOX_DISTANCE
 local PARRY_DISTANCE = 3 + HITBOX_DISTANCE
 
+local PARRY_STAGGER_INITIAL_SPEED = 48
+local PARRY_STAGGER_DECELERATION_DURATION = .25
+local PARRY_STAGGER_TOTAL_DURATION = .55
+local PARRY_STAGGER_MIN_DIRECTION_DISTANCE = .05
+
 local HITBOX_COLLISION_GROUP = CollisionGroupConstants.Players
 local HITBOX_VISUALIZER_COLOR = Color3.new(0.164706, 0.960784, 0.007843)
 
@@ -44,10 +50,30 @@ local Cooldowns: {[Player]: number} = {}
 local ActiveStabs: {
    [Player]: {
       RunId: number,
+      StartedAt: number,
+      EndsAt: number,
       Connection: RBXScriptConnection?,
       Visualizer: BasePart?
    }
 } = {}
+
+local ActiveStaggers: {
+   [Player]: {
+      StartedAt: number,
+      EndsAt: number,
+      DecelerationEndsAt: number,
+      Character: Model,
+      RootPart: BasePart,
+      Humanoid: Humanoid,
+      Direction: Vector3,
+      OriginalWalkSpeed: number,
+      OriginalJumpPower: number,
+      OriginalJumpHeight: number,
+      OriginalAutoRotate: boolean,
+   }
+} = {}
+
+local staggerConnection: RBXScriptConnection? = nil
 
 -------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS
@@ -64,6 +90,14 @@ end
 local function getHorizontalDistance(fromPart: BasePart, toPart: BasePart): number
    local delta = Vector3.new(toPart.Position.X - fromPart.Position.X, 0, toPart.Position.Z - fromPart.Position.Z)
    return delta.Magnitude
+end
+
+local function getHorizontalDirectionFromTo(fromPart: BasePart, toPart: BasePart): Vector3
+   local delta = Vector3.new(toPart.Position.X - fromPart.Position.X, 0, toPart.Position.Z - fromPart.Position.Z)
+   if delta.Magnitude <= PARRY_STAGGER_MIN_DIRECTION_DISTANCE then
+      return getHorizontalLookDirection(fromPart)
+   end
+   return delta.Unit
 end
 
 local function getHitboxCFrame(rootPart: BasePart, forwardExtension: number?): CFrame
@@ -137,6 +171,200 @@ local function disconnect(player: Player)
    ActiveStabs[player] = nil
 end
 
+local function scheduleStabCleanup(player: Player, runId: number, endsAt: number)
+   task.delay(math.max(0, endsAt - workspace:GetServerTimeNow()), function()
+      local stabState = ActiveStabs[player]
+      if stabState and stabState.RunId == runId then
+         disconnect(player)
+      end
+   end)
+end
+
+local function cancelParryCameraEffectIfLocal(player: Player)
+   if isServer or not CameraController then
+      return
+   end
+   if player ~= game.Players.LocalPlayer then
+      return
+   end
+
+   local cancelFn = CameraController.cancelParryEffect
+   if cancelFn then
+      cancelFn()
+   end
+end
+
+local function cancelStagger(player: Player)
+   local stagger = ActiveStaggers[player]
+   if not stagger then
+      return
+   end
+
+   local humanoid = stagger.Humanoid
+   if humanoid and humanoid.Parent and humanoid.Health > 0 then
+      humanoid.WalkSpeed = stagger.OriginalWalkSpeed
+      humanoid.JumpPower = stagger.OriginalJumpPower
+      humanoid.JumpHeight = stagger.OriginalJumpHeight
+      humanoid.AutoRotate = stagger.OriginalAutoRotate
+   end
+
+   local rootPart = stagger.RootPart
+   if rootPart and rootPart.Parent then
+      local velocity = rootPart.AssemblyLinearVelocity
+      rootPart.AssemblyLinearVelocity = Vector3.new(0, velocity.Y, 0)
+   end
+
+   ActiveStaggers[player] = nil
+   cancelParryCameraEffectIfLocal(player)
+end
+
+local function cancelAllStaggers()
+   for player in pairs(ActiveStaggers) do
+      cancelStagger(player)
+   end
+end
+
+local function stopStaggerUpdateConnectionIfIdle()
+   if next(ActiveStaggers) then
+      return
+   end
+
+   if staggerConnection then
+      staggerConnection:Disconnect()
+      staggerConnection = nil
+   end
+end
+
+local function updateStaggers()
+   local now = os.clock()
+
+   for player, stagger in pairs(ActiveStaggers) do
+      if player.Character ~= stagger.Character then
+         cancelStagger(player)
+         continue
+      end
+
+      if not stagger.RootPart.Parent or not stagger.Humanoid.Parent or stagger.Humanoid.Health <= 0 then
+         cancelStagger(player)
+         continue
+      end
+
+      if now >= stagger.EndsAt then
+         cancelStagger(player)
+         continue
+      end
+
+      local speed = 0
+      if now < stagger.DecelerationEndsAt then
+         local alpha = math.clamp((now - stagger.StartedAt) / math.max(PARRY_STAGGER_DECELERATION_DURATION, 1e-5), 0, 1)
+         speed = PARRY_STAGGER_INITIAL_SPEED * (1 - alpha)
+      end
+
+      local velocity = stagger.RootPart.AssemblyLinearVelocity
+      stagger.RootPart.AssemblyLinearVelocity = Vector3.new(stagger.Direction.X * speed, velocity.Y, stagger.Direction.Z * speed)
+   end
+
+   stopStaggerUpdateConnectionIfIdle()
+end
+
+local function ensureStaggerUpdateConnection()
+   if staggerConnection then
+      return
+   end
+
+   staggerConnection = RunService.Heartbeat:Connect(updateStaggers)
+end
+
+local function beginStagger(player: Player, direction: Vector3)
+   warn(`begin stagger`)
+   local character = player.Character
+   if not character then
+      return
+   end
+
+   local rootPart = character.PrimaryPart
+   local humanoid = character:FindFirstChildOfClass("Humanoid")
+   if not rootPart or not humanoid or humanoid.Health <= 0 then
+      return
+   end
+
+   cancelStagger(player)
+
+   local originalWalkSpeed = humanoid.WalkSpeed
+   local originalJumpPower = humanoid.JumpPower
+   local originalJumpHeight = humanoid.JumpHeight
+   local originalAutoRotate = humanoid.AutoRotate
+
+   humanoid.WalkSpeed = 0
+   humanoid.JumpPower = 0
+   humanoid.JumpHeight = 0
+   humanoid.AutoRotate = false
+
+   local now = os.clock()
+   ActiveStaggers[player] = {
+      StartedAt = now,
+      EndsAt = now + PARRY_STAGGER_TOTAL_DURATION,
+      DecelerationEndsAt = now + PARRY_STAGGER_DECELERATION_DURATION,
+      Character = character,
+      RootPart = rootPart,
+      Humanoid = humanoid,
+      Direction = direction,
+      OriginalWalkSpeed = originalWalkSpeed,
+      OriginalJumpPower = originalJumpPower,
+      OriginalJumpHeight = originalJumpHeight,
+      OriginalAutoRotate = originalAutoRotate,
+   }
+
+   ensureStaggerUpdateConnection()
+end
+
+function Stab.simulateActivation(userId: number, timestamp: number)
+   if isServer or typeof(timestamp) ~= "number" then
+      return
+   end
+
+   local player = Players:GetPlayerByUserId(userId)
+   if not player or player == game.Players.LocalPlayer then
+      return
+   end
+
+   local endsAt = timestamp + HITBOX_DURATION
+   if workspace:GetServerTimeNow() >= endsAt then
+      return
+   end
+
+   disconnect(player)
+
+   local previousRunId = ActiveStabs[player] and ActiveStabs[player].RunId or 0
+   local runId = previousRunId + 1
+   ActiveStabs[player] = {
+      RunId = runId,
+      StartedAt = timestamp,
+      EndsAt = endsAt,
+      Connection = nil,
+      Visualizer = nil,
+   }
+
+   scheduleStabCleanup(player, runId, endsAt)
+end
+
+local function applyParry(stabberPlayer: Player, stabberRootPart: BasePart, victimPlayer: Player, victimRootPart: BasePart)
+   if ActiveStaggers[stabberPlayer] or ActiveStaggers[victimPlayer] then
+      return
+   end
+   local stabberToVictim = getHorizontalDirectionFromTo(stabberRootPart, victimRootPart)
+   local victimToStabber = -stabberToVictim
+
+   beginStagger(stabberPlayer, victimToStabber)
+   beginStagger(victimPlayer, stabberToVictim)
+
+   if not isServer and CameraController then
+      if stabberPlayer == game.Players.LocalPlayer or victimPlayer == game.Players.LocalPlayer then
+         CameraController.parryEffect()
+      end
+   end
+end
+
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
@@ -185,6 +413,8 @@ function Stab.activate(player: Player)
    local startedAt = os.clock()
    local stabState = {
       RunId = runId,
+      StartedAt = startedAt,
+      EndsAt = startedAt + HITBOX_DURATION,
       Connection = nil :: RBXScriptConnection?,
       Visualizer = nil :: BasePart?
    }
@@ -249,9 +479,7 @@ function Stab.activate(player: Player)
          if victimIsStabbing then
             if targetDistance <= PARRY_DISTANCE then
                print("[Stab] Hit player to parry:", player.Name, "<->", victimPlayer.Name)
-               if CameraController then
-                  CameraController.parryEffect()
-               end
+               applyParry(player, latestRootPart, victimPlayer, victimRootPart)
             end
          else
             if targetDistance <= STAB_DISTANCE and not registeredKillHits[victimPlayer] then
@@ -263,7 +491,7 @@ function Stab.activate(player: Player)
                      CombatService.damagePlayer(player, "Stab", victimPlayer, victimHumanoid, STAB_KILL_DAMAGE)
                   end
                else
-                  -- CLIENTSIDE STAB DETECTED
+                  print(`clientside stab deteccted here`)
                end
             end
          end
@@ -278,15 +506,26 @@ end
 -------------------------------------------------------------------------------
 
 PlayersUtil.PlayerRemoving:Add(function(player: Player)
+   cancelStagger(player)
+   stopStaggerUpdateConnectionIfIdle()
    disconnect(player)
 end)
 
 PlayersUtil.CharacterDestroying:Add(function(player: Player, character: Model)
+   cancelStagger(player)
+   stopStaggerUpdateConnectionIfIdle()
    disconnect(player)
 end)
 
 PlayersUtil.CharacterDied:Add(function(player: Player, character: Model, humanoid: Humanoid)
+   cancelStagger(player)
+   stopStaggerUpdateConnectionIfIdle()
    disconnect(player)
+end)
+
+GameStateLibrary.getGameStateData().IsInRound:Subscribe(function()
+   cancelAllStaggers()
+   stopStaggerUpdateConnectionIfIdle()
 end)
 
 return Stab

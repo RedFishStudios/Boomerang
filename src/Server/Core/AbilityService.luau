@@ -1,9 +1,7 @@
 local AbilityService = {}
 
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerStorage = game:GetService("ServerStorage")
-
+local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local AbilityLogics = ReplicatedStorage.Shared.Logics.AbilityLogics
 local AbilityLogicModules = {}
 
@@ -22,7 +20,7 @@ local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 -------------------------------------------------------------------------------
 
 local abilityUsed = SimpleRemotes.getEvent("AbilityUsed")
-local abilityStopped = SimpleRemotes.getEvent("AbilityStopped")
+local abilityReplication = SimpleRemotes.getUnreliableEvent("AbilityReplication")
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -45,6 +43,23 @@ local function getLogic(abilityId: string)
 	return AbilityLogicModules[abilityId]
 end
 
+local function activateAbility(player: Player, abilityId: string, ...)
+   local logic = getLogic(abilityId)
+      if not logic then
+         warn(`AbilityService.init: No logic found for ability {abilityId}`)
+         return
+      end
+      if logic.canActivate and not logic.canActivate(player, ...) then
+         warn(`AbilityService.init: Player {player.Name} cannot activate ability {abilityId}`)
+         return
+      end
+      
+      if logic.activate then
+         logic.activate(player, ...)
+         abilityReplication:FireAllClients(abilityId, player.UserId, workspace:GetServerTimeNow())
+      end
+end
+
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
@@ -55,20 +70,13 @@ end
 -------------------------------------------------------------------------------
 
 function AbilityService.init()
-   SimpleRemotes.getUnreliableEvent("AbilityReplication")
-
    abilityUsed.OnServerEvent:Connect(function(player: Player, abilityId: string, ...)
-      local logic = getLogic(abilityId)
-      if not logic then
-         warn(`AbilityService.init: No logic found for ability {abilityId}`)
-         return
-      end
-      if logic.canActivate and not logic.canActivate(player, ...) then
-         warn(`AbilityService.init: Player {player.Name} cannot activate ability {abilityId}`)
-         return
-      end
-      if logic.activate then
-         logic.activate(player, ...)
+      if GlobalConfig.SyncAbilitiesToEveryPlayer then
+         for _, p in pairs(game.Players:GetPlayers()) do
+            activateAbility(p, abilityId, ...)
+         end
+      else
+         activateAbility(player, abilityId, ...)
       end
    end)
 end
