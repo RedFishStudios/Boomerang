@@ -33,11 +33,11 @@ local PARRY_STAGGER_INITIAL_SPEED = 48
 local PARRY_STAGGER_DECELERATION_DURATION = .25
 local PARRY_STAGGER_TOTAL_DURATION = .3
 local PARRY_STAGGER_MIN_DIRECTION_DISTANCE = .05
+local PARRY_FACING_DOT_THRESHOLD = .4
 
 local HITBOX_COLLISION_GROUP = CollisionGroupConstants.Players
 local HITBOX_VISUALIZER_COLOR = Color3.new(0.164706, 0.960784, 0.007843)
-
-local HITBOX_CHECK_INTERVAL = 1/20
+local HITBOX_CHECK_INTERVAL = 1 / 20
 
 local isServer = RunService:IsServer()
 if isServer then
@@ -98,6 +98,17 @@ local function getHorizontalDirectionFromTo(fromPart: BasePart, toPart: BasePart
       return getHorizontalLookDirection(fromPart)
    end
    return delta.Unit
+end
+
+local function arePlayersFacingEachOtherForParry(stabberRootPart: BasePart, victimRootPart: BasePart): boolean
+   local stabberLook = getHorizontalLookDirection(stabberRootPart)
+   local victimLook = getHorizontalLookDirection(victimRootPart)
+   local stabberToVictim = getHorizontalDirectionFromTo(stabberRootPart, victimRootPart)
+   local victimToStabber = -stabberToVictim
+
+   local stabberFacingVictim = stabberLook:Dot(stabberToVictim) >= PARRY_FACING_DOT_THRESHOLD
+   local victimFacingStabber = victimLook:Dot(victimToStabber) >= PARRY_FACING_DOT_THRESHOLD
+   return stabberFacingVictim and victimFacingStabber
 end
 
 local function getHitboxCFrame(rootPart: BasePart, forwardExtension: number?): CFrame
@@ -419,10 +430,10 @@ function Stab.activate(player: Player)
       Visualizer = nil :: BasePart?
    }
    ActiveStabs[player] = stabState
-   
-   local accumulator = 0
 
-   local function everyFrame(dt)
+   local checkAccumulator = 0
+
+   local function everyFrame(_dt)
       if not ActiveStabs[player] or ActiveStabs[player].RunId ~= runId then
          return
       end
@@ -431,12 +442,6 @@ function Stab.activate(player: Player)
       if elapsed < HITBOX_DELAY then
          return
       end
-
-      accumulator = accumulator + dt
-      if accumulator < HITBOX_CHECK_INTERVAL then
-         return
-      end
-      accumulator = 0
 
       if elapsed > HITBOX_DURATION then
          disconnect(player)
@@ -465,6 +470,12 @@ function Stab.activate(player: Player)
          stabState.Visualizer = nil
       end
 
+      checkAccumulator += _dt
+      if checkAccumulator < HITBOX_CHECK_INTERVAL then
+         return
+      end
+      checkAccumulator = 0
+
       local hitTargets = getHitPlayers(player, latestCharacter, hitboxCFrame, HITBOX_SIZE, overlapParams)
       for _, victimPlayer in ipairs(hitTargets) do
          local victimCharacter = victimPlayer.Character
@@ -476,23 +487,23 @@ function Stab.activate(player: Player)
          local targetDistance = getHorizontalDistance(latestRootPart, victimRootPart)
          local victimIsStabbing = ActiveStabs[victimPlayer] ~= nil
 
-         if victimIsStabbing then
-            if targetDistance <= PARRY_DISTANCE then
-               print("[Stab] Hit player to parry:", player.Name, "<->", victimPlayer.Name)
-               applyParry(player, latestRootPart, victimPlayer, victimRootPart)
-            end
-         else
-            if targetDistance <= STAB_DISTANCE and not registeredKillHits[victimPlayer] then
-               registeredKillHits[victimPlayer] = true
+         local shouldParry = victimIsStabbing
+            and targetDistance <= PARRY_DISTANCE
+            and arePlayersFacingEachOtherForParry(latestRootPart, victimRootPart)
 
-               if isServer then
-                  local victimHumanoid = victimCharacter:FindFirstChildOfClass("Humanoid")
-                  if victimHumanoid and victimHumanoid.Health > 0 then
-                     CombatService.damagePlayer(player, "Stab", victimPlayer, victimHumanoid, STAB_KILL_DAMAGE)
-                  end
-               else
-                  print(`clientside stab deteccted here`)
+         if shouldParry then
+            print("[Stab] Hit player to parry:", player.Name, "<->", victimPlayer.Name)
+            applyParry(player, latestRootPart, victimPlayer, victimRootPart)
+         elseif targetDistance <= STAB_DISTANCE and not registeredKillHits[victimPlayer] then
+            registeredKillHits[victimPlayer] = true
+
+            if isServer then
+               local victimHumanoid = victimCharacter:FindFirstChildOfClass("Humanoid")
+               if victimHumanoid and victimHumanoid.Health > 0 then
+                  CombatService.damagePlayer(player, "Stab", victimPlayer, victimHumanoid, STAB_KILL_DAMAGE)
                end
+            else
+               print(`clientside stab deteccted here`)
             end
          end
       end
