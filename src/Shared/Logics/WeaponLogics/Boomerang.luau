@@ -16,6 +16,8 @@ local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
 local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
 local AnimationLibrary = require(ReplicatedStorage.Shared.Library.AnimationLibrary)
+local SoundLibrary = require(ReplicatedStorage.Shared.Library.SoundLibrary)
+local SoundData = require(ReplicatedStorage.Shared.Constants.Sounds)
 
 -- // Context-Specific Modules
 local CombatService, WeaponService, ToolController
@@ -291,6 +293,30 @@ local function isCameraObstructedToPoint(cameraPosition: Vector3, targetPosition
    return false
 end
 
+local function damagedPlayer(player: Player, boomerangId: string, victimModel: Model): boolean
+   local victimPlayer = game.Players:GetPlayerFromCharacter(victimModel)
+   if not victimPlayer or victimPlayer == player then
+      return false
+   end
+
+   if not victimPlayer.Team or (victimPlayer.Team == player.Team and victimPlayer.Team:GetAttribute("FriendlyFire") ~= true) then
+      return false
+   end
+
+   if isServer then
+      -- Server boomerang hit context
+      local Humanoid = victimModel:FindFirstChildOfClass("Humanoid")
+      if Humanoid and Humanoid.Health > 0 then
+         CombatService.damagePlayer(player, boomerangId, victimPlayer, Humanoid, 100000)
+      end
+   else
+      -- Client boomerang hit context
+      SoundLibrary.play(nil, SoundData.Stab.Name, victimModel, nil, true)
+   end
+
+   return true
+end
+
 -- // Throw a boomerang onto the field
 function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.Tool, thrownWeaponData: ThrownWeapons.Data, options: ThrowInitOptions?)
    if not toolData.Boomerang then
@@ -421,19 +447,8 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       local victimModels = raycastWithHorizontalCharacterHitbox(rayOrigin, direction, hitboxRadius)
       local playerDamaged = false
       for _, victimModel in ipairs(victimModels) do
-         local victimPlayer = victimModel and game.Players:GetPlayerFromCharacter(victimModel)
-         if victimPlayer and victimPlayer ~= player then
-            if victimPlayer.Team and (victimPlayer.Team ~= player.Team or victimPlayer.Team:GetAttribute("FriendlyFire") == true) then
-               playerDamaged = true
-               if isServer then
-                  local Humanoid = victimModel:FindFirstChildOfClass("Humanoid")
-                  if Humanoid and Humanoid.Health > 0 then
-                     CombatService.damagePlayer(player, boomerangId, victimPlayer, Humanoid, 100000)
-                  end
-               else
-                  print("play effect on client")
-               end
-            end
+         if damagedPlayer(player, boomerangId, victimModel) then
+            playerDamaged = true
          end
       end
 
@@ -679,19 +694,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
 
       local victimModels = raycastWithHorizontalCharacterHitbox(rayOrigin, if sliding then slideDirection else direction, hitboxRadius)
       for _, victimModel in ipairs(victimModels) do
-         local victimPlayer = victimModel and game.Players:GetPlayerFromCharacter(victimModel)
-         if victimPlayer and victimPlayer ~= player then
-            if victimPlayer.Team and (victimPlayer.Team ~= player.Team or victimPlayer.Team:GetAttribute("FriendlyFire") == true) then
-               if isServer then
-                  local Humanoid = victimModel:FindFirstChildOfClass("Humanoid")
-                  if Humanoid and Humanoid.Health > 0 then
-                     CombatService.damagePlayer(player, boomerangId, victimPlayer, Humanoid, 100000)
-                  end
-               else
-                  print("play effect on client")
-               end
-            end
-         end
+         damagedPlayer(player, boomerangId, victimModel)
       end
 
       thrownWeaponData.Direction = direction
