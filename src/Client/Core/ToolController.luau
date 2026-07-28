@@ -5,6 +5,8 @@ local TweenService = game:GetService("TweenService")
 
 local EquippedTools: {[Player]: Model} = {}
 local DetachedTools: {[Player]: Model} = {}
+local PendingToolNames: {[Player]: string} = {}
+local PendingEquipConnections: {[Player]: RBXScriptConnection} = {}
 local Highlights: {
    {
       Highlight: Highlight,
@@ -15,6 +17,41 @@ local Highlights: {
 
 local ToolAssets = game:GetService("ReplicatedStorage").Shared.Assets.Tools
 local WeaponsFolder = workspace:WaitForChild("Weapons")
+local equipTool: (player: Player, tool: Model) -> ()
+
+local function clearPendingEquip(player: Player)
+	PendingToolNames[player] = nil
+	local connection = PendingEquipConnections[player]
+	if connection then
+		connection:Disconnect()
+		PendingEquipConnections[player] = nil
+	end
+end
+
+local function queueEquipOnCharacterAdded(player: Player, toolName: string)
+	PendingToolNames[player] = toolName
+
+	if PendingEquipConnections[player] then
+		return
+	end
+
+	PendingEquipConnections[player] = player.CharacterAdded:Connect(function()
+		local pendingToolName = PendingToolNames[player]
+		if not pendingToolName then
+			clearPendingEquip(player)
+			return
+		end
+
+		local tool = ToolAssets:FindFirstChild(pendingToolName)
+		if tool and tool:IsA("Model") then
+			equipTool(player, tool)
+		end
+
+		if EquippedTools[player] then
+			clearPendingEquip(player)
+		end
+	end)
+end
 
 local function setModelAnchored(model: Model, anchored: boolean)
 	for _, descendant in ipairs(model:GetDescendants()) do
@@ -43,6 +80,9 @@ local function attachToolModelToCharacter(player: Player, toolModel: Model)
 	setModelAnchored(toolModel, false)
 
 	local rightArm = character:FindFirstChild("RightHand") or character:FindFirstChild("Right Arm")
+	if not rightArm then
+		rightArm = character:WaitForChild("RightHand", 2) or character:WaitForChild("Right Arm", 2)
+	end
 	local handle = toolModel.PrimaryPart
 	if not (rightArm and handle) then
 		return false
@@ -94,7 +134,7 @@ local function getDetachedTool(player: Player): Model?
 	return nil
 end
 
-local function equipTool(player: Player, tool: Model)
+equipTool = function(player: Player, tool: Model)
 	local character = player.Character
 	if not character then
 		return
@@ -117,13 +157,24 @@ local function equipTool(player: Player, tool: Model)
 end
 
 function ToolController.equipTool(player: Player, toolName: string)
+	if not player.Character then
+		queueEquipOnCharacterAdded(player, toolName)
+		return
+	end
+
 	local tool = ToolAssets:FindFirstChild(toolName)
 	if tool and tool:IsA("Model") then
+		clearPendingEquip(player)
 		equipTool(player, tool)
+		if not EquippedTools[player] then
+			queueEquipOnCharacterAdded(player, toolName)
+		end
 	end
 end
 
 function ToolController.unequipTool(player: Player)
+	clearPendingEquip(player)
+
 	local equippedTool = getEquippedTool(player)
 	if equippedTool then
 		equippedTool:Destroy()
