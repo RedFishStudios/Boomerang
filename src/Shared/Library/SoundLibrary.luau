@@ -192,13 +192,6 @@ function SoundLibrary.init()
 
    didInitclient = true
 
-   --[[task.spawn(function()
-      for i = 1, 10 do
-         SoundLibrary.play("TestChannel", "Stab", game.Players.LocalPlayer)
-         task.wait(.5)
-      end
-   end)]]
-
    -- // Roblox memory clears sounds that are not currently loaded onto any sound instance
    -- This would create lag as the player would have to re-load a sound every time it is played
    local preloadedSounds = {}

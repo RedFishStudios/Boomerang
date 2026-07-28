@@ -15,6 +15,7 @@ ThrownWeapons.StateEnum = {
 export type Data = {
    ToolId: string,
    State: number,
+   InstanceId: string,
 
    Host: (Part | Model)?,
    CFrame: CFrame?,

@@ -24,6 +24,25 @@ local sounds: {
    Stab = {
       Name = "Stab",
       Id = 135595810064855
+   },
+   Throw = {
+      Name = "Throw",
+      Id = 87839434436077,
+      Volume = .5
+   },
+   BoomerangLoop = {
+      Name = "BoomerangLoop",
+      Id = 6957736499,
+      Looping = true,
+      Volume = .5
+   },
+   BoomerangThud = {
+      Name = "BoomerangThud",
+      Id = 9120916632
+   },
+   BoomerangCatch = {
+      Name = "BoomerangCatch",
+      Id = 4458219865
    }
 }
 
