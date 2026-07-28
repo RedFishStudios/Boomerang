@@ -172,7 +172,7 @@ function GamemodeHudGui.close(Instant: boolean?)
 	Gui.Enabled = false
 end
 
-function GamemodeHudGui.getHeaderPaddingSizeOffset(): number
+function GamemodeHudGui.getCameraPadding(): number
    if not GuiHeader then
       return 0
    end

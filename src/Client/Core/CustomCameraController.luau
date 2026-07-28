@@ -13,6 +13,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local ToolController = require(ReplicatedStorage.Client.Core.ToolController)
+local CameraPaddingController = require(ReplicatedStorage.Client.Core.CameraPaddingController)
 
 local localPlayer = Players.LocalPlayer
 
@@ -180,8 +181,25 @@ local function getAllSubjectsBoundingBox()
    return center, size
 end
 
+local function getPaddingFraming(viewportSize: Vector2): (number, number, number, number)
+   local viewportWidth = math.max(viewportSize.X, 1)
+   local viewportHeight = math.max(viewportSize.Y, 1)
+
+   local topPadding = math.clamp(CameraPaddingController.getTopPadding(), 0, viewportHeight)
+   local bottomPadding = math.clamp(CameraPaddingController.getBottomPadding(), 0, viewportHeight)
+   local leftPadding = math.clamp(CameraPaddingController.getLeftPadding(), 0, viewportWidth)
+   local rightPadding = math.clamp(CameraPaddingController.getRightPadding(), 0, viewportWidth)
+
+   local usableHalfWidthNdc = math.max(1 - ((leftPadding + rightPadding) / viewportWidth), 1e-3)
+   local usableHalfHeightNdc = math.max(1 - ((topPadding + bottomPadding) / viewportHeight), 1e-3)
+
+   local centerNdcX = (leftPadding - rightPadding) / viewportWidth
+   local centerNdcY = (bottomPadding - topPadding) / viewportHeight
+   return usableHalfWidthNdc, usableHalfHeightNdc, centerNdcX, centerNdcY
+end
+
 -- // Get required camera distance for the camera to possess these subjects within its view
-local function getRequiredDistanceForSize(size: Vector3, cameraBasis: CFrame, aspectRatio: number, verticalFovRadians: number)
+local function getRequiredDistanceForSize(size: Vector3, cameraBasis: CFrame, aspectRatio: number, verticalFovRadians: number, usableHalfWidthNdc: number, usableHalfHeightNdc: number)
    local half = size / 2
    local halfWidth = 0
    local halfHeight = 0
@@ -203,9 +221,19 @@ local function getRequiredDistanceForSize(size: Vector3, cameraBasis: CFrame, as
    local horizontalFovRadians = 2 * math.atan(tanVertical * aspectRatio)
    local tanHorizontal = math.tan(horizontalFovRadians / 2)
 
-   local distanceFromWidth = if tanHorizontal > 0 then halfWidth / tanHorizontal else 0
-   local distanceFromHeight = if tanVertical > 0 then halfHeight / tanVertical else 0
+   local distanceFromWidth = if tanHorizontal > 0 then halfWidth / (tanHorizontal * usableHalfWidthNdc) else 0
+   local distanceFromHeight = if tanVertical > 0 then halfHeight / (tanVertical * usableHalfHeightNdc) else 0
    return math.max(distanceFromWidth, distanceFromHeight)
+end
+
+local function getFocusOffsetForPadding(cameraBasis: CFrame, distance: number, aspectRatio: number, verticalFovRadians: number, centerNdcX: number, centerNdcY: number): Vector3
+   local tanVertical = math.tan(verticalFovRadians / 2)
+   local horizontalFovRadians = 2 * math.atan(tanVertical * aspectRatio)
+   local tanHorizontal = math.tan(horizontalFovRadians / 2)
+
+   local rightShift = -centerNdcX * distance * tanHorizontal
+   local upShift = -centerNdcY * distance * tanVertical
+   return cameraBasis.RightVector * rightShift + cameraBasis.UpVector * upShift
 end
 
 -- // Smoothing functions for smooth camera motion
@@ -281,21 +309,30 @@ local function placeCameraInstantly()
    local horizontalDirection = Vector3.new(math.sin(yawRadians), 0, math.cos(yawRadians))
    local focusToCameraDirection = (Vector3.yAxis * math.cos(tiltRadians) + horizontalDirection * math.sin(tiltRadians)).Unit
 
+   local viewportSize = currentCamera.ViewportSize
+   local aspectRatio = viewportSize.X / viewportSize.Y
+   local verticalFovRadians = math.rad(currentCamera.FieldOfView)
+   local usableHalfWidthNdc, usableHalfHeightNdc, centerNdcX, centerNdcY = getPaddingFraming(viewportSize)
+
    local baseCFrame = CFrame.lookAt(focusPosition + focusToCameraDirection, focusPosition)
    local requiredDistance = getRequiredDistanceForSize(
       boxSize,
       baseCFrame,
-      currentCamera.ViewportSize.X / currentCamera.ViewportSize.Y,
-      math.rad(currentCamera.FieldOfView)
+      aspectRatio,
+      verticalFovRadians,
+      usableHalfWidthNdc,
+      usableHalfHeightNdc
    )
    local targetDistance = math.max(CAMERA_MIN_DISTANCE, requiredDistance + CAMERA_DISTANCE_PADDING)
+   local focusOffset = getFocusOffsetForPadding(baseCFrame, targetDistance, aspectRatio, verticalFovRadians, centerNdcX, centerNdcY)
+   local paddedFocusPosition = focusPosition + focusOffset
 
-   smoothedFocusPosition = focusPosition
+   smoothedFocusPosition = paddedFocusPosition
    smoothedCameraDistance = targetDistance
 
-   local cameraPosition = focusPosition + focusToCameraDirection * targetDistance
-   currentCamera.CFrame = CFrame.lookAt(cameraPosition, focusPosition, Vector3.yAxis)
-   currentCamera.Focus = CFrame.new(focusPosition)
+   local cameraPosition = paddedFocusPosition + focusToCameraDirection * targetDistance
+   currentCamera.CFrame = CFrame.lookAt(cameraPosition, paddedFocusPosition, Vector3.yAxis)
+   currentCamera.Focus = CFrame.new(paddedFocusPosition)
 end
 
 -- // Update camera for overhead position
@@ -315,17 +352,24 @@ local function updateCamera(deltaTime: number)
    local horizontalDirection = Vector3.new(math.sin(yawRadians), 0, math.cos(yawRadians))
    local focusToCameraDirection = (Vector3.yAxis * math.cos(tiltRadians) + horizontalDirection * math.sin(tiltRadians)).Unit
 
+   local viewportSize = currentCamera.ViewportSize
+   local aspectRatio = viewportSize.X / viewportSize.Y
+   local verticalFovRadians = math.rad(currentCamera.FieldOfView)
+   local usableHalfWidthNdc, usableHalfHeightNdc, centerNdcX, centerNdcY = getPaddingFraming(viewportSize)
+
    local baseCFrame = CFrame.lookAt(focusPosition + focusToCameraDirection, focusPosition)
-   local requiredDistance = getRequiredDistanceForSize(boxSize, baseCFrame, currentCamera.ViewportSize.X / currentCamera.ViewportSize.Y, math.rad(currentCamera.FieldOfView))
+   local requiredDistance = getRequiredDistanceForSize(boxSize, baseCFrame, aspectRatio, verticalFovRadians, usableHalfWidthNdc, usableHalfHeightNdc)
    local targetDistance = math.max(CAMERA_MIN_DISTANCE, requiredDistance + CAMERA_DISTANCE_PADDING)
+   local focusOffset = getFocusOffsetForPadding(baseCFrame, targetDistance, aspectRatio, verticalFovRadians, centerNdcX, centerNdcY)
+   local paddedFocusPosition = focusPosition + focusOffset
 
    if not smoothedFocusPosition or not smoothedCameraDistance then
-      smoothedFocusPosition = focusPosition
+      smoothedFocusPosition = paddedFocusPosition
       smoothedCameraDistance = targetDistance
    else
       smoothedFocusPosition = stepSmoothVector3(
          smoothedFocusPosition,
-         focusPosition,
+         paddedFocusPosition,
          CAMERA_FOCUS_SMOOTH_BASE,
          CAMERA_FOCUS_SMOOTH_DISTANCE_FACTOR,
          CAMERA_FOCUS_SMOOTH_MAX,
