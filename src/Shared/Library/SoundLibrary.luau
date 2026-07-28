@@ -12,7 +12,7 @@ local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 
 local isServer = game:GetService("RunService"):IsServer()
 
-local soundData = require(ReplicatedStorage.Shared.Constants.Sounds)
+local SoundData = require(ReplicatedStorage.Shared.Constants.Sounds)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -48,7 +48,7 @@ local activeAudios: {
    [AudioChannelId]: AudioChannelData
 } = {}
 
-local didBindClientRemote = false
+local didInitclient = false
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -80,7 +80,7 @@ local function destroy(audioChannelId: string, audioChannel: AudioChannelData, s
 end
 
 local function playLocal(audioChannelId: AudioChannelId?, soundName: string, host: Instance?, fadeSeconds: number?, bypassLimits: boolean?): (AudioChannelId?, Sound?)
-   local thisSoundData = soundData[soundName]
+   local thisSoundData = SoundData[soundName]
    if not thisSoundData then
       warn(`Sound data for {soundName} not found`)
       return nil, nil
@@ -186,11 +186,34 @@ end
 -------------------------------------------------------------------------------
 
 function SoundLibrary.init()
-   if isServer or didBindClientRemote then
+   if isServer or didInitclient then
       return
    end
 
-   didBindClientRemote = true
+   didInitclient = true
+
+   --[[task.spawn(function()
+      for i = 1, 10 do
+         SoundLibrary.play("TestChannel", "Stab", game.Players.LocalPlayer)
+         task.wait(.5)
+      end
+   end)]]
+
+   -- // Roblox memory clears sounds that are not currently loaded onto any sound instance
+   -- This would create lag as the player would have to re-load a sound every time it is played
+   local preloadedSounds = {}
+   for _, soundData in pairs(SoundData) do
+      if soundData.DoNotPreload then
+         continue
+      end
+      local soundInstance = Instance.new("Sound")
+      soundInstance.SoundId = `rbxassetid://{soundData.Id}`
+      soundInstance.Looped = soundData.Looping
+      soundInstance.Volume = soundData.Volume or 1
+      soundInstance.Parent = DEFAULT_HOST
+      preloadedSounds[soundData.Name] = soundInstance
+   end
+
    SOUND_REMOTE.OnClientEvent:Connect(function(action: string, ...)
       if action == ACTION_PLAY then
          SoundLibrary.play(...)

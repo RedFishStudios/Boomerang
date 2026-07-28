@@ -309,11 +309,11 @@ local function damagedPlayer(player: Player, boomerangId: string, victimModel: M
       local Humanoid = victimModel:FindFirstChildOfClass("Humanoid")
       if Humanoid and Humanoid.Health > 0 then
          CombatService.damagePlayer(player, boomerangId, victimPlayer, Humanoid, 100000)
-         SoundLibrary.play(soundChannelId, SoundData.Stab.Name, victimModel, nil, true)
+         SoundLibrary.play(soundChannelId, SoundData.Kill.Name, victimModel, nil, true)
       end
    else
       -- Client boomerang hit context
-      SoundLibrary.play(soundChannelId, SoundData.Stab.Name, victimModel, nil, true)
+      SoundLibrary.play(soundChannelId, SoundData.Kill.Name, victimModel, nil, true)
    end
 
    return true

@@ -10,6 +10,8 @@ local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local AnimationLibrary = require(ReplicatedStorage.Shared.Library.AnimationLibrary)
+local SoundLibrary = require(ReplicatedStorage.Shared.Library.SoundLibrary)
+local SoundData = require(ReplicatedStorage.Shared.Constants.Sounds)
 
 local CameraController
 
@@ -72,6 +74,8 @@ local ActiveStaggers: {
       OriginalAutoRotate: boolean,
    }
 } = {}
+
+local stabCount: {[Player]: number} = {}
 
 local staggerConnection: RBXScriptConnection? = nil
 
@@ -406,6 +410,12 @@ function Stab.activate(player: Player)
    end
 
    Cooldowns[player] = os.clock() + STAB_COOLDOWN
+   stabCount[player] = (stabCount[player] or 0) + 1
+
+   if not isServer then
+      local activationSoundChannelId = `{player.UserId}_stab_{stabCount[player]}`
+      SoundLibrary.play(activationSoundChannelId, SoundData.Stab.Name, character, nil, true)
+   end
 
    local previousRunId = ActiveStabs[player] and ActiveStabs[player].RunId or 0
    local runId = previousRunId + 1
@@ -497,13 +507,16 @@ function Stab.activate(player: Player)
          elseif targetDistance <= STAB_DISTANCE and not registeredKillHits[victimPlayer] then
             registeredKillHits[victimPlayer] = true
 
+            local soundChannelId = `{player.UserId}_vs_{victimPlayer.UserId}`
             if isServer then
                local victimHumanoid = victimCharacter:FindFirstChildOfClass("Humanoid")
                if victimHumanoid and victimHumanoid.Health > 0 then
                   CombatService.damagePlayer(player, "Stab", victimPlayer, victimHumanoid, STAB_KILL_DAMAGE)
+                  SoundLibrary.play(soundChannelId, SoundData.Kill.Name, victimCharacter, nil, true)
                end
             else
                print(`clientside stab deteccted here`)
+               SoundLibrary.play(soundChannelId, SoundData.Kill.Name, victimCharacter, nil, true)  
             end
          end
       end
