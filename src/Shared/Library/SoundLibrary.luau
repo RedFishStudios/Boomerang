@@ -109,6 +109,11 @@ local function playLocal(audioChannelId: AudioChannelId?, soundName: string, hos
 
    local oldChannel = activeAudios[audioChannelId]
    if oldChannel then
+      if oldChannel.SoundName == soundName then
+         -- This sound is already playing on this channel
+         print("cancelling sound already playing on this channel")
+         return audioChannelId, oldChannel.Instance
+      end
       destroy(audioChannelId, oldChannel, fadeSeconds)
    end
 
@@ -195,10 +200,6 @@ function SoundLibrary.init()
          SoundLibrary.stop(...)
       end
    end)
-end
-
-function SoundLibrary.Init()
-   SoundLibrary.init()
 end
 
 -- function SoundLibrary.start() end
