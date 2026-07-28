@@ -38,7 +38,7 @@ local function attachToolModelToCharacter(player: Player, toolModel: Model)
 		return false
 	end
 
-	toolModel.Name = `ActiveWeapon_{player.UserId}`
+	toolModel.Name = `Holstered_{player.UserId}`
 	toolModel.Parent = WeaponsFolder
 	setModelAnchored(toolModel, false)
 
@@ -75,7 +75,7 @@ local function getEquippedTool(player: Player): Model?
 		return nil
 	end
 
-	local activeWeapon = WeaponsFolder:FindFirstChild(`ActiveWeapon_{player.UserId}`)
+	local activeWeapon = WeaponsFolder:FindFirstChild(`Holstered_{player.UserId}`)
 	if activeWeapon and activeWeapon:IsA("Model") then
 		EquippedTools[player] = activeWeapon
 		return activeWeapon
@@ -221,6 +221,10 @@ function ToolController.applyHighlight(enabled: boolean)
          end
       end
    end
+end
+
+function ToolController.isHolstered(model: Model)
+   return model.Name:match(`Holstered_%d+`) ~= nil
 end
 
 --function ToolController.init()

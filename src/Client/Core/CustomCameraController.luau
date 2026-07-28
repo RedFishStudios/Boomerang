@@ -12,6 +12,7 @@ local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
+local ToolController = require(ReplicatedStorage.Client.Core.ToolController)
 
 local localPlayer = Players.LocalPlayer
 
@@ -122,6 +123,9 @@ local function getAllSubjectsBoundingBox()
          end
       end
       for _, weapon in ipairs(thrownWeaponsFolder:GetChildren()) do
+         if ToolController.isHolstered(weapon) then
+            continue
+         end
          if weapon:IsA("BasePart") then
             table.insert(positions, weapon.Position)
             table.insert(sizes, weapon.Size)
