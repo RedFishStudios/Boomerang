@@ -290,7 +290,6 @@ function WeaponService.init()
 	end
 
    -- // Boomerang visibility/removing visibility from client
-   -- TODO: This will likely later be clientside rendered using animation events to appear/disappear at the right point in the throw/catch animation
    WeaponService.WeaponThrownTasks:Add(function(player: Player, toolId: string)
       if equippedToolIds[player] then
          equippedToolVisible[player] = false
@@ -394,6 +393,13 @@ function WeaponService.init()
       for p, _ in pairs(aiming) do
          aiming[p] = nil
          aimStateEvent:FireAllClients(p.UserId, false)
+         local character = p.Character
+         if character and character:FindFirstChild("Humanoid") then
+            character.Humanoid.WalkSpeed = GlobalConfig.DefaultWalkSpeed
+         end
+      end
+      for _, p in pairs(game.Players:GetPlayers()) do
+         AnimationLibrary.stopAllCoreAnimations(p)
       end
    end)
 end

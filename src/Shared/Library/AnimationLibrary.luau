@@ -169,32 +169,71 @@ function AnimationLibrary.playCoreAnimation(player: Player, coreTrackName: CoreT
 	end)
 end
 
-function AnimationLibrary.stopCoreAnimation(player: Player, coreTrackName: CoreTrackNames)
+function AnimationLibrary.stopAllCoreAnimations(player: Player)
+	local tracks = AnimationTracks[player]
+	if not tracks then
+		warn(`animationtracks.stopAllCoreAnimations failed, no tracks for {player}`)
+		return
+	end
+	task.spawn(function()
+		for _coreTrackName, _trackData in pairs(tracks) do
+			if _trackData.Track and _trackData.Track.IsPlaying then
+				AnimationLibrary.stopCoreAnimation(player, _coreTrackName)
+			end
+		end
+	end)
+end
+
+function AnimationLibrary.stopCoreAnimation(player: Player, coreTrackName: CoreTrackNames, debugId: string?)
+   if coreTrackName == "Charging" then
+      debugId = "misc"
+   end
+   if debugId then
+      warn(`STOPPING CORE ANIMATION {coreTrackName} for {player}`, debugId)
+      print(AnimationTracks)
+   end
 	local tracks = AnimationTracks[player]
 	if not tracks then
 		warn(`animationtracks.stopCoreAnimation failed, no tracks for {player}`)
 		return
 	end
 
+   if debugId then
+      for _, trackData in pairs(tracks) do
+         if trackData.Track and trackData.Track.IsPlaying then
+            print(trackData.Track)
+         end
+      end
+   end
+
 	local trackData = tracks[coreTrackName]
 	if not trackData then
-		warn(`animationtracks.stopCoreAnimation failed, no track for {coreTrackName} and {player}`)
+		if debugId then
+         warn(`animationtracks.stopCoreAnimation failed, no track for {coreTrackName} and {player}`)
+		end
 		return
 	end
 
 	local track = trackData.Track
 	if not track.IsPlaying then
-		print("track is not playing")
+		if debugId then
+         print("track is not playing")
+		end
 		return
 	end
 
 	local animation = trackData.LoadedAnimationKey
 	local animationData = Animations[animation]
 	if not animationData then
-		print("no animation data found for ", animation)
+		if debugId then
+         print("no animation data found for ", animation)
+		end
 		return
 	end
 
+   if debugId then
+      warn(`successfully stopped playing`)
+   end
 	track:Stop(animationData.FadeOut)
 end
 
@@ -239,6 +278,14 @@ function AnimationLibrary.setCoreAnimation(player: Player, trackName: string, an
 end
 
 function AnimationLibrary.playVariableAnimation(player: Player, animation: string)
+end
+
+function AnimationLibrary.stopAllTracks(player: Player)
+   local Animator = player.Character.Humanoid.Animator
+   local playingTracks = Animator:GetPlayingAnimationTracks()
+   for _, track in pairs(playingTracks) do
+      track:Stop()
+   end
 end
 
 -------------------------------------------------------------------------------

@@ -143,7 +143,7 @@ local function setLocalAimState(nextState: boolean)
    isAiming = nextState
 
    if not nextState then
-      AnimationLibrary.stopCoreAnimation(Players.LocalPlayer, "Charging")
+      AnimationLibrary.stopCoreAnimation(Players.LocalPlayer, "Charging", `SetAimStateTo{nextState}`)
    end
 
    syncWeaponStateChanged()
@@ -601,10 +601,10 @@ function WeaponController.init()
    gameStateData.IsInRound:Subscribe(function(newValue: boolean)
       if not newValue then
          setLocalAimState(false)
-         AnimationLibrary.stopCoreAnimation(Players.LocalPlayer, "Charging")
-         AnimationLibrary.stopCoreAnimation(Players.LocalPlayer, "Throw")
+         AnimationLibrary.stopAllCoreAnimations(Players.LocalPlayer)
       end
    end)
+
 
 	UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessed: boolean)
 		if gameProcessed then
@@ -612,7 +612,7 @@ function WeaponController.init()
 		end
 
       if input.UserInputType == Enum.UserInputType.MouseButton2 then
-		 beginClassicBoomerangAim()
+		   beginClassicBoomerangAim()
 		end
 
       if input.KeyCode == Enum.KeyCode.E then

@@ -484,7 +484,6 @@ function CustomCameraController.parryEffect()
 end
 
 function CustomCameraController.cancelParryEffect()
-   print('end parry effect')
    parryShakeEnd = os.clock()
 end
 

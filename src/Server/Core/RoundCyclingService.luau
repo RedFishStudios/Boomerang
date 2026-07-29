@@ -297,7 +297,6 @@ function RoundCyclingService.start()
          local deltaTime = RunService.Heartbeat:Wait()
          elapsed += deltaTime
       until elapsed >= VOTE_DURATION or #awaitingVotes == 0
-      print(elapsed, VOTE_DURATION, awaitingVotes)
       
       -- Tally votes
       -- Restart tally, just for safety
