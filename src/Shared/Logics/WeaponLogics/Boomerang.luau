@@ -86,6 +86,11 @@ local function getHorizontalDirection(direction: Vector3): Vector3
    return horizontal.Unit
 end
 
+local function getHorizontalDistance(fromPosition: Vector3, toPosition: Vector3): number
+   local delta = Vector3.new(toPosition.X - fromPosition.X, 0, toPosition.Z - fromPosition.Z)
+   return delta.Magnitude
+end
+
 local function getHorizontalRayOrigins(rayOrigin: Vector3, direction: Vector3, hitboxRadius: number): {Vector3}
    local rightDirection = direction:Cross(UP_VECTOR).Unit
    return {
@@ -571,11 +576,6 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       warn(`this is not a boomerang`)
       return
    end
-   local character = player.Character
-   if not character then
-      print(`no character`)
-      return
-   end
    local hostPart = thrownWeaponData.Host
    local hostPivot = getWeaponCFrame(thrownWeaponData)
    if not hostPart and not hostPivot then
@@ -622,10 +622,15 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          return
       end
 
-      local rootPart = character and character.PrimaryPart
+      local currentCharacter = player.Character
+      local rootPart = currentCharacter and currentCharacter.PrimaryPart
       if not rootPart then
-         thrownWeaponData.MovementConnection:Disconnect()
-         thrownWeaponData.MovementConnection = nil
+         if isServer then
+            Boomerang.removeFromField(player, thrownWeaponData)
+         else
+            thrownWeaponData.MovementConnection:Disconnect()
+            thrownWeaponData.MovementConnection = nil
+         end
          return
       end
 
@@ -640,7 +645,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       if not isServer and ToolController then
          local camera = workspace.CurrentCamera
          if camera then
-            local isObstructed = isCameraObstructedToPoint(camera.CFrame.Position, hostPivot.Position, {character, hostPart})
+            local isObstructed = isCameraObstructedToPoint(camera.CFrame.Position, hostPivot.Position, {currentCharacter, hostPart})
             ToolController.applyHighlight(isObstructed)
          else
             ToolController.applyHighlight(false)
@@ -648,12 +653,12 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       end
 
       local toPlayer = (rootPart.Position - hostPivot.Position)
-      local distance = toPlayer.Magnitude
-      if distance <= catchRadius then
+      local horizontalDistance = getHorizontalDistance(hostPivot.Position, rootPart.Position)
+      if horizontalDistance <= catchRadius then
          Boomerang.removeFromField(player, thrownWeaponData)
          return
       end
-      local targetDirection = getHorizontalDirection(toPlayer.Unit)
+      local targetDirection = getHorizontalDirection(toPlayer)
 
       if travelVelocity.Magnitude <= 1e-5 then
          travelVelocity = targetDirection * speed
@@ -697,7 +702,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          -- Determine new slide speed
          local maximumSlideSpeed = math.clamp(maximumSpeed * slideMagnitude, 0, maximumSpeed)
          slideSpeed = math.clamp(slideSpeed + deltaTime * 60, 0, maximumSlideSpeed)
-         local slideDistance = math.min(slideSpeed * deltaTime, distance)
+         local slideDistance = math.min(slideSpeed * deltaTime, horizontalDistance)
 
          --local slideHit = workspace:Raycast(
          --  replicationPart.Position,
@@ -718,7 +723,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          local blendedDirection = slideDirection * slideMomentum + direction * (1 - slideMomentum)
          blendedDirection = blendedDirection.Unit
          local blendedSpeed = slideSpeed * slideMomentum + speed * (1 - slideMomentum)
-         local blendedDistance = math.min(blendedSpeed * deltaTime, distance)
+         local blendedDistance = math.min(blendedSpeed * deltaTime, horizontalDistance)
 
          slideSpeed = math.max(speed, slideSpeed * slideMomentum)
          setWeaponCFrame(thrownWeaponData, hostPivot + blendedDirection * blendedDistance)
@@ -740,7 +745,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       end
 
       local newPivot = getWeaponCFrame(thrownWeaponData)
-      if newPivot and (rootPart.Position - newPivot.Position).Magnitude <= catchRadius then
+      if newPivot and getHorizontalDistance(newPivot.Position, rootPart.Position) <= catchRadius then
          Boomerang.removeFromField(player, thrownWeaponData)
          return
       end
@@ -748,7 +753,8 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
 
    local currentPivot = getWeaponCFrame(thrownWeaponData)
    if isServer and currentPivot then
-      local rootPart = character and character.PrimaryPart
+      local currentCharacter = player.Character
+      local rootPart = currentCharacter and currentCharacter.PrimaryPart
       local immediateDirection = thrownWeaponData.Direction or Vector3.zero
       if rootPart then
          immediateDirection = getHorizontalDirection(rootPart.Position - currentPivot.Position)

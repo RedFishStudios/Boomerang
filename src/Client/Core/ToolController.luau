@@ -2,11 +2,16 @@ local ToolController = {}
 
 local localPlayer = game.Players.LocalPlayer
 local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+
+----------------------------------------------------------------------------------------------------------------------------------
+-- Local variables
+----------------------------------------------------------------------------------------------------------------------------------
 
 local EquippedTools: {[Player]: Model} = {}
 local DetachedTools: {[Player]: Model} = {}
-local PendingToolNames: {[Player]: string} = {}
-local PendingEquipConnections: {[Player]: RBXScriptConnection} = {}
+local EquippedToolCharacters: {[Player]: Model} = {}
+local DetachedToolCharacters: {[Player]: Model} = {}
 local Highlights: {
    {
       Highlight: Highlight,
@@ -17,41 +22,12 @@ local Highlights: {
 
 local ToolAssets = game:GetService("ReplicatedStorage").Shared.Assets.Tools
 local WeaponsFolder = workspace:WaitForChild("Weapons")
-local equipTool: (player: Player, tool: Model) -> ()
 
-local function clearPendingEquip(player: Player)
-	PendingToolNames[player] = nil
-	local connection = PendingEquipConnections[player]
-	if connection then
-		connection:Disconnect()
-		PendingEquipConnections[player] = nil
-	end
-end
+local PendingEquips: {[Player]: true} = {}
 
-local function queueEquipOnCharacterAdded(player: Player, toolName: string)
-	PendingToolNames[player] = toolName
-
-	if PendingEquipConnections[player] then
-		return
-	end
-
-	PendingEquipConnections[player] = player.CharacterAdded:Connect(function()
-		local pendingToolName = PendingToolNames[player]
-		if not pendingToolName then
-			clearPendingEquip(player)
-			return
-		end
-
-		local tool = ToolAssets:FindFirstChild(pendingToolName)
-		if tool and tool:IsA("Model") then
-			equipTool(player, tool)
-		end
-
-		if EquippedTools[player] then
-			clearPendingEquip(player)
-		end
-	end)
-end
+----------------------------------------------------------------------------------------------------------------------------------
+-- Local functions
+----------------------------------------------------------------------------------------------------------------------------------
 
 local function setModelAnchored(model: Model, anchored: boolean)
 	for _, descendant in ipairs(model:GetDescendants()) do
@@ -69,12 +45,7 @@ local function removeWeaponWeld(model: Model)
 	end
 end
 
-local function attachToolModelToCharacter(player: Player, toolModel: Model)
-	local character = player.Character
-	if not character then
-		return false
-	end
-
+local function attachToolModelToCharacter(player: Player, character: Model, toolModel: Model)
 	toolModel.Name = `Holstered_{player.UserId}`
 	toolModel.Parent = WeaponsFolder
 	setModelAnchored(toolModel, false)
@@ -102,6 +73,20 @@ local function attachToolModelToCharacter(player: Player, toolModel: Model)
 
    ToolController.applyHighlight(false)
 	return true
+end
+
+local function getToolCharacter(tool: Model?): Model?
+	if not tool then
+		return nil
+	end
+
+	for _, descendant in ipairs(tool:GetDescendants()) do
+		if descendant:IsA("Motor6D") and descendant.Name == "WeaponWeld" and descendant.Part0 then
+			return descendant.Part0:FindFirstAncestorOfClass("Model")
+		end
+	end
+
+	return nil
 end
 
 local function getEquippedTool(player: Player): Model?
@@ -134,60 +119,109 @@ local function getDetachedTool(player: Player): Model?
 	return nil
 end
 
-equipTool = function(player: Player, tool: Model)
-	local character = player.Character
-	if not character then
-		return
-	end
-
-	ToolController.unequipTool(player)
+local function destroyDetachedTool(player: Player)
 	local detachedTool = getDetachedTool(player)
 	if detachedTool then
 		detachedTool:Destroy()
 		DetachedTools[player] = nil
-	end
-
-	-- Clone the model to the character
-	local weaponClone = tool:Clone()
-	if attachToolModelToCharacter(player, weaponClone) then
-		EquippedTools[player] = weaponClone
-	else
-		weaponClone:Destroy()
+		DetachedToolCharacters[player] = nil
 	end
 end
 
-function ToolController.equipTool(player: Player, toolName: string)
-	if not player.Character then
-		queueEquipOnCharacterAdded(player, toolName)
-		return
-	end
-
-	local tool = ToolAssets:FindFirstChild(toolName)
-	if tool and tool:IsA("Model") then
-		clearPendingEquip(player)
-		equipTool(player, tool)
-		if not EquippedTools[player] then
-			queueEquipOnCharacterAdded(player, toolName)
-		end
-	end
-end
-
-function ToolController.unequipTool(player: Player)
-	clearPendingEquip(player)
-
-	local equippedTool = getEquippedTool(player)
+local function destroyEquippedTool(player: Player)
+   local equippedTool = getEquippedTool(player)
 	if equippedTool then
 		equippedTool:Destroy()
 		EquippedTools[player] = nil
+		EquippedToolCharacters[player] = nil
+	end
+end
+
+local function shouldAffectCharacter(player: Player, expectedCharacter: Model?): boolean
+	if not expectedCharacter then
+		return true
 	end
 
-	local detachedTool = getDetachedTool(player)
-	if detachedTool then
-		detachedTool:Destroy()
-		DetachedTools[player] = nil
+	local equippedCharacter = EquippedToolCharacters[player]
+	if not equippedCharacter and EquippedTools[player] then
+		equippedCharacter = getToolCharacter(EquippedTools[player])
+		EquippedToolCharacters[player] = equippedCharacter
 	end
 
-   ToolController.applyHighlight(false)
+	local detachedCharacter = DetachedToolCharacters[player]
+	if not detachedCharacter and DetachedTools[player] then
+		detachedCharacter = getToolCharacter(DetachedTools[player])
+		DetachedToolCharacters[player] = detachedCharacter
+	end
+
+	if equippedCharacter and equippedCharacter ~= expectedCharacter then
+		return false
+	end
+	if detachedCharacter and detachedCharacter ~= expectedCharacter then
+		return false
+	end
+
+	return true
+end
+
+----------------------------------------------------------------------------------------------------------------------------------
+-- Public functions
+----------------------------------------------------------------------------------------------------------------------------------
+
+function ToolController.equipTool(player: Player, toolName: string)
+   if PendingEquips[player] then
+      return
+   end
+
+   PendingEquips[player] = true
+   local character = player.Character
+	if not character then
+		local elapsed = 0
+      repeat
+         elapsed += RunService.RenderStepped:Wait()
+      until player.Character or elapsed > 20 or not PendingEquips[player]
+      character = player.Character
+
+      if not character or not PendingEquips[player] then
+         PendingEquips[player] = nil
+         return
+      end
+	end
+
+   -- There is a racing condition waiting for the character to load here for some reason.
+   -- Even though attachToolModelToCharacter runs and claims to have successfully attached,
+   -- it is possible for the attachment to have silently failed, and the tool's ancestry becomes nil immedately after this function
+   -- No solution I've pursued has fixed this
+   -- whatever. go my wait statement
+   --task.wait(.1)
+
+	local tool = ToolAssets:FindFirstChild(toolName)
+	if tool and tool:IsA("Model") then
+		ToolController.unequipTool(player, true)
+      destroyDetachedTool(player)
+      local weaponClone = tool:Clone()
+      if attachToolModelToCharacter(player, character, weaponClone) then
+         EquippedTools[player] = weaponClone
+			EquippedToolCharacters[player] = character
+      else
+         weaponClone:Destroy()
+      end
+	end
+
+   PendingEquips[player] = nil
+end
+
+function ToolController.unequipTool(player: Player, doNotCancelEquipment: boolean, expectedCharacter: Model?)
+   if not doNotCancelEquipment then
+      PendingEquips[player] = nil
+   end
+	if shouldAffectCharacter(player, expectedCharacter) then
+		destroyEquippedTool(player)
+		destroyDetachedTool(player)
+	end
+   if player == localPlayer then
+      ToolController.applyHighlight(false)
+   end
 end
 
 function ToolController.setToolVisible(player: Player, isVisible: boolean)
@@ -224,6 +258,8 @@ function ToolController.prepareToolForThrow(player: Player): (Model?, Vector3?)
 
 	EquippedTools[player] = nil
 	DetachedTools[player] = equippedTool
+	DetachedToolCharacters[player] = EquippedToolCharacters[player]
+	EquippedToolCharacters[player] = nil
 	return equippedTool, equippedTool:GetPivot().Position
 end
 
@@ -233,12 +269,15 @@ function ToolController.finishToolThrow(player: Player)
 		return
 	end
 	removeWeaponWeld(detachedTool)
-	if attachToolModelToCharacter(player, detachedTool) then
+	if attachToolModelToCharacter(player, player.Character, detachedTool) then
 		DetachedTools[player] = nil
 		EquippedTools[player] = detachedTool
+		EquippedToolCharacters[player] = player.Character
+		DetachedToolCharacters[player] = nil
 	else
 		detachedTool:Destroy()
 		DetachedTools[player] = nil
+		DetachedToolCharacters[player] = nil
 	end
 end
 
@@ -278,8 +317,8 @@ function ToolController.isHolstered(model: Model)
    return model.Name:match(`Holstered_%d+`) ~= nil
 end
 
---function ToolController.init()
---end
+function ToolController.init()
+end
 
 --function ToolController.start() 
 --end

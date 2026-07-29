@@ -638,7 +638,7 @@ function WeaponController.init()
          setLocalAimState(false)
          pendingLocalThrow = nil
       end
-      ToolController.unequipTool(player)
+      ToolController.unequipTool(player, false, character)
    end)
 
    PlayersUtil.CharacterDied:Add(function(player: Player, character: Model, humanoid: Humanoid)
