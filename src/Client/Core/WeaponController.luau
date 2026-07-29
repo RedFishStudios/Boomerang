@@ -21,6 +21,7 @@ local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibra
 local AnimationLibrary = require(ReplicatedStorage.Shared.Library.AnimationLibrary)
 local ToolController = require(ReplicatedStorage.Client.Core.ToolController)
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
+local PlatformController = require(ReplicatedStorage.Client.Core.PlatformController)
 
 local ToolLogics = ReplicatedStorage.Shared.Logics.WeaponLogics
 local ToolLogicModules = {}
@@ -187,14 +188,18 @@ local function throwClassicBoomerang(): boolean
 		throwOrigin = localCharacter.PrimaryPart.Position
 	 end
 
-	 local mouseWorldPosition = RaycastsUtility.getMouseWorldPosition(2048)
     local direction
-    if throwOrigin and mouseWorldPosition then
-      direction = getHorizontalDirection(mouseWorldPosition - throwOrigin)
-    elseif localCharacter and localCharacter.PrimaryPart then
+    if PlatformController.getDominantControlScheme() == "Touch" then
       direction = getHorizontalDirection(localCharacter.PrimaryPart.CFrame.LookVector)
     else
-      direction = Vector3.new(0, 0, -1)
+      local mouseWorldPosition = RaycastsUtility.getMouseWorldPosition(2048)
+      if throwOrigin and mouseWorldPosition then
+         direction = getHorizontalDirection(mouseWorldPosition - throwOrigin)
+      elseif localCharacter and localCharacter.PrimaryPart then
+         direction = getHorizontalDirection(localCharacter.PrimaryPart.CFrame.LookVector)
+      else
+         direction = Vector3.new(0, 0, -1)
+      end
     end
 
 	 if not releasePosition and throwOrigin then

@@ -26,6 +26,7 @@ local SimpleRemotesUtil = require(ReplicatedStorage.Shared.Networking.SimpleRemo
 local BufferUtil = require(ReplicatedStorage.Shared.Utils.BufferUtil)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local RaycastsUtility = require(ReplicatedStorage.Shared.Utils.RaycastsUtility)
+local PlatformController = require(ReplicatedStorage.Client.Core.PlatformController)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -198,7 +199,8 @@ local function solveMotorsForCharacter(character: GameTypes.R15Character, solver
 end
 
 local function onPreSimulation(dT: number)
-	local localTarget = RaycastsUtility.getMouseWorldPosition(2048)
+   local lastInWorld = PlatformController.getLastMousePositionInWorld()
+	local localTarget = RaycastsUtility.getMouseWorldPosition(2048, nil, if lastInWorld then Vector2.new(lastInWorld.X, lastInWorld.Y) else nil)
 	local localYaw = 0
 
 	if PlayersUtil.isAlive(player) and player.Character then
@@ -244,21 +246,6 @@ local function onPreSimulation(dT: number)
 		end
 	end
 
-end
-
-local function onRenderStepped()
-   local localTarget = RaycastsUtility.getMouseWorldPosition(2048)
-	local localYaw = 0
-	if PlayersUtil.isAlive(player) and player.Character then
-		local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
-		if rootPart and localTarget then
-			localYaw = CharacterLogic.getYawFromLookAt(rootPart.Position, localTarget)
-		end
-	end
-   -- // THIS NEEDS TO BE DONE IN RENDER STEPPED. THIS HAS TO BE DONE IN RENDERSTEPPED.
-   -- THE LOCAL AUTHORITATIVE ROTATION NEEDS TO BE DONE IN RENDERSTEPPED. IF IT IS NOT, IT WILL CONFLICT WITH THE SERVER.
-   -- THE LOCAL AUTHORITATIVE ROTATION NEEDS TO BE DONE ON RENDERSTEPPED TO PREVENT JITTERINESS.
-	applyLocalAuthoritativeRotation(localYaw)
 end
 
 local function onAnyCharacterRemoved(character: GameTypes.R15Character)
