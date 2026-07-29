@@ -42,9 +42,13 @@ local HITBOX_VISUALIZER_COLOR = Color3.new(0.164706, 0.960784, 0.007843)
 local HITBOX_CHECK_INTERVAL = 1 / 20
 
 local isServer = RunService:IsServer()
+local WeaponController
+local WeaponService
 if isServer then
+   WeaponService = require(game.ServerStorage.Server.Core.WeaponService)
    CombatService = require(game.ServerStorage.Server.Core.CombatService)
 else
+   WeaponController = require(ReplicatedStorage.Client.Core.WeaponController)
    CameraController = require(ReplicatedStorage.Client.Core.CustomCameraController)
 end
 
@@ -380,11 +384,28 @@ local function applyParry(stabberPlayer: Player, stabberRootPart: BasePart, vict
    end
 end
 
+local function isPlayerAiming(player: Player): boolean
+   if isServer then
+      if WeaponService then
+         return WeaponService.isAiming(player)
+      end
+   else
+      if player == Players.LocalPlayer and WeaponController then
+         return WeaponController.getWeaponState() == WeaponController.CurrentWeaponState.Aiming
+      end
+   end
+   return false
+end
+
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
 function Stab.canActivate(player: Player): boolean
+   if isPlayerAiming(player) then
+      return false
+   end
+
    local gameStateData = GameStateLibrary.getGameStateData()
    local inRound = gameStateData.IsInRound:Get()
    if not inRound then

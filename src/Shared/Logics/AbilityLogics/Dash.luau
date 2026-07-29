@@ -1,6 +1,7 @@
 local Dash = {}
 
 local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -8,6 +9,16 @@ local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibra
 local Gamemodes = require(ReplicatedStorage.Shared.Constants.Gamemodes)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local ParticlesLibrary = require(ReplicatedStorage.Shared.Library.ParticlesLibrary)
+
+local isServer = RunService:IsServer()
+local WeaponController
+local WeaponService
+
+if isServer then
+   WeaponService = require(game.ServerStorage.Server.Core.WeaponService)
+else
+   WeaponController = require(ReplicatedStorage.Client.Core.WeaponController)
+end
 
 -------------------------------------------------------------------------------
 -- LOCAL VARIABLES
@@ -18,8 +29,6 @@ local DASH_DURATION_SECONDS = 0.12
 local DASH_COOLDOWN_SECONDS = 1
 
 local activeDashConnections: {[Model]: RBXScriptConnection} = {}
-
-local isServer = RunService:IsServer()
 
 -- The timestamp every player's dash wears off at
 local Cooldowns: {[Player]: number} = {}
@@ -36,11 +45,29 @@ local function stopDash(character: Model)
    end
 end
 
+local function isPlayerAiming(player: Player): boolean
+   if isServer then
+      if WeaponService then
+         return WeaponService.isAiming(player)
+      end
+      return false
+   else
+      if player == Players.LocalPlayer then
+         return WeaponController.getWeaponState() == WeaponController.CurrentWeaponState.Aiming
+      end
+   end
+   return false
+end
+
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
 function Dash.canActivate(player: Player)
+   if isPlayerAiming(player) then
+      return false
+   end
+
    local gameStateData = GameStateLibrary.getGameStateData()
    local currentGameMode = gameStateData.Gamemode:Get()
    if currentGameMode then
