@@ -321,7 +321,12 @@ function WeaponService.init()
    end)
 
    PlayersUtil.CharacterDestroying:Add(function(player: Player, character: Model)
-        if equippedToolIds[player] then
+      if aiming[player] ~= nil then
+         aiming[player] = nil
+         aimStateEvent:FireAllClients(player.UserId, false)
+      end
+
+      if equippedToolIds[player] then
           weaponEquipStateEvent:FireAllClients(player.UserId, "Unequip")
       end
         equippedToolIds[player] = nil
@@ -347,11 +352,17 @@ function WeaponService.init()
    end)
 
    PlayersUtil.PlayerRemoving:Add(function(player: Player)
+      aiming[player] = nil
       equippedToolIds[player] = nil
       equippedToolVisible[player] = nil
    end)
 
    PlayersUtil.CharacterDied:Add(function(player: Player, _character: Model, _humanoid: Humanoid)
+      if aiming[player] ~= nil then
+         aiming[player] = nil
+         aimStateEvent:FireAllClients(player.UserId, false)
+      end
+
       local thrownWeaponData = ThrownWeapons.Data[player]
       if not thrownWeaponData then
          return
