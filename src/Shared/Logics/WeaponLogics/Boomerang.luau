@@ -17,7 +17,7 @@ local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
 local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
 local AnimationLibrary = require(ReplicatedStorage.Shared.Library.AnimationLibrary)
 local SoundLibrary = require(ReplicatedStorage.Shared.Library.SoundLibrary)
-local SoundData = require(ReplicatedStorage.Shared.Constants.Sounds)
+local Sounds = require(ReplicatedStorage.Shared.Constants.Sounds)
 local HttpService = game:GetService("HttpService")
 
 -- // Context-Specific Modules
@@ -316,11 +316,11 @@ local function damagedPlayer(player: Player, boomerangId: string, victimModel: M
       local Humanoid = victimModel:FindFirstChildOfClass("Humanoid")
       if Humanoid and Humanoid.Health > 0 then
          CombatService.damagePlayer(player, boomerangId, victimPlayer, Humanoid, 100000)
-         SoundLibrary.play(soundChannelId, SoundData.Kill.Name, victimModel, nil, true)
+         SoundLibrary.play(soundChannelId, Sounds.Data.Kill.Name, victimModel, nil, true)
       end
    else
       -- Client boomerang hit context
-      SoundLibrary.play(soundChannelId, SoundData.Kill.Name, victimModel, nil, true)
+      SoundLibrary.play(soundChannelId, Sounds.Data.Kill.Name, victimModel, nil, true)
    end
 
    return true
@@ -384,8 +384,8 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          boomerangModel = ReplicatedStorage.Shared.Assets.Tools.ClassicBoomerang:Clone()
          boomerangModel.Name = `Boomerang_{player.Name}`
       end
-      SoundLibrary.play(boomerangInstanceId, SoundData.Throw.Name, boomerangModel, nil, true)
-      SoundLibrary.play(boomerangInstanceId, SoundData.BoomerangLoop.Name, boomerangModel, nil, true)
+      SoundLibrary.play(boomerangInstanceId, Sounds.Data.Throw.Name, boomerangModel, nil, true)
+      SoundLibrary.play(boomerangInstanceId, Sounds.Data.BoomerangLoop.Name, boomerangModel, nil, true)
 
       for _, descendant in ipairs(boomerangModel:GetDescendants()) do
          if descendant:IsA("BasePart") then
@@ -552,7 +552,7 @@ function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapo
       fireDespawned(player.UserId)
       WeaponService.WeaponReturnedTasks:Execute("parallel", player, thrownWeaponData.ToolId)
    else
-      SoundLibrary.play(thrownWeaponData.InstanceId, "BoomerangCatch")
+      SoundLibrary.play(thrownWeaponData.InstanceId, Sounds.Data.BoomerangCatch.Name)
    end
    for _, part in ipairs(thrownWeaponData.TestRaycastVisualizers) do
       if part and part.Parent then

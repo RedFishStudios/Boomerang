@@ -11,7 +11,7 @@ local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.Colli
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local AnimationLibrary = require(ReplicatedStorage.Shared.Library.AnimationLibrary)
 local SoundLibrary = require(ReplicatedStorage.Shared.Library.SoundLibrary)
-local SoundData = require(ReplicatedStorage.Shared.Constants.Sounds)
+local Sounds = require(ReplicatedStorage.Shared.Constants.Sounds)
 
 local CameraController
 
@@ -435,7 +435,7 @@ function Stab.activate(player: Player)
 
    if not isServer then
       local activationSoundChannelId = `{player.UserId}_stab_{stabCount[player]}`
-      SoundLibrary.play(activationSoundChannelId, SoundData.Stab.Name, character, nil, true)
+      SoundLibrary.play(activationSoundChannelId, Sounds.Data.Stab.Name, character, nil, true)
    end
 
    local previousRunId = ActiveStabs[player] and ActiveStabs[player].RunId or 0
@@ -533,11 +533,11 @@ function Stab.activate(player: Player)
                local victimHumanoid = victimCharacter:FindFirstChildOfClass("Humanoid")
                if victimHumanoid and victimHumanoid.Health > 0 then
                   CombatService.damagePlayer(player, "Stab", victimPlayer, victimHumanoid, STAB_KILL_DAMAGE)
-                  SoundLibrary.play(soundChannelId, SoundData.Kill.Name, victimCharacter, nil, true)
+                  SoundLibrary.play(soundChannelId, Sounds.Data.Kill.Name, victimCharacter, nil, true)
                end
             else
                print(`clientside stab deteccted here`)
-               SoundLibrary.play(soundChannelId, SoundData.Kill.Name, victimCharacter, nil, true)  
+               SoundLibrary.play(soundChannelId, Sounds.Data.Kill.Name, victimCharacter, nil, true)  
             end
          end
       end

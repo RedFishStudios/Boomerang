@@ -62,7 +62,7 @@ local function onCharacterLoaded(player: Player, character: Model, humanoid: Hum
    hitbox.CanCollide = false
    hitbox.CanTouch = true
    hitbox.CanQuery = true
-   hitbox.Transparency = .5
+   hitbox.Transparency = 1
    hitbox.Name = "Hitbox"
    hitbox.CollisionGroup = HITBOX_COLLISION_GROUP
 
@@ -77,7 +77,7 @@ end
 local function everyFrame(deltaTime)
    for player, hitbox in pairs(hitboxes) do
       if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-         hitbox.CFrame = player.Character.HumanoidRootPart.CFrame
+         --hitbox.CFrame = player.Character.HumanoidRootPart.CFrame
       else
          hitboxes[player]:Destroy()
          hitboxes[player] = nil
@@ -116,6 +116,16 @@ function HitboxService.init()
       if hitboxes[player] then
          hitboxes[player]:Destroy()
          hitboxes[player] = nil
+      end
+   end)
+
+   PlayersUtil.CharacterDied:Add(function(Player: Player, character: Model)
+      if hitboxes[Player] then
+         hitboxes[Player].Anchored = true
+         -- This prevents the hitbox from from falling through the world and taking the client's camera with it
+         -- If you remove this anchoring, you have to configure what happens with the root part and the player's camera
+         hitboxes[Player].CanTouch = false
+         hitboxes[Player].CanQuery = false
       end
    end)
 

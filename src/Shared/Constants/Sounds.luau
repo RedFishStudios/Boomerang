@@ -15,34 +15,52 @@ type SoundData = {
 } & SoundProperties
 
 local sounds: {
-   [string]: SoundData
+   Data: {
+      [string]: SoundData
+   },
+   Defaults: {
+      Looping: boolean,
+      Volume: number,
+      RollOffMode: Enum.RollOffMode,
+      RollOffMinDistance: number,
+      RollOffMaxDistance: number
+   }
 } = {
-   Kill = {
-      Name = "Kill",
-      Id = 135176783308337,
+   Data = {
+      Kill = {
+         Name = "Kill",
+         Id = 135176783308337,
+      },
+      Stab = {
+         Name = "Stab",
+         Id = 135595810064855
+      },
+      Throw = {
+         Name = "Throw",
+         Id = 87839434436077,
+         Volume = .5
+      },
+      BoomerangLoop = {
+         Name = "BoomerangLoop",
+         Id = 6957736499,
+         Looping = true,
+         Volume = .5
+      },
+      BoomerangThud = {
+         Name = "BoomerangThud",
+         Id = 9120916632
+      },
+      BoomerangCatch = {
+         Name = "BoomerangCatch",
+         Id = 4458219865
+      }
    },
-   Stab = {
-      Name = "Stab",
-      Id = 135595810064855
-   },
-   Throw = {
-      Name = "Throw",
-      Id = 87839434436077,
-      Volume = .5
-   },
-   BoomerangLoop = {
-      Name = "BoomerangLoop",
-      Id = 6957736499,
-      Looping = true,
-      Volume = .5
-   },
-   BoomerangThud = {
-      Name = "BoomerangThud",
-      Id = 9120916632
-   },
-   BoomerangCatch = {
-      Name = "BoomerangCatch",
-      Id = 4458219865
+   Defaults = {
+      Looping = false,
+      Volume = 1,
+      RollOffMode = Enum.RollOffMode.Linear,
+      RollOffMinDistance = 10,
+      RollOffMaxDistance = 100
    }
 }
 

@@ -12,7 +12,7 @@ local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 
 local isServer = game:GetService("RunService"):IsServer()
 
-local SoundData = require(ReplicatedStorage.Shared.Constants.Sounds)
+local Sounds = require(ReplicatedStorage.Shared.Constants.Sounds)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -80,7 +80,7 @@ local function destroy(audioChannelId: string, audioChannel: AudioChannelData, s
 end
 
 local function playLocal(audioChannelId: AudioChannelId?, soundName: string, host: Instance?, fadeSeconds: number?, bypassLimits: boolean?): (AudioChannelId?, Sound?)
-   local thisSoundData = SoundData[soundName]
+   local thisSoundData = Sounds.Data[soundName]
    if not thisSoundData then
       warn(`Sound data for {soundName} not found`)
       return nil, nil
@@ -119,8 +119,11 @@ local function playLocal(audioChannelId: AudioChannelId?, soundName: string, hos
 
    audioChannelId = audioChannelId or generateAudioId()
    local soundInstance = Instance.new("Sound")
+   soundInstance.RollOffMode = thisSoundData.RollOffMode or Sounds.Defaults.RollOffMode
+   soundInstance.RollOffMinDistance = thisSoundData.RollOffMinDistance or Sounds.Defaults.RollOffMinDistance
+   soundInstance.RollOffMaxDistance = thisSoundData.RollOffMaxDistance or Sounds.Defaults.RollOffMaxDistance
    soundInstance.SoundId = `rbxassetid://{thisSoundData.Id}`
-   soundInstance.Looped = thisSoundData.Looping
+   soundInstance.Looped = thisSoundData.Looping or Sounds.Defaults.Looping
    activeAudios[audioChannelId] = {
       Instance = soundInstance,
       CurrentTween = nil,
@@ -195,14 +198,14 @@ function SoundLibrary.init()
    -- // Roblox memory clears sounds that are not currently loaded onto any sound instance
    -- This would create lag as the player would have to re-load a sound every time it is played
    local preloadedSounds = {}
-   for _, soundData in pairs(SoundData) do
+   for _, soundData in pairs(Sounds.Data) do
       if soundData.DoNotPreload then
          continue
       end
       local soundInstance = Instance.new("Sound")
       soundInstance.SoundId = `rbxassetid://{soundData.Id}`
-      soundInstance.Looped = soundData.Looping
-      soundInstance.Volume = soundData.Volume or 1
+      soundInstance.Looped = soundData.Looping or Sounds.Defaults.Looping
+      soundInstance.Volume = soundData.Volume or Sounds.Defaults.Volume
       soundInstance.Parent = DEFAULT_HOST
       preloadedSounds[soundData.Name] = soundInstance
    end
