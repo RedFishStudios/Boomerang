@@ -95,6 +95,11 @@ local function playLocal(audioChannelId: AudioChannelId?, soundName: string, hos
       end
    end
 
+   -- // Resolve host
+   if host and host:IsA("Model") and host.PrimaryPart and host.PrimaryPart:IsDescendantOf(game.Workspace) then
+      host = host.PrimaryPart
+   end
+
    local currentTime = os.clock()
 
    if thisSoundData.Throttle and not bypassLimits then

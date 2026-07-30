@@ -59,8 +59,8 @@ local sounds: {
       Looping = false,
       Volume = 1,
       RollOffMode = Enum.RollOffMode.Linear,
-      RollOffMinDistance = 10,
-      RollOffMaxDistance = 100
+      RollOffMinDistance = 1,
+      RollOffMaxDistance = 200
    }
 }
 

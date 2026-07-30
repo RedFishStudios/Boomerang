@@ -316,11 +316,11 @@ local function damagedPlayer(player: Player, boomerangId: string, victimModel: M
       local Humanoid = victimModel:FindFirstChildOfClass("Humanoid")
       if Humanoid and Humanoid.Health > 0 then
          CombatService.damagePlayer(player, boomerangId, victimPlayer, Humanoid, 100000)
-         SoundLibrary.play(soundChannelId, Sounds.Data.Kill.Name, victimModel, nil, true)
+         SoundLibrary.play(soundChannelId, Sounds.Data.Kill.Name, victimModel.PrimaryPart, nil, true)
       end
    else
       -- Client boomerang hit context
-      SoundLibrary.play(soundChannelId, Sounds.Data.Kill.Name, victimModel, nil, true)
+      SoundLibrary.play(soundChannelId, Sounds.Data.Kill.Name, victimModel.PrimaryPart, nil, true)
    end
 
    return true
@@ -384,8 +384,8 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          boomerangModel = ReplicatedStorage.Shared.Assets.Tools.ClassicBoomerang:Clone()
          boomerangModel.Name = `Boomerang_{player.Name}`
       end
-      SoundLibrary.play(boomerangInstanceId, Sounds.Data.Throw.Name, boomerangModel, nil, true)
-      SoundLibrary.play(boomerangInstanceId, Sounds.Data.BoomerangLoop.Name, boomerangModel, nil, true)
+      SoundLibrary.play(boomerangInstanceId, Sounds.Data.Throw.Name, boomerangModel.PrimaryPart, nil, true)
+      SoundLibrary.play(boomerangInstanceId, Sounds.Data.BoomerangLoop.Name, boomerangModel.PrimaryPart, nil, true)
 
       for _, descendant in ipairs(boomerangModel:GetDescendants()) do
          if descendant:IsA("BasePart") then
@@ -552,7 +552,7 @@ function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapo
       fireDespawned(player.UserId)
       WeaponService.WeaponReturnedTasks:Execute("parallel", player, thrownWeaponData.ToolId)
    else
-      SoundLibrary.play(thrownWeaponData.InstanceId, Sounds.Data.BoomerangCatch.Name)
+      SoundLibrary.play(thrownWeaponData.InstanceId, Sounds.Data.BoomerangCatch.Name, player.Character)
    end
    for _, part in ipairs(thrownWeaponData.TestRaycastVisualizers) do
       if part and part.Parent then

@@ -435,7 +435,7 @@ function Stab.activate(player: Player)
 
    if not isServer then
       local activationSoundChannelId = `{player.UserId}_stab_{stabCount[player]}`
-      SoundLibrary.play(activationSoundChannelId, Sounds.Data.Stab.Name, character, nil, true)
+      SoundLibrary.play(activationSoundChannelId, Sounds.Data.Stab.Name, character.PrimaryPart, nil, true)
    end
 
    local previousRunId = ActiveStabs[player] and ActiveStabs[player].RunId or 0
@@ -533,11 +533,11 @@ function Stab.activate(player: Player)
                local victimHumanoid = victimCharacter:FindFirstChildOfClass("Humanoid")
                if victimHumanoid and victimHumanoid.Health > 0 then
                   CombatService.damagePlayer(player, "Stab", victimPlayer, victimHumanoid, STAB_KILL_DAMAGE)
-                  SoundLibrary.play(soundChannelId, Sounds.Data.Kill.Name, victimCharacter, nil, true)
+                  SoundLibrary.play(soundChannelId, Sounds.Data.Kill.Name, victimCharacter.PrimaryPart, nil, true)
                end
             else
                print(`clientside stab deteccted here`)
-               SoundLibrary.play(soundChannelId, Sounds.Data.Kill.Name, victimCharacter, nil, true)  
+               SoundLibrary.play(soundChannelId, Sounds.Data.Kill.Name, victimCharacter.PrimaryPart, nil, true)  
             end
          end
       end
