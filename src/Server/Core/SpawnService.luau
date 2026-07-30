@@ -1,5 +1,5 @@
 --[[
-  Manages where players should spawn
+  Manages a simple system of detecting player deaths/respawns
 
   Author:
   @Soulsplosion
@@ -10,10 +10,10 @@ local SpawnService = {}
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
-local CurrentGameState = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local ArenaService = require(ServerStorage.Server.Core.ArenaService)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local GameTeamService = require(ServerStorage.Server.Core.GameTeamService)
+local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 
 local LobbyService = require(ServerStorage.Server.Core.LobbyService)
 
@@ -53,14 +53,13 @@ local function safeGetPlayerCharacter(player: Player)
    return player.Character
 end
 
+-- // NOTE: Do not rely on this for critical game logic. See ArenaService for intelligent arena spawnpoint management, and RoundCyclingService for whether Arena or Lobby spawning isused
+--    Usage of player.RespawnLocation is for generally improved rendering prioritization by keeping the player with an understanding of the general area they will probably go
 local function setPlayerSpawnpoint(player: Player)
-   print(`setting player spawnpoint: {player}`)
-   local gameStateData = CurrentGameState.getGameStateData()
+   local gameStateData = GameStateLibrary.getGameStateData()
    if gameStateData.IsInRound:Get() and gameStateData.CanRespawn:Get() then
-      print(`player will respawn in arena: {player}`)
       player.RespawnLocation = ArenaService.getSpawnPoint(player)
    else
-      print(`player will respawn in lobby: {player}`)
       player.RespawnLocation = LobbyService.getSpawnPoint()
       GameTeamService.setOutOfGame(player)
    end
@@ -109,22 +108,35 @@ end
 -------------------------------------------------------------------------------
 
 function SpawnService.init()
-   local function initialCharacterSend(player: Player)
-      if player.RespawnLocation then
-         print(`initial character {player} send to: {player.RespawnLocation}`)
-         SpawnService.sendPlayerTo(player, player.RespawnLocation.Position)
-      end
-   end
+   local gameStateData = GameStateLibrary.getGameStateData()
 
    PlayersUtil.PlayerAdded:Add(function(player: Player)
       setPlayerSpawnpoint(player)
-      initialCharacterSend(player)
    end)
 
    PlayersUtil.CharacterDied:Add(function(player: Player)
       setPlayerSpawnpoint(player)
       -- TODO: display death screen, respawn time, etc
    end)
+
+      PlayersUtil.CharacterLoaded:Add(function(player: Player, _character: Model, _humanoid: Humanoid, _rootPart: BasePart)
+         -- // Add to LivingPlayersInArena
+         if gameStateData.IsInRound:Get() == false then
+            return
+         end
+         if gameStateData.CanRespawn:Get() == false then
+            return
+         end
+         local currentLivingPlayers = gameStateData.LivingPlayersInArena:Get()
+         local livingPlayersInArena = table.clone(currentLivingPlayers)
+         if not table.find(livingPlayersInArena, player) then
+            table.insert(livingPlayersInArena, player)
+            GameStateLibrary.applyValues({
+               LivingPlayersInArena = livingPlayersInArena,
+            })
+         end
+         ArenaService.sendToArena(player)
+      end)
 end
 
 function SpawnService.start()

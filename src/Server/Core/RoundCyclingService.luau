@@ -187,24 +187,6 @@ function RoundCyclingService.init()
       end
    end)
 
-   PlayersUtil.CharacterLoaded:Add(function(player: Player, _character: Model, _humanoid: Humanoid, _rootPart: BasePart)
-      -- // Add to LivingPlayersInArena
-      if gameStateData.IsInRound:Get() == false then
-         return
-      end
-      if gameStateData.CanRespawn:Get() == false then
-         return
-      end
-      local currentLivingPlayers = gameStateData.LivingPlayersInArena:Get()
-      local livingPlayersInArena = table.clone(currentLivingPlayers)
-      if not table.find(livingPlayersInArena, player) then
-         table.insert(livingPlayersInArena, player)
-         GameStateLibrary.applyValues({
-            LivingPlayersInArena = livingPlayersInArena,
-         })
-      end
-   end)
-
    PlayersUtil.PlayerRemoving:Add(function(player: Player)
       local currentLivingPlayers = gameStateData.LivingPlayersInArena:Get()
       local livingPlayersInArena = table.clone(currentLivingPlayers)
