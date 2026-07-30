@@ -188,16 +188,17 @@ function RoundCyclingService.init()
    end)
 
    PlayersUtil.CharacterLoaded:Add(function(player: Player, _character: Model, _humanoid: Humanoid, _rootPart: BasePart)
-      local inArena = if player.RespawnLocation then player.RespawnLocation:IsDescendantOf(game.Workspace.Arena) else false
-      if not inArena then
-         print("> exit")
+      -- // Add to LivingPlayersInArena
+      if gameStateData.IsInRound:Get() == false then
+         return
+      end
+      if gameStateData.CanRespawn:Get() == false then
          return
       end
       local currentLivingPlayers = gameStateData.LivingPlayersInArena:Get()
       local livingPlayersInArena = table.clone(currentLivingPlayers)
       if not table.find(livingPlayersInArena, player) then
          table.insert(livingPlayersInArena, player)
-         print(`added player to living players in arena: {player}`)
          GameStateLibrary.applyValues({
             LivingPlayersInArena = livingPlayersInArena,
          })
@@ -265,7 +266,7 @@ function RoundCyclingService.start()
       local livingPlayersInArena = table.create(0)
       GameStateLibrary.applyValues({
          LivingPlayersInArena = livingPlayersInArena,
-      })
+      }, true)
 
       if roundDurationConnection  then
          roundDurationConnection:Disconnect()

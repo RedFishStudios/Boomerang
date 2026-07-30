@@ -163,11 +163,11 @@ function GameTeamService.init()
    GameTeamService.setAllOutOfGame()
 	PlayersUtil.PlayerAdded:Add(function(player: Player)
       local currentGameState = GameStateLibrary.getGameStateData()
-      if currentGameState.CanRespawn:Get() then
+      if currentGameState.IsInRound:Get() == false then
+         GameTeamService.setOutOfGame(player)
+      else
          -- TODO: when team vs team gamemodes are added, assign player to a team
          player.Team = safeGetTeam("FreeForAll")
-      else
-         GameTeamService.setOutOfGame(player)
       end
 	end)
 end
