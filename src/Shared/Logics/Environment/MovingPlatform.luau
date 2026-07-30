@@ -39,25 +39,6 @@ local function reset()
    end
 end
 
-local function getPosition(endPosition: CFrame, startPosition: CFrame, speed: number, serverTime: number, startedAt: number)
-   local distance = (endPosition.Position - startPosition.Position).Magnitude
-   local travelTime = distance / speed
-   local cycleTime = travelTime * 2
-
-   local elapsed = serverTime - startedAt
-   local cycle = elapsed % cycleTime
-
-   local alpha
-   if cycle <= travelTime then
-      alpha = cycle / travelTime
-   else
-      alpha = 1 - ((cycle - travelTime) / travelTime)
-   end
-
-   local position = startPosition.Position:Lerp(endPosition.Position, alpha)
-   return position
-end
-
 local function findPlatformById(name: string): Part?
    local map = game.Workspace.Arena:FindFirstChildWhichIsA("Model")
    if not map then
@@ -70,6 +51,41 @@ local function findPlatformById(name: string): Part?
    return dynamicsFolder:FindFirstChild(name)
 end
 
+local function getPosition(endPosition: CFrame, startPosition: CFrame, speed: number, restTime: number, serverTime: number, startedAt: number)
+local distance = (endPosition.Position - startPosition.Position).Magnitude
+	local travelTime = distance / speed
+	local cycleTime = restTime + travelTime + restTime + travelTime
+
+	local elapsed = serverTime - startedAt
+	local cycle = elapsed % cycleTime
+
+	-- Resting at start
+	if cycle < restTime then
+		return startPosition.Position
+	end
+
+	cycle -= restTime
+
+	-- Moving start -> end
+	if cycle < travelTime then
+		local alpha = cycle / travelTime
+		return startPosition.Position:Lerp(endPosition.Position, alpha)
+	end
+
+	cycle -= travelTime
+
+	-- Resting at end
+	if cycle < restTime then
+		return endPosition.Position
+	end
+
+	cycle -= restTime
+
+	-- Moving end -> start
+	local alpha = cycle / travelTime
+	return endPosition.Position:Lerp(startPosition.Position, alpha)
+end
+
 local function beginRendering()
    if renderConnection then
       return
@@ -78,12 +94,7 @@ local function beginRendering()
       -- Authoritative snapshotting
       renderConnection = RunService.PostSimulation:Connect(function()
           for _, platformData in pairs(platforms) do
-            local endPosition = platformData.EndPivot
-            local startPosition = platformData.StartPivot
-            local speed = platformData.CurrentSpeed
-            local startedAt = platformData.StartedAt
-            local serverTime = game.Workspace:GetServerTimeNow()
-            local position = getPosition(endPosition, startPosition, speed, serverTime, startedAt)
+            local position = getPosition(platformData.EndPivot, platformData.StartPivot, platformData.CurrentSpeed, platformData.RestTime or 0, game.Workspace:GetServerTimeNow(), platformData.StartedAt)
             platformData.CurrentPivot = position
             platformData.Part:PivotTo(CFrame.new(position)) -- TODO: maintain orientation
          end
@@ -92,12 +103,7 @@ local function beginRendering()
       -- Clientside prediction
       renderConnection = RunService.PreSimulation:Connect(function()
          for _, platformData in pairs(platforms) do
-            local endPosition = platformData.EndPivot
-            local startPosition = platformData.StartPivot
-            local speed = platformData.CurrentSpeed
-            local startedAt = platformData.StartedAt
-            local serverTime = game.Workspace:GetServerTimeNow()
-            local position = getPosition(endPosition, startPosition, speed, serverTime, startedAt)
+            local position = getPosition(platformData.EndPivot, platformData.StartPivot, platformData.CurrentSpeed, platformData.RestTime or 0, game.Workspace:GetServerTimeNow(), platformData.StartedAt)
             platformData.CurrentPivot = position
             platformData.Part:PivotTo(CFrame.new(position)) -- TODO: maintain orientation
          end
