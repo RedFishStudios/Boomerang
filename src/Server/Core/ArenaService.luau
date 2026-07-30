@@ -258,6 +258,14 @@ function ArenaService.setArena(mapName: string)
    })
 end
 
+function ArenaService.getAllMapModels()
+   return mapFolder:GetChildren()
+end
+
+function ArenaService.getArenaModel(): Model?
+   return arenaFolder:FindFirstChildWhichIsA("Model")
+end
+
 -------------------------------------------------------------------------------
 -- CORE FUNCTIONS
 -------------------------------------------------------------------------------

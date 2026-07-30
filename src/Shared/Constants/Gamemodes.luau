@@ -34,7 +34,7 @@ local Gamemodes: {
       Display = "Throw Boomerang",
       Subheader = "Throw the boomerang 5 times (test)",
       CanRespawn = true,
-      TimeLasts = 5,
+      TimeLasts = 60,
       --DashDisabled = true
    },
 }
