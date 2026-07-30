@@ -102,6 +102,10 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
+function GameTeamService.hasFriendlyFire(Team: Team)
+   return Team:GetAttribute("FriendlyFire") == true
+end
+
 function GameTeamService.getOutOfGameTeam(): Team
    return OutOfGameTeam
 end

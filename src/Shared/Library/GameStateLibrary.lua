@@ -28,6 +28,7 @@ type ReplicatedFieldName =
    | "LivingPlayersInArena"
 
 type GameStateSnapshot = {
+   CurrentRoundId: number,
    IsInRound: boolean,
    Gamemode: string?,
    CurrentMapName: string?,
@@ -41,6 +42,7 @@ type GameStateSnapshot = {
 }
 
 type GameStatePatch = {
+   CurrentRoundId: number?,
    IsInRound: boolean?,
    Gamemode: string?,
    CurrentMapName: string?,
@@ -56,6 +58,7 @@ type GameStatePatch = {
 type SnapshotLoadedTask = (snapshot: GameStateSnapshot, reason: SnapshotLoadedReason) -> ()
 
 type CurrentGameStateDataType = {
+   CurrentRoundId: ReactiveValue.ReactiveValue<number>,
    IsInRound: ReactiveValue.ReactiveValue<boolean>,
    Gamemode: ReactiveValue.ReactiveValue<string>,
    CurrentMapName: ReactiveValue.ReactiveValue<string?>,
@@ -79,6 +82,7 @@ local GameStateLibrary = {}
 GameStateLibrary.Ready = false
 
 local CurrentGameStateData: CurrentGameStateDataType = {
+   CurrentRoundId = ReactiveValue.new(0),
    IsInRound = ReactiveValue.new(false),
    Gamemode = ReactiveValue.new(nil :: string?),
    CurrentMapName = ReactiveValue.new(nil :: string?),
@@ -131,6 +135,7 @@ end
 
 local function getSnapshot()
    return {
+      CurrentRoundId = CurrentGameStateData.CurrentRoundId:Get(),
       IsInRound = CurrentGameStateData.IsInRound:Get(),
       Gamemode = CurrentGameStateData.Gamemode:Get(),
       CurrentMapName = CurrentGameStateData.CurrentMapName:Get(),

@@ -14,7 +14,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local SharedConstants = ReplicatedStorage.Shared.Constants
 
 local Gamemodes = require(SharedConstants.Gamemodes)
-local CurrentGameState = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
+local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local ArenaService = require(ServerStorage.Server.Core.ArenaService)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local SpawnService = require(ServerStorage.Server.Core.SpawnService)
@@ -57,6 +57,11 @@ local awaitingVotes: {Player} = {}
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
 
+local function iterateRoundId()
+   local gameStateData = GameStateLibrary.getGameStateData()
+   gameStateData.CurrentRoundId:Set(gameStateData.CurrentRoundId:Get() + 1)
+end
+
 local function getLogic(roundTypeId: string)
 	if not GamemodeLogicModules[roundTypeId] then
 		local module = require(GamemodeLogics:WaitForChild(roundTypeId))
@@ -66,7 +71,7 @@ local function getLogic(roundTypeId: string)
 end
 
 local function updateRoundDuration()
-   local gameStateData = CurrentGameState.getGameStateData()
+   local gameStateData = GameStateLibrary.getGameStateData()
    if not currentRoundEndsAt then
       return
    end
@@ -78,10 +83,10 @@ local function updateRoundDuration()
       local currentGamemode = gameStateData.Gamemode:Get()
       if currentGamemode then
          local roundLogic = getLogic(currentGamemode)
-         local snapshot = CurrentGameState.getSnapshot()
+         local snapshot = GameStateLibrary.getSnapshot()
          snapshot.Gamemode = nil
          snapshot.CurrentTimerEndsAt = nil
-         CurrentGameState.applySnapshot(snapshot)
+         GameStateLibrary.applySnapshot(snapshot)
          if roundLogic and roundLogic.teardown then
             roundLogic.teardown()
          end
@@ -94,16 +99,16 @@ end
 -------------------------------------------------------------------------------
 
 function RoundCyclingService.isInRound(): boolean
-   return CurrentGameState.getGameStateData().IsInRound:Get()
+   return GameStateLibrary.getGameStateData().IsInRound:Get()
 end
 
 function RoundCyclingService.getCurrentRoundTypeId(): string?
-   return CurrentGameState.getGameStateData().Gamemode:Get()
+   return GameStateLibrary.getGameStateData().Gamemode:Get()
 end
 
 -- // Returns true if current round permits late joining for the given player
 function RoundCyclingService.canSpawnIntoRound(player: Player): boolean
-   local gameStateData = CurrentGameState.getGameStateData()
+   local gameStateData = GameStateLibrary.getGameStateData()
    if not gameStateData.IsInRound:Get() or not gameStateData.Gamemode:Get() then
       return false
    end
@@ -127,14 +132,15 @@ function RoundCyclingService.getNextGamemodeChoices(): {string}
 end
 
 function RoundCyclingService.setNextRound(roundTypeId: string, mapName: string)
-   CurrentGameState.RoundStartingTasks:Execute("parallel")
+   iterateRoundId()
+   GameStateLibrary.RoundStartingTasks:Execute("parallel")
 
    local roundType = Gamemodes[roundTypeId]
    local roundDuration = roundType.TimeLasts
    local notificationServerTime = workspace:GetServerTimeNow()
    local roundEndsAt = notificationServerTime + roundDuration
 
-   local snapshot = CurrentGameState.getSnapshot()
+   local snapshot = GameStateLibrary.getSnapshot()
    snapshot.IsInRound = true
    snapshot.Gamemode = roundTypeId
    snapshot.CurrentMapName = mapName
@@ -144,7 +150,7 @@ function RoundCyclingService.setNextRound(roundTypeId: string, mapName: string)
    snapshot.IntermissionOptions = {}
    snapshot.IntermissionVotes = {0, 0}
    snapshot.IntermissionChosenGamemode = nil
-   CurrentGameState.applySnapshot(snapshot)
+   GameStateLibrary.applySnapshot(snapshot)
 
    ArenaService.setArena(mapName)
 
@@ -167,7 +173,7 @@ end
 
 function RoundCyclingService.init()
    SimpleRemotes.getEvent("VoteUpdated")
-   local gameStateData = CurrentGameState.getGameStateData()
+   local gameStateData = GameStateLibrary.getGameStateData()
 
    PlayersUtil.CharacterDied:Add(function(player: Player, _character: Model, _humanoid: Humanoid)
       local currentLivingPlayers = gameStateData.LivingPlayersInArena:Get()
@@ -175,7 +181,7 @@ function RoundCyclingService.init()
       local i = table.find(livingPlayersInArena, player)
       if i then 
          table.remove(livingPlayersInArena, i)
-         CurrentGameState.applyValues({
+         GameStateLibrary.applyValues({
             LivingPlayersInArena = livingPlayersInArena,
          })
       end
@@ -192,7 +198,7 @@ function RoundCyclingService.init()
       if not table.find(livingPlayersInArena, player) then
          table.insert(livingPlayersInArena, player)
          print(`added player to living players in arena: {player}`)
-         CurrentGameState.applyValues({
+         GameStateLibrary.applyValues({
             LivingPlayersInArena = livingPlayersInArena,
          })
       end
@@ -204,7 +210,7 @@ function RoundCyclingService.init()
       local i = table.find(livingPlayersInArena, player)
       if i then 
          table.remove(livingPlayersInArena, i)
-         CurrentGameState.applyValues({
+         GameStateLibrary.applyValues({
             LivingPlayersInArena = livingPlayersInArena,
          })
       end
@@ -234,12 +240,12 @@ function RoundCyclingService.init()
       if i then
          table.remove(awaitingVotes, i)
       end
-      CurrentGameState.applyValues({
+      GameStateLibrary.applyValues({
          IntermissionVotes = totalVotes,
       })
    end)
 
-   print(CurrentGameState)
+   print(GameStateLibrary)
 end
 
 function RoundCyclingService.start()
@@ -248,9 +254,8 @@ function RoundCyclingService.start()
       RoundCyclingService.setNextRound("ThrowBoomerang", "GenericA")
 	end)
 
-   CurrentGameState.RoundFinishedTasks:Add(function(winner: Player?, winMessage: string)
-      print("A ROUND FINISHED - BEGINNING INTERMISSION -")
-
+   GameStateLibrary.RoundFinishedTasks:Add(function(winner: Player?, winMessage: string)
+      iterateRoundId()
       GameTeamService.beginIntermission()
 
       for _, player in pairs(game.Players:GetPlayers()) do
@@ -258,7 +263,7 @@ function RoundCyclingService.start()
       end
 
       local livingPlayersInArena = table.create(0)
-      CurrentGameState.applyValues({
+      GameStateLibrary.applyValues({
          LivingPlayersInArena = livingPlayersInArena,
       })
 
@@ -279,7 +284,7 @@ function RoundCyclingService.start()
       end
 
       local intermissionEndsAt = workspace:GetServerTimeNow() + INTERMISSION_DURATION
-      local snapshot = CurrentGameState.getSnapshot()
+      local snapshot = GameStateLibrary.getSnapshot()
       snapshot.IsInRound = false
       snapshot.Gamemode = nil
       snapshot.CurrentMapName = nil
@@ -289,7 +294,7 @@ function RoundCyclingService.start()
       snapshot.IntermissionOptions = possibleGamemodes
       snapshot.IntermissionVotes = {0, 0}
       snapshot.IntermissionChosenGamemode = nil
-      CurrentGameState.applySnapshot(snapshot)
+      GameStateLibrary.applySnapshot(snapshot)
 
       -- Wait for votes
       local elapsed = 0
@@ -320,7 +325,7 @@ function RoundCyclingService.start()
       end
       local untilNewRound = INTERMISSION_DURATION - VOTE_DURATION
 
-      CurrentGameState.applyValues({
+      GameStateLibrary.applyValues({
          IntermissionVotes = totalVotes,
          IntermissionChosenGamemode = chosenGamemode,
       })

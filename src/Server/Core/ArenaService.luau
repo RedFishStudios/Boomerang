@@ -16,6 +16,7 @@ local CurrentGameState = require(ReplicatedStorage.Shared.Library.GameStateLibra
 local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
+local GameTeamService = require(game.ServerStorage.Server.Core.GameTeamService)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -87,59 +88,10 @@ function ArenaService.getAvailableMaps(forGamemode: string): {string}
 end
 
 function ArenaService.getSpawnPoint(player: Player): SpawnLocation
-   --error(`huh?`)
-   local currentArenaModel = arenaFolder:FindFirstChildWhichIsA("Model")
-   if not currentArenaModel then
-      return nil
-   end
-   local spawnPointsFolder = currentArenaModel:FindFirstChild("SpawnPoints")
-   if not spawnPointsFolder then
-      return nil
-   end
-   local spawnPoints = spawnPointsFolder:GetChildren()
+local gameStateData = CurrentGameState.getGameStateData()
+   local forRoundId = gameStateData.CurrentRoundId:Get()
 
-   -- Chosoe a spawn point that is not occupied by enemies
-   local MIN_DISTANCE = 75
-   local validSpawns = {}
-   for _, spawn in ipairs(spawnPoints) do
-      local valid = true
-      for _, otherPlayer in ipairs(Players:GetPlayers()) do
-         -- TODO: only consider team if teams are being used for enemy determination
-         if otherPlayer.Team ~= player.Team then
-            local character = otherPlayer.Character
-            local root = character and character:FindFirstChild("HumanoidRootPart")
-            if root then
-               local distance = (root.Position - spawn.Position).Magnitude
-               if distance < MIN_DISTANCE then
-                  valid = false
-                  break
-               end
-            end
-         end
-      end
-      if valid then
-         table.insert(validSpawns, spawn)
-      end
-   end
-   if #validSpawns > 0 then
-      return validSpawns[math.random(#validSpawns)]
-   else
-      return spawnPoints[math.random(#spawnPoints)]
-   end
-end
-
-function ArenaService.getCurrentArenaPosition(): Vector3?
-   local currentArenaModel = arenaFolder:FindFirstChildWhichIsA("Model")
-   if not currentArenaModel then
-      print(`No current arena model found`)
-      return nil
-   end
-   return currentArenaModel:GetPivot().Position
-end
-
--- // Send player to a random spawn point in the arena
-function ArenaService.sendToArena(player: Player)
-   local gameStateData = CurrentGameState.getGameStateData()
+   -- Get character
    if not player.Character then
       local elapsed = 0
       repeat
@@ -150,11 +102,13 @@ function ArenaService.sendToArena(player: Player)
          warn(`player character never loaded to send to arena: {player}`)
          return
       end
-      if not gameStateData.IsInRound:Get() then
-         warn(`round ended while awaiting character: {player}`)
+      if gameStateData.CurrentRoundId:Get() ~= forRoundId then
+         warn(`arenaservice.sendtoarena: round changed while awaiting character: {player}`)
          return
       end
    end
+
+   -- Get primary part
    if not player.Character.PrimaryPart then
       local elapsed = 0
       repeat
@@ -165,14 +119,14 @@ function ArenaService.sendToArena(player: Player)
          warn(`player character has no primary part to send to arena: {player}`)
          return
       end
-      if not gameStateData.IsInRound:Get() then
-         warn(`round ended while awaiting player primary part: {player}`)
+      if gameStateData.CurrentRoundId:Get() ~= forRoundId then
+         warn(`arenaservice.sendtoarena: round changed while awaiting player primary part: {player}`)
          return
       end
    end
 
-   if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
-      warn(`player has no character or hrp to send to arena: {player}`)
+   if not gameStateData.IsInRound:Get() then
+      -- Round ended; cease arena send call
       return
    end
    
@@ -182,7 +136,7 @@ function ArenaService.sendToArena(player: Player)
       return
    end
 
-   -- Choose a spawn point that is not occupied by enemies
+   -- Choose a spawn point
    local MIN_DISTANCE = 75
    local spawnPoints = currentArenaModel:FindFirstChild("SpawnPoints"):GetChildren()
    local chosenSpawn = nil
@@ -201,12 +155,11 @@ function ArenaService.sendToArena(player: Player)
          if otherPlayer == player then
             continue
          end
-         if otherPlayer.Team ~= player.Team or player.Team:GetAttribute("FriendlyFire") == true then
+         if otherPlayer.Team ~= player.Team or (player.Team and GameTeamService.hasFriendlyFire(player.Team)) then
             local character = otherPlayer.Character
             local root = character and character:FindFirstChild("HumanoidRootPart")
             if root then
                local distance = (root.Position - spawn.Position).Magnitude
-               print("distance to other player: ", distance)
                if distance < MIN_DISTANCE then
                   valid = false
                   break
@@ -221,9 +174,25 @@ function ArenaService.sendToArena(player: Player)
    end
 
    if not chosenSpawn then
+      warn(`no intelligently chosen spawn; sending to random position`)
       chosenSpawn = spawnPoints[math.random(#spawnPoints)]
    end
 
+   return chosenSpawn
+end
+
+function ArenaService.getCurrentArenaPosition(): Vector3?
+   local currentArenaModel = arenaFolder:FindFirstChildWhichIsA("Model")
+   if not currentArenaModel then
+      print(`No current arena model found`)
+      return nil
+   end
+   return currentArenaModel:GetPivot().Position
+end
+
+-- // Send player to a random spawn point in the arena
+function ArenaService.sendToArena(player: Player)
+   local chosenSpawn = ArenaService.getSpawnPoint(player)
    if chosenSpawn then
       sendPlayerToSpawnPosition(player, chosenSpawn.Position)
    end
@@ -246,9 +215,41 @@ function ArenaService.setArena(mapName: string)
    liveMap.Parent = arenaFolder
 
    local livingPlayersInArena = {}
-   for _, p in pairs(game.Players:GetPlayers()) do
-      table.insert(livingPlayersInArena, p)
-      task.spawn(ArenaService.sendToArena, p)
+
+   -- Send all players to a different spawnpoint
+   local consumedSpawnPoints: {
+      [Part]: {Player}
+   } = {}
+   local spawnPoints = liveMap:FindFirstChild("SpawnPoints"):GetChildren()
+
+   for _, player in ipairs(game.Players:GetPlayers()) do
+      table.insert(livingPlayersInArena, player)
+
+      local availableSpawnPoints = {}
+
+      -- Find spawn points that haven't been consumed yet
+      for _, spawnPoint in ipairs(spawnPoints) do
+         if not consumedSpawnPoints[spawnPoint] then
+            table.insert(availableSpawnPoints, spawnPoint)
+         end
+      end
+
+      -- Send to an unused spawn point if one is available
+      local spawnPoint
+      if #availableSpawnPoints > 0 then
+         spawnPoint = availableSpawnPoints[math.random(#availableSpawnPoints)]
+         consumedSpawnPoints[spawnPoint] = { player }
+      else
+         spawnPoint = spawnPoints[math.random(#spawnPoints)]
+         table.insert(consumedSpawnPoints[spawnPoint], player)
+      end
+   end
+
+   for spawnPoint, players in pairs(consumedSpawnPoints) do
+      for _, player in ipairs(players) do
+         print(player, spawnPoint.Position)
+         sendPlayerToSpawnPosition(player, spawnPoint.Position)
+      end
    end
 
    ArenaService.MapChangedTasks:Execute("parallel")
