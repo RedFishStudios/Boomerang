@@ -17,7 +17,9 @@ local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
 local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
 local AnimationLibrary = require(ReplicatedStorage.Shared.Library.AnimationLibrary)
 local SoundLibrary = require(ReplicatedStorage.Shared.Library.SoundLibrary)
+local ParticlesLibrary = require(ReplicatedStorage.Shared.Library.ParticlesLibrary)
 local Sounds = require(ReplicatedStorage.Shared.Constants.Sounds)
+local HitboxLibrary = require(ReplicatedStorage.Shared.Library.HitboxLibrary)
 local HttpService = game:GetService("HttpService")
 
 -- // Context-Specific Modules
@@ -300,7 +302,7 @@ local function isCameraObstructedToPoint(cameraPosition: Vector3, targetPosition
    return false
 end
 
-local function damagedPlayer(player: Player, boomerangId: string, victimModel: Model): boolean
+local function damagedPlayer(player: Player, boomerangId: string, victimModel: Model, throwServerTime: number): boolean
    local victimPlayer = game.Players:GetPlayerFromCharacter(victimModel)
    if not victimPlayer or victimPlayer == player then
       return false
@@ -310,17 +312,23 @@ local function damagedPlayer(player: Player, boomerangId: string, victimModel: M
       return false
    end
 
-   local soundChannelId = `{player.UserId}_vs_{victimPlayer.UserId}`
+   if HitboxLibrary.isImmunized(victimPlayer, "Dash") then
+      return false
+   end
+
+   local eventId = `{player.UserId}_vs_{victimPlayer.UserId}_{throwServerTime}`
+   SoundLibrary.play(eventId, Sounds.Data.Kill.Name, victimModel.PrimaryPart, nil, true)
+   ParticlesLibrary.emit(eventId, "Slash", victimModel.PrimaryPart.Position, 1)
+
    if isServer then
       -- Server boomerang hit context
       local Humanoid = victimModel:FindFirstChildOfClass("Humanoid")
       if Humanoid and Humanoid.Health > 0 then
          CombatService.damagePlayer(player, boomerangId, victimPlayer, Humanoid, 100000)
-         SoundLibrary.play(soundChannelId, Sounds.Data.Kill.Name, victimModel.PrimaryPart, nil, true)
       end
    else
       -- Client boomerang hit context
-      SoundLibrary.play(soundChannelId, Sounds.Data.Kill.Name, victimModel.PrimaryPart, nil, true)
+      --..
    end
 
    return true

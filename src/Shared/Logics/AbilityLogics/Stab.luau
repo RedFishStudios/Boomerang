@@ -13,6 +13,7 @@ local AnimationLibrary = require(ReplicatedStorage.Shared.Library.AnimationLibra
 local SoundLibrary = require(ReplicatedStorage.Shared.Library.SoundLibrary)
 local Sounds = require(ReplicatedStorage.Shared.Constants.Sounds)
 local HitboxLibrary = require(ReplicatedStorage.Shared.Library.HitboxLibrary)
+local ParticlesLibrary = require(ReplicatedStorage.Shared.Library.ParticlesLibrary)
 
 local CameraController
 
@@ -435,7 +436,7 @@ function Stab.activate(player: Player)
    stabCount[player] = (stabCount[player] or 0) + 1
 
    if not isServer then
-      local activationSoundChannelId = `{player.UserId}_stab_{stabCount[player]}`
+      local activationSoundChannelId = `{player.UserId}_stab`
       SoundLibrary.play(activationSoundChannelId, Sounds.Data.Stab.Name, character.PrimaryPart, nil, true)
    end
 
@@ -529,19 +530,17 @@ function Stab.activate(player: Player)
          elseif targetDistance <= STAB_DISTANCE and not registeredKillHits[victimPlayer] then
             registeredKillHits[victimPlayer] = true
 
-            local soundChannelId = `{player.UserId}_vs_{victimPlayer.UserId}`
+            local eventId = `{player.UserId}_vs_{victimPlayer.UserId}`
+            SoundLibrary.play(eventId, Sounds.Data.Kill.Name, victimCharacter.PrimaryPart, nil, true)
+            ParticlesLibrary.emit(eventId, "Slash", victimCharacter.PrimaryPart.Position, 1)
+
             if isServer then
                local victimHumanoid = victimCharacter:FindFirstChildOfClass("Humanoid")
                if victimHumanoid and victimHumanoid.Health > 0 then
                   CombatService.damagePlayer(player, "Stab", victimPlayer, victimHumanoid, STAB_KILL_DAMAGE)
-                  SoundLibrary.play(soundChannelId, Sounds.Data.Kill.Name, victimCharacter.PrimaryPart, nil, true)
                end
             else
                print(`clientside stab deteccted here`)
-               if HitboxLibrary.isImmunized(victimPlayer) then
-                  return
-               end
-               SoundLibrary.play(soundChannelId, Sounds.Data.Kill.Name, victimCharacter.PrimaryPart, nil, true)  
             end
          end
       end

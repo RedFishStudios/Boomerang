@@ -105,7 +105,7 @@ function AnimationController.init()
       end
 
       AnimationPlayedConnections[player] = animator.AnimationPlayed:Connect(function(track: AnimationTrack)
-         print("a player played an animation!")
+         --print("a player played an animation!")
       end)
    end)
 

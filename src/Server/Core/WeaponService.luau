@@ -274,6 +274,21 @@ function WeaponService.init()
          ReplicationPart = nil,
          TestRaycastVisualizers = {}
       }
+      for i = 1, 3 do
+         local visualizer = Instance.new("Part")
+         visualizer.Name = "TestRaycastVisualizer"
+         visualizer.Shape = Enum.PartType.Ball
+         visualizer.Size = Vector3.new(0.5, 0.5, 0.5)
+         visualizer.Material = "Neon"
+         visualizer.Anchored = true
+         visualizer.CanCollide = false
+         visualizer.CanQuery = false
+         visualizer.CanTouch = false
+         visualizer.Transparency = 0.5
+         visualizer.Color = Color3.fromRGB(255, 0, 0)
+         visualizer.Parent = workspace
+         table.insert(ThrownWeapons.Data[player].TestRaycastVisualizers, visualizer)
+      end
 
       local Logic = getLogic(toolData.LogicClass)
       if not Logic or not Logic.throw then

@@ -116,7 +116,7 @@ local function playLocal(audioChannelId: AudioChannelId?, soundName: string, hos
    if oldChannel then
       if oldChannel.SoundName == soundName then
          -- This sound is already playing on this channel
-         print("cancelling sound already playing on this channel")
+         print("sound already playing on channel")
          return audioChannelId, oldChannel.Instance
       end
       destroy(audioChannelId, oldChannel, fadeSeconds)
