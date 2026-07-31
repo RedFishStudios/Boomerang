@@ -234,7 +234,7 @@ end
 function RoundCyclingService.start()
    task.spawn(function()
       task.wait(2)
-      RoundCyclingService.setNextRound("ThrowBoomerang", "GenericA")
+      RoundCyclingService.setNextRound("ThrowBoomerang", "GenericD")
 	end)
 
    GameStateLibrary.RoundFinishedTasks:Add(function(winner: Player?, winMessage: string)

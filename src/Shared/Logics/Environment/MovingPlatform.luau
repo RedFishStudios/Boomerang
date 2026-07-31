@@ -27,19 +27,19 @@ local platforms: {
    }
 } = {}
 
-local renderConnection: RBXScriptConnection? = nil
+local connections: {RBXScriptConnection} = {}
 local snapshotFrequency = 5/60
 local isServer = RunService:IsServer()
 
 local function reset()
    table.clear(platforms)
-   if renderConnection then
-      renderConnection:Disconnect()
-      renderConnection = nil
+   for _, connection in pairs(connections) do
+      connection:Disconnect()
    end
+   table.clear(connections)
 end
 
-local function findPlatformById(name: string): Part?
+local function findPlatformById(name: string): Folder?
    local map = game.Workspace.Arena:FindFirstChildWhichIsA("Model")
    if not map then
       return nil
@@ -87,12 +87,12 @@ local distance = (endPivot.Position - startPivot.Position).Magnitude
 end
 
 local function beginRendering()
-   if renderConnection then
+   if #connections > 0 then
       return
    end
    if isServer then
       -- Authoritative snapshotting
-      renderConnection = RunService.PostSimulation:Connect(function()
+      table.insert(connections, RunService.PostSimulation:Connect(function()
           for _, platformData in pairs(platforms) do
             local pivot = getPivot(platformData.EndPivot, platformData.StartPivot, platformData.CurrentSpeed, platformData.RestTime or 0, game.Workspace:GetServerTimeNow(), platformData.StartedAt)
             local newPosition = pivot.Position
@@ -102,20 +102,26 @@ local function beginRendering()
                platformData.Part:PivotTo(pivot) -- TODO: maintain orientation
             end
          end
-      end)
+      end))
    else
       -- Clientside prediction
-      renderConnection = RunService.PreSimulation:Connect(function()
+      table.insert(connections, RunService.PreSimulation:Connect(function()
          for _, platformData in pairs(platforms) do
             local pivot = getPivot(platformData.EndPivot, platformData.StartPivot, platformData.CurrentSpeed, platformData.RestTime or 0, game.Workspace:GetServerTimeNow(), platformData.StartedAt)
             platformData.CurrentPivot = pivot
             platformData.Part:PivotTo(pivot) -- TODO: maintain orientation
          end
-      end)
+      end))
    end
 end
 
-function MovingPlatform.onObjectAdded(platform: Part, _birth: number?)
+function MovingPlatform.onObjectAdded(platformFolder: Folder, _birth: number?)
+   local platform = platformFolder:FindFirstChild("Platform")
+   if not platform then
+      warn(`Moving platform folder missing Platform part: ${platformFolder.Name}`)
+      return
+   end
+
    for _, data in pairs(platforms) do
       if data.Part == platform then
          warn(`Moving platform attempted duplicate registration: ${platform.Name}`)
@@ -162,19 +168,10 @@ function MovingPlatform.init()
 
    if isServer then
    else
-      NewMovingPlatform.onClientEvent:Connect(function(platformId: string, birth)
-         local platform = findPlatformById(platformId)
-         if platform then
-            MovingPlatform.onObjectAdded(platform, birth)
-         end
-      end)
-
-      MovingPlatformSnapshot.onClientEvent:Connect(function(platform: Part, currentPivot: CFrame, timestamp: number)
-         for _, data in pairs(platforms) do
-            if data.Part == platform then
-               data.CurrentPivot = currentPivot
-               break
-            end
+      NewMovingPlatform.onClientEvent:Connect(function(platformFolderId: string, birth)
+         local platformFolder = findPlatformById(platformFolderId)
+         if platformFolder and platformFolder:IsA("Folder") then
+            MovingPlatform.onObjectAdded(platformFolder, birth)
          end
       end)
    end
