@@ -16,6 +16,7 @@ local CharacterController = {}
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 local GlobalInstanceController = require(ReplicatedStorage.Client.Controllers.GlobalInstanceController)
 local GameTypes = require(ReplicatedStorage.Shared.GameTypes)
@@ -200,6 +201,10 @@ end
 
 local function onPreSimulation(dT: number)
    local lastInWorld = PlatformController.getLastMousePositionInWorld()
+   if UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then
+      lastInWorld += Vector3.new(0, -60, 0)
+   end
+
 	local localTarget = RaycastsUtility.getMouseWorldPosition(2048, nil, if lastInWorld then Vector2.new(lastInWorld.X, lastInWorld.Y) else nil)
 	local localYaw = 0
 
