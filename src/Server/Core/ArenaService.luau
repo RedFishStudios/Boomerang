@@ -114,8 +114,8 @@ local gameStateData = CurrentGameState.getGameStateData()
       repeat
          task.wait(0.1)
          elapsed += 0.1
-      until player.Character.PrimaryPart or elapsed >= 3
-      if not player.Character.PrimaryPart then
+      until not player.Character or player.Character.PrimaryPart or elapsed >= 3
+      if not player.Character or not player.Character.PrimaryPart then
          warn(`player character has no primary part to send to arena: {player}`)
          return
       end
