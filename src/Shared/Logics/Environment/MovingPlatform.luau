@@ -51,8 +51,8 @@ local function findPlatformById(name: string): Part?
    return dynamicsFolder:FindFirstChild(name)
 end
 
-local function getPosition(endPosition: CFrame, startPosition: CFrame, speed: number, restTime: number, serverTime: number, startedAt: number)
-local distance = (endPosition.Position - startPosition.Position).Magnitude
+local function getPivot(endPivot: CFrame, startPivot: CFrame, speed: number, restTime: number, serverTime: number, startedAt: number)
+local distance = (endPivot.Position - startPivot.Position).Magnitude
 	local travelTime = distance / speed
 	local cycleTime = restTime + travelTime + restTime + travelTime
 
@@ -61,7 +61,7 @@ local distance = (endPosition.Position - startPosition.Position).Magnitude
 
 	-- Resting at start
 	if cycle < restTime then
-		return startPosition.Position
+		return startPivot
 	end
 
 	cycle -= restTime
@@ -69,21 +69,21 @@ local distance = (endPosition.Position - startPosition.Position).Magnitude
 	-- Moving start -> end
 	if cycle < travelTime then
 		local alpha = cycle / travelTime
-		return startPosition.Position:Lerp(endPosition.Position, alpha)
+		return CFrame.new(startPivot.Position:Lerp(endPivot.Position, alpha))
 	end
 
 	cycle -= travelTime
 
 	-- Resting at end
 	if cycle < restTime then
-		return endPosition.Position
+		return endPivot
 	end
 
 	cycle -= restTime
 
 	-- Moving end -> start
 	local alpha = cycle / travelTime
-	return endPosition.Position:Lerp(startPosition.Position, alpha)
+	return CFrame.new(endPivot.Position:Lerp(startPivot.Position, alpha))
 end
 
 local function beginRendering()
@@ -94,18 +94,22 @@ local function beginRendering()
       -- Authoritative snapshotting
       renderConnection = RunService.PostSimulation:Connect(function()
           for _, platformData in pairs(platforms) do
-            local position = getPosition(platformData.EndPivot, platformData.StartPivot, platformData.CurrentSpeed, platformData.RestTime or 0, game.Workspace:GetServerTimeNow(), platformData.StartedAt)
-            platformData.CurrentPivot = position
-            platformData.Part:PivotTo(CFrame.new(position)) -- TODO: maintain orientation
+            local pivot = getPivot(platformData.EndPivot, platformData.StartPivot, platformData.CurrentSpeed, platformData.RestTime or 0, game.Workspace:GetServerTimeNow(), platformData.StartedAt)
+            local newPosition = pivot.Position
+            local lastPosition = platformData.CurrentPivot.Position
+            if (newPosition - lastPosition).Magnitude > 0.0001 then
+               platformData.CurrentPivot = pivot
+               platformData.Part:PivotTo(pivot) -- TODO: maintain orientation
+            end
          end
       end)
    else
       -- Clientside prediction
       renderConnection = RunService.PreSimulation:Connect(function()
          for _, platformData in pairs(platforms) do
-            local position = getPosition(platformData.EndPivot, platformData.StartPivot, platformData.CurrentSpeed, platformData.RestTime or 0, game.Workspace:GetServerTimeNow(), platformData.StartedAt)
-            platformData.CurrentPivot = position
-            platformData.Part:PivotTo(CFrame.new(position)) -- TODO: maintain orientation
+            local pivot = getPivot(platformData.EndPivot, platformData.StartPivot, platformData.CurrentSpeed, platformData.RestTime or 0, game.Workspace:GetServerTimeNow(), platformData.StartedAt)
+            platformData.CurrentPivot = pivot
+            platformData.Part:PivotTo(pivot) -- TODO: maintain orientation
          end
       end)
    end
@@ -125,6 +129,8 @@ function MovingPlatform.onObjectAdded(platform: Part, _birth: number?)
    local endPosition = attributes.EndPivot or platform:GetPivot()
    
    platform.Anchored = true
+
+   platform:PivotTo(startPosition)
 
    local birth = _birth or game.Workspace:GetServerTimeNow()
    table.insert(platforms, {
@@ -164,7 +170,6 @@ function MovingPlatform.init()
       end)
 
       MovingPlatformSnapshot.onClientEvent:Connect(function(platform: Part, currentPivot: CFrame, timestamp: number)
-         -- TODO: implement timestamp
          for _, data in pairs(platforms) do
             if data.Part == platform then
                data.CurrentPivot = currentPivot
