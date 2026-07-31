@@ -43,6 +43,14 @@ local Animations: {
       FadeIn = .1,
       FadeOut = .2,
       Looping = false
+   },
+
+   Dash = {
+      Id = 126005747148454,
+      Layer = "Ability",
+      FadeIn = .05,
+      FadeOut = 0,
+      Looping = false
    }
 }
 

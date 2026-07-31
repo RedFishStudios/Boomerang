@@ -1,5 +1,9 @@
 local Dash = {}
 
+-- TODO: Clientside implement timestamp to account for lag
+-- TODO: the animation clashes badly with authoritative run animation, causing the character to wiggle around
+--       address as either an animation issue or a propulsion issue
+
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 
@@ -10,6 +14,7 @@ local Gamemodes = require(ReplicatedStorage.Shared.Constants.Gamemodes)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local ParticlesLibrary = require(ReplicatedStorage.Shared.Library.ParticlesLibrary)
 local HitboxLibrary = require(ReplicatedStorage.Shared.Library.HitboxLibrary)
+local AnimationLibrary = require(ReplicatedStorage.Shared.Library.AnimationLibrary)
 
 local isServer = RunService:IsServer()
 local WeaponController
@@ -45,6 +50,7 @@ local function stopDash(player: Player, character: Model)
       activeDashConnections[character] = nil
    end
    HitboxLibrary.unImmunize(player, "Dash", 0)
+   AnimationLibrary.stopCoreAnimation(player, "Dash")
 end
 
 local function isPlayerAiming(player: Player): boolean
@@ -59,9 +65,6 @@ local function isPlayerAiming(player: Player): boolean
       end
    end
    return false
-end
-
-local function replicateRender(userId: number, timestamp: number)
 end
 
 -------------------------------------------------------------------------------
@@ -112,7 +115,7 @@ function Dash.canActivate(player: Player)
    return true
 end
 
-function Dash.activate(player: Player)
+function Dash.activate(player: Player, timestamp: number)
    local character = player.Character
    if not character then
       warn(`Dash.activate: No character found for player {player.Name}`)
@@ -131,7 +134,12 @@ function Dash.activate(player: Player)
       return
    end
 
+   stopDash(player, character)
+
    cooldowns[player] = os.clock() + DASH_COOLDOWN_SECONDS
+   AnimationLibrary.playCoreAnimation(player, "Dash")
+
+   local dashEndsAt = os.clock() + DASH_DURATION_SECONDS
 
    if isServer then
       -- Server context
@@ -146,10 +154,8 @@ function Dash.activate(player: Player)
       end
       horizontalForward = horizontalForward.Unit
 
-      stopDash(player, character)
       HitboxLibrary.immunize(player, "Dash", 0)
 
-      local dashEndsAt = os.clock() + DASH_DURATION_SECONDS
       activeDashConnections[character] = RunService.Heartbeat:Connect(function()
          if not character.Parent or not humanoidRootPart.Parent then
             stopDash(player, character)
@@ -172,21 +178,31 @@ function Dash.activate(player: Player)
       -- Client context
       local particle = ParticlesLibrary.play("Dash", humanoidRootPart:GetPivot().Position, 3, DASH_DURATION_SECONDS*.5)
       task.spawn(function()
-      while particle and particle.Parent do
-        local dir = humanoid.MoveDirection
-        dir = Vector3.new(dir.X, 0, dir.Z)
+         while particle and particle.Parent do
+            local dir = humanoid.MoveDirection
+            dir = Vector3.new(dir.X, 0, dir.Z)
+            if dir.Magnitude > 0 then
+                  particle:PivotTo(
+                     CFrame.lookAt(
+                        humanoidRootPart.Position,
+                        humanoidRootPart.Position + dir
+                     ) * CFrame.Angles(0, math.rad(-90), 0)
+                  )
+            end
+            task.wait()
+         end
+      end)
 
-        if dir.Magnitude > 0 then
-            particle:PivotTo(
-                CFrame.lookAt(
-                    humanoidRootPart.Position,
-                    humanoidRootPart.Position + dir
-                ) * CFrame.Angles(0, math.rad(-90), 0)
-            )
-        end
+      activeDashConnections[character] = RunService.Heartbeat:Connect(function()
+         if not character.Parent or not humanoidRootPart.Parent then
+            stopDash(player, character)
+            return
+         end
 
-        task.wait()
-          end
+         if os.clock() >= dashEndsAt then
+            stopDash(player, character)
+            return
+         end
       end)
    end
 end
