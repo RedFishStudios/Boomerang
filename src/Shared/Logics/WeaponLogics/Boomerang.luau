@@ -232,7 +232,7 @@ local function raycastWithHorizontalHitbox(
    return finalResult
 end
 
-local function raycastWithHorizontalCharacterHitbox(rayOrigin: Vector3, direction: Vector3, hitboxRadius: number): {Model}
+local function raycastWithHorizontalCharacterHitbox(rayOrigin: Vector3, speed: number, direction: Vector3, hitboxRadius: number): {Model}
    local characterRaycastParams = RaycastParams.new()
    --characterRaycastParams.FilterType = Enum.RaycastFilterType.Include
    --characterRaycastParams.FilterDescendantsInstances = {Characters}
@@ -243,7 +243,8 @@ local function raycastWithHorizontalCharacterHitbox(rayOrigin: Vector3, directio
    local hitModels = {}
    local seenModels = {}
 
-   local characterRayDistance = 2 -- TODO: adjust player detection ray length
+   local characterRayDistance = direction
+   print("direction size", direction * characterRayDistance)
 
    for _, origin in ipairs(horizontalRayOrigins) do
       local raycastResult = workspace:Raycast(origin, direction * characterRayDistance, characterRaycastParams)
@@ -251,7 +252,6 @@ local function raycastWithHorizontalCharacterHitbox(rayOrigin: Vector3, directio
          local hitModel = raycastResult.Instance:FindFirstAncestorOfClass("Model")
          if hitModel and not table.find(seenModels, hitModel) then
             table.insert(seenModels, hitModel)
-
             local humanoid = hitModel:FindFirstChildOfClass("Humanoid")
             if humanoid and humanoid.Health > 0 then
                table.insert(hitModels, hitModel)
@@ -466,7 +466,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          end
       end
 
-      local victimModels = raycastWithHorizontalCharacterHitbox(rayOrigin, direction, hitboxRadius)
+      local victimModels = raycastWithHorizontalCharacterHitbox(rayOrigin, speed, direction, hitboxRadius)
       local playerDamaged = false
       for _, victimModel in ipairs(victimModels) do
          if damagedPlayer(player, boomerangId, victimModel) then
@@ -738,7 +738,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          travelVelocity = blendedDirection * blendedSpeed
       end
 
-      local victimModels = raycastWithHorizontalCharacterHitbox(rayOrigin, if sliding then slideDirection else direction, hitboxRadius)
+      local victimModels = raycastWithHorizontalCharacterHitbox(rayOrigin, speed, if sliding then slideDirection else direction, hitboxRadius)
       for _, victimModel in ipairs(victimModels) do
          damagedPlayer(player, boomerangId, victimModel)
       end
