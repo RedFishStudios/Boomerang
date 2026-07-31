@@ -112,7 +112,7 @@ local function _init()
       if inputType == Enum.UserInputType.MouseMovement or inputType == Enum.UserInputType.Touch then
          local position = input.Position
          if not gameProcessedEvent then
-             lastValidMousePositionInWorld = position
+             lastValidMousePositionInWorld = position + Vector3.new(0, 60, 0) -- offset to account for topbar
          end
       end
 	end
