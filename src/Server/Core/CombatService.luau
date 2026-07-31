@@ -20,6 +20,7 @@ local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons
 local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
 local CurrentGameState = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local ArenaService = require(ServerStorage.Server.Core.ArenaService)
+local HitboxLibrary = require(ReplicatedStorage.Shared.Library.HitboxLibrary)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -57,6 +58,10 @@ end
 -------------------------------------------------------------------------------
 
 function CombatService.damagePlayer(attacker: Player?, attackerToolId: string?, victim: Player, victimHumanoid: Humanoid?, damageAmount: number)
+   if HitboxLibrary.isImmunized(victim) then
+      print("CombatService.damagePlayer: victim is immunized")
+      return
+   end
    local humanoid = victimHumanoid or getHumanoid(victim)
    if not humanoid then
       return
@@ -73,9 +78,5 @@ end
 
 function CombatService.init()
 end
-
-function CombatService.start() end
-
-function CombatService.test() end
 
 return CombatService

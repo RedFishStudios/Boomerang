@@ -12,6 +12,7 @@ local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local AnimationLibrary = require(ReplicatedStorage.Shared.Library.AnimationLibrary)
 local SoundLibrary = require(ReplicatedStorage.Shared.Library.SoundLibrary)
 local Sounds = require(ReplicatedStorage.Shared.Constants.Sounds)
+local HitboxLibrary = require(ReplicatedStorage.Shared.Library.HitboxLibrary)
 
 local CameraController
 
@@ -537,6 +538,9 @@ function Stab.activate(player: Player)
                end
             else
                print(`clientside stab deteccted here`)
+               if HitboxLibrary.isImmunized(victimPlayer) then
+                  return
+               end
                SoundLibrary.play(soundChannelId, Sounds.Data.Kill.Name, victimCharacter.PrimaryPart, nil, true)  
             end
          end

@@ -9,6 +9,7 @@ local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibra
 local Gamemodes = require(ReplicatedStorage.Shared.Constants.Gamemodes)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local ParticlesLibrary = require(ReplicatedStorage.Shared.Library.ParticlesLibrary)
+local HitboxLibrary = require(ReplicatedStorage.Shared.Library.HitboxLibrary)
 
 local isServer = RunService:IsServer()
 local WeaponController
@@ -31,18 +32,19 @@ local DASH_COOLDOWN_SECONDS = 1
 local activeDashConnections: {[Model]: RBXScriptConnection} = {}
 
 -- The timestamp every player's dash wears off at
-local Cooldowns: {[Player]: number} = {}
+local cooldowns: {[Player]: number} = {}
 
 -------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS
 -------------------------------------------------------------------------------
 
-local function stopDash(character: Model)
+local function stopDash(player: Player, character: Model)
    local connection = activeDashConnections[character]
    if connection then
       connection:Disconnect()
       activeDashConnections[character] = nil
    end
+   HitboxLibrary.unImmunize(player, "Dash", 0)
 end
 
 local function isPlayerAiming(player: Player): boolean
@@ -57,6 +59,9 @@ local function isPlayerAiming(player: Player): boolean
       end
    end
    return false
+end
+
+local function replicateRender(userId: number, timestamp: number)
 end
 
 -------------------------------------------------------------------------------
@@ -100,7 +105,7 @@ function Dash.canActivate(player: Player)
       return false
    end
 
-   local cooldown = Cooldowns[player]
+   local cooldown = cooldowns[player]
    if cooldown and os.clock() < cooldown then
       return false
    end
@@ -126,10 +131,11 @@ function Dash.activate(player: Player)
       return
    end
 
-   Cooldowns[player] = os.clock() + DASH_COOLDOWN_SECONDS
+   cooldowns[player] = os.clock() + DASH_COOLDOWN_SECONDS
 
    if isServer then
       -- Server context
+
       local forward = humanoid.MoveDirection
       if forward.X == 0 and forward.Y == 0 and forward.Z == 0 then
          forward = humanoidRootPart.CFrame.LookVector
@@ -140,17 +146,18 @@ function Dash.activate(player: Player)
       end
       horizontalForward = horizontalForward.Unit
 
-      stopDash(character)
+      stopDash(player, character)
+      HitboxLibrary.immunize(player, "Dash", 0)
 
       local dashEndsAt = os.clock() + DASH_DURATION_SECONDS
       activeDashConnections[character] = RunService.Heartbeat:Connect(function()
          if not character.Parent or not humanoidRootPart.Parent then
-            stopDash(character)
+            stopDash(player, character)
             return
          end
 
          if os.clock() >= dashEndsAt then
-            stopDash(character)
+            stopDash(player, character)
             return
          end
 
@@ -189,17 +196,17 @@ end
 -------------------------------------------------------------------------------
 
 PlayersUtil.PlayerRemoving:Add(function(player: Player)
-   Cooldowns[player] = nil
+   cooldowns[player] = nil
 end)
 
 PlayersUtil.CharacterDestroying:Add(function(player: Player, character: Model)
-   stopDash(character)
-   Cooldowns[player] = nil
+   stopDash(player, character)
+   cooldowns[player] = nil
 end)
 
 PlayersUtil.CharacterDied:Add(function(player: Player, character: Model, humanoid: Humanoid)
-   stopDash(character)
-   Cooldowns[player] = nil
+   stopDash(player, character)
+   cooldowns[player] = nil
 end)
 
 return Dash

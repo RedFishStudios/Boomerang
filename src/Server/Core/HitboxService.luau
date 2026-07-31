@@ -21,6 +21,7 @@ local _ServerStorage = game:GetService("ServerStorage")
 
 local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
+local HitboxLibrary = require(ReplicatedStorage.Shared.Library.HitboxLibrary)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -37,6 +38,7 @@ local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 -------------------------------------------------------------------------------
 
 local hitboxes: {[Player]: Part} = {}
+
 local HITBOX_COLLISION_GROUP = CollisionGroupConstants.Players
 
 -------------------------------------------------------------------------------
@@ -119,13 +121,13 @@ function HitboxService.init()
       end
    end)
 
-   PlayersUtil.CharacterDied:Add(function(Player: Player, character: Model)
-      if hitboxes[Player] then
-         hitboxes[Player].Anchored = true
+   PlayersUtil.CharacterDied:Add(function(player: Player, character: Model)
+      if hitboxes[player] then
+         hitboxes[player].CanTouch = false
+         hitboxes[player].CanQuery = false
          -- This prevents the hitbox from from falling through the world and taking the client's camera with it
-         -- If you remove this anchoring, you have to configure what happens with the root part and the player's camera
-         hitboxes[Player].CanTouch = false
-         hitboxes[Player].CanQuery = false
+         -- If you remove this anchoring, you have to configure what happens with the root part and the player's camera when the player dies
+         hitboxes[player].Anchored = true
       end
    end)
 
