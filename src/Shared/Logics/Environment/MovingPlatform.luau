@@ -6,6 +6,7 @@ local SimpleRemotes = require(game:GetService("ReplicatedStorage"):WaitForChild(
 
 local NewMovingPlatform = SimpleRemotes.getEvent("NewMovingPlatform")
 local MovingPlatformSnapshot = SimpleRemotes.getUnreliableEvent("MovingPlatformSnapshot")
+local CollisionGroupConstants = require(game.ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 
 type MovingPlatformAttributes = {
    Speed: number,
@@ -24,6 +25,11 @@ local platforms: {
       CurrentPivot: CFrame,
       RestTime: number?,
       StartedAt: number, -- GetServerTimeNow
+
+      StartCrushAlpha: number?,
+      EndCrushAlpha: number?,
+      EndCrush: Part?,
+      StartCrush: Part?,
    }
 } = {}
 
@@ -61,7 +67,7 @@ local distance = (endPivot.Position - startPivot.Position).Magnitude
 
 	-- Resting at start
 	if cycle < restTime then
-		return startPivot
+		return startPivot, 0, cycle < travelTime
 	end
 
 	cycle -= restTime
@@ -69,21 +75,21 @@ local distance = (endPivot.Position - startPivot.Position).Magnitude
 	-- Moving start -> end
 	if cycle < travelTime then
 		local alpha = cycle / travelTime
-		return CFrame.new(startPivot.Position:Lerp(endPivot.Position, alpha))
+		return CFrame.new(startPivot.Position:Lerp(endPivot.Position, alpha)), alpha, cycle < travelTime
 	end
 
 	cycle -= travelTime
 
 	-- Resting at end
 	if cycle < restTime then
-		return endPivot
+		return endPivot, 1, cycle < travelTime
 	end
 
 	cycle -= restTime
 
 	-- Moving end -> start
 	local alpha = cycle / travelTime
-	return CFrame.new(endPivot.Position:Lerp(startPivot.Position, alpha))
+	return CFrame.new(endPivot.Position:Lerp(startPivot.Position, alpha)), alpha, cycle < travelTime
 end
 
 local function beginRendering()
@@ -94,12 +100,55 @@ local function beginRendering()
       -- Authoritative snapshotting
       table.insert(connections, RunService.PostSimulation:Connect(function()
           for _, platformData in pairs(platforms) do
-            local pivot = getPivot(platformData.EndPivot, platformData.StartPivot, platformData.CurrentSpeed, platformData.RestTime or 0, game.Workspace:GetServerTimeNow(), platformData.StartedAt)
+            local pivot, alpha, fromStart = getPivot(platformData.EndPivot, platformData.StartPivot, platformData.CurrentSpeed, platformData.RestTime or 0, game.Workspace:GetServerTimeNow(), platformData.StartedAt)
             local newPosition = pivot.Position
             local lastPosition = platformData.CurrentPivot.Position
             if (newPosition - lastPosition).Magnitude > 0.0001 then
                platformData.CurrentPivot = pivot
                platformData.Part:PivotTo(pivot) -- TODO: maintain orientation
+               if fromStart then
+                  if platformData.EndCrushAlpha and alpha > platformData.EndCrushAlpha then
+                     print("END CRUSH")
+                     -- TODO: why does this list of parts include the map model?
+                     -- this should only detect player hitboxes.
+                     local endCrushHitbox = platformData.EndCrush
+                     local CrushOverlapParams = OverlapParams.new()
+                     CrushOverlapParams.FilterType = Enum.RaycastFilterType.Exclude
+                     CrushOverlapParams.CollisionGroup = CollisionGroupConstants.Players
+                     local parts = workspace:GetPartBoundsInBox(endCrushHitbox.CFrame, endCrushHitbox.Size, CrushOverlapParams)
+                     for _, part in ipairs(parts) do
+                        local hitCharacter = part:FindFirstAncestorOfClass("Model")
+                        print(hitCharacter)
+                        if hitCharacter then
+                           local humanoid = hitCharacter:FindFirstChildWhichIsA("Humanoid")
+                           if not humanoid or humanoid.Health <= 0 then
+                              continue
+                           end
+                           humanoid:TakeDamage(1000000) -- TODO:PLACEHOLDER
+                        end
+                     end
+                  end
+               else
+                  if platformData.StartCrushAlpha and alpha > platformData.StartCrushAlpha then
+                     print("START CRUSH")
+                     local startCrushHitbox = platformData.StartCrush
+                     local CrushOverlapParams = OverlapParams.new()
+                     CrushOverlapParams.FilterType = Enum.RaycastFilterType.Exclude
+                     CrushOverlapParams.CollisionGroup = CollisionGroupConstants.Players
+                     local parts = workspace:GetPartBoundsInBox(startCrushHitbox.CFrame, startCrushHitbox.Size, CrushOverlapParams)
+                     for _, part in ipairs(parts) do
+                        local hitCharacter = part:FindFirstAncestorOfClass("Model")
+                        print(hitCharacter)
+                        if hitCharacter then
+                           local humanoid = hitCharacter:FindFirstChildWhichIsA("Humanoid")
+                           if not humanoid or humanoid.Health <= 0 then
+                              continue
+                           end
+                           humanoid:TakeDamage(1000000) -- TODO:PLACEHOLDER
+                        end
+                     end
+                  end
+               end
             end
          end
       end))
@@ -138,6 +187,9 @@ function MovingPlatform.onObjectAdded(platformFolder: Folder, _birth: number?)
 
    platform:PivotTo(startPosition)
 
+   local startCrush = platformFolder:FindFirstChild("StartCrush")
+   local endCrush = platformFolder:FindFirstChild("EndCrush")
+
    local birth = _birth or game.Workspace:GetServerTimeNow()
    table.insert(platforms, {
       Part = platform,
@@ -148,6 +200,10 @@ function MovingPlatform.onObjectAdded(platformFolder: Folder, _birth: number?)
       CurrentPivot = startPosition,
       RestTime = attributes.RestTime,
       StartedAt = birth,
+      StartCrushAlpha = if startCrush then startCrush:GetAttribute("AtAlpha") else nil,
+      EndCrushAlpha = if endCrush then endCrush:GetAttribute("AtAlpha") else nil,
+      StartCrush = startCrush,
+      EndCrush = endCrush,
    })
 
    if isServer then
