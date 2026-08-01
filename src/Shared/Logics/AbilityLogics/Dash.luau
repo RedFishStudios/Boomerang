@@ -15,6 +15,9 @@ local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local ParticlesLibrary = require(ReplicatedStorage.Shared.Library.ParticlesLibrary)
 local HitboxLibrary = require(ReplicatedStorage.Shared.Library.HitboxLibrary)
 local AnimationLibrary = require(ReplicatedStorage.Shared.Library.AnimationLibrary)
+local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
+
+local PlayDash = SimpleRemotes.getEvent("PlayDash")
 
 local isServer = RunService:IsServer()
 local WeaponController
@@ -115,7 +118,7 @@ function Dash.canActivate(player: Player)
    return true
 end
 
-function Dash.activate(player: Player, timestamp: number)
+function Dash.activate(player: Player, _timestamp: number?)
    local character = player.Character
    if not character then
       warn(`Dash.activate: No character found for player {player.Name}`)
@@ -132,6 +135,16 @@ function Dash.activate(player: Player, timestamp: number)
    if not humanoid then
       warn(`Dash.activate: No Humanoid found for player {player.Name}`)
       return
+   end
+
+   local timestamp = _timestamp or game.Workspace:GetServerTimeNow()
+   if isServer then
+      for _, p in pairs(game.Players:GetPlayers()) do
+         if p == player then
+            continue
+         end
+         PlayDash:FireClient(p, player.UserId, timestamp)
+      end
    end
 
    stopDash(player, character)
@@ -224,5 +237,21 @@ PlayersUtil.CharacterDied:Add(function(player: Player, character: Model, humanoi
    stopDash(player, character)
    cooldowns[player] = nil
 end)
+
+if not isServer then
+   PlayDash.OnClientEvent:Connect(function(userId: number, timestamp: number)
+      local player = Players:GetPlayerByUserId(userId)
+      if not player then
+         warn(`Dash.activate: No player found for userId {userId}`)
+         return
+      end
+      local now = game.Workspace:GetServerTimeNow()
+      if now - timestamp > 3 then
+         print("cancelling a dash activation receipt with an outdated timestamp")
+         return
+      end
+      Dash.activate(player, timestamp)
+   end)
+end
 
 return Dash

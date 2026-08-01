@@ -79,6 +79,11 @@ function AbilityService.init()
          activateAbility(player, abilityId, ...)
       end
    end)
+
+   for _, module in pairs(AbilityLogics:GetChildren()) do
+      local abilityId = module.Name
+      getLogic(abilityId)
+   end
 end
 
 -- function AbilityService.start() end
