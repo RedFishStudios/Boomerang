@@ -244,7 +244,6 @@ local function raycastWithHorizontalCharacterHitbox(rayOrigin: Vector3, speed: n
    local seenModels = {}
 
    local characterRayDistance = direction
-   print("direction size", direction * characterRayDistance)
 
    for _, origin in ipairs(horizontalRayOrigins) do
       local raycastResult = workspace:Raycast(origin, direction * characterRayDistance, characterRaycastParams)

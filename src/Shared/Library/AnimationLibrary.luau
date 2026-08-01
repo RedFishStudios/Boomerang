@@ -189,8 +189,8 @@ function AnimationLibrary.stopCoreAnimation(player: Player, coreTrackName: CoreT
       debugId = "misc"
    end
    if debugId then
-      warn(`STOPPING CORE ANIMATION {coreTrackName} for {player}`, debugId)
-      print(AnimationTracks)
+      --warn(`STOPPING CORE ANIMATION {coreTrackName} for {player}`, debugId)
+      --print(AnimationTracks)
    end
 	local tracks = AnimationTracks[player]
 	if not tracks then

@@ -143,7 +143,7 @@ local function setLocalAimState(nextState: boolean)
    isAiming = nextState
 
    if not nextState then
-      AnimationLibrary.stopCoreAnimation(Players.LocalPlayer, "Charging", `SetAimStateTo{nextState}`)
+      AnimationLibrary.stopCoreAnimation(Players.LocalPlayer, "Charging")
    end
 
    syncWeaponStateChanged()
@@ -203,10 +203,11 @@ local function throwClassicBoomerang(): boolean
 	 end
 
     local direction
-    if PlatformController.getDominantControlScheme() == "Touch" then
+    if PlatformController.getDominantControlScheme() == "Touch" or (UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter or UserInputService.MouseBehavior == Enum.MouseBehavior.LockCurrentPosition) then
       direction = getHorizontalDirection(localCharacter.PrimaryPart.CFrame.LookVector)
     else
-      local mouseWorldPosition = RaycastsUtility.getMouseWorldPosition(2048)
+      local lastInWorld = PlatformController.getLastMousePositionInWorld()
+      local mouseWorldPosition = RaycastsUtility.getMouseWorldPosition(2048, nil, if lastInWorld then Vector2.new(lastInWorld.X, lastInWorld.Y) else nil)
       if throwOrigin and mouseWorldPosition then
          direction = getHorizontalDirection(mouseWorldPosition - throwOrigin)
       elseif localCharacter and localCharacter.PrimaryPart then
