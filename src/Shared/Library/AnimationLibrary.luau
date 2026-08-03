@@ -3,15 +3,22 @@ local AnimationLibrary = {}
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ContentProviderService = game:GetService("ContentProvider")
 local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
 
 local Animations = require(ReplicatedStorage.Shared.Constants.Animations)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
+local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
 local IS_SERVER = RunService:IsServer()
+local ANIMATION_REMOTE = SimpleRemotes.getEvent("AnimationLibrary")
+
+local ACTION_PLAY_CORE = "PlayCore"
+local ACTION_STOP_CORE = "StopCore"
+local ACTION_STOP_ALL_CORE = "StopAllCore"
 
 -------------------------------------------------------------------------------
 -- TYPES
@@ -35,6 +42,8 @@ type PlayerTracks = {
 local AnimationTracks: {
 	[Player]: PlayerTracks,
 } = {}
+
+local creatingAnimationTracks: {[Player]: true} = {}
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -96,8 +105,13 @@ local function unloadAnimationTracks(player: Player)
 	AnimationTracks[player] = nil
 end
 
-local function characterLoaded(player: Player, character: Model, humanoid: Humanoid, rootPart: BasePart)
-	if AnimationTracks[player] then
+local function loadAnimationTracks(player: Player, character: Model, humanoid: Humanoid)
+   if creatingAnimationTracks[player] then
+      return
+   end
+   creatingAnimationTracks[player] = true
+
+   if AnimationTracks[player] then
 		unloadAnimationTracks(player)
 	end
 
@@ -125,13 +139,14 @@ local function characterLoaded(player: Player, character: Model, humanoid: Human
 	end
 
 	AnimationTracks[player] = tracks
+   creatingAnimationTracks[player] = nil
 end
 
--------------------------------------------------------------------------------
--- PUBLIC FUNCTIONS
--------------------------------------------------------------------------------
+local function characterLoaded(player: Player, character: Model, humanoid: Humanoid, rootPart: BasePart)
+	loadAnimationTracks(player, character, humanoid)
+end
 
-function AnimationLibrary.playCoreAnimation(player: Player, coreTrackName: CoreTrackNames)
+local function playCoreAnimationLocal(player: Player, coreTrackName: CoreTrackNames)
 	local humanoid = PlayersUtil.getHumanoid(player)
 	if not humanoid then
 		print("no humanoid")
@@ -140,8 +155,16 @@ function AnimationLibrary.playCoreAnimation(player: Player, coreTrackName: CoreT
 
 	local tracks = AnimationTracks[player]
 	if not tracks then
-		warn(`animationtracks.playCoreAnimation failed, no tracks for {player}`)
-		return
+      if not player.Character or not player.Character:FindFirstChild("Humanoid") then
+         warn(`animationtracks.playCoreAnimation failed, no character or humanoid for {player}`)
+         return
+      end
+      loadAnimationTracks(player, player.Character, player.Character.Humanoid)
+      tracks = AnimationTracks[player]
+		if not tracks then
+         warn(`animationtracks.playCoreAnimation failed, no tracks for {player}`)
+         return
+      end
 	end
 
 	local trackData = tracks[coreTrackName]
@@ -169,7 +192,7 @@ function AnimationLibrary.playCoreAnimation(player: Player, coreTrackName: CoreT
 	end)
 end
 
-function AnimationLibrary.stopAllCoreAnimations(player: Player)
+local function stopAllCoreAnimationsLocal(player: Player)
 	local tracks = AnimationTracks[player]
 	if not tracks then
 		warn(`animationtracks.stopAllCoreAnimations failed, no tracks for {player}`)
@@ -184,32 +207,32 @@ function AnimationLibrary.stopAllCoreAnimations(player: Player)
 	end)
 end
 
-function AnimationLibrary.stopCoreAnimation(player: Player, coreTrackName: CoreTrackNames, debugId: string?)
-   if coreTrackName == "Charging" then
-      debugId = "misc"
-   end
-   if debugId then
-      --warn(`STOPPING CORE ANIMATION {coreTrackName} for {player}`, debugId)
-      --print(AnimationTracks)
-   end
+local function stopCoreAnimationLocal(player: Player, coreTrackName: CoreTrackNames, debugId: string?)
+	if coreTrackName == "Charging" then
+		debugId = "misc"
+	end
+	if debugId then
+		--warn(`STOPPING CORE ANIMATION {coreTrackName} for {player}`, debugId)
+		--print(AnimationTracks)
+	end
 	local tracks = AnimationTracks[player]
 	if not tracks then
 		warn(`animationtracks.stopCoreAnimation failed, no tracks for {player}`)
 		return
 	end
 
-   if debugId then
-      for _, trackData in pairs(tracks) do
-         if trackData.Track and trackData.Track.IsPlaying then
-            print(trackData.Track)
-         end
-      end
-   end
+	if debugId then
+		for _, trackData in pairs(tracks) do
+			if trackData.Track and trackData.Track.IsPlaying then
+				print(trackData.Track)
+			end
+		end
+	end
 
 	local trackData = tracks[coreTrackName]
 	if not trackData then
 		if debugId then
-         warn(`animationtracks.stopCoreAnimation failed, no track for {coreTrackName} and {player}`)
+			warn(`animationtracks.stopCoreAnimation failed, no track for {coreTrackName} and {player}`)
 		end
 		return
 	end
@@ -217,7 +240,7 @@ function AnimationLibrary.stopCoreAnimation(player: Player, coreTrackName: CoreT
 	local track = trackData.Track
 	if not track.IsPlaying then
 		if debugId then
-         print("track is not playing")
+			print("track is not playing")
 		end
 		return
 	end
@@ -226,15 +249,55 @@ function AnimationLibrary.stopCoreAnimation(player: Player, coreTrackName: CoreT
 	local animationData = Animations[animation]
 	if not animationData then
 		if debugId then
-         print("no animation data found for ", animation)
+			print("no animation data found for ", animation)
 		end
 		return
 	end
 
-   if debugId then
-      warn(`successfully stopped playing`)
-   end
+	if debugId then
+		warn(`successfully stopped playing`)
+	end
 	track:Stop(animationData.FadeOut)
+end
+
+local function getPlayerByUserId(userId: number): Player?
+	for _, player in pairs(Players:GetPlayers()) do
+		if player.UserId == userId then
+			return player
+		end
+	end
+	return nil
+end
+
+-------------------------------------------------------------------------------
+-- PUBLIC FUNCTIONS
+-------------------------------------------------------------------------------
+
+function AnimationLibrary.playCoreAnimation(player: Player, coreTrackName: CoreTrackNames)
+	if IS_SERVER then
+		ANIMATION_REMOTE:FireAllClients(ACTION_PLAY_CORE, player.UserId, coreTrackName)
+		return
+	end
+
+	playCoreAnimationLocal(player, coreTrackName)
+end
+
+function AnimationLibrary.stopAllCoreAnimations(player: Player)
+	if IS_SERVER then
+		ANIMATION_REMOTE:FireAllClients(ACTION_STOP_ALL_CORE, player.UserId)
+		return
+	end
+
+	stopAllCoreAnimationsLocal(player)
+end
+
+function AnimationLibrary.stopCoreAnimation(player: Player, coreTrackName: CoreTrackNames, debugId: string?)
+	if IS_SERVER then
+		ANIMATION_REMOTE:FireAllClients(ACTION_STOP_CORE, player.UserId, coreTrackName)
+		return
+	end
+
+	stopCoreAnimationLocal(player, coreTrackName, debugId)
 end
 
 function AnimationLibrary.setCoreAnimation(player: Player, trackName: string, animation: string)
@@ -293,6 +356,10 @@ end
 -------------------------------------------------------------------------------
 
 function AnimationLibrary.init()
+	if IS_SERVER then
+		return
+	end
+
 	for _, p in pairs(PlayersUtil.getPlayersWithLoadedCharacters()) do
 		characterLoaded(p, p.Character, p.Character.Humanoid, p.Character.PrimaryPart)
 	end
@@ -308,6 +375,31 @@ function AnimationLibrary.init()
 	PlayersUtil.PlayerRemoving:Add(function(player: Player)
 		if AnimationTracks[player] then
 			unloadAnimationTracks(player)
+		end
+	end)
+
+	ANIMATION_REMOTE.OnClientEvent:Connect(function(action: string, userId: number, coreTrackName: CoreTrackNames?)
+		local player = getPlayerByUserId(userId)
+		if not player then
+			return
+		end
+
+		if action == ACTION_PLAY_CORE then
+			if coreTrackName then
+				playCoreAnimationLocal(player, coreTrackName)
+			end
+			return
+		end
+
+		if action == ACTION_STOP_CORE then
+			if coreTrackName then
+				stopCoreAnimationLocal(player, coreTrackName)
+			end
+			return
+		end
+
+		if action == ACTION_STOP_ALL_CORE then
+			stopAllCoreAnimationsLocal(player)
 		end
 	end)
 end
