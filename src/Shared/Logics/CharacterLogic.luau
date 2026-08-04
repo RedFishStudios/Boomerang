@@ -1,9 +1,5 @@
 local CharacterLogic = {}
 
-local ANIMATION_SPEEDS = table.freeze({
-	Root = 8,
-})
-
 --local PITCH_MIN = math.rad(-80)
 --local PITCH_MAX = math.rad(80)
 
@@ -63,21 +59,5 @@ end
 --function CharacterLogic.dequantizePitch(value: number): number
 --	return math.map(value, 0, 65535, PITCH_MIN, PITCH_MAX)
 --end
-
-function CharacterLogic.getRootYawCFrame(currentCFrame: CFrame, lookAt: Vector3): CFrame
-	local yawAngle = CharacterLogic.getYawFromLookAt(currentCFrame.Position, lookAt)
-	return CFrame.Angles(0, yawAngle, 0) + currentCFrame.Position
-end
-
-function CharacterLogic.stepRootYaw(currentCFrame: CFrame, lookAt: Vector3, deltaTime: number): CFrame
-	local target = CharacterLogic.getRootYawCFrame(currentCFrame, lookAt)
-	return currentCFrame:Lerp(target, deltaTime * ANIMATION_SPEEDS.Root)
-end
-
-function CharacterLogic.stepRootYawToAngle(currentCFrame: CFrame, yawAngle: number, deltaTime: number): CFrame
-	local _, currentYaw = currentCFrame:ToOrientation()
-	local nextYaw = CharacterLogic.lerpAngle(currentYaw, yawAngle, math.clamp(deltaTime * ANIMATION_SPEEDS.Root, 0, 1))
-	return CFrame.Angles(0, nextYaw, 0) + currentCFrame.Position
-end
 
 return CharacterLogic

@@ -1,3 +1,11 @@
+--[[
+
+animation system
+- Client is completely in control of locomotion animations
+- Client/server share custom animations
+
+]]
+
 local AnimationLibrary = {}
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

@@ -58,6 +58,10 @@ local function sendPlayerToSpawnPosition(player: Player, position: Vector3)
    local raycastResult = workspace:Raycast(fromPosition, Vector3.new(0, -100, 0), raycastParams)
    if raycastResult then
       local groundPosition = raycastResult.Position
+      if not player.Character then
+         warn(`player character never loaded to send to arena: {player}`)
+         return
+      end
       local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
       if humanoid then
          local hipHeight = humanoid.HipHeight

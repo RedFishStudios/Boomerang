@@ -18,7 +18,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 
-local ConnectionsList = require(ReplicatedStorage.Shared.Classes.ConnectionsList)
 local GlobalInstanceService = require(ServerStorage.Server.Services.GlobalInstanceService)
 local CharacterLogic = require(ReplicatedStorage.Shared.Logics.CharacterLogic)
 local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
@@ -26,7 +25,6 @@ local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local SimpleRemotesUtil = require(ReplicatedStorage.Shared.Networking.SimpleRemotesUtil)
 local BufferUtil = require(ReplicatedStorage.Shared.Utils.BufferUtil)
-local _PartUtil = require(ReplicatedStorage.Shared.Utils.PartUtil)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 
@@ -44,9 +42,6 @@ local REPLICATION_FLUSH_RATE = 1 / 12
 
 type CharacterAddedTask = (character: Model, player: Player) -> ()
 type CharacterRemovingTask = (character: Model, player: Player) -> ()
-type FacingConstraintState = {
-	Orientation: AlignOrientation,
-}
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
@@ -59,10 +54,7 @@ type SolverAngles = {
 
 local playersSolverTarget: { [Player]: SolverAngles } = {}
 local pendingSolverReplication: { [Player]: SolverAngles } = {}
-local playerFacingConstraints: { [Player]: FacingConstraintState } = {}
 local nextReplicationFlushAt = 0
-
-local playerConnections: { [Player]: ConnectionsList.ConnectionsList } = {}
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -80,66 +72,6 @@ local function onCharacterAdded(character: Model)
 end
 
 local function onCharacterRemoving(player: Player, character: Model)
-end
-
-local function getFacingConstraintState(player: Player, character: Model): FacingConstraintState?
-	local rootPart = character:FindFirstChild("HumanoidRootPart")
-	if not rootPart then
-		return nil
-	end
-
-	local rootAttachment = rootPart:FindFirstChild("RootAttachment")
-	if not rootAttachment or not rootAttachment:IsA("Attachment") then
-		return nil
-	end
-
-	local state = playerFacingConstraints[player]
-	if state and state.Orientation.Parent == rootPart then
-		return state
-	end
-
-	local orientation = rootPart:FindFirstChild("CharacterFacingOrientation")
-	if orientation and not orientation:IsA("AlignOrientation") then
-		orientation = nil
-	end
-	if not orientation then
-		orientation = Instance.new("AlignOrientation")
-		orientation.Name = "CharacterFacingOrientation"
-		orientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
-		orientation.Attachment0 = rootAttachment
-		orientation.RigidityEnabled = true
-		orientation.Enabled = true
-		orientation.Parent = rootPart
-	end
-
-	state = {
-		Orientation = orientation,
-	}
-	playerFacingConstraints[player] = state
-	return state
-end
-
-local function applyAuthoritativeFacing(deltaTime: number)
-	for player, solverAngles in playersSolverTarget do
-		local character = player.Character
-		if not character then
-			continue
-		end
-
-		local facingConstraintState = getFacingConstraintState(player, character)
-		if not facingConstraintState then
-			continue
-		end
-
-		local rootPart = character:FindFirstChild("HumanoidRootPart")
-		local humanoid = character:FindFirstChildOfClass("Humanoid")
-		if not rootPart or not humanoid or humanoid.SeatPart then
-			continue
-		end
-
-		local lookVector = CharacterLogic.getLookVectorFromYaw(solverAngles.Yaw)
-		facingConstraintState.Orientation.CFrame = CFrame.new(rootPart.Position, rootPart.Position + lookVector)
-	end
 end
 
 local function dispatchSchedule()
@@ -182,15 +114,12 @@ local function dispatchSchedule()
 	end)
 end
 
-local function onPostSimulation(deltaTime: number)
+local function onPostSimulation(_deltaTime: number)
 	local now = os.clock()
 	if now >= nextReplicationFlushAt then
 		nextReplicationFlushAt = now + REPLICATION_FLUSH_RATE
 		dispatchSchedule()
 	end
-
-	-- DO NOT TASK DEFER.
-	applyAuthoritativeFacing(deltaTime)
 end
 
 local function loadCharacterRemotes()
@@ -216,36 +145,34 @@ local function loadCharacterRemotes()
 	}, SimpleRemotesUtil.DecodeActionBuffer)
 end
 
-local function onCharacterLoaded(player: Player, character: Model, humanoid: Humanoid, rootPart: BasePart)
-	getFacingConstraintState(player, character)
+local function onCharacterLoaded(player: Player, character: Model, humanoid: Humanoid, _rootPart: BasePart)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+	humanoid.JumpHeight = 0
+	humanoid.JumpPower = 0
+	humanoid.AutoRotate = false
+	humanoid.WalkSpeed = GlobalConfig.DefaultWalkSpeed
 
-   humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
-   humanoid.JumpHeight = 0
-   humanoid.JumpPower = 0
-   humanoid.AutoRotate = false
-   humanoid.WalkSpeed = GlobalConfig.DefaultWalkSpeed
+	for _, d in pairs(character:GetDescendants()) do
+		if d:IsA("BasePart") or d:IsA("MeshPart") or d:IsA("Part") then
+			if d.Name:match("Hitbox") then
+				continue
+			end
+			d.CanCollide = false
+			d.CanTouch = false
+			d.CanQuery = false
+		end
+	end
 
-   for _, d in pairs(character:GetDescendants()) do
-      if d:IsA("BasePart") or d:IsA("MeshPart") or d:IsA("Part") then
-         if d.Name:match("Hitbox") then
-            continue
-         end
-         d.CanCollide = false
-         d.CanTouch = false
-         d.CanQuery = false
-      end
-   end
-
-   character.DescendantAdded:Connect(function(d)
-      if d:IsA("BasePart") or d:IsA("MeshPart") or d:IsA("Part") then
-         if d.Name:match("Hitbox") then
-            return
-         end
-         d.CanCollide = false
-         d.CanTouch = false
-         d.CanQuery = false
-      end
-   end)
+	character.DescendantAdded:Connect(function(d)
+		if d:IsA("BasePart") or d:IsA("MeshPart") or d:IsA("Part") then
+			if d.Name:match("Hitbox") then
+				return
+			end
+			d.CanCollide = false
+			d.CanTouch = false
+			d.CanQuery = false
+		end
+	end)
 end
 
 -------------------------------------------------------------------------------
@@ -259,41 +186,33 @@ end
 function CharacterService.init()
 	loadCharacterRemotes()
 
-   for _, p in pairs(game.Players:GetPlayers()) do
-      if p.Character then
-         onCharacterAdded(p.Character)
+	for _, p in pairs(game.Players:GetPlayers()) do
+		if p.Character then
+			onCharacterAdded(p.Character)
 
-         local rootPart = p.Character:FindFirstChild("HumanoidRootPart")
-         local humanoid = p.Character:FindFirstChildOfClass("Humanoid")
-         if humanoid and rootPart then
-            onCharacterLoaded(p, p.Character, humanoid, rootPart)
-         end
-      end
-   end
+			local rootPart = p.Character:FindFirstChild("HumanoidRootPart")
+			local humanoid = p.Character:FindFirstChildOfClass("Humanoid")
+			if humanoid and rootPart and rootPart:IsA("BasePart") then
+				onCharacterLoaded(p, p.Character, humanoid, rootPart)
+			end
+		end
+	end
 
-   PlayersUtil.CharacterAdded:Add(function(addedPlayer: Player, character: Model)
+	PlayersUtil.CharacterAdded:Add(function(addedPlayer: Player, character: Model)
 		onCharacterAdded(character)
 	end)
 
-   PlayersUtil.CharacterLoaded:Add(onCharacterLoaded)
+	PlayersUtil.CharacterLoaded:Add(onCharacterLoaded)
 
-   PlayersUtil.CharacterDestroying:Add(function(destroyingPlayer: Player, character: Model)
+	PlayersUtil.CharacterDestroying:Add(function(destroyingPlayer: Player, character: Model)
 		playersSolverTarget[destroyingPlayer] = nil
-		playerFacingConstraints[destroyingPlayer] = nil
+		pendingSolverReplication[destroyingPlayer] = nil
 		onCharacterRemoving(destroyingPlayer, character)
 	end)
 
 	Players.PlayerRemoving:Connect(function(player)
 		playersSolverTarget[player] = nil
 		pendingSolverReplication[player] = nil
-		playerFacingConstraints[player] = nil
-
-		local playerConnectionList = playerConnections[player]
-		if playerConnectionList then
-			playerConnectionList:Destroy()
-		end
-
-		playerConnections[player] = nil
 	end)
 
 	RunService.PostSimulation:Connect(onPostSimulation)
