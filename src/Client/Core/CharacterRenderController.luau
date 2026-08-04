@@ -25,6 +25,15 @@ local creatingCharacterModels: {[Player]: true} = {}
 local lastCreationLoadFailure: {[Player]: number} = {}
 local characterPositionOffsets: {[Player]: Vector3} = {}
 local characterDescendantConnections: {[Player]: RBXScriptConnection} = {}
+local animationSyncConnections: {[Player]: RBXScriptConnection} = {}
+
+-- // [authoritativeAnimationId]: [customCharacterAnimationTrack]
+--    The authoritative model is used as the reference point for animations and animations are synced to that authoritative model
+local syncedAnimationTracks: {
+   [Player]: {
+      [string]: AnimationTrack
+   }
+} = {}
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -35,6 +44,73 @@ CharacterRenderController.CustomCharacterLoaded = TasksList.new() :: TasksList.T
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
+
+local function extractAnimations(player: Player, customCharacter: Model)
+   local animateScript = nil
+   local elapsed = 0
+   repeat
+      for _, c in pairs(customCharacter:GetChildren()) do
+         if c:IsA("LocalScript") and c.Name == "Animate" then
+            animateScript = c
+            break
+         end
+      end
+      elapsed += RunService.RenderStepped:Wait()
+   until animateScript or elapsed > 12
+   if not animateScript then
+      warn(`AnimationController: Failed to find Animate script for custom character of player {player.Name}`)
+      return
+   end
+
+   local authorityHumanoid = player.Character:WaitForChild("Humanoid", 3)
+   if not authorityHumanoid then
+      warn(`AnimationController: Failed to find Humanoid for authoritative character of player {player.Name}`)
+      return
+   end
+
+   local authorityAnimator = authorityHumanoid:WaitForChild("Animator", 3)
+   if not authorityAnimator then
+      warn(`AnimationController: Failed to find Animator for authoritative character of player {player.Name}`)
+      return
+   end
+
+   local customHumanoid = customCharacter:WaitForChild("Humanoid", 3)
+   if not customHumanoid then
+      warn(`AnimationController: Failed to find Humanoid for custom character of player {player.Name}`)
+      return
+   end
+
+   local customAnimator = customHumanoid:WaitForChild("Animator", 3)
+   if not customAnimator then
+      warn(`AnimationController: Failed to find Animator for custom character of player {player.Name}`)
+      return 
+   end
+
+   local function findMatchingDescendant(descendantName: string, parentName: string): Instance?
+      for _, d in pairs(player.Character:GetDescendants()) do
+         if d.Name == descendantName and d.Parent and d.Parent.Name == parentName then
+            return d
+         end
+      end
+      return nil
+   end
+
+   syncedAnimationTracks[player] = {}
+
+   for _, c in pairs(animateScript:GetDescendants()) do
+      if c:IsA("Animation") then
+         local animationName = c.Name
+         local animationParentName = c.Parent and c.Parent.Name or "nil"
+         local matchingDescendant = findMatchingDescendant(animationName, animationParentName)
+         if matchingDescendant and matchingDescendant:IsA("Animation") then
+            local track = customAnimator:LoadAnimation(c)
+            syncedAnimationTracks[player][matchingDescendant.AnimationId] = track
+         else
+            warn(`AnimationController: Failed to find matching animation for {animationName} under {animationParentName} for player {player.Name}`)
+         end
+      end
+   end
+end
 
 local function setAuthoritativeCharacterTransparency(player: Player, transparency: number)
    if not player.Character then
@@ -100,33 +176,79 @@ local function createCharacterModel(player: Player)
 	localCharacterModels[player] = model
    creatingCharacterModels[player] = nil
 
+   extractAnimations(player, model)
+
    CharacterRenderController.CustomCharacterLoaded:Execute("parallel", player, model)
+
+   local authorityHumanoid = player.Character:FindFirstChild("Humanoid")
+
+   local function sync()
+      local playingTracks = authorityHumanoid:GetPlayingAnimationTracks()
+         local syncedTracks = syncedAnimationTracks[player]
+         if not syncedTracks then
+             warn(`No synced animation tracks for player {player.Name}`)
+            return
+         end
+
+         -- // Sync any playing track to the custom character if not already playing
+         for _, track in pairs(playingTracks) do
+            local syncedTrack = syncedTracks[track.Animation.AnimationId]
+            if syncedTrack and not syncedTrack.IsPlaying then
+               syncedTrack:Play()
+            end
+         end
+
+         for mappedAnimationId, track in pairs(syncedTracks) do
+            if not track.IsPlaying then
+               continue
+            end
+            local isPlaying = false
+            for _, playingTrack in pairs(playingTracks) do
+               if playingTrack.Animation.AnimationId == mappedAnimationId then
+                  print(`it is playing on the authority model`)
+                  isPlaying = true
+                  break
+               end
+            end
+            if not isPlaying and track.IsPlaying then
+               track:Stop()
+           end
+      end
+   end
+
+   if animationSyncConnections[player] then
+      animationSyncConnections[player]:Disconnect()
+      animationSyncConnections[player] = nil
+   end
+   animationSyncConnections[player] = game.RunService.Stepped:Connect(sync)
 
 	return model
 end
 
--- // Sync fabricated character model to authoritative model position and rotation
-local function syncCharacterPosition(character, targetModel)
-	local targetCF, targetSize = targetModel:GetBoundingBox()
-	local charCF, charSize = character:GetBoundingBox()
+-- // Sync fabricated character model to the authoritative character root without inheriting animation bob
+local function syncCharacterPositions(character, targetModel)
+   local targetRoot = targetModel:FindFirstChild("HumanoidRootPart")
+   if not targetRoot or not targetRoot:IsA("BasePart") then
+      return
+   end
 
-	local targetBottomY = targetCF.Position.Y - targetSize.Y / 2
-	local charBottomY = charCF.Position.Y - charSize.Y / 2
+   local renderedRoot = character:FindFirstChild("HumanoidRootPart")
+   if not renderedRoot or not renderedRoot:IsA("BasePart") then
+      return
+   end
 
-	local offsetY = targetBottomY - charBottomY
+   local rootOffset = characterPositionOffsets[character]
+   if not rootOffset then
+      local pivot = character:GetPivot()
+      rootOffset = pivot:PointToObjectSpace(renderedRoot.Position)
+      characterPositionOffsets[character] = rootOffset
+   end
 
-	local pivot = character:GetPivot()
-
-	local newPosition = Vector3.new(
-		targetCF.Position.X,
-		pivot.Position.Y + offsetY,
-		targetCF.Position.Z
-	)
+   local pivot = character:GetPivot()
    local currentRotation = pivot - pivot.Position
+   local adjustedPosition = targetRoot.Position - currentRotation:VectorToWorldSpace(rootOffset) - Vector3.new(0, .5, 0)
 
-	character:PivotTo(
-      currentRotation + newPosition
-	)
+   character:PivotTo(currentRotation + adjustedPosition)
 end
 
 -- // Retrieve fabricated character model, creating it if necessary
@@ -173,7 +295,7 @@ local function everyFrame(deltaTime)
          model.Parent = CharactersFolder
       end
       setAuthoritativeCharacterTransparency(p, 1)
-      syncCharacterPosition(model, p.Character)
+         syncCharacterPositions(model, p.Character)
    end
 end
 
@@ -201,6 +323,17 @@ function CharacterRenderController.init()
       if characterDescendantConnections[player] then
          characterDescendantConnections[player]:Disconnect()
          characterDescendantConnections[player] = nil
+      end
+      if animationSyncConnections[player] then
+         animationSyncConnections[player]:Disconnect()
+         animationSyncConnections[player] = nil
+      end
+      if syncedAnimationTracks[player] then
+         for _, track in pairs(syncedAnimationTracks[player]) do
+            track:Destroy()
+         end
+         table.clear(syncedAnimationTracks[player])
+         syncedAnimationTracks[player] = nil
       end
    end)
 
