@@ -4,6 +4,8 @@ local localPlayer = game.Players.LocalPlayer
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 
+local CharacterRenderController = require(game.ReplicatedStorage.Client.Core.CharacterRenderController)
+
 ----------------------------------------------------------------------------------------------------------------------------------
 -- Local variables
 ----------------------------------------------------------------------------------------------------------------------------------
@@ -95,7 +97,7 @@ local function getEquippedTool(player: Player): Model?
 		return equippedTool
 	end
 
-	local character = player.Character
+	local character = CharacterRenderController.getCharacterModel(player, false)
 	if not character then
 		return nil
 	end
@@ -174,13 +176,13 @@ function ToolController.equipTool(player: Player, toolName: string)
    end
 
    PendingEquips[player] = true
-   local character = player.Character
+   local character = CharacterRenderController.getCharacterModel(player, true)
 	if not character then
 		local elapsed = 0
       repeat
          elapsed += RunService.RenderStepped:Wait()
-      until player.Character or elapsed > 20 or not PendingEquips[player]
-      character = player.Character
+      until CharacterRenderController.getCharacterModel(player, false) or elapsed > 20 or not PendingEquips[player]
+      character = CharacterRenderController.getCharacterModel(player, false)
 
       if not character or not PendingEquips[player] then
          PendingEquips[player] = nil
@@ -269,10 +271,10 @@ function ToolController.finishToolThrow(player: Player)
 		return
 	end
 	removeWeaponWeld(detachedTool)
-	if attachToolModelToCharacter(player, player.Character, detachedTool) then
+	if attachToolModelToCharacter(player, CharacterRenderController.getCharacterModel(player, false), detachedTool) then
 		DetachedTools[player] = nil
 		EquippedTools[player] = detachedTool
-		EquippedToolCharacters[player] = player.Character
+		EquippedToolCharacters[player] = CharacterRenderController.getCharacterModel(player, false)
 		DetachedToolCharacters[player] = nil
 	else
 		detachedTool:Destroy()
