@@ -7,6 +7,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
+local localPlayer = game.Players.LocalPlayer
+
 local BufferUtil = require(ReplicatedStorage.Shared.Utils.BufferUtil)
 local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
@@ -22,6 +24,7 @@ local AnimationLibrary = require(ReplicatedStorage.Shared.Library.AnimationLibra
 local ToolController = require(ReplicatedStorage.Client.Core.ToolController)
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 local PlatformController = require(ReplicatedStorage.Client.Core.PlatformController)
+local CharacterRenderController = require(ReplicatedStorage.Client.Core.CharacterRenderController)
 
 local ToolLogics = ReplicatedStorage.Shared.Logics.WeaponLogics
 local ToolLogicModules = {}
@@ -180,7 +183,7 @@ local function beginClassicBoomerangAim(): boolean
 
 	aimEvent:FireServer(CLASSIC_BOOMERANG_TOOL_ID)
 	setLocalAimState(true)
-   local localCharacter = Players.LocalPlayer.Character
+   local localCharacter = CharacterRenderController.getCharacterModel(localPlayer, true)
    if localCharacter and localCharacter:FindFirstChildOfClass("Humanoid") then
       AnimationLibrary.playCoreAnimation(Players.LocalPlayer, "Charging")
       localCharacter.Humanoid.WalkSpeed = GlobalConfig.AimingWalkSpeed
@@ -194,7 +197,7 @@ local function throwClassicBoomerang(): boolean
       return false
    end
 
-	local localCharacter = Players.LocalPlayer.Character
+	local localCharacter = CharacterRenderController.getCharacterModel(localPlayer, true)
 	local pendingHost, releasePosition = ToolController.prepareToolForThrow(Players.LocalPlayer)
 
 	 local throwOrigin = releasePosition
@@ -417,7 +420,7 @@ local function renderAimArrows()
 end
 
 local function spawnAimArrows(player: Player)
-   local character = player.Character
+   local character = CharacterRenderController.getCharacterModel(localPlayer, true)
    if not character then
       return
    end
