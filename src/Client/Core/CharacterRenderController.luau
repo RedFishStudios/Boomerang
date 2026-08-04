@@ -24,6 +24,7 @@ local CharactersFolder = game.Workspace.Characters
 local localCharacterModels: {[Player]: Model} = {}
 local creatingCharacterModels: {[Player]: true} = {}
 local characterPositionOffsets: {[Player]: Vector3} = {}
+local characterDescendantConnections: {[Player]: RBXScriptConnection} = {}
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -57,13 +58,18 @@ local function createCharacterModel(player: Player)
 		return
 	end
 
-   for _, d in pairs(model:GetDescendants()) do
-      if d:IsA("BasePart") or d:IsA("MeshPart") then
-         d.CanCollide = false
-         d.CanQuery = false
-         d.CanTouch = false
+   task.spawn(function()
+      repeat
+         task.wait()
+         for _, d in pairs(model:GetDescendants()) do
+         if d:IsA("BasePart") or d:IsA("MeshPart") or d:IsA("Part") then
+            d.CanCollide = false
+            d.CanQuery = false
+            d.CanTouch = false
+         end
       end
-   end
+      until not player.Parent
+   end)
 
 	model.Name = `{userId}_LocalModel`
 	model.Parent = CharactersFolder
@@ -71,6 +77,28 @@ local function createCharacterModel(player: Player)
    creatingCharacterModels[player] = nil
 
 	return model
+end
+
+local function placeCharacterOnTarget(character, targetModel)
+	local targetCF, targetSize = targetModel:GetBoundingBox()
+	local charCF, charSize = character:GetBoundingBox()
+
+	local targetBottomY = targetCF.Position.Y - targetSize.Y / 2
+	local charBottomY = charCF.Position.Y - charSize.Y / 2
+
+	local offsetY = targetBottomY - charBottomY
+
+	local pivot = character:GetPivot()
+
+	local newPosition = Vector3.new(
+		targetCF.Position.X,
+		pivot.Position.Y + offsetY,
+		targetCF.Position.Z
+	)
+
+	character:PivotTo(
+		CFrame.new(newPosition) * targetCF.Rotation
+	)
 end
 
 local function getCharacterModel(player: Player, canYield: boolean?): Model?
@@ -110,7 +138,7 @@ local function everyFrame(deltaTime)
       if model.Parent ~= CharactersFolder then
          model.Parent = CharactersFolder
       end
-      local referencePivot = p.Character:GetPivot()
+      --[[local referencePivot = p.Character:GetPivot()
       local raycastParams = RaycastParams.new()
       raycastParams.FilterType = Enum.RaycastFilterType.Exclude
       raycastParams.FilterDescendantsInstances = { model, p.Character }
@@ -130,7 +158,8 @@ local function everyFrame(deltaTime)
          end
       end
 
-      model:PivotTo(referencePivot + offset)
+      model:PivotTo(referencePivot + offset)]]
+      placeCharacterOnTarget(model, p.Character)
    end
 end
 
@@ -164,6 +193,10 @@ function CharacterRenderController.init()
       localCharacterModels[player] = nil
       creatingCharacterModels[player] = nil
       characterPositionOffsets[player] = nil
+      if characterDescendantConnections[player] then
+         characterDescendantConnections[player]:Disconnect()
+         characterDescendantConnections[player] = nil
+      end
    end)
 
    RunService.RenderStepped:Connect(everyFrame)

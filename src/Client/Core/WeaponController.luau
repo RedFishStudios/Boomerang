@@ -365,7 +365,7 @@ local function renderAimArrows()
          return
       end
       for p, arrows in pairs(aimArrows) do
-         local character = p.Character
+         local character = CharacterRenderController.getCharacterModel(p, false)
          if not character then
             destroyAimArrows(p)
             continue
