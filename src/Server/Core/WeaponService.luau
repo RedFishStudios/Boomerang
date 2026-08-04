@@ -26,7 +26,6 @@ local ArenaService = require(ServerStorage.Server.Core.ArenaService)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local AnimationService = require(ServerStorage.Server.Core.AnimationService)
-local AnimationLibrary = require(ReplicatedStorage.Shared.Library.AnimationLibrary)
 local CharacterService = require(ServerStorage.Server.Core.CharacterService)
 local HitboxService = require(ServerStorage.Server.Core.HitboxService)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
@@ -213,7 +212,7 @@ function WeaponService.init()
 
       aimStateEvent:FireAllClients(player.UserId, true)
 
-      AnimationLibrary.playCoreAnimation(player, "Charging")
+      -- Client-only animation replication will handle this later.
    end)
 
    -- // Throw boomerang
@@ -237,7 +236,7 @@ function WeaponService.init()
       end
       aimStateEvent:FireAllClients(player.UserId, false)
       
-      AnimationLibrary.playCoreAnimation(player, "Throw")
+      -- Client-only animation replication will handle this later.
 
       local canThrow, reason = WeaponLibrary.canThrow(player, toolId)
       if not canThrow then
@@ -412,9 +411,6 @@ function WeaponService.init()
          if character and character:FindFirstChild("Humanoid") then
             character.Humanoid.WalkSpeed = GlobalConfig.DefaultWalkSpeed
          end
-      end
-      for _, p in pairs(game.Players:GetPlayers()) do
-         AnimationLibrary.stopAllCoreAnimations(p)
       end
    end)
 end

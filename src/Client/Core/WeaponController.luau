@@ -20,7 +20,7 @@ local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local RaycastsUtility = require(ReplicatedStorage.Shared.Utils.RaycastsUtility)
 local CharacterController = require(ReplicatedStorage.Client.Core.CharacterController)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
-local AnimationLibrary = require(ReplicatedStorage.Shared.Library.AnimationLibrary)
+local AnimationController = require(ReplicatedStorage.Client.Core.AnimationController)
 local ToolController = require(ReplicatedStorage.Client.Core.ToolController)
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 local PlatformController = require(ReplicatedStorage.Client.Core.PlatformController)
@@ -146,7 +146,7 @@ local function setLocalAimState(nextState: boolean)
    isAiming = nextState
 
    if not nextState then
-      AnimationLibrary.stopCoreAnimation(Players.LocalPlayer, "Charging")
+      AnimationController.stopCoreAnimation(Players.LocalPlayer, "Charging")
    end
 
    syncWeaponStateChanged()
@@ -185,7 +185,7 @@ local function beginClassicBoomerangAim(): boolean
 	setLocalAimState(true)
    local localCharacter = CharacterRenderController.getCharacterModel(localPlayer, true)
    if localCharacter and localCharacter:FindFirstChildOfClass("Humanoid") then
-      AnimationLibrary.playCoreAnimation(Players.LocalPlayer, "Charging")
+      AnimationController.playCoreAnimation(Players.LocalPlayer, "Charging")
       localCharacter.Humanoid.WalkSpeed = GlobalConfig.AimingWalkSpeed
    end
 
@@ -242,7 +242,7 @@ local function throwClassicBoomerang(): boolean
 
     
 	throwFunction:InvokeServer(CLASSIC_BOOMERANG_TOOL_ID, direction, releasePosition)
-	AnimationLibrary.playCoreAnimation(Players.LocalPlayer, "Throw")
+   AnimationController.playCoreAnimation(Players.LocalPlayer, "Throw")
    setLocalAimState(false)
 
    return true
@@ -605,7 +605,7 @@ function WeaponController.init()
    gameStateData.IsInRound:Subscribe(function(newValue: boolean)
       if not newValue then
          setLocalAimState(false)
-         AnimationLibrary.stopAllCoreAnimations(Players.LocalPlayer)
+         AnimationController.stopAllCoreAnimations(Players.LocalPlayer)
       end
    end)
 

@@ -15,12 +15,13 @@ local RaycastsUtility = require(ReplicatedStorage.Shared.Utils.RaycastsUtility)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
 local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
-local AnimationLibrary = require(ReplicatedStorage.Shared.Library.AnimationLibrary)
 local SoundLibrary = require(ReplicatedStorage.Shared.Library.SoundLibrary)
 local ParticlesLibrary = require(ReplicatedStorage.Shared.Library.ParticlesLibrary)
 local Sounds = require(ReplicatedStorage.Shared.Constants.Sounds)
 local HitboxLibrary = require(ReplicatedStorage.Shared.Library.HitboxLibrary)
 local HttpService = game:GetService("HttpService")
+
+local AnimationController
 
 -- // Context-Specific Modules
 local CombatService, WeaponService, ToolController
@@ -29,6 +30,7 @@ if isServer then
    WeaponService = require(game.ServerStorage.Server.Core.WeaponService)
 else
    ToolController = require(ReplicatedStorage.Client.Core.ToolController)
+	AnimationController = require(ReplicatedStorage.Client.Core.AnimationController)
 end
 
 -- // Values
@@ -548,7 +550,9 @@ end
 function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapons.Data)
    local shouldReattachLocally = (not isServer) and thrownWeaponData.ReuseEquippedHost == true
 
-   AnimationLibrary.playCoreAnimation(player, "Catch")
+   if AnimationController then
+      AnimationController.playCoreAnimation(player, "Catch")
+   end
 
    if thrownWeaponData.Host then
       if not (thrownWeaponData.ReuseEquippedHost and not isServer) then

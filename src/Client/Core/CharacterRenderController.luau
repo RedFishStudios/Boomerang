@@ -205,7 +205,6 @@ local function createCharacterModel(player: Player)
             local isPlaying = false
             for _, playingTrack in pairs(playingTracks) do
                if playingTrack.Animation.AnimationId == mappedAnimationId then
-                  print(`it is playing on the authority model`)
                   isPlaying = true
                   break
                end

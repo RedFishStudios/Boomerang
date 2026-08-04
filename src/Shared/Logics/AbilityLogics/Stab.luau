@@ -9,7 +9,6 @@ local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibra
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
-local AnimationLibrary = require(ReplicatedStorage.Shared.Library.AnimationLibrary)
 local SoundLibrary = require(ReplicatedStorage.Shared.Library.SoundLibrary)
 local Sounds = require(ReplicatedStorage.Shared.Constants.Sounds)
 local HitboxLibrary = require(ReplicatedStorage.Shared.Library.HitboxLibrary)
@@ -44,12 +43,14 @@ local HITBOX_VISUALIZER_COLOR = Color3.new(0.164706, 0.960784, 0.007843)
 local HITBOX_CHECK_INTERVAL = 1 / 20
 
 local isServer = RunService:IsServer()
+local AnimationController
 local WeaponController
 local WeaponService
 if isServer then
    WeaponService = require(game.ServerStorage.Server.Core.WeaponService)
    CombatService = require(game.ServerStorage.Server.Core.CombatService)
 else
+   AnimationController = require(ReplicatedStorage.Client.Core.AnimationController)
    WeaponController = require(ReplicatedStorage.Client.Core.WeaponController)
    CameraController = require(ReplicatedStorage.Client.Core.CustomCameraController)
 end
@@ -444,7 +445,9 @@ function Stab.activate(player: Player)
    local runId = previousRunId + 1
    local shouldShowVisualizer = isServer and GlobalConfig.ParryVisualizersEnabled
 
-   AnimationLibrary.playCoreAnimation(player, "Stab")
+   if AnimationController then
+      AnimationController.playCoreAnimation(player, "Stab")
+   end
    -- TODO: Stab sound
 
    local overlapParams = OverlapParams.new()

@@ -14,18 +14,19 @@ local Gamemodes = require(ReplicatedStorage.Shared.Constants.Gamemodes)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local ParticlesLibrary = require(ReplicatedStorage.Shared.Library.ParticlesLibrary)
 local HitboxLibrary = require(ReplicatedStorage.Shared.Library.HitboxLibrary)
-local AnimationLibrary = require(ReplicatedStorage.Shared.Library.AnimationLibrary)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 
 local PlayDash = SimpleRemotes.getEvent("PlayDash")
 
 local isServer = RunService:IsServer()
+local AnimationController
 local WeaponController
 local WeaponService
 
 if isServer then
    WeaponService = require(game.ServerStorage.Server.Core.WeaponService)
 else
+   AnimationController = require(ReplicatedStorage.Client.Core.AnimationController)
    WeaponController = require(ReplicatedStorage.Client.Core.WeaponController)
 end
 
@@ -53,7 +54,9 @@ local function stopDash(player: Player, character: Model)
       activeDashConnections[character] = nil
    end
    HitboxLibrary.unImmunize(player, "Dash", 0)
-   AnimationLibrary.stopCoreAnimation(player, "Dash")
+	if AnimationController then
+		AnimationController.stopCoreAnimation(player, "Dash")
+	end
 end
 
 local function isPlayerAiming(player: Player): boolean
@@ -150,7 +153,9 @@ function Dash.activate(player: Player, _timestamp: number?)
    stopDash(player, character)
 
    cooldowns[player] = os.clock() + DASH_COOLDOWN_SECONDS
-   AnimationLibrary.playCoreAnimation(player, "Dash")
+   if AnimationController then
+      AnimationController.playCoreAnimation(player, "Dash")
+   end
 
    local dashEndsAt = os.clock() + DASH_DURATION_SECONDS
 

@@ -4,7 +4,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Animations = require(ReplicatedStorage.Shared.Constants.Animations)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
-local AnimationLibrary = require(ReplicatedStorage.Shared.Library.AnimationLibrary)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
