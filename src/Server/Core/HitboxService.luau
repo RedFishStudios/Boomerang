@@ -74,15 +74,17 @@ local function onCharacterLoaded(player: Player, character: Model, humanoid: Hum
    end
 
    local hitbox = Instance.new("Part")
-   hitbox.Size = Vector3.new(2.2, 2.2, 2.2)
+   hitbox.Size = Vector3.new(4, 2.2, 4)
+   hitbox.Shape = Enum.PartType.Cylinder
    hitbox.CustomPhysicalProperties = PhysicalProperties.new(.1, .1, .1, .1, .1)
    hitbox.Anchored = false
-   hitbox.CFrame = rootPart.CFrame
+   -- multiply the pivot to angle by 90 degrees so that the cylinder is oriented correctly (vertically)
+   hitbox:PivotTo(rootPart.CFrame * CFrame.Angles(0, 0, math.rad(90)))
    hitbox.Parent = character
    hitbox.CanCollide = false
    hitbox.CanTouch = true
    hitbox.CanQuery = true
-   hitbox.Transparency = 0
+   hitbox.Transparency = 1
    hitbox.Color = Color3.new(1, 0, 0)
    hitbox.Name = "Hitbox"
    hitbox.CollisionGroup = HITBOX_COLLISION_GROUP
