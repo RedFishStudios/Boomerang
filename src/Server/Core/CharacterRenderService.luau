@@ -1,6 +1,6 @@
 -- // Manages replication states of player characters
 
-local CharacterReplicationService = {}
+local CharacterRenderService = {}
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -28,12 +28,12 @@ local unreliableEvent = SimpleRemotes.getUnreliableEvent("CharacterReplication")
 -- CORE FUNCTIONS
 -------------------------------------------------------------------------------
 
-function CharacterReplicationService.init()
+function CharacterRenderService.init()
 end
 
-function CharacterReplicationService.start()
+function CharacterRenderService.start()
 end
 
-function CharacterReplicationService.test() end
+function CharacterRenderService.test() end
 
-return CharacterReplicationService
+return CharacterRenderService

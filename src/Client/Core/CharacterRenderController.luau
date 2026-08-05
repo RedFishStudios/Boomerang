@@ -78,17 +78,28 @@ local function clear(player: Player)
    characterDeathConnections[player] = nil
 end
 
+local ragdollCollisionEnabledNames = {"LeftHand", "Left Arm", "UpperTorso", "RightHand", "Right Arm", "LeftFoot", "Left Leg", "RightFoot", "Right Leg", "Head"}
+
 local function applyRagdoll(player: Player, model: Model)
    ragdollApplied[player] = true
    model.Humanoid.PlatformStand = true
-   model.PrimaryPart.CanCollide = true
-	for index,joint in pairs(model:GetDescendants()) do
-		if joint:IsA("AnimationConstraint") then
-			joint:Destroy()
-		elseif joint:IsA("BasePart") or joint:IsA("MeshPart") then
-         joint.Anchored = false
-      end
-	end
+   task.spawn(function()
+      repeat
+         RunService.Stepped:Wait()
+        	for index, descendant in pairs(model:GetDescendants()) do
+            if descendant:IsA("AnimationConstraint") then
+               descendant:Destroy()
+            elseif descendant:IsA("BasePart") or descendant:IsA("MeshPart") then
+               descendant.Anchored = false
+               if table.find(ragdollCollisionEnabledNames, descendant.Name) then
+                  descendant.CanCollide = true
+               else
+                  descendant.CanCollide = false
+               end
+            end
+         end
+      until not model.Parent
+   end)
 end
 
 local function extractAnimations(player: Player, customCharacter: Model)
@@ -232,9 +243,6 @@ local function createCharacterModel(player: Player)
          end
          for _, d in pairs(player.Character:GetDescendants()) do
             if d:IsA("BasePart") or d:IsA("MeshPart") or d:IsA("Part") then
-               d.CanCollide = false
-               d.CanQuery = false
-               d.CanTouch = false
                d.CollisionGroup = CollisionGroupConstants.Players
             end
          end

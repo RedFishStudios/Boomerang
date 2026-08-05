@@ -38,6 +38,7 @@ local HitboxLibrary = require(ReplicatedStorage.Shared.Library.HitboxLibrary)
 -------------------------------------------------------------------------------
 
 local hitboxes: {[Player]: Part} = {}
+local characterDescendantAddedConnections: {[Player]: RBXScriptConnection} = {}
 
 local HITBOX_COLLISION_GROUP = CollisionGroupConstants.Players
 
@@ -50,6 +51,23 @@ local HITBOX_COLLISION_GROUP = CollisionGroupConstants.Players
 -------------------------------------------------------------------------------
 
 local function onCharacterLoaded(player: Player, character: Model, humanoid: Humanoid, rootPart: BasePart)
+   if characterDescendantAddedConnections[player] then
+      characterDescendantAddedConnections[player]:Disconnect()
+      characterDescendantAddedConnections[player] = nil
+   end
+
+   for _, descendant in pairs(character:GetDescendants()) do
+      if descendant:IsA("BasePart") then
+         descendant.CollisionGroup = HITBOX_COLLISION_GROUP
+      end
+   end
+
+   characterDescendantAddedConnections[player] = character.DescendantAdded:Connect(function(descendant)
+      if descendant:IsA("BasePart") then
+         descendant.CollisionGroup = HITBOX_COLLISION_GROUP
+      end
+   end)
+
    if hitboxes[player] then
       hitboxes[player]:Destroy()
       hitboxes[player] = nil
@@ -108,6 +126,11 @@ function HitboxService.init()
    PlayersUtil.CharacterLoaded:Add(onCharacterLoaded)
 
    PlayersUtil.CharacterDestroying:Add(function(player: Player, character: Model)
+		if characterDescendantAddedConnections[player] then
+			characterDescendantAddedConnections[player]:Disconnect()
+			characterDescendantAddedConnections[player] = nil
+		end
+
 		if hitboxes[player] then
          hitboxes[player]:Destroy()
          hitboxes[player] = nil
@@ -115,6 +138,11 @@ function HitboxService.init()
 	end)
 
    PlayersUtil.PlayerRemoving:Add(function(player: Player)
+      if characterDescendantAddedConnections[player] then
+         characterDescendantAddedConnections[player]:Disconnect()
+         characterDescendantAddedConnections[player] = nil
+      end
+
       if hitboxes[player] then
          hitboxes[player]:Destroy()
          hitboxes[player] = nil
