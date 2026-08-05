@@ -123,7 +123,7 @@ local function getAllSubjectsBoundingBox()
             table.insert(sizes, player.Character.PrimaryPart.Size)
          end
       end
-      for _, weapon in ipairs(thrownWeaponsFolder:GetChildren()) do
+      --[[for _, weapon in ipairs(thrownWeaponsFolder:GetChildren()) do
          if ToolController.isHolstered(weapon) then
             continue
          end
@@ -143,7 +143,7 @@ local function getAllSubjectsBoundingBox()
                table.insert(sizes, handle.Size)
             end
          end
-      end
+      end]]
    end
 
    if #positions == 0 then
