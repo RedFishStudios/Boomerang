@@ -175,7 +175,6 @@ local function setAuthoritativeCharacterTransparency(player: Player, transparenc
    if not player.Character then
       return
    end
-   transparency = .5
    for _, d in pairs(player.Character:GetDescendants()) do
       if d:IsA("MeshPart") or d:IsA("BasePart") or d:IsA("Part") then
          if d.Name:match("Hitbox") then

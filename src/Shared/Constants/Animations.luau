@@ -49,7 +49,7 @@ local Animations: {
       Id = 126005747148454,
       Layer = "Ability",
       FadeIn = .05,
-      FadeOut = 0,
+      FadeOut = .1,
       Looping = false
    }
 }

@@ -30,21 +30,33 @@ local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 
 export type CoreTrackNames = "Charging" | "Throw" | "Catch" | "Stab" | "Dash"
 
+type TrackEntry = {
+   Track: AnimationTrack,
+   LoadedAnimationKey: string,
+   AnimationObject: Animation,
+   Layer: string,
+}
+
 type PlayerTracks = {
-   [CoreTrackNames | string]: {
-      Track: AnimationTrack,
-      LoadedAnimationKey: string,
-      AnimationObject: Animation,
-      Layer: string,
-   },
+   [CoreTrackNames | string]: TrackEntry,
+}
+
+type PlayerTrackData = {
+   Tracks: PlayerTracks,
+   Character: Model,
+   Animator: Animator,
 }
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
 -------------------------------------------------------------------------------
 
-local AnimationTracks: { [Player]: PlayerTracks } = {}
-local creatingAnimationTracks: { [Player]: true } = {}
+local creatingTrackData: { [Player]: true } = {}
+local playerTrackData: {
+   [Player]: PlayerTrackData
+} = {}
+
+local DefaultCoreTrackNames: { CoreTrackNames } = { "Charging", "Throw", "Catch", "Stab", "Dash" }
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -66,9 +78,23 @@ local function destroyTrackEntry(entry: { Track: AnimationTrack, AnimationObject
    if entry.AnimationObject.Parent then
       entry.AnimationObject:Destroy()
    end
+
+   table.clear(entry)
 end
 
-local function createTrackEntry(animator: Animator, trackName: string, animationName: string)
+local function getPlayerData(player: Player): PlayerTrackData?
+   return playerTrackData[player]
+end
+
+local function getPlayerTracks(player: Player): PlayerTracks?
+   local data = getPlayerData(player)
+   if not data then
+      return nil
+   end
+   return data.Tracks
+end
+
+local function createTrackEntry(animator: Animator, trackName: string, animationName: string): TrackEntry?
    local animationData = Animations[animationName]
    if not animationData then
       return nil
@@ -92,47 +118,31 @@ local function createTrackEntry(animator: Animator, trackName: string, animation
    }
 end
 
-local function unloadAnimationTracks(player: Player)
-   local tracks = AnimationTracks[player]
+local function clear(player: Player)
+   local data = getPlayerData(player)
+   if not data then
+      return
+   end
+   local tracks = data.Tracks
    if tracks then
       for name, entry in pairs(tracks) do
          destroyTrackEntry(entry)
          tracks[name] = nil
       end
    end
-   AnimationTracks[player] = nil
+   table.clear(data)
+   playerTrackData[player] = nil
 end
 
-local function getOrLoadTracks(player: Player, canYield: boolean?): PlayerTracks?
-   if AnimationTracks[player] then
-      return AnimationTracks[player]
-   end
-
-   if creatingAnimationTracks[player] then
-      if not canYield then
-         return nil
-      end
-
-      local elapsed = 0
-      repeat
-         elapsed += RunService.Heartbeat:Wait()
-      until elapsed > 5 or not creatingAnimationTracks[player]
-
-      return AnimationTracks[player]
-   end
-
-   creatingAnimationTracks[player] = true
-
+local function getCurrentCharacterAndAnimator(player: Player, canYield: boolean?): (Model?, Animator?)
    local customCharacter = CharacterRenderController.getCharacterModel(player, canYield)
    if not customCharacter then
-      creatingAnimationTracks[player] = nil
-      return nil
+      return nil, nil
    end
 
    local humanoid = customCharacter:FindFirstChildOfClass("Humanoid") or customCharacter:WaitForChild("Humanoid", if canYield then 10 else 0)
    if not humanoid then
-      creatingAnimationTracks[player] = nil
-      return nil
+      return nil, nil
    end
 
    local animator = humanoid:FindFirstChildOfClass("Animator")
@@ -141,21 +151,95 @@ local function getOrLoadTracks(player: Player, canYield: boolean?): PlayerTracks
       animator.Parent = humanoid
    end
 
+   return customCharacter, animator
+end
+
+local function areTracksCurrentForPlayer(player: Player, character: Model, animator: Animator): boolean
+   local data = getPlayerData(player)
+   if not data then
+      return false
+   end
+
+   if data.Character ~= character then
+      return false
+   end
+
+   if data.Animator ~= animator then
+      return false
+   end
+
+   local tracks = data.Tracks
+   if not tracks then
+      return false
+   end
+
+   for _, coreTrackName in ipairs(DefaultCoreTrackNames) do
+      local entry = tracks[coreTrackName]
+      if not entry then
+         return false
+      end
+      if not entry.Track:IsDescendantOf(animator) then
+         return false
+      end
+      if not entry.AnimationObject:IsDescendantOf(animator) then
+         return false
+      end
+   end
+
+   return true
+end
+
+local function buildDefaultAnimationTracks(player: Player, character: Model, animator: Animator): PlayerTracks
    local tracks: PlayerTracks = {}
-   for _, animationName in ipairs({ "Charging", "Throw", "Catch", "Stab", "Dash" }) do
+   for _, animationName in ipairs(DefaultCoreTrackNames) do
       local entry = createTrackEntry(animator, animationName, animationName)
       if entry then
          tracks[animationName] = entry
       end
    end
 
-   AnimationTracks[player] = tracks
-   creatingAnimationTracks[player] = nil
+   playerTrackData[player] = {
+      Tracks = tracks,
+      Character = character,
+      Animator = animator,
+   }
+
    return tracks
 end
 
+local function ensureAnimationTracksForCurrentCharacter(player: Player, yield: number?): PlayerTracks?
+   if creatingTrackData[player] then
+      if not yield then
+         return nil
+      end
+
+      local elapsed = 0
+      repeat
+         elapsed += RunService.Heartbeat:Wait()
+      until elapsed > yield or not creatingTrackData[player]
+
+      return getPlayerTracks(player)
+   end
+
+   creatingTrackData[player] = true
+
+   local character, animator = getCurrentCharacterAndAnimator(player, yield ~= nil)
+   if not character or not animator then
+      creatingTrackData[player] = nil
+      return nil
+   end
+
+   if not areTracksCurrentForPlayer(player, character, animator) then
+      clear(player)
+      buildDefaultAnimationTracks(player, character, animator)
+   end
+
+   creatingTrackData[player] = nil
+   return getPlayerTracks(player)
+end
+
 local function playCoreAnimationLocal(player: Player, coreTrackName: CoreTrackNames)
-   local tracks = getOrLoadTracks(player, true)
+   local tracks = ensureAnimationTracksForCurrentCharacter(player, 10)
    if not tracks then
       warn(`animationtracks.playCoreAnimation failed, no tracks for {player}`)
       return
@@ -185,7 +269,7 @@ local function playCoreAnimationLocal(player: Player, coreTrackName: CoreTrackNa
 end
 
 local function stopAllCoreAnimationsLocal(player: Player)
-   local tracks = AnimationTracks[player]
+   local tracks = getPlayerTracks(player)
    if not tracks then
       return
    end
@@ -200,7 +284,7 @@ local function stopAllCoreAnimationsLocal(player: Player)
 end
 
 local function stopCoreAnimationLocal(player: Player, coreTrackName: CoreTrackNames)
-   local tracks = AnimationTracks[player]
+   local tracks = getPlayerTracks(player)
    if not tracks then
       return
    end
@@ -222,26 +306,6 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
--------------------------------------------------------------------------------
--- CORE FUNCTIONS
--------------------------------------------------------------------------------
-
-function AnimationController.init()
-   for _, existingPlayer in pairs(Players:GetPlayers()) do
-      if CharacterRenderController.getCharacterModel(existingPlayer, false) then
-         getOrLoadTracks(existingPlayer, false)
-      end
-   end
-
-   CharacterRenderController.CustomCharacterLoaded:Add(function(customPlayer: Player, _customCharacter: Model)
-      getOrLoadTracks(customPlayer, false)
-   end)
-
-   PlayersUtil.PlayerRemoving:Add(function(removingPlayer: Player)
-      unloadAnimationTracks(removingPlayer)
-   end)
-end
-
 function AnimationController.playCoreAnimation(player: Player, coreTrackName: CoreTrackNames)
    playCoreAnimationLocal(player, coreTrackName)
 end
@@ -261,7 +325,7 @@ function AnimationController.setCoreAnimation(player: Player, trackName: string,
       return
    end
 
-   local tracks = getOrLoadTracks(player, true)
+   local tracks = ensureAnimationTracksForCurrentCharacter(player, true)
    if not tracks then
       warn(`failed to create animation track {trackName} using {animation}`)
       return
@@ -273,22 +337,10 @@ function AnimationController.setCoreAnimation(player: Player, trackName: string,
       tracks[trackName] = nil
    end
 
-   local customCharacter = CharacterRenderController.getCharacterModel(player, true)
-   if not customCharacter then
+   local customCharacter, animator = getCurrentCharacterAndAnimator(player, true)
+   if not customCharacter or not animator then
       warn(`failed to create animation track {trackName} using {animation}`)
       return
-   end
-
-   local humanoid = customCharacter:FindFirstChildOfClass("Humanoid")
-   if not humanoid then
-      warn(`failed to create animation track {trackName} using {animation}`)
-      return
-   end
-
-   local animator = humanoid:FindFirstChildOfClass("Animator")
-   if not animator then
-      animator = Instance.new("Animator")
-      animator.Parent = humanoid
    end
 
    local newEntry = createTrackEntry(animator, trackName, animation)
@@ -304,7 +356,7 @@ function AnimationController.playVariableAnimation(_player: Player, _animation: 
 end
 
 function AnimationController.stopAllTracks(player: Player)
-   local tracks = AnimationTracks[player]
+   local tracks = getPlayerTracks(player)
    if not tracks then
       return
    end
@@ -314,6 +366,31 @@ function AnimationController.stopAllTracks(player: Player)
          trackData.Track:Stop()
       end
    end
+end
+
+-------------------------------------------------------------------------------
+-- CORE FUNCTIONS
+-------------------------------------------------------------------------------
+
+function AnimationController.init()
+   for _, existingPlayer in pairs(Players:GetPlayers()) do
+      if CharacterRenderController.getCharacterModel(existingPlayer, false) then
+         ensureAnimationTracksForCurrentCharacter(existingPlayer, false)
+      end
+   end
+
+   CharacterRenderController.CustomCharacterLoaded:Add(function(customPlayer: Player, _customCharacter: Model)
+      clear(customPlayer)
+      ensureAnimationTracksForCurrentCharacter(customPlayer, true)
+   end)
+
+   PlayersUtil.CharacterDestroying:Add(function(destroyingPlayer: Player)
+      clear(destroyingPlayer)
+   end)
+
+   PlayersUtil.PlayerRemoving:Add(function(removingPlayer: Player)
+      clear(removingPlayer)
+   end)
 end
 
 function AnimationController.start() end
