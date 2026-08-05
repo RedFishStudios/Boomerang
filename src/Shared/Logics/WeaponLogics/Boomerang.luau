@@ -347,6 +347,10 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       return
    end
 
+   if AnimationController then
+      AnimationController.playCoreAnimation(player, "Throw")
+   end
+
    local boomerangInstanceId = HttpService:GenerateGUID(false)
    thrownWeaponData.InstanceId = boomerangInstanceId
 

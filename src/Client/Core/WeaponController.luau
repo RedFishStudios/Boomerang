@@ -242,7 +242,6 @@ local function throwClassicBoomerang(): boolean
 
     
 	throwFunction:InvokeServer(CLASSIC_BOOMERANG_TOOL_ID, direction, releasePosition)
-   AnimationController.playCoreAnimation(Players.LocalPlayer, "Throw")
    setLocalAimState(false)
 
    return true
@@ -344,7 +343,8 @@ local function updateSmoothing(deltaTime: number)
    end
 end
 
-local function destroyAimArrows(player: Player)
+local function stopAiming(player: Player)
+   AnimationController.stopCoreAnimation(player, "Charging")
    local aimArrow = aimArrows[player]
    if aimArrow then
       aimArrow.Instance:Destroy()
@@ -367,13 +367,13 @@ local function renderAimArrows()
       for p, arrows in pairs(aimArrows) do
          local character = CharacterRenderController.getCharacterModel(p, false)
          if not character then
-            destroyAimArrows(p)
+            stopAiming(p)
             continue
          end
 
          local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
          if not humanoidRootPart then
-            destroyAimArrows(p)
+            stopAiming(p)
             continue
          end
 
@@ -419,8 +419,8 @@ local function renderAimArrows()
    end)
 end
 
-local function spawnAimArrows(player: Player)
-   local character = CharacterRenderController.getCharacterModel(localPlayer, true)
+local function beginAiming(player: Player)
+   local character = CharacterRenderController.getCharacterModel(player, true)
    if not character then
       return
    end
@@ -431,8 +431,10 @@ local function spawnAimArrows(player: Player)
    end
 
    if aimArrows[player] then
-      destroyAimArrows(player)
+      stopAiming(player)
    end
+
+   AnimationController.playCoreAnimation(player, "Charging")
 
    local aimArrow = aimArrowTemplate:Clone()
    aimArrow.Name = `AimArrow_{player.UserId}`
@@ -508,9 +510,9 @@ function WeaponController.init()
       end
 
       if isAiming then
-         spawnAimArrows(forPlayer)
+         beginAiming(forPlayer)
       else
-         destroyAimArrows(forPlayer)
+         stopAiming(forPlayer)
       end
    end)
 
@@ -637,7 +639,7 @@ function WeaponController.init()
    end)
 
    PlayersUtil.CharacterDestroying:Add(function(player: Player, character: Model)
-      destroyAimArrows(player)
+      stopAiming(player)
       if player == Players.LocalPlayer then
          setLocalAimState(false)
          pendingLocalThrow = nil
@@ -646,7 +648,7 @@ function WeaponController.init()
    end)
 
    PlayersUtil.CharacterDied:Add(function(player: Player, character: Model, humanoid: Humanoid)
-      destroyAimArrows(player)
+      stopAiming(player)
       if player == Players.LocalPlayer then
          setLocalAimState(false)
       end
