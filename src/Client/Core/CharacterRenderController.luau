@@ -7,6 +7,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
+local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 
@@ -23,9 +24,11 @@ local CharactersFolder = game.Workspace.Characters
 local localCharacterModels: {[Player]: Model} = {}
 local creatingCharacterModels: {[Player]: true} = {}
 local lastCreationLoadFailure: {[Player]: number} = {}
-local characterPositionOffsets: {[Player]: Vector3} = {}
 local characterDescendantConnections: {[Player]: RBXScriptConnection} = {}
 local animationSyncConnections: {[Player]: RBXScriptConnection} = {}
+local characterDeathConnections: {[Player]: RBXScriptConnection} = {}
+local characterPositionOffsets: {[Player]: Vector3} = {}
+local referenceModels: {[Player]: Model} = {}
 
 -- // [authoritativeAnimationId]: [customCharacterAnimationTrack]
 --    The authoritative model is used as the reference point for animations and animations are synced to that authoritative model
@@ -44,6 +47,34 @@ CharacterRenderController.CustomCharacterLoaded = TasksList.new() :: TasksList.T
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
+
+local function clear(player: Player)
+   if localCharacterModels[player] then
+      localCharacterModels[player]:Destroy()
+   end
+   localCharacterModels[player] = nil
+   creatingCharacterModels[player] = nil
+   characterPositionOffsets[player] = nil
+   if characterDescendantConnections[player] then
+      characterDescendantConnections[player]:Disconnect()
+   end
+   characterDescendantConnections[player] = nil
+   if animationSyncConnections[player] then
+      animationSyncConnections[player]:Disconnect()
+   end
+   animationSyncConnections[player] = nil
+   if syncedAnimationTracks[player] then
+      for _, track in pairs(syncedAnimationTracks[player]) do
+         track:Destroy()  
+      end
+      table.clear(syncedAnimationTracks[player])
+   end
+   syncedAnimationTracks[player] = nil
+   if characterDeathConnections[player] then
+      characterDeathConnections[player]:Disconnect()
+   end
+   characterDeathConnections[player] = nil
+end
 
 local function extractAnimations(player: Player, customCharacter: Model)
    local animateScript = nil
@@ -133,30 +164,42 @@ local function createCharacterModel(player: Player)
    if userId <= 0 then
       userId = 817970896 -- Default to my userId in testing environment
    end
-	local success, description = pcall(function()
-		return Players:GetHumanoidDescriptionFromUserIdAsync(userId)
-	end)
 
-	if not success then
-		warn("Failed to get description:", description)
-      creatingCharacterModels[player] = nil
-      lastCreationLoadFailure[player] = os.clock()
-		return
-	end
+   local model
+   if referenceModels[player] then
+      -- Clone previously created model
+      model = referenceModels[player]:Clone()
+   else
+      -- Create new model
+      local success, description = pcall(function()
+		   return Players:GetHumanoidDescriptionFromUserIdAsync(userId)
+      end)
 
-	local success2, model = pcall(function()
-		return Players:CreateHumanoidModelFromDescriptionAsync(
-			description,
-			Enum.HumanoidRigType.R15
-		)
-	end)
+      if not success then
+         warn("Failed to get description:", description)
+         creatingCharacterModels[player] = nil
+         lastCreationLoadFailure[player] = os.clock()
+         return
+      end
 
-	if not success2 then
-		warn("Failed to create model:", model)
-      creatingCharacterModels[player] = nil
-      lastCreationLoadFailure[player] = os.clock()
-		return
-	end
+      local success2
+      success2, model = pcall(function()
+         return Players:CreateHumanoidModelFromDescriptionAsync(
+            description,
+            Enum.HumanoidRigType.R15
+         )
+      end)
+
+      if not success2 then
+         warn("Failed to create model:", model)
+         creatingCharacterModels[player] = nil
+         lastCreationLoadFailure[player] = os.clock()
+         return
+      end
+
+	   model.Name = `{userId}_LocalModel`
+      referenceModels[player] = model:Clone()
+   end
 
    task.spawn(function()
       repeat
@@ -166,12 +209,12 @@ local function createCharacterModel(player: Player)
             d.CanCollide = false
             d.CanQuery = false
             d.CanTouch = false
+            d.CollisionGroup = CollisionGroupConstants.Players
          end
       end
-      until not player.Parent
+      until not model.Parent or not player.Parent or not player.Character
    end)
 
-	model.Name = `{userId}_LocalModel`
 	model.Parent = CharactersFolder
 	localCharacterModels[player] = model
    creatingCharacterModels[player] = nil
@@ -193,11 +236,14 @@ local function createCharacterModel(player: Player)
          -- // Sync any playing track to the custom character if not already playing
          for _, track in pairs(playingTracks) do
             local syncedTrack = syncedTracks[track.Animation.AnimationId]
+            local speed = track.Speed
             if syncedTrack and not syncedTrack.IsPlaying then
                syncedTrack:Play()
+               syncedTrack:AdjustSpeed(speed*2)
             end
          end
 
+         -- // Stop any synced track that is no longer playing on the authoritative character
          for mappedAnimationId, track in pairs(syncedTracks) do
             if not track.IsPlaying then
                continue
@@ -221,11 +267,43 @@ local function createCharacterModel(player: Player)
    end
    animationSyncConnections[player] = game.RunService.Stepped:Connect(sync)
 
+   if characterDeathConnections[player] then
+      characterDeathConnections[player]:Disconnect()
+      characterDeathConnections[player] = nil
+   end
+   
+   characterDeathConnections[player] = authorityHumanoid.Died:Connect(function()
+      if animationSyncConnections[player] then
+         animationSyncConnections[player]:Disconnect()
+         animationSyncConnections[player] = nil
+      end
+      if characterDeathConnections[player] then
+         characterDeathConnections[player]:Disconnect()
+         characterDeathConnections[player] = nil
+      end
+      if syncedAnimationTracks[player] then
+         for _, track in pairs(syncedAnimationTracks[player]) do
+            track:Stop()
+            track:Destroy()
+         end
+         table.clear(syncedAnimationTracks[player])
+      end
+   end)
+
 	return model
 end
 
 -- // Sync fabricated character model to the authoritative character root without inheriting animation bob
-local function syncCharacterPositions(character, targetModel)
+local function syncCharacterPositions(player, character, targetModel)
+   local targetHumanoid = targetModel:FindFirstChildOfClass("Humanoid")
+   if not targetHumanoid then
+      return
+   end
+   if targetHumanoid.Health <= 0 then
+      print(`syncCharacterPositions: Target humanoid is dead: {targetModel.Name}`)
+      return
+   end
+
    local targetRoot = targetModel:FindFirstChild("HumanoidRootPart")
    if not targetRoot or not targetRoot:IsA("BasePart") then
       return
@@ -236,11 +314,11 @@ local function syncCharacterPositions(character, targetModel)
       return
    end
 
-   local rootOffset = characterPositionOffsets[character]
+   local rootOffset = characterPositionOffsets[player]
    if not rootOffset then
       local pivot = character:GetPivot()
       rootOffset = pivot:PointToObjectSpace(renderedRoot.Position)
-      characterPositionOffsets[character] = rootOffset
+      characterPositionOffsets[player] = rootOffset
    end
 
    local pivot = character:GetPivot()
@@ -252,6 +330,9 @@ end
 
 -- // Retrieve fabricated character model, creating it if necessary
 local function getCharacterModel(player: Player, canYield: boolean?): Model?
+   if not player.Character or not player.Character.PrimaryPart then
+      return nil
+   end
 	if localCharacterModels[player] then
 		return localCharacterModels[player]
 	end
@@ -294,7 +375,7 @@ local function everyFrame(deltaTime)
          model.Parent = CharactersFolder
       end
       setAuthoritativeCharacterTransparency(p, 1)
-         syncCharacterPositions(model, p.Character)
+      syncCharacterPositions(p, model, p.Character)
    end
 end
 
@@ -312,28 +393,11 @@ end
 
 function CharacterRenderController.init()
    PlayersUtil.PlayerRemoving:Add(function(player)
-      local model = localCharacterModels[player]
-      if model then
-         model:Destroy()
-      end
-      localCharacterModels[player] = nil
-      creatingCharacterModels[player] = nil
-      characterPositionOffsets[player] = nil
-      if characterDescendantConnections[player] then
-         characterDescendantConnections[player]:Disconnect()
-         characterDescendantConnections[player] = nil
-      end
-      if animationSyncConnections[player] then
-         animationSyncConnections[player]:Disconnect()
-         animationSyncConnections[player] = nil
-      end
-      if syncedAnimationTracks[player] then
-         for _, track in pairs(syncedAnimationTracks[player]) do
-            track:Destroy()
-         end
-         table.clear(syncedAnimationTracks[player])
-         syncedAnimationTracks[player] = nil
-      end
+      clear(player)
+   end)
+
+   PlayersUtil.CharacterDestroying:Add(function(player)
+      clear(player)
    end)
 
    RunService.RenderStepped:Connect(everyFrame)
@@ -344,3 +408,18 @@ function CharacterRenderController.start()
 end
 
 return CharacterRenderController
+
+--[[
+DYING AND SUCH PLAN
+- When a character spawns, they should have a completely new character render and animation tracks.
+  - Destroy all old ones when they die
+- When a character dies:
+  - Their custom model should ragdoll
+  This means:
+  - Animation sync stops
+  - All animaton stops
+  - Custom model is rendered into a "Dead" state with ragdoll joints
+  - Custom model should cease syncing to the authoritative model position
+  - Custom model should collide with map objects, but NOT be considered an object that the authoritative model stands on  
+
+]]
