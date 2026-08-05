@@ -120,9 +120,13 @@ local function onPreSimulation(dT: number)
       return
    end
 	local lastInWorld = PlatformController.getLastMousePositionInWorld()
-	if UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then
+   print(UserInputService.MouseBehavior)
+	if UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter or UserInputService.MouseBehavior  == Enum.MouseBehavior.LockCurrentPosition then
+      print("locking center")
 		lastInWorld += Vector3.new(0, -60, 0)
-	end
+	else
+      print("not locking center")
+   end
 
 	local localTarget = RaycastsUtility.getMouseWorldPosition(2048, nil, if lastInWorld then Vector2.new(lastInWorld.X, lastInWorld.Y) else nil)
 	local localYaw = latestLocalYaw or 0

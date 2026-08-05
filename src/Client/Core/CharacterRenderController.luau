@@ -191,7 +191,8 @@ local function createCharacterModel(player: Player)
    creatingCharacterModels[player] = true
 	local userId = player.UserId
    if userId <= 0 then
-      userId = 817970896 -- Default to my userId in testing environment
+      local testUserIds = {7468812920, 817970896, 3383554889, 2016889786, 331516}
+      userId = testUserIds[math.random(1, #testUserIds)]
    end
 
    local model

@@ -48,7 +48,9 @@ local SetupData = {
    Players = createCollisionGroup("Players", {"ArenaWalls"}),
    ThrownWeapons = createCollisionGroup("ThrownWeapons", {"ArenaWalls", "Players"}),
    HandWeapons = createCollisionGroup("HandWeapons", {"Players"}),
-   ArenaWalls = createCollisionGroup("ArenaWalls", {"Players", "ThrownWeapons"})
+   ArenaWalls = createCollisionGroup("ArenaWalls", {"Players", "ThrownWeapons"}),
+   ArenaFloor = createCollisionGroup("ArenaFloor", {"Camera"}),
+   Camera = createCollisionGroup("Camera", {"ArenaFloor"})
 }
 
 configureCollisionMatrix(SetupData)
@@ -57,7 +59,9 @@ local CollisionGroups = {
    Players = deepRegisterCollisionGroups(SetupData.Players),
    ThrownWeapons = deepRegisterCollisionGroups(SetupData.ThrownWeapons),
    HandWeapons = deepRegisterCollisionGroups(SetupData.HandWeapons),
-   ArenaWalls = deepRegisterCollisionGroups(SetupData.ArenaWalls)
+   ArenaWalls = deepRegisterCollisionGroups(SetupData.ArenaWalls),
+   ArenaFloor = deepRegisterCollisionGroups(SetupData.ArenaFloor),
+   Camera = deepRegisterCollisionGroups(SetupData.Camera)
 }
 
 return CollisionGroups
