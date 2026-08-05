@@ -485,10 +485,10 @@ function WeaponController.init()
 
       if action == "Equip" then
          if typeof(value) == "string" then
-            ToolController.equipTool(forPlayer, value)
+            ToolController.setEquippedTool(forPlayer, value)
          end
       elseif action == "Unequip" then
-         ToolController.unequipTool(forPlayer)
+         ToolController.setEquippedTool(forPlayer, nil)
       elseif action == "SetVisible" then
          if forPlayer == Players.LocalPlayer then
             return
@@ -504,6 +504,8 @@ function WeaponController.init()
       if not forPlayer then
          return
       end
+
+      ToolController.setAimState(forPlayer, isAiming)
 
       if forPlayer == Players.LocalPlayer then
          setLocalAimState(isAiming)
@@ -644,7 +646,7 @@ function WeaponController.init()
          setLocalAimState(false)
          pendingLocalThrow = nil
       end
-      ToolController.unequipTool(player, false, character)
+      ToolController.clearRenderedTool(player)
    end)
 
    PlayersUtil.CharacterDied:Add(function(player: Player, character: Model, humanoid: Humanoid)

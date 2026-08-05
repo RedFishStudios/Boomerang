@@ -366,6 +366,16 @@ local function getCharacterModel(player: Player, canYield: boolean?): Model?
    if not player.Character or not player.Character.PrimaryPart then
       return nil
    end
+
+   -- If the previous render model is in ragdoll state but the authoritative character is alive,
+   -- that render model is stale (from the previous life) and must be rebuilt.
+   if localCharacterModels[player] and ragdollApplied[player] then
+      local authorityHumanoid = player.Character:FindFirstChildOfClass("Humanoid")
+      if authorityHumanoid and authorityHumanoid.Health > 0 then
+         clear(player)
+      end
+   end
+
 	if localCharacterModels[player] then
 		return localCharacterModels[player]
 	end

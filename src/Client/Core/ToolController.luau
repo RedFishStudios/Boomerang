@@ -5,11 +5,17 @@ local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 
 local CharacterRenderController = require(game.ReplicatedStorage.Client.Core.CharacterRenderController)
+local SimpleRemotes = require(game.ReplicatedStorage.Shared.Networking.SimpleRemotes)
+local PlayersUtil = require(game.ReplicatedStorage.Shared.Utils.PlayersUtil)
 
 ----------------------------------------------------------------------------------------------------------------------------------
 -- Local variables
 ----------------------------------------------------------------------------------------------------------------------------------
 
+local PlayerEquippedTools: {[Player]: string} = {}
+local PlayerAimStates: {[Player]: boolean} = {}
+
+local ApplyingToolInProcess: {[Player]: true} = {}
 local EquippedTools: {[Player]: Model} = {}
 local DetachedTools: {[Player]: Model} = {}
 local EquippedToolCharacters: {[Player]: Model} = {}
@@ -24,8 +30,6 @@ local Highlights: {
 
 local ToolAssets = game:GetService("ReplicatedStorage").Shared.Assets.Tools
 local WeaponsFolder = workspace:WaitForChild("Weapons")
-
-local PendingEquips: {[Player]: true} = {}
 
 ----------------------------------------------------------------------------------------------------------------------------------
 -- Local functions
@@ -48,7 +52,12 @@ local function removeWeaponWeld(model: Model)
 end
 
 local function attachToolModelToCharacter(player: Player, character: Model, toolModel: Model)
+	if not character or not character.Parent then
+		return false
+	end
+
 	toolModel.Name = `Holstered_{player.UserId}`
+	toolModel:SetAttribute("ToolName", toolModel:GetAttribute("ToolName") or toolModel.Name)
 	toolModel.Parent = WeaponsFolder
 	setModelAnchored(toolModel, false)
 
@@ -75,6 +84,42 @@ local function attachToolModelToCharacter(player: Player, character: Model, tool
 
    ToolController.applyHighlight(false)
 	return true
+end
+
+local function getToolNameFromModel(toolModel: Model?): string?
+	if not toolModel then
+		return nil
+	end
+
+	local value = toolModel:GetAttribute("ToolName")
+	if typeof(value) == "string" then
+		return value
+	end
+
+	return nil
+end
+
+local function getReadyRenderedCharacter(player: Player, canYield: boolean): Model?
+	local character = CharacterRenderController.getCharacterModel(player, canYield)
+	if character and character.Parent and (character:FindFirstChild("RightHand") or character:FindFirstChild("Right Arm")) then
+		return character
+	end
+
+	if not canYield then
+		return nil
+	end
+
+	local elapsed = 0
+	repeat
+		elapsed += RunService.RenderStepped:Wait()
+		character = CharacterRenderController.getCharacterModel(player, false)
+	until elapsed > 5 or (character and character.Parent and (character:FindFirstChild("RightHand") or character:FindFirstChild("Right Arm")))
+
+	if character and character.Parent and (character:FindFirstChild("RightHand") or character:FindFirstChild("Right Arm")) then
+		return character
+	end
+
+	return nil
 end
 
 local function getToolCharacter(tool: Model?): Model?
@@ -139,7 +184,7 @@ local function destroyEquippedTool(player: Player)
 	end
 end
 
-local function shouldAffectCharacter(player: Player, expectedCharacter: Model?): boolean
+local function _shouldAffectCharacter(player: Player, expectedCharacter: Model?): boolean
 	if not expectedCharacter then
 		return true
 	end
@@ -166,64 +211,134 @@ local function shouldAffectCharacter(player: Player, expectedCharacter: Model?):
 	return true
 end
 
+local function clearRenderedTool(player: Player)
+	destroyEquippedTool(player)
+	destroyDetachedTool(player)
+end
+
+local function ensureDesiredToolModel(player: Player, toolName: string): Model?
+	local equippedTool = getEquippedTool(player)
+	local detachedTool = getDetachedTool(player)
+
+	if equippedTool and getToolNameFromModel(equippedTool) ~= toolName then
+		equippedTool:Destroy()
+		EquippedTools[player] = nil
+		EquippedToolCharacters[player] = nil
+		equippedTool = nil
+	end
+
+	if detachedTool and getToolNameFromModel(detachedTool) ~= toolName then
+		detachedTool:Destroy()
+		DetachedTools[player] = nil
+		DetachedToolCharacters[player] = nil
+		detachedTool = nil
+	end
+
+	if equippedTool then
+		return equippedTool
+	end
+	if detachedTool then
+		return detachedTool
+	end
+
+	local toolAsset = ToolAssets:FindFirstChild(toolName)
+	if not (toolAsset and toolAsset:IsA("Model")) then
+		warn(`ToolController: Tool asset not found for {toolName}`)
+		return nil
+	end
+
+	local newTool = toolAsset:Clone()
+	newTool:SetAttribute("ToolName", toolName)
+	newTool.Name = `Holstered_{player.UserId}`
+	newTool.Parent = WeaponsFolder
+	return newTool
+end
+
 ----------------------------------------------------------------------------------------------------------------------------------
 -- Public functions
 ----------------------------------------------------------------------------------------------------------------------------------
 
-function ToolController.equipTool(player: Player, toolName: string)
-   if PendingEquips[player] then
+-- // Apply tool to this character
+--    > Correctly adjusts to any current aim state
+--    > Correctly adjusts to any current tool equipped state, updating out-of-date tools and not touching accurate tools
+function ToolController.updateTool(player: Player)
+   if ApplyingToolInProcess[player] then
+      return
+   end
+   ApplyingToolInProcess[player] = true
+
+	local function finish()
+		ApplyingToolInProcess[player] = nil
+	end
+
+   local character = getReadyRenderedCharacter(player, true)
+   if not character then
+		finish()
       return
    end
 
-   PendingEquips[player] = true
-   local character = CharacterRenderController.getCharacterModel(player, true)
-	if not character then
-		local elapsed = 0
-      repeat
-         elapsed += RunService.RenderStepped:Wait()
-      until CharacterRenderController.getCharacterModel(player, false) or elapsed > 20 or not PendingEquips[player]
-      character = CharacterRenderController.getCharacterModel(player, false)
+   local toolName = PlayerEquippedTools[player]
+   if not toolName then
+		clearRenderedTool(player)
+		ToolController.applyHighlight(false)
+		finish()
+      return
+   end
 
-      if not character or not PendingEquips[player] then
-         PendingEquips[player] = nil
-         return
-      end
+	local toolModel = ensureDesiredToolModel(player, toolName)
+	if not toolModel then
+		clearRenderedTool(player)
+		finish()
+		return
 	end
 
-   -- There is a racing condition waiting for the character to load here for some reason.
-   -- Even though attachToolModelToCharacter runs and claims to have successfully attached,
-   -- it is possible for the attachment to have silently failed, and the tool's ancestry becomes nil immedately after this function
-   -- No solution I've pursued has fixed this
-   -- whatever. go my wait statement
-   --task.wait(.1)
-
-	local tool = ToolAssets:FindFirstChild(toolName)
-	if tool and tool:IsA("Model") then
-		ToolController.unequipTool(player, true)
-      destroyDetachedTool(player)
-      local weaponClone = tool:Clone()
-      if attachToolModelToCharacter(player, character, weaponClone) then
-         EquippedTools[player] = weaponClone
-			EquippedToolCharacters[player] = character
-      else
-         weaponClone:Destroy()
-      end
+	-- Detach/attach is not driven by aiming state.
+	-- While aiming/charging, tools remain attached; detachment occurs only during throw flow.
+	if DetachedTools[player] and DetachedTools[player] == toolModel then
+		DetachedToolCharacters[player] = character
+		finish()
+		return
 	end
 
-   PendingEquips[player] = nil
+	removeWeaponWeld(toolModel)
+	if attachToolModelToCharacter(player, character, toolModel) then
+		DetachedTools[player] = nil
+		EquippedTools[player] = toolModel
+		EquippedToolCharacters[player] = character
+		DetachedToolCharacters[player] = nil
+	else
+		toolModel:Destroy()
+		clearRenderedTool(player)
+	end
+
+	finish()
 end
 
-function ToolController.unequipTool(player: Player, doNotCancelEquipment: boolean, expectedCharacter: Model?)
-   if not doNotCancelEquipment then
-      PendingEquips[player] = nil
-   end
-	if shouldAffectCharacter(player, expectedCharacter) then
-		destroyEquippedTool(player)
-		destroyDetachedTool(player)
+function ToolController.setEquippedTool(player: Player, toolName: string?)
+	if toolName and toolName ~= "" then
+		PlayerEquippedTools[player] = toolName
+	else
+		PlayerEquippedTools[player] = nil
 	end
-   if player == localPlayer then
-      ToolController.applyHighlight(false)
-   end
+	ToolController.updateTool(player)
+end
+
+function ToolController.setAimState(player: Player, isAiming: boolean)
+	PlayerAimStates[player] = isAiming == true
+end
+
+function ToolController.clearRenderedTool(player: Player)
+	clearRenderedTool(player)
+	ToolController.applyHighlight(false)
+end
+
+-- Backwards-compatible wrappers while call sites migrate.
+function ToolController.equipTool(player: Player, toolName: string)
+	ToolController.setEquippedTool(player, toolName)
+end
+
+function ToolController.unequipTool(player: Player, _doNotCancelEquipment: boolean?, _expectedCharacter: Model?)
+	ToolController.setEquippedTool(player, nil)
 end
 
 function ToolController.setToolVisible(player: Player, isVisible: boolean)
@@ -262,6 +377,7 @@ function ToolController.prepareToolForThrow(player: Player): (Model?, Vector3?)
 	DetachedTools[player] = equippedTool
 	DetachedToolCharacters[player] = EquippedToolCharacters[player]
 	EquippedToolCharacters[player] = nil
+	PlayerAimStates[player] = true
 	return equippedTool, equippedTool:GetPivot().Position
 end
 
@@ -271,11 +387,13 @@ function ToolController.finishToolThrow(player: Player)
 		return
 	end
 	removeWeaponWeld(detachedTool)
-	if attachToolModelToCharacter(player, CharacterRenderController.getCharacterModel(player, false), detachedTool) then
+	local character = getReadyRenderedCharacter(player, true)
+	if character and attachToolModelToCharacter(player, character, detachedTool) then
 		DetachedTools[player] = nil
 		EquippedTools[player] = detachedTool
-		EquippedToolCharacters[player] = CharacterRenderController.getCharacterModel(player, false)
+		EquippedToolCharacters[player] = character
 		DetachedToolCharacters[player] = nil
+		PlayerAimStates[player] = false
 	else
 		detachedTool:Destroy()
 		DetachedTools[player] = nil
@@ -319,7 +437,35 @@ function ToolController.isHolstered(model: Model)
    return model.Name:match(`Holstered_%d+`) ~= nil
 end
 
+-------------------------------------------------------------------------------
+-- Core Functions
+-------------------------------------------------------------------------------
+
 function ToolController.init()
+	SimpleRemotes.getEvent("SetEquippedTool").OnClientEvent:Connect(function(player: Player, toolName: string?)
+		ToolController.setEquippedTool(player, toolName)
+   end)
+
+	CharacterRenderController.CustomCharacterLoaded:Add(function(player: Player, character: Model)
+      if PlayerEquippedTools[player] then
+         ToolController.updateTool(player)
+      else
+         local toolName = SimpleRemotes.getFunction("GetEquippedTool"):InvokeServer(player)
+         PlayerEquippedTools[player] = toolName
+         if player.Parent and CharacterRenderController.getCharacterModel(player, false) and toolName then
+            ToolController.updateTool(player)
+         end
+      end
+   end)
+
+   PlayersUtil.PlayerRemoving:Add(function(player: Player)
+      PlayerEquippedTools[player] = nil
+		PlayerAimStates[player] = nil
+		ApplyingToolInProcess[player] = nil
+		clearRenderedTool(player)
+		EquippedToolCharacters[player] = nil
+		DetachedToolCharacters[player] = nil
+   end)
 end
 
 --function ToolController.start() 
