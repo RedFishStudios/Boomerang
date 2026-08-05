@@ -29,6 +29,7 @@ local animationSyncConnections: {[Player]: RBXScriptConnection} = {}
 local characterDeathConnections: {[Player]: RBXScriptConnection} = {}
 local characterPositionOffsets: {[Player]: Vector3} = {}
 local referenceModels: {[Player]: Model} = {}
+local ragdollApplied: {[Player]: true} = {}
 
 -- // [authoritativeAnimationId]: [customCharacterAnimationTrack]
 --    The authoritative model is used as the reference point for animations and animations are synced to that authoritative model
@@ -49,6 +50,7 @@ CharacterRenderController.CustomCharacterLoaded = TasksList.new() :: TasksList.T
 -------------------------------------------------------------------------------
 
 local function clear(player: Player)
+   ragdollApplied[player] = nil
    if localCharacterModels[player] then
       localCharacterModels[player]:Destroy()
    end
@@ -74,6 +76,19 @@ local function clear(player: Player)
       characterDeathConnections[player]:Disconnect()
    end
    characterDeathConnections[player] = nil
+end
+
+local function applyRagdoll(player: Player, model: Model)
+   ragdollApplied[player] = true
+   model.Humanoid.PlatformStand = true
+   model.PrimaryPart.CanCollide = true
+	for index,joint in pairs(model:GetDescendants()) do
+		if joint:IsA("AnimationConstraint") then
+			joint:Destroy()
+		elseif joint:IsA("BasePart") or joint:IsA("MeshPart") then
+         joint.Anchored = false
+      end
+	end
 end
 
 local function extractAnimations(player: Player, customCharacter: Model)
@@ -144,6 +159,7 @@ local function extractAnimations(player: Player, customCharacter: Model)
 end
 
 local function setAuthoritativeCharacterTransparency(player: Player, transparency: number)
+   transparency = .5
    if not player.Character then
       return
    end
@@ -197,22 +213,32 @@ local function createCharacterModel(player: Player)
          return
       end
 
+      model:WaitForChild("Humanoid").BreakJointsOnDeath = false
 	   model.Name = `{userId}_LocalModel`
       referenceModels[player] = model:Clone()
    end
 
    task.spawn(function()
+      local authorityHumanoid = player.Character:WaitForChild("Humanoid")
       repeat
          RunService.Stepped:Wait()
          for _, d in pairs(model:GetDescendants()) do
-         if d:IsA("BasePart") or d:IsA("MeshPart") or d:IsA("Part") then
-            d.CanCollide = false
-            d.CanQuery = false
-            d.CanTouch = false
-            d.CollisionGroup = CollisionGroupConstants.Players
+            if d:IsA("BasePart") or d:IsA("MeshPart") or d:IsA("Part") then
+               d.CanCollide = false
+               d.CanQuery = false
+               d.CanTouch = false
+               d.CollisionGroup = CollisionGroupConstants.Players
+            end
          end
-      end
-      until not model.Parent or not player.Parent or not player.Character
+         for _, d in pairs(player.Character:GetDescendants()) do
+            if d:IsA("BasePart") or d:IsA("MeshPart") or d:IsA("Part") then
+               d.CanCollide = false
+               d.CanQuery = false
+               d.CanTouch = false
+               d.CollisionGroup = CollisionGroupConstants.Players
+            end
+         end
+      until not model.Parent or not player.Parent or not player.Character or authorityHumanoid.Health <= 0
    end)
 
 	model.Parent = CharactersFolder
@@ -300,7 +326,9 @@ local function syncCharacterPositions(player, character, targetModel)
       return
    end
    if targetHumanoid.Health <= 0 then
-      print(`syncCharacterPositions: Target humanoid is dead: {targetModel.Name}`)
+      if not ragdollApplied[player] then
+         applyRagdoll(player, character)
+      end
       return
    end
 

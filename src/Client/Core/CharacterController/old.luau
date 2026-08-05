@@ -213,7 +213,9 @@ local function onPreSimulation(dT: number)
 		if rootPart and localTarget then
 			localYaw = CharacterLogic.getYawFromLookAt(rootPart.Position, localTarget)
 		end
-	end
+	else
+      return
+   end
 
 	latestLocalYaw = localYaw
 	getOrCreateSolverState(player, localYaw)
@@ -250,7 +252,6 @@ local function onPreSimulation(dT: number)
 			solveMotorsForCharacter(forPlayer.Character, solverState, dT)
 		end
 	end
-
 end
 
 local function onAnyCharacterRemoved(character: GameTypes.R15Character)
@@ -305,11 +306,10 @@ end
 function CharacterController.init()
 	loadRemotes()
 
-   -- I Am Sick And Tired Of Physics Conflicts With Native Server Authority
 	--RunService.PreSimulation:Connect(onPreSimulation)
    RunService.PostSimulation:Connect(onPreSimulation)
-   RunService:BindToRenderStep("CharacterControllerRenderStep", Enum.RenderPriority.Last.Value, onPreSimulation)
-	RunService:BindToRenderStep("CharacterControllerRenderStep", Enum.RenderPriority.First.Value, onPreSimulation)
+   --RunService:BindToRenderStep("CharacterControllerRenderStep", Enum.RenderPriority.Last.Value, onPreSimulation)
+	--RunService:BindToRenderStep("CharacterControllerRenderStep", Enum.RenderPriority.First.Value, onPreSimulation)
    workspace.Characters.ChildRemoved:Connect(onAnyCharacterRemoved)
 	Players.PlayerRemoving:Connect(onPlayerRemoving)
 end
