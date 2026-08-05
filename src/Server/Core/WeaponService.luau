@@ -334,6 +334,7 @@ function WeaponService.init()
       local equippedBoomerang = "ClassicBoomerang" -- TODO: get from player data
         equippedToolIds[player] = equippedBoomerang
         equippedToolVisible[player] = true
+        weaponEquipStateEvent:FireAllClients(player.UserId, "Equip", equippedBoomerang)
    end)
 
    PlayersUtil.CharacterDestroying:Add(function(player: Player, character: Model)

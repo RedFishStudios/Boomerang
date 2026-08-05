@@ -485,10 +485,10 @@ function WeaponController.init()
 
       if action == "Equip" then
          if typeof(value) == "string" then
-            ToolController.setEquippedTool(forPlayer, value)
+            ToolController.setEquippedTool(forPlayer, value, "weaponEquipStateEvent_Equip")
          end
       elseif action == "Unequip" then
-         ToolController.setEquippedTool(forPlayer, nil)
+         ToolController.setEquippedTool(forPlayer, nil, "weaponEquipStateEvent_Unequip")
       elseif action == "SetVisible" then
          if forPlayer == Players.LocalPlayer then
             return

@@ -16,6 +16,8 @@ local PlayerEquippedTools: {[Player]: string} = {}
 local PlayerAimStates: {[Player]: boolean} = {}
 
 local ApplyingToolInProcess: {[Player]: true} = {}
+local PendingToolUpdate: {[Player]: true} = {}
+local PendingEquippedToolFetch: {[Player]: true} = {}
 local EquippedTools: {[Player]: Model} = {}
 local DetachedTools: {[Player]: Model} = {}
 local EquippedToolCharacters: {[Player]: Model} = {}
@@ -254,6 +256,44 @@ local function ensureDesiredToolModel(player: Player, toolName: string): Model?
 	return newTool
 end
 
+local function requestToolUpdate(player: Player, shouldFetchEquippedTool: boolean?)
+	if shouldFetchEquippedTool then
+		PendingEquippedToolFetch[player] = true
+	end
+
+	PendingToolUpdate[player] = true
+
+	if ApplyingToolInProcess[player] then
+		return
+	end
+
+	task.defer(function()
+		if not player.Parent then
+			return
+		end
+
+		if not PendingToolUpdate[player] then
+			return
+		end
+
+		if ApplyingToolInProcess[player] then
+			return
+		end
+
+		if not PlayersUtil.isAlive(player) then
+			return
+		end
+
+		if PendingEquippedToolFetch[player] then
+			PlayerEquippedTools[player] = SimpleRemotes.getFunction("GetEquippedTool"):InvokeServer(player)
+			PendingEquippedToolFetch[player] = nil
+		end
+
+		PendingToolUpdate[player] = nil
+		ToolController.updateTool(player)
+	end)
+end
+
 ----------------------------------------------------------------------------------------------------------------------------------
 -- Public functions
 ----------------------------------------------------------------------------------------------------------------------------------
@@ -263,12 +303,16 @@ end
 --    > Correctly adjusts to any current tool equipped state, updating out-of-date tools and not touching accurate tools
 function ToolController.updateTool(player: Player)
    if ApplyingToolInProcess[player] then
+		PendingToolUpdate[player] = true
       return
    end
    ApplyingToolInProcess[player] = true
 
 	local function finish()
 		ApplyingToolInProcess[player] = nil
+		if PendingToolUpdate[player] and PlayersUtil.isAlive(player) then
+			requestToolUpdate(player)
+		end
 	end
 
    local character = getReadyRenderedCharacter(player, true)
@@ -314,13 +358,9 @@ function ToolController.updateTool(player: Player)
 	finish()
 end
 
-function ToolController.setEquippedTool(player: Player, toolName: string?)
-	if toolName and toolName ~= "" then
-		PlayerEquippedTools[player] = toolName
-	else
-		PlayerEquippedTools[player] = nil
-	end
-	ToolController.updateTool(player)
+function ToolController.setEquippedTool(player: Player, toolName: string?, code: string?)
+	PlayerEquippedTools[player] = toolName
+	requestToolUpdate(player, false)
 end
 
 function ToolController.setAimState(player: Player, isAiming: boolean)
@@ -334,11 +374,11 @@ end
 
 -- Backwards-compatible wrappers while call sites migrate.
 function ToolController.equipTool(player: Player, toolName: string)
-	ToolController.setEquippedTool(player, toolName)
+	ToolController.setEquippedTool(player, toolName, "equipTool")
 end
 
 function ToolController.unequipTool(player: Player, _doNotCancelEquipment: boolean?, _expectedCharacter: Model?)
-	ToolController.setEquippedTool(player, nil)
+	ToolController.setEquippedTool(player, nil, "unequipTool")
 end
 
 function ToolController.setToolVisible(player: Player, isVisible: boolean)
@@ -448,20 +488,24 @@ function ToolController.init()
 
 	CharacterRenderController.CustomCharacterLoaded:Add(function(player: Player, character: Model)
       if PlayerEquippedTools[player] then
-         ToolController.updateTool(player)
+			requestToolUpdate(player, false)
       else
-         local toolName = SimpleRemotes.getFunction("GetEquippedTool"):InvokeServer(player)
-         PlayerEquippedTools[player] = toolName
-         if player.Parent and CharacterRenderController.getCharacterModel(player, false) and toolName then
-            ToolController.updateTool(player)
-         end
+			requestToolUpdate(player, true)
       end
+   end)
+
+   PlayersUtil.CharacterDied:Add(function(player: Player, character: Model)
+	ApplyingToolInProcess[player] = nil
+	PendingToolUpdate[player] = nil
+	PendingEquippedToolFetch[player] = nil
    end)
 
    PlayersUtil.PlayerRemoving:Add(function(player: Player)
       PlayerEquippedTools[player] = nil
 		PlayerAimStates[player] = nil
 		ApplyingToolInProcess[player] = nil
+		PendingToolUpdate[player] = nil
+		PendingEquippedToolFetch[player] = nil
 		clearRenderedTool(player)
 		EquippedToolCharacters[player] = nil
 		DetachedToolCharacters[player] = nil

@@ -165,7 +165,8 @@ local function extractAnimations(player: Player, customCharacter: Model)
             local track = customAnimator:LoadAnimation(c)
             syncedAnimationTracks[player][matchingDescendant.AnimationId] = track
          else
-            warn(`AnimationController: Failed to find matching animation for {animationName} under {animationParentName} for player {player.Name}`)
+            -- custom emotes and such
+            --warn(`AnimationController: Failed to find matching animation for {animationName} under {animationParentName} for player {player.Name}`)
          end
       end
    end
@@ -225,7 +226,9 @@ local function createCharacterModel(player: Player)
          return
       end
 
-      model:WaitForChild("Humanoid").BreakJointsOnDeath = false
+      local customHumanoid = model:FindFirstChildOfClass("Humanoid")
+      customHumanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+      customHumanoid.BreakJointsOnDeath = false
 	   model.Name = `{userId}_LocalModel`
       referenceModels[player] = model:Clone()
    end
