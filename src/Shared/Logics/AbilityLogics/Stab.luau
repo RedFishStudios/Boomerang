@@ -13,6 +13,7 @@ local SoundLibrary = require(ReplicatedStorage.Shared.Library.SoundLibrary)
 local Sounds = require(ReplicatedStorage.Shared.Constants.Sounds)
 local HitboxLibrary = require(ReplicatedStorage.Shared.Library.HitboxLibrary)
 local ParticlesLibrary = require(ReplicatedStorage.Shared.Library.ParticlesLibrary)
+local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 
 local CameraController
 
@@ -346,13 +347,21 @@ function Stab.simulateActivation(userId: number, timestamp: number)
    end
 
    local player = Players:GetPlayerByUserId(userId)
-   if not player or player == game.Players.LocalPlayer then
+   if not player then
       return
    end
 
    local endsAt = timestamp + HITBOX_DURATION
    if workspace:GetServerTimeNow() >= endsAt then
       return
+   end
+
+   local activationSoundChannelId = `{player.UserId}_stab`
+   SoundLibrary.play(activationSoundChannelId, Sounds.Data.Stab.Name, player.Character.PrimaryPart, nil, true)
+
+   if AnimationController then
+      -- TODO: adjust based on timestamp..?
+      AnimationController.playCoreAnimation(player, "Stab")
    end
 
    disconnect(player)
@@ -436,19 +445,9 @@ function Stab.activate(player: Player)
    Cooldowns[player] = os.clock() + STAB_COOLDOWN
    stabCount[player] = (stabCount[player] or 0) + 1
 
-   if not isServer then
-      local activationSoundChannelId = `{player.UserId}_stab`
-      SoundLibrary.play(activationSoundChannelId, Sounds.Data.Stab.Name, character.PrimaryPart, nil, true)
-   end
-
    local previousRunId = ActiveStabs[player] and ActiveStabs[player].RunId or 0
    local runId = previousRunId + 1
    local shouldShowVisualizer = isServer and GlobalConfig.ParryVisualizersEnabled
-
-   if AnimationController then
-      AnimationController.playCoreAnimation(player, "Stab")
-   end
-   -- TODO: Stab sound
 
    local overlapParams = OverlapParams.new()
    overlapParams.FilterType = Enum.RaycastFilterType.Exclude
@@ -543,7 +542,7 @@ function Stab.activate(player: Player)
                   CombatService.damagePlayer(player, "Stab", victimPlayer, victimHumanoid, STAB_KILL_DAMAGE)
                end
             else
-               print(`clientside stab deteccted here`)
+               print(`clientside stab detected here`)
             end
          end
       end

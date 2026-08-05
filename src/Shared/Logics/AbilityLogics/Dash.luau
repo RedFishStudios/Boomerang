@@ -77,6 +77,19 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
+function Dash.simulateActivation(userId: number, timestamp: number)
+   if isServer or typeof(timestamp) ~= "number" then
+      return
+   end
+
+   local player = Players:GetPlayerByUserId(userId)
+   if not player then
+      return
+   end
+
+   Dash.activate(player, timestamp)
+end
+
 function Dash.canActivate(player: Player)
    if isPlayerAiming(player) then
       return false

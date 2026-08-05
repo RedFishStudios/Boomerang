@@ -67,15 +67,14 @@ end)
 
 function AbilityController.activate(abilityId: string, ...)
    local logic = getLogic(abilityId)
-   if not logic then
-      warn(`AbilityController: No logic found for ability {abilityId}`)
+   if not logic or not logic.simulateActivation then
       return
    end
-   if logic.canActivate and not logic.canActivate(localPlayer) then
-      warn(`AbilityController: Player {localPlayer.Name} cannot activate ability {abilityId}`)
+   if logic.canActivate and not logic.canActivate(localPlayer, ...) then
+      print("cancelling ability; cannot activate")
       return
    end
-   logic.activate(localPlayer, ...)
+   logic.simulateActivation(localPlayer.UserId, game.Workspace:GetServerTimeNow())
 	abilityUsed:FireServer(abilityId)
 end
 
