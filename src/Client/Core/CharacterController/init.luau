@@ -116,6 +116,9 @@ local function solveCustomCharacterFacing(forPlayer: Player, solverState: Solver
 end
 
 local function onPreSimulation(dT: number)
+   if not PlayersUtil.isAlive(player) then
+      return
+   end
 	local lastInWorld = PlatformController.getLastMousePositionInWorld()
 	if UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then
 		lastInWorld += Vector3.new(0, -60, 0)

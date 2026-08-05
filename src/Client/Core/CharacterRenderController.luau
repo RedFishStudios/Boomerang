@@ -82,7 +82,9 @@ local ragdollCollisionEnabledNames = {"LeftHand", "Left Arm", "UpperTorso", "Rig
 
 local function applyRagdoll(player: Player, model: Model)
    ragdollApplied[player] = true
+
    model.Humanoid.PlatformStand = true
+
    task.spawn(function()
       repeat
          RunService.Stepped:Wait()
@@ -170,7 +172,6 @@ local function extractAnimations(player: Player, customCharacter: Model)
 end
 
 local function setAuthoritativeCharacterTransparency(player: Player, transparency: number)
-   transparency = .5
    if not player.Character then
       return
    end
@@ -238,11 +239,6 @@ local function createCharacterModel(player: Player)
                d.CanCollide = false
                d.CanQuery = false
                d.CanTouch = false
-               d.CollisionGroup = CollisionGroupConstants.Players
-            end
-         end
-         for _, d in pairs(player.Character:GetDescendants()) do
-            if d:IsA("BasePart") or d:IsA("MeshPart") or d:IsA("Part") then
                d.CollisionGroup = CollisionGroupConstants.Players
             end
          end
