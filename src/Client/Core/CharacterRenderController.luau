@@ -190,10 +190,11 @@ end
 local function createCharacterModel(player: Player)
    creatingCharacterModels[player] = true
 	local userId = player.UserId
-   if userId <= 0 then
-      local testUserIds = {7468812920, 817970896, 3383554889, 2016889786, 331516}
-      userId = testUserIds[math.random(1, #testUserIds)]
-   end
+   --if userId <= 0 or userId == 817970896 then
+   --   local testUserIds = {7468812920, 3383554889, 2016889786, 331516, 2016889786}
+   --   userId = testUserIds[math.random(1, #testUserIds)]
+   --   userId = 1484913853
+   --end
 
    local model
    if referenceModels[player] then
@@ -350,6 +351,11 @@ local function syncCharacterPositions(player, character, targetModel)
       return
    end
 
+   local customHumanoid = character:FindFirstChildOfClass("Humanoid")
+   if not customHumanoid then
+      return
+   end
+
    local rootOffset = characterPositionOffsets[player]
    if not rootOffset then
       local pivot = character:GetPivot()
@@ -357,9 +363,15 @@ local function syncCharacterPositions(player, character, targetModel)
       characterPositionOffsets[player] = rootOffset
    end
 
+   local hipHeightTestValue = game.Workspace:FindFirstChild("HipHeightTestValue")
+
+   local heightOffset = ((2-customHumanoid.HipHeight)/customHumanoid.HipHeight)
+   heightOffset = hipHeightTestValue.Value
+   heightOffset = 2 - customHumanoid.HipHeight
+
    local pivot = character:GetPivot()
    local currentRotation = pivot - pivot.Position
-   local adjustedPosition = targetRoot.Position - currentRotation:VectorToWorldSpace(rootOffset) - Vector3.new(0, .5, 0)
+   local adjustedPosition = targetRoot.Position - currentRotation:VectorToWorldSpace(rootOffset) - Vector3.new(0, heightOffset, 0)
 
    character:PivotTo(currentRotation + adjustedPosition)
 end

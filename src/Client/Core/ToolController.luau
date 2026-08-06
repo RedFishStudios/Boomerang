@@ -22,6 +22,7 @@ local EquippedTools: {[Player]: Model} = {}
 local DetachedTools: {[Player]: Model} = {}
 local EquippedToolCharacters: {[Player]: Model} = {}
 local DetachedToolCharacters: {[Player]: Model} = {}
+local MotorC0ObserverConnections: {[Player]: RBXScriptConnection} = {}
 local Highlights: {
    {
       Highlight: Highlight,
@@ -36,6 +37,33 @@ local WeaponsFolder = workspace:WaitForChild("Weapons")
 ----------------------------------------------------------------------------------------------------------------------------------
 -- Local functions
 ----------------------------------------------------------------------------------------------------------------------------------
+
+-- // Functions to observe changes to the C0 attribute for the purpose of adjusting attachment points during editing
+local function disconnectMotorC0Observer(player: Player)
+	local connection = MotorC0ObserverConnections[player]
+	if connection then
+		connection:Disconnect()
+		MotorC0ObserverConnections[player] = nil
+	end
+end
+
+local function setupMotorC0Observer(player: Player, toolModel: Model, weaponMotor: Motor6D)
+	disconnectMotorC0Observer(player)
+
+	MotorC0ObserverConnections[player] = toolModel:GetAttributeChangedSignal("MotorC0"):Connect(function()
+		local updatedC0 = toolModel:GetAttribute("MotorC0")
+		if typeof(updatedC0) ~= "CFrame" then
+			return
+		end
+
+		if not weaponMotor.Parent then
+			disconnectMotorC0Observer(player)
+			return
+		end
+
+		weaponMotor.C0 = updatedC0
+	end)
+end
 
 local function setModelAnchored(model: Model, anchored: boolean)
 	for _, descendant in ipairs(model:GetDescendants()) do
@@ -78,11 +106,12 @@ local function attachToolModelToCharacter(player: Player, character: Model, tool
 	motor.Part1 = handle
 
 	local attributes = toolModel:GetAttributes()
-	if attributes.MotorC0 then
-		motor.C0 = attributes.MotorC0
+	if attributes["MotorC0"] then
+		motor.C0 = attributes["MotorC0"]
 	end
 
 	motor.Parent = handle
+	setupMotorC0Observer(player, toolModel, motor)
 
    ToolController.applyHighlight(false)
 	return true
@@ -169,6 +198,7 @@ local function getDetachedTool(player: Player): Model?
 end
 
 local function destroyDetachedTool(player: Player)
+	disconnectMotorC0Observer(player)
 	local detachedTool = getDetachedTool(player)
 	if detachedTool then
 		detachedTool:Destroy()
@@ -178,39 +208,13 @@ local function destroyDetachedTool(player: Player)
 end
 
 local function destroyEquippedTool(player: Player)
+   disconnectMotorC0Observer(player)
    local equippedTool = getEquippedTool(player)
 	if equippedTool then
 		equippedTool:Destroy()
 		EquippedTools[player] = nil
 		EquippedToolCharacters[player] = nil
 	end
-end
-
-local function _shouldAffectCharacter(player: Player, expectedCharacter: Model?): boolean
-	if not expectedCharacter then
-		return true
-	end
-
-	local equippedCharacter = EquippedToolCharacters[player]
-	if not equippedCharacter and EquippedTools[player] then
-		equippedCharacter = getToolCharacter(EquippedTools[player])
-		EquippedToolCharacters[player] = equippedCharacter
-	end
-
-	local detachedCharacter = DetachedToolCharacters[player]
-	if not detachedCharacter and DetachedTools[player] then
-		detachedCharacter = getToolCharacter(DetachedTools[player])
-		DetachedToolCharacters[player] = detachedCharacter
-	end
-
-	if equippedCharacter and equippedCharacter ~= expectedCharacter then
-		return false
-	end
-	if detachedCharacter and detachedCharacter ~= expectedCharacter then
-		return false
-	end
-
-	return true
 end
 
 local function clearRenderedTool(player: Player)
@@ -336,8 +340,8 @@ function ToolController.updateTool(player: Player)
 		return
 	end
 
-	-- Detach/attach is not driven by aiming state.
-	-- While aiming/charging, tools remain attached; detachment occurs only during throw flow.
+	-- Detach/attach is not driven by aiming state
+	-- While aiming/charging, tools remain attached; detachment occurs only during throw flow
 	if DetachedTools[player] and DetachedTools[player] == toolModel then
 		DetachedToolCharacters[player] = character
 		finish()
@@ -372,15 +376,6 @@ function ToolController.clearRenderedTool(player: Player)
 	ToolController.applyHighlight(false)
 end
 
--- Backwards-compatible wrappers while call sites migrate.
-function ToolController.equipTool(player: Player, toolName: string)
-	ToolController.setEquippedTool(player, toolName, "equipTool")
-end
-
-function ToolController.unequipTool(player: Player, _doNotCancelEquipment: boolean?, _expectedCharacter: Model?)
-	ToolController.setEquippedTool(player, nil, "unequipTool")
-end
-
 function ToolController.setToolVisible(player: Player, isVisible: boolean)
 	local tool = getEquippedTool(player) or getDetachedTool(player)
 	if not tool then
@@ -409,6 +404,7 @@ function ToolController.prepareToolForThrow(player: Player): (Model?, Vector3?)
 		return nil, nil
 	end
 
+	disconnectMotorC0Observer(player)
 	removeWeaponWeld(equippedTool)
 	setModelAnchored(equippedTool, true)
 	equippedTool.Parent = WeaponsFolder
@@ -498,6 +494,7 @@ function ToolController.init()
 	ApplyingToolInProcess[player] = nil
 	PendingToolUpdate[player] = nil
 	PendingEquippedToolFetch[player] = nil
+	disconnectMotorC0Observer(player)
    end)
 
    PlayersUtil.PlayerRemoving:Add(function(player: Player)
@@ -506,6 +503,7 @@ function ToolController.init()
 		ApplyingToolInProcess[player] = nil
 		PendingToolUpdate[player] = nil
 		PendingEquippedToolFetch[player] = nil
+		disconnectMotorC0Observer(player)
 		clearRenderedTool(player)
 		EquippedToolCharacters[player] = nil
 		DetachedToolCharacters[player] = nil

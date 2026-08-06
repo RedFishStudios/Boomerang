@@ -1,4 +1,3 @@
-
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GeneralUtil = require(ReplicatedStorage.Shared.Utils.GeneralUtil)
 
@@ -19,12 +18,31 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
    ClassicBoomerang = {
       Id = "Boomerang",
       LogicClass = "Boomerang",
-
       Boomerang = {
          Bounces = 2,
          HitboxRadius = 2,
          Speed = 60,
          ThrowDistance = 30
+      }
+   },
+   Shuriken = {
+      Id = "Shuriken",
+      LogicClass = "Boomerang",
+      Boomerang = {
+         Bounces = 3,
+         HitboxRadius = 1,
+         Speed = 80,
+         ThrowDistance = 40
+      }
+   },
+   Fan = {
+      Id = "Fan",
+      LogicClass = "Boomerang",
+      Boomerang = {
+         Bounces = 1,
+         HitboxRadius = 3,
+         Speed = 50,
+         ThrowDistance = 20
       }
    },
 
