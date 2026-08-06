@@ -119,12 +119,7 @@ local function onPreSimulation(dT: number)
    if not PlayersUtil.isAlive(player) then
       return
    end
-	local lastInWorld = PlatformController.getLastMousePositionInWorld()
-	if UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter or UserInputService.MouseBehavior  == Enum.MouseBehavior.LockCurrentPosition then
-		lastInWorld += Vector3.new(0, -60, 0)
-   end
 
-	local localTarget = RaycastsUtility.getMouseWorldPosition(2048, nil, if lastInWorld then Vector2.new(lastInWorld.X, lastInWorld.Y) else nil)
 	local localYaw = latestLocalYaw or 0
 	local localOriginPosition: Vector3? = nil
 
@@ -143,8 +138,28 @@ local function onPreSimulation(dT: number)
 		end
 	end
 
-	if localOriginPosition and localTarget then
-		localYaw = CharacterLogic.getYawFromLookAt(localOriginPosition, localTarget)
+	local mouseBehavior = UserInputService.MouseBehavior
+	local isMouseLocked = mouseBehavior == Enum.MouseBehavior.LockCenter or mouseBehavior == Enum.MouseBehavior.LockCurrentPosition
+
+	if localOriginPosition then
+		if isMouseLocked then
+			local camera = workspace.CurrentCamera
+			if camera then
+				local cameraPosition = camera.CFrame.Position
+				local toCharacter = Vector3.new(localOriginPosition.X - cameraPosition.X, 0, localOriginPosition.Z - cameraPosition.Z)
+				if toCharacter.Magnitude > 1e-5 then
+					local targetPosition = localOriginPosition + toCharacter.Unit
+					localYaw = CharacterLogic.getYawFromLookAt(localOriginPosition, targetPosition)
+				end
+			end
+		else
+			local lastInWorld = PlatformController.getLastMousePositionInWorld()
+			local localTarget = RaycastsUtility.getMouseWorldPosition(2048, nil, if lastInWorld then Vector2.new(lastInWorld.X, lastInWorld.Y) else nil)
+			if localTarget then
+				localYaw = CharacterLogic.getYawFromLookAt(localOriginPosition, localTarget)
+			end
+		end
+
 		local lookVector = CharacterLogic.getLookVectorFromYaw(localYaw)
 		CharacterController.LastCFrame = CFrame.new(localOriginPosition, localOriginPosition + lookVector)
 	end
