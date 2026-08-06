@@ -59,7 +59,11 @@ SimpleRemotes.getEvent("SetEquippedTool")
 
 function ToolService.init()
    SimpleRemotes.getFunction("GetEquippedTool").OnServerInvoke = function(player: Player)
-      return "ClassicBoomerang" -- TODO: Implement this properly
+      if GlobalConfig.ForceEquippedTool ~= nil then
+         return GlobalConfig.ForceEquippedTool
+      end
+
+      return nil
    end
 end
 

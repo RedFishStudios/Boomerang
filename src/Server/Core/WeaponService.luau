@@ -331,10 +331,15 @@ function WeaponService.init()
    end)
 
    PlayersUtil.CharacterLoaded:Add(function(player: Player, character: Model, humanoid: Humanoid, rootPart: BasePart)
-      local equippedBoomerang = "ClassicBoomerang" -- TODO: get from player data
-        equippedToolIds[player] = equippedBoomerang
-        equippedToolVisible[player] = true
-        weaponEquipStateEvent:FireAllClients(player.UserId, "Equip", equippedBoomerang)
+         local equippedToolId = GlobalConfig.ForceEquippedTool
+         if equippedToolId ~= nil then
+            equippedToolIds[player] = equippedToolId
+            equippedToolVisible[player] = true
+            weaponEquipStateEvent:FireAllClients(player.UserId, "Equip", equippedToolId)
+         else
+            equippedToolIds[player] = nil
+            equippedToolVisible[player] = nil
+         end
    end)
 
    PlayersUtil.CharacterDestroying:Add(function(player: Player, character: Model)

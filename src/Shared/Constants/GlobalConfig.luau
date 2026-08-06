@@ -7,7 +7,7 @@ local GlobalConfig = {
    SpawnShieldDuration = 2,
    NilDataType = "Nil",
    AimFullStrength = 2.0,
-   ForceEquippedTool = "Shuriken",
+   ForceEquippedTool = "Fan",
 
    DefaultWalkSpeed = 16,
    AimingWalkSpeed = (16 * .3),

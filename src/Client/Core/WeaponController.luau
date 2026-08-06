@@ -60,7 +60,6 @@ local UNRELIABLE_CODES = RemoteCodes.Weapon.Unreliable
 local SOFT_CORRECTION_RATE = 14
 local HARD_SNAP_DISTANCE = 14
 local MAX_SNAPSHOT_CATCHUP = 0.35
-local CLASSIC_BOOMERANG_TOOL_ID = "ClassicBoomerang"
 
 local aimArrows: {
    [Player]: {
@@ -171,17 +170,22 @@ local function clearThrownWeapon(forPlayer: Player)
    end
 end
 
-local function beginClassicBoomerangAim(): boolean
+local function beginEquippedToolAim(): boolean
    if isAiming then
       return true
    end
 
-   local canThrow = WeaponLibrary.canThrow(Players.LocalPlayer, CLASSIC_BOOMERANG_TOOL_ID)
+   local equippedToolId = GlobalConfig.ForceEquippedTool
+   if equippedToolId == nil then
+      return false
+   end
+
+   local canThrow = WeaponLibrary.canThrow(Players.LocalPlayer, equippedToolId)
    if not canThrow then
       return false
    end
 
-	aimEvent:FireServer(CLASSIC_BOOMERANG_TOOL_ID)
+	aimEvent:FireServer(equippedToolId)
 	setLocalAimState(true)
    local localCharacter = CharacterRenderController.getCharacterModel(localPlayer, true)
    if localCharacter and localCharacter:FindFirstChildOfClass("Humanoid") then
@@ -192,8 +196,14 @@ local function beginClassicBoomerangAim(): boolean
    return true
 end
 
-local function throwClassicBoomerang(): boolean
+local function throwEquippedTool(): boolean
    if not isAiming then
+      return false
+   end
+
+   local equippedToolId = GlobalConfig.ForceEquippedTool
+   if equippedToolId == nil then
+      setLocalAimState(false)
       return false
    end
 
@@ -228,7 +238,7 @@ local function throwClassicBoomerang(): boolean
 		local pendingToken = {}
 		pendingLocalThrow = {
 			Token = pendingToken,
-			ToolId = CLASSIC_BOOMERANG_TOOL_ID,
+         ToolId = equippedToolId,
 			Host = pendingHost,
 		}
 
@@ -241,13 +251,13 @@ local function throwClassicBoomerang(): boolean
 	 end
 
     
-	throwFunction:InvokeServer(CLASSIC_BOOMERANG_TOOL_ID, direction, releasePosition)
+	throwFunction:InvokeServer(equippedToolId, direction, releasePosition)
    setLocalAimState(false)
 
    return true
 end
 
-local function recallClassicBoomerang(): boolean
+local function recallEquippedTool(): boolean
    if not ThrownWeapons.Data[Players.LocalPlayer] then
       return false
    end
@@ -260,13 +270,13 @@ function WeaponController.getWeaponState(): string
    return getWeaponState()
 end
 
-function WeaponController.handleClassicBoomerangButton(): string
+function WeaponController.handleEquippedToolButton(): string
    if ThrownWeapons.Data[Players.LocalPlayer] then
-      recallClassicBoomerang()
+      recallEquippedTool()
    elseif isAiming then
-      throwClassicBoomerang()
+      throwEquippedTool()
    else
-      beginClassicBoomerangAim()
+      beginEquippedToolAim()
    end
 
    return getWeaponState()
@@ -620,7 +630,7 @@ function WeaponController.init()
 		end
 
       if input.UserInputType == Enum.UserInputType.MouseButton2 then
-		   beginClassicBoomerangAim()
+         beginEquippedToolAim()
 		end
 
       if input.KeyCode == Enum.KeyCode.E then
@@ -636,7 +646,7 @@ function WeaponController.init()
       end 
 
       if input.UserInputType == Enum.UserInputType.MouseButton2 then
-       throwClassicBoomerang()
+       throwEquippedTool()
       end
    end)
 

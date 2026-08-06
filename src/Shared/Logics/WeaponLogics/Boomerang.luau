@@ -393,8 +393,14 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          thrownWeaponData.ReuseEquippedHost = true
          boomerangModel.Name = `Boomerang_{player.Name}`
       else
+		 local equippedToolId = GlobalConfig.ForceEquippedTool
+		 if equippedToolId == nil then
+			warn("Boomerang: GlobalConfig.ForceEquippedTool is nil; cannot clone thrown weapon model")
+			return
+		 end
+
          -- Client creates and monitors the actual 3D model of the projectile
-         boomerangModel = ReplicatedStorage.Shared.Assets.Tools.ClassicBoomerang:Clone()
+         boomerangModel = ReplicatedStorage.Shared.Assets.Tools[equippedToolId]:Clone()
          boomerangModel.Name = `Boomerang_{player.Name}`
       end
       SoundLibrary.play(boomerangInstanceId, Sounds.Data.Throw.Name, boomerangModel.PrimaryPart, nil, true)

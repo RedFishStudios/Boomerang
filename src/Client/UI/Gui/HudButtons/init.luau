@@ -84,7 +84,7 @@ local function _init()
    end)
 
    BoomerangThrowButton.Activated:Connect(function()
-      WeaponController.handleClassicBoomerangButton()
+      WeaponController.handleEquippedToolButton()
    end)
 
    syncBoomerangThrowButton()
