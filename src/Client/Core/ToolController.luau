@@ -7,6 +7,7 @@ local RunService = game:GetService("RunService")
 local CharacterRenderController = require(game.ReplicatedStorage.Client.Core.CharacterRenderController)
 local SimpleRemotes = require(game.ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local PlayersUtil = require(game.ReplicatedStorage.Shared.Utils.PlayersUtil)
+local ToolLibrary = require(game.ReplicatedStorage.Shared.Library.ToolLibrary)
 
 ----------------------------------------------------------------------------------------------------------------------------------
 -- Local variables
@@ -31,7 +32,7 @@ local Highlights: {
    }
 } = {}
 
-local ToolAssets = game:GetService("ReplicatedStorage").Shared.Assets.Tools
+local ToolAssets = ToolLibrary.getToolAssetsFolder()
 local WeaponsFolder = workspace:WaitForChild("Weapons")
 
 ----------------------------------------------------------------------------------------------------------------------------------
@@ -82,7 +83,9 @@ local function removeWeaponWeld(model: Model)
 end
 
 local function attachToolModelToCharacter(player: Player, character: Model, toolModel: Model)
+   print(`ToolController: Attaching tool model {toolModel.Name} to character {character.Name} for player {player.Name}`)
 	if not character or not character.Parent then
+      warn(`no character`)
 		return false
 	end
 
@@ -93,10 +96,12 @@ local function attachToolModelToCharacter(player: Player, character: Model, tool
 
 	local rightArm = character:FindFirstChild("RightHand") or character:FindFirstChild("Right Arm")
 	if not rightArm then
+      warn(`no right arm`)
 		rightArm = character:WaitForChild("RightHand", 2) or character:WaitForChild("Right Arm", 2)
 	end
 	local handle = toolModel.PrimaryPart
-	if not (rightArm and handle) then
+	if not handle then
+      warn(`no handle`)
 		return false
 	end
 
@@ -111,7 +116,9 @@ local function attachToolModelToCharacter(player: Player, character: Model, tool
 	end
 
 	motor.Parent = handle
-	setupMotorC0Observer(player, toolModel, motor)
+	--setupMotorC0Observer(player, toolModel, motor)
+
+   print(toolModel)
 
    ToolController.applyHighlight(false)
 	return true
@@ -508,6 +515,7 @@ function ToolController.init()
 		EquippedToolCharacters[player] = nil
 		DetachedToolCharacters[player] = nil
    end)
+
 end
 
 --function ToolController.start() 
