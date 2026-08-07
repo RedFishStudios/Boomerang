@@ -60,6 +60,8 @@ local SNAPSHOT_PACKET_SIZE = 1 + 8 + 12 + 12 + 4 + 1 + 8
 local RAYCAST_VISUALIZERS_ENABLED = GlobalConfig.RaycastVisualizersEnabled
 local PROJECTILE_HITBOX_VISUALIZER_ENABLED = GlobalConfig.ProjectileHitboxVisualizerEnabled
 
+local BOOMERANG_SPIN_SPEED = math.rad(1080)
+
 type ThrowInitOptions = {
    StartPosition: Vector3?,
    Direction: Vector3?,
@@ -235,12 +237,20 @@ local function addTrail(thrownWeaponData: ThrownWeapons.Data)
    end
 
    if thrownWeaponData.TrailObject then
+      thrownWeaponData.TrailObject.TrailHost:PivotTo(CFrame.new(thrownWeaponData.CFrame.Position))
       updateTrailOrientation(thrownWeaponData)
       return
    end
    
-   -- Create a trail object
-   local trailHost = thrownWeaponData.Host
+   local trailHost = Instance.new("Part")
+   trailHost.Name = "TrailHost"
+   trailHost.Parent = game.Workspace
+   trailHost.Transparency = 1
+   trailHost.Anchored = true
+   trailHost.CanCollide = false
+   trailHost.CanTouch = false
+   trailHost.CanQuery = false
+   trailHost:PivotTo(CFrame.new(thrownWeaponData.CFrame.Position))
 
    local attachment0 = Instance.new("Attachment")
    attachment0.Parent = trailHost
@@ -264,6 +274,7 @@ local function addTrail(thrownWeaponData: ThrownWeapons.Data)
    })
 
    thrownWeaponData.TrailObject = {
+      TrailHost = trailHost,
       Trail = trail,
       Attachment0 = attachment0,
       Attachment1 = attachment1
@@ -295,12 +306,27 @@ local function getWeaponCFrame(thrownWeaponData: ThrownWeapons.Data): CFrame?
    return thrownWeaponData.CFrame
 end
 
-local function setWeaponCFrame(thrownWeaponData: ThrownWeapons.Data, cframe: CFrame)
+local function setWeaponCFrame(thrownWeaponData: ThrownWeapons.Data, cframe: CFrame, deltaTime: number?)
    thrownWeaponData.CFrame = cframe
 
    local host = thrownWeaponData.Host
    if host and host.Parent then
-      host:PivotTo(cframe)
+      if not isServer then
+         local direction = thrownWeaponData.Direction
+         if direction and direction.Magnitude > 1e-5 then
+            local visualRotation = (thrownWeaponData.VisualRotation or 0) + (BOOMERANG_SPIN_SPEED * (deltaTime or 0))
+            thrownWeaponData.VisualRotation = visualRotation
+
+            local faceDirection = getHorizontalDirection(direction)
+            local baseCFrame = CFrame.new(cframe.Position, cframe.Position + faceDirection)
+            local spinCFrame = CFrame.Angles(0, visualRotation, 0)
+            host:PivotTo(baseCFrame * spinCFrame)
+         else
+            host:PivotTo(cframe)
+         end
+      else
+         host:PivotTo(cframe)
+      end
       addTrail(thrownWeaponData)
      -- registerBeamSegment(thrownWeaponData, cframe.Position)
       --addNewBeam(thrownWeaponData)
@@ -472,7 +498,6 @@ local function isCameraObstructedToPoint(cameraPosition: Vector3, targetPosition
 
    local excludedInstances = filter or {}
    for _ = 1, 12 do
-      raycastParams.FilterDescendantsInstances = excludedInstances
       local raycastResult = workspace:Raycast(cameraPosition, direction * distance, raycastParams)
       if not raycastResult then
          return false
@@ -558,6 +583,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    local lastBounceOrigin = throwOrigin
    local bounced = false
    thrownWeaponData.CFrame = startCFrame
+   thrownWeaponData.VisualRotation = math.random() * math.pi * 2
 
    if isServer then
       fireSpawned(player.UserId, boomerangId, startPosition, direction, speed, throwServerTime)
@@ -697,7 +723,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       end
 
       local currentCFrame = pivot
-      setWeaponCFrame(thrownWeaponData, currentCFrame + direction * speed * deltaTime)
+      setWeaponCFrame(thrownWeaponData, currentCFrame + direction * speed * deltaTime, deltaTime)
       thrownWeaponData.Direction = direction
       thrownWeaponData.Speed = speed
       return true
@@ -774,6 +800,9 @@ function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapo
    ThrownWeapons.Data[player] = nil
 
    if thrownWeaponData.TrailObject then
+      if thrownWeaponData.TrailObject.TrailHost and thrownWeaponData.TrailObject.TrailHost.Parent then
+         thrownWeaponData.TrailObject.TrailHost:Destroy()
+      end
       if thrownWeaponData.TrailObject.Trail and thrownWeaponData.TrailObject.Trail.Parent then
          thrownWeaponData.TrailObject.Trail:Destroy()
       end
@@ -935,7 +964,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
             return
          end
 
-         setWeaponCFrame(thrownWeaponData, hostPivot + slideDirection * slideDistance)
+         setWeaponCFrame(thrownWeaponData, hostPivot + slideDirection * slideDistance, deltaTime)
          travelVelocity = slideDirection * slideSpeed
       else
          slideMomentum = math.clamp(slideMomentum - (deltaTime * 10), 0, 1)
@@ -945,7 +974,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          local blendedDistance = math.min(blendedSpeed * deltaTime, horizontalDistance)
 
          slideSpeed = math.max(speed, slideSpeed * slideMomentum)
-         setWeaponCFrame(thrownWeaponData, hostPivot + blendedDirection * blendedDistance)
+         setWeaponCFrame(thrownWeaponData, hostPivot + blendedDirection * blendedDistance, deltaTime)
          travelVelocity = blendedDirection * blendedSpeed
       end
 

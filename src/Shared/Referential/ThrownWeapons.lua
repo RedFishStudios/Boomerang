@@ -28,6 +28,7 @@ export type Data = {
    ExistingHost: Model?,
    LastMovementPositions: {Vector3}?,
    TrailObject: {
+      TrailHost: Part,
       Trail: Trail,
       Attachment0: Attachment,
       Attachment1: Attachment
