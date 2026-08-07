@@ -264,7 +264,6 @@ local function addTrail(thrownWeaponData: ThrownWeapons.Data)
    trail.Attachment1 = attachment1
    trail.Parent = trailHost
 
-   -- Set trail color according to whether the owner is an enemy of hte local player according to GameTeamLibrary
    local ownerPlayer = game.Players:GetPlayerByUserId(thrownWeaponData.OwnerUserId)
    if ownerPlayer == game.Players.LocalPlayer then
       trail.Color = ColorSequence.new(GlobalConfig.MyBoomerangTrailColor)
@@ -275,15 +274,14 @@ local function addTrail(thrownWeaponData: ThrownWeapons.Data)
       trail.Color = ColorSequence.new(if team then team.Color3 else GlobalConfig.EnemyBoomerangTrailColor)
    end
 
-   -- Set trail
-
    trail.Lifetime = GlobalConfig.ThrownWeaponTrailLifetime
 
    attachment0.Position = Vector3.new(-1, 0, 0)
    attachment1.Position = Vector3.new(1, 0, 0)
 
    trail.Transparency = NumberSequence.new({
-      NumberSequenceKeypoint.new(0, 0),
+      NumberSequenceKeypoint.new(0, 1),
+      NumberSequenceKeypoint.new(.1, 0),
       NumberSequenceKeypoint.new(1, 1)
    })
 

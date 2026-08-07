@@ -6,6 +6,7 @@ local TasksList = require(game.ReplicatedStorage.Shared.Classes.TasksList)
 local PlatformController = {}
 
 PlatformController.NewInputGadget = TasksList.new() :: TasksList.TasksList<(newGadget: Gadget)->()>
+PlatformController.DominantControlSchemeChanged = TasksList.new() :: TasksList.TasksList<(newScheme: "PC" | "Console" | "Touch")->()>
 
 export type Gadget = "Mouse" | "Keyboard" | "Console" | "Touchscreen"
 
@@ -107,6 +108,7 @@ local function _init()
 		if newScheme ~= dominantControlScheme then
 			dominantControlScheme = newScheme
 			PlatformController.NewInputGadget:Execute("serial", newScheme)
+         PlatformController.DominantControlSchemeChanged:Execute("serial", newScheme)
 		end
 
       if inputType == Enum.UserInputType.MouseMovement or inputType == Enum.UserInputType.Touch then
