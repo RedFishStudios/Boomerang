@@ -577,6 +577,21 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    local energy = toolData.Boomerang.Bounces
 
    local startPosition = (options and options.StartPosition) or (character.PrimaryPart.Position + character.PrimaryPart.CFrame.LookVector * 3)
+   
+   --[[if startPosition then
+      local StartPartRep = Instance.new("Part")
+      StartPartRep.Name = "OptionsStartPosition"
+      StartPartRep.Shape = Enum.PartType.Ball
+      StartPartRep.Size = Vector3.new(3, 3, 3)
+      StartPartRep.Material = "Neon"
+      StartPartRep.Anchored = true
+      StartPartRep.CanCollide = false
+      StartPartRep.CanQuery = false
+      StartPartRep.CanTouch = false
+      StartPartRep.Parent = game.Workspace
+      StartPartRep.Position = startPosition
+   end]]
+   
    local startCFrame = CFrame.new(startPosition)
    local throwOrigin = startPosition
    local throwServerTime = (options and options.ThrowServerTime) or workspace:GetServerTimeNow()
@@ -584,6 +599,19 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    local bounced = false
    thrownWeaponData.CFrame = startCFrame
    thrownWeaponData.VisualRotation = math.random() * math.pi * 2
+
+   --[[local OriginRep = Instance.new("Part")
+   OriginRep.Name = "Origin"
+   OriginRep.Shape = Enum.PartType.Ball
+   OriginRep.Color = Color3.new(1, 0, 0)
+   OriginRep.Size = Vector3.new(3, 3, 3)
+   OriginRep.Material = "Neon"
+   OriginRep.Anchored = true
+   OriginRep.CanCollide = false
+   OriginRep.CanQuery = false
+   OriginRep.CanTouch = false
+   OriginRep.Parent = game.Workspace
+   OriginRep.Position = throwOrigin]]
 
    if isServer then
       fireSpawned(player.UserId, boomerangId, startPosition, direction, speed, throwServerTime)
@@ -642,6 +670,22 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       if not pivot then
          return false
       end
+
+      --[[if not thrownWeaponData.DisplayedFirstPivot then
+         thrownWeaponData.DisplayedFirstPivot  = true
+         local OriginRep = Instance.new("Part")
+         OriginRep.Name = "FirstPivot"
+         OriginRep.Shape = Enum.PartType.Ball
+         OriginRep.Color = Color3.new(1, 0, 0)
+         OriginRep.Size = Vector3.new(3, 3, 3)
+         OriginRep.Material = "Neon"
+         OriginRep.Anchored = true
+         OriginRep.CanCollide = false
+         OriginRep.CanQuery = false
+         OriginRep.CanTouch = false
+         OriginRep.Parent = game.Workspace
+         OriginRep.CFrame = pivot
+      end]]
 
       if isServer then
          if PROJECTILE_HITBOX_VISUALIZER_ENABLED then
@@ -730,7 +774,9 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    end
 
    -- Fast-forward newly replicated boomerangs to the best estimate of where they should be now
-   if not isServer and options and options.ThrowServerTime then
+   -- DISABLED; this cannot be disabled in its current state as it causes significant jumping of the boomerang on the client upon spawn
+   -- The boomerang's position does appear to correctly catch up immediately after, so this doesn't seem to be of significance to remove
+  --[[if not isServer and options and options.ThrowServerTime then
       local catchup = math.clamp(workspace:GetServerTimeNow() - options.ThrowServerTime, 0, MAX_CATCHUP_SECONDS)
       while catchup > 0 do
          local dt = math.min(CATCHUP_STEP, catchup)
@@ -739,7 +785,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          end
          catchup -= dt
       end
-   end
+   end]]
 
    thrownWeaponData.MovementConnection = RunService.Stepped:Connect(function(time, deltaTime)
       if not simulateStep(deltaTime, true) then

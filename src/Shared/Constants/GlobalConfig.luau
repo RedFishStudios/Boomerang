@@ -8,7 +8,7 @@ local GlobalConfig = {
    NilDataType = "Nil",
    AimFullStrength = 2.0,
    ForceEquippedTool = "ClassicBoomerang",
-   ThrownWeaponTrailLifetime = .5, 
+   ThrownWeaponTrailLifetime = .3, 
 
    DefaultWalkSpeed = 16,
    AimingWalkSpeed = (16 * .3),
