@@ -145,6 +145,7 @@ local function setLocalAimState(nextState: boolean)
    isAiming = nextState
 
    if not nextState then
+      CharacterController.setTouchAimAngle(nil)
       AnimationController.stopCoreAnimation(Players.LocalPlayer, "Charging")
    end
 
@@ -196,7 +197,7 @@ local function beginEquippedToolAim(): boolean
    return true
 end
 
-local function throwEquippedTool(): boolean
+local function throwEquippedTool(forcedDirection: Vector3?): boolean
    if not isAiming then
       return false
    end
@@ -215,8 +216,10 @@ local function throwEquippedTool(): boolean
 		throwOrigin = localCharacter.PrimaryPart.Position
 	 end
 
-    local direction
-    if PlatformController.getDominantControlScheme() == "Touch" or (UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter or UserInputService.MouseBehavior == Enum.MouseBehavior.LockCurrentPosition) then
+      local direction
+      if forcedDirection and forcedDirection.Magnitude > 1e-5 then
+         direction = getHorizontalDirection(forcedDirection)
+      elseif PlatformController.getDominantControlScheme() == "Touch" or (UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter or UserInputService.MouseBehavior == Enum.MouseBehavior.LockCurrentPosition) then
       direction = getHorizontalDirection(localCharacter.PrimaryPart.CFrame.LookVector)
     else
       local lastInWorld = PlatformController.getLastMousePositionInWorld()
@@ -479,6 +482,31 @@ function WeaponController.startThrownWeapon(forPlayer: Player, toolId: string, t
    logic.throw(forPlayer, toolId, toolData, ThrownWeapons.Data[forPlayer], initOptions)
 end
 
+function WeaponController.beginThumbstickAim(): boolean
+   return beginEquippedToolAim()
+end
+
+function WeaponController.setThumbstickAimDirection(angle: number?)
+   if typeof(angle) == "number" then
+      CharacterController.setTouchAimAngle(angle)
+      beginEquippedToolAim()
+      return
+   end
+
+   CharacterController.setTouchAimAngle(nil)
+end
+
+function WeaponController.releaseThumbstickAim(lastAngle: number?): boolean
+   if typeof(lastAngle) == "number" then
+      CharacterController.setTouchAimAngle(lastAngle)
+   end
+
+   local forcedDirection = CharacterController.getTouchAimLookVector(lastAngle)
+   local threwTool = throwEquippedTool(forcedDirection)
+   CharacterController.setTouchAimAngle(nil)
+   return threwTool
+end
+
 -------------------------------------------------------------------------------
 -- CORE FUNCTIONS
 -------------------------------------------------------------------------------
@@ -647,7 +675,7 @@ function WeaponController.init()
       end 
 
       if input.UserInputType == Enum.UserInputType.MouseButton2 then
-       throwEquippedTool()
+       throwEquippedTool(nil)
       end
    end)
 

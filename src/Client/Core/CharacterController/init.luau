@@ -63,6 +63,7 @@ local nextReplicationAt = 0
 local latestLocalYaw: number? = nil
 local lastSentYaw: number? = nil
 local lastSentAt = 0
+local touchAimAngle: number? = nil
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -108,6 +109,17 @@ local function applyYawToCustomCharacter(forPlayer: Player, yawAngle: number)
 	end
 end
 
+local function getTouchAimLookVectorFromAngle(angle: number): Vector3?
+	local worldForward = Vector3.new(0, 0, -1)
+	local worldRight = Vector3.new(1, 0, 0)
+	local lookVector = (worldForward * math.cos(angle)) - (worldRight * math.sin(angle))
+	if lookVector.Magnitude <= 1e-5 then
+		return worldForward
+	end
+
+	return lookVector.Unit
+end
+
 local function solveCustomCharacterFacing(forPlayer: Player, solverState: SolverState, dT: number)
 	local smoothAlpha = math.clamp(dT * REMOTE_ANGLE_SMOOTH_SPEED, 0, 1)
 
@@ -142,7 +154,12 @@ local function onPreSimulation(dT: number)
 	local isMouseLocked = mouseBehavior == Enum.MouseBehavior.LockCenter or mouseBehavior == Enum.MouseBehavior.LockCurrentPosition
 
 	if localOriginPosition then
-		if isMouseLocked then
+		if touchAimAngle ~= nil then
+			local lookVector = getTouchAimLookVectorFromAngle(touchAimAngle)
+			if lookVector then
+				localYaw = CharacterLogic.getYawFromLookAt(localOriginPosition, localOriginPosition + lookVector)
+			end
+		elseif isMouseLocked then
 			local camera = workspace.CurrentCamera
 			if camera then
 				local cameraPosition = camera.CFrame.Position
@@ -238,6 +255,23 @@ end
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
+
+function CharacterController.setTouchAimAngle(angle: number?)
+	if typeof(angle) == "number" then
+		touchAimAngle = angle
+	else
+		touchAimAngle = nil
+	end
+end
+
+function CharacterController.getTouchAimLookVector(angle: number?): Vector3?
+	local targetAngle = if typeof(angle) == "number" then angle else touchAimAngle
+	if typeof(targetAngle) ~= "number" then
+		return nil
+	end
+
+	return getTouchAimLookVectorFromAngle(targetAngle)
+end
 
 -------------------------------------------------------------------------------
 -- CORE FUNCTIONS
