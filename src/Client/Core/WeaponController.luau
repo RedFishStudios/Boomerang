@@ -619,10 +619,10 @@ function WeaponController.init()
    gameStateData.IsInRound:Subscribe(function(newValue: boolean)
       if not newValue then
          setLocalAimState(false)
+         pendingLocalThrow = nil
          AnimationController.stopAllCoreAnimations(Players.LocalPlayer)
       end
    end)
-
 
 	UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessed: boolean)
 		if gameProcessed then

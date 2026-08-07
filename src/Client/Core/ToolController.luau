@@ -8,6 +8,8 @@ local CharacterRenderController = require(game.ReplicatedStorage.Client.Core.Cha
 local SimpleRemotes = require(game.ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local PlayersUtil = require(game.ReplicatedStorage.Shared.Utils.PlayersUtil)
 local ToolLibrary = require(game.ReplicatedStorage.Shared.Library.ToolLibrary)
+local ThrownWeapons = require(game.ReplicatedStorage.Shared.Referential.ThrownWeapons)
+local GameStateLibrary = require(game.ReplicatedStorage.Shared.Library.GameStateLibrary)
 
 ----------------------------------------------------------------------------------------------------------------------------------
 -- Local variables
@@ -349,7 +351,7 @@ function ToolController.updateTool(player: Player)
 
 	-- Detach/attach is not driven by aiming state
 	-- While aiming/charging, tools remain attached; detachment occurs only during throw flow
-	if DetachedTools[player] and DetachedTools[player] == toolModel then
+	if DetachedTools[player] and DetachedTools[player] == toolModel and ThrownWeapons.Data[player] and GameStateLibrary.getGameStateData().IsInRound:Get() == true then
 		DetachedToolCharacters[player] = character
 		finish()
 		return
@@ -488,6 +490,12 @@ function ToolController.init()
 	SimpleRemotes.getEvent("SetEquippedTool").OnClientEvent:Connect(function(player: Player, toolName: string?)
 		ToolController.setEquippedTool(player, toolName)
    end)
+
+	GameStateLibrary.getGameStateData().IsInRound:Subscribe(function(_isInRound: boolean)
+		if localPlayer.Parent then
+			requestToolUpdate(localPlayer, true)
+		end
+	end)
 
 	CharacterRenderController.CustomCharacterLoaded:Add(function(player: Player, character: Model)
       if PlayerEquippedTools[player] then
