@@ -190,11 +190,10 @@ end
 local function createCharacterModel(player: Player)
    creatingCharacterModels[player] = true
 	local userId = player.UserId
-   --if userId <= 0 or userId == 817970896 then
-   --   local testUserIds = {7468812920, 3383554889, 2016889786, 331516, 2016889786}
-   --   userId = testUserIds[math.random(1, #testUserIds)]
-   --   userId = 1484913853
-   --end
+   if userId <= 0 or userId == 817970896 then
+      local testUserIds = {7468812920, 3383554889, 2016889786, 331516, 2016889786}
+      userId = testUserIds[math.random(1, #testUserIds)]
+   end
 
    local model
    if referenceModels[player] then

@@ -16,6 +16,7 @@ export type Data = {
    ToolId: string,
    State: number,
    InstanceId: string,
+   OwnerUserId: number,
 
    Host: (Part | Model)?,
    CFrame: CFrame?,

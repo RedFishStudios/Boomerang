@@ -19,6 +19,7 @@ local SoundLibrary = require(ReplicatedStorage.Shared.Library.SoundLibrary)
 local ParticlesLibrary = require(ReplicatedStorage.Shared.Library.ParticlesLibrary)
 local Sounds = require(ReplicatedStorage.Shared.Constants.Sounds)
 local HitboxLibrary = require(ReplicatedStorage.Shared.Library.HitboxLibrary)
+local GameTeamLibrary = require(ReplicatedStorage.Shared.Library.GameTeamLibrary)
 local HttpService = game:GetService("HttpService")
 
 local AnimationController
@@ -262,6 +263,19 @@ local function addTrail(thrownWeaponData: ThrownWeapons.Data)
    trail.Attachment0 = attachment0
    trail.Attachment1 = attachment1
    trail.Parent = trailHost
+
+   -- Set trail color according to whether the owner is an enemy of hte local player according to GameTeamLibrary
+   local ownerPlayer = game.Players:GetPlayerByUserId(thrownWeaponData.OwnerUserId)
+   if ownerPlayer == game.Players.LocalPlayer then
+      trail.Color = ColorSequence.new(GlobalConfig.MyBoomerangTrailColor)
+   elseif GameTeamLibrary.hasFriendlyFire(ownerPlayer.Team) then
+      trail.Color = ColorSequence.new(GlobalConfig.EnemyBoomerangTrailColor)
+   else
+      local team = ownerPlayer.Team
+      trail.Color = ColorSequence.new(if team then team.Color3 else GlobalConfig.EnemyBoomerangTrailColor)
+   end
+
+   -- Set trail
 
    trail.Lifetime = GlobalConfig.ThrownWeaponTrailLifetime
 

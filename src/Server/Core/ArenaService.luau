@@ -17,6 +17,7 @@ local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.Colli
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local GameTeamService = require(game.ServerStorage.Server.Core.GameTeamService)
+local GameTeamLibrary = require(game.ReplicatedStorage.Shared.Library.GameTeamLibrary)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -159,7 +160,7 @@ local gameStateData = CurrentGameState.getGameStateData()
          if otherPlayer == player then
             continue
          end
-         if otherPlayer.Team ~= player.Team or (player.Team and GameTeamService.hasFriendlyFire(player.Team)) then
+         if otherPlayer.Team ~= player.Team or (player.Team and GameTeamLibrary.hasFriendlyFire(player.Team)) then
             local character = otherPlayer.Character
             local root = character and character:FindFirstChild("HumanoidRootPart")
             if root then

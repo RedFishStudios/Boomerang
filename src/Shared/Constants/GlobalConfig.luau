@@ -8,7 +8,10 @@ local GlobalConfig = {
    NilDataType = "Nil",
    AimFullStrength = 2.0,
    ForceEquippedTool = "ClassicBoomerang",
-   ThrownWeaponTrailLifetime = .3, 
+   ThrownWeaponTrailLifetime = .3,
+
+   MyBoomerangTrailColor = Color3.new(0.984314, 0.988235, 0.988235),
+   EnemyBoomerangTrailColor = Color3.new(0.952941, 0.07451, 0.368627),
 
    DefaultWalkSpeed = 16,
    AimingWalkSpeed = (16 * .3),

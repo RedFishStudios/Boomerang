@@ -465,6 +465,7 @@ function WeaponController.startThrownWeapon(forPlayer: Player, toolId: string, t
    clearThrownWeapon(forPlayer)
 
    ThrownWeapons.Data[forPlayer] = {
+      OwnerUserId = forPlayer.UserId,
       ToolId = toolId,
       State = ThrownWeapons.StateEnum.Outgoing,
       ReplicationPart = nil,

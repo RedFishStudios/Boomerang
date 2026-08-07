@@ -268,6 +268,7 @@ function WeaponService.init()
       end
 
       ThrownWeapons.Data[player] = {
+         OwnerUserId = player.UserId,
          ToolId = toolId,
          State = ThrownWeapons.StateEnum.Outgoing,
          ReplicationPart = nil,
