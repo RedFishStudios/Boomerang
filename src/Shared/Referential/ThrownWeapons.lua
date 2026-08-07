@@ -26,6 +26,12 @@ export type Data = {
    ServerSpeed: number?,
    ReuseEquippedHost: boolean?,
    ExistingHost: Model?,
+   LastMovementPositions: {Vector3}?,
+   TrailObject: {
+      Trail: Trail,
+      Attachment0: Attachment,
+      Attachment1: Attachment
+   },
    
    MovementConnection: RBXScriptConnection?,
    TestRaycastVisualizers: {Part}

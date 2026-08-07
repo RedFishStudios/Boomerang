@@ -90,6 +90,189 @@ local function getHorizontalDirection(direction: Vector3): Vector3
    return horizontal.Unit
 end
 
+-- // Create a new beam with relevant attachments attached at the most recent beam segment position and the second most recent beam segment position
+--[[local function _addNewBeam(thrownWeaponData: ThrownWeapons.Data)
+   local history = thrownWeaponData.BeamSegmentHistory
+   if not history or #history < 2 then
+      return
+   end
+   if not thrownWeaponData.Beams then
+      thrownWeaponData.Beams = {}
+   end
+
+   local startPosition = history[#history - 1]
+   local endPosition = history[#history]
+
+   local beamAttachment0 = Instance.new("Attachment")
+   beamAttachment0.Name = "BeamAttachment0"
+   beamAttachment0.WorldPosition = startPosition
+   beamAttachment0.Parent = thrownWeaponData.Host.Parent
+
+   local beamAttachment1 = Instance.new("Attachment")
+   beamAttachment1.Name = "BeamAttachment1"
+   beamAttachment1.WorldPosition = endPosition
+   beamAttachment1.Parent = thrownWeaponData.Host.Parent
+
+   local beam = Instance.new("Beam")
+   beam.Name = "BoomerangBeam"
+   beam.Attachment0 = beamAttachment0
+   beam.Attachment1 = beamAttachment1
+   beam.FaceCamera = true
+   beam.Width0 = 1
+   beam.Width1 = 1
+   beam.TextureMode = Enum.TextureMode.Stretch
+   beam.TextureLength = 4
+   beam.TextureSpeed = 2
+   beam.Parent = thrownWeaponData.Host.Parent
+
+   table.insert(thrownWeaponData.Beams, {
+      Beam = beam,
+      Attachment0 = beamAttachment0,
+      Attachment1 = beamAttachment1
+   })
+
+   while #thrownWeaponData.Beams >= GlobalConfig.MaximumIndividualWeaponBeamSegments do
+      local oldBeamData = table.remove(thrownWeaponData.Beams, 1)
+      if oldBeamData then
+         oldBeamData.Beam:Destroy()
+         oldBeamData.Attachment0:Destroy()
+         oldBeamData.Attachment1:Destroy()
+      end
+   end
+
+   -- // Adjust beam transparency trail
+   local beamCount = #thrownWeaponData.Beams
+   if beamCount == 1 then
+      local newestBeam = thrownWeaponData.Beams[1]
+      newestBeam.Beam.Transparency = NumberSequence.new({
+         NumberSequenceKeypoint.new(0, 0),
+         NumberSequenceKeypoint.new(1, 1),
+      })
+      return
+   end
+
+   local transparencyBoundaries = table.create(beamCount + 1)
+   transparencyBoundaries[1] = 1
+
+   local interiorBoundaryCount = beamCount - 1
+   for boundaryIndex = 2, beamCount do
+      local progress = if interiorBoundaryCount <= 1 then 1 else ((boundaryIndex - 2) / (interiorBoundaryCount - 1))
+      transparencyBoundaries[boundaryIndex] = 1 - progress
+   end
+
+   transparencyBoundaries[beamCount + 1] = 1
+
+   for beamIndex, beamData in ipairs(thrownWeaponData.Beams) do
+      beamData.Beam.Transparency = NumberSequence.new({
+         NumberSequenceKeypoint.new(0, transparencyBoundaries[beamIndex]),
+         NumberSequenceKeypoint.new(1, transparencyBoundaries[beamIndex + 1]),
+      })
+   end
+end]]
+
+-- // Beam visuals
+-- Client-only; register a rendered position snapshot for the beam
+--[[local function _registerBeamSegment(thrownWeaponData: ThrownWeapons.Data, position: Vector3)
+   local history = thrownWeaponData.BeamSegmentHistory
+   if not history then
+      history = {}
+      thrownWeaponData.BeamSegmentHistory = history
+   end
+   table.insert(history, position)
+   if #history > GlobalConfig.MaximumIndividualWeaponBeamSegments then
+      table.remove(history, 1)
+   end
+end]]
+
+local function updateTrailOrientation(thrownWeaponData: ThrownWeapons.Data)
+	local positions = thrownWeaponData.LastMovementPositions
+	if not positions or #positions < 2 then
+		-- Not enough movement data yet; use the default orientation
+      print(`not enough positions`)
+		thrownWeaponData.TrailObject.Attachment0.Position = Vector3.new(-1, 0, 0)
+		thrownWeaponData.TrailObject.Attachment1.Position = Vector3.new(1, 0, 0)
+		return
+	end
+
+	local currentPosition = positions[#positions]
+	local previousPosition = positions[#positions - 1]
+
+	-- Direction the object is moving in, ignoring vertical movement
+	local movement = currentPosition - previousPosition
+	movement = Vector3.new(movement.X, 0, movement.Z)
+
+	if movement.Magnitude < 0.001 then
+		return
+	end
+
+	movement = movement.Unit
+
+	-- Get a direction perpendicular to the movement.
+	-- This gives us the width direction of the trail.
+	local perpendicular = Vector3.new(-movement.Z, 0, movement.X)
+
+	-- Position the attachments on either side of the object.
+	local width = 1
+
+	thrownWeaponData.TrailObject.Attachment0.Position = perpendicular * -width
+	thrownWeaponData.TrailObject.Attachment1.Position = perpendicular * width
+end
+
+-- // Add trail visual
+local function addTrail(thrownWeaponData: ThrownWeapons.Data)
+   -- Record position for purpose of trail orientation
+   local currentPosition = thrownWeaponData.CFrame.Position
+   if not thrownWeaponData.LastMovementPositions then
+      thrownWeaponData.LastMovementPositions = {}
+   end
+   table.insert(thrownWeaponData.LastMovementPositions, currentPosition)
+   if #thrownWeaponData.LastMovementPositions > 2 then
+      table.remove(thrownWeaponData.LastMovementPositions, 1)
+   end
+
+   if thrownWeaponData.TrailObject then
+      updateTrailOrientation(thrownWeaponData)
+      return
+   end
+
+   if isServer then
+      warn(`addTrail should only be called on the client`)
+      return
+   end
+   
+   -- Create a trail object
+   local trailHost = thrownWeaponData.Host
+
+   local attachment0 = Instance.new("Attachment")
+   attachment0.Parent = trailHost
+
+   local attachment1 = Instance.new("Attachment")
+   attachment1.Parent = trailHost
+
+   local trail = Instance.new("Trail")
+   trail.Attachment0 = attachment0
+   trail.Attachment1 = attachment1
+   trail.Parent = trailHost
+
+   trail.Lifetime = GlobalConfig.ThrownWeaponTrailLifetime
+
+   attachment0.Position = Vector3.new(-1, 0, 0)
+   attachment1.Position = Vector3.new(1, 0, 0)
+
+   trail.Transparency = NumberSequence.new({
+      NumberSequenceKeypoint.new(0, 0),
+      NumberSequenceKeypoint.new(1, 1)
+   })
+
+   thrownWeaponData.TrailObject = {
+      Trail = trail,
+      Attachment0 = attachment0,
+      Attachment1 = attachment1
+   }
+
+	updateTrailOrientation(thrownWeaponData)
+end
+
 local function getHorizontalDistance(fromPosition: Vector3, toPosition: Vector3): number
    local delta = Vector3.new(toPosition.X - fromPosition.X, 0, toPosition.Z - fromPosition.Z)
    return delta.Magnitude
@@ -119,6 +302,9 @@ local function setWeaponCFrame(thrownWeaponData: ThrownWeapons.Data, cframe: CFr
    local host = thrownWeaponData.Host
    if host and host.Parent then
       host:PivotTo(cframe)
+      addTrail(thrownWeaponData)
+     -- registerBeamSegment(thrownWeaponData, cframe.Position)
+      --addNewBeam(thrownWeaponData)
    end
 end
 
@@ -586,6 +772,18 @@ function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapo
    end
    thrownWeaponData.CFrame = nil
    ThrownWeapons.Data[player] = nil
+
+   if thrownWeaponData.TrailObject then
+      if thrownWeaponData.TrailObject.Trail and thrownWeaponData.TrailObject.Trail.Parent then
+         thrownWeaponData.TrailObject.Trail:Destroy()
+      end
+      if thrownWeaponData.TrailObject.Attachment0 and thrownWeaponData.TrailObject.Attachment0.Parent then
+         thrownWeaponData.TrailObject.Attachment0:Destroy()
+      end
+      if thrownWeaponData.TrailObject.Attachment1 and thrownWeaponData.TrailObject.Attachment1.Parent then
+         thrownWeaponData.TrailObject.Attachment1:Destroy()
+      end
+   end
 
    if shouldReattachLocally and ToolController then
       ToolController.finishToolThrow(player)
