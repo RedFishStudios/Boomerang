@@ -220,6 +220,10 @@ end
 
 -- // Add trail visual
 local function addTrail(thrownWeaponData: ThrownWeapons.Data)
+   if isServer then
+      return
+   end
+
    -- Record position for purpose of trail orientation
    local currentPosition = thrownWeaponData.CFrame.Position
    if not thrownWeaponData.LastMovementPositions then
@@ -232,11 +236,6 @@ local function addTrail(thrownWeaponData: ThrownWeapons.Data)
 
    if thrownWeaponData.TrailObject then
       updateTrailOrientation(thrownWeaponData)
-      return
-   end
-
-   if isServer then
-      warn(`addTrail should only be called on the client`)
       return
    end
    
@@ -568,6 +567,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          local partHost = ThrownWeaponReplicationPart:Clone()
          partHost.Name = `BoomerangReplication_{player.Name}`
          partHost.Position = startPosition
+         partHost.Transparency = 0
          partHost.Parent = WeaponsFolder
          thrownWeaponData.Host = partHost
       else
