@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
+local CharacterRenderLibrary = require(ReplicatedStorage.Shared.Library.CharacterRenderLibrary)
 
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 
@@ -28,7 +29,6 @@ local characterDescendantConnections: {[Player]: RBXScriptConnection} = {}
 local animationSyncConnections: {[Player]: RBXScriptConnection} = {}
 local characterDeathConnections: {[Player]: RBXScriptConnection} = {}
 local characterPositionOffsets: {[Player]: Vector3} = {}
-local referenceModels: {[Player]: Model} = {}
 local ragdollApplied: {[Player]: true} = {}
 
 -- // [authoritativeAnimationId]: [customCharacterAnimationTrack]
@@ -187,52 +187,30 @@ local function setAuthoritativeCharacterTransparency(player: Player, transparenc
 end
 
 -- // Create fabricated character model
-local function createCharacterModel(player: Player)
+local function createCharacterModel(player: Player, canYield: boolean?)
    creatingCharacterModels[player] = true
-	local userId = player.UserId
-   if userId <= 0 or userId == 817970896 then
-      local testUserIds = {7468812920, 3383554889, 2016889786, 331516, 2016889786}
-      userId = testUserIds[math.random(1, #testUserIds)]
+
+   local sourceModel: Model?
+   local localPlayer = Players.LocalPlayer
+   sourceModel = CharacterRenderLibrary.getReplicatedModelForPlayer(localPlayer, player.UserId)
+
+   if not sourceModel and canYield then
+      local elapsed = 0
+      repeat
+         elapsed += RunService.Heartbeat:Wait()
+         sourceModel = CharacterRenderLibrary.getReplicatedModelForPlayer(localPlayer, player.UserId)
+      until sourceModel or elapsed > 5
    end
 
-   local model
-   if referenceModels[player] then
-      -- Clone previously created model
-      model = referenceModels[player]:Clone()
-   else
-      -- Create new model
-      local success, description = pcall(function()
-		   return Players:GetHumanoidDescriptionFromUserIdAsync(userId)
-      end)
-
-      if not success then
-         warn("Failed to get description:", description)
-         creatingCharacterModels[player] = nil
-         lastCreationLoadFailure[player] = os.clock()
-         return
-      end
-
-      local success2
-      success2, model = pcall(function()
-         return Players:CreateHumanoidModelFromDescriptionAsync(
-            description,
-            Enum.HumanoidRigType.R15
-         )
-      end)
-
-      if not success2 then
-         warn("Failed to create model:", model)
-         creatingCharacterModels[player] = nil
-         lastCreationLoadFailure[player] = os.clock()
-         return
-      end
-
-      local customHumanoid = model:FindFirstChildOfClass("Humanoid")
-      customHumanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
-      customHumanoid.BreakJointsOnDeath = false
-	   model.Name = `{userId}_LocalModel`
-      referenceModels[player] = model:Clone()
+   if not sourceModel then
+      warn(`CharacterRenderController: Missing replicated model for player {player.Name} ({player.UserId})`)
+      creatingCharacterModels[player] = nil
+      lastCreationLoadFailure[player] = os.clock()
+      return
    end
+
+   local model = sourceModel:Clone()
+   model.Name = `{player.UserId}_LocalModel`
 
    task.spawn(function()
       local authorityHumanoid = player.Character:WaitForChild("Humanoid")
@@ -411,10 +389,10 @@ local function getCharacterModel(player: Player, canYield: boolean?): Model?
       end
    end
    if lastCreationLoadFailure[player] and os.clock() - lastCreationLoadFailure[player] < 2 then
-      print(`recently failed to create model for {player}, skipping creation`)
+      print(`recently failed to load replicated model for {player}, skipping creation`)
       return nil
    end
-   return createCharacterModel(player)
+   return createCharacterModel(player, canYield)
 end
 
 local function everyFrame(deltaTime)
