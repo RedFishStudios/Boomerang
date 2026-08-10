@@ -29,14 +29,14 @@ local Gamemodes: {
       CanRespawn = false,
       TimeLasts = 60
    },
-   ThrowBoomerang = {
+   --[[ThrowBoomerang = {
       Id = "ThrowBoomerang",
       Display = "Throw Boomerang",
       Subheader = "Throw the boomerang 5 times (test)",
       CanRespawn = true,
       TimeLasts = 60,
       --DashDisabled = true
-   },
+   },]]
 }
 
 return Gamemodes
