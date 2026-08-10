@@ -132,7 +132,6 @@ function RoundCyclingService.getNextGamemodeChoices(): {string}
 end
 
 function RoundCyclingService.setNextRound(roundTypeId: string, mapName: string)
-   iterateRoundId()
    GameStateLibrary.RoundStartingTasks:Execute("parallel")
 
    local roundType = Gamemodes[roundTypeId]
@@ -165,6 +164,8 @@ function RoundCyclingService.setNextRound(roundTypeId: string, mapName: string)
       roundDurationConnection = nil
    end
    roundDurationConnection = RunService.Heartbeat:Connect(updateRoundDuration)
+
+   iterateRoundId()
 end
 
 -------------------------------------------------------------------------------
@@ -227,18 +228,15 @@ function RoundCyclingService.init()
          IntermissionVotes = totalVotes,
       })
    end)
-
-   print(GameStateLibrary)
 end
 
 function RoundCyclingService.start()
    task.spawn(function()
       task.wait(2)
-      RoundCyclingService.setNextRound("Classic", "GenericD")
+      RoundCyclingService.setNextRound("Classic", "GenericE")
 	end)
 
    GameStateLibrary.RoundFinishedTasks:Add(function(winner: Player?, winMessage: string)
-      iterateRoundId()
       GameTeamService.beginIntermission()
 
       for _, player in pairs(game.Players:GetPlayers()) do

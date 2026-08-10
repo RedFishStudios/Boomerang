@@ -7,6 +7,7 @@ export type RoundType = {
    Subheader: string, -- for client display
    CanRespawn: boolean,
    TimeLasts: number,
+   StormClose: boolean?,
    DashDisabled: boolean?
 }
 
@@ -21,12 +22,14 @@ local Gamemodes: {
       Id = "Classic",
       Subheader = "Have the highest score when the timer runs out!",
       CanRespawn = true,
+      StormClose = true,
       TimeLasts = 60
    },
    Elimination = {
       Id = "Elimination",
       Subheader = "Eliminate all opponents to win!",
       CanRespawn = false,
+      StormClose = true,
       TimeLasts = 60
    },
    --[[ThrowBoomerang = {

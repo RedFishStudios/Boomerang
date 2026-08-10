@@ -13,26 +13,39 @@
 
 local StormCloseService = {}
 
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local ServerStorage = game:GetService("ServerStorage")
 
-local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
-local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
-local ProfileStore = require(ServerStorage.Packages.ProfileStore)
-local ProfileTemplate = require(ReplicatedStorage.Shared.Data.ProfileTemplate)
+local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
+local ArenaService = require(game.ServerStorage.Server.Core.ArenaService)
+local Gamemodes = require(ReplicatedStorage.Shared.Constants.Gamemodes)
+local Maps = require(ReplicatedStorage.Shared.Constants.Maps)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
-local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
-local CurrentGameState = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
+local StormCloseLibrary = require(ReplicatedStorage.Shared.Library.StormCloseLibrary)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
-local SHRINK_INTERVAL = 5
-local SHRINK_MULTIPLIER = 0.9
-local MAX_SHRINKS = 5
+local RECTANGLE_TWEEN_INFO = TweenInfo.new(
+	1, -- Duration
+	Enum.EasingStyle.Quad,
+	Enum.EasingDirection.Out
+)
+
+local PLAYER_DAMAGE_INTERVAL = 1
+local DAMAGE_AMOUNT = 10
+
+-- Seconds between each closure step, in order of closure steps
+local CLOSURE_INTERVALS = {
+   5,
+   5,
+   5,
+   5,
+   5,
+   5
+}
 
 -------------------------------------------------------------------------------
 -- TYPES
@@ -41,115 +54,184 @@ local MAX_SHRINKS = 5
 -- PRIVATE VARIABLES
 -------------------------------------------------------------------------------
 
-local visibleSafetyRadiusPart = Instance.new("Part")
-visibleSafetyRadiusPart.Name = "VisibleSafetyRadiusPart"
-visibleSafetyRadiusPart.Shape = Enum.PartType.Cylinder
-visibleSafetyRadiusPart.Size = Vector3.new(1, 500, 500)
-visibleSafetyRadiusPart.Orientation = Vector3.new(0, 0, 90)
-visibleSafetyRadiusPart.Anchored = true
-visibleSafetyRadiusPart.CanCollide = false
-visibleSafetyRadiusPart.CanQuery = false
-visibleSafetyRadiusPart.CanTouch = false
-visibleSafetyRadiusPart.Transparency = .8
-visibleSafetyRadiusPart.Material = Enum.Material.Neon
-visibleSafetyRadiusPart.Color = Color3.new(0.247059, 1, 0.74902)
-visibleSafetyRadiusPart.Parent = game.ReplicatedStorage.Shared.Assets
+local paused = false
 
-local currentStormCloseConnection: RBXScriptConnection? = nil
-local currentStormClosePart: BasePart? = nil
-local stormCloseElapsed = 0
-local stormCloseShrinkCount = 0
+local livingStormConnection: RBXScriptConnection? = nil
+local nextDamageAt: number? = nil
+
+local lastClosureStepTimestamp: number? = nil
+local lastClosureStepIndex: number? = nil
+
+local stormCloseRemote = SimpleRemotes.getEvent(StormCloseLibrary.REMOTE_EVENT_NAME)
+
+local stormState = {
+	centerPosition = Vector3.new(),
+	initialWidth = 0,
+	initialHeight = 0,
+	startWidth = 0,
+	startHeight = 0,
+	targetWidth = 0,
+	targetHeight = 0,
+	tweenStartTime = 0,
+	tweenDuration = RECTANGLE_TWEEN_INFO.Time,
+	currentWidth = 0,
+	currentHeight = 0,
+}
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
 -------------------------------------------------------------------------------
 
-local function updateStormClose(deltaTime: number)
-   local stormClosePart = currentStormClosePart
-   if not stormClosePart or not stormClosePart.Parent then
-      if currentStormCloseConnection then
-         currentStormCloseConnection:Disconnect()
-         currentStormCloseConnection = nil
-      end
-      currentStormClosePart = nil
-      stormCloseElapsed = 0
-      stormCloseShrinkCount = 0
-      return
-   end
-
-   stormCloseElapsed += deltaTime
-   if stormCloseElapsed < SHRINK_INTERVAL then
-      return
-   end
-
-   stormCloseElapsed -= SHRINK_INTERVAL
-   stormCloseShrinkCount += 1
-
-   stormClosePart.Size = Vector3.new(
-      stormClosePart.Size.X,
-      stormClosePart.Size.Y * SHRINK_MULTIPLIER,
-      stormClosePart.Size.Z * SHRINK_MULTIPLIER
-   )
-
-   if stormCloseShrinkCount >= MAX_SHRINKS then
-      stormClosePart:Destroy()
-      currentStormClosePart = nil
-
-      if currentStormCloseConnection then
-         currentStormCloseConnection:Disconnect()
-         currentStormCloseConnection = nil
-      end
-
-      stormCloseElapsed = 0
-      stormCloseShrinkCount = 0
-   end
-end
-
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
+
+local function disconnect()
+   if livingStormConnection then
+      livingStormConnection:Disconnect()
+      livingStormConnection = nil
+   end
+end
+
+local function clear()
+	stormCloseRemote:FireAllClients(StormCloseLibrary.REMOTE_ACTION_CLEAR)
+   disconnect()
+   lastClosureStepTimestamp = nil
+   lastClosureStepIndex = nil
+	nextDamageAt = nil
+	stormState.initialWidth = 0
+	stormState.initialHeight = 0
+	stormState.startWidth = 0
+	stormState.startHeight = 0
+	stormState.targetWidth = 0
+	stormState.targetHeight = 0
+	stormState.currentWidth = 0
+	stormState.currentHeight = 0
+end
+
+local function setStormTarget(newWidth: number, newHeight: number)
+	stormState.startWidth = stormState.currentWidth
+	stormState.startHeight = stormState.currentHeight
+	stormState.targetWidth = newWidth
+	stormState.targetHeight = newHeight
+	stormState.tweenStartTime = os.clock()
+	stormState.tweenDuration = RECTANGLE_TWEEN_INFO.Time
+	stormCloseRemote:FireAllClients(StormCloseLibrary.REMOTE_ACTION_SHIFT, newWidth, newHeight)
+end
+
+local function updateCurrentStormApproximation(now: number)
+	local alpha = StormCloseLibrary.getTweenAlpha(stormState.tweenStartTime, stormState.tweenDuration, now)
+	stormState.currentWidth, stormState.currentHeight = StormCloseLibrary.lerpDimensions(
+		stormState.startWidth,
+		stormState.startHeight,
+		stormState.targetWidth,
+		stormState.targetHeight,
+		alpha
+	)
+end
+
+local function damagePlayersOutsideStorm()
+	for _, player in ipairs(Players:GetPlayers()) do
+		local character = player.Character
+		if not character then
+			continue
+		end
+
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+		if not humanoid or humanoid.Health <= 0 then
+			continue
+		end
+
+		local rootPart = character:FindFirstChild("HumanoidRootPart")
+		if not rootPart or not rootPart:IsA("BasePart") then
+			continue
+		end
+
+		if not StormCloseLibrary.isPointInsideRectangle(rootPart.Position, stormState.centerPosition, stormState.currentWidth, stormState.currentHeight) then
+			humanoid:TakeDamage(DAMAGE_AMOUNT)
+		end
+	end
+end
+
+-- // Create rectangle of size
+local function createRectangle(x, y, centerPosition: Vector3?)
+	stormState.centerPosition = centerPosition or ArenaService.getCurrentArenaPosition() or Vector3.new()
+	stormState.initialWidth = x
+	stormState.initialHeight = y
+	stormState.startWidth = x
+	stormState.startHeight = y
+	stormState.targetWidth = x
+	stormState.targetHeight = y
+	stormState.currentWidth = x
+	stormState.currentHeight = y
+	stormState.tweenStartTime = os.clock()
+	stormState.tweenDuration = RECTANGLE_TWEEN_INFO.Time
+	stormCloseRemote:FireAllClients(StormCloseLibrary.REMOTE_ACTION_CREATE, stormState.centerPosition, x, y)
+end
 
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
-function StormCloseService.begin(centrepoint: Vector3)
-   local stormClosePart = visibleSafetyRadiusPart:Clone()
-   stormClosePart.Position = Vector3.new(centrepoint.X, GlobalConfig.BoomerangHeight, centrepoint.Z)
-   stormClosePart.Orientation = Vector3.new(0, 0, 90)
-   stormClosePart.Parent = workspace
-   stormClosePart.Size = Vector3.new(1, 500, 500)
-   stormClosePart.Transparency = 1
-   currentStormClosePart = stormClosePart
-   stormCloseElapsed = 0
-   stormCloseShrinkCount = 0
+function StormCloseService.begin(x, y)
+   clear()
+	local centerPosition: Vector3? = nil
+	local width = x
+	local height = y
 
-   if currentStormCloseConnection then
-      currentStormCloseConnection:Disconnect()
-      currentStormCloseConnection = nil
-   end
-   currentStormCloseConnection = RunService.Heartbeat:Connect(updateStormClose)
+	if typeof(x) == "Vector3" then
+		centerPosition = x
+		width = y or 100
+		height = y or 100
+	end
+
+	createRectangle(width, height, centerPosition)
+	nextDamageAt = os.clock() + PLAYER_DAMAGE_INTERVAL
+
+	livingStormConnection = RunService.Heartbeat:Connect(function(dt)
+      if paused then
+         return
+      end
+
+		local currentTime = os.clock()
+		updateCurrentStormApproximation(currentTime)
+
+		if nextDamageAt and currentTime >= nextDamageAt then
+			damagePlayersOutsideStorm()
+			nextDamageAt = currentTime + PLAYER_DAMAGE_INTERVAL
+		end
+
+      if lastClosureStepTimestamp and lastClosureStepIndex then
+         local elapsedTime = currentTime - lastClosureStepTimestamp
+         local interval = CLOSURE_INTERVALS[lastClosureStepIndex]
+         if not interval then
+            -- No more closure steps, storm boundary is minimally sized
+            return
+         end
+         if elapsedTime >= interval then
+            lastClosureStepIndex = lastClosureStepIndex + 1
+            lastClosureStepTimestamp = currentTime
+
+            local newX = math.max(0, x - (lastClosureStepIndex * 10))
+            local newY = math.max(0, y - (lastClosureStepIndex * 10))
+
+			setStormTarget(newX, newY)
+         end
+      else
+         -- Initialize closure step tracking
+         lastClosureStepIndex = 1
+         lastClosureStepTimestamp = currentTime
+      end
+   end)
 end
 
 function StormCloseService.teardown()
-   if currentStormCloseConnection then
-      currentStormCloseConnection:Disconnect()
-      currentStormCloseConnection = nil
-   end
-   if currentStormClosePart and currentStormClosePart.Parent then
-      currentStormClosePart:Destroy()
-   end
-   currentStormClosePart = nil
-   stormCloseElapsed = 0
-   stormCloseShrinkCount = 0
+   clear()
 end
 
--- // Disable further behavior without tearing down completely
-function StormCloseService.disable()
-   if currentStormCloseConnection then
-      currentStormCloseConnection:Disconnect()
-      currentStormCloseConnection = nil
-   end
+-- // Cease or resume closure motion without tearing down
+function StormCloseService.pause(newPaused: boolean)
+   paused = newPaused
 end
 
 -------------------------------------------------------------------------------
@@ -157,14 +239,43 @@ end
 -------------------------------------------------------------------------------
 
 function StormCloseService.init()
-end
+   local gameStateData = GameStateLibrary.getGameStateData()
+	Players.PlayerAdded:Connect(function(player)
+		if stormState.initialWidth <= 0 or stormState.initialHeight <= 0 then
+			return
+		end
 
-function StormCloseService.start()
-   CurrentGameState.RoundStartingTasks:Add(function()
+		stormCloseRemote:FireClient(player, StormCloseLibrary.REMOTE_ACTION_CREATE, stormState.centerPosition, stormState.currentWidth, stormState.currentHeight)
+	end)
+
+   gameStateData.CurrentRoundId:Subscribe(function(newRoundId)
+      warn(`change in round id detected`)
       StormCloseService.teardown()
-   end)
-   CurrentGameState.RoundFinishedTasks:Add(function()
-      StormCloseService.disable()
+
+      if newRoundId == nil then
+         warn(`no round id for storm close`)
+         return
+      end
+
+      local gamemode = gameStateData.Gamemode:Get()
+      if not gamemode then
+         warn(`no gamemode for round {gamemode}`)
+         return
+      end
+
+      local gamemodeData = Gamemodes[gamemode]
+      if not gamemodeData.StormClose then
+         warn(`no storm close for gamemode {gamemode}`)
+         return
+      end
+      
+      local mapId = gameStateData.CurrentMapName:Get()
+      local mapData = Maps[mapId]
+      if not mapData then
+      --   return
+      end
+
+      StormCloseService.begin(100, 100)
    end)
 end
 
