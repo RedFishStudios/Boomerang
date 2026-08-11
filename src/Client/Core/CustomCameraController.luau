@@ -67,16 +67,16 @@ CustomCameraController.Mode = "Overhead" :: "Overhead" | "Regular"
 -------------------------------------------------------------------------------
 
 -- // Get list of objects that should be included in view
-local function getImportantMapObjects(): {Instance?}
+local function getCameraFocusMapObjects(): {Instance?}
    local currentMap = MapFolder:FindFirstChildWhichIsA("Model")
    if not currentMap then
       return {}
    end
-   local Important = currentMap:FindFirstChild("Important")
-   if not Important then
+   local cameraFocusFolder = currentMap:FindFirstChild("CameraFocus")
+   if not cameraFocusFolder then
       return {}
    end
-   return Important:GetChildren()
+   return cameraFocusFolder:GetChildren()
 end
 
 -- // Get parameters for the Overhead camera to have these desired objects within its view
@@ -98,7 +98,7 @@ local function getAllSubjectsBoundingBox()
       end
    else
       -- Client is alive and in map
-      for i, p in pairs(getImportantMapObjects()) do
+      for i, p in pairs(getCameraFocusMapObjects()) do
          if p:IsA("BasePart") then
             table.insert(positions, p.Position)
             table.insert(sizes, p.Size)
