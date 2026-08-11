@@ -271,6 +271,28 @@ function ArenaService.getArenaModel(): Model?
    return arenaFolder:FindFirstChildWhichIsA("Model")
 end
 
+function ArenaService.getConfig(configName: string)
+   local currentArenaModel = arenaFolder:FindFirstChildWhichIsA("Model")
+   if not currentArenaModel then
+      warn(`No current arena model found to get config from: {configName}`)
+      return nil
+   end
+
+   local configFolder = currentArenaModel:FindFirstChild("Config")
+   if not configFolder then
+      warn(`Current arena model is missing Config folder: {configName}`)
+      return nil
+   end
+
+   local config = configFolder:FindFirstChild(configName)
+   if not config then
+      warn(`Current arena model is missing requested config: {configName}`)
+      return nil
+   end
+
+   return config
+end
+
 -------------------------------------------------------------------------------
 -- CORE FUNCTIONS
 -------------------------------------------------------------------------------
@@ -297,10 +319,23 @@ function ArenaService.init()
       local spawnpoints = c:FindFirstChild("SpawnPoints")
       if not spawnpoints then
          warn(`map {c.Name} is missing SpawnPoints folder`)
+      else
+         for _, c in pairs(spawnpoints:GetChildren()) do
+            if c:IsA("SpawnLocation") then
+               c.Duration = GlobalConfig.SpawnShieldDuration
+            end
+         end
       end
-      for _, c in pairs(spawnpoints:GetChildren()) do
-         if c:IsA("SpawnLocation") then
-            c.Duration = GlobalConfig.SpawnShieldDuration
+
+      local config = c:FindFirstChild("Config")
+      if not config then
+         warn(`map {c.Name} is missing Config folder`)
+      else
+         local stormclose = config:FindFirstChild("StormClose")
+         if not stormclose then
+            warn(`map {c.Name} is missing StormClose folder`)
+         else
+            stormclose.Transparency = 1
          end
       end
 

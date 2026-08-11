@@ -275,7 +275,13 @@ function StormCloseService.init()
       --   return
       end
 
-      StormCloseService.begin(100, 100)
+		local stormCloseConfigPart = ArenaService.getConfig("StormClose")
+		if not stormCloseConfigPart or not stormCloseConfigPart:IsA("BasePart") then
+			warn("StormCloseService: missing StormClose config BasePart")
+			return
+		end
+
+		StormCloseService.begin(stormCloseConfigPart.Size.X, stormCloseConfigPart.Size.Z)
    end)
 end
 

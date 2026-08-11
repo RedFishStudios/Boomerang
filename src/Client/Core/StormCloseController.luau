@@ -77,7 +77,7 @@ local function createWall(model: Model, name: string, size: Vector3, position: V
   attachment1.CFrame = CFrame.new(0, StormCloseLibrary.BEAM_HEIGHT, 0) * CFrame.Angles(math.rad(90), 0, math.rad(90))
 
   local beam = Instance.new("Beam")
-  beam.Color = ColorSequence.new(Color3.new(1, 1, 1))
+  beam.Color = ColorSequence.new(Color3.new(0.92549, 0.07451, 0.356863))
   beam.Attachment0 = attachment0
   beam.Attachment1 = attachment1
   beam.Parent = wall
