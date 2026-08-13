@@ -20,7 +20,8 @@ local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 -------------------------------------------------------------------------------
 
 type PlayerStats = {
-   Health: number
+   Health: number,
+   Speed: number -- TODO: incorporate with "Caffeinated" pickup
 }
 
 -------------------------------------------------------------------------------

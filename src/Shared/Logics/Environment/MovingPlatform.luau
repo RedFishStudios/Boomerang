@@ -269,13 +269,34 @@ local function beginRendering()
    end))
 end
 
-function MovingPlatform.onObjectAdded(platformFolder: Folder, _birth: number?)
-   local platform = platformFolder:FindFirstChild("Platform")
-   if not platform then
-      warn(`Moving platform folder missing Platform part: ${platformFolder.Name}`)
-      return
+function MovingPlatform.validate(functionalChild: Instance): boolean
+   if not functionalChild:IsA("Folder") then
+      warn(`Functional child of class 'MovingPlatform' is not a folder: {functionalChild.Name}`)
+      return false
    end
 
+   local platform = functionalChild:FindFirstChild("Platform")
+   if not platform or not platform:IsA("BasePart") then
+      warn(`Moving platform missing Platform part to represent the moving platform itself: {functionalChild.Name}`)
+      return false
+   end
+
+   local attributes: MovingPlatformAttributes = platform:GetAttributes()
+   if not attributes.Speed or not attributes.StartPivot or not attributes.EndPivot then
+      warn(`Moving platform missing required attributes: {functionalChild.Name}`)
+      warn(`Possessed attributes: {attributes.Speed}, {attributes.StartPivot}, {attributes.EndPivot}`)
+      return false
+   end
+
+   return true
+end
+
+function MovingPlatform.onObjectAdded(platformFolder: Folder, _birth: number?)
+   if platformFolder:GetAttribute("Invalid") then
+      warn(`skipping invalid moving platform folder: ${platformFolder.Name}`)
+      return
+   end
+   local platform = platformFolder:FindFirstChild("Platform")
    for _, data in pairs(platforms) do
       if data.Part == platform then
          warn(`Moving platform attempted duplicate registration: ${platform.Name}`)

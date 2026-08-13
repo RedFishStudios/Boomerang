@@ -75,6 +75,18 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
+function ArenaService.getPickupSpawns(): {BasePart}
+   local currentMap = ArenaService.getArenaModel()
+   if not currentMap then
+      return {}
+   end
+   local pickupSpawnsFolder = currentMap:FindFirstChild("Pickups")
+   if not pickupSpawnsFolder then
+      return {}
+   end
+   return pickupSpawnsFolder:GetChildren()
+end
+
 -- // Return set of map names that can be chosen from for voting
 function ArenaService.getAvailableMaps(forGamemode: string): {string}
    local availableMapNames = {}
@@ -302,6 +314,7 @@ function ArenaService.init()
 	for _, c in pairs(mapFolder:GetChildren()) do
       if not c:IsA("Model") then
          warn(`nonaccepted child in map folder: {c.Name}`)
+         c:Destroy()
          continue
       end
 
@@ -323,6 +336,18 @@ function ArenaService.init()
          for _, c in pairs(spawnpoints:GetChildren()) do
             if c:IsA("SpawnLocation") then
                c.Duration = GlobalConfig.SpawnShieldDuration
+            end
+         end
+      end
+
+      local pickups = c:FindFirstChild("Pickups")
+      if not pickups then
+         warn(`map {c.Name} is missing Pickup spawns folder`)
+      else
+         for _, c in pairs(pickups:GetChildren()) do
+            if c:IsA("BasePart") or c:IsA("Part") then
+               c.Transparency = 1
+               c.CanCollide = false
             end
          end
       end
