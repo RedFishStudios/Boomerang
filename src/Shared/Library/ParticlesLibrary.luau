@@ -34,9 +34,9 @@ local function getParticle(particleName: string): Part?
    return ParticleTemplates[particleName]
 end
 
-function ParticlesLibrary.play(particlePlayId: string, particleName: string, host: Instance | Vector3, startEmit: number?, particleLifetime: number?)
+function ParticlesLibrary.play(particlePlayId: string, particleName: string, host: Instance | Vector3, startEmit: number?, particleLifetime: number?, anchored: boolean?)
    if isServer then
-      PlayParticle:FireAllClients(particlePlayId, particleName, host, startEmit, particleLifetime)
+      PlayParticle:FireAllClients(particlePlayId, particleName, host, startEmit, particleLifetime, anchored)
       return
    end
    
@@ -71,6 +71,7 @@ function ParticlesLibrary.play(particlePlayId: string, particleName: string, hos
       return
    end
    particle.Parent = ParticlesFolder
+   particle.Anchored = anchored or false
 
    for _, d in pairs(particle:GetChildren()) do
       if d:IsA("ParticleEmitter") then

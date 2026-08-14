@@ -560,7 +560,7 @@ function Stab.activate(player: Player)
 
             local eventId = `{player.UserId}_vs_{victimPlayer.UserId}`
             SoundLibrary.play(eventId, Sounds.Data.Kill.Name, victimCharacter.PrimaryPart, nil, true)
-            ParticlesLibrary.emit(eventId, "Slash", victimCharacter.PrimaryPart.Position, 1)
+            ParticlesLibrary.emit(eventId, "Slash", victimCharacter.PrimaryPart.Position, 1, nil, true)
 
             local victimHumanoid = victimCharacter:FindFirstChildOfClass("Humanoid")
             if victimHumanoid and victimHumanoid.Health > 0 then
