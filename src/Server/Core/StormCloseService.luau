@@ -174,6 +174,10 @@ end
 -------------------------------------------------------------------------------
 
 function StormCloseService.begin(x, y)
+   if 1==1 then
+      warn(`cancelling storm close service, for testing`)
+      return
+   end
    clear()
    local gameStateData = GameStateLibrary.getGameStateData()
 

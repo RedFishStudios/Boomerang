@@ -23,6 +23,7 @@ local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
 local ParticlesLibrary = require(ReplicatedStorage.Shared.Library.ParticlesLibrary)
 local SoundLibrary = require(ReplicatedStorage.Shared.Library.SoundLibrary)
 local Sounds = require(ReplicatedStorage.Shared.Constants.Sounds)
+local PickupCancelCodeEnum = require(ReplicatedStorage.Shared.Constants.Enums.PickupCancelCodes)
 
 local isServer = RunService:IsServer()
 
@@ -62,26 +63,28 @@ end
 -------------------------------------------------------------------------------
 
 function CombatLibrary.attackHitPlayer(attacker: Player, attackerToolId: string?, victim: Player, victimHumanoid: Humanoid?, damageAmount: number)
-   print(`CombatLibrary.damagePlayer: attacker={attacker.Name}, attackerToolId={attackerToolId}, victim={victim.Name}, damageAmount={damageAmount}`)
+   warn(`damaged player called`)
+   local eventId = `{(if attacker then attacker.UserId else 0)}_vs_{victim.UserId}`
+
    if HitboxLibrary.isImmunized(victim) then
       print("CombatLibrary.damagePlayer: victim is immunized")
       return
    end
    local humanoid = victimHumanoid or getHumanoid(victim)
    if not humanoid then
+      print(`no humanoid found`)
       return
    end
    if PickupLibrary.hasPickupEffectActive(victim.UserId, "Shield") then
-      PickupLibrary.removePickupEffectActive(victim.UserId, "Shield")
-      if not isServer then
-         -- Client-side prediction: simulate shield destruction effect
+      warn(`COMBAT LIBRARY - SHIELD BROKEN`)
+      if isServer then
+         PickupLibrary.removePickupEffectActiveByClassId(victim.UserId, "Shield", PickupCancelCodeEnum.ShieldBroken, false)
       end
       return
    end
 
-   local eventId = `{(if attacker then attacker.UserId else 0)}_vs_{victim.UserId}_{tick()}`
    SoundLibrary.play(eventId, Sounds.Data.Kill.Name, victimHumanoid.Parent.PrimaryPart, nil, true)
-   ParticlesLibrary.emit(eventId, "Slash", victimHumanoid.Parent.PrimaryPart.Position, 1)
+   ParticlesLibrary.emit(eventId, "Slash", victimHumanoid.Parent.PrimaryPart.Position, nil)
 
    if isServer then
       humanoid:TakeDamage(damageAmount)

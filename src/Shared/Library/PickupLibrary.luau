@@ -20,7 +20,7 @@ export type LivePickupData = {
 }
 
 export type PickupEffectData = {
-   Id: string,
+   ClassId: string,
    EndsAt: number?
 }
 
@@ -38,9 +38,19 @@ export type LivePickupReplicationData = {
    Despawned: {LivePickupId}?
 }
 
+export type PickupEffectStateChangedReplicationData = {
+   clearAll: true?,
+   userId: number?,
+   livePickupId: LivePickupId?,
+   classId: PickupClassId?,
+   cancelCode: number?,
+   endsAt: number?,
+   active: boolean?
+}
+
 export type PickupLogic = {
-   -- Play on pickup. Returns [true if it is a long-lasting effect, ends at if it is a long-lasting effect]
-   onPickup: (player: Player, startedAt: number?) -> (boolean, number?),
+   -- Play on pickup. Returns [ends at timestamp if it is a generic long lasting effect]
+   onPickup: (player: Player, startedAt: number?) -> (number?),
    -- Play on end of an automated long-lasting effect
    onEnd: (player: Player) -> ()?,
    -- Simulate activation for other players besides the local player who picked it up. This is played by clients receiving a replication event for an item pickup by another player.
@@ -79,8 +89,21 @@ function PickupLibrary.setPickupEffectActive(userId: number, livePickupId: LiveP
       PickupLibrary.UserPickupEffectsActive[userId] = userEffects
    end
 
+   for livePickupIdToRemove, activePickupData in pairs(userEffects) do
+      if livePickupIdToRemove ~= livePickupId and activePickupData.ClassId == pickupClassId then
+         PickupLibrary.removePickupEffectActive(userId, livePickupIdToRemove, true)
+      end
+   end
+
+   -- removePickupEffectActive nils out the per-user table once it's emptied, so it must be re-linked
+   userEffects = PickupLibrary.UserPickupEffectsActive[userId]
+   if not userEffects then
+      userEffects = {}
+      PickupLibrary.UserPickupEffectsActive[userId] = userEffects
+   end
+
    local effectData = {
-      Id = pickupClassId,
+      ClassId = pickupClassId,
       EndsAt = endsAt,
    }
    userEffects[livePickupId] = effectData
@@ -89,20 +112,20 @@ function PickupLibrary.setPickupEffectActive(userId: number, livePickupId: LiveP
       pickupEffectStateChanged:FireAllClients({
          userId = userId,
          livePickupId = livePickupId,
-         pickupClassId = pickupClassId,
+         classId = pickupClassId,
          endsAt = endsAt,
          active = true,
       })
    end
 end
 
-function PickupLibrary.removePickupEffectActive(userId: number, livePickupId: LivePickupId?, doNotReplicate: boolean)
+function PickupLibrary.removePickupEffectActive(userId: number, livePickupId: LivePickupId, cancelCode: number?, doNotReplicate: boolean)
    local userEffects = PickupLibrary.UserPickupEffectsActive[userId]
    if not userEffects then
       return
    end
 
-   local removedEffectData = if livePickupId then userEffects[livePickupId] else nil
+   local pickupData = userEffects[livePickupId]
 
    if livePickupId then
       userEffects[livePickupId] = nil
@@ -116,16 +139,35 @@ function PickupLibrary.removePickupEffectActive(userId: number, livePickupId: Li
    if isServer and not doNotReplicate then
       pickupEffectStateChanged:FireAllClients({
          userId = userId,
+         classId = pickupData and pickupData.ClassId,
          livePickupId = livePickupId,
-         pickupClassId = if removedEffectData then removedEffectData.Id else nil,
-         endsAt = if removedEffectData then removedEffectData.EndsAt else nil,
+         cancelCode = cancelCode,
          active = false,
       })
    end
 end
 
+function PickupLibrary.removePickupEffectActiveByClassId(userId: number, pickupClassId: PickupClassId, cancelCode: number?, doNotReplicate: boolean)
+   local userEffects = PickupLibrary.UserPickupEffectsActive[userId]
+   if not userEffects then
+      return
+   end
+
+   for livePickupId, activePickupData in pairs(userEffects) do
+      if activePickupData.ClassId == pickupClassId then
+         PickupLibrary.removePickupEffectActive(userId, livePickupId, cancelCode, doNotReplicate)
+         return
+      end
+   end
+end
+
 function PickupLibrary.clearAllPickupEffectsActive()
    PickupLibrary.UserPickupEffectsActive = {}
+   if isServer then
+      pickupEffectStateChanged:FireAllClients({
+         clearAll = true,
+      })
+   end
 end
 
 function PickupLibrary.hasPickupEffectActive(userId: number, pickupClassId: PickupClassId): boolean
@@ -135,7 +177,7 @@ function PickupLibrary.hasPickupEffectActive(userId: number, pickupClassId: Pick
    end
 
    for _, activePickupData in pairs(userEffects) do
-      if activePickupData.Id == pickupClassId then
+      if activePickupData.ClassId == pickupClassId then
          return true
       end
    end

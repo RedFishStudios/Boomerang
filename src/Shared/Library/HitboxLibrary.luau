@@ -26,8 +26,8 @@ local immunized: {
 -------------------------------------------------------------------------------
 
 function HitboxLibrary.immunize(player: Player, source: string, id: any)
-   print("immunizing player", player.Name, "for source", source, "with id", id)
-      if not immunized[player] then
+   --print("immunizing player", player.Name, "for source", source, "with id", id)
+   if not immunized[player] then
       immunized[player] = {}
    end
    immunized[player][source] = id
@@ -47,7 +47,7 @@ function HitboxLibrary.unImmunize(player: Player, source: string, id: any)
 end
 
 function HitboxLibrary.isImmunized(player: Player)
-   print(player, immunized[player])
+   --print(player, immunized[player])
    if immunized[player] then
       return true
    end

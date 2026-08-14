@@ -9,6 +9,7 @@ local GlobalConfig = {
    AimFullStrength = 2.0,
    ForceEquippedTool = "ClassicBoomerang",
    ThrownWeaponTrailLifetime = .3,
+   ThrownWeaponHitCooldownSeconds = 3,
 
    MyBoomerangTrailColor = Color3.new(0.984314, 0.988235, 0.988235),
    EnemyBoomerangTrailColor = Color3.new(0.952941, 0.07451, 0.368627),
@@ -18,9 +19,9 @@ local GlobalConfig = {
 
    -- Use for debugging
    -- Enabling these can greatly increase lag or network traffic
-   RaycastVisualizersEnabled = true,
+   RaycastVisualizersEnabled = false,
    ProjectileHitboxVisualizerEnabled = false,
-   ParryVisualizersEnabled = true,
+   ParryVisualizersEnabled = false,
    SyncAbilitiesToEveryPlayer = false
 }
 

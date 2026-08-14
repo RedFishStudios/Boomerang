@@ -23,7 +23,7 @@ local Gamemodes: {
       Subheader = "Have the highest score when the timer runs out!",
       CanRespawn = true,
       StormClose = true,
-      TimeLasts = 60
+      TimeLasts = 1000
    },
    Elimination = {
       Id = "Elimination",

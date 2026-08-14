@@ -12,7 +12,7 @@ local isServer = RunService:IsServer()
 local TIME_LASTS = 5
 local SPEED_MULTIPLIER = 1.5
 
-function Speedup.onPickup(player: Player, startedAt: number?)
+function Speedup.onPickup(player: Player, startedAt: number?): number?
    local endsAt = (startedAt or workspace:GetServerTimeNow()) + TIME_LASTS
    if isServer then
       -- Server context
@@ -29,7 +29,7 @@ function Speedup.onPickup(player: Player, startedAt: number?)
       end
    end
 
-   return true, endsAt
+   return endsAt
 end
 
 function Speedup.onEnd(player: Player)
@@ -44,11 +44,12 @@ function Speedup.onEnd(player: Player)
    end
 end
 
-function Speedup.simulateActivation(userId: number, activationTime: number)
-   -- Client context
-   local player = game:GetService("Players"):GetPlayerByUserId(userId)
-   if player then
-      Speedup.onPickup(player, activationTime)
+function Speedup.simulateActivation(player: Player, activationTime: number): number?
+   if isServer then
+      warn(`simulate activation is only for client contexts`)
+      return false, nil
+   else
+      return Speedup.onPickup(player, activationTime)
    end
 end
 

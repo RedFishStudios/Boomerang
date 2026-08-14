@@ -28,6 +28,7 @@ export type Data = {
    ReuseEquippedHost: boolean?,
    ExistingHost: Model?,
    LastMovementPositions: {Vector3}?,
+   HitPlayers: {[Player]: number}?,
    TrailObject: {
       TrailHost: Part,
       Trail: Trail,

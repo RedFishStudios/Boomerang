@@ -525,21 +525,29 @@ local function isCameraObstructedToPoint(cameraPosition: Vector3, targetPosition
    return false
 end
 
-local function damagedPlayer(player: Player, boomerangId: string, victimModel: Model, throwServerTime: number): boolean
-   print(`damagedPlayer 1`)
+local function damagedPlayer(player: Player, boomerangId: string, thrownWeaponData: ThrownWeapons.Data, victimModel: Model): boolean
    local victimPlayer = game.Players:GetPlayerFromCharacter(victimModel)
-   print(victimModel)
-   print(victimModel.Parent)
-   print(victimPlayer)
    if not victimPlayer or victimPlayer == player then
       return false
    end
-   print(`damagedPlayer 2`)
+
    if not victimPlayer.Team or (victimPlayer.Team == player.Team and victimPlayer.Team:GetAttribute("FriendlyFire") ~= true) then
       return false
    end
-   
-   print(`damagedPlayer 3`)
+
+   if not thrownWeaponData.HitPlayers then
+      thrownWeaponData.HitPlayers = {}
+   end
+
+   local now = workspace:GetServerTimeNow()
+   local previousHitAt = thrownWeaponData.HitPlayers[victimPlayer]
+   local hitCooldownSeconds = GlobalConfig.ThrownWeaponHitCooldownSeconds or 3
+   if previousHitAt and (now - previousHitAt) < hitCooldownSeconds then
+      return false
+   end
+
+   thrownWeaponData.HitPlayers[victimPlayer] = now
+
    local Humanoid = victimModel:FindFirstChildOfClass("Humanoid")
    if Humanoid and Humanoid.Health > 0 then
       CombatLibrary.attackHitPlayer(player, boomerangId, victimPlayer, Humanoid, 100000)
@@ -740,7 +748,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       local victimModels = raycastWithHorizontalCharacterHitbox(rayOrigin, speed, direction, hitboxRadius)
       local playerDamaged = false
       for _, victimModel in ipairs(victimModels) do
-         if damagedPlayer(player, boomerangId, victimModel) then
+         if damagedPlayer(player, boomerangId, thrownWeaponData, victimModel) then
             playerDamaged = true
          end
       end

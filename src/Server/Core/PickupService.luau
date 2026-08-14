@@ -110,16 +110,11 @@ local function activatePickup(player: Player, livePickupId: LivePickupId, ...)
       return
    end
    PickupLibrary.LivePickups[livePickupId] = nil
-      
+
+   local endsAt = nil
    if logic.onPickup then
-      local longApplication, endsAt = logic.onPickup(player, ...)
-      if longApplication then
-         -- Replaces any prior effects of the same pickup class for this user.
-         for livePickupIdToRemove, activePickupData in pairs(PickupLibrary.UserPickupEffectsActive[player.UserId] or {}) do
-            if activePickupData.Id == pickupClassId then
-               PickupLibrary.removePickupEffectActive(player.UserId, livePickupIdToRemove)
-            end
-         end
+      endsAt = logic.onPickup(player, ...)
+      if endsAt then
          PickupLibrary.setPickupEffectActive(player.UserId, livePickupId, pickupClassId, endsAt)
       end
    end
@@ -141,10 +136,10 @@ function PickupService.triggerEnd(player: Player, pickupClassId: string)
       return
    end
    for livePickupId, activePickupData in pairs(userEffects) do
-      if activePickupData.Id == pickupClassId then
+      if activePickupData.ClassId == pickupClassId then
          PickupLibrary.removePickupEffectActive(player.UserId, livePickupId)
          PickupService.PickupEffectEndedTasks:Execute("parallel", player.UserId, livePickupId)
-         local logic = getLogic(activePickupData.Id)
+         local logic = getLogic(activePickupData.ClassId)
          if logic and logic.onEnd then
             logic.onEnd(player)
          end
@@ -181,7 +176,7 @@ function PickupService.init()
             local despawnTime = now + DESPAWN_TIME
             PickupLibrary.LivePickups[uuid] = {
                --ClassId = pickupClassId,
-               ClassId = "Speedup",
+               ClassId = "Shield",
                --DespawnsAt = despawnTime,
                Position = spawn.Position
             }
@@ -247,7 +242,7 @@ function PickupService.init()
          local despawnTime = now + DESPAWN_TIME
          PickupLibrary.LivePickups[uuid] = {
             --ClassId = pickupClassId,
-            ClassId = "Speedup",
+            ClassId = "Shield",
             DespawnsAt = despawnTime,
             Position = spawn.Position
          }
@@ -264,12 +259,13 @@ function PickupService.init()
       end
 
       -- Remove expired pickup effects
+      -- natural decay is simulated locally by each client via their own endsAt loop, so this removal must not replicate
       for userId, activePickups in pairs(PickupLibrary.UserPickupEffectsActive) do
          for livePickupId, activePickupData in pairs(activePickups) do
             if activePickupData.EndsAt and activePickupData.EndsAt <= now then
-               PickupLibrary.removePickupEffectActive(userId, livePickupId)
+               PickupLibrary.removePickupEffectActive(userId, livePickupId, nil, true)
                PickupService.PickupEffectEndedTasks:Execute("parallel", userId, livePickupId)
-               local logic = getLogic(activePickupData.Id)
+               local logic = getLogic(activePickupData.ClassId)
                if logic and logic.onEnd then
                   local player = Players:GetPlayerByUserId(userId)
                   if player then
@@ -318,24 +314,3 @@ end
 -- function PickupService.test() end
 
 return PickupService
-
---[[
-
-Fire effect
-> Players, boomerangs (or objects), or bots can be lit on fire
-> A thing that is On Fire leaves a trail of fire behind it
-> A player or bot is continually damaged while on fire
-
-A fire effect can apply to:
-   - Weapons
-   - Players/Bots
-
-While on fire:
-   - Players/bots take damage over time
-   - The object leaves a trail of fire behind it
-   - A decrementing 'Fire' value
-     - Invisible to players
-     - Decreases over time, decreases faster with dashing
-     - Does not decrease in time to not kill a player unless dashing
-
-]]
