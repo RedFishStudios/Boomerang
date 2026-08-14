@@ -74,6 +74,14 @@ local function createCharacterModelForPlayer(player: Player): Model?
 
    modelResult.Name = CharacterRenderLibrary.getModelNameForUserId(player.UserId)
 
+   for _, d in pairs(modelResult:GetDescendants()) do
+      if d:IsA("BasePart") then
+         d.CanCollide = false
+         d.CanTouch = false
+         d.CanQuery = false
+      end
+   end
+
    return modelResult
 end
 

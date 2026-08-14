@@ -526,21 +526,27 @@ local function isCameraObstructedToPoint(cameraPosition: Vector3, targetPosition
 end
 
 local function damagedPlayer(player: Player, boomerangId: string, victimModel: Model, throwServerTime: number): boolean
+   print(`damagedPlayer 1`)
    local victimPlayer = game.Players:GetPlayerFromCharacter(victimModel)
+   print(victimModel)
+   print(victimModel.Parent)
+   print(victimPlayer)
    if not victimPlayer or victimPlayer == player then
       return false
    end
-
+   print(`damagedPlayer 2`)
    if not victimPlayer.Team or (victimPlayer.Team == player.Team and victimPlayer.Team:GetAttribute("FriendlyFire") ~= true) then
       return false
    end
-
+   
+   print(`damagedPlayer 3`)
    local Humanoid = victimModel:FindFirstChildOfClass("Humanoid")
    if Humanoid and Humanoid.Health > 0 then
       CombatLibrary.attackHitPlayer(player, boomerangId, victimPlayer, Humanoid, 100000)
+      return true
    end
 
-   return true
+   return false
 end
 
 -- // Throw a boomerang onto the field

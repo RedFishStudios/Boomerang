@@ -14,10 +14,9 @@ local Sounds = require(ReplicatedStorage.Shared.Constants.Sounds)
 local HitboxLibrary = require(ReplicatedStorage.Shared.Library.HitboxLibrary)
 local ParticlesLibrary = require(ReplicatedStorage.Shared.Library.ParticlesLibrary)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
+local CombatLibrary = require(ReplicatedStorage.Shared.Library.CombatLibrary)
 
 local CameraController
-
-local CombatService
 
 -------------------------------------------------------------------------------
 -- LOCAL VARIABLES
@@ -49,7 +48,6 @@ local WeaponController
 local WeaponService
 if isServer then
    WeaponService = require(game.ServerStorage.Server.Core.WeaponService)
-   CombatService = require(game.ServerStorage.Server.Core.CombatService)
 else
    AnimationController = require(ReplicatedStorage.Client.Core.AnimationController)
    WeaponController = require(ReplicatedStorage.Client.Core.WeaponController)
@@ -536,13 +534,9 @@ function Stab.activate(player: Player)
             SoundLibrary.play(eventId, Sounds.Data.Kill.Name, victimCharacter.PrimaryPart, nil, true)
             ParticlesLibrary.emit(eventId, "Slash", victimCharacter.PrimaryPart.Position, 1)
 
-            if isServer then
-               local victimHumanoid = victimCharacter:FindFirstChildOfClass("Humanoid")
-               if victimHumanoid and victimHumanoid.Health > 0 then
-                  CombatService.damagePlayer(player, "Stab", victimPlayer, victimHumanoid, STAB_KILL_DAMAGE)
-               end
-            else
-               print(`clientside stab detected here`)
+            local victimHumanoid = victimCharacter:FindFirstChildOfClass("Humanoid")
+            if victimHumanoid and victimHumanoid.Health > 0 then
+               CombatLibrary.attackHitPlayer(player, "Stab", victimPlayer, victimHumanoid, STAB_KILL_DAMAGE)
             end
          end
       end

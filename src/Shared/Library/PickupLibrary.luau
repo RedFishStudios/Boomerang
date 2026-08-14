@@ -147,9 +147,9 @@ function PickupLibrary.getLivePickupCount(_now: number?)
    local count = 0
    local now = _now or workspace:GetServerTimeNow()
    for _, live in pairs(PickupLibrary.LivePickups) do
-      if now - live.DespawnsAt < 0 then
+      --if now - live.DespawnsAt < 0 then
          count += 1
-      end
+      --end
    end
    return count
 end

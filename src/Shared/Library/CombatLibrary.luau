@@ -62,6 +62,7 @@ end
 -------------------------------------------------------------------------------
 
 function CombatLibrary.attackHitPlayer(attacker: Player, attackerToolId: string?, victim: Player, victimHumanoid: Humanoid?, damageAmount: number)
+   print(`CombatLibrary.damagePlayer: attacker={attacker.Name}, attackerToolId={attackerToolId}, victim={victim.Name}, damageAmount={damageAmount}`)
    if HitboxLibrary.isImmunized(victim) then
       print("CombatLibrary.damagePlayer: victim is immunized")
       return
@@ -77,16 +78,16 @@ function CombatLibrary.attackHitPlayer(attacker: Player, attackerToolId: string?
       end
       return
    end
+
+   local eventId = `{(if attacker then attacker.UserId else 0)}_vs_{victim.UserId}_{tick()}`
+   SoundLibrary.play(eventId, Sounds.Data.Kill.Name, victimHumanoid.Parent.PrimaryPart, nil, true)
+   ParticlesLibrary.emit(eventId, "Slash", victimHumanoid.Parent.PrimaryPart.Position, 1)
+
    if isServer then
       humanoid:TakeDamage(damageAmount)
       if attacker and attackerToolId then
          CombatLibrary.PlayerKilledPlayerTasks:Execute("parallel", attacker, victim, attackerToolId)
       end
-   else
-      -- Client-side prediction: simulate attack damage effect
-      local eventId = `{(if attacker then attacker.UserId else 0)}_vs_{victim.UserId}_{tick()}`
-      SoundLibrary.play(eventId, Sounds.Data.Kill.Name, victimHumanoid.Parent.PrimaryPart, nil, true)
-      ParticlesLibrary.emit(eventId, "Slash", victimHumanoid.Parent.PrimaryPart.Position, 1)
    end
 end
 

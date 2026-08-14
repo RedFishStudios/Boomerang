@@ -2,7 +2,7 @@
 	<Meta name="ExplicitAutoJoints">true</Meta>
 	<External>null</External>
 	<External>nil</External>
-	<Item class="MeshPart" referent="RBX2C5D69B29DE44977BAA4B453ABDEA33A">
+	<Item class="MeshPart" referent="RBX1974920513DE4222B8A31F60DF6928F7">
 		<Properties>
 			<bool name="DoubleSided">true</bool>
 			<bool name="HasJointOffset">false</bool>
@@ -136,7 +136,7 @@
 			<int64 name="SourceAssetId">-1</int64>
 			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 		</Properties>
-		<Item class="ParticleEmitter" referent="RBX3F58875F432A4D29AD4869B2DFFC68AB">
+		<Item class="ParticleEmitter" referent="RBX6FBEEEFB12394DF6B4404130B74600F5">
 			<Properties>
 				<Vector3 name="Acceleration">
 					<X>0</X>

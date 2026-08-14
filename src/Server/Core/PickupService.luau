@@ -306,7 +306,6 @@ function PickupService.init()
          
          for livePickupId, livePickup in pairs(PickupLibrary.LivePickups) do
             if ((position - livePickup.Position)*Vector3.new(1, 0, 1)).Magnitude <= PickupLibrary.PICKUP_DISTANCE then
-               print(`activate pickup!`)
                activatePickup(p, livePickupId)
             end
          end
@@ -322,8 +321,21 @@ return PickupService
 
 --[[
 
-Round ends =
-   Destroy all previous pickup objects
-   Remove all pickup abilities active on players
+Fire effect
+> Players, boomerangs (or objects), or bots can be lit on fire
+> A thing that is On Fire leaves a trail of fire behind it
+> A player or bot is continually damaged while on fire
+
+A fire effect can apply to:
+   - Weapons
+   - Players/Bots
+
+While on fire:
+   - Players/bots take damage over time
+   - The object leaves a trail of fire behind it
+   - A decrementing 'Fire' value
+     - Invisible to players
+     - Decreases over time, decreases faster with dashing
+     - Does not decrease in time to not kill a player unless dashing
 
 ]]

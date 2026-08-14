@@ -85,7 +85,7 @@ local function removeWeaponWeld(model: Model)
 end
 
 local function attachToolModelToCharacter(player: Player, character: Model, toolModel: Model)
-   print(`ToolController: Attaching tool model {toolModel.Name} to character {character.Name} for player {player.Name}`)
+   --print(`ToolController: Attaching tool model {toolModel.Name} to character {character.Name} for player {player.Name}`)
 	if not character or not character.Parent then
       warn(`no character`)
 		return false
@@ -120,7 +120,7 @@ local function attachToolModelToCharacter(player: Player, character: Model, tool
 	motor.Parent = handle
 	--setupMotorC0Observer(player, toolModel, motor)
 
-   print(toolModel)
+   --print(toolModel)
 
    ToolController.applyHighlight(false)
 	return true
