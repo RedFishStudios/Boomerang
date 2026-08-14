@@ -40,7 +40,17 @@ local SPAWN_INTERVAL = 5
 local lastSpawn = 0
 
 local DESPAWN_TIME = 8
-local MAX_LIVE_PICKUPS = 3
+
+local maxLivePickupsPerPlayerCount = {
+   [1] = 1,
+   [2] = 1,
+   [3] = 1,
+   [4] = 2,
+   [5] = 2,
+   [6] = 3,
+   [7] = 3,
+   [8] = 4
+}
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -51,6 +61,11 @@ PickupService.PickupEffectEndedTasks = TasksList.new() :: TasksList.TasksList<(f
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
+
+local function getMaxLivePickups(): number
+   local playerCount = #Players:GetPlayers()
+   return maxLivePickupsPerPlayerCount[playerCount] or 0
+end
 
 local function getLogic(pickupClassId: PickupClassId)
 	if not PickupLogicModules[pickupClassId] then
@@ -166,7 +181,7 @@ function PickupService.init()
             local despawnTime = now + DESPAWN_TIME
             PickupLibrary.LivePickups[uuid] = {
                --ClassId = pickupClassId,
-               ClassId = "Caffeinated",
+               ClassId = "Speedup",
                --DespawnsAt = despawnTime,
                Position = spawn.Position
             }
@@ -202,7 +217,7 @@ function PickupService.init()
 
       -- Spawn new pickups
       -- Note: Do this before despawns so that new spawns don't immediately consume a released spawn point
-      if now - lastSpawn >= SPAWN_INTERVAL and PickupLibrary.getLivePickupCount() < MAX_LIVE_PICKUPS then
+      if now - lastSpawn >= SPAWN_INTERVAL and PickupLibrary.getLivePickupCount() < getMaxLivePickups() then
          lastSpawn = now
          local pickupSpawns = ArenaService.getPickupSpawns()
          if #pickupSpawns == 0 then
@@ -232,7 +247,7 @@ function PickupService.init()
          local despawnTime = now + DESPAWN_TIME
          PickupLibrary.LivePickups[uuid] = {
             --ClassId = pickupClassId,
-            ClassId = "Caffeinated",
+            ClassId = "Speedup",
             DespawnsAt = despawnTime,
             Position = spawn.Position
          }

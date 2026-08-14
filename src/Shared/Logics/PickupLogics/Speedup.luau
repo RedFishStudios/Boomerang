@@ -1,4 +1,4 @@
-local Caffeinated = {}
+local Speedup = {}
 
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,7 +12,7 @@ local isServer = RunService:IsServer()
 local TIME_LASTS = 5
 local SPEED_MULTIPLIER = 1.5
 
-function Caffeinated.onPickup(player: Player, startedAt: number?)
+function Speedup.onPickup(player: Player, startedAt: number?)
    local endsAt = (startedAt or workspace:GetServerTimeNow()) + TIME_LASTS
    if isServer then
       -- Server context
@@ -32,7 +32,7 @@ function Caffeinated.onPickup(player: Player, startedAt: number?)
    return true, endsAt
 end
 
-function Caffeinated.onEnd(player: Player)
+function Speedup.onEnd(player: Player)
    if isServer then
       -- Server context
       local character = player.Character
@@ -44,12 +44,12 @@ function Caffeinated.onEnd(player: Player)
    end
 end
 
-function Caffeinated.simulateActivation(userId: number, activationTime: number)
+function Speedup.simulateActivation(userId: number, activationTime: number)
    -- Client context
    local player = game:GetService("Players"):GetPlayerByUserId(userId)
    if player then
-      Caffeinated.onPickup(player, activationTime)
+      Speedup.onPickup(player, activationTime)
    end
 end
 
-return Caffeinated :: PickupLibrary.PickupLogic
+return Speedup :: PickupLibrary.PickupLogic
