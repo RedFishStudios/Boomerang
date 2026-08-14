@@ -28,12 +28,14 @@ end
 local function createCharacterModelForPlayer(player: Player): Model?
    task.wait(math.random() * 0.5) -- Random wait to avoid hammering the API if multiple players join at once
 
+   local sourceUserId = CharacterRenderLibrary.getCharacterSourceUserId(player.UserId)
+
    local descriptionSuccess, descriptionResult 
    local descriptionAttempts = 0
    while not descriptionSuccess and descriptionAttempts < 5 do
       descriptionAttempts = descriptionAttempts + 1
       descriptionSuccess, descriptionResult = pcall(function()
-         return Players:GetHumanoidDescriptionFromUserIdAsync(player.UserId)
+         return Players:GetHumanoidDescriptionFromUserIdAsync(sourceUserId)
       end)
       if not descriptionSuccess then
          warn(`CharacterRenderService: Failed to load HumanoidDescription for {player.Name} ({player.UserId}): {descriptionResult}`)
@@ -96,9 +98,6 @@ local function ensureReplicatedCharacterForPlayer(player: Player)
    end
 
    local userId = player.UserId
-   if userId <= 0 then
-      return
-   end
 
    local starterReplicationFolder = CharacterRenderLibrary.getOrCreateStarterReplicationFolder()
    local existingStarterModel = CharacterRenderLibrary.getReplicatedModelFromFolder(starterReplicationFolder, userId)

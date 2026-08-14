@@ -190,15 +190,22 @@ end
 local function createCharacterModel(player: Player, canYield: boolean?)
    creatingCharacterModels[player] = true
 
+   local sourceUserId = CharacterRenderLibrary.getCharacterSourceUserId(player.UserId)
    local sourceModel: Model?
    local localPlayer = Players.LocalPlayer
    sourceModel = CharacterRenderLibrary.getReplicatedModelForPlayer(localPlayer, player.UserId)
+   if not sourceModel then
+      sourceModel = CharacterRenderLibrary.getReplicatedModelForPlayer(localPlayer, sourceUserId)
+   end
 
    if not sourceModel and canYield then
       local elapsed = 0
       repeat
          elapsed += RunService.Heartbeat:Wait()
          sourceModel = CharacterRenderLibrary.getReplicatedModelForPlayer(localPlayer, player.UserId)
+         if not sourceModel then
+            sourceModel = CharacterRenderLibrary.getReplicatedModelForPlayer(localPlayer, sourceUserId)
+         end
       until sourceModel or elapsed > 5
    end
 

@@ -8,6 +8,15 @@ local StarterGui = game:GetService("StarterGui")
 
 CharacterRenderLibrary.CHARACTER_REPLICATION_FOLDER_NAME = "CharacterReplication"
 
+local TEST_CHARACTER_USER_IDS = {
+   817970896,
+   2722681535,
+   331516,
+   7468812920,
+   162613945,
+   1484913853,
+}
+
 local DEFAULT_PLAYER_GUI_WAIT_TIMEOUT = 10
 
 -------------------------------------------------------------------------------
@@ -34,6 +43,17 @@ end
 
 function CharacterRenderLibrary.getModelNameForUserId(userId: number): string
    return tostring(userId)
+end
+
+function CharacterRenderLibrary.getCharacterSourceUserId(userId: number): number
+   if userId == 817970896 or userId <= 0 then
+      local index = math.abs(userId) % #TEST_CHARACTER_USER_IDS
+      if index == 0 then
+         index = #TEST_CHARACTER_USER_IDS
+      end
+      return TEST_CHARACTER_USER_IDS[index]
+   end
+   return userId
 end
 
 function CharacterRenderLibrary.getReplicatedModelFromFolder(replicationFolder: Folder, userId: number): Model?
