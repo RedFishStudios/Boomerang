@@ -1,6 +1,7 @@
 local PickupService = {}
 
 local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
 
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -32,15 +33,6 @@ type LivePickupId = PickupLibrary.LivePickupId
 local requestUsePickup = SimpleRemotes.getEvent("PickupUsed")
 local pickupReplication = SimpleRemotes.getUnreliableEvent("PickupReplication")
 local livePickupReplication = SimpleRemotes.getEvent("LivePickupReplication")
-
-local UserPickupEffectsActive: {
-   [number]: {
-      [LivePickupId]: {
-         Id: PickupClassId,
-         EndsAt: number?
-      }
-   }
-} = {}
 
 local pickupClasses: {PickupClassId} = {}
 
@@ -79,11 +71,13 @@ end
 local function activatePickup(player: Player, livePickupId: LivePickupId, ...)
    local livePickup = PickupLibrary.getLivePickup(livePickupId)
    if not livePickup then
+      print(`canceling pickup activation: live pickup {livePickupId} not found`)
       return
    end
    local position = livePickup.Position
    local character = player.Character
    if not character then
+      print(`canceling pickup activation: player {player.Name} has no character`)
       return
    end
    if ((character.PrimaryPart.Position - position)*Vector3.new(1, 0, 1)).Magnitude > 5 then
@@ -100,20 +94,22 @@ local function activatePickup(player: Player, livePickupId: LivePickupId, ...)
       warn(`PickupService.activatePickup: Player {player.Name} cannot activate pickup {pickupClassId}`)
       return
    end
+   PickupLibrary.LivePickups[livePickupId] = nil
       
-   if logic.activate then
-      local longApplication, endsAt = logic.activate(player, ...)
+   if logic.onPickup then
+      local longApplication, endsAt = logic.onPickup(player, ...)
       if longApplication then
-         if not UserPickupEffectsActive[player.UserId] then
-            UserPickupEffectsActive[player.UserId] = {}
+         -- Replaces any prior effects of the same pickup class for this user.
+         for livePickupIdToRemove, activePickupData in pairs(PickupLibrary.UserPickupEffectsActive[player.UserId] or {}) do
+            if activePickupData.Id == pickupClassId then
+               PickupLibrary.removePickupEffectActive(player.UserId, livePickupIdToRemove)
+            end
          end
-         UserPickupEffectsActive[player.UserId][livePickupId] = {
-            Id = pickupClassId,
-            EndsAt = endsAt
-         }
+         PickupLibrary.setPickupEffectActive(player.UserId, livePickupId, pickupClassId, endsAt)
       end
-      pickupReplication:FireAllClients(pickupClassId, player.UserId, workspace:GetServerTimeNow())
    end
+
+   pickupReplication:FireAllClients(livePickupId, pickupClassId, player.UserId, workspace:GetServerTimeNow())
 end
 
 -------------------------------------------------------------------------------
@@ -121,16 +117,24 @@ end
 -------------------------------------------------------------------------------
 
 function PickupService.hasPickupEffectActive(player: Player, pickupClassId: string)
-   local userEffects = UserPickupEffectsActive[player.UserId]
+   return PickupLibrary.hasPickupEffectActive(player.UserId, pickupClassId)
+end
+
+function PickupService.triggerEnd(player: Player, pickupClassId: string)
+   local userEffects = PickupLibrary.UserPickupEffectsActive[player.UserId]
    if not userEffects then
-      return false
+      return
    end
-   for _, activePickupId in pairs(userEffects) do
-      if activePickupId == pickupClassId then
-         return true
+   for livePickupId, activePickupData in pairs(userEffects) do
+      if activePickupData.Id == pickupClassId then
+         PickupLibrary.removePickupEffectActive(player.UserId, livePickupId)
+         PickupService.PickupEffectEndedTasks:Execute("parallel", player.UserId, livePickupId)
+         local logic = getLogic(activePickupData.Id)
+         if logic and logic.onEnd then
+            logic.onEnd(player)
+         end
       end
    end
-   return false
 end
 
 -------------------------------------------------------------------------------
@@ -145,7 +149,7 @@ function PickupService.init()
       PickupLibrary.LivePickups = {}
 
       -- Remove all pickup abilities active on players
-      UserPickupEffectsActive = {}
+      PickupLibrary.clearAllPickupEffectsActive()
 
       -- Spawn new pickups
       task.spawn(function()
@@ -161,8 +165,9 @@ function PickupService.init()
             local uuid = HttpService:GenerateGUID(false)
             local despawnTime = now + DESPAWN_TIME
             PickupLibrary.LivePickups[uuid] = {
-               ClassId = pickupClassId,
-               DespawnsAt = despawnTime,
+               --ClassId = pickupClassId,
+               ClassId = "Caffeinated",
+               --DespawnsAt = despawnTime,
                Position = spawn.Position
             }
          end
@@ -175,16 +180,16 @@ function PickupService.init()
          for livePickupId, livePickup in pairs(PickupLibrary.LivePickups) do
             replicationData.Spawned[livePickupId] = {
                Position = livePickup.Position,
-               DespawnsAt = livePickup.DespawnsAt
+               --DespawnsAt = livePickup.DespawnsAt
             }
          end
          livePickupReplication:FireAllClients(replicationData)
       end)
    end)
 
-   requestUsePickup.OnServerEvent:Connect(function(player: Player, livePickupId: LivePickupId, ...)
-      activatePickup(player, livePickupId, ...)
-   end)
+   --requestUsePickup.OnServerEvent:Connect(function(player: Player, livePickupId: LivePickupId, ...)
+   --   activatePickup(player, livePickupId, ...)
+   --end)
 
    for _, module in pairs(PickupLogics:GetChildren()) do
       local pickupId = module.Name
@@ -226,7 +231,8 @@ function PickupService.init()
          local uuid = HttpService:GenerateGUID(false)
          local despawnTime = now + DESPAWN_TIME
          PickupLibrary.LivePickups[uuid] = {
-            ClassId = pickupClassId,
+            --ClassId = pickupClassId,
+            ClassId = "Caffeinated",
             DespawnsAt = despawnTime,
             Position = spawn.Position
          }
@@ -242,8 +248,26 @@ function PickupService.init()
          livePickupReplication:FireAllClients(replicationData)
       end
 
+      -- Remove expired pickup effects
+      for userId, activePickups in pairs(PickupLibrary.UserPickupEffectsActive) do
+         for livePickupId, activePickupData in pairs(activePickups) do
+            if activePickupData.EndsAt and activePickupData.EndsAt <= now then
+               PickupLibrary.removePickupEffectActive(userId, livePickupId)
+               PickupService.PickupEffectEndedTasks:Execute("parallel", userId, livePickupId)
+               local logic = getLogic(activePickupData.Id)
+               if logic and logic.onEnd then
+                  local player = Players:GetPlayerByUserId(userId)
+                  if player then
+                     logic.onEnd(player)
+                  end
+               end
+            end
+         end
+      end
+
       -- Despawn expired live pickups
-      for livePickupId, livePickup in pairs(PickupLibrary.LivePickups) do
+      --[[for livePickupId, livePickup in pairs(PickupLibrary.LivePickups) do
+         -- man idk if pickups even need to be despawned. they probably dont.
          if livePickup.DespawnsAt <= now then
             PickupLibrary.LivePickups[livePickupId] = nil
             -- Replicate
@@ -252,14 +276,23 @@ function PickupService.init()
             }
             livePickupReplication:FireAllClients(replicationData)
          end
-      end
+      end]]
 
-      -- Remove expired pickup effects
-      for userId, activePickups in pairs(UserPickupEffectsActive) do
-         for livePickupId, activePickupData in pairs(activePickups) do
-            if activePickupData.EndsAt and activePickupData.EndsAt <= now then
-               UserPickupEffectsActive[userId][livePickupId] = nil
-               PickupService.PickupEffectEndedTasks:run(userId, livePickupId)
+      for _, p in pairs(Players:GetPlayers()) do
+         local character = p.Character
+         if not character then
+            continue
+         end
+         local primaryPart = character.PrimaryPart
+         if not primaryPart then
+            continue
+         end
+         local position = primaryPart.Position
+         
+         for livePickupId, livePickup in pairs(PickupLibrary.LivePickups) do
+            if ((position - livePickup.Position)*Vector3.new(1, 0, 1)).Magnitude <= PickupLibrary.PICKUP_DISTANCE then
+               print(`activate pickup!`)
+               activatePickup(p, livePickupId)
             end
          end
       end

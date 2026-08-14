@@ -98,6 +98,7 @@ local CurrentGameStateData: CurrentGameStateDataType = {
 
 GameStateLibrary.RoundStartingTasks = TasksList.new()
 GameStateLibrary.RoundFinishedTasks = TasksList.new() :: TasksList.TasksList<RoundFinishedTask>
+GameStateLibrary.LobbyIntermissionStartedTasks = TasksList.new()
 GameStateLibrary.GameStateSnapshotLoadedTasks = TasksList.new() :: TasksList.TasksList<SnapshotLoadedTask>
 
 local replicatedFieldNames = table.freeze({

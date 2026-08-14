@@ -20,14 +20,14 @@ local ParticlesLibrary = require(ReplicatedStorage.Shared.Library.ParticlesLibra
 local Sounds = require(ReplicatedStorage.Shared.Constants.Sounds)
 local HitboxLibrary = require(ReplicatedStorage.Shared.Library.HitboxLibrary)
 local GameTeamLibrary = require(ReplicatedStorage.Shared.Library.GameTeamLibrary)
+local CombatLibrary = require(ReplicatedStorage.Shared.Library.CombatLibrary)
 local HttpService = game:GetService("HttpService")
 
 local AnimationController
 
 -- // Context-Specific Modules
-local CombatService, WeaponService, ToolController
+local WeaponService, ToolController
 if isServer then
-   CombatService = require(game.ServerStorage.Server.Core.CombatService)
    WeaponService = require(game.ServerStorage.Server.Core.WeaponService)
 else
    ToolController = require(ReplicatedStorage.Client.Core.ToolController)
@@ -535,23 +535,9 @@ local function damagedPlayer(player: Player, boomerangId: string, victimModel: M
       return false
    end
 
-   if HitboxLibrary.isImmunized(victimPlayer, "Dash") then
-      return false
-   end
-
-   local eventId = `{player.UserId}_vs_{victimPlayer.UserId}_{throwServerTime}`
-   SoundLibrary.play(eventId, Sounds.Data.Kill.Name, victimModel.PrimaryPart, nil, true)
-   ParticlesLibrary.emit(eventId, "Slash", victimModel.PrimaryPart.Position, 1)
-
-   if isServer then
-      -- Server boomerang hit context
-      local Humanoid = victimModel:FindFirstChildOfClass("Humanoid")
-      if Humanoid and Humanoid.Health > 0 then
-         CombatService.damagePlayer(player, boomerangId, victimPlayer, Humanoid, 100000)
-      end
-   else
-      -- Client boomerang hit context
-      --..
+   local Humanoid = victimModel:FindFirstChildOfClass("Humanoid")
+   if Humanoid and Humanoid.Health > 0 then
+      CombatLibrary.attackHitPlayer(player, boomerangId, victimPlayer, Humanoid, 100000)
    end
 
    return true

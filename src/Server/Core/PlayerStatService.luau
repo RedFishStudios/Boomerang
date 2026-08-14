@@ -19,16 +19,9 @@ local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
-type PlayerStats = {
-   Health: number,
-   Speed: number -- TODO: incorporate with "Caffeinated" pickup
-}
-
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
 -------------------------------------------------------------------------------
-
-local PlayerLiveStats: {[Player]: PlayerStats} = {}
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS

@@ -70,7 +70,7 @@ local function createWall(model: Model, name: string, size: Vector3, position: V
 
   local attachment0 = Instance.new("Attachment")
   attachment0.Parent = wall
-  attachment0.CFrame = CFrame.new(0, -.01, 0) * CFrame.Angles(math.rad(90), 0, math.rad(90))
+  attachment0.CFrame = CFrame.new(0, -StormCloseLibrary.BEAM_HEIGHT/2, 0) * CFrame.Angles(math.rad(90), 0, math.rad(90))
 
   local attachment1 = Instance.new("Attachment")
   attachment1.Parent = wall

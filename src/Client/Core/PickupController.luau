@@ -43,6 +43,7 @@ local livePickupVisuals: {[string]: Instance} = {}
 local function destroy(livePickupId: string)
    PickupLibrary.LivePickups[livePickupId] = nil
    if livePickupVisuals[livePickupId] then
+      print(`destroying visual`)
       livePickupVisuals[livePickupId]:Destroy()
       livePickupVisuals[livePickupId] = nil
    end
@@ -83,8 +84,11 @@ end
 -------------------------------------------------------------------------------
 
 function PickupController.init()
-   pickupReplication.OnClientEvent:Connect(function(pickupId: string, userId: number, timestamp: number)
-      if userId == localPlayer.UserId or typeof(timestamp) ~= "number" then
+   pickupReplication.OnClientEvent:Connect(function(livePickupId: string, pickupId: string, userId: number, timestamp: number)
+      print(`received: livePickupId: {livePickupId}, pickupId: {pickupId}, userId: {userId}, timestamp: {timestamp}`)
+      destroy(livePickupId)
+
+      if userId == localPlayer.UserId then
          return
       end
 
@@ -110,7 +114,7 @@ function PickupController.init()
 
             PickupLibrary.LivePickups[livePickupId] = {
                --ClassId = livePickup.ClassId,
-               DespawnsAt = livePickup.DespawnsAt,
+               --DespawnsAt = livePickup.DespawnsAt,
                Position = livePickup.Position
             }
 
@@ -137,9 +141,9 @@ function PickupController.init()
    RunService.Heartbeat:Connect(function(dt: number)
       local now = workspace:GetServerTimeNow()
       for livePickupId, livePickup in pairs(PickupLibrary.LivePickups) do
-         if livePickup.DespawnsAt <= now then
-            destroy(livePickupId)
-         end
+         --if livePickup.DespawnsAt <= now then
+         --   destroy(livePickupId)
+         --end
       end
    end)
 end
