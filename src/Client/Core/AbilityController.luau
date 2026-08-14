@@ -74,8 +74,12 @@ function AbilityController.activate(abilityId: string, ...)
       print("cancelling ability; cannot activate")
       return
    end
-   logic.simulateActivation(localPlayer.UserId, game.Workspace:GetServerTimeNow())
-	abilityUsed:FireServer(abilityId)
+   local params = nil
+   if logic.getParams then
+      params = logic.getParams()
+   end
+   logic.simulateActivation(localPlayer.UserId, game.Workspace:GetServerTimeNow(), params)
+	abilityUsed:FireServer(abilityId, params)
 end
 
 -------------------------------------------------------------------------------

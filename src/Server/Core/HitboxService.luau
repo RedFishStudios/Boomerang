@@ -84,7 +84,7 @@ local function onCharacterLoaded(player: Player, character: Model, humanoid: Hum
    hitbox.CanCollide = false
    hitbox.CanTouch = true
    hitbox.CanQuery = true
-   hitbox.Transparency = 1
+   hitbox.Transparency = .5
    hitbox.Color = Color3.new(1, 0, 0)
    hitbox.Name = "Hitbox"
    hitbox.CollisionGroup = HITBOX_COLLISION_GROUP

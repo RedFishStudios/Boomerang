@@ -179,6 +179,21 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
+-- the most recently client-reported yaw for the player, if any has been received yet
+function CharacterService.getYaw(player: Player): number?
+	local state = playersSolverTarget[player]
+	return state and state.Yaw
+end
+
+-- the most recently client-reported horizontal look direction for the player, if any has been received yet
+function CharacterService.getLookDirection(player: Player): Vector3?
+	local yaw = CharacterService.getYaw(player)
+	if not yaw then
+		return nil
+	end
+	return CharacterLogic.getLookVectorFromYaw(yaw)
+end
+
 -------------------------------------------------------------------------------
 -- CORE FUNCTIONS
 -------------------------------------------------------------------------------

@@ -16,7 +16,24 @@ local ParticlesLibrary = require(ReplicatedStorage.Shared.Library.ParticlesLibra
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local CombatLibrary = require(ReplicatedStorage.Shared.Library.CombatLibrary)
 
+local isServer = RunService:IsServer()
+
 local CameraController
+local CharacterRenderController
+local AnimationController
+local WeaponController
+local WeaponService
+local CharacterService
+
+if isServer then
+   WeaponService = require(game.ServerStorage.Server.Core.WeaponService)
+   CharacterService = require(game.ServerStorage.Server.Core.CharacterService)
+else
+   AnimationController = require(ReplicatedStorage.Client.Core.AnimationController)
+   WeaponController = require(ReplicatedStorage.Client.Core.WeaponController)
+   CameraController = require(ReplicatedStorage.Client.Core.CustomCameraController)
+   CharacterRenderController = require(ReplicatedStorage.Client.Core.CharacterRenderController)
+end
 
 -------------------------------------------------------------------------------
 -- LOCAL VARIABLES
@@ -28,6 +45,7 @@ local HITBOX_SIZE = Vector3.new(2, 2, 3)
 local HITBOX_DURATION = .2
 local HITBOX_DELAY = .08
 local HITBOX_DISTANCE = 1
+local HITBOX_VERTICAL_OFFSET = -2
 local STAB_KILL_DAMAGE = 100000
 local STAB_DISTANCE = 2 + HITBOX_DISTANCE
 local PARRY_DISTANCE = 3 + HITBOX_DISTANCE
@@ -38,21 +56,8 @@ local PARRY_STAGGER_TOTAL_DURATION = .3
 local PARRY_STAGGER_MIN_DIRECTION_DISTANCE = .05
 local PARRY_FACING_DOT_THRESHOLD = .4
 
-local HITBOX_COLLISION_GROUP = CollisionGroupConstants.Players
 local HITBOX_VISUALIZER_COLOR = Color3.new(0.164706, 0.960784, 0.007843)
 local HITBOX_CHECK_INTERVAL = 1 / 20
-
-local isServer = RunService:IsServer()
-local AnimationController
-local WeaponController
-local WeaponService
-if isServer then
-   WeaponService = require(game.ServerStorage.Server.Core.WeaponService)
-else
-   AnimationController = require(ReplicatedStorage.Client.Core.AnimationController)
-   WeaponController = require(ReplicatedStorage.Client.Core.WeaponController)
-   CameraController = require(ReplicatedStorage.Client.Core.CustomCameraController)
-end
 
 local Cooldowns: {[Player]: number} = {}
 local ActiveStabs: {
@@ -89,7 +94,26 @@ local staggerConnection: RBXScriptConnection? = nil
 -- LOCAL FUNCTIONS
 -------------------------------------------------------------------------------
 
-local function getHorizontalLookDirection(rootPart: BasePart): Vector3
+-- a character's look direction is solely client-rendered, so it cannot be read from the character/root part itself;
+-- the server trusts the player's most recently reported yaw from CharacterService, and the client reads its own
+-- locally rendered model's orientation from CharacterRenderController
+local function getLookDirection(player: Player, rootPart: BasePart): Vector3
+   if isServer then
+      local lookDirection = CharacterService and CharacterService.getLookDirection(player)
+      if lookDirection then
+         return lookDirection
+      end
+   else
+      local renderedModel = CharacterRenderController and CharacterRenderController.getCharacterModel(player, false)
+      if renderedModel then
+         local lookVector = renderedModel:GetPivot().LookVector
+         local horizontalLook = Vector3.new(lookVector.X, 0, lookVector.Z)
+         if horizontalLook.Magnitude > 1e-5 then
+            return horizontalLook.Unit
+         end
+      end
+   end
+
    local horizontalLook = Vector3.new(rootPart.CFrame.LookVector.X, 0, rootPart.CFrame.LookVector.Z)
    if horizontalLook.Magnitude <= 1e-5 then
       return Vector3.new(0, 0, -1)
@@ -102,18 +126,18 @@ local function getHorizontalDistance(fromPart: BasePart, toPart: BasePart): numb
    return delta.Magnitude
 end
 
-local function getHorizontalDirectionFromTo(fromPart: BasePart, toPart: BasePart): Vector3
+local function getHorizontalDirectionFromTo(fromPlayer: Player, fromPart: BasePart, toPart: BasePart): Vector3
    local delta = Vector3.new(toPart.Position.X - fromPart.Position.X, 0, toPart.Position.Z - fromPart.Position.Z)
    if delta.Magnitude <= PARRY_STAGGER_MIN_DIRECTION_DISTANCE then
-      return getHorizontalLookDirection(fromPart)
+      return getLookDirection(fromPlayer, fromPart)
    end
    return delta.Unit
 end
 
-local function arePlayersFacingEachOtherForParry(stabberRootPart: BasePart, victimRootPart: BasePart): boolean
-   local stabberLook = getHorizontalLookDirection(stabberRootPart)
-   local victimLook = getHorizontalLookDirection(victimRootPart)
-   local stabberToVictim = getHorizontalDirectionFromTo(stabberRootPart, victimRootPart)
+local function arePlayersFacingEachOtherForParry(stabberPlayer: Player, stabberRootPart: BasePart, victimPlayer: Player, victimRootPart: BasePart): boolean
+   local stabberLook = getLookDirection(stabberPlayer, stabberRootPart)
+   local victimLook = getLookDirection(victimPlayer, victimRootPart)
+   local stabberToVictim = getHorizontalDirectionFromTo(stabberPlayer, stabberRootPart, victimRootPart)
    local victimToStabber = -stabberToVictim
 
    local stabberFacingVictim = stabberLook:Dot(stabberToVictim) >= PARRY_FACING_DOT_THRESHOLD
@@ -121,11 +145,11 @@ local function arePlayersFacingEachOtherForParry(stabberRootPart: BasePart, vict
    return stabberFacingVictim and victimFacingStabber
 end
 
-local function getHitboxCFrame(rootPart: BasePart, forwardExtension: number?): CFrame
-   local lookDirection = getHorizontalLookDirection(rootPart)
+local function getHitboxCFrame(player: Player, rootPart: BasePart, forwardExtension: number?): CFrame
+   local lookDirection = getLookDirection(player, rootPart)
    local extension = forwardExtension or 0
    local forwardOffset = HITBOX_DISTANCE + (extension * .5)
-   local center = rootPart.Position + lookDirection * forwardOffset
+   local center = rootPart.Position + lookDirection * forwardOffset + Vector3.new(0, HITBOX_VERTICAL_OFFSET, 0)
    return CFrame.lookAt(center, center + lookDirection)
 end
 
@@ -381,7 +405,7 @@ local function applyParry(stabberPlayer: Player, stabberRootPart: BasePart, vict
    if ActiveStaggers[stabberPlayer] or ActiveStaggers[victimPlayer] then
       return
    end
-   local stabberToVictim = getHorizontalDirectionFromTo(stabberRootPart, victimRootPart)
+   local stabberToVictim = getHorizontalDirectionFromTo(stabberPlayer, stabberRootPart, victimRootPart)
    local victimToStabber = -stabberToVictim
 
    beginStagger(stabberPlayer, victimToStabber)
@@ -426,6 +450,7 @@ function Stab.canActivate(player: Player): boolean
    if cooldown and os.clock() < cooldown then
       return false
    end
+   
    return true
 end
 
@@ -450,7 +475,10 @@ function Stab.activate(player: Player)
    local overlapParams = OverlapParams.new()
    overlapParams.FilterType = Enum.RaycastFilterType.Exclude
    overlapParams.FilterDescendantsInstances = {character}
-   overlapParams.CollisionGroup = HITBOX_COLLISION_GROUP
+   -- "Players" doesn't collide with "Players" (players don't push each other), so filtering the
+   -- query by that group would silently exclude every other player's hitbox; "HandWeapons" does
+   -- collide with "Players" and correctly returns overlapping player hitboxes for this melee attack
+   overlapParams.CollisionGroup = CollisionGroupConstants.HandWeapons
 
    local registeredKillHits: {[Player]: boolean} = {}
 
@@ -490,7 +518,7 @@ function Stab.activate(player: Player)
 
       overlapParams.FilterDescendantsInstances = {latestCharacter}
 
-      local hitboxCFrame = getHitboxCFrame(latestRootPart)
+      local hitboxCFrame = getHitboxCFrame(player, latestRootPart)
 
       if shouldShowVisualizer then
          if not stabState.Visualizer or not stabState.Visualizer.Parent then
@@ -522,7 +550,7 @@ function Stab.activate(player: Player)
 
          local shouldParry = victimIsStabbing
             and targetDistance <= PARRY_DISTANCE
-            and arePlayersFacingEachOtherForParry(latestRootPart, victimRootPart)
+            and arePlayersFacingEachOtherForParry(player, latestRootPart, victimPlayer, victimRootPart)
 
          if shouldParry then
             print("[Stab] Hit player to parry:", player.Name, "<->", victimPlayer.Name)

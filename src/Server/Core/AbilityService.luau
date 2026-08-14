@@ -43,19 +43,19 @@ local function getLogic(abilityId: string)
 	return AbilityLogicModules[abilityId]
 end
 
-local function activateAbility(player: Player, abilityId: string, ...)
+local function activateAbility(player: Player, abilityId: string, params)
    local logic = getLogic(abilityId)
       if not logic then
          warn(`AbilityService.init: No logic found for ability {abilityId}`)
          return
       end
-      if logic.canActivate and not logic.canActivate(player, ...) then
+      if logic.canActivate and not logic.canActivate(player, params) then
          warn(`AbilityService.init: Player {player.Name} cannot activate ability {abilityId}`)
          return
       end
       
       if logic.activate then
-         logic.activate(player, ...)
+         logic.activate(player, workspace:GetServerTimeNow(), params)
          abilityReplication:FireAllClients(abilityId, player.UserId, workspace:GetServerTimeNow())
       end
 end
@@ -70,13 +70,13 @@ end
 -------------------------------------------------------------------------------
 
 function AbilityService.init()
-   abilityUsed.OnServerEvent:Connect(function(player: Player, abilityId: string, ...)
+   abilityUsed.OnServerEvent:Connect(function(player: Player, abilityId: string, params)
       if GlobalConfig.SyncAbilitiesToEveryPlayer then
          for _, p in pairs(game.Players:GetPlayers()) do
-            activateAbility(p, abilityId, ...)
+            activateAbility(p, abilityId, params)
          end
       else
-         activateAbility(player, abilityId, ...)
+         activateAbility(player, abilityId, params)
       end
    end)
 
