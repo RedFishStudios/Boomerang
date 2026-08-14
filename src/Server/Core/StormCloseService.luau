@@ -130,8 +130,8 @@ local function updateCurrentStormApproximation(now: number)
 	)
 end
 
-local function damagePlayersOutsideStorm()
-	for _, player in ipairs(Players:GetPlayers()) do
+local function damagePlayersOutsideStorm(livingPlayers: { Player })
+	for _, player in ipairs(livingPlayers) do
 		local character = player.Character
 		if not character then
 			continue
@@ -175,6 +175,8 @@ end
 
 function StormCloseService.begin(x, y)
    clear()
+   local gameStateData = GameStateLibrary.getGameStateData()
+
 	local centerPosition: Vector3? = nil
 	local width = x
 	local height = y
@@ -192,12 +194,15 @@ function StormCloseService.begin(x, y)
       if paused then
          return
       end
+      if not gameStateData.IsInRound:Get() then
+         return
+      end
 
 		local currentTime = os.clock()
 		updateCurrentStormApproximation(currentTime)
 
 		if nextDamageAt and currentTime >= nextDamageAt then
-			damagePlayersOutsideStorm()
+			damagePlayersOutsideStorm(gameStateData.LivingPlayersInArena:Get())
 			nextDamageAt = currentTime + PLAYER_DAMAGE_INTERVAL
 		end
 
