@@ -21,7 +21,7 @@ end
 local highlights: {[Player]: Highlight} = {}
 local particles: {[Player]: Part} = {}
 
-local SHIELD_DURATION_SECONDS = 4
+local SHIELD_DURATION_SECONDS = 8
 
 function Shield.onPickup(player: Player, timestamp: number?): number?
    if isServer then

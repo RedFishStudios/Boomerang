@@ -457,29 +457,25 @@ local function raycastWithHorizontalHitbox(
    return finalResult
 end
 
-local function raycastWithHorizontalCharacterHitbox(rayOrigin: Vector3, speed: number, direction: Vector3, hitboxRadius: number): {Model}
+local function spherecastCharacterHitbox(rayOrigin: Vector3, direction: Vector3, rayDistance: number, hitboxRadius: number): {Model}
+   if rayDistance <= 0 then
+      return {}
+   end
+
    local characterRaycastParams = RaycastParams.new()
-   --characterRaycastParams.FilterType = Enum.RaycastFilterType.Include
-   --characterRaycastParams.FilterDescendantsInstances = {Characters}
+   characterRaycastParams.FilterType = Enum.RaycastFilterType.Include
+   characterRaycastParams.FilterDescendantsInstances = {Characters}
    characterRaycastParams.IgnoreWater = true
    characterRaycastParams.CollisionGroup = WEAPON_RAYCAST_COLLISION_GROUP
 
-   local horizontalRayOrigins = getHorizontalRayOrigins(rayOrigin, direction, hitboxRadius)
    local hitModels = {}
-   local seenModels = {}
-
-   local characterRayDistance = direction
-
-   for _, origin in ipairs(horizontalRayOrigins) do
-      local raycastResult = workspace:Raycast(origin, direction * characterRayDistance, characterRaycastParams)
-      if raycastResult then
-         local hitModel = raycastResult.Instance:FindFirstAncestorOfClass("Model")
-         if hitModel and not table.find(seenModels, hitModel) then
-            table.insert(seenModels, hitModel)
-            local humanoid = hitModel:FindFirstChildOfClass("Humanoid")
-            if humanoid and humanoid.Health > 0 then
-               table.insert(hitModels, hitModel)
-            end
+   local spherecastResult = workspace:Spherecast(rayOrigin, hitboxRadius, direction * rayDistance, characterRaycastParams)
+   if spherecastResult then
+      local hitModel = spherecastResult.Instance:FindFirstAncestorOfClass("Model")
+      if hitModel then
+         local humanoid = hitModel:FindFirstChildOfClass("Humanoid")
+         if humanoid and humanoid.Health > 0 then
+            table.insert(hitModels, hitModel)
          end
       end
    end
@@ -541,7 +537,7 @@ local function damagedPlayer(player: Player, boomerangId: string, thrownWeaponDa
 
    local now = workspace:GetServerTimeNow()
    local previousHitAt = thrownWeaponData.HitPlayers[victimPlayer]
-   local hitCooldownSeconds = GlobalConfig.ThrownWeaponHitCooldownSeconds or 3
+   local hitCooldownSeconds = GlobalConfig.BoomerangHitThrottle or .5
    if previousHitAt and (now - previousHitAt) < hitCooldownSeconds then
       return false
    end
@@ -745,7 +741,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          end
       end
 
-      local victimModels = raycastWithHorizontalCharacterHitbox(rayOrigin, speed, direction, hitboxRadius)
+      local victimModels = spherecastCharacterHitbox(rayOrigin, direction, rayDistance, hitboxRadius)
       local playerDamaged = false
       for _, victimModel in ipairs(victimModels) do
          if damagedPlayer(player, boomerangId, thrownWeaponData, victimModel) then
@@ -753,12 +749,12 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          end
       end
 
-      if playerDamaged then
-         if shouldRecallTransitions then
-            Boomerang.recall(player, boomerangId, toolData, thrownWeaponData)
-            return true
-         end
-      end
+      --if playerDamaged then
+      --  if shouldRecallTransitions then
+      --      Boomerang.recall(player, boomerangId, toolData, thrownWeaponData)
+      --      return true
+      --   end
+      --end
 
       local obstructionRaycastResult = raycastWithHorizontalHitbox(rayOrigin, direction, rayDistance, hitboxRadius, raycastParams, thrownWeaponData)
       if obstructionRaycastResult then
@@ -1036,7 +1032,9 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          travelVelocity = blendedDirection * blendedSpeed
       end
 
-      local victimModels = raycastWithHorizontalCharacterHitbox(rayOrigin, speed, if sliding then slideDirection else direction, hitboxRadius)
+      local characterDirection = if sliding then slideDirection else direction
+      local characterRayDistance = (if sliding then slideSpeed else speed) * deltaTime
+      local victimModels = spherecastCharacterHitbox(rayOrigin, characterDirection, characterRayDistance, hitboxRadius)
       for _, victimModel in ipairs(victimModels) do
          damagedPlayer(player, boomerangId, victimModel)
       end
