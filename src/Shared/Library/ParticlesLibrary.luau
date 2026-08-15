@@ -34,6 +34,27 @@ local function getParticle(particleName: string): Part?
    return ParticleTemplates[particleName]
 end
 
+function ParticlesLibrary.destroy(particle: Part)
+   local subParticleLifetime = 0
+   for _, descendant in ipairs(particle:GetDescendants()) do
+      if descendant:IsA("ParticleEmitter") then
+         local emitterLifetime = descendant.Lifetime.Max
+         if emitterLifetime > subParticleLifetime then
+            subParticleLifetime = emitterLifetime
+         end
+      end
+   end
+   for _, descendant in ipairs(particle:GetDescendants()) do
+      if descendant:IsA("ParticleEmitter") then
+         descendant.Enabled = false
+      end
+   end
+   task.wait(subParticleLifetime*1.1)
+   if particle and particle.Parent then
+      particle:Destroy()
+   end
+end
+
 function ParticlesLibrary.play(particlePlayId: string, particleName: string, host: Instance | Vector3, startEmit: number?, particleLifetime: number?, anchored: boolean?)
    if isServer then
       PlayParticle:FireAllClients(particlePlayId, particleName, host, startEmit, particleLifetime, anchored)
@@ -79,11 +100,22 @@ function ParticlesLibrary.play(particlePlayId: string, particleName: string, hos
       end
    end
 
+   local subParticleLifetime = 0
+   for _, descendant in ipairs(particle:GetDescendants()) do
+      if descendant:IsA("ParticleEmitter") then
+         local emitterLifetime = descendant.Lifetime.Max
+         if emitterLifetime > subParticleLifetime then
+            subParticleLifetime = emitterLifetime
+         end
+      end
+   end
+   --print("sub particle life time: ", subParticleLifetime)
+
    if startEmit then
       for _, d in pairs(particle:GetChildren()) do
          if d:IsA("ParticleEmitter") then
             task.spawn(function()
-               local emitterLifetime = math.max(d.Lifetime.Min, particleLifetime)
+               local emitterLifetime = math.max(d.Lifetime.Min, particleLifetime or subParticleLifetime)
                local interval = (emitterLifetime / startEmit)*.07
                for i = 1, startEmit do
                   d:Emit(1)
@@ -97,17 +129,11 @@ function ParticlesLibrary.play(particlePlayId: string, particleName: string, hos
    if particleLifetime then
       task.spawn(function()
          task.wait(particleLifetime)
-         local subParticleLifetime = 0
          for _, descendant in ipairs(particle:GetDescendants()) do
             if descendant:IsA("ParticleEmitter") then
                descendant.Enabled = false
-               local emitterLifetime = descendant.Lifetime.Max
-               if emitterLifetime > subParticleLifetime then
-                  subParticleLifetime = emitterLifetime
-               end
             end
          end
-         print("sub particle life time: ", subParticleLifetime)
          task.wait(subParticleLifetime*1.1)
          if particle and particle.Parent then
             particle:Destroy()
@@ -161,6 +187,7 @@ function ParticlesLibrary.emit(particlePlayId: string, particleName: string, hos
    local longestLifetime = 0
    for _, d in pairs(particle:GetChildren()) do
       if d:IsA("ParticleEmitter") then
+         d.Rate = 0
          d:Emit(emitCount)
          local emitterLifetime = d.Lifetime.Max
          if emitterLifetime > longestLifetime then
@@ -171,8 +198,9 @@ function ParticlesLibrary.emit(particlePlayId: string, particleName: string, hos
 
    task.spawn(function()
       task.wait(longestLifetime*2.5)
+      print(`destroying after {longestLifetime*2.5} seconds`)
       if particle and particle.Parent then
-        --particle:Destroy()
+        particle:Destroy()
       end
    end)
    

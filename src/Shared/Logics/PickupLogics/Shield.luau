@@ -1,5 +1,3 @@
--- STUD
--- TODO
 -- Gives the player an extra hit. If the player is hit, the shield is removed.
 
 local Shield = {}
@@ -9,6 +7,7 @@ local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GlobalConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"):WaitForChild("GlobalConfig"))
 local PickupCancelCodeEnum = require(ReplicatedStorage.Shared.Constants.Enums.PickupCancelCodes)
+local ParticlesLibrary = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Library"):WaitForChild("ParticlesLibrary"))
 
 local isServer = RunService:IsServer()
 
@@ -20,8 +19,9 @@ else
 end
 
 local highlights: {[Player]: Highlight} = {}
+local particles: {[Player]: Part} = {}
 
-local SHIELD_DURATION_SECONDS = 20
+local SHIELD_DURATION_SECONDS = 4
 
 function Shield.onPickup(player: Player, timestamp: number?): number?
    if isServer then
@@ -37,6 +37,13 @@ function Shield.onPickup(player: Player, timestamp: number?): number?
          highlights[player]:Destroy()
          highlights[player] = nil
       end
+      if particles[player] then
+         particles[player]:Destroy()
+         particles[player] = nil
+      end
+
+      local particle = ParticlesLibrary.play(`{player.UserId}_Shield`, "Shield", character.PrimaryPart, 1)
+      particles[player] = particle
 
       local highlight = Instance.new("Highlight")
       highlight.Adornee = character
@@ -64,15 +71,27 @@ function Shield.onEnd(player: Player, cancelCode: string?)
    if isServer then
       -- Server context
    else
+      local localCharacter = CharacterRenderController.getCharacterModel(player)
+      if not localCharacter then
+         return
+      end
+
       -- Client context
       if highlights[player] then
          highlights[player]:Destroy()
          highlights[player] = nil
       end
+      if particles[player] then
+         particles[player]:Destroy()
+         particles[player] = nil
+      end
       if cancelCode then
          if cancelCode == PickupCancelCodeEnum.ShieldBroken then
-            warn(`CANCEL CODE: SHIELD EFFECT BROKEN FOR PLAYER {player.Name}`)
+            -- Shield was broken by combat; play a more dramatic break effect and sound?
+            ParticlesLibrary.emit(`{player.UserId}_Shield`, "ShieldBreak", localCharacter.PrimaryPart, 1)
          end
+      else
+         ParticlesLibrary.emit(`{player.UserId}_Shield`, "ShieldBreak", localCharacter.PrimaryPart, 1)
       end
    end
 end
