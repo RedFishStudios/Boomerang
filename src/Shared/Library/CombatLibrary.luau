@@ -84,7 +84,7 @@ function CombatLibrary.attackHitPlayer(attacker: Player, attackerToolId: string?
    end
 
    SoundLibrary.play(eventId, Sounds.Data.Kill.Name, victimHumanoid.Parent.PrimaryPart, nil, true)
-   ParticlesLibrary.emit(eventId, "Slash", victimHumanoid.Parent.PrimaryPart.Position, nil)
+   ParticlesLibrary.emit(eventId, "Slash", victimHumanoid.Parent.PrimaryPart.Position, 1)
 
    if isServer then
       humanoid:TakeDamage(damageAmount)

@@ -119,6 +119,7 @@ function ParticlesLibrary.play(particlePlayId: string, particleName: string, hos
 end
 
 function ParticlesLibrary.emit(particlePlayId: string, particleName: string, host: Instance | Vector3, emitCount: number)
+   print(`emit {particleName}`)
    if isServer then
       EmitParticle:FireAllClients(particlePlayId, particleName, host, emitCount)
       return
