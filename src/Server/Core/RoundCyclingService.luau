@@ -21,7 +21,7 @@ local SpawnService = require(ServerStorage.Server.Core.SpawnService)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local LobbyService = require(ServerStorage.Server.Core.LobbyService)
 local GameTeamService = require(ServerStorage.Server.Core.GameTeamService)
-local IntermissionStageEnums = require(SharedConstants.Enums.IntermissionStages)
+local GameplayPhases = require(SharedConstants.Enums.GameplayPhases)
 
 local GamemodeLogics = ServerStorage.Server.Logics.GamemodeLogics
 local GamemodeLogicModules = {}
@@ -145,6 +145,7 @@ function RoundCyclingService.setNextRound(roundTypeId: string, mapName: string)
       Gamemode = roundTypeId,
       CurrentMapName = mapName,
    }
+   snapshot.GameplayPhase = GameplayPhases.RoundActive
    snapshot.CurrentTimerEndsAt = roundEndsAt
    snapshot.CanRespawn = roundType.CanRespawn
    snapshot.IntermissionData = nil
@@ -255,8 +256,8 @@ function RoundCyclingService.start()
          VoteOptions = {},
          VoteCount = {0, 0},
          ChosenGamemode = nil,
-         IntermissionStage = IntermissionStageEnums.PreIntermission,
       }
+      snapshot.GameplayPhase = GameplayPhases.PreIntermission
       snapshot.LivingPlayersInArena = {}
       GameStateLibrary.applySnapshot(snapshot)
 
@@ -281,8 +282,8 @@ function RoundCyclingService.start()
          VoteOptions = possibleGamemodes,
          VoteCount = {0, 0},
          ChosenGamemode = nil,
-         IntermissionStage = IntermissionStageEnums.LobbyVoting,
       }
+      snapshot.GameplayPhase = GameplayPhases.LobbyVoting
       GameStateLibrary.applySnapshot(snapshot)
 
       -- Wait for votes

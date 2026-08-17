@@ -16,7 +16,7 @@ local _UIController = require(ClientMods.UI.UIController)
 local GameStateLibrary = require(SharedMods.Library.GameStateLibrary)
 local AbilityController = require(ClientMods.Core.AbilityController)
 local WeaponController = require(ClientMods.Core.WeaponController)
-local IntermissionStagesEnum = require(SharedMods.Constants.Enums.IntermissionStages)
+local GameplayPhases = require(SharedMods.Constants.Enums.GameplayPhases)
 
 -- // Gui Values // --
 
@@ -24,7 +24,7 @@ local Gui = script.PreIntermission
 Gui.ResetOnSpawn = false
 Gui.IgnoreGuiInset = true
 
-local lastRegisteredIntermissionStage = nil
+local lastRegisteredGameplayPhase = nil
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Local Functions
@@ -54,13 +54,12 @@ _init()
 
 function PreIntermissionGui.start()
    GameStateLibrary.GameStateSnapshotLoadedTasks:Add(function(snapshot)
-   local intermissionData = snapshot.IntermissionData
-   local newIntermissionStage = if intermissionData then intermissionData.IntermissionStage else nil
-      if newIntermissionStage == lastRegisteredIntermissionStage then
+      local gameplayPhase = snapshot.GameplayPhase
+      if gameplayPhase == lastRegisteredGameplayPhase then
          return
       end
-      lastRegisteredIntermissionStage = newIntermissionStage
-      if newIntermissionStage == IntermissionStagesEnum.PreIntermission then
+      lastRegisteredGameplayPhase = gameplayPhase
+      if gameplayPhase == GameplayPhases.PreIntermission then
          PreIntermissionGui.open()
       elseif PreIntermissionGui.Open then
          PreIntermissionGui.close()

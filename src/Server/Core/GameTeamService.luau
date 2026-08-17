@@ -20,7 +20,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
-local IntermissionStagesEnum = require(ReplicatedStorage.Shared.Constants.Enums.IntermissionStages)
+local GameplayPhases = require(ReplicatedStorage.Shared.Constants.Enums.GameplayPhases)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -173,16 +173,9 @@ function GameTeamService.init()
 
    -- // Dismantle round teams in response to new intermission stages
    local gameStateData = GameStateLibrary.getGameStateData()
-   local currentIntermissionData = gameStateData.IntermissionData:Get()
-   local lastIntermissionStage = if currentIntermissionData then currentIntermissionData.IntermissionStage else nil
-   gameStateData.IntermissionData:Subscribe(function(intermissionData)
-      local newIntermissionStage = if intermissionData then intermissionData.IntermissionStage else nil
-      if newIntermissionStage == lastIntermissionStage then
-         return
-      end
-      lastIntermissionStage = newIntermissionStage
+   gameStateData.GameplayPhase:Subscribe(function(gameplayPhase)
       if not roundTeamsDismantled then
-         if newIntermissionStage == IntermissionStagesEnum.LobbyVoting or newIntermissionStage == IntermissionStagesEnum.LobbyEnded then
+         if gameplayPhase == GameplayPhases.LobbyVoting or gameplayPhase == GameplayPhases.LobbyEnded then
             GameTeamService.dismantleRoundTeams()
          end
       end

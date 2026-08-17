@@ -8,6 +8,7 @@ local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 local ReactiveValue = require(ReplicatedStorage.Shared.Utils.ReactiveValue)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
+local GameplayPhases = require(ReplicatedStorage.Shared.Constants.Enums.GameplayPhases)
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
@@ -25,10 +26,10 @@ type IntermissionData = {
    VoteOptions: {string},
    VoteCount: {number},
    ChosenGamemode: string?,
-   IntermissionStage: number,
 }
 type ReplicatedFieldName =
    "CurrentRoundData"
+   | "GameplayPhase"
    | "CurrentTimerEndsAt"
    | "CanRespawn"
    | "IntermissionData"
@@ -36,6 +37,7 @@ type ReplicatedFieldName =
 
 type GameStateSnapshot = {
    CurrentRoundData: CurrentRoundData?,
+   GameplayPhase: number,
    CurrentTimerEndsAt: number?,
    CanRespawn: boolean?,
    IntermissionData: IntermissionData?,
@@ -44,6 +46,7 @@ type GameStateSnapshot = {
 
 type GameStatePatch = {
    CurrentRoundData: CurrentRoundData?,
+   GameplayPhase: number?,
    CurrentTimerEndsAt: number?,
    CanRespawn: boolean?,
    IntermissionData: IntermissionData?,
@@ -54,6 +57,7 @@ type SnapshotLoadedTask = (snapshot: GameStateSnapshot, reason: SnapshotLoadedRe
 
 type CurrentGameStateDataType = {
    CurrentRoundData: ReactiveValue.ReactiveValue<CurrentRoundData?>,
+   GameplayPhase: ReactiveValue.ReactiveValue<number>,
    CurrentTimerEndsAt: ReactiveValue.ReactiveValue<number?>,
    CanRespawn: ReactiveValue.ReactiveValue<boolean?>,
    IntermissionData: ReactiveValue.ReactiveValue<IntermissionData?>,
@@ -72,6 +76,7 @@ GameStateLibrary.Ready = false
 
 local CurrentGameStateData: CurrentGameStateDataType = {
    CurrentRoundData = ReactiveValue.new(nil :: CurrentRoundData?),
+   GameplayPhase = ReactiveValue.new(GameplayPhases.LobbyEnded),
    CurrentTimerEndsAt = ReactiveValue.new(nil :: number?),
    CanRespawn = ReactiveValue.new(nil :: boolean?),
    IntermissionData = ReactiveValue.new(nil :: IntermissionData?),
@@ -86,6 +91,7 @@ GameStateLibrary.GameStateSnapshotLoadedTasks = TasksList.new() :: TasksList.Tas
 
 local replicatedFieldNames = table.freeze({
    CurrentRoundData = true,
+   GameplayPhase = true,
    CurrentTimerEndsAt = true,
    IntermissionData = true,
    LivingPlayersInArena = true,
@@ -138,7 +144,6 @@ local function cloneIntermissionData(source: IntermissionData?): IntermissionDat
       VoteOptions = table.clone(source.VoteOptions),
       VoteCount = table.clone(source.VoteCount),
       ChosenGamemode = source.ChosenGamemode,
-      IntermissionStage = source.IntermissionStage,
    }
 end
 
@@ -148,7 +153,6 @@ local function intermissionDataMatches(first: IntermissionData?, second: Intermi
    end
    return first.WinMessage == second.WinMessage
       and first.ChosenGamemode == second.ChosenGamemode
-      and first.IntermissionStage == second.IntermissionStage
       and arraysMatch(first.VoteOptions, second.VoteOptions)
       and arraysMatch(first.VoteCount, second.VoteCount)
 end
@@ -156,6 +160,7 @@ end
 local function getSnapshot()
    return {
       CurrentRoundData = cloneCurrentRoundData(CurrentGameStateData.CurrentRoundData:Get()),
+      GameplayPhase = CurrentGameStateData.GameplayPhase:Get(),
       CurrentTimerEndsAt = CurrentGameStateData.CurrentTimerEndsAt:Get(),
       CanRespawn = CurrentGameStateData.CanRespawn:Get(),
       IntermissionData = cloneIntermissionData(CurrentGameStateData.IntermissionData:Get()),
@@ -200,6 +205,7 @@ local function applySnapshotLocal(snapshot: GameStateSnapshot)
    if not currentRoundDataMatches(currentRoundData, CurrentGameStateData.CurrentRoundData:Get()) then
       CurrentGameStateData.CurrentRoundData:Set(cloneCurrentRoundData(currentRoundData))
    end
+   CurrentGameStateData.GameplayPhase:Set(snapshot.GameplayPhase)
    CurrentGameStateData.CurrentTimerEndsAt:Set(decodeReplicatedValue(snapshot.CurrentTimerEndsAt))
    CurrentGameStateData.CanRespawn:Set(decodeReplicatedValue(snapshot.CanRespawn))
    local intermissionData = decodeReplicatedValue(snapshot.IntermissionData)
@@ -250,6 +256,10 @@ function GameStateLibrary.getGameStateData(): CurrentGameStateDataType
 end
 
 function GameStateLibrary.applySnapshot(snapshot: GameStateSnapshot, replicateToClients: boolean?)
+   if snapshot.CurrentRoundData ~= nil then
+      snapshot.GameplayPhase = GameplayPhases.RoundActive
+   end
+
    local valuesChangedPayload = {}
    for fieldName, _ in pairs(replicatedFieldNames) do
       local value = snapshot[fieldName]
@@ -298,6 +308,10 @@ function GameStateLibrary.applySnapshot(snapshot: GameStateSnapshot, replicateTo
 end
 
 function GameStateLibrary.applyValues(patch: GameStatePatch, replicateToClients: boolean?)
+   if patch.CurrentRoundData ~= nil then
+      patch.GameplayPhase = GameplayPhases.RoundActive
+   end
+
    local changedValuesPayload = {}
 
    for fieldName, _ in pairs(replicatedFieldNames) do

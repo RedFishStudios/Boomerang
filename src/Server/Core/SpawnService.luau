@@ -17,7 +17,7 @@ local GameTeamService = require(ServerStorage.Server.Core.GameTeamService)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 
 local LobbyService = require(ServerStorage.Server.Core.LobbyService)
-local IntermissionStageEnums = require(ReplicatedStorage.Shared.Constants.Enums.IntermissionStages)
+local GameplayPhases = require(ReplicatedStorage.Shared.Constants.Enums.GameplayPhases)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -112,15 +112,8 @@ end
 function SpawnService.init()
    local gameStateData = GameStateLibrary.getGameStateData()
 
-   local currentIntermissionData = gameStateData.IntermissionData:Get()
-   local lastIntermissionStage = if currentIntermissionData then currentIntermissionData.IntermissionStage else nil
-   gameStateData.IntermissionData:Subscribe(function(intermissionData)
-      local newIntermissionStage = if intermissionData then intermissionData.IntermissionStage else nil
-      if newIntermissionStage == lastIntermissionStage then
-         return
-      end
-      lastIntermissionStage = newIntermissionStage
-      if newIntermissionStage == IntermissionStageEnums.LobbyVoting then
+   gameStateData.GameplayPhase:Subscribe(function(gameplayPhase)
+      if gameplayPhase == GameplayPhases.LobbyVoting then
          warn(`lobby voting began!`)
          local lobbySpawnPosition = LobbyService.getSpawnPoint().Position
          for _, player in pairs(Players:GetPlayers()) do
