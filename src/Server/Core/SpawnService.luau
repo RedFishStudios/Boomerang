@@ -112,7 +112,14 @@ end
 function SpawnService.init()
    local gameStateData = GameStateLibrary.getGameStateData()
 
-   gameStateData.IntermissionStage:Subscribe(function(newIntermissionStage: number?)
+   local currentIntermissionData = gameStateData.IntermissionData:Get()
+   local lastIntermissionStage = if currentIntermissionData then currentIntermissionData.IntermissionStage else nil
+   gameStateData.IntermissionData:Subscribe(function(intermissionData)
+      local newIntermissionStage = if intermissionData then intermissionData.IntermissionStage else nil
+      if newIntermissionStage == lastIntermissionStage then
+         return
+      end
+      lastIntermissionStage = newIntermissionStage
       if newIntermissionStage == IntermissionStageEnums.LobbyVoting then
          warn(`lobby voting began!`)
          local lobbySpawnPosition = LobbyService.getSpawnPoint().Position

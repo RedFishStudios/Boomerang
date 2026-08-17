@@ -3,6 +3,7 @@
 local EliminationRoundLogic = {} 
 
 local ServerStorage = game:GetService("ServerStorage")
+local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ArenaService = require(ServerStorage.Server.Core.ArenaService)
 local GameTeamService = require(ServerStorage.Server.Core.GameTeamService)
@@ -28,8 +29,7 @@ function EliminationRoundLogic.setup()
    StormCloseService.begin(ArenaService.getCurrentArenaPosition() or Vector3.new(0, 0, 0))
 
    table.insert(PerMatchDestroyerFunctions, CurrentGameState.getGameStateData().LivingPlayersInArena:Subscribe(function(livingPlayers: {Player})
-      print("new living player count: ", #livingPlayers)
-      if #livingPlayers <= 1 then
+      if #livingPlayers <= 1 and not RunService:IsStudio() then
          EliminationRoundLogic.teardown()
       end
    end))

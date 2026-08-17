@@ -14,6 +14,7 @@ local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 local PickupLogicModules = {}
 
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
+local IntermissionStageEnums = require(ReplicatedStorage.Shared.Constants.Enums.IntermissionStages)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -154,12 +155,24 @@ end
 function PickupService.init()
    local gameStateData = GameStateLibrary.getGameStateData()
 
+   local currentIntermissionData = gameStateData.IntermissionData:Get()
+   local lastIntermissionStage = if currentIntermissionData then currentIntermissionData.IntermissionStage else nil
+   gameStateData.IntermissionData:Subscribe(function(intermissionData)
+      local newIntermissionStage = if intermissionData then intermissionData.IntermissionStage else nil
+      if newIntermissionStage == lastIntermissionStage then
+         return
+      end
+      lastIntermissionStage = newIntermissionStage
+      if newIntermissionStage == IntermissionStageEnums.LobbyVoting then
+         PickupLibrary.clearAllPickupEffectsActive()
+         PickupLibrary.LivePickups = {}
+         PickupLibrary.UserPickupEffectsActive = {}
+      end
+   end)
+
    GameStateLibrary.RoundStartingTasks:Add(function()
       -- Destroy all previous pickup objects
       PickupLibrary.LivePickups = {}
-
-      -- Remove all pickup abilities active on players
-      PickupLibrary.clearAllPickupEffectsActive()
 
       -- Spawn new pickups
       task.spawn(function()
@@ -209,55 +222,57 @@ function PickupService.init()
 
    RunService.Heartbeat:Connect(function()
       local now = workspace:GetServerTimeNow()
+      local roundActive = gameStateData.CurrentRoundData:Get() ~= nil
 
-      -- Spawn new pickups
+      -- // Spawn new pick ups if round is active
       -- Note: Do this before despawns so that new spawns don't immediately consume a released spawn point
-      if now - lastSpawn >= SPAWN_INTERVAL and PickupLibrary.getLivePickupCount() < getMaxLivePickups() then
-         lastSpawn = now
-         local pickupSpawns = ArenaService.getPickupSpawns()
-         if #pickupSpawns == 0 then
-            return
-         end
+      if roundActive then
+         if now - lastSpawn >= SPAWN_INTERVAL and PickupLibrary.getLivePickupCount() < getMaxLivePickups() then
+            lastSpawn = now
+            local pickupSpawns = ArenaService.getPickupSpawns()
+            if #pickupSpawns == 0 then
+               return
+            end
 
-         -- Remove occupied
-         for i = #pickupSpawns, 1, -1 do
-            local spawn = pickupSpawns[i]
-            if spawn then
-               local spawnPosition = spawn.Position
-               for _, livePickup in pairs(PickupLibrary.LivePickups) do
-                  if (spawnPosition - livePickup.Position).Magnitude <= 1 then
-                     table.remove(pickupSpawns, i)
-                     break
+            -- Remove occupied
+            for i = #pickupSpawns, 1, -1 do
+               local spawn = pickupSpawns[i]
+               if spawn then
+                  local spawnPosition = spawn.Position
+                  for _, livePickup in pairs(PickupLibrary.LivePickups) do
+                     if (spawnPosition - livePickup.Position).Magnitude <= 1 then
+                        table.remove(pickupSpawns, i)
+                        break
+                     end
                   end
                end
             end
-         end
-         if #pickupSpawns == 0 then
-            return
-         end
+            if #pickupSpawns == 0 then
+               return
+            end
 
-         local spawn = pickupSpawns[math.random(1, #pickupSpawns)]
-         local pickupClassId = pickupClasses[math.random(1, #pickupClasses)]
-         local uuid = HttpService:GenerateGUID(false)
-         local despawnTime = now + DESPAWN_TIME
-         PickupLibrary.LivePickups[uuid] = {
-            --ClassId = pickupClassId,
-            ClassId = "Shield",
-            DespawnsAt = despawnTime,
-            Position = spawn.Position
-         }
-         -- Replicate
-         local replicationData: PickupLibrary.LivePickupReplicationData = {
-            Spawned = {
-               [uuid] = {
-                  Position = spawn.Position,
-                  DespawnsAt = despawnTime
+            local spawn = pickupSpawns[math.random(1, #pickupSpawns)]
+            local pickupClassId = pickupClasses[math.random(1, #pickupClasses)]
+            local uuid = HttpService:GenerateGUID(false)
+            local despawnTime = now + DESPAWN_TIME
+            PickupLibrary.LivePickups[uuid] = {
+               --ClassId = pickupClassId,
+               ClassId = "Shield",
+               DespawnsAt = despawnTime,
+               Position = spawn.Position
+            }
+            -- Replicate
+            local replicationData: PickupLibrary.LivePickupReplicationData = {
+               Spawned = {
+                  [uuid] = {
+                     Position = spawn.Position,
+                     DespawnsAt = despawnTime
+                  }
                }
             }
-         }
-         livePickupReplication:FireAllClients(replicationData)
+            livePickupReplication:FireAllClients(replicationData)
+         end
       end
-
       -- Remove expired pickup effects
       -- natural decay is simulated locally by each client via their own endsAt loop, so this removal must not replicate
       for userId, activePickups in pairs(PickupLibrary.UserPickupEffectsActive) do
@@ -289,20 +304,22 @@ function PickupService.init()
          end
       end]]
 
-      for _, p in pairs(Players:GetPlayers()) do
-         local character = p.Character
-         if not character then
-            continue
-         end
-         local primaryPart = character.PrimaryPart
-         if not primaryPart then
-            continue
-         end
-         local position = primaryPart.Position
-         
-         for livePickupId, livePickup in pairs(PickupLibrary.LivePickups) do
-            if ((position - livePickup.Position)*Vector3.new(1, 0, 1)).Magnitude <= PickupLibrary.PICKUP_DISTANCE then
-               activatePickup(p, livePickupId)
+      if roundActive then
+         for _, p in pairs(Players:GetPlayers()) do
+            local character = p.Character
+            if not character then
+               continue
+            end
+            local primaryPart = character.PrimaryPart
+            if not primaryPart then
+               continue
+            end
+            local position = primaryPart.Position
+            
+            for livePickupId, livePickup in pairs(PickupLibrary.LivePickups) do
+               if ((position - livePickup.Position)*Vector3.new(1, 0, 1)).Magnitude <= PickupLibrary.PICKUP_DISTANCE then
+                  activatePickup(p, livePickupId)
+               end
             end
          end
       end

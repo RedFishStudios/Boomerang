@@ -94,17 +94,21 @@ local function applyIntermissionUi()
    end
 
    local gameStateData = GameStateLibrary.getGameStateData()
-   local options = gameStateData.IntermissionOptions:Get()
+   local intermissionData = gameStateData.IntermissionData:Get()
+   if not intermissionData then
+      return
+   end
+   local options = intermissionData.VoteOptions
    local optionA = options[1]
    local optionB = options[2]
-   local votes = gameStateData.IntermissionVotes:Get()
+   local votes = intermissionData.VoteCount
    local voteA = votes[1]
    local voteB = votes[2]
-   local chosenGamemode = gameStateData.IntermissionChosenGamemode:Get()
+   local chosenGamemode = intermissionData.ChosenGamemode
 
    VoteContainer.Visible = chosenGamemode == nil
    GamemodeLabel.Text = "Intermission"
-   SubheaderLabel.Text = gameStateData.IntermissionWinMessage:Get() or ""
+   SubheaderLabel.Text = intermissionData.WinMessage or ""
    updateVoteCounts(voteA, voteB)
 
    OptionAButton.TextLabel.Text = if optionA and Gamemodes[optionA] then (Gamemodes[optionA].Display or optionA) else (optionA or "")
@@ -143,8 +147,8 @@ local function refreshUiFromGameState()
       return
    end
 
-   local options = gameStateData.IntermissionOptions:Get()
-   if #options > 0 then
+   local intermissionData = gameStateData.IntermissionData:Get()
+   if intermissionData and #intermissionData.VoteOptions > 0 then
       applyIntermissionUi()
       return
    end

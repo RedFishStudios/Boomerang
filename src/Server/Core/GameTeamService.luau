@@ -173,7 +173,14 @@ function GameTeamService.init()
 
    -- // Dismantle round teams in response to new intermission stages
    local gameStateData = GameStateLibrary.getGameStateData()
-   gameStateData.IntermissionStage:Subscribe(function(newIntermissionStage: number?)
+   local currentIntermissionData = gameStateData.IntermissionData:Get()
+   local lastIntermissionStage = if currentIntermissionData then currentIntermissionData.IntermissionStage else nil
+   gameStateData.IntermissionData:Subscribe(function(intermissionData)
+      local newIntermissionStage = if intermissionData then intermissionData.IntermissionStage else nil
+      if newIntermissionStage == lastIntermissionStage then
+         return
+      end
+      lastIntermissionStage = newIntermissionStage
       if not roundTeamsDismantled then
          if newIntermissionStage == IntermissionStagesEnum.LobbyVoting or newIntermissionStage == IntermissionStagesEnum.LobbyEnded then
             GameTeamService.dismantleRoundTeams()

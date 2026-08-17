@@ -20,39 +20,34 @@ type CurrentRoundData = {
    Gamemode: string,
    CurrentMapName: string,
 }
+type IntermissionData = {
+   WinMessage: string?,
+   VoteOptions: {string},
+   VoteCount: {number},
+   ChosenGamemode: string?,
+   IntermissionStage: number,
+}
 type ReplicatedFieldName =
    "CurrentRoundData"
    | "CurrentTimerEndsAt"
    | "CanRespawn"
-   | "IntermissionWinMessage"
-   | "IntermissionOptions"
-   | "IntermissionVotes"
-   | "IntermissionChosenGamemode"
+   | "IntermissionData"
    | "LivingPlayersInArena"
-   | "IntermissionStage"
 
 type GameStateSnapshot = {
    CurrentRoundData: CurrentRoundData?,
    CurrentTimerEndsAt: number?,
    CanRespawn: boolean?,
-   IntermissionWinMessage: string?,
-   IntermissionOptions: {string},
-   IntermissionVotes: {number},
-   IntermissionChosenGamemode: string?,
+   IntermissionData: IntermissionData?,
    LivingPlayersInArena: {Player},
-   IntermissionStage: number?,
 }
 
 type GameStatePatch = {
    CurrentRoundData: CurrentRoundData?,
    CurrentTimerEndsAt: number?,
    CanRespawn: boolean?,
-   IntermissionWinMessage: string?,
-   IntermissionOptions: {string}?,
-   IntermissionVotes: {number}?,
-   IntermissionChosenGamemode: string?,
+   IntermissionData: IntermissionData?,
    LivingPlayersInArena: {Player}?,
-   IntermissionStage: number?,
 }
 
 type SnapshotLoadedTask = (snapshot: GameStateSnapshot, reason: SnapshotLoadedReason) -> ()
@@ -61,12 +56,8 @@ type CurrentGameStateDataType = {
    CurrentRoundData: ReactiveValue.ReactiveValue<CurrentRoundData?>,
    CurrentTimerEndsAt: ReactiveValue.ReactiveValue<number?>,
    CanRespawn: ReactiveValue.ReactiveValue<boolean?>,
-   IntermissionWinMessage: ReactiveValue.ReactiveValue<string?>,
-   IntermissionOptions: ReactiveValue.ReactiveValue<{string}>,
-   IntermissionVotes: ReactiveValue.ReactiveValue<{number}>,
-   IntermissionChosenGamemode: ReactiveValue.ReactiveValue<string?>,
+   IntermissionData: ReactiveValue.ReactiveValue<IntermissionData?>,
    LivingPlayersInArena: ReactiveValue.ReactiveValue<{Player}>,
-   IntermissionStage: ReactiveValue.ReactiveValue<number?>,
 }
 
 local isServer = RunService:IsServer()
@@ -83,11 +74,7 @@ local CurrentGameStateData: CurrentGameStateDataType = {
    CurrentRoundData = ReactiveValue.new(nil :: CurrentRoundData?),
    CurrentTimerEndsAt = ReactiveValue.new(nil :: number?),
    CanRespawn = ReactiveValue.new(nil :: boolean?),
-   IntermissionWinMessage = ReactiveValue.new(nil :: string?),
-   IntermissionOptions = ReactiveValue.new({}),
-   IntermissionVotes = ReactiveValue.new({0, 0}),
-   IntermissionChosenGamemode = ReactiveValue.new(nil :: string?),
-   IntermissionStage = ReactiveValue.new(nil :: number?),
+   IntermissionData = ReactiveValue.new(nil :: IntermissionData?),
 
    LivingPlayersInArena = ReactiveValue.new({}),
 }
@@ -100,12 +87,8 @@ GameStateLibrary.GameStateSnapshotLoadedTasks = TasksList.new() :: TasksList.Tas
 local replicatedFieldNames = table.freeze({
    CurrentRoundData = true,
    CurrentTimerEndsAt = true,
-   IntermissionWinMessage = true,
-   IntermissionOptions = true,
-   IntermissionVotes = true,
-   IntermissionChosenGamemode = true,
+   IntermissionData = true,
    LivingPlayersInArena = true,
-   IntermissionStage = true,
    CanRespawn = true,
 }) :: { [ReplicatedFieldName]: boolean }
 
@@ -117,14 +100,6 @@ local function clonePlayers(source: {Player}): {Player}
    local cloned = table.create(#source)
    for index, player in ipairs(source) do
       cloned[index] = player
-   end
-   return cloned
-end
-
-local function cloneOptions(source: {string}): {string}
-   local cloned = table.create(#source)
-   for index, option in ipairs(source) do
-      cloned[index] = option
    end
    return cloned
 end
@@ -142,17 +117,49 @@ local function currentRoundDataMatches(first: CurrentRoundData?, second: Current
       and first.CurrentMapName == second.CurrentMapName
 end
 
+local function arraysMatch<T>(first: {T}, second: {T}): boolean
+   if #first ~= #second then
+      return false
+   end
+   for index, value in ipairs(first) do
+      if value ~= second[index] then
+         return false
+      end
+   end
+   return true
+end
+
+local function cloneIntermissionData(source: IntermissionData?): IntermissionData?
+   if source == nil then
+      return nil
+   end
+   return {
+      WinMessage = source.WinMessage,
+      VoteOptions = table.clone(source.VoteOptions),
+      VoteCount = table.clone(source.VoteCount),
+      ChosenGamemode = source.ChosenGamemode,
+      IntermissionStage = source.IntermissionStage,
+   }
+end
+
+local function intermissionDataMatches(first: IntermissionData?, second: IntermissionData?): boolean
+   if first == nil or second == nil then
+      return first == second
+   end
+   return first.WinMessage == second.WinMessage
+      and first.ChosenGamemode == second.ChosenGamemode
+      and first.IntermissionStage == second.IntermissionStage
+      and arraysMatch(first.VoteOptions, second.VoteOptions)
+      and arraysMatch(first.VoteCount, second.VoteCount)
+end
+
 local function getSnapshot()
    return {
       CurrentRoundData = cloneCurrentRoundData(CurrentGameStateData.CurrentRoundData:Get()),
       CurrentTimerEndsAt = CurrentGameStateData.CurrentTimerEndsAt:Get(),
       CanRespawn = CurrentGameStateData.CanRespawn:Get(),
-      IntermissionWinMessage = CurrentGameStateData.IntermissionWinMessage:Get(),
-      IntermissionOptions = cloneOptions(CurrentGameStateData.IntermissionOptions:Get()),
-      IntermissionVotes = cloneOptions(CurrentGameStateData.IntermissionVotes:Get()),
-      IntermissionChosenGamemode = CurrentGameStateData.IntermissionChosenGamemode:Get(),
+      IntermissionData = cloneIntermissionData(CurrentGameStateData.IntermissionData:Get()),
       LivingPlayersInArena = clonePlayers(CurrentGameStateData.LivingPlayersInArena:Get()),
-      IntermissionStage = CurrentGameStateData.IntermissionStage:Get(),
    } :: GameStateSnapshot
 end
 
@@ -177,8 +184,8 @@ local function getReplicatedSnapshotPayload(): {[string]: any}
       local value = snapshot[fieldName]
       if fieldName == "CurrentRoundData" then
          payload[fieldName] = encodeReplicatedValue(cloneCurrentRoundData(value))
-      elseif fieldName == "IntermissionOptions" then
-         payload[fieldName] = cloneOptions(value)
+      elseif fieldName == "IntermissionData" then
+         payload[fieldName] = encodeReplicatedValue(cloneIntermissionData(value))
       elseif fieldName == "LivingPlayersInArena" then
          payload[fieldName] = clonePlayers(value)
       else
@@ -195,12 +202,11 @@ local function applySnapshotLocal(snapshot: GameStateSnapshot)
    end
    CurrentGameStateData.CurrentTimerEndsAt:Set(decodeReplicatedValue(snapshot.CurrentTimerEndsAt))
    CurrentGameStateData.CanRespawn:Set(decodeReplicatedValue(snapshot.CanRespawn))
-   CurrentGameStateData.IntermissionWinMessage:Set(decodeReplicatedValue(snapshot.IntermissionWinMessage))
-   CurrentGameStateData.IntermissionOptions:Set(cloneOptions(snapshot.IntermissionOptions))
-   CurrentGameStateData.IntermissionVotes:Set(cloneOptions(snapshot.IntermissionVotes))
-   CurrentGameStateData.IntermissionChosenGamemode:Set(decodeReplicatedValue(snapshot.IntermissionChosenGamemode))
+   local intermissionData = decodeReplicatedValue(snapshot.IntermissionData)
+   if not intermissionDataMatches(intermissionData, CurrentGameStateData.IntermissionData:Get()) then
+      CurrentGameStateData.IntermissionData:Set(cloneIntermissionData(intermissionData))
+   end
    CurrentGameStateData.LivingPlayersInArena:Set(clonePlayers(snapshot.LivingPlayersInArena))
-   CurrentGameStateData.IntermissionStage:Set(decodeReplicatedValue(snapshot.IntermissionStage))
 end
 
 local function applyPartialLocal(payload: {[string]: any})
@@ -210,10 +216,8 @@ local function applyPartialLocal(payload: {[string]: any})
          local value = decodeReplicatedValue(encodedValue)
          if fieldName == "CurrentRoundData" then
             CurrentGameStateData.CurrentRoundData:Set(cloneCurrentRoundData(value))
-         elseif fieldName == "IntermissionOptions" then
-            if value ~= nil then
-               CurrentGameStateData[fieldName]:Set(cloneOptions(value))
-            end
+         elseif fieldName == "IntermissionData" then
+            CurrentGameStateData.IntermissionData:Set(cloneIntermissionData(value))
          elseif fieldName == "LivingPlayersInArena" then
             if value ~= nil then
                CurrentGameStateData[fieldName]:Set(clonePlayers(value))
@@ -254,6 +258,8 @@ function GameStateLibrary.applySnapshot(snapshot: GameStateSnapshot, replicateTo
 
       if fieldName == "CurrentRoundData" then
          hasChanged = not currentRoundDataMatches(value, originalValue)
+      elseif fieldName == "IntermissionData" then
+         hasChanged = not intermissionDataMatches(value, originalValue)
       elseif type(value) == "table" and type(originalValue) == "table" then
          if #value ~= #originalValue then
             hasChanged = true
@@ -272,8 +278,8 @@ function GameStateLibrary.applySnapshot(snapshot: GameStateSnapshot, replicateTo
       if hasChanged then
          if fieldName == "CurrentRoundData" then
             valuesChangedPayload[fieldName] = encodeReplicatedValue(cloneCurrentRoundData(value))
-         elseif fieldName == "IntermissionOptions" and type(value) == "table" then
-            valuesChangedPayload[fieldName] = cloneOptions(value)
+         elseif fieldName == "IntermissionData" then
+            valuesChangedPayload[fieldName] = encodeReplicatedValue(cloneIntermissionData(value))
          elseif fieldName == "LivingPlayersInArena" and type(value) == "table" then
             valuesChangedPayload[fieldName] = clonePlayers(value)
          else
@@ -301,7 +307,9 @@ function GameStateLibrary.applyValues(patch: GameStatePatch, replicateToClients:
          local oldValue = CurrentGameStateData[fieldName]:Get()
          local hasChanged = false
 
-         if type(decodedValue) == "table" and type(oldValue) == "table" then
+         if fieldName == "IntermissionData" then
+            hasChanged = not intermissionDataMatches(decodedValue, oldValue)
+         elseif type(decodedValue) == "table" and type(oldValue) == "table" then
             -- Table patches are treated as changed to avoid in-place mutation edge cases.
             hasChanged = true
          else
@@ -311,8 +319,8 @@ function GameStateLibrary.applyValues(patch: GameStatePatch, replicateToClients:
          if hasChanged then
             if fieldName == "CurrentRoundData" then
                changedValuesPayload[fieldName] = cloneCurrentRoundData(decodedValue)
-            elseif fieldName == "IntermissionOptions" and type(decodedValue) == "table" then
-               changedValuesPayload[fieldName] = cloneOptions(decodedValue)
+            elseif fieldName == "IntermissionData" then
+               changedValuesPayload[fieldName] = cloneIntermissionData(decodedValue)
             elseif fieldName == "LivingPlayersInArena" and type(decodedValue) == "table" then
                changedValuesPayload[fieldName] = clonePlayers(decodedValue)
             else

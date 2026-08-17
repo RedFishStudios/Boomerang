@@ -54,7 +54,8 @@ _init()
 
 function PreIntermissionGui.start()
    GameStateLibrary.GameStateSnapshotLoadedTasks:Add(function(snapshot)
-      local newIntermissionStage = snapshot.IntermissionStage
+   local intermissionData = snapshot.IntermissionData
+   local newIntermissionStage = if intermissionData then intermissionData.IntermissionStage else nil
       if newIntermissionStage == lastRegisteredIntermissionStage then
          return
       end

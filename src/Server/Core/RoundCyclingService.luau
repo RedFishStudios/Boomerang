@@ -147,11 +147,7 @@ function RoundCyclingService.setNextRound(roundTypeId: string, mapName: string)
    }
    snapshot.CurrentTimerEndsAt = roundEndsAt
    snapshot.CanRespawn = roundType.CanRespawn
-   snapshot.IntermissionWinMessage = nil
-   snapshot.IntermissionOptions = {}
-   snapshot.IntermissionVotes = {0, 0}
-   snapshot.IntermissionChosenGamemode = nil
-   snapshot.IntermissionStage = nil
+   snapshot.IntermissionData = nil
    GameStateLibrary.applySnapshot(snapshot)
 
    ArenaService.setArena(mapName)
@@ -225,9 +221,14 @@ function RoundCyclingService.init()
       if i then
          table.remove(awaitingVotes, i)
       end
-      GameStateLibrary.applyValues({
-         IntermissionVotes = totalVotes,
-      })
+      local intermissionData = gameStateData.IntermissionData:Get()
+      if intermissionData then
+         local updatedIntermissionData = table.clone(intermissionData)
+         updatedIntermissionData.VoteCount = table.clone(totalVotes)
+         GameStateLibrary.applyValues({
+            IntermissionData = updatedIntermissionData,
+         })
+      end
    end)
 end
 
@@ -249,11 +250,13 @@ function RoundCyclingService.start()
       snapshot.CurrentRoundData = nil
       snapshot.CurrentTimerEndsAt = nil
       snapshot.CanRespawn = nil
-      --snapshot.IntermissionWinMessage = winMessage
-      --snapshot.IntermissionOptions = possibleGamemodes
-      --snapshot.IntermissionVotes = {0, 0}
-      snapshot.IntermissionChosenGamemode = nil
-      snapshot.IntermissionStage = IntermissionStageEnums.PreIntermission
+      snapshot.IntermissionData = {
+         WinMessage = winMessage,
+         VoteOptions = {},
+         VoteCount = {0, 0},
+         ChosenGamemode = nil,
+         IntermissionStage = IntermissionStageEnums.PreIntermission,
+      }
       snapshot.LivingPlayersInArena = {}
       GameStateLibrary.applySnapshot(snapshot)
 
@@ -273,11 +276,13 @@ function RoundCyclingService.start()
       snapshot.CurrentRoundData = nil
       snapshot.CurrentTimerEndsAt = intermissionEndsAt
       snapshot.CanRespawn = nil
-      snapshot.IntermissionWinMessage = winMessage
-      snapshot.IntermissionOptions = possibleGamemodes
-      snapshot.IntermissionVotes = {0, 0}
-      snapshot.IntermissionChosenGamemode = nil
-      snapshot.IntermissionStage = IntermissionStageEnums.LobbyVoting
+      snapshot.IntermissionData = {
+         WinMessage = winMessage,
+         VoteOptions = possibleGamemodes,
+         VoteCount = {0, 0},
+         ChosenGamemode = nil,
+         IntermissionStage = IntermissionStageEnums.LobbyVoting,
+      }
       GameStateLibrary.applySnapshot(snapshot)
 
       -- Wait for votes
@@ -309,10 +314,15 @@ function RoundCyclingService.start()
       end
       local untilNewRound = INTERMISSION_DURATION - VOTE_DURATION
 
-      GameStateLibrary.applyValues({
-         IntermissionVotes = totalVotes,
-         IntermissionChosenGamemode = chosenGamemode,
-      })
+      local intermissionData = GameStateLibrary.getGameStateData().IntermissionData:Get()
+      if intermissionData then
+         local updatedIntermissionData = table.clone(intermissionData)
+         updatedIntermissionData.VoteCount = table.clone(totalVotes)
+         updatedIntermissionData.ChosenGamemode = chosenGamemode
+         GameStateLibrary.applyValues({
+            IntermissionData = updatedIntermissionData,
+         })
+      end
       
       elapsed = 0
       repeat
