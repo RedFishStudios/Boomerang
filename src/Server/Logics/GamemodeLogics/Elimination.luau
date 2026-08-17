@@ -29,14 +29,14 @@ function EliminationRoundLogic.setup()
    StormCloseService.begin(ArenaService.getCurrentArenaPosition() or Vector3.new(0, 0, 0))
 
    table.insert(PerMatchDestroyerFunctions, CurrentGameState.getGameStateData().LivingPlayersInArena:Subscribe(function(livingPlayers: {Player})
-      if #livingPlayers <= 1 and not RunService:IsStudio() then
-         EliminationRoundLogic.teardown()
+      if #livingPlayers <= 1 and not (RunService:IsStudio() and #game.Players:GetPlayers() == 1) then
+         local winner = livingPlayers[1]
+         EliminationRoundLogic.teardown(winner)
       end
    end))
 end
 
-function EliminationRoundLogic.teardown()
-   local winner = CurrentGameState.getGameStateData().LivingPlayersInArena:Get()[1]
+function EliminationRoundLogic.teardown(winner: Player?)
    if not winner then
       warn(`Elimination: no winner found`)
    end

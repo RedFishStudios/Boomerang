@@ -107,11 +107,11 @@ end
 
 -- // Returns true if current round permits late joining for the given player
 function RoundCyclingService.canSpawnIntoRound(player: Player): boolean
-   local gameStateData = GameStateLibrary.getGameStateData()
-   if gameStateData.CurrentRoundData:Get() == nil then
+   local currentRoundData = GameStateLibrary.getGameStateData().CurrentRoundData:Get()
+   if currentRoundData == nil then
       return false
    end
-   return gameStateData.CanRespawn:Get()
+   return currentRoundData.CanRespawn
 end
 
 function RoundCyclingService.getNextGamemodeChoices(): {string}
@@ -144,10 +144,10 @@ function RoundCyclingService.setNextRound(roundTypeId: string, mapName: string)
       CurrentRoundId = currentRoundId,
       Gamemode = roundTypeId,
       CurrentMapName = mapName,
+      CanRespawn = roundType.CanRespawn,
    }
    snapshot.GameplayPhase = GameplayPhases.RoundActive
    snapshot.CurrentTimerEndsAt = roundEndsAt
-   snapshot.CanRespawn = roundType.CanRespawn
    snapshot.IntermissionData = nil
    GameStateLibrary.applySnapshot(snapshot)
 
@@ -250,7 +250,6 @@ function RoundCyclingService.start()
       local snapshot = GameStateLibrary.getSnapshot()
       snapshot.CurrentRoundData = nil
       snapshot.CurrentTimerEndsAt = nil
-      snapshot.CanRespawn = nil
       snapshot.IntermissionData = {
          WinMessage = winMessage,
          VoteOptions = {},
@@ -276,7 +275,6 @@ function RoundCyclingService.start()
       local intermissionEndsAt = workspace:GetServerTimeNow() + INTERMISSION_DURATION
       snapshot.CurrentRoundData = nil
       snapshot.CurrentTimerEndsAt = intermissionEndsAt
-      snapshot.CanRespawn = nil
       snapshot.IntermissionData = {
          WinMessage = winMessage,
          VoteOptions = possibleGamemodes,

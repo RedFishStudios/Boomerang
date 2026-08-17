@@ -55,11 +55,12 @@ local function safeGetPlayerCharacter(player: Player)
    return player.Character
 end
 
--- // NOTE: Do not rely on this for critical game logic. See ArenaService for intelligent arena spawnpoint management, and RoundCyclingService for whether Arena or Lobby spawning isused
---    Usage of player.RespawnLocation is for generally improved rendering prioritization by keeping the player with an understanding of the general area they will probably go
-local function setPlayerSpawnpoint(player: Player)
+-- // NOTE: Do not rely on this for critical game logic
+--    This helps the player predict the general area they will spawn and is NOT the definitive declaration of their spawn point
+local function prepPlayerSpawnpoint(player: Player)
    local gameStateData = GameStateLibrary.getGameStateData()
-   if gameStateData.CurrentRoundData:Get() ~= nil and gameStateData.CanRespawn:Get() then
+   local currentRoundData = gameStateData.CurrentRoundData:Get()
+   if currentRoundData and currentRoundData.CanRespawn then
       player.RespawnLocation = ArenaService.getSpawnPoint(player)
    else
       player.RespawnLocation = LobbyService.getSpawnPoint()
@@ -123,20 +124,20 @@ function SpawnService.init()
    end)
 
    PlayersUtil.PlayerAdded:Add(function(player: Player)
-      setPlayerSpawnpoint(player)
+      prepPlayerSpawnpoint(player)
    end)
 
    PlayersUtil.CharacterDied:Add(function(player: Player)
-      setPlayerSpawnpoint(player)
-      -- TODO: display death screen, respawn time, etc
+      prepPlayerSpawnpoint(player)
    end)
 
       PlayersUtil.CharacterLoaded:Add(function(player: Player, _character: Model, _humanoid: Humanoid, _rootPart: BasePart)
          -- // Add to LivingPlayersInArena
-         if gameStateData.CurrentRoundData:Get() == nil then
+         local currentRoundData = gameStateData.CurrentRoundData:Get()
+         if currentRoundData == nil then
             return
          end
-         if gameStateData.CanRespawn:Get() == false then
+         if currentRoundData.CanRespawn == false then
             return
          end
          local currentLivingPlayers = gameStateData.LivingPlayersInArena:Get()

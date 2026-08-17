@@ -20,6 +20,7 @@ type CurrentRoundData = {
    CurrentRoundId: number,
    Gamemode: string,
    CurrentMapName: string,
+   CanRespawn: boolean,
 }
 type IntermissionData = {
    WinMessage: string?,
@@ -31,7 +32,6 @@ type ReplicatedFieldName =
    "CurrentRoundData"
    | "GameplayPhase"
    | "CurrentTimerEndsAt"
-   | "CanRespawn"
    | "IntermissionData"
    | "LivingPlayersInArena"
 
@@ -39,17 +39,16 @@ type GameStateSnapshot = {
    CurrentRoundData: CurrentRoundData?,
    GameplayPhase: number,
    CurrentTimerEndsAt: number?,
-   CanRespawn: boolean?,
    IntermissionData: IntermissionData?,
    LivingPlayersInArena: {Player},
 }
 
+type ReplicatedNil = typeof(GlobalConfig.NilDataType)
 type GameStatePatch = {
-   CurrentRoundData: CurrentRoundData?,
+   CurrentRoundData: (CurrentRoundData | ReplicatedNil)?,
    GameplayPhase: number?,
-   CurrentTimerEndsAt: number?,
-   CanRespawn: boolean?,
-   IntermissionData: IntermissionData?,
+   CurrentTimerEndsAt: (number | ReplicatedNil)?,
+   IntermissionData: (IntermissionData | ReplicatedNil)?,
    LivingPlayersInArena: {Player}?,
 }
 
@@ -59,7 +58,6 @@ type CurrentGameStateDataType = {
    CurrentRoundData: ReactiveValue.ReactiveValue<CurrentRoundData?>,
    GameplayPhase: ReactiveValue.ReactiveValue<number>,
    CurrentTimerEndsAt: ReactiveValue.ReactiveValue<number?>,
-   CanRespawn: ReactiveValue.ReactiveValue<boolean?>,
    IntermissionData: ReactiveValue.ReactiveValue<IntermissionData?>,
    LivingPlayersInArena: ReactiveValue.ReactiveValue<{Player}>,
 }
@@ -78,7 +76,6 @@ local CurrentGameStateData: CurrentGameStateDataType = {
    CurrentRoundData = ReactiveValue.new(nil :: CurrentRoundData?),
    GameplayPhase = ReactiveValue.new(GameplayPhases.LobbyEnded),
    CurrentTimerEndsAt = ReactiveValue.new(nil :: number?),
-   CanRespawn = ReactiveValue.new(nil :: boolean?),
    IntermissionData = ReactiveValue.new(nil :: IntermissionData?),
 
    LivingPlayersInArena = ReactiveValue.new({}),
@@ -95,7 +92,6 @@ local replicatedFieldNames = table.freeze({
    CurrentTimerEndsAt = true,
    IntermissionData = true,
    LivingPlayersInArena = true,
-   CanRespawn = true,
 }) :: { [ReplicatedFieldName]: boolean }
 
 -------------------------------------------------------------------------------
@@ -121,6 +117,7 @@ local function currentRoundDataMatches(first: CurrentRoundData?, second: Current
    return first.CurrentRoundId == second.CurrentRoundId
       and first.Gamemode == second.Gamemode
       and first.CurrentMapName == second.CurrentMapName
+      and first.CanRespawn == second.CanRespawn
 end
 
 local function arraysMatch<T>(first: {T}, second: {T}): boolean
@@ -162,7 +159,6 @@ local function getSnapshot()
       CurrentRoundData = cloneCurrentRoundData(CurrentGameStateData.CurrentRoundData:Get()),
       GameplayPhase = CurrentGameStateData.GameplayPhase:Get(),
       CurrentTimerEndsAt = CurrentGameStateData.CurrentTimerEndsAt:Get(),
-      CanRespawn = CurrentGameStateData.CanRespawn:Get(),
       IntermissionData = cloneIntermissionData(CurrentGameStateData.IntermissionData:Get()),
       LivingPlayersInArena = clonePlayers(CurrentGameStateData.LivingPlayersInArena:Get()),
    } :: GameStateSnapshot
@@ -182,20 +178,26 @@ local function decodeReplicatedValue(value: any): any
    return value
 end
 
+local function cloneReplicatedFieldValue(fieldName: ReplicatedFieldName, value: any): any
+   if fieldName == "CurrentRoundData" then
+      return cloneCurrentRoundData(value)
+   elseif fieldName == "IntermissionData" then
+      return cloneIntermissionData(value)
+   elseif fieldName == "LivingPlayersInArena" and value ~= nil then
+      return clonePlayers(value)
+   end
+   return value
+end
+
+local function encodeReplicatedFieldValue(fieldName: ReplicatedFieldName, value: any): any
+   return encodeReplicatedValue(cloneReplicatedFieldValue(fieldName, value))
+end
+
 local function getReplicatedSnapshotPayload(): {[string]: any}
    local snapshot = getSnapshot()
    local payload = {}
    for fieldName, _ in pairs(replicatedFieldNames) do
-      local value = snapshot[fieldName]
-      if fieldName == "CurrentRoundData" then
-         payload[fieldName] = encodeReplicatedValue(cloneCurrentRoundData(value))
-      elseif fieldName == "IntermissionData" then
-         payload[fieldName] = encodeReplicatedValue(cloneIntermissionData(value))
-      elseif fieldName == "LivingPlayersInArena" then
-         payload[fieldName] = clonePlayers(value)
-      else
-         payload[fieldName] = encodeReplicatedValue(value)
-      end
+      payload[fieldName] = encodeReplicatedFieldValue(fieldName, snapshot[fieldName])
    end
    return payload
 end
@@ -207,7 +209,6 @@ local function applySnapshotLocal(snapshot: GameStateSnapshot)
    end
    CurrentGameStateData.GameplayPhase:Set(snapshot.GameplayPhase)
    CurrentGameStateData.CurrentTimerEndsAt:Set(decodeReplicatedValue(snapshot.CurrentTimerEndsAt))
-   CurrentGameStateData.CanRespawn:Set(decodeReplicatedValue(snapshot.CanRespawn))
    local intermissionData = decodeReplicatedValue(snapshot.IntermissionData)
    if not intermissionDataMatches(intermissionData, CurrentGameStateData.IntermissionData:Get()) then
       CurrentGameStateData.IntermissionData:Set(cloneIntermissionData(intermissionData))
@@ -256,45 +257,43 @@ function GameStateLibrary.getGameStateData(): CurrentGameStateDataType
 end
 
 function GameStateLibrary.applySnapshot(snapshot: GameStateSnapshot, replicateToClients: boolean?)
+   local requiredReplicatedFields = {} :: {[ReplicatedFieldName]: boolean}
    if snapshot.CurrentRoundData ~= nil then
       snapshot.GameplayPhase = GameplayPhases.RoundActive
+   else
+      snapshot.LivingPlayersInArena = {}
+      requiredReplicatedFields.LivingPlayersInArena = true
    end
 
    local valuesChangedPayload = {}
    for fieldName, _ in pairs(replicatedFieldNames) do
       local value = snapshot[fieldName]
       local originalValue = CurrentGameStateData[fieldName]:Get()
-      local hasChanged = false
+      local hasChanged = requiredReplicatedFields[fieldName] == true
 
-      if fieldName == "CurrentRoundData" then
-         hasChanged = not currentRoundDataMatches(value, originalValue)
-      elseif fieldName == "IntermissionData" then
-         hasChanged = not intermissionDataMatches(value, originalValue)
-      elseif type(value) == "table" and type(originalValue) == "table" then
-         if #value ~= #originalValue then
-            hasChanged = true
-         else
-            for i = 1, #value do
-               if value[i] ~= originalValue[i] then
-                  hasChanged = true
-                  break
+      if not hasChanged then
+         if fieldName == "CurrentRoundData" then
+            hasChanged = not currentRoundDataMatches(value, originalValue)
+         elseif fieldName == "IntermissionData" then
+            hasChanged = not intermissionDataMatches(value, originalValue)
+         elseif type(value) == "table" and type(originalValue) == "table" then
+            if #value ~= #originalValue then
+               hasChanged = true
+            else
+               for i = 1, #value do
+                  if value[i] ~= originalValue[i] then
+                     hasChanged = true
+                     break
+                  end
                end
             end
+         else
+            hasChanged = originalValue ~= value
          end
-      else
-         hasChanged = originalValue ~= value
       end
 
       if hasChanged then
-         if fieldName == "CurrentRoundData" then
-            valuesChangedPayload[fieldName] = encodeReplicatedValue(cloneCurrentRoundData(value))
-         elseif fieldName == "IntermissionData" then
-            valuesChangedPayload[fieldName] = encodeReplicatedValue(cloneIntermissionData(value))
-         elseif fieldName == "LivingPlayersInArena" and type(value) == "table" then
-            valuesChangedPayload[fieldName] = clonePlayers(value)
-         else
-            valuesChangedPayload[fieldName] = encodeReplicatedValue(value)
-         end
+         valuesChangedPayload[fieldName] = encodeReplicatedFieldValue(fieldName, value)
       end
    end
 
@@ -308,8 +307,17 @@ function GameStateLibrary.applySnapshot(snapshot: GameStateSnapshot, replicateTo
 end
 
 function GameStateLibrary.applyValues(patch: GameStatePatch, replicateToClients: boolean?)
+   local requiredReplicatedFields = {} :: {[ReplicatedFieldName]: boolean}
    if patch.CurrentRoundData ~= nil then
-      patch.GameplayPhase = GameplayPhases.RoundActive
+      if decodeReplicatedValue(patch.CurrentRoundData) ~= nil then
+         patch.GameplayPhase = GameplayPhases.RoundActive
+      else
+         patch.LivingPlayersInArena = {}
+         requiredReplicatedFields.LivingPlayersInArena = true
+      end
+   elseif CurrentGameStateData.CurrentRoundData:Get() == nil and patch.LivingPlayersInArena ~= nil then
+      patch.LivingPlayersInArena = {}
+      requiredReplicatedFields.LivingPlayersInArena = true
    end
 
    local changedValuesPayload = {}
@@ -319,27 +327,21 @@ function GameStateLibrary.applyValues(patch: GameStatePatch, replicateToClients:
       if value ~= nil then
          local decodedValue = decodeReplicatedValue(value)
          local oldValue = CurrentGameStateData[fieldName]:Get()
-         local hasChanged = false
+         local hasChanged = requiredReplicatedFields[fieldName] == true
 
-         if fieldName == "IntermissionData" then
-            hasChanged = not intermissionDataMatches(decodedValue, oldValue)
-         elseif type(decodedValue) == "table" and type(oldValue) == "table" then
-            -- Table patches are treated as changed to avoid in-place mutation edge cases.
-            hasChanged = true
-         else
-            hasChanged = oldValue ~= decodedValue
+         if not hasChanged then
+            if fieldName == "IntermissionData" then
+               hasChanged = not intermissionDataMatches(decodedValue, oldValue)
+            elseif type(decodedValue) == "table" and type(oldValue) == "table" then
+               -- Table patches are treated as changed to avoid in-place mutation edge cases.
+               hasChanged = true
+            else
+               hasChanged = oldValue ~= decodedValue
+            end
          end
 
          if hasChanged then
-            if fieldName == "CurrentRoundData" then
-               changedValuesPayload[fieldName] = cloneCurrentRoundData(decodedValue)
-            elseif fieldName == "IntermissionData" then
-               changedValuesPayload[fieldName] = cloneIntermissionData(decodedValue)
-            elseif fieldName == "LivingPlayersInArena" and type(decodedValue) == "table" then
-               changedValuesPayload[fieldName] = clonePlayers(decodedValue)
-            else
-               changedValuesPayload[fieldName] = encodeReplicatedValue(decodedValue)
-            end
+            changedValuesPayload[fieldName] = encodeReplicatedFieldValue(fieldName, decodedValue)
          end
       end
    end
