@@ -21,6 +21,7 @@ local SpawnService = require(ServerStorage.Server.Core.SpawnService)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local LobbyService = require(ServerStorage.Server.Core.LobbyService)
 local GameTeamService = require(ServerStorage.Server.Core.GameTeamService)
+local IntermissionStageEnums = require(SharedConstants.Enums.IntermissionStages)
 
 local GamemodeLogics = ServerStorage.Server.Logics.GamemodeLogics
 local GamemodeLogicModules = {}
@@ -149,6 +150,7 @@ function RoundCyclingService.setNextRound(roundTypeId: string, mapName: string)
    snapshot.IntermissionOptions = {}
    snapshot.IntermissionVotes = {0, 0}
    snapshot.IntermissionChosenGamemode = nil
+   snapshot.IntermissionStage = nil
    GameStateLibrary.applySnapshot(snapshot)
 
    ArenaService.setArena(mapName)
@@ -237,24 +239,30 @@ function RoundCyclingService.start()
 	end)
 
    GameStateLibrary.RoundFinishedTasks:Add(function(winner: Player?, winMessage: string)
-      GameTeamService.beginIntermission()
-
-      for _, player in pairs(game.Players:GetPlayers()) do
-         SpawnService.sendPlayerTo(player, LobbyService.getSpawnPoint().Position, true)
-      end
-
-      local livingPlayersInArena = table.create(0)
-      GameStateLibrary.applyValues({
-         LivingPlayersInArena = livingPlayersInArena,
-      }, true)
-
       if roundDurationConnection  then
          roundDurationConnection:Disconnect()
          roundDurationConnection = nil
          currentRoundEndsAt = nil
       end
 
-      -- // Start voting process
+      -- // Pre-Intermission
+      local snapshot = GameStateLibrary.getSnapshot()
+      snapshot.IsInRound = false
+      snapshot.Gamemode = nil
+      snapshot.CurrentMapName = nil
+      snapshot.CurrentTimerEndsAt = nil
+      snapshot.CanRespawn = nil
+      --snapshot.IntermissionWinMessage = winMessage
+      --snapshot.IntermissionOptions = possibleGamemodes
+      --snapshot.IntermissionVotes = {0, 0}
+      snapshot.IntermissionChosenGamemode = nil
+      snapshot.IntermissionStage = IntermissionStageEnums.PreIntermission
+      snapshot.LivingPlayersInArena = {}
+      GameStateLibrary.applySnapshot(snapshot)
+
+      task.wait(5)
+
+      -- // Prep for lobby voting
       local possibleGamemodes = RoundCyclingService.getNextGamemodeChoices()
       totalVotes[1] = 0
       totalVotes[2] = 0
@@ -265,7 +273,6 @@ function RoundCyclingService.start()
       end
 
       local intermissionEndsAt = workspace:GetServerTimeNow() + INTERMISSION_DURATION
-      local snapshot = GameStateLibrary.getSnapshot()
       snapshot.IsInRound = false
       snapshot.Gamemode = nil
       snapshot.CurrentMapName = nil
@@ -275,6 +282,7 @@ function RoundCyclingService.start()
       snapshot.IntermissionOptions = possibleGamemodes
       snapshot.IntermissionVotes = {0, 0}
       snapshot.IntermissionChosenGamemode = nil
+      snapshot.IntermissionStage = IntermissionStageEnums.LobbyVoting
       GameStateLibrary.applySnapshot(snapshot)
 
       -- Wait for votes

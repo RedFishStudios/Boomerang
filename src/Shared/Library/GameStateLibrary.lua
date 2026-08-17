@@ -26,6 +26,7 @@ type ReplicatedFieldName =
    | "IntermissionVotes"
    | "IntermissionChosenGamemode"
    | "LivingPlayersInArena"
+   | "IntermissionStage"
 
 type GameStateSnapshot = {
    CurrentRoundId: number,
@@ -39,6 +40,7 @@ type GameStateSnapshot = {
    IntermissionVotes: {number},
    IntermissionChosenGamemode: string?,
    LivingPlayersInArena: {Player},
+   IntermissionStage: number?,
 }
 
 type GameStatePatch = {
@@ -53,6 +55,7 @@ type GameStatePatch = {
    IntermissionVotes: {number}?,
    IntermissionChosenGamemode: string?,
    LivingPlayersInArena: {Player}?,
+   IntermissionStage: number?,
 }
 
 type SnapshotLoadedTask = (snapshot: GameStateSnapshot, reason: SnapshotLoadedReason) -> ()
@@ -69,6 +72,7 @@ type CurrentGameStateDataType = {
    IntermissionVotes: ReactiveValue.ReactiveValue<{number}>,
    IntermissionChosenGamemode: ReactiveValue.ReactiveValue<string?>,
    LivingPlayersInArena: ReactiveValue.ReactiveValue<{Player}>,
+   IntermissionStage: ReactiveValue.ReactiveValue<number?>,
 }
 
 local isServer = RunService:IsServer()
@@ -92,6 +96,7 @@ local CurrentGameStateData: CurrentGameStateDataType = {
    IntermissionOptions = ReactiveValue.new({}),
    IntermissionVotes = ReactiveValue.new({0, 0}),
    IntermissionChosenGamemode = ReactiveValue.new(nil :: string?),
+   IntermissionStage = ReactiveValue.new(nil :: number?),
 
    LivingPlayersInArena = ReactiveValue.new({}),
 }
@@ -111,6 +116,7 @@ local replicatedFieldNames = table.freeze({
    IntermissionVotes = true,
    IntermissionChosenGamemode = true,
    LivingPlayersInArena = true,
+   IntermissionStage = true,
    CanRespawn = true,
 }) :: { [ReplicatedFieldName]: boolean }
 
@@ -147,6 +153,7 @@ local function getSnapshot()
       IntermissionVotes = cloneOptions(CurrentGameStateData.IntermissionVotes:Get()),
       IntermissionChosenGamemode = CurrentGameStateData.IntermissionChosenGamemode:Get(),
       LivingPlayersInArena = clonePlayers(CurrentGameStateData.LivingPlayersInArena:Get()),
+      IntermissionStage = CurrentGameStateData.IntermissionStage:Get(),
    } :: GameStateSnapshot
 end
 
@@ -191,6 +198,7 @@ local function applySnapshotLocal(snapshot: GameStateSnapshot)
    CurrentGameStateData.IntermissionVotes:Set(cloneOptions(snapshot.IntermissionVotes))
    CurrentGameStateData.IntermissionChosenGamemode:Set(decodeReplicatedValue(snapshot.IntermissionChosenGamemode))
    CurrentGameStateData.LivingPlayersInArena:Set(clonePlayers(snapshot.LivingPlayersInArena))
+   CurrentGameStateData.IntermissionStage:Set(decodeReplicatedValue(snapshot.IntermissionStage))
 end
 
 local function applyPartialLocal(payload: {[string]: any})

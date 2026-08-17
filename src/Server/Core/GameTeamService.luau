@@ -20,6 +20,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
+local IntermissionStagesEnum = require(ReplicatedStorage.Shared.Constants.Enums.IntermissionStages)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -41,7 +42,10 @@ OutOfGameTeam.TeamColor = BrickColor.new("Really black")
 OutOfGameTeam.Parent = TeamService
 OutOfGameTeam.AutoAssignable = false
 
-local Teams: {
+local roundTeamsDismantled = false
+
+-- Teams that only exist for a round and are dismantled at the end of  around
+local RoundTeams: {
    [string]: Team,
 } = {}
 
@@ -80,7 +84,7 @@ local TeamOptions: {
 -------------------------------------------------------------------------------
 
 local function safeGetTeam(name: string): Team
-   if not Teams[name] then
+   if not RoundTeams[name] then
       local teamOptionData =  TeamOptions[name] 
       if not teamOptionData then
          error("No team color defined for team: "..name)
@@ -93,9 +97,9 @@ local function safeGetTeam(name: string): Team
       if teamOptionData.FriendlyFire ~= nil then
          team:SetAttribute("FriendlyFire", teamOptionData.FriendlyFire)
       end
-      Teams[name] = team
+      RoundTeams[name] = team
    end
-   return Teams[name]
+   return RoundTeams[name]
 end
 
 ------------------------------------------------------------------------------
@@ -116,8 +120,13 @@ function GameTeamService.setAllOutOfGame()
    end
 end
 
-function GameTeamService.destroyRoundTeams()
-   for teamName, team in pairs(Teams) do
+-- // Dismantle all round-specific teams and set all players to out-of-game
+function GameTeamService.dismantleRoundTeams()
+   roundTeamsDismantled = true
+   for teamName, team in pairs(RoundTeams) do
+      if team == OutOfGameTeam then
+         continue
+      end
       if team and team.Parent then
          for _, player in ipairs(Players:GetPlayers()) do
             if player.Team == team then
@@ -126,13 +135,8 @@ function GameTeamService.destroyRoundTeams()
          end
          team:Destroy()
       end
-      Teams[teamName] = nil
+      RoundTeams[teamName] = nil
    end
-end
-
-function GameTeamService.beginIntermission()
-   GameTeamService.setAllOutOfGame()
-   GameTeamService.destroyRoundTeams()
 end
 
 -- // Set particpiating members to free-for-all team
@@ -166,6 +170,16 @@ function GameTeamService.init()
          player.Team = safeGetTeam("FreeForAll")
       end
 	end)
+
+   -- // Dismantle round teams in response to new intermission stages
+   local gameStateData = GameStateLibrary.getGameStateData()
+   gameStateData.IntermissionStage:Subscribe(function(newIntermissionStage: number?)
+      if not roundTeamsDismantled then
+         if newIntermissionStage == IntermissionStagesEnum.LobbyVoting or newIntermissionStage == IntermissionStagesEnum.LobbyEnded then
+            GameTeamService.dismantleRoundTeams()
+         end
+      end
+   end)
 end
 
 function GameTeamService.start()
