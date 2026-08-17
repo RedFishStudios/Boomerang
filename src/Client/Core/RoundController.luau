@@ -19,7 +19,7 @@ local CurrentGameState = require(ReplicatedStorage.Shared.Library.GameStateLibra
 -------------------------------------------------------------------------------
 
 function RoundController.isInRound(): boolean
-  return CurrentGameState.getGameStateData().IsInRound:Get()
+  return CurrentGameState.getGameStateData().CurrentRoundData:Get() ~= nil
 end
 
 -------------------------------------------------------------------------------

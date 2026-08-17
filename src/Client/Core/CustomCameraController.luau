@@ -506,7 +506,7 @@ function CustomCameraController.start()
    localPlayer.CharacterAdded:Connect(onCharacterAdded)
 
    local gameStateData = GameStateLibrary.getGameStateData()
-   gameStateData.IsInRound:Subscribe(function(isInRound: boolean)
+   gameStateData.CurrentRoundData:Subscribe(function()
       CustomCameraController.cancelParryEffect()
       if CustomCameraController.Mode == "Overhead" then
          placeCameraInstantly()

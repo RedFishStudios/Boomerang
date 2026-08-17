@@ -59,7 +59,7 @@ end
 --    Usage of player.RespawnLocation is for generally improved rendering prioritization by keeping the player with an understanding of the general area they will probably go
 local function setPlayerSpawnpoint(player: Player)
    local gameStateData = GameStateLibrary.getGameStateData()
-   if gameStateData.IsInRound:Get() and gameStateData.CanRespawn:Get() then
+   if gameStateData.CurrentRoundData:Get() ~= nil and gameStateData.CanRespawn:Get() then
       player.RespawnLocation = ArenaService.getSpawnPoint(player)
    else
       player.RespawnLocation = LobbyService.getSpawnPoint()
@@ -133,7 +133,7 @@ function SpawnService.init()
 
       PlayersUtil.CharacterLoaded:Add(function(player: Player, _character: Model, _humanoid: Humanoid, _rootPart: BasePart)
          -- // Add to LivingPlayersInArena
-         if gameStateData.IsInRound:Get() == false then
+         if gameStateData.CurrentRoundData:Get() == nil then
             return
          end
          if gameStateData.CanRespawn:Get() == false then

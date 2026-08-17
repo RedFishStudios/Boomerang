@@ -645,8 +645,8 @@ function WeaponController.init()
    RunService.PreSimulation:Connect(updateSmoothing)
 
    local gameStateData = GameStateLibrary.getGameStateData()
-   gameStateData.IsInRound:Subscribe(function(newValue: boolean)
-      if not newValue then
+   gameStateData.CurrentRoundData:Subscribe(function(currentRoundData)
+      if currentRoundData == nil then
          setLocalAimState(false)
          pendingLocalThrow = nil
          AnimationController.stopAllCoreAnimations(Players.LocalPlayer)

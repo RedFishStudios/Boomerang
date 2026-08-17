@@ -12,7 +12,7 @@ end
 
 function WeaponLibrary.canThrow(player: Player, toolId: string): boolean
    local gameStateData = GameStateLibrary.getGameStateData()
-   if not gameStateData.IsInRound:Get() then
+   if gameStateData.CurrentRoundData:Get() == nil then
       print("not in round")
       return false
    end

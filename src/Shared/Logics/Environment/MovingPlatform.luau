@@ -347,8 +347,8 @@ end
 function MovingPlatform.init()
    local gameStateData = GameStateLibrary.getGameStateData()
 
-   gameStateData.IsInRound:Subscribe(function(isInRound)
-      if not isInRound then
+   gameStateData.CurrentRoundData:Subscribe(function(currentRoundData)
+      if currentRoundData == nil then
          reset()
       end
    end)

@@ -404,7 +404,7 @@ function WeaponService.init()
 
    -- // Reset boomerangs when starting/stopping game
    local gameStateData = GameStateLibrary.getGameStateData()
-   gameStateData.IsInRound:Subscribe(function(isInRound: boolean)
+   gameStateData.CurrentRoundData:Subscribe(function()
       for player, thrownWeaponData in pairs(ThrownWeapons.Data) do
          local toolData = Tools[thrownWeaponData.ToolId]
          local Logic = getLogic(toolData.LogicClass)

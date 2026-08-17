@@ -97,7 +97,8 @@ function Dash.canActivate(player: Player)
    end
 
    local gameStateData = GameStateLibrary.getGameStateData()
-   local currentGameMode = gameStateData.Gamemode:Get()
+   local currentRoundData = gameStateData.CurrentRoundData:Get()
+   local currentGameMode = if currentRoundData then currentRoundData.Gamemode else nil
    if currentGameMode then
       local gameModeData = Gamemodes[currentGameMode]
       if gameModeData and gameModeData.DashDisabled then

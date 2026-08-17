@@ -94,7 +94,7 @@ _init()
 
 function HudButtonsGui.start()
    local gameStateData = GameStateLibrary.getGameStateData()
-   gameStateData.IsInRound:Subscribe(function()
+   gameStateData.CurrentRoundData:Subscribe(function()
       setupGuiForNewRound()
    end)
 end

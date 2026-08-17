@@ -106,7 +106,8 @@ end
 
 function ArenaService.getSpawnPoint(player: Player): SpawnLocation
 local gameStateData = CurrentGameState.getGameStateData()
-   local forRoundId = gameStateData.CurrentRoundId:Get()
+   local currentRoundData = gameStateData.CurrentRoundData:Get()
+   local forRoundId = if currentRoundData then currentRoundData.CurrentRoundId else nil
 
    -- Get character
    if not player.Character then
@@ -119,7 +120,8 @@ local gameStateData = CurrentGameState.getGameStateData()
          warn(`player character never loaded to send to arena: {player}`)
          return
       end
-      if gameStateData.CurrentRoundId:Get() ~= forRoundId then
+      local latestRoundData = gameStateData.CurrentRoundData:Get()
+      if not latestRoundData or latestRoundData.CurrentRoundId ~= forRoundId then
          warn(`arenaservice.sendtoarena: round changed while awaiting character: {player}`)
          return
       end
@@ -136,13 +138,14 @@ local gameStateData = CurrentGameState.getGameStateData()
          warn(`player character has no primary part to send to arena: {player}`)
          return
       end
-      if gameStateData.CurrentRoundId:Get() ~= forRoundId then
+      local latestRoundData = gameStateData.CurrentRoundData:Get()
+      if not latestRoundData or latestRoundData.CurrentRoundId ~= forRoundId then
          warn(`arenaservice.sendtoarena: round changed while awaiting player primary part: {player}`)
          return
       end
    end
 
-   if not gameStateData.IsInRound:Get() then
+   if gameStateData.CurrentRoundData:Get() == nil then
       -- Round ended; cease arena send call
       return
    end

@@ -163,7 +163,7 @@ function GameTeamService.init()
    GameTeamService.setAllOutOfGame()
 	PlayersUtil.PlayerAdded:Add(function(player: Player)
       local currentGameState = GameStateLibrary.getGameStateData()
-      if currentGameState.IsInRound:Get() == false then
+      if currentGameState.CurrentRoundData:Get() == nil then
          GameTeamService.setOutOfGame(player)
       else
          -- TODO: when team vs team gamemodes are added, assign player to a team

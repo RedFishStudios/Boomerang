@@ -441,8 +441,7 @@ function Stab.canActivate(player: Player): boolean
    end
 
    local gameStateData = GameStateLibrary.getGameStateData()
-   local inRound = gameStateData.IsInRound:Get()
-   if not inRound then
+   if gameStateData.CurrentRoundData:Get() == nil then
       return false
    end
 
@@ -595,7 +594,7 @@ PlayersUtil.CharacterDied:Add(function(player: Player, character: Model, humanoi
    disconnect(player)
 end)
 
-GameStateLibrary.getGameStateData().IsInRound:Subscribe(function()
+GameStateLibrary.getGameStateData().CurrentRoundData:Subscribe(function()
    cancelAllStaggers()
    stopStaggerUpdateConnectionIfIdle()
 end)

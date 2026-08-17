@@ -120,7 +120,8 @@ local function applyRoundUi()
    end
 
    VoteContainer.Visible = false
-   local newGamemode = GameStateLibrary.getGameStateData().Gamemode:Get()
+   local currentRoundData = GameStateLibrary.getGameStateData().CurrentRoundData:Get()
+   local newGamemode = if currentRoundData then currentRoundData.Gamemode else nil
    local gamemodeData = newGamemode and Gamemodes[newGamemode] or nil
    if gamemodeData and newGamemode then
       GamemodeLabel.Text = gamemodeData.Name or newGamemode
@@ -137,7 +138,7 @@ end
 -- // Refresh hud display using current game state data
 local function refreshUiFromGameState()
    local gameStateData = GameStateLibrary.getGameStateData()
-   if gameStateData.IsInRound:Get() and gameStateData.Gamemode:Get() then
+   if gameStateData.CurrentRoundData:Get() ~= nil then
       applyRoundUi()
       return
    end

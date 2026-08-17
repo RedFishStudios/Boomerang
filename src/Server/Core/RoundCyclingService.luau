@@ -43,6 +43,7 @@ local VOTE_DURATION = 8
 
 local roundDurationConnection: RBXScriptConnection? = nil
 local currentRoundEndsAt: number? = nil
+local currentRoundId = 0
 
 local VoteUpdatedEvent = SimpleRemotes.getEvent("VoteUpdated")
 
@@ -57,11 +58,6 @@ local awaitingVotes: {Player} = {}
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
-
-local function iterateRoundId()
-   local gameStateData = GameStateLibrary.getGameStateData()
-   gameStateData.CurrentRoundId:Set(gameStateData.CurrentRoundId:Get() + 1)
-end
 
 local function getLogic(roundTypeId: string)
 	if not GamemodeLogicModules[roundTypeId] then
@@ -81,11 +77,12 @@ local function updateRoundDuration()
       roundDurationConnection:Disconnect()
       roundDurationConnection = nil
       currentRoundEndsAt = nil
-      local currentGamemode = gameStateData.Gamemode:Get()
+      local currentRoundData = gameStateData.CurrentRoundData:Get()
+      local currentGamemode = if currentRoundData then currentRoundData.Gamemode else nil
       if currentGamemode then
          local roundLogic = getLogic(currentGamemode)
          local snapshot = GameStateLibrary.getSnapshot()
-         snapshot.Gamemode = nil
+         snapshot.CurrentRoundData = nil
          snapshot.CurrentTimerEndsAt = nil
          GameStateLibrary.applySnapshot(snapshot)
          if roundLogic and roundLogic.teardown then
@@ -100,17 +97,18 @@ end
 -------------------------------------------------------------------------------
 
 function RoundCyclingService.isInRound(): boolean
-   return GameStateLibrary.getGameStateData().IsInRound:Get()
+   return GameStateLibrary.getGameStateData().CurrentRoundData:Get() ~= nil
 end
 
 function RoundCyclingService.getCurrentRoundTypeId(): string?
-   return GameStateLibrary.getGameStateData().Gamemode:Get()
+   local currentRoundData = GameStateLibrary.getGameStateData().CurrentRoundData:Get()
+   return if currentRoundData then currentRoundData.Gamemode else nil
 end
 
 -- // Returns true if current round permits late joining for the given player
 function RoundCyclingService.canSpawnIntoRound(player: Player): boolean
    local gameStateData = GameStateLibrary.getGameStateData()
-   if not gameStateData.IsInRound:Get() or not gameStateData.Gamemode:Get() then
+   if gameStateData.CurrentRoundData:Get() == nil then
       return false
    end
    return gameStateData.CanRespawn:Get()
@@ -134,6 +132,7 @@ end
 
 function RoundCyclingService.setNextRound(roundTypeId: string, mapName: string)
    GameStateLibrary.RoundStartingTasks:Execute("parallel")
+   currentRoundId += 1
 
    local roundType = Gamemodes[roundTypeId]
    local roundDuration = roundType.TimeLasts
@@ -141,9 +140,11 @@ function RoundCyclingService.setNextRound(roundTypeId: string, mapName: string)
    local roundEndsAt = notificationServerTime + roundDuration
 
    local snapshot = GameStateLibrary.getSnapshot()
-   snapshot.IsInRound = true
-   snapshot.Gamemode = roundTypeId
-   snapshot.CurrentMapName = mapName
+   snapshot.CurrentRoundData = {
+      CurrentRoundId = currentRoundId,
+      Gamemode = roundTypeId,
+      CurrentMapName = mapName,
+   }
    snapshot.CurrentTimerEndsAt = roundEndsAt
    snapshot.CanRespawn = roundType.CanRespawn
    snapshot.IntermissionWinMessage = nil
@@ -166,8 +167,6 @@ function RoundCyclingService.setNextRound(roundTypeId: string, mapName: string)
       roundDurationConnection = nil
    end
    roundDurationConnection = RunService.Heartbeat:Connect(updateRoundDuration)
-
-   iterateRoundId()
 end
 
 -------------------------------------------------------------------------------
@@ -247,9 +246,7 @@ function RoundCyclingService.start()
 
       -- // Pre-Intermission
       local snapshot = GameStateLibrary.getSnapshot()
-      snapshot.IsInRound = false
-      snapshot.Gamemode = nil
-      snapshot.CurrentMapName = nil
+      snapshot.CurrentRoundData = nil
       snapshot.CurrentTimerEndsAt = nil
       snapshot.CanRespawn = nil
       --snapshot.IntermissionWinMessage = winMessage
@@ -273,9 +270,7 @@ function RoundCyclingService.start()
       end
 
       local intermissionEndsAt = workspace:GetServerTimeNow() + INTERMISSION_DURATION
-      snapshot.IsInRound = false
-      snapshot.Gamemode = nil
-      snapshot.CurrentMapName = nil
+      snapshot.CurrentRoundData = nil
       snapshot.CurrentTimerEndsAt = intermissionEndsAt
       snapshot.CanRespawn = nil
       snapshot.IntermissionWinMessage = winMessage

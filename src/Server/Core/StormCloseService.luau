@@ -198,7 +198,7 @@ function StormCloseService.begin(x, y)
       if paused then
          return
       end
-      if not gameStateData.IsInRound:Get() then
+	if gameStateData.CurrentRoundData:Get() == nil then
          return
       end
 
@@ -257,40 +257,40 @@ function StormCloseService.init()
 		stormCloseRemote:FireClient(player, StormCloseLibrary.REMOTE_ACTION_CREATE, stormState.centerPosition, stormState.currentWidth, stormState.currentHeight)
 	end)
 
-   gameStateData.CurrentRoundId:Subscribe(function(newRoundId)
+	gameStateData.CurrentRoundData:Subscribe(function(currentRoundData)
       warn(`change in round id detected`)
       StormCloseService.teardown()
 
-      if newRoundId == nil then
+		if currentRoundData == nil then
          warn(`no round id for storm close`)
          return
       end
 
-      local gamemode = gameStateData.Gamemode:Get()
-      if not gamemode then
-         warn(`no gamemode for round {gamemode}`)
-         return
-      end
+		task.defer(function()
+			local latestRoundData = gameStateData.CurrentRoundData:Get()
+			if not latestRoundData or latestRoundData.CurrentRoundId ~= currentRoundData.CurrentRoundId then
+				return
+			end
 
-      local gamemodeData = Gamemodes[gamemode]
-      if not gamemodeData.StormClose then
-         warn(`no storm close for gamemode {gamemode}`)
-         return
-      end
-      
-      local mapId = gameStateData.CurrentMapName:Get()
-      local mapData = Maps[mapId]
-      if not mapData then
-      --   return
-      end
+			local gamemodeData = Gamemodes[currentRoundData.Gamemode]
+			if not gamemodeData.StormClose then
+				warn(`no storm close for gamemode {currentRoundData.Gamemode}`)
+				return
+			end
+         
+			local mapData = Maps[currentRoundData.CurrentMapName]
+			if not mapData then
+			--   return
+			end
 
-		local stormCloseConfigPart = ArenaService.getConfig("StormClose")
-		if not stormCloseConfigPart or not stormCloseConfigPart:IsA("BasePart") then
-			warn("StormCloseService: missing StormClose config BasePart")
-			return
-		end
+			local stormCloseConfigPart = ArenaService.getConfig("StormClose")
+			if not stormCloseConfigPart or not stormCloseConfigPart:IsA("BasePart") then
+				warn("StormCloseService: missing StormClose config BasePart")
+				return
+			end
 
-		StormCloseService.begin(stormCloseConfigPart.Size.X, stormCloseConfigPart.Size.Z)
+			StormCloseService.begin(stormCloseConfigPart.Size.X, stormCloseConfigPart.Size.Z)
+		end)
    end)
 end
 
