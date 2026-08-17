@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
+local GameplayPhaseEnum = require(ReplicatedStorage.Shared.Constants.Enums.GameplayPhases)
 
 local localPlayer = Players.LocalPlayer
 
@@ -48,7 +49,19 @@ local function destroy(livePickupId: string)
    end
 end
 
+local function clearLivePickups()
+   for _, visual in pairs(livePickupVisuals) do
+      visual:Destroy()
+   end
+   table.clear(livePickupVisuals)
+   table.clear(PickupLibrary.LivePickups)
+end
+
 local function getLogic(pickupId: string)
+   print(pickupId)
+   if not pickupId then
+      error(`why is pickupId nil?`)
+   end
 	if not PickupLogicModules[pickupId] then
       local _module = PickupLogics:WaitForChild(pickupId, 5)
       if not _module then
@@ -88,6 +101,13 @@ end
 -------------------------------------------------------------------------------
 
 function PickupController.init()
+   local gameStateData = GameStateLibrary.getGameStateData()
+   gameStateData.GameplayPhase:Subscribe(function(newPhase: string)
+      if newPhase == GameplayPhaseEnum.LobbyVoting then
+         clearLivePickups()
+      end
+   end)
+
    pickupReplication.OnClientEvent:Connect(function(livePickupId: string, pickupId: string, userId: number, timestamp: number)
       print(`received: livePickupId: {livePickupId}, pickupId: {pickupId}, userId: {userId}, timestamp: {timestamp}`)
       destroy(livePickupId)
@@ -115,10 +135,7 @@ function PickupController.init()
 
    SimpleRemotes.getEvent("LivePickupReplication").OnClientEvent:Connect(function(replicationData: PickupLibrary.LivePickupReplicationData)
       if replicationData.ClearAll then
-         for livePickupId, _ in pairs(PickupLibrary.LivePickups) do
-            destroy(livePickupId)
-         end
-         PickupLibrary.LivePickups = {}
+         clearLivePickups()
       end
 
       if replicationData.Spawned then
@@ -152,7 +169,6 @@ function PickupController.init()
    end)
 
    SimpleRemotes.getEvent("PickupEffectStateChanged").OnClientEvent:Connect(function(effectData: PickupLibrary.PickupEffectStateChangedReplicationData)
-      print(`pickup effect state change detected: {effectData}`)
       if effectData.clearAll then
          PickupLibrary.UserPickupEffectsActive = {}
       end
@@ -160,7 +176,6 @@ function PickupController.init()
       if effectData.active then
          PickupLibrary.setPickupEffectActive(effectData.userId, effectData.livePickupId, effectData.pickupClassId, effectData.endsAt)
       else
-         print(`removing active`)
          PickupLibrary.removePickupEffectActive(effectData.userId, effectData.livePickupId, effectData.cancelCode, false)
          if effectData.classId then
             print(effectData.classId)

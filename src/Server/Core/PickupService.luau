@@ -14,7 +14,7 @@ local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 local PickupLogicModules = {}
 
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
-local GameplayPhases = require(ReplicatedStorage.Shared.Constants.Enums.GameplayPhases)
+local GameplayPhaseEnum = require(ReplicatedStorage.Shared.Constants.Enums.GameplayPhases)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -156,7 +156,7 @@ function PickupService.init()
    local gameStateData = GameStateLibrary.getGameStateData()
 
    gameStateData.GameplayPhase:Subscribe(function(gameplayPhase)
-      if gameplayPhase == GameplayPhases.LobbyVoting then
+      if gameplayPhase == GameplayPhaseEnum.LobbyVoting then
          PickupLibrary.clearAllPickupEffectsActive()
          PickupLibrary.LivePickups = {}
          PickupLibrary.UserPickupEffectsActive = {}
@@ -164,43 +164,31 @@ function PickupService.init()
    end)
 
    GameStateLibrary.RoundStartingTasks:Add(function()
-      -- Destroy all previous pickup objects
-      PickupLibrary.LivePickups = {}
+      table.clear(PickupLibrary.LivePickups)
 
-      -- Spawn new pickups
-      task.spawn(function()
+      local replicationData: PickupLibrary.LivePickupReplicationData = {
+         ClearAll = true,
+         Spawned = {},
+      }
+      local pickupSpawns = ArenaService.getPickupSpawns()
+      if #pickupSpawns > 0 and #pickupClasses > 0 then
          local now = workspace:GetServerTimeNow()
-         local pickupSpawns = ArenaService.getPickupSpawns()
-         if #pickupSpawns == 0 then
-            return
-         end
          local startCount = 1
-         for i = 1, startCount do 
+         for _ = 1, startCount do
             local spawn = pickupSpawns[math.random(1, #pickupSpawns)]
-            local pickupClassId = pickupClasses[math.random(1, #pickupClasses)]
             local uuid = HttpService:GenerateGUID(false)
-            local despawnTime = now + DESPAWN_TIME
             PickupLibrary.LivePickups[uuid] = {
-               --ClassId = pickupClassId,
-               ClassId = "Shield",
-               --DespawnsAt = despawnTime,
-               Position = spawn.Position
+               ClassId = "TeleportBoomerang",
+               DespawnsAt = now + DESPAWN_TIME,
+               Position = spawn.Position,
+            }
+            replicationData.Spawned[uuid] = {
+               Position = spawn.Position,
+               DespawnsAt = now + DESPAWN_TIME,
             }
          end
-
-         -- Replicate
-         local replicationData: PickupLibrary.LivePickupReplicationData = {
-            ClearAll = true,
-            Spawned = {}
-         }
-         for livePickupId, livePickup in pairs(PickupLibrary.LivePickups) do
-            replicationData.Spawned[livePickupId] = {
-               Position = livePickup.Position,
-               --DespawnsAt = livePickup.DespawnsAt
-            }
-         end
-         livePickupReplication:FireAllClients(replicationData)
-      end)
+      end
+      livePickupReplication:FireAllClients(replicationData)
    end)
 
    --requestUsePickup.OnServerEvent:Connect(function(player: Player, livePickupId: LivePickupId, ...)
@@ -250,7 +238,7 @@ function PickupService.init()
             local despawnTime = now + DESPAWN_TIME
             PickupLibrary.LivePickups[uuid] = {
                --ClassId = pickupClassId,
-               ClassId = "Shield",
+               ClassId = "TeleportBoomerang",
                DespawnsAt = despawnTime,
                Position = spawn.Position
             }

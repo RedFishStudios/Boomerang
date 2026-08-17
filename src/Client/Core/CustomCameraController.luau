@@ -89,7 +89,6 @@ local function getAllSubjectsBoundingBox()
    local gameStateData = GameStateLibrary.getGameStateData()
 
    local livingPlayersInArena = gameStateData.LivingPlayersInArena:Get()
-   print(livingPlayersInArena)
    local localPlayerIsInArena = table.find(livingPlayersInArena, localPlayer) ~= nil
    if not localPlayerIsInArena then
       -- Client is not alive in the arena

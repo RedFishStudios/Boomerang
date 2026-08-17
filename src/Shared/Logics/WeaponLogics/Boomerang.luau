@@ -21,6 +21,7 @@ local Sounds = require(ReplicatedStorage.Shared.Constants.Sounds)
 local HitboxLibrary = require(ReplicatedStorage.Shared.Library.HitboxLibrary)
 local GameTeamLibrary = require(ReplicatedStorage.Shared.Library.GameTeamLibrary)
 local CombatLibrary = require(ReplicatedStorage.Shared.Library.CombatLibrary)
+local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
 local HttpService = game:GetService("HttpService")
 
 local AnimationController
@@ -546,7 +547,11 @@ local function damagedPlayer(player: Player, boomerangId: string, thrownWeaponDa
 
    local Humanoid = victimModel:FindFirstChildOfClass("Humanoid")
    if Humanoid and Humanoid.Health > 0 then
+      local healthBeforeDamage = Humanoid.Health
       CombatLibrary.attackHitPlayer(player, boomerangId, victimPlayer, Humanoid, 100000)
+      if isServer and WeaponService and healthBeforeDamage > 0 and Humanoid.Health <= 0 then
+         WeaponService.WeaponKilledPlayer:Execute("parallel", player, victimPlayer, thrownWeaponData.ToolId)
+      end
       return true
    end
 
@@ -736,6 +741,9 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       -- Distance-based recall
       if (rayOrigin - lastBounceOrigin).Magnitude >= (if bounced then bounceDistance else initThrowDistance) then
          if shouldRecallTransitions then
+            if isServer and WeaponService then
+               WeaponService.WeaponReachedEventPoint:Execute("parallel", player, thrownWeaponData.ToolId, rayOrigin)
+            end
             Boomerang.recall(player, boomerangId, toolData, thrownWeaponData)
             return true
          end
@@ -758,6 +766,9 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
 
       local obstructionRaycastResult = raycastWithHorizontalHitbox(rayOrigin, direction, rayDistance, hitboxRadius, raycastParams, thrownWeaponData)
       if obstructionRaycastResult then
+         if isServer and WeaponService then
+            WeaponService.WeaponStruckObject:Execute("parallel", player, thrownWeaponData.ToolId, obstructionRaycastResult)
+         end
          energy -= 1
          bounced = true
          direction = direction - 2 * direction:Dot(obstructionRaycastResult.Normal) * obstructionRaycastResult.Normal
@@ -984,6 +995,9 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
 
       -- // If we hit something, adjust movement direction to move perpendicular to the obstruction
       if raycastResult and raycastResult.Instance then
+         if isServer and WeaponService then
+            WeaponService.WeaponStruckObject:Execute("parallel", player, thrownWeaponData.ToolId, raycastResult)
+         end
          sliding = true
          speed = 0
          slideMomentum = 1
@@ -1036,7 +1050,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       local characterRayDistance = (if sliding then slideSpeed else speed) * deltaTime
       local victimModels = spherecastCharacterHitbox(rayOrigin, characterDirection, characterRayDistance, hitboxRadius)
       for _, victimModel in ipairs(victimModels) do
-         damagedPlayer(player, boomerangId, victimModel)
+         damagedPlayer(player, boomerangId, thrownWeaponData, victimModel)
       end
 
       thrownWeaponData.Direction = direction

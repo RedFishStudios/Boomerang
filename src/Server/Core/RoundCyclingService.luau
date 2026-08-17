@@ -131,7 +131,6 @@ function RoundCyclingService.getNextGamemodeChoices(): {string}
 end
 
 function RoundCyclingService.setNextRound(roundTypeId: string, mapName: string)
-   GameStateLibrary.RoundStartingTasks:Execute("parallel")
    currentRoundId += 1
 
    local roundType = Gamemodes[roundTypeId]
@@ -152,6 +151,7 @@ function RoundCyclingService.setNextRound(roundTypeId: string, mapName: string)
    GameStateLibrary.applySnapshot(snapshot)
 
    ArenaService.setArena(mapName)
+   GameStateLibrary.RoundStartingTasks:Execute("parallel")
 
    local roundLogic = getLogic(roundTypeId)
    if roundLogic and roundLogic.setup then
