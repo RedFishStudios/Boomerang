@@ -363,7 +363,7 @@ local function beginStagger(player: Player, direction: Vector3)
    ensureStaggerUpdateConnection()
 end
 
-function Stab.onClientSimulation(userId: number, timestamp: number)
+function Stab.onPickup(userId: number, timestamp: number)
    if isServer or typeof(timestamp) ~= "number" then
       return
    end

@@ -160,7 +160,6 @@ function PickupService.init()
 
    gameStateData.GameplayPhase:Subscribe(function(gameplayPhase)
       if gameplayPhase == GameplayPhaseEnum.LobbyVoting then
-         warn(`lobby voting began`)
          PickupLibrary.clearAllPickupEffectsActive()
          PickupLibrary.LivePickups = {}
          PickupLibrary.UserPickupEffectsActive = {}
@@ -182,7 +181,7 @@ function PickupService.init()
             local spawn = pickupSpawns[math.random(1, #pickupSpawns)]
             local uuid = HttpService:GenerateGUID(false)
             PickupLibrary.LivePickups[uuid] = {
-               ClassId = "TeleportBoomerang",
+               ClassId = if GlobalConfig.ForceOverwritePickup then GlobalConfig.ForceOverwritePickup else pickupClasses[math.random(1, #pickupClasses)],
                DespawnsAt = now + DESPAWN_TIME,
                Position = spawn.Position,
             }
@@ -254,8 +253,7 @@ function PickupService.init()
                local uuid = HttpService:GenerateGUID(false)
                local despawnTime = now + DESPAWN_TIME
                PickupLibrary.LivePickups[uuid] = {
-                  --ClassId = pickupClassId,
-                  ClassId = "TeleportBoomerang",
+                  ClassId = if GlobalConfig.ForceOverwritePickup then GlobalConfig.ForceOverwritePickup else pickupClassId,
                   DespawnsAt = despawnTime,
                   Position = spawn.Position
                }

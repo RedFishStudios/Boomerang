@@ -44,13 +44,4 @@ function Speedup.onEnd(player: Player)
    end
 end
 
-function Speedup.onClientSimulation(player: Player, activationTime: number): number?
-   if isServer then
-      warn(`simulate activation is only for client contexts`)
-      return false, nil
-   else
-      return Speedup.onPickup(player, activationTime)
-   end
-end
-
 return Speedup :: PickupLibrary.PickupLogic

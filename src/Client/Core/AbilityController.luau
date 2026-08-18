@@ -54,11 +54,11 @@ abilityReplication.OnClientEvent:Connect(function(abilityId: string, userId: num
    end
 
    local logic = getLogic(abilityId)
-   if not logic or not logic.onClientSimulation then
+   if not logic or not logic.onPickup then
       return
    end
 
-   logic.onClientSimulation(userId, timestamp)
+   logic.onPickup(userId, timestamp)
 end)
 
 -------------------------------------------------------------------------------
@@ -67,7 +67,7 @@ end)
 
 function AbilityController.activate(abilityId: string, ...)
    local logic = getLogic(abilityId)
-   if not logic or not logic.onClientSimulation then
+   if not logic or not logic.onPickup then
       return
    end
    if logic.canActivate and not logic.canActivate(localPlayer, ...) then
@@ -78,7 +78,7 @@ function AbilityController.activate(abilityId: string, ...)
    if logic.getParams then
       params = logic.getParams()
    end
-   logic.onClientSimulation(localPlayer.UserId, game.Workspace:GetServerTimeNow(), params)
+   logic.onPickup(localPlayer.UserId, game.Workspace:GetServerTimeNow(), params)
 	abilityUsed:FireServer(abilityId, params)
 end
 

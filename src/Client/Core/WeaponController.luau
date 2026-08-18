@@ -25,6 +25,7 @@ local ToolController = require(ReplicatedStorage.Client.Core.ToolController)
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 local PlatformController = require(ReplicatedStorage.Client.Core.PlatformController)
 local CharacterRenderController = require(ReplicatedStorage.Client.Core.CharacterRenderController)
+local PlayerStatsLibrary = require(ReplicatedStorage.Shared.Library.PlayerStatsLibrary)
 
 local ToolLogics = ReplicatedStorage.Shared.Logics.WeaponLogics
 local ToolLogicModules = {}
@@ -60,6 +61,7 @@ local UNRELIABLE_CODES = RemoteCodes.Weapon.Unreliable
 local SOFT_CORRECTION_RATE = 14
 local HARD_SNAP_DISTANCE = 14
 local MAX_SNAPSHOT_CATCHUP = 0.35
+local WEAPON_HOLD_ANIMATION = "Charging"
 
 local aimArrows: {
    [Player]: {
@@ -74,6 +76,8 @@ local pendingLocalThrow: {
 }? = nil
 local isAiming = false
 local currentWeaponState = WeaponController.CurrentWeaponState.InHand
+local isWeaponVisuallyLocked = false
+local weaponLockHeartbeatConnection: RBXScriptConnection? = nil
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -127,6 +131,11 @@ local function getWeaponState(): string
    return WeaponController.CurrentWeaponState.InHand
 end
 
+local function playerIsWeaponLocked(): boolean
+   local lockedUntil = PlayerStatsLibrary.getStat(localPlayer, "WeaponLockedUntilTimestamp")
+   return typeof(lockedUntil) == "number" and workspace:GetServerTimeNow() < lockedUntil
+end
+
 local function syncWeaponStateChanged()
    local newWeaponState = getWeaponState()
    if newWeaponState == currentWeaponState then
@@ -152,7 +161,7 @@ local function setLocalAimState(nextState: boolean)
    syncWeaponStateChanged()
 end
 
-local function clearThrownWeapon(forPlayer: Player)
+local function clearThrownWeapon(forPlayer: Player, returnToPlayer: boolean?)
    local thrownWeaponData = ThrownWeapons.Data[forPlayer]
    if not thrownWeaponData then
       return
@@ -164,9 +173,11 @@ local function clearThrownWeapon(forPlayer: Player)
    end
 
    local logic = getLogic(toolData.LogicClass)
-   logic.removeFromField(forPlayer, thrownWeaponData)
+   logic.removeFromField(forPlayer, thrownWeaponData, {
+      ReturnToPlayer = returnToPlayer ~= false,
+   })
 
-   if forPlayer ~= Players.LocalPlayer then
+   if returnToPlayer ~= false and forPlayer ~= Players.LocalPlayer then
       ToolController.setToolVisible(forPlayer, true)
    end
 end
@@ -174,6 +185,10 @@ end
 local function beginEquippedToolAim(): boolean
    if isAiming then
       return true
+   end
+
+   if playerIsWeaponLocked() then
+      return false
    end
 
    local equippedToolId = GlobalConfig.ForceEquippedTool
@@ -199,6 +214,11 @@ end
 
 local function throwEquippedTool(forcedDirection: Vector3?): boolean
    if not isAiming then
+      return false
+   end
+
+   if playerIsWeaponLocked() then
+      setLocalAimState(false)
       return false
    end
 
@@ -363,6 +383,52 @@ local function stopAiming(player: Player)
       aimArrow.Instance:Destroy()
       aimArrows[player] = nil
    end
+end
+
+local function disconnectWeaponLockHeartbeat()
+   if weaponLockHeartbeatConnection then
+      weaponLockHeartbeatConnection:Disconnect()
+      weaponLockHeartbeatConnection = nil
+   end
+end
+
+local function setLocalWeaponLocked(isLocked: boolean)
+   if isWeaponVisuallyLocked == isLocked then
+      return
+   end
+   isWeaponVisuallyLocked = isLocked
+
+   if isLocked then
+      setLocalAimState(false)
+      stopAiming(localPlayer)
+      ToolController.setAimState(localPlayer, false)
+      ToolController.setWeaponLocked(localPlayer, true)
+   else
+      ToolController.setWeaponLocked(localPlayer, false)
+      AnimationController.playCoreAnimation(localPlayer, WEAPON_HOLD_ANIMATION)
+   end
+end
+
+local function observeWeaponLockTimestamp()
+   if not playerIsWeaponLocked() then
+      disconnectWeaponLockHeartbeat()
+      setLocalWeaponLocked(false)
+      return
+   end
+
+   setLocalWeaponLocked(true)
+   if weaponLockHeartbeatConnection then
+      return
+   end
+
+   weaponLockHeartbeatConnection = RunService.Heartbeat:Connect(function()
+      if playerIsWeaponLocked() then
+         return
+      end
+
+      disconnectWeaponLockHeartbeat()
+      setLocalWeaponLocked(false)
+   end)
 end
 
 local aimArrowConnection: RBXScriptConnection? = nil
@@ -544,6 +610,11 @@ function WeaponController.init()
          return
       end
 
+      if forPlayer == localPlayer and playerIsWeaponLocked() then
+         setLocalWeaponLocked(true)
+         return
+      end
+
       ToolController.setAimState(forPlayer, isAiming)
 
       if forPlayer == Players.LocalPlayer then
@@ -607,12 +678,13 @@ function WeaponController.init()
    end)
 
    thrownBoomerangDespawnedEvent.OnClientEvent:Connect(function(payload: buffer)
-      local ownerUserId = BufferUtil.readUserId(payload, 0)
+      local ownerUserId, offset = BufferUtil.readUserId(payload, 0)
+      local returnToPlayer = BufferUtil.readu8(payload, offset) == 1
       local forPlayer = Players:GetPlayerByUserId(ownerUserId)
       if not forPlayer then
          return
       end
-      clearThrownWeapon(forPlayer)
+      clearThrownWeapon(forPlayer, returnToPlayer)
    end)
 
    thrownWeaponReplicationEvent.OnClientEvent:Connect(function(payload: buffer)
@@ -694,6 +766,14 @@ function WeaponController.init()
          setLocalAimState(false)
       end
    end)
+
+   PlayerStatsLibrary.StatChangedTasks:Add(function(player: Player, statName: string, value)
+      if player == localPlayer and statName == "WeaponLockedUntilTimestamp" then
+         observeWeaponLockTimestamp()
+      end
+   end)
+
+   observeWeaponLockTimestamp()
 end
 
 function WeaponController.start() end

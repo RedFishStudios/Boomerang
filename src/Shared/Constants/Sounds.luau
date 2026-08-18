@@ -11,6 +11,7 @@ type SoundProperties = {
 }
 
 type SoundData = {
+   Name: string,
    Id: number,
 } & SoundProperties
 
@@ -57,6 +58,10 @@ local sounds: {
       PickupGeneric = {
          Name = "PickupGeneric",
          Id = 123582256549202
+      },
+      Explosion = {
+         Name = "Explosion",
+         Id = 117211977307268
       }
    },
    Defaults = {

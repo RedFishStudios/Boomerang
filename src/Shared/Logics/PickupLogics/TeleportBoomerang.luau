@@ -1,10 +1,9 @@
 local TeleportBoomerang = {}
 
 local RunService = game:GetService("RunService")
-local ServerStorage = game:GetService("ServerStorage")
 
 local isServer = RunService:IsServer()
-local PICKUP_CLASS_ID = "TeleportBoomerang"
+local PICKUP_CLASS_ID = script.Name
 local EFFECT_DURATION_SECONDS = 8
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -13,6 +12,7 @@ local ParticlesLibrary = require(ReplicatedStorage:WaitForChild("Shared"):WaitFo
 local WeaponService, PickupService
 local CharacterRenderController
 if isServer then
+   local ServerStorage = game:GetService("ServerStorage")
    WeaponService = require(ServerStorage.Server.Core.WeaponService)
    PickupService = require(ServerStorage.Server.Core.PickupService)
 else
@@ -48,7 +48,6 @@ local function applyTeleport(player: Player, position: Vector3)
 end
 
 function TeleportBoomerang.onPickup(player: Player, startedAt: number?): number?
-   print(`on pickup {os.time()}`)
    local endsAt = (startedAt or workspace:GetServerTimeNow()) + EFFECT_DURATION_SECONDS
    
    if isServer then
@@ -86,16 +85,7 @@ function TeleportBoomerang.onPickup(player: Player, startedAt: number?): number?
    return endsAt
 end
 
-function TeleportBoomerang.onClientSimulation(player: Player, startedAt: number): number?
-   if isServer then
-      return nil
-   else
-      return TeleportBoomerang.onPickup(player, startedAt)
-   end
-end
-
 function TeleportBoomerang.onEnd(player: Player)
-   print(`on end {os.time()}`)
    if isServer then
       clearSubscriptions(player)
    else

@@ -78,7 +78,7 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
-function Dash.onClientSimulation(userId: number, timestamp: number)
+function Dash.onPickup(userId: number, timestamp: number)
    if isServer or typeof(timestamp) ~= "number" then
       return
    end

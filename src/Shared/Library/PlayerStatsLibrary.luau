@@ -7,6 +7,7 @@ local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
+local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 
 local RunService = game:GetService("RunService")
 
@@ -18,8 +19,10 @@ local replicatePlayerStat = SimpleRemotes.getEvent("ReplicatePlayerStat")
 -- TYPES
 -------------------------------------------------------------------------------
 
+export type StatKey = "Speed" | "WeaponLockedUntilTimestamp"
+
 export type PlayerStats = {
-   Speed: number
+   [StatKey]: any
 }
 
 -------------------------------------------------------------------------------
@@ -27,7 +30,8 @@ export type PlayerStats = {
 -------------------------------------------------------------------------------
 
 local defaultStats: PlayerStats = {
-   Speed = GlobalConfig.DefaultWalkSpeed
+   Speed = GlobalConfig.DefaultWalkSpeed,
+   WeaponLockedUntilTimestamp = nil
 }
 
 local playerStats: {[number]: PlayerStats} = {}
@@ -35,6 +39,8 @@ local playerStats: {[number]: PlayerStats} = {}
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
 -------------------------------------------------------------------------------
+
+PlayerStatsLibrary.StatChangedTasks = TasksList.new() :: TasksList.TasksList<(player: Player, statKey: string, newValue: any) -> ()>
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -78,10 +84,12 @@ function PlayerStatsLibrary.setStat(player: Player, statName: string, value: any
    if applicator then
       applicator(player, value, userStats)
    end
-
+   
    if isServer and not doNotReplicate then
       replicatePlayerStat:FireClient(player, statName, value)
    end
+
+   PlayerStatsLibrary.StatChangedTasks:Execute("serial", player, statName, value)
 end
 
 function PlayerStatsLibrary.getStat(player: Player, statName: string): number?

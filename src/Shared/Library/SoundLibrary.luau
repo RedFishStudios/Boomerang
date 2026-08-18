@@ -28,12 +28,14 @@ local ACTION_STOP = "Stop"
 -------------------------------------------------------------------------------
 
 type AudioChannelId = string
+type SoundHost = Instance | Vector3 | CFrame
 
 type AudioChannelData = {
    Instance: Sound,
    SoundName: string,
    CurrentTween: Tween?,
    StateOwnerKey: string,
+   TemporaryHost: BasePart?,
 }
 
 -------------------------------------------------------------------------------
@@ -70,16 +72,20 @@ end
 local function destroy(audioChannelId: string, audioChannel: AudioChannelData, seconds: number?, createStateId: boolean?)
    activeAudios[audioChannelId] = nil
    local sound = audioChannel.Instance
+   local temporaryHost = audioChannel.TemporaryHost
    local Tween = TweenService:Create(sound, TweenInfo.new(seconds or .25), {Volume = 0})
    Tween:Play()
    Tween.Completed:Once(function()
       sound:Destroy()
+      if temporaryHost then
+         temporaryHost:Destroy()
+      end
       Tween:Destroy()
       Tween = nil
    end)
 end
 
-local function playLocal(audioChannelId: AudioChannelId?, soundName: string, host: Instance?, fadeSeconds: number?, bypassLimits: boolean?): (AudioChannelId?, Sound?)
+local function playLocal(audioChannelId: AudioChannelId?, soundName: string, host: SoundHost?, fadeSeconds: number?, bypassLimits: boolean?): (AudioChannelId?, Sound?)
    local thisSoundData = Sounds.Data[soundName]
    if not thisSoundData then
       warn(`Sound data for {soundName} not found`)
@@ -93,11 +99,6 @@ local function playLocal(audioChannelId: AudioChannelId?, soundName: string, hos
             return nil, nil
          end
       end
-   end
-
-   -- // Resolve host
-   if host and host:IsA("Model") and host.PrimaryPart and host.PrimaryPart:IsDescendantOf(game.Workspace) then
-      host = host.PrimaryPart
    end
 
    local currentTime = os.clock()
@@ -122,6 +123,26 @@ local function playLocal(audioChannelId: AudioChannelId?, soundName: string, hos
       destroy(audioChannelId, oldChannel, fadeSeconds)
    end
 
+   local temporaryHost: BasePart? = nil
+   if typeof(host) == "Vector3" or typeof(host) == "CFrame" then
+      temporaryHost = Instance.new("Part")
+      temporaryHost.Name = "SoundHost"
+      temporaryHost.Anchored = true
+      temporaryHost.CanCollide = false
+      temporaryHost.CanQuery = false
+      temporaryHost.CanTouch = false
+      temporaryHost.Transparency = 1
+      temporaryHost.CFrame = if typeof(host) == "Vector3" then CFrame.new(host) else host
+      temporaryHost.Parent = workspace
+      host = temporaryHost
+   elseif host and host:IsA("Player") then
+      host = host.Character
+   end
+
+   if host and host:IsA("Model") and host.PrimaryPart and host.PrimaryPart:IsDescendantOf(workspace) then
+      host = host.PrimaryPart
+   end
+
    audioChannelId = audioChannelId or generateAudioId()
    local soundInstance = Instance.new("Sound")
    soundInstance.RollOffMode = thisSoundData.RollOffMode or Sounds.Defaults.RollOffMode
@@ -134,6 +155,7 @@ local function playLocal(audioChannelId: AudioChannelId?, soundName: string, hos
       CurrentTween = nil,
       StateOwnerKey = thisStateKey,
       SoundName = soundName,
+      TemporaryHost = temporaryHost,
    }
    soundInstance.Parent = host or DEFAULT_HOST
 
@@ -154,6 +176,10 @@ local function playLocal(audioChannelId: AudioChannelId?, soundName: string, hos
             activeAudios[audioChannelId].CurrentTween = nil
          end
          activeAudios[audioChannelId].Instance:Destroy()
+         local temporaryHost = activeAudios[audioChannelId].TemporaryHost
+         if temporaryHost then
+            temporaryHost:Destroy()
+         end
          activeAudios[audioChannelId] = nil
       end
    end)
@@ -173,7 +199,7 @@ end
 -------------------------------------------------------------------------------
 
 -- // Play a sound
-function SoundLibrary.play(audioChannelId: AudioChannelId?, soundName: string, host: Instance?, fadeSeconds: number?, bypassLimits: boolean?): (AudioChannelId?, Sound?)
+function SoundLibrary.play(audioChannelId: AudioChannelId?, soundName: string, host: SoundHost?, fadeSeconds: number?, bypassLimits: boolean?): (AudioChannelId?, Sound?)
    if isServer then
       SOUND_REMOTE:FireAllClients(ACTION_PLAY, audioChannelId, soundName, host, fadeSeconds, bypassLimits)
       return audioChannelId, nil

@@ -17,6 +17,7 @@ local GameStateLibrary = require(game.ReplicatedStorage.Shared.Library.GameState
 
 local PlayerEquippedTools: {[Player]: string} = {}
 local PlayerAimStates: {[Player]: boolean} = {}
+local PlayerWeaponLocked: {[Player]: true} = {}
 
 local ApplyingToolInProcess: {[Player]: true} = {}
 local PendingToolUpdate: {[Player]: true} = {}
@@ -328,6 +329,12 @@ function ToolController.updateTool(player: Player)
 		end
 	end
 
+	if PlayerWeaponLocked[player] then
+		clearRenderedTool(player)
+		finish()
+		return
+	end
+
    local character = getReadyRenderedCharacter(player, true)
    if not character then
 		finish()
@@ -378,6 +385,17 @@ end
 
 function ToolController.setAimState(player: Player, isAiming: boolean)
 	PlayerAimStates[player] = isAiming == true
+end
+
+function ToolController.setWeaponLocked(player: Player, isLocked: boolean)
+	if isLocked then
+		PlayerWeaponLocked[player] = true
+		clearRenderedTool(player)
+		ToolController.applyHighlight(false)
+	else
+		PlayerWeaponLocked[player] = nil
+		requestToolUpdate(player, false)
+	end
 end
 
 function ToolController.clearRenderedTool(player: Player)
@@ -515,6 +533,7 @@ function ToolController.init()
    PlayersUtil.PlayerRemoving:Add(function(player: Player)
       PlayerEquippedTools[player] = nil
 		PlayerAimStates[player] = nil
+		PlayerWeaponLocked[player] = nil
 		ApplyingToolInProcess[player] = nil
 		PendingToolUpdate[player] = nil
 		PendingEquippedToolFetch[player] = nil
@@ -523,7 +542,6 @@ function ToolController.init()
 		EquippedToolCharacters[player] = nil
 		DetachedToolCharacters[player] = nil
    end)
-
 end
 
 --function ToolController.start() 

@@ -54,7 +54,7 @@ export type PickupLogic = {
    -- Play on end of an automated long-lasting effect
    onEnd: (player: Player) -> ()?,
    -- Simulate activation for other players besides the local player who picked it up. This is played by clients receiving a replication event for an item pickup by another player.
-   onClientSimulation: (userId: number, activationTime: number) -> (),
+   onPickup: (userId: number, activationTime: number) -> (),
    fart: string,
 }
 

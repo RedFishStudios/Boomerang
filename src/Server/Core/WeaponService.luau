@@ -29,6 +29,7 @@ local AnimationService = require(ServerStorage.Server.Core.AnimationService)
 local CharacterService = require(ServerStorage.Server.Core.CharacterService)
 local HitboxService = require(ServerStorage.Server.Core.HitboxService)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
+local PlayerStatsLibrary = require(ReplicatedStorage.Shared.Library.PlayerStatsLibrary)
 
 local ToolLogics = ReplicatedStorage.Shared.Logics.WeaponLogics
 local ToolLogicModules = {}
@@ -154,12 +155,53 @@ local function getLogic(toolId: string)
 	return ToolLogicModules[toolId]
 end
 
+local function playerIsWeaponLocked(player: Player): boolean
+   local lockedUntil = PlayerStatsLibrary.getStat(player, "WeaponLockedUntilTimestamp")
+   if not lockedUntil then
+      return false
+   end
+   local isLocked = game.Workspace:GetServerTimeNow() < lockedUntil
+   if not isLocked then
+      PlayerStatsLibrary.setStat(player, "WeaponLockedUntilTimestamp", nil, true)
+   end
+   return isLocked
+end
+
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
 function WeaponService.isAiming(player: Player): boolean
    return aiming[player] ~= nil
+end
+
+function WeaponService.applyLockOnWeapon(player: Player, forTime: number)
+   PlayerStatsLibrary.setStat(player, "WeaponLockedUntilTimestamp", game.Workspace:GetServerTimeNow() + forTime)
+
+   local thrownWeaponData = ThrownWeapons.Data[player]
+   if not thrownWeaponData then
+      return
+   end
+
+   local toolData = Tools[thrownWeaponData.ToolId]
+   if not toolData then
+      if thrownWeaponData.MovementConnection then
+         thrownWeaponData.MovementConnection:Disconnect()
+         thrownWeaponData.MovementConnection = nil
+      end
+      if thrownWeaponData.Host then
+         thrownWeaponData.Host:Destroy()
+      end
+      ThrownWeapons.Data[player] = nil
+      return
+   end
+
+   local logic = getLogic(toolData.LogicClass)
+   if logic and logic.removeFromField then
+      logic.removeFromField(player, thrownWeaponData, {
+         ReturnToPlayer = false,
+      })
+   end
 end
 
 -------------------------------------------------------------------------------
@@ -187,6 +229,10 @@ function WeaponService.init()
    replicationPart.Parent = game.ReplicatedStorage.Shared.Assets
 
    aimEvent.OnServerEvent:Connect(function(player: Player, toolId, clientPosition: Vector3)
+      if playerIsWeaponLocked(player) then
+         return
+      end
+
       local canAim = WeaponLibrary.canThrow(player, toolId)
       if not canAim then
          return
@@ -243,6 +289,10 @@ function WeaponService.init()
       aimStateEvent:FireAllClients(player.UserId, false)
       
       -- Client-only animation replication will handle this later.
+
+      if playerIsWeaponLocked(player) then
+         return
+      end
 
       local canThrow, reason = WeaponLibrary.canThrow(player, toolId)
       if not canThrow then

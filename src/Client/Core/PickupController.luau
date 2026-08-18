@@ -80,16 +80,16 @@ end
 function PickupController.activate(pickupId: string, ...)
    --print(`pickup activated: {pickupId}`)
    local logic = getLogic(pickupId)
-   if not logic or not logic.onClientSimulation then
+   if not logic or not logic.onPickup then
       return
    end
    if logic.canActivate and not logic.canActivate(localPlayer, ...) then
      -- print("cancelling pickup; cannot activate")
       return
    end
-   if logic.onClientSimulation then
+   if logic.onPickup then
       --print(`simulating activation`)
-      logic.onClientSimulation(localPlayer.UserId, game.Workspace:GetServerTimeNow(), ...)
+      logic.onPickup(localPlayer.UserId, game.Workspace:GetServerTimeNow(), ...)
    end
    --print(`firing server`)
 	pickupUsed:FireServer(pickupId)
@@ -112,7 +112,7 @@ function PickupController.init()
       destroy(livePickupId)
 
       local logic = getLogic(pickupId)
-      if not logic or not logic.onClientSimulation then
+      if not logic or not logic.onPickup then
          return
       end
 
@@ -122,8 +122,8 @@ function PickupController.init()
          return
       end
 
-      if logic.onClientSimulation then
-         local endsAt = logic.onClientSimulation(player, timestamp)
+      if logic.onPickup then
+         local endsAt = logic.onPickup(player, timestamp)
          if endsAt then
             PickupLibrary.setPickupEffectActive(userId, livePickupId, pickupId, endsAt)
          end

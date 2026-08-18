@@ -10,6 +10,7 @@ local GlobalConfig = {
    ForceEquippedTool = "ClassicBoomerang",
    ThrownWeaponTrailLifetime = .3,
    BoomerangHitThrottle = .5,
+   ForceOverwritePickup = "ExplosiveBoomerang",
 
    MyBoomerangTrailColor = Color3.new(0.984314, 0.988235, 0.988235),
    EnemyBoomerangTrailColor = Color3.new(0.952941, 0.07451, 0.368627),

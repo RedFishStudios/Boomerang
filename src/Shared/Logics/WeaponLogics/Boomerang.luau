@@ -57,7 +57,7 @@ local WEAPON_UNRELIABLE_CODES = RemoteCodes.Weapon.Unreliable
 local WEAPON_RAYCAST_COLLISION_GROUP = CollisionGroupConstants.ThrownWeapons
 
 local SPAWN_PACKET_SIZE = 8 + 12 + 12 + 4 + 8
-local DESPAWN_PACKET_SIZE = 8
+local DESPAWN_PACKET_SIZE = 8 + 1
 local SNAPSHOT_PACKET_SIZE = 1 + 8 + 12 + 12 + 4 + 1 + 8
 local RAYCAST_VISUALIZERS_ENABLED = GlobalConfig.RaycastVisualizersEnabled
 local PROJECTILE_HITBOX_VISUALIZER_ENABLED = GlobalConfig.ProjectileHitboxVisualizerEnabled
@@ -76,6 +76,10 @@ type ThrowInitOptions = {
 
 type RecallInitOptions = {
    InitialSpeed: number?
+}
+
+type RemoveFromFieldOptions = {
+   ReturnToPlayer: boolean?
 }
 
 local function _getCurrentArena(): Model?
@@ -395,12 +399,13 @@ local function fireSpawned(ownerUserId: number, boomerangId: string, position: V
 end
 
 -- // Notify all users of a boomerang despawn
-local function fireDespawned(ownerUserId: number)
+local function fireDespawned(ownerUserId: number, returnToPlayer: boolean)
    if not isServer then
       return
    end
    local payload = buffer.create(DESPAWN_PACKET_SIZE)
-   BufferUtil.writeUserId(payload, 0, ownerUserId)
+   local offset = BufferUtil.writeUserId(payload, 0, ownerUserId)
+   BufferUtil.writeu8(payload, offset, if returnToPlayer then 1 else 0)
    thrownBoomerangDespawnedRemote:FireAllClients(payload)
 end
 
@@ -807,21 +812,34 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
 
    thrownWeaponData.MovementConnection = RunService.Stepped:Connect(function(time, deltaTime)
       if not simulateStep(deltaTime, true) then
-         thrownWeaponData.MovementConnection:Disconnect()
-         thrownWeaponData.MovementConnection = nil
+         local movementConnection = thrownWeaponData.MovementConnection
+         if movementConnection then
+            movementConnection:Disconnect()
+            thrownWeaponData.MovementConnection = nil
+         end
+         return
+      end
+
+      if ThrownWeapons.Data[player] ~= thrownWeaponData then
          return
       end
 
       local currentPivot = getWeaponCFrame(thrownWeaponData)
       if isServer and PROJECTILE_HITBOX_VISUALIZER_ENABLED then
          if not thrownWeaponData.Host or not thrownWeaponData.Host.Parent then
-            thrownWeaponData.MovementConnection:Disconnect()
-            thrownWeaponData.MovementConnection = nil
+            local movementConnection = thrownWeaponData.MovementConnection
+            if movementConnection then
+               movementConnection:Disconnect()
+               thrownWeaponData.MovementConnection = nil
+            end
             return
          end
       elseif not currentPivot then
-         thrownWeaponData.MovementConnection:Disconnect()
-         thrownWeaponData.MovementConnection = nil
+         local movementConnection = thrownWeaponData.MovementConnection
+         if movementConnection then
+            movementConnection:Disconnect()
+            thrownWeaponData.MovementConnection = nil
+         end
          return
       end
 
@@ -833,22 +851,25 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
 end
 
 -- // Restore to player / remove from field
-function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapons.Data)
-   local shouldReattachLocally = (not isServer) and thrownWeaponData.ReuseEquippedHost == true
+function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapons.Data, options: RemoveFromFieldOptions?)
+   local returnToPlayer = options == nil or options.ReturnToPlayer ~= false
+   local shouldReattachLocally = returnToPlayer and (not isServer) and thrownWeaponData.ReuseEquippedHost == true
 
-   if AnimationController then
+   if returnToPlayer and AnimationController then
       AnimationController.playCoreAnimation(player, "Catch")
    end
 
    if thrownWeaponData.Host then
-      if not (thrownWeaponData.ReuseEquippedHost and not isServer) then
+      if not shouldReattachLocally then
          thrownWeaponData.Host:Destroy()
       end
    end
    if isServer then
-      fireDespawned(player.UserId)
-      WeaponService.WeaponReturnedTasks:Execute("parallel", player, thrownWeaponData.ToolId)
-   else
+      fireDespawned(player.UserId, returnToPlayer)
+      if returnToPlayer then
+         WeaponService.WeaponReturnedTasks:Execute("parallel", player, thrownWeaponData.ToolId)
+      end
+   elseif returnToPlayer then
       SoundLibrary.play(thrownWeaponData.InstanceId, Sounds.Data.BoomerangCatch.Name, player.Character)
    end
    for _, part in ipairs(thrownWeaponData.TestRaycastVisualizers) do
