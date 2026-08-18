@@ -192,7 +192,6 @@ local function updateTrailOrientation(thrownWeaponData: ThrownWeapons.Data)
 	local positions = thrownWeaponData.LastMovementPositions
 	if not positions or #positions < 2 then
 		-- Not enough movement data yet; use the default orientation
-      print(`not enough positions`)
 		thrownWeaponData.TrailObject.Attachment0.Position = Vector3.new(-1, 0, 0)
 		thrownWeaponData.TrailObject.Attachment1.Position = Vector3.new(1, 0, 0)
 		return

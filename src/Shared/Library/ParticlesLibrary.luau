@@ -145,7 +145,6 @@ function ParticlesLibrary.play(particlePlayId: string, particleName: string, hos
 end
 
 function ParticlesLibrary.emit(particlePlayId: string, particleName: string, host: Instance | Vector3, emitCount: number)
-   print(`emit {particleName}`)
    if isServer then
       EmitParticle:FireAllClients(particlePlayId, particleName, host, emitCount)
       return
@@ -198,7 +197,6 @@ function ParticlesLibrary.emit(particlePlayId: string, particleName: string, hos
 
    task.spawn(function()
       task.wait(longestLifetime*2.5)
-      print(`destroying after {longestLifetime*2.5} seconds`)
       if particle and particle.Parent then
         particle:Destroy()
       end

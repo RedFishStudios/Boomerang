@@ -58,7 +58,6 @@ local function clearLivePickups()
 end
 
 local function getLogic(pickupId: string)
-   print(pickupId)
    if not pickupId then
       error(`why is pickupId nil?`)
    end
@@ -79,20 +78,20 @@ end
 -------------------------------------------------------------------------------
 
 function PickupController.activate(pickupId: string, ...)
-   print(`pickup activated: {pickupId}`)
+   --print(`pickup activated: {pickupId}`)
    local logic = getLogic(pickupId)
    if not logic or not logic.onClientSimulation then
       return
    end
    if logic.canActivate and not logic.canActivate(localPlayer, ...) then
-      print("cancelling pickup; cannot activate")
+     -- print("cancelling pickup; cannot activate")
       return
    end
    if logic.onClientSimulation then
-      print(`simulating activation`)
+      --print(`simulating activation`)
       logic.onClientSimulation(localPlayer.UserId, game.Workspace:GetServerTimeNow(), ...)
    end
-   print(`firing server`)
+   --print(`firing server`)
 	pickupUsed:FireServer(pickupId)
 end
 
@@ -109,7 +108,7 @@ function PickupController.init()
    end)
 
    pickupReplication.OnClientEvent:Connect(function(livePickupId: string, pickupId: string, userId: number, timestamp: number)
-      print(`received: livePickupId: {livePickupId}, pickupId: {pickupId}, userId: {userId}, timestamp: {timestamp}`)
+      --print(`received: livePickupId: {livePickupId}, pickupId: {pickupId}, userId: {userId}, timestamp: {timestamp}`)
       destroy(livePickupId)
 
       local logic = getLogic(pickupId)
@@ -189,13 +188,10 @@ function PickupController.init()
       else
          PickupLibrary.removePickupEffectActive(effectData.userId, effectData.livePickupId, effectData.cancelCode, false)
          if effectData.classId then
-            print(effectData.classId)
             local logic = getLogic(effectData.classId)
-            print(logic)
             if logic and logic.onEnd then
                local player = Players:GetPlayerByUserId(effectData.userId)
                if player then
-                  print(`running logic`)
                   logic.onEnd(player, effectData.cancelCode)
                end
             end

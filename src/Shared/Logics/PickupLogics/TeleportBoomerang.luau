@@ -48,6 +48,7 @@ local function applyTeleport(player: Player, position: Vector3)
 end
 
 function TeleportBoomerang.onPickup(player: Player, startedAt: number?): number?
+   print(`on pickup {os.time()}`)
    local endsAt = (startedAt or workspace:GetServerTimeNow()) + EFFECT_DURATION_SECONDS
    
    if isServer then
@@ -78,7 +79,6 @@ function TeleportBoomerang.onPickup(player: Player, startedAt: number?): number?
          return
       end
 
-      print("playing forcefield")
       local particle = ParticlesLibrary.play(`{player.UserId}_Forcefield`, "Forcefield", character.PrimaryPart, 1)
       particles[player] = particle
    end
@@ -95,7 +95,7 @@ function TeleportBoomerang.onClientSimulation(player: Player, startedAt: number)
 end
 
 function TeleportBoomerang.onEnd(player: Player)
-   warn(`on end called`)
+   print(`on end {os.time()}`)
    if isServer then
       clearSubscriptions(player)
    else

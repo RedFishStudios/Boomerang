@@ -38,9 +38,12 @@ local livePickupReplication = SimpleRemotes.getEvent("LivePickupReplication")
 local pickupClasses: {PickupClassId} = {}
 
 local SPAWN_INTERVAL = 5
+local FAILED_SPAWN_COOLDOWN = SPAWN_INTERVAL/2
 local lastSpawn = 0
+local lastFailedSpawn = 0
 
 local DESPAWN_TIME = 8
+local SPAWN_THRESHOLD_DISTANCE = PickupLibrary.PICKUP_DISTANCE * 3
 
 local maxLivePickupsPerPlayerCount = {
    [1] = 1,
@@ -209,50 +212,64 @@ function PickupService.init()
       -- // Spawn new pick ups if round is active
       -- Note: Do this before despawns so that new spawns don't immediately consume a released spawn point
       if roundActive then
-         if now - lastSpawn >= SPAWN_INTERVAL and PickupLibrary.getLivePickupCount() < getMaxLivePickups() then
-            lastSpawn = now
+         if now - lastSpawn >= SPAWN_INTERVAL and now - lastFailedSpawn >= FAILED_SPAWN_COOLDOWN and PickupLibrary.getLivePickupCount() < getMaxLivePickups() then
             local pickupSpawns = ArenaService.getPickupSpawns()
-            if #pickupSpawns == 0 then
-               return
-            end
+            local livingPlayersInArena = gameStateData.LivingPlayersInArena:Get()
 
-            -- Remove occupied
+            -- Remove occupied spawns and spawns too close to living players
             for i = #pickupSpawns, 1, -1 do
                local spawn = pickupSpawns[i]
                if spawn then
                   local spawnPosition = spawn.Position
+                  local blocked = false
                   for _, livePickup in pairs(PickupLibrary.LivePickups) do
                      if (spawnPosition - livePickup.Position).Magnitude <= 1 then
-                        table.remove(pickupSpawns, i)
+                        blocked = true
                         break
                      end
+                  end
+
+                  if not blocked then
+                     for _, player in ipairs(livingPlayersInArena) do
+                        local character = player.Character
+                        local primaryPart = character and character.PrimaryPart
+                        if primaryPart and ((spawnPosition - primaryPart.Position) * Vector3.new(1, 0, 1)).Magnitude <= SPAWN_THRESHOLD_DISTANCE then
+                           blocked = true
+                           break
+                        end
+                     end
+                  end
+
+                  if blocked then
+                     table.remove(pickupSpawns, i)
                   end
                end
             end
             if #pickupSpawns == 0 then
-               return
-            end
-
-            local spawn = pickupSpawns[math.random(1, #pickupSpawns)]
-            local pickupClassId = pickupClasses[math.random(1, #pickupClasses)]
-            local uuid = HttpService:GenerateGUID(false)
-            local despawnTime = now + DESPAWN_TIME
-            PickupLibrary.LivePickups[uuid] = {
-               --ClassId = pickupClassId,
-               ClassId = "TeleportBoomerang",
-               DespawnsAt = despawnTime,
-               Position = spawn.Position
-            }
-            -- Replicate
-            local replicationData: PickupLibrary.LivePickupReplicationData = {
-               Spawned = {
-                  [uuid] = {
-                     Position = spawn.Position,
-                     DespawnsAt = despawnTime
+               lastFailedSpawn = now
+            else
+               lastSpawn = now
+               local spawn = pickupSpawns[math.random(1, #pickupSpawns)]
+               local pickupClassId = pickupClasses[math.random(1, #pickupClasses)]
+               local uuid = HttpService:GenerateGUID(false)
+               local despawnTime = now + DESPAWN_TIME
+               PickupLibrary.LivePickups[uuid] = {
+                  --ClassId = pickupClassId,
+                  ClassId = "TeleportBoomerang",
+                  DespawnsAt = despawnTime,
+                  Position = spawn.Position
+               }
+               -- Replicate
+               local replicationData: PickupLibrary.LivePickupReplicationData = {
+                  Spawned = {
+                     [uuid] = {
+                        Position = spawn.Position,
+                        DespawnsAt = despawnTime
+                     }
                   }
                }
-            }
-            livePickupReplication:FireAllClients(replicationData)
+               livePickupReplication:FireAllClients(replicationData)
+            end
          end
       end
       -- Remove expired pickup effects

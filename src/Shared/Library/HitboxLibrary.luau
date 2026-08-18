@@ -37,7 +37,6 @@ function HitboxLibrary.unImmunize(player: Player, source: string, id: any)
    if immunized[player] then
       local current = immunized[player][source]
       if current == id then
-         print("successfully unimmunized")
          immunized[player][source] = nil
       end
       if not next(immunized[player]) then
