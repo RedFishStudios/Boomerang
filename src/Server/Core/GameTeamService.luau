@@ -142,10 +142,9 @@ end
 -- // Set particpiating members to free-for-all team
 function GameTeamService.setFreeForAll()
    local team = safeGetTeam("FreeForAll")
-   team.AutoAssignable = true
-   for _, player in pairs(Players:GetPlayers()) do
-      -- TODO: check if player is in round and not currently eliminated
-      -- or something. yknow. don't adjust non-participating players
+   team.AutoAssignable = false
+   local livingPlayersInArena = GameStateLibrary.getGameStateData().LivingPlayersInArena:Get()
+   for _, player in ipairs(livingPlayersInArena) do
       player.Team = team
    end
 end
@@ -163,7 +162,8 @@ function GameTeamService.init()
    GameTeamService.setAllOutOfGame()
 	PlayersUtil.PlayerAdded:Add(function(player: Player)
       local currentGameState = GameStateLibrary.getGameStateData()
-      if currentGameState.CurrentRoundData:Get() == nil then
+   local currentRoundData = currentGameState.CurrentRoundData:Get()
+   if currentRoundData == nil or not currentRoundData.CanRespawn then
          GameTeamService.setOutOfGame(player)
       else
          -- TODO: when team vs team gamemodes are added, assign player to a team

@@ -131,8 +131,7 @@ function SpawnService.init()
       prepPlayerSpawnpoint(player)
    end)
 
-      PlayersUtil.CharacterLoaded:Add(function(player: Player, _character: Model, _humanoid: Humanoid, _rootPart: BasePart)
-         -- // Add to LivingPlayersInArena
+   PlayersUtil.CharacterLoaded:Add(function(player: Player, _character: Model, _humanoid: Humanoid, _rootPart: BasePart)
          local currentRoundData = gameStateData.CurrentRoundData:Get()
          if currentRoundData == nil then
             return
@@ -140,16 +139,10 @@ function SpawnService.init()
          if currentRoundData.CanRespawn == false then
             return
          end
-         local currentLivingPlayers = gameStateData.LivingPlayersInArena:Get()
-         local livingPlayersInArena = table.clone(currentLivingPlayers)
-         if not table.find(livingPlayersInArena, player) then
-            table.insert(livingPlayersInArena, player)
-            GameStateLibrary.applyValues({
-               LivingPlayersInArena = livingPlayersInArena,
-            })
+         if ArenaService.isReadyToSendToArena(player) then
+            ArenaService.sendToArena(player)
          end
-         ArenaService.sendToArena(player)
-      end)
+   end)
 end
 
 function SpawnService.start()

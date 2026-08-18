@@ -11,12 +11,12 @@ local ArenaService = {}
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
 local CurrentGameState = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
-local GameTeamService = require(game.ServerStorage.Server.Core.GameTeamService)
 local GameTeamLibrary = require(game.ReplicatedStorage.Shared.Library.GameTeamLibrary)
 
 -------------------------------------------------------------------------------
@@ -39,6 +39,7 @@ local arenaFolder = game.Workspace.Arena
 local registeredMaps: {
    [string]: Model
 } = {}
+local pendingInitialSpawnWorkerToken: {}? = nil
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -51,24 +52,24 @@ ArenaService.MapChangedTasks = TasksList.new() :: TasksList.TasksList<MapChanged
 -------------------------------------------------------------------------------
 
 local function sendPlayerToSpawnPosition(player: Player, position: Vector3)
+   local character = player.Character
+   if not character then
+      return
+   end
+
    local fromPosition = position + Vector3.new(0, 3, 0)
    local raycastParams = RaycastParams.new()
    raycastParams.CollisionGroup = CollisionGroupConstants.Players
    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-   raycastParams.FilterDescendantsInstances = {player.Character}
+   raycastParams.FilterDescendantsInstances = {character}
    local raycastResult = workspace:Raycast(fromPosition, Vector3.new(0, -100, 0), raycastParams)
-   if raycastResult then
-      local groundPosition = raycastResult.Position
-      if not player.Character then
-         warn(`player character never loaded to send to arena: {player}`)
-         return
-      end
-      local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-      if humanoid then
-         local hipHeight = humanoid.HipHeight
-         player.Character:PivotTo(CFrame.new(groundPosition + Vector3.new(0, hipHeight, 0)))
-      end
-    end
+   local humanoid = character:FindFirstChildOfClass("Humanoid")
+   if not humanoid then
+      return
+   end
+
+   local groundPosition = if raycastResult then raycastResult.Position else position
+   character:PivotTo(CFrame.new(groundPosition + Vector3.new(0, humanoid.HipHeight, 0)))
 end
 
 -------------------------------------------------------------------------------
@@ -104,8 +105,8 @@ function ArenaService.getAvailableMaps(forGamemode: string): {string}
    return availableForChoice
 end
 
-function ArenaService.getSpawnPoint(player: Player): SpawnLocation
-local gameStateData = CurrentGameState.getGameStateData()
+function ArenaService.getSpawnPoint(player: Player): BasePart?
+   local gameStateData = CurrentGameState.getGameStateData()
    local currentRoundData = gameStateData.CurrentRoundData:Get()
    local forRoundId = if currentRoundData then currentRoundData.CurrentRoundId else nil
 
@@ -201,6 +202,40 @@ local gameStateData = CurrentGameState.getGameStateData()
    return chosenSpawn
 end
 
+function ArenaService.isReadyToSendToArena(player: Player): boolean
+   local currentRoundData = CurrentGameState.getGameStateData().CurrentRoundData:Get()
+   if currentRoundData == nil or player.Parent ~= Players then
+      return false
+   end
+
+   local character = player.Character
+   if not character or not character.Parent then
+      return false
+   end
+   local humanoid = character:FindFirstChildOfClass("Humanoid")
+   local rootPart = character:FindFirstChild("HumanoidRootPart")
+   if not humanoid
+      or humanoid.Health <= 0
+      or not rootPart
+      or not rootPart:IsA("BasePart")
+      or not character.PrimaryPart
+   then
+      return false
+   end
+
+   local currentArenaModel = ArenaService.getArenaModel()
+   local spawnPointsFolder = currentArenaModel and currentArenaModel:FindFirstChild("SpawnPoints")
+   if not spawnPointsFolder then
+      return false
+   end
+   for _, spawnPoint in ipairs(spawnPointsFolder:GetChildren()) do
+      if spawnPoint:IsA("BasePart") then
+         return true
+      end
+   end
+   return false
+end
+
 function ArenaService.getCurrentArenaPosition(): Vector3?
    local currentArenaModel = arenaFolder:FindFirstChildWhichIsA("Model")
    if not currentArenaModel then
@@ -212,10 +247,69 @@ end
 
 -- // Send player to a random spawn point in the arena
 function ArenaService.sendToArena(player: Player)
-   local chosenSpawn = ArenaService.getSpawnPoint(player)
-   if chosenSpawn then
-      sendPlayerToSpawnPosition(player, chosenSpawn.Position)
+   if not ArenaService.isReadyToSendToArena(player) then
+      warn(`Player is not ready to send to arena: {player}`)
+      return
    end
+
+   local chosenSpawn = ArenaService.getSpawnPoint(player)
+   if not chosenSpawn then
+      return
+   end
+   sendPlayerToSpawnPosition(player, chosenSpawn.Position)
+
+   local gameStateData = CurrentGameState.getGameStateData()
+   local livingPlayersInArena = table.clone(gameStateData.LivingPlayersInArena:Get())
+   if not table.find(livingPlayersInArena, player) then
+      table.insert(livingPlayersInArena, player)
+      CurrentGameState.applyValues({
+         LivingPlayersInArena = livingPlayersInArena,
+      })
+   end
+end
+
+-- // Spawn thread to continually attempt to send players to the arena if original sends failed (such as their characters not being loaded)
+local function startPendingInitialSpawnWorker(playersAwaitingInitialSpawn: {[Player]: true}, roundId: number?)
+   local workerToken = {}
+   pendingInitialSpawnWorkerToken = workerToken
+
+   if next(playersAwaitingInitialSpawn) == nil then
+      return
+   end
+
+   task.spawn(function()
+      local gameStateData = CurrentGameState.getGameStateData()
+      while pendingInitialSpawnWorkerToken == workerToken and next(playersAwaitingInitialSpawn) ~= nil do
+         local currentRoundData = gameStateData.CurrentRoundData:Get()
+         if currentRoundData == nil or currentRoundData.CurrentRoundId ~= roundId then
+            if pendingInitialSpawnWorkerToken == workerToken then
+               pendingInitialSpawnWorkerToken = nil
+            end
+            return
+         end
+
+         local livingPlayersInArena = gameStateData.LivingPlayersInArena:Get()
+         for player, _ in pairs(playersAwaitingInitialSpawn) do
+            if pendingInitialSpawnWorkerToken ~= workerToken then
+               return
+            end
+            if player.Parent ~= Players or table.find(livingPlayersInArena, player) then
+               playersAwaitingInitialSpawn[player] = nil
+            elseif ArenaService.isReadyToSendToArena(player) then
+               ArenaService.sendToArena(player)
+               playersAwaitingInitialSpawn[player] = nil
+            end
+         end
+
+         if next(playersAwaitingInitialSpawn) ~= nil then
+            RunService.Heartbeat:Wait()
+         end
+      end
+
+      if pendingInitialSpawnWorkerToken == workerToken then
+         pendingInitialSpawnWorkerToken = nil
+      end
+   end)
 end
 
 -- // Set the arena to this map name
@@ -234,48 +328,24 @@ function ArenaService.setArena(mapName: string)
    local liveMap = map:Clone()
    liveMap.Parent = arenaFolder
 
-   local livingPlayersInArena = {}
-
-   -- Send all players to a different spawnpoint
-   local consumedSpawnPoints: {
-      [Part]: {Player}
-   } = {}
-   local spawnPoints = liveMap:FindFirstChild("SpawnPoints"):GetChildren()
-
-   for _, player in ipairs(game.Players:GetPlayers()) do
-      table.insert(livingPlayersInArena, player)
-
-      local availableSpawnPoints = {}
-
-      -- Find spawn points that haven't been consumed yet
-      for _, spawnPoint in ipairs(spawnPoints) do
-         if not consumedSpawnPoints[spawnPoint] then
-            table.insert(availableSpawnPoints, spawnPoint)
-         end
-      end
-
-      -- Send to an unused spawn point if one is available
-      local spawnPoint
-      if #availableSpawnPoints > 0 then
-         spawnPoint = availableSpawnPoints[math.random(#availableSpawnPoints)]
-         consumedSpawnPoints[spawnPoint] = { player }
-      else
-         spawnPoint = spawnPoints[math.random(#spawnPoints)]
-         table.insert(consumedSpawnPoints[spawnPoint], player)
-      end
-   end
-
-   for spawnPoint, players in pairs(consumedSpawnPoints) do
-      for _, player in ipairs(players) do
-         print(player, spawnPoint.Position)
-         sendPlayerToSpawnPosition(player, spawnPoint.Position)
-      end
-   end
-
-   ArenaService.MapChangedTasks:Execute("parallel")
    CurrentGameState.applyValues({
-      LivingPlayersInArena = livingPlayersInArena,
+      LivingPlayersInArena = {},
    })
+
+   local gameStateData = CurrentGameState.getGameStateData()
+   local currentRoundData = gameStateData.CurrentRoundData:Get()
+   local roundId = currentRoundData and currentRoundData.CurrentRoundId
+   local playersAwaitingInitialSpawn = {} :: {[Player]: true}
+   for _, player in ipairs(Players:GetPlayers()) do
+      if ArenaService.isReadyToSendToArena(player) then
+         ArenaService.sendToArena(player)
+      else
+         playersAwaitingInitialSpawn[player] = true
+      end
+   end
+
+   startPendingInitialSpawnWorker(playersAwaitingInitialSpawn, roundId)
+   ArenaService.MapChangedTasks:Execute("parallel", mapName)
 end
 
 function ArenaService.getAllMapModels()
