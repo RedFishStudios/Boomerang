@@ -54,7 +54,7 @@ export type PickupLogic = {
    -- Play on end of an automated long-lasting effect
    onEnd: (player: Player) -> ()?,
    -- Simulate activation for other players besides the local player who picked it up. This is played by clients receiving a replication event for an item pickup by another player.
-   simulateActivation: (userId: number, activationTime: number) -> (),
+   onClientSimulation: (userId: number, activationTime: number) -> (),
    fart: string,
 }
 
@@ -165,7 +165,7 @@ function PickupLibrary.clearAllPickupEffectsActive()
    PickupLibrary.UserPickupEffectsActive = {}
    if isServer then
       pickupEffectStateChanged:FireAllClients({
-         clearAll = true,
+         ClearAll = true,
       })
    end
 end

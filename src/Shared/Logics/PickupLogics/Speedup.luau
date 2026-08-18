@@ -44,7 +44,7 @@ function Speedup.onEnd(player: Player)
    end
 end
 
-function Speedup.simulateActivation(player: Player, activationTime: number): number?
+function Speedup.onClientSimulation(player: Player, activationTime: number): number?
    if isServer then
       warn(`simulate activation is only for client contexts`)
       return false, nil

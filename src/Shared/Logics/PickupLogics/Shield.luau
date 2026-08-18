@@ -57,7 +57,7 @@ function Shield.onPickup(player: Player, timestamp: number?): number?
    return (timestamp or workspace:GetServerTimeNow()) + SHIELD_DURATION_SECONDS
 end
 
-function Shield.simulateActivation(player: Player, timestamp: number): number?
+function Shield.onClientSimulation(player: Player, timestamp: number): number?
    if isServer then
       warn(`simulate activation is only for client contexts`)
       return nil

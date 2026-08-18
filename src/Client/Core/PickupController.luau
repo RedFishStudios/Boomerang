@@ -81,16 +81,16 @@ end
 function PickupController.activate(pickupId: string, ...)
    print(`pickup activated: {pickupId}`)
    local logic = getLogic(pickupId)
-   if not logic or not logic.simulateActivation then
+   if not logic or not logic.onClientSimulation then
       return
    end
    if logic.canActivate and not logic.canActivate(localPlayer, ...) then
       print("cancelling pickup; cannot activate")
       return
    end
-   if logic.simulateActivation then
+   if logic.onClientSimulation then
       print(`simulating activation`)
-      logic.simulateActivation(localPlayer.UserId, game.Workspace:GetServerTimeNow(), ...)
+      logic.onClientSimulation(localPlayer.UserId, game.Workspace:GetServerTimeNow(), ...)
    end
    print(`firing server`)
 	pickupUsed:FireServer(pickupId)
@@ -113,7 +113,7 @@ function PickupController.init()
       destroy(livePickupId)
 
       local logic = getLogic(pickupId)
-      if not logic or not logic.simulateActivation then
+      if not logic or not logic.onClientSimulation then
          return
       end
 
@@ -123,8 +123,8 @@ function PickupController.init()
          return
       end
 
-      if logic.simulateActivation then
-         local endsAt = logic.simulateActivation(player, timestamp)
+      if logic.onClientSimulation then
+         local endsAt = logic.onClientSimulation(player, timestamp)
          if endsAt then
             PickupLibrary.setPickupEffectActive(userId, livePickupId, pickupId, endsAt)
          end
@@ -169,7 +169,18 @@ function PickupController.init()
    end)
 
    SimpleRemotes.getEvent("PickupEffectStateChanged").OnClientEvent:Connect(function(effectData: PickupLibrary.PickupEffectStateChangedReplicationData)
-      if effectData.clearAll then
+      if effectData.ClearAll then
+         for userId, activePickups in pairs(PickupLibrary.UserPickupEffectsActive) do
+            local player = Players:GetPlayerByUserId(userId)
+            if player then
+               for _, activePickupData in pairs(activePickups) do
+                  local logic = getLogic(activePickupData.ClassId)
+                  if logic and logic.onEnd then
+                     logic.onEnd(player)
+                  end
+               end
+            end
+         end
          PickupLibrary.UserPickupEffectsActive = {}
       end
 

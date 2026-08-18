@@ -86,7 +86,7 @@ function TeleportBoomerang.onPickup(player: Player, startedAt: number?): number?
    return endsAt
 end
 
-function TeleportBoomerang.simulateActivation(player: Player, startedAt: number): number?
+function TeleportBoomerang.onClientSimulation(player: Player, startedAt: number): number?
    if isServer then
       return nil
    else

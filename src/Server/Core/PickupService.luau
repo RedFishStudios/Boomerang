@@ -157,6 +157,7 @@ function PickupService.init()
 
    gameStateData.GameplayPhase:Subscribe(function(gameplayPhase)
       if gameplayPhase == GameplayPhaseEnum.LobbyVoting then
+         warn(`lobby voting began`)
          PickupLibrary.clearAllPickupEffectsActive()
          PickupLibrary.LivePickups = {}
          PickupLibrary.UserPickupEffectsActive = {}
