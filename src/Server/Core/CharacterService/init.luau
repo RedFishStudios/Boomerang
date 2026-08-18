@@ -18,7 +18,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 
-local GlobalInstanceService = require(ServerStorage.Server.Services.GlobalInstanceService)
 local CharacterLogic = require(ReplicatedStorage.Shared.Logics.CharacterLogic)
 local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
@@ -80,16 +79,15 @@ local function dispatchSchedule()
 	end
 
 	task.defer(task.defer, function()
-		local validEntries: { { Id: number, Yaw: number } } = {}
+		local validEntries: { { UserId: number, Yaw: number } } = {}
 
 		for player, solverAngles in pendingSolverReplication do
-			local character = player.Character
-			if not character then
+			if not player.Character then
 				continue
 			end
 
 			table.insert(validEntries, {
-				Id = GlobalInstanceService.getId(character),
+				UserId = player.UserId,
 				Yaw = solverAngles.Yaw,
 			})
 		end
@@ -101,12 +99,12 @@ local function dispatchSchedule()
 			return
 		end
 
-		local b, offset = buffer.create(1 + len * 6), 0
+		local b, offset = buffer.create(1 + len * 10), 0
 		offset = BufferUtil.writeu8(b, offset, UNRELIABLE_CODES.SetTargetsBulk)
 
 		for i = 1, len do
 			local v = validEntries[i]
-			offset = BufferUtil.writeu32(b, offset, v.Id)
+			offset = BufferUtil.writeUserId(b, offset, v.UserId)
 			offset = BufferUtil.writeu16(b, offset, CharacterLogic.quantizeYaw(v.Yaw))
 		end
 

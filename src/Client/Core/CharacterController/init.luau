@@ -18,7 +18,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
-local GlobalInstanceController = require(ReplicatedStorage.Client.Controllers.GlobalInstanceController)
 local CharacterRenderController = require(ReplicatedStorage.Client.Core.CharacterRenderController)
 local CharacterLogic = require(ReplicatedStorage.Shared.Logics.CharacterLogic)
 local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
@@ -227,18 +226,13 @@ end
 local function loadRemotes()
 	SimpleRemotesUtil.bindRemoteEventActions(unreliableEvent, {
 		[UNRELIABLE_CODES.SetTargetsBulk] = function(b: buffer)
-			local len, offset = buffer.len(b) / 6, 0
+			local len, offset = buffer.len(b) / 10, 0
 			for _ = 1, len do
-				local instanceId, quantizedYaw
-				instanceId, offset = BufferUtil.readu32(b, offset)
+				local userId, quantizedYaw
+				userId, offset = BufferUtil.readUserId(b, offset)
 				quantizedYaw, offset = BufferUtil.readu16(b, offset)
 
-				local character = GlobalInstanceController.getInstance(instanceId)
-				if not character then
-					continue
-				end
-
-				local forPlayer = Players:GetPlayerFromCharacter(character)
+				local forPlayer = Players:GetPlayerByUserId(userId)
 				if not forPlayer or forPlayer == player then
 					continue
 				end
