@@ -34,6 +34,7 @@ type LivePickupId = PickupLibrary.LivePickupId
 local requestUsePickup = SimpleRemotes.getEvent("PickupUsed")
 local pickupReplication = SimpleRemotes.getUnreliableEvent("PickupReplication")
 local livePickupReplication = SimpleRemotes.getEvent("LivePickupReplication")
+local initLivePickups = SimpleRemotes.getFunction("InitLivePickups")
 
 local pickupClasses: {PickupClassId} = {}
 
@@ -157,6 +158,20 @@ end
 
 function PickupService.init()
    local gameStateData = GameStateLibrary.getGameStateData()
+
+   initLivePickups.OnServerInvoke = function(_player: Player): PickupLibrary.LivePickupReplicationData
+      local spawned = {}
+      for livePickupId, livePickup in pairs(PickupLibrary.LivePickups) do
+         spawned[livePickupId] = {
+            Position = livePickup.Position,
+            DespawnsAt = livePickup.DespawnsAt,
+         }
+      end
+      return {
+         ClearAll = true,
+         Spawned = spawned,
+      }
+   end
 
    gameStateData.GameplayPhase:Subscribe(function(gameplayPhase)
       if gameplayPhase == GameplayPhaseEnum.LobbyVoting then

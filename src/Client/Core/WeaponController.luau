@@ -61,7 +61,6 @@ local UNRELIABLE_CODES = RemoteCodes.Weapon.Unreliable
 local SOFT_CORRECTION_RATE = 14
 local HARD_SNAP_DISTANCE = 14
 local MAX_SNAPSHOT_CATCHUP = 0.35
-local WEAPON_HOLD_ANIMATION = "Charging"
 
 local aimArrows: {
    [Player]: {
@@ -405,7 +404,6 @@ local function setLocalWeaponLocked(isLocked: boolean)
       ToolController.setWeaponLocked(localPlayer, true)
    else
       ToolController.setWeaponLocked(localPlayer, false)
-      AnimationController.playCoreAnimation(localPlayer, WEAPON_HOLD_ANIMATION)
    end
 end
 

@@ -12,6 +12,8 @@ local ParticlesLibrary = require(ReplicatedStorage:WaitForChild("Shared"):WaitFo
 local PlayerStatsLibrary = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Library"):WaitForChild("PlayerStatsLibrary"))
 local Sounds = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"):WaitForChild("Sounds"))
 local SoundLibrary = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Library"):WaitForChild("SoundLibrary"))
+local GameStateLibrary = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Library"):WaitForChild("GameStateLibrary"))
+local CombatLibrary = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Library"):WaitForChild("CombatLibrary"))
 
 local isServer = RunService:IsServer()
 
@@ -52,6 +54,23 @@ local function applyExplosion(player: Player, position: Vector3)
    SoundLibrary.play(eventId, Sounds.Data.Explosion.Name, position)
    WeaponService.applyLockOnWeapon(player, 3)
    PickupService.triggerEnd(player, script.Name)
+
+   local gameStateData = GameStateLibrary.getGameStateData()
+   local playersInArena = gameStateData.LivingPlayersInArena:Get()
+   for _, p in pairs(playersInArena) do
+      if p == player then
+         continue
+      end
+      local character = p.Character
+      if not character or not character.PrimaryPart then
+         continue
+      end
+      local distance = ((character.PrimaryPart.Position - position)*Vector3.new(1, 0, 1)).Magnitude
+      if distance < 12 then
+         CombatLibrary.attackHitPlayer(player, nil, p, nil, 10000, true)
+      end
+   end
+
    clearSubscriptions(player)
 end
 

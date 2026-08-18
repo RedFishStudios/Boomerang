@@ -62,7 +62,7 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
-function CombatLibrary.attackHitPlayer(attacker: Player, attackerToolId: string?, victim: Player, victimHumanoid: Humanoid?, damageAmount: number)
+function CombatLibrary.attackHitPlayer(attacker: Player, attackerToolId: string?, victim: Player, victimHumanoid: Humanoid?, damageAmount: number, doNotPlaySliceEffect: boolean?)
    warn(`damaged player called`)
    local eventId = `{(if attacker then attacker.UserId else 0)}_vs_{victim.UserId}`
 
@@ -72,19 +72,19 @@ function CombatLibrary.attackHitPlayer(attacker: Player, attackerToolId: string?
    end
    local humanoid = victimHumanoid or getHumanoid(victim)
    if not humanoid then
-      print(`no humanoid found`)
       return
    end
    if PickupLibrary.hasPickupEffectActive(victim.UserId, "Shield") then
-      warn(`COMBAT LIBRARY - SHIELD BROKEN`)
       if isServer then
          PickupLibrary.removePickupEffectActiveByClassId(victim.UserId, "Shield", PickupCancelCodeEnum.ShieldBroken, false)
       end
       return
    end
 
-   SoundLibrary.play(eventId, Sounds.Data.Kill.Name, victimHumanoid.Parent.PrimaryPart, nil, true)
-   ParticlesLibrary.emit(eventId, "Slash", victimHumanoid.Parent.PrimaryPart.Position, 1)
+   if not doNotPlaySliceEffect then
+      SoundLibrary.play(eventId, Sounds.Data.Kill.Name, victimHumanoid.Parent.PrimaryPart, nil, true)
+      ParticlesLibrary.emit(eventId, "Slash", victimHumanoid.Parent.PrimaryPart.Position, 1)
+   end
 
    if isServer then
       humanoid:TakeDamage(damageAmount)

@@ -30,6 +30,7 @@ local PickupLogicModules = {}
 
 local pickupUsed = SimpleRemotes.getEvent("PickupUsed")
 local pickupReplication = SimpleRemotes.getUnreliableEvent("PickupReplication")
+local initLivePickups = SimpleRemotes.getFunction("InitLivePickups")
 
 local livePickupVisuals: {[string]: Instance} = {}
 
@@ -55,6 +56,40 @@ local function clearLivePickups()
    end
    table.clear(livePickupVisuals)
    table.clear(PickupLibrary.LivePickups)
+end
+
+local function applyLivePickupReplication(replicationData: PickupLibrary.LivePickupReplicationData)
+   if replicationData.ClearAll then
+      clearLivePickups()
+   end
+
+   if replicationData.Spawned then
+      for livePickupId, livePickup in pairs(replicationData.Spawned) do
+         destroy(livePickupId)
+
+         PickupLibrary.LivePickups[livePickupId] = {
+            Position = livePickup.Position,
+            DespawnsAt = livePickup.DespawnsAt,
+         }
+
+         local visual = Instance.new("Part")
+         visual.Anchored = true
+         visual.CanCollide = false
+         visual.CanTouch = false
+         visual.CanQuery = false
+         visual.Size = Vector3.new(1, 1, 1)
+         visual.Material = "Neon"
+         visual.Position = livePickup.Position
+         visual.Parent = workspace
+         livePickupVisuals[livePickupId] = visual
+      end
+   end
+
+   if replicationData.Despawned then
+      for _, livePickupId in ipairs(replicationData.Despawned) do
+         destroy(livePickupId)
+      end
+   end
 end
 
 local function getLogic(pickupId: string)
@@ -100,6 +135,8 @@ end
 -------------------------------------------------------------------------------
 
 function PickupController.init()
+   
+
    local gameStateData = GameStateLibrary.getGameStateData()
    gameStateData.GameplayPhase:Subscribe(function(newPhase: string)
       if newPhase == GameplayPhaseEnum.LobbyVoting then
@@ -132,40 +169,8 @@ function PickupController.init()
       end
    end)
 
-   SimpleRemotes.getEvent("LivePickupReplication").OnClientEvent:Connect(function(replicationData: PickupLibrary.LivePickupReplicationData)
-      if replicationData.ClearAll then
-         clearLivePickups()
-      end
-
-      if replicationData.Spawned then
-         for livePickupId, livePickup in pairs(replicationData.Spawned) do
-            destroy(livePickupId)
-
-            PickupLibrary.LivePickups[livePickupId] = {
-               --ClassId = livePickup.ClassId,
-               --DespawnsAt = livePickup.DespawnsAt,
-               Position = livePickup.Position
-            }
-
-            local visual = Instance.new("Part")
-            visual.Anchored = true
-            visual.CanCollide = false
-            visual.CanTouch = false
-            visual.CanQuery = false
-            visual.Size = Vector3.new(1, 1, 1)
-            visual.Material = "Neon"
-            visual.Position = livePickup.Position
-            visual.Parent = workspace
-            livePickupVisuals[livePickupId] = visual
-         end
-      end
-
-      if replicationData.Despawned then
-         for _, livePickupId in ipairs(replicationData.Despawned) do
-            destroy(livePickupId)
-         end
-      end
-   end)
+   SimpleRemotes.getEvent("LivePickupReplication").OnClientEvent:Connect(applyLivePickupReplication)
+   applyLivePickupReplication(initLivePickups:InvokeServer())
 
    SimpleRemotes.getEvent("PickupEffectStateChanged").OnClientEvent:Connect(function(effectData: PickupLibrary.PickupEffectStateChangedReplicationData)
       if effectData.ClearAll then
