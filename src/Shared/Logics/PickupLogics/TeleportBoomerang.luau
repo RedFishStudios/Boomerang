@@ -4,10 +4,12 @@ local RunService = game:GetService("RunService")
 
 local isServer = RunService:IsServer()
 local PICKUP_CLASS_ID = script.Name
-local EFFECT_DURATION_SECONDS = 8
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ParticlesLibrary = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Library"):WaitForChild("ParticlesLibrary"))
+local GlobalConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"):WaitForChild("GlobalConfig"))
+
+local EFFECT_DURATION_SECONDS = GlobalConfig.GenericEffectTimeout
 
 local WeaponService, PickupService
 local CharacterRenderController

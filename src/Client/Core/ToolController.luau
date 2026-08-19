@@ -10,6 +10,7 @@ local PlayersUtil = require(game.ReplicatedStorage.Shared.Utils.PlayersUtil)
 local ToolLibrary = require(game.ReplicatedStorage.Shared.Library.ToolLibrary)
 local ThrownWeapons = require(game.ReplicatedStorage.Shared.Referential.ThrownWeapons)
 local GameStateLibrary = require(game.ReplicatedStorage.Shared.Library.GameStateLibrary)
+local ParticlesLibrary = require(game.ReplicatedStorage.Shared.Library.ParticlesLibrary)
 
 ----------------------------------------------------------------------------------------------------------------------------------
 -- Local variables
@@ -27,6 +28,9 @@ local DetachedTools: {[Player]: Model} = {}
 local EquippedToolCharacters: {[Player]: Model} = {}
 local DetachedToolCharacters: {[Player]: Model} = {}
 local MotorC0ObserverConnections: {[Player]: RBXScriptConnection} = {}
+local DesiredToolParticles: {[Player]: {[string]: true}} = {}
+local LiveToolParticles: {[Player]: {[string]: Part}} = {}
+local nextParticlePlayId = 0
 local Highlights: {
    {
       Highlight: Highlight,
@@ -81,6 +85,59 @@ local function removeWeaponWeld(model: Model)
 	for _, descendant in ipairs(model:GetDescendants()) do
 		if descendant:IsA("Motor6D") and descendant.Name == "WeaponWeld" then
 			descendant:Destroy()
+		end
+	end
+end
+
+local function destroyLiveToolParticles(player: Player)
+	local particles = LiveToolParticles[player]
+	if not particles then
+		return
+	end
+
+	LiveToolParticles[player] = nil
+	for _, particle in pairs(particles) do
+		task.spawn(ParticlesLibrary.destroy, particle)
+	end
+end
+
+local function isParticleHostedBy(particle: Part, host: BasePart): boolean
+	if not particle.Parent then
+		return false
+	end
+
+	local weld = particle:FindFirstChildOfClass("WeldConstraint")
+	return weld ~= nil and weld.Part0 == host
+end
+
+local function syncToolParticles(player: Player, toolModel: Model)
+	local desiredParticles = DesiredToolParticles[player]
+	if not desiredParticles then
+		return
+	end
+
+	local host = toolModel.PrimaryPart
+	if not host then
+		return
+	end
+
+	local liveParticles = LiveToolParticles[player]
+	if not liveParticles then
+		liveParticles = {}
+		LiveToolParticles[player] = liveParticles
+	end
+
+	for particleName in pairs(desiredParticles) do
+		local particle = liveParticles[particleName]
+		if particle and not isParticleHostedBy(particle, host) then
+			task.spawn(ParticlesLibrary.destroy, particle)
+			liveParticles[particleName] = nil
+			particle = nil
+		end
+
+		if not particle then
+			nextParticlePlayId += 1
+			liveParticles[particleName] = ParticlesLibrary.play(`Tool_{player.UserId}_{particleName}_{nextParticlePlayId}`, particleName, host)
 		end
 	end
 end
@@ -228,6 +285,7 @@ local function destroyEquippedTool(player: Player)
 end
 
 local function clearRenderedTool(player: Player)
+	destroyLiveToolParticles(player)
 	destroyEquippedTool(player)
 	destroyDetachedTool(player)
 end
@@ -355,6 +413,7 @@ function ToolController.updateTool(player: Player)
 		finish()
 		return
 	end
+	syncToolParticles(player, toolModel)
 
 	-- Detach/attach is not driven by aiming state
 	-- While aiming/charging, tools remain attached; detachment occurs only during throw flow
@@ -500,9 +559,62 @@ function ToolController.isHolstered(model: Model)
    return model.Name:match(`Holstered_%d+`) ~= nil
 end
 
+function ToolController.addParticleToTool(player: Player, particleName: string)
+	local desiredParticles = DesiredToolParticles[player]
+	if not desiredParticles then
+		desiredParticles = {}
+		DesiredToolParticles[player] = desiredParticles
+	end
+	desiredParticles[particleName] = true
+
+	local toolModel = getEquippedTool(player) or getDetachedTool(player)
+	if toolModel then
+		syncToolParticles(player, toolModel)
+	end
+end
+
+function ToolController.removeParticleFromTool(player: Player, particleName: string)
+	local desiredParticles = DesiredToolParticles[player]
+	if desiredParticles then
+		desiredParticles[particleName] = nil
+		if next(desiredParticles) == nil then
+			DesiredToolParticles[player] = nil
+		end
+	end
+
+	local liveParticles = LiveToolParticles[player]
+	local particle = liveParticles and liveParticles[particleName]
+	if particle then
+		liveParticles[particleName] = nil
+		if next(liveParticles) == nil then
+			LiveToolParticles[player] = nil
+		end
+		task.spawn(ParticlesLibrary.destroy, particle)
+	end
+end
+
+function ToolController.removeAllParticlesFromTool(player: Player)
+	DesiredToolParticles[player] = nil
+	destroyLiveToolParticles(player)
+end
+
 -------------------------------------------------------------------------------
 -- Core Functions
 -------------------------------------------------------------------------------
+
+local function clear(player)
+   ToolController.removeAllParticlesFromTool(player)
+   PlayerEquippedTools[player] = nil
+	PlayerAimStates[player] = nil
+	PlayerWeaponLocked[player] = nil
+	ApplyingToolInProcess[player] = nil
+	PendingToolUpdate[player] = nil
+	PendingEquippedToolFetch[player] = nil
+	disconnectMotorC0Observer(player)
+	clearRenderedTool(player)
+	EquippedToolCharacters[player] = nil
+	DetachedToolCharacters[player] = nil
+end
 
 function ToolController.init()
 	SimpleRemotes.getEvent("SetEquippedTool").OnClientEvent:Connect(function(player: Player, toolName: string?)
@@ -524,23 +636,11 @@ function ToolController.init()
    end)
 
    PlayersUtil.CharacterDied:Add(function(player: Player, character: Model)
-	ApplyingToolInProcess[player] = nil
-	PendingToolUpdate[player] = nil
-	PendingEquippedToolFetch[player] = nil
-	disconnectMotorC0Observer(player)
+      clear(player)
    end)
 
    PlayersUtil.PlayerRemoving:Add(function(player: Player)
-      PlayerEquippedTools[player] = nil
-		PlayerAimStates[player] = nil
-		PlayerWeaponLocked[player] = nil
-		ApplyingToolInProcess[player] = nil
-		PendingToolUpdate[player] = nil
-		PendingEquippedToolFetch[player] = nil
-		disconnectMotorC0Observer(player)
-		clearRenderedTool(player)
-		EquippedToolCharacters[player] = nil
-		DetachedToolCharacters[player] = nil
+      clear(player)
    end)
 end
 

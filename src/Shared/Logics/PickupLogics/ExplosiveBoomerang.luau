@@ -14,14 +14,19 @@ local Sounds = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Co
 local SoundLibrary = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Library"):WaitForChild("SoundLibrary"))
 local GameStateLibrary = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Library"):WaitForChild("GameStateLibrary"))
 local CombatLibrary = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Library"):WaitForChild("CombatLibrary"))
+local GlobalConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"):WaitForChild("GlobalConfig"))
 
+local EFFECT_DURATION_SECONDS = GlobalConfig.GenericEffectTimeout
 local isServer = RunService:IsServer()
 
 local PickupService, WeaponService
+local ToolController
 if isServer then
    local ServerStorage = game:GetService("ServerStorage")
    WeaponService = require(ServerStorage.Server.Core.WeaponService)
    PickupService = require(ServerStorage.Server.Core.PickupService)
+else
+   ToolController = require(ReplicatedStorage.Client.Core.ToolController)
 end
 
 local cleanupFunctionsByPlayer: {[Player]: {() -> ()}} = {}
@@ -52,6 +57,7 @@ local function applyExplosion(player: Player, position: Vector3)
    local eventId = `ExplosiveBoomerang_Explosion_{player.UserId}`
    ParticlesLibrary.emit(eventId, "Explosion", position, 3)
    SoundLibrary.play(eventId, Sounds.Data.Explosion.Name, position)
+   WeaponService.applyLockOnWeapon(player, 3)
    PickupService.triggerEnd(player, script.Name)
 
    local gameStateData = GameStateLibrary.getGameStateData()
@@ -71,12 +77,11 @@ local function applyExplosion(player: Player, position: Vector3)
    end
 
    clearSubscriptions(player)
-
-   task.wait(.01)
-   WeaponService.applyLockOnWeapon(player, 3)
 end
 
 function ExplosiveBoomerang.onPickup(player: Player, position: CFrame)
+   local endsAt = workspace:GetServerTimeNow() + EFFECT_DURATION_SECONDS
+
    if isServer then
       cleanupFunctionsByPlayer[player] = {
          WeaponService.WeaponKilledPlayer:Add(function(attacker: Player, victim: Player)
@@ -95,16 +100,20 @@ function ExplosiveBoomerang.onPickup(player: Player, position: CFrame)
       }
    else
       -- Client context
-      -- Maybe a sound, gui etc
+      ToolController.addParticleToTool(player, "ExplosiveBoomerang")
    end
+
+   return endsAt
 end
 
 function ExplosiveBoomerang.onEnd(player: Player)
+   print("ON END CALLED")
    if isServer then
       clearSubscriptions(player)
    else
       -- Client context
-      -- Maybe a sound, gui etc
+      print("remove particle")
+      ToolController.removeParticleFromTool(player, "ExplosiveBoomerang")
    end
 end
 
