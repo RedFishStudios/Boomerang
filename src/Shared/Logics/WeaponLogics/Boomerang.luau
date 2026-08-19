@@ -22,6 +22,7 @@ local HitboxLibrary = require(ReplicatedStorage.Shared.Library.HitboxLibrary)
 local GameTeamLibrary = require(ReplicatedStorage.Shared.Library.GameTeamLibrary)
 local CombatLibrary = require(ReplicatedStorage.Shared.Library.CombatLibrary)
 local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
+local SharedTasks = require(ReplicatedStorage.Shared.Constants.SharedTasks)
 local HttpService = game:GetService("HttpService")
 
 local AnimationController
@@ -843,6 +844,8 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          return
       end
 
+      SharedTasks.ThrownWeaponMoved:Execute("serial", player, thrownWeaponData.ToolId, currentPivot.Position)
+
       if isServer and time >= nextReplicationAt and currentPivot then
          nextReplicationAt = time + REPLICATION_RATE
          fireSnapshot(player.UserId, currentPivot.Position, direction, speed, thrownWeaponData.State)
@@ -1077,6 +1080,9 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       thrownWeaponData.Speed = math.max(speed, slideSpeed)
 
       local currentPivot = getWeaponCFrame(thrownWeaponData)
+      if currentPivot then
+         SharedTasks.ThrownWeaponMoved:Execute("serial", player, thrownWeaponData.ToolId, currentPivot.Position)
+      end
       if isServer and os.clock() >= nextReplicationAt and currentPivot then
          nextReplicationAt = os.clock() + REPLICATION_RATE
          fireSnapshot(player.UserId, currentPivot.Position, direction, thrownWeaponData.Speed, thrownWeaponData.State)
