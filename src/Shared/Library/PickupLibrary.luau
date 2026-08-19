@@ -39,7 +39,7 @@ export type LivePickupReplicationData = {
 }
 
 export type PickupEffectStateChangedReplicationData = {
-   clearAll: true?,
+   ClearAll: true?,
    userId: number?,
    livePickupId: LivePickupId?,
    classId: PickupClassId?,
@@ -74,6 +74,10 @@ PickupLibrary.UserPickupEffectsActive = {} :: {
    }
 }
 
+local DATA_ONLY_EFFECTS: {[PickupClassId]: boolean} = {
+   OnFire = true,
+}
+
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
@@ -81,6 +85,10 @@ PickupLibrary.UserPickupEffectsActive = {} :: {
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
+
+function PickupLibrary.isDataOnlyEffect(pickupClassId: PickupClassId): boolean
+   return DATA_ONLY_EFFECTS[pickupClassId] == true
+end
 
 function PickupLibrary.setPickupEffectActive(userId: number, livePickupId: LivePickupId, pickupClassId: PickupClassId, endsAt: number?)
    local userEffects = PickupLibrary.UserPickupEffectsActive[userId]

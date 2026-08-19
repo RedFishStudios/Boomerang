@@ -34,7 +34,7 @@ local function getParticle(particleName: string): Part?
    return ParticleTemplates[particleName]
 end
 
-function ParticlesLibrary.destroy(particle: Part)
+local function destroy(particle: Part)
    local subParticleLifetime = 0
    for _, descendant in ipairs(particle:GetDescendants()) do
       if descendant:IsA("ParticleEmitter") then
@@ -52,6 +52,14 @@ function ParticlesLibrary.destroy(particle: Part)
    task.wait(subParticleLifetime*1.1)
    if particle and particle.Parent then
       particle:Destroy()
+   end
+end
+
+function ParticlesLibrary.destroy(particle: Part, yield: boolean?)
+   if yield then
+      task.spawn(destroy, particle)
+   else
+      destroy(particle)
    end
 end
 

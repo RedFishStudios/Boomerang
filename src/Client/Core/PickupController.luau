@@ -178,9 +178,11 @@ function PickupController.init()
             local player = Players:GetPlayerByUserId(userId)
             if player then
                for _, activePickupData in pairs(activePickups) do
-                  local logic = getLogic(activePickupData.ClassId)
-                  if logic and logic.onEnd then
-                     logic.onEnd(player)
+                  if not PickupLibrary.isDataOnlyEffect(activePickupData.ClassId) then
+                     local logic = getLogic(activePickupData.ClassId)
+                     if logic and logic.onEnd then
+                        logic.onEnd(player)
+                     end
                   end
                end
             end
@@ -189,10 +191,10 @@ function PickupController.init()
       end
 
       if effectData.active then
-         PickupLibrary.setPickupEffectActive(effectData.userId, effectData.livePickupId, effectData.pickupClassId, effectData.endsAt)
+         PickupLibrary.setPickupEffectActive(effectData.userId, effectData.livePickupId, effectData.classId, effectData.endsAt)
       else
          PickupLibrary.removePickupEffectActive(effectData.userId, effectData.livePickupId, effectData.cancelCode, false)
-         if effectData.classId then
+         if effectData.classId and not PickupLibrary.isDataOnlyEffect(effectData.classId) then
             local logic = getLogic(effectData.classId)
             if logic and logic.onEnd then
                local player = Players:GetPlayerByUserId(effectData.userId)
@@ -225,11 +227,13 @@ function PickupController.init()
          for livePickupId, activePickupData in pairs(activePickups) do
             if activePickupData.EndsAt and activePickupData.EndsAt <= now then
                PickupLibrary.removePickupEffectActive(userId, livePickupId, nil, false)
-               local logic = getLogic(activePickupData.ClassId)
-               if logic and logic.onEnd then
-                  local player = Players:GetPlayerByUserId(userId)
-                  if player then
-                     logic.onEnd(player)
+               if not PickupLibrary.isDataOnlyEffect(activePickupData.ClassId) then
+                  local logic = getLogic(activePickupData.ClassId)
+                  if logic and logic.onEnd then
+                     local player = Players:GetPlayerByUserId(userId)
+                     if player then
+                        logic.onEnd(player)
+                     end
                   end
                end
             end

@@ -156,9 +156,11 @@ function PickupService.triggerEnd(player: Player, pickupClassId: string)
       if activePickupData.ClassId == pickupClassId then
          PickupLibrary.removePickupEffectActive(player.UserId, livePickupId)
          PickupService.PickupEffectEndedTasks:Execute("parallel", player.UserId, livePickupId)
-         local logic = getLogic(activePickupData.ClassId)
-         if logic and logic.onEnd then
-            logic.onEnd(player)
+         if not PickupLibrary.isDataOnlyEffect(activePickupData.ClassId) then
+            local logic = getLogic(activePickupData.ClassId)
+            if logic and logic.onEnd then
+               logic.onEnd(player)
+            end
          end
       end
    end
@@ -304,11 +306,13 @@ function PickupService.init()
             if activePickupData.EndsAt and activePickupData.EndsAt <= now then
                PickupLibrary.removePickupEffectActive(userId, livePickupId, nil, true)
                PickupService.PickupEffectEndedTasks:Execute("parallel", userId, livePickupId)
-               local logic = getLogic(activePickupData.ClassId)
-               if logic and logic.onEnd then
-                  local player = Players:GetPlayerByUserId(userId)
-                  if player then
-                     logic.onEnd(player)
+               if not PickupLibrary.isDataOnlyEffect(activePickupData.ClassId) then
+                  local logic = getLogic(activePickupData.ClassId)
+                  if logic and logic.onEnd then
+                     local player = Players:GetPlayerByUserId(userId)
+                     if player then
+                        logic.onEnd(player)
+                     end
                   end
                end
             end
