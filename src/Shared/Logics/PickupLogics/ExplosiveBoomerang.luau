@@ -52,7 +52,6 @@ local function applyExplosion(player: Player, position: Vector3)
    local eventId = `ExplosiveBoomerang_Explosion_{player.UserId}`
    ParticlesLibrary.emit(eventId, "Explosion", position, 3)
    SoundLibrary.play(eventId, Sounds.Data.Explosion.Name, position)
-   WeaponService.applyLockOnWeapon(player, 3)
    PickupService.triggerEnd(player, script.Name)
 
    local gameStateData = GameStateLibrary.getGameStateData()
@@ -72,6 +71,9 @@ local function applyExplosion(player: Player, position: Vector3)
    end
 
    clearSubscriptions(player)
+
+   task.wait(.01)
+   WeaponService.applyLockOnWeapon(player, 3)
 end
 
 function ExplosiveBoomerang.onPickup(player: Player, position: CFrame)

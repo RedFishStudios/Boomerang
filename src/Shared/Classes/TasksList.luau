@@ -43,7 +43,7 @@ function TasksList.Add<T>(self: TasksList<T>, T: T)
 end
 
 function TasksList.Execute<T>(self: TasksList<T>, mode: TaskUtil.ExecutionMode, ...)
-	return TaskUtil.execute(self._tasks, mode, ...)
+	return TaskUtil.execute(table.clone(self._tasks), mode, ...)
 end
 
 -------------------------------------------------------------------------------
