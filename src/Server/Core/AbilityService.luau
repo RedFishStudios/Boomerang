@@ -6,6 +6,7 @@ local AbilityLogics = ReplicatedStorage.Shared.Logics.AbilityLogics
 local AbilityLogicModules = {}
 
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
+local SharedTasks = require(ReplicatedStorage.Shared.Constants.SharedTasks)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -45,19 +46,20 @@ end
 
 local function activateAbility(player: Player, abilityId: string, params)
    local logic = getLogic(abilityId)
-      if not logic then
-         warn(`AbilityService.init: No logic found for ability {abilityId}`)
-         return
-      end
-      if logic.canActivate and not logic.canActivate(player, params) then
-         warn(`AbilityService.init: Player {player.Name} cannot activate ability {abilityId}`)
-         return
-      end
+   if not logic then
+      warn(`AbilityService.init: No logic found for ability {abilityId}`)
+      return
+   end
+   if logic.canActivate and not logic.canActivate(player, params) then
+      warn(`AbilityService.init: Player {player.Name} cannot activate ability {abilityId}`)
+      return
+   end
       
-      if logic.activate then
-         logic.activate(player, workspace:GetServerTimeNow(), params)
-         abilityReplication:FireAllClients(abilityId, player.UserId, workspace:GetServerTimeNow())
-      end
+   if logic.activate then
+      logic.activate(player, workspace:GetServerTimeNow(), params)
+      abilityReplication:FireAllClients(abilityId, player.UserId, workspace:GetServerTimeNow())
+   end
+   SharedTasks.PlayerUsedAbility:Execute("parallel", player, abilityId)
 end
 
 -------------------------------------------------------------------------------

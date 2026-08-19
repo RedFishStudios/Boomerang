@@ -11,24 +11,34 @@ local ParticlesLibrary = require(ReplicatedStorage.Shared.Library.ParticlesLibra
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
+local HitboxLibrary = require(ReplicatedStorage.Shared.Library.HitboxLibrary)
 
 local spawnFireTrail = SimpleRemotes.getUnreliableEvent("SpawnFireTrail")
 
+local ToolController
+
 local isServer = RunService:IsServer()
 
-local TRAIL_LIFETIME = 6
+if isServer then
+else
+   ToolController = require(ReplicatedStorage.Client.Core.ToolController)
+end
+
+local TRAIL_LIFETIME = 3
 local MIN_TRAIL_DISTANCE = 4
 local DIRECTION_CHANGE_DEGREES = 35
 local DIRECTION_CHANGE_DOT = math.cos(math.rad(DIRECTION_CHANGE_DEGREES))
 local MAX_SURFACE_RAYCAST_DISTANCE = 9
 local MAX_SURFACE_RAYCAST_ITERATIONS = 64
 local MIN_MOVEMENT_DISTANCE = 0.01
-local FIRE_EFFECT_DAMAGE_FREQUENCY = 2
+local FIRE_EFFECT_DAMAGE_FREQUENCY = 1
 local FIRE_EFFECT_DAMAGE = 5
 local FIRE_EFFECT_LASTS = 10
 local FIRE_EFFECT_UPDATE_RATE = 1 / 20
-local TRAIL_DAMAGE_DISTANCE = 3
+local TRAIL_DAMAGE_DISTANCE = 2
+local DASH_TO_EXTINGUISH = 5
 local ON_FIRE_EFFECT_ID = "OnFire"
+local DASH_ABILITY_ID = "Dash"
 
 type TrailRecord = {
    Particle: Part,
@@ -54,6 +64,7 @@ type FireEffectState = MovementTrailState & {
    EndsAt: number,
    NextDamageAt: number,
    LivePickupId: string,
+   DashCount: number,
 }
 
 local serverEffectsByPlayer: {[Player]: ServerEffectState} = {}
@@ -103,8 +114,18 @@ local function spawnServerTrail(position: Vector3)
    spawnFireTrail:FireAllClients(position)
 end
 
+local function removeFireEffect(player: Player)
+   local state = fireEffectsByPlayer[player]
+   if not state then
+      return
+   end
+
+   fireEffectsByPlayer[player] = nil
+   PickupLibrary.removePickupEffectActive(player.UserId, state.LivePickupId, nil, false)
+end
+
 local function applyFireEffect(player: Player)
-   if not isServer or fireEffectsByPlayer[player] or PickupLibrary.hasPickupEffectActive(player.UserId, ON_FIRE_EFFECT_ID) then
+   if not isServer or fireEffectsByPlayer[player] or PickupLibrary.hasPickupEffectActive(player.UserId, ON_FIRE_EFFECT_ID) or HitboxLibrary.isImmunized(player) then
       return
    end
 
@@ -117,6 +138,7 @@ local function applyFireEffect(player: Player)
       EndsAt = now + FIRE_EFFECT_LASTS,
       NextDamageAt = now + FIRE_EFFECT_DAMAGE_FREQUENCY,
       LivePickupId = livePickupId,
+      DashCount = 0,
    }
    PickupLibrary.setPickupEffectActive(player.UserId, livePickupId, ON_FIRE_EFFECT_ID, now + FIRE_EFFECT_LASTS)
 end
@@ -137,8 +159,7 @@ local function updateServer(deltaTime: number)
 
    for player, state in pairs(fireEffectsByPlayer) do
       if now >= state.EndsAt or player.Parent == nil then
-         fireEffectsByPlayer[player] = nil
-         PickupLibrary.removePickupEffectActive(player.UserId, state.LivePickupId, nil, false)
+         removeFireEffect(player)
          continue
       end
 
@@ -245,6 +266,8 @@ function FireBoomerang.onPickup(player: Player, _timestamp: number?): number?
          end),
       }
       serverEffectsByPlayer[player] = state
+   else
+      ToolController.addParticleToTool(player, "FireBoomerang")
    end
 
    return endsAt
@@ -253,6 +276,8 @@ end
 function FireBoomerang.onEnd(player: Player, _cancelCode: number?): number?
    if isServer then
       clearServerEffect(player)
+   else
+      ToolController.removeParticleFromTool(player, "FireBoomerang")
    end
 end
 
@@ -262,6 +287,21 @@ local function _init()
    end
 
    if isServer then
+      SharedTasks.PlayerUsedAbility:Add(function(player: Player, abilityId: string)
+         if abilityId ~= DASH_ABILITY_ID then
+            return
+         end
+
+         local state = fireEffectsByPlayer[player]
+         if not state then
+            return
+         end
+
+         state.DashCount += 1
+         if state.DashCount >= DASH_TO_EXTINGUISH then
+            removeFireEffect(player)
+         end
+      end)
       heartbeatConnection = RunService.Heartbeat:Connect(updateServer)
    else
       spawnFireTrail.OnClientEvent:Connect(function(position: Vector3)
@@ -288,18 +328,3 @@ end
 _init()
 
 return FireBoomerang
-
---[[
-
-The effect of leaving a trail of fire can apply to:
-- Bots
-- Player
-- Weapons
-
-
-
-ok.
-
-
-
-]]

@@ -6,6 +6,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
+local SharedTasks = require(ReplicatedStorage.Shared.Constants.SharedTasks)
 
 local localPlayer = Players.LocalPlayer
 
@@ -79,6 +80,7 @@ function AbilityController.activate(abilityId: string, ...)
       params = logic.getParams()
    end
    logic.onPickup(localPlayer.UserId, game.Workspace:GetServerTimeNow(), params)
+   SharedTasks.PlayerUsedAbility:Execute("parallel", localPlayer, abilityId)
 	abilityUsed:FireServer(abilityId, params)
 end
 
