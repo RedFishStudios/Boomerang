@@ -15,6 +15,8 @@ local PickupLogicModules = {}
 
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local GameplayPhaseEnum = require(ReplicatedStorage.Shared.Constants.Enums.GameplayPhases)
+local CommandService = require(game.ServerStorage.Server.Core.CommandService)
+local ChatService = require(game.ServerStorage.Server.Core.ChatService)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -86,6 +88,16 @@ local function getLogic(pickupClassId: PickupClassId)
 		PickupLogicModules[pickupClassId] = module
 	end
 	return PickupLogicModules[pickupClassId]
+end
+
+local function getClassIdCaseInsensitive(insensitivePickupClassId: string)
+   insensitivePickupClassId = string.lower(insensitivePickupClassId)
+   for _, pickupId in ipairs(pickupClasses) do
+      if string.lower(pickupId) == insensitivePickupClassId then
+         return pickupId
+      end
+   end
+   return nil
 end
 
 local function activatePickup(player: Player, livePickupId: LivePickupId, ...)
@@ -335,6 +347,46 @@ function PickupService.init()
             end
          end
       end
+   end)
+
+   CommandService.addCommand("GrantEffect", "/getPickup", "/getpickup", function(player: Player, args: {string})
+      local pickupClassId = args[1]
+      if not pickupClassId then
+         warn(`PickupService.activatePickup: No pickupClassId provided`)
+         ChatService.tellPlayerPrintMessage(player, "No pickupClassId provided", Color3.fromRGB(241, 89, 18))
+         return
+      end
+      pickupClassId = getClassIdCaseInsensitive(pickupClassId)
+      if not pickupClassId then
+         ChatService.tellPlayerPrintMessage(player, `{pickupClassId} is not a recognized class. Recognizable class names are: {table.concat(pickupClasses, ", ")}`, Color3.fromRGB(241, 89, 18))
+         return
+      end
+      local logic = getLogic(pickupClassId)
+      if not logic then
+         warn(`PickupService.activatePickup: No logic found for pickup {pickupClassId}`)
+         ChatService.tellPlayerPrintMessage(player, `{pickupClassId} is not a recognized class. Recognizable class names are: {table.concat(pickupClasses, ", ")}`, Color3.fromRGB(241, 89, 18))
+         return
+      end
+      if logic.canActivate and not logic.canActivate(player) then
+         warn(`PickupService.activatePickup: Player {player.Name} cannot activate pickup {pickupClassId}`)
+         ChatService.tellPlayerPrintMessage(player, `You cannot activate pickup {pickupClassId}`, Color3.fromRGB(241, 89, 18))
+         return
+      end
+      local fakeLivePickupId = HttpService:GenerateGUID(false)
+
+      local endsAt = nil
+      if logic.onPickup then
+         print("calling on pickup")
+         endsAt = logic.onPickup(player)
+         if endsAt then
+            PickupLibrary.setPickupEffectActive(player.UserId, fakeLivePickupId, pickupClassId, endsAt)
+            print("setting pickup effect active")
+         end
+      end
+
+      pickupReplication:FireAllClients(fakeLivePickupId, pickupClassId, player.UserId, workspace:GetServerTimeNow())
+
+      print("GRANTED!")
    end)
 end
 
