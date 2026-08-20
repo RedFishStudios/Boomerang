@@ -844,7 +844,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          return
       end
 
-      SharedTasks.ThrownWeaponMoved:Execute("serial", player, thrownWeaponData.ToolId, currentPivot.Position)
+      SharedTasks.ThrownWeaponMoved:Execute("serial", player, thrownWeaponData.ToolId, currentPivot.Position, false)
 
       if isServer and time >= nextReplicationAt and currentPivot then
          nextReplicationAt = time + REPLICATION_RATE
@@ -1081,7 +1081,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
 
       local currentPivot = getWeaponCFrame(thrownWeaponData)
       if currentPivot then
-         SharedTasks.ThrownWeaponMoved:Execute("serial", player, thrownWeaponData.ToolId, currentPivot.Position)
+         SharedTasks.ThrownWeaponMoved:Execute("serial", player, thrownWeaponData.ToolId, currentPivot.Position, true)
       end
       if isServer and os.clock() >= nextReplicationAt and currentPivot then
          nextReplicationAt = os.clock() + REPLICATION_RATE
