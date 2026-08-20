@@ -50,10 +50,17 @@ local SetupData = {
    HandWeapons = createCollisionGroup("HandWeapons", {"Players"}),
    ArenaWalls = createCollisionGroup("ArenaWalls", {"Players", "ThrownWeapons"}),
    ArenaFloor = createCollisionGroup("ArenaFloor", {"Camera"}),
-   Camera = createCollisionGroup("Camera", {"ArenaFloor"})
+   Camera = createCollisionGroup("Camera", {"ArenaFloor"}),
+   WaterParts = createCollisionGroup("WaterParts", {"Players", "WaterDetector"}),
+   WaterDetector = createCollisionGroup("WaterDetector", {"WaterParts"}),
 }
 
 configureCollisionMatrix(SetupData)
+
+if RunService:IsServer() then
+   PhysicsService:CollisionGroupSetCollidable(SetupData.WaterParts.Name, "Default", false)
+   PhysicsService:CollisionGroupSetCollidable(SetupData.WaterDetector.Name, "Default", false)
+end
 
 local CollisionGroups = {
    Players = deepRegisterCollisionGroups(SetupData.Players),
@@ -61,7 +68,9 @@ local CollisionGroups = {
    HandWeapons = deepRegisterCollisionGroups(SetupData.HandWeapons),
    ArenaWalls = deepRegisterCollisionGroups(SetupData.ArenaWalls),
    ArenaFloor = deepRegisterCollisionGroups(SetupData.ArenaFloor),
-   Camera = deepRegisterCollisionGroups(SetupData.Camera)
+   Camera = deepRegisterCollisionGroups(SetupData.Camera),
+   WaterParts = deepRegisterCollisionGroups(SetupData.WaterParts),
+   WaterDetector = deepRegisterCollisionGroups(SetupData.WaterDetector),
 }
 
 return CollisionGroups

@@ -13,11 +13,13 @@ local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local HitboxLibrary = require(ReplicatedStorage.Shared.Library.HitboxLibrary)
 local ExplosiveBoomerang = require(ReplicatedStorage.Shared.Logics.PickupLogics.ExplosiveBoomerang)
+local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 
 local spawnFireTrail = SimpleRemotes.getUnreliableEvent("SpawnFireTrail")
 
 local PickupService
 local ToolController
+local WaterEnvironmentLogic = require(ReplicatedStorage.Shared.Logics.Environment.Water)
 
 local isServer = RunService:IsServer()
 
@@ -118,6 +120,19 @@ local function shouldSpawnTrail(state: MovementTrailState, newPosition: Vector3)
 end
 
 local function spawnServerTrail(position: Vector3)
+   local waterRaycastParams = RaycastParams.new()
+   waterRaycastParams.CollisionGroup = CollisionGroupConstants.WaterDetector
+   waterRaycastParams.FilterType = Enum.RaycastFilterType.Include
+   waterRaycastParams.FilterDescendantsInstances = WaterEnvironmentLogic.getCurrentWaterParts()
+   local waterResult = workspace:Raycast(
+      position,
+      -Vector3.yAxis * MAX_SURFACE_RAYCAST_DISTANCE,
+      waterRaycastParams
+   )
+   if waterResult then
+      return
+   end
+
    table.insert(logicalTrails, {
       Position = position,
       SpawnedAt = workspace:GetServerTimeNow(),
@@ -136,7 +151,15 @@ local function removeFireEffect(player: Player)
 end
 
 local function applyFireEffect(player: Player)
-   if not isServer or fireEffectsByPlayer[player] or PickupLibrary.hasPickupEffectActive(player.UserId, ON_FIRE_EFFECT_ID) or HitboxLibrary.isImmunized(player) then
+   if not isServer or fireEffectsByPlayer[player] or PickupLibrary.hasPickupEffectActive(player.UserId, ON_FIRE_EFFECT_ID) then
+      return
+   end
+   if HitboxLibrary.isImmunized(player) then
+      print(`cancelling fire, player is immunized`)
+      return
+   end
+   if #WaterEnvironmentLogic.getTouchingWaters(player) > 0 then
+      print(`cancelling fire, player is in water`)
       return
    end
 
@@ -338,6 +361,11 @@ local function _init()
 
          state.DashCount += 1
          if state.DashCount >= DASH_TO_EXTINGUISH then
+            removeFireEffect(player)
+         end
+      end)
+      WaterEnvironmentLogic.PlayerEnteredWater:Add(function(player: Player)
+         if fireEffectsByPlayer[player] then
             removeFireEffect(player)
          end
       end)

@@ -74,9 +74,9 @@ local function onCharacterLoaded(player: Player, character: Model, humanoid: Hum
    end
 
    local hitbox = Instance.new("Part")
-   hitbox.Size = Vector3.new(4, 2.2, 4)
+   hitbox.Size = Vector3.new(10, 2.2, 10)
    hitbox.Shape = Enum.PartType.Cylinder
-   hitbox.CustomPhysicalProperties = PhysicalProperties.new(.1, .1, .1, .1, .1)
+   hitbox.Massless = true
    hitbox.Anchored = false
    -- multiply the pivot to angle by 90 degrees so that the cylinder is oriented correctly (vertically)
    hitbox:PivotTo(rootPart.CFrame * CFrame.Angles(0, 0, math.rad(90)))
