@@ -39,7 +39,7 @@ end
 -- LOCAL VARIABLES
 -------------------------------------------------------------------------------
 
-local STAB_COOLDOWN = 1
+local STAB_COOLDOWN = .5
 
 local HITBOX_SIZE = Vector3.new(2, 2, 3)
 local HITBOX_DURATION = .2
@@ -212,7 +212,6 @@ local function disconnect(player: Player)
       destroyHitboxVisualizer(stabState.Visualizer)
    end
 
-   Cooldowns[player] = nil
    ActiveStabs[player] = nil
 end
 
@@ -378,11 +377,12 @@ function Stab.onPickup(userId: number, timestamp: number)
       return
    end
 
+   Cooldowns[player] = os.clock() + STAB_COOLDOWN
+
    local activationSoundChannelId = `{player.UserId}_stab`
    SoundLibrary.play(activationSoundChannelId, Sounds.Data.Stab.Name, player.Character.PrimaryPart, nil, true)
 
    if AnimationController then
-      -- TODO: adjust based on timestamp..?
       AnimationController.playCoreAnimation(player, "Stab")
    end
 
@@ -454,6 +454,7 @@ function Stab.canActivate(player: Player): boolean
 end
 
 function Stab.activate(player: Player)
+   print(player)
    local character = player.Character
    if not character then
       return
