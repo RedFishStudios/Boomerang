@@ -7,14 +7,13 @@ local ExplosiveBoomerang = {}
 local RunService = game:GetService("RunService")
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local GlobalConfig = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Constants"):WaitForChild("GlobalConfig"))
 local ParticlesLibrary = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Library"):WaitForChild("ParticlesLibrary"))
-local PlayerStatsLibrary = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Library"):WaitForChild("PlayerStatsLibrary"))
 local Sounds = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"):WaitForChild("Sounds"))
 local SoundLibrary = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Library"):WaitForChild("SoundLibrary"))
 local GameStateLibrary = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Library"):WaitForChild("GameStateLibrary"))
 local CombatLibrary = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Library"):WaitForChild("CombatLibrary"))
 local GlobalConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"):WaitForChild("GlobalConfig"))
+local TasksList = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Classes"):WaitForChild("TasksList"))
 
 local EFFECT_DURATION_SECONDS = GlobalConfig.GenericEffectTimeout
 local isServer = RunService:IsServer()
@@ -30,6 +29,8 @@ else
 end
 
 local cleanupFunctionsByPlayer: {[Player]: {() -> ()}} = {}
+
+ExplosiveBoomerang.ExplosionOccurred = TasksList.new() :: TasksList.TasksList<(player: Player, explosionCFrame: CFrame) -> ()>
 
 local function clearSubscriptions(player: Player)
    local cleanupFunctions = cleanupFunctionsByPlayer[player]
@@ -54,9 +55,11 @@ local function applyExplosion(player: Player, position: Vector3)
    if raycastResult then
       position = raycastResult.Position
    end
+   local explosionCFrame = CFrame.new(position)
    local eventId = `ExplosiveBoomerang_Explosion_{player.UserId}`
-   ParticlesLibrary.emit(eventId, "Explosion", position, 3)
-   SoundLibrary.play(eventId, Sounds.Data.Explosion.Name, position)
+   ParticlesLibrary.emit(eventId, "Explosion", explosionCFrame.Position, 3)
+   ExplosiveBoomerang.ExplosionOccurred:Execute("serial", player, explosionCFrame)
+   SoundLibrary.play(eventId, Sounds.Data.Explosion.Name, explosionCFrame.Position)
    WeaponService.applyLockOnWeapon(player, 3)
    PickupService.triggerEnd(player, script.Name)
 

@@ -12,14 +12,17 @@ local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local HitboxLibrary = require(ReplicatedStorage.Shared.Library.HitboxLibrary)
+local ExplosiveBoomerang = require(ReplicatedStorage.Shared.Logics.PickupLogics.ExplosiveBoomerang)
 
 local spawnFireTrail = SimpleRemotes.getUnreliableEvent("SpawnFireTrail")
 
+local PickupService
 local ToolController
 
 local isServer = RunService:IsServer()
 
 if isServer then
+   PickupService = require(game:GetService("ServerStorage").Server.Core.PickupService)
 else
    ToolController = require(ReplicatedStorage.Client.Core.ToolController)
 end
@@ -39,6 +42,8 @@ local TRAIL_DAMAGE_DISTANCE = 2
 local DASH_TO_EXTINGUISH = 5
 local ON_FIRE_EFFECT_ID = "OnFire"
 local DASH_ABILITY_ID = "Dash"
+local EXPLOSION_LIFETIME = 9
+local EXPLOSION_DAMAGE_RADIUS = 10
 
 type TrailRecord = {
    Particle: Part,
@@ -48,6 +53,11 @@ type TrailRecord = {
 type LogicalTrailRecord = {
    Position: Vector3,
    SpawnedAt: number,
+}
+
+type LogicalExplosionRecord = {
+   Position: Vector3,
+   ExpiresAt: number,
 }
 
 type MovementTrailState = {
@@ -70,6 +80,7 @@ type FireEffectState = MovementTrailState & {
 local serverEffectsByPlayer: {[Player]: ServerEffectState} = {}
 local fireEffectsByPlayer: {[Player]: FireEffectState} = {}
 local logicalTrails: {LogicalTrailRecord} = {}
+local logicalExplosions: {LogicalExplosionRecord} = {}
 local clientTrails: {TrailRecord} = {}
 local nextClientTrailId = 0
 local heartbeatConnection: RBXScriptConnection? = nil
@@ -156,6 +167,11 @@ local function updateServer(deltaTime: number)
          table.remove(logicalTrails, trailIndex)
       end
    end
+   for explosionIndex = #logicalExplosions, 1, -1 do
+      if now >= logicalExplosions[explosionIndex].ExpiresAt then
+         table.remove(logicalExplosions, explosionIndex)
+      end
+   end
 
    for player, state in pairs(fireEffectsByPlayer) do
       if now >= state.EndsAt or player.Parent == nil then
@@ -191,6 +207,17 @@ local function updateServer(deltaTime: number)
 
       for _, trail in ipairs(logicalTrails) do
          if (rootPart.Position - trail.Position).Magnitude <= TRAIL_DAMAGE_DISTANCE then
+            applyFireEffect(player)
+            break
+         end
+      end
+
+      if fireEffectsByPlayer[player] then
+         continue
+      end
+
+      for _, explosion in ipairs(logicalExplosions) do
+         if (rootPart.Position - explosion.Position).Magnitude <= EXPLOSION_DAMAGE_RADIUS then
             applyFireEffect(player)
             break
          end
@@ -287,6 +314,18 @@ local function _init()
    end
 
    if isServer then
+      ExplosiveBoomerang.ExplosionOccurred:Add(function(player: Player, explosionCFrame: CFrame)
+         if not PickupLibrary.hasPickupEffectActive(player.UserId, script.Name) then
+            return
+         end
+         local particleId = `FireExplosion_{player.UserId}_{workspace:GetServerTimeNow()}`
+         ParticlesLibrary.play(particleId, "FireExplosion", explosionCFrame.Position, nil, EXPLOSION_LIFETIME, true)
+         table.insert(logicalExplosions, {
+            Position = explosionCFrame.Position,
+            ExpiresAt = workspace:GetServerTimeNow() + EXPLOSION_LIFETIME,
+         })
+         PickupService.triggerEnd(player, script.Name)
+      end)
       SharedTasks.PlayerUsedAbility:Add(function(player: Player, abilityId: string)
          if abilityId ~= DASH_ABILITY_ID then
             return

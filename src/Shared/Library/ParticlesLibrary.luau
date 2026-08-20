@@ -224,8 +224,8 @@ function ParticlesLibrary.init()
 
    if isServer then
    else
-      PlayParticle.OnClientEvent:Connect(function(particlePlayId: string, particleName: string, host: Instance | Vector3, startEmit: number?, particleLifetime: number?)
-         ParticlesLibrary.play(particlePlayId, particleName, host, startEmit, particleLifetime)
+      PlayParticle.OnClientEvent:Connect(function(particlePlayId: string, particleName: string, host: Instance | Vector3, startEmit: number?, particleLifetime: number?, anchored: boolean?)
+         ParticlesLibrary.play(particlePlayId, particleName, host, startEmit, particleLifetime, anchored)
       end)
       EmitParticle.OnClientEvent:Connect(function(particlePlayId: string, particleName: string, host: Instance | Vector3, emitCount: number)
          ParticlesLibrary.emit(particlePlayId, particleName, host, emitCount)
