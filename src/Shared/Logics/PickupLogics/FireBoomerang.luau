@@ -30,7 +30,8 @@ else
 end
 
 local TRAIL_LIFETIME = 3
-local MIN_TRAIL_DISTANCE = 4
+local PARTICLE_TRAIL_DISTANCE = 2
+local LOGICAL_TRAIL_DISTANCE = PARTICLE_TRAIL_DISTANCE / 4
 local DIRECTION_CHANGE_DEGREES = 35
 local DIRECTION_CHANGE_DOT = math.cos(math.rad(DIRECTION_CHANGE_DEGREES))
 local MAX_SURFACE_RAYCAST_DISTANCE = 9
@@ -40,7 +41,7 @@ local FIRE_EFFECT_DAMAGE_FREQUENCY = 1
 local FIRE_EFFECT_DAMAGE = 5
 local FIRE_EFFECT_LASTS = 10
 local FIRE_EFFECT_UPDATE_RATE = 1 / 20
-local TRAIL_DAMAGE_DISTANCE = 2
+local TRAIL_DAMAGE_RADIUS = 2
 local DASH_TO_EXTINGUISH = 5
 local ON_FIRE_EFFECT_ID = "OnFire"
 local DASH_ABILITY_ID = "Dash"
@@ -68,11 +69,15 @@ type MovementTrailState = {
    LastDirection: Vector3?,
 }
 
-type ServerEffectState = MovementTrailState & {
+type ServerEffectState = {
+   LogicalTrailState: MovementTrailState,
+   ParticleTrailState: MovementTrailState,
    DisconnectMovement: () -> (),
 }
 
-type FireEffectState = MovementTrailState & {
+type FireEffectState = {
+   LogicalTrailState: MovementTrailState,
+   ParticleTrailState: MovementTrailState,
    EndsAt: number,
    NextDamageAt: number,
    LivePickupId: string,
@@ -96,7 +101,7 @@ local function clearServerEffect(player: Player)
    end
 end
 
-local function shouldSpawnTrail(state: MovementTrailState, newPosition: Vector3): boolean
+local function shouldSpawnTrail(state: MovementTrailState, newPosition: Vector3, minimumDistance: number): boolean
    local changedDirection = false
    local previousPosition = state.LastMovementPosition
    if previousPosition then
@@ -110,7 +115,7 @@ local function shouldSpawnTrail(state: MovementTrailState, newPosition: Vector3)
    state.LastMovementPosition = newPosition
 
    local farEnough = state.LastSpawnPosition == nil
-      or (newPosition - state.LastSpawnPosition).Magnitude >= MIN_TRAIL_DISTANCE
+      or (newPosition - state.LastSpawnPosition).Magnitude >= minimumDistance
    if not farEnough and not changedDirection then
       return false
    end
@@ -119,7 +124,7 @@ local function shouldSpawnTrail(state: MovementTrailState, newPosition: Vector3)
    return true
 end
 
-local function spawnServerTrail(position: Vector3)
+local function canSpawnTrailAt(position: Vector3): boolean
    local waterRaycastParams = RaycastParams.new()
    waterRaycastParams.CollisionGroup = CollisionGroupConstants.WaterDetector
    waterRaycastParams.FilterType = Enum.RaycastFilterType.Include
@@ -129,15 +134,31 @@ local function spawnServerTrail(position: Vector3)
       -Vector3.yAxis * MAX_SURFACE_RAYCAST_DISTANCE,
       waterRaycastParams
    )
-   if waterResult then
-      return
-   end
+   return waterResult == nil
+end
 
+local function recordLogicalTrail(position: Vector3)
    table.insert(logicalTrails, {
       Position = position,
       SpawnedAt = workspace:GetServerTimeNow(),
    })
+end
+
+local function spawnParticleTrail(position: Vector3)
    spawnFireTrail:FireAllClients(position)
+end
+
+local function updateTrailSamples(state: FireEffectState | ServerEffectState, position: Vector3)
+   if not canSpawnTrailAt(position) then
+      return
+   end
+
+   if shouldSpawnTrail(state.LogicalTrailState, position, LOGICAL_TRAIL_DISTANCE) then
+      recordLogicalTrail(position)
+   end
+   if shouldSpawnTrail(state.ParticleTrailState, position, PARTICLE_TRAIL_DISTANCE) then
+      spawnParticleTrail(position)
+   end
 end
 
 local function removeFireEffect(player: Player)
@@ -166,9 +187,16 @@ local function applyFireEffect(player: Player)
    local now = workspace:GetServerTimeNow()
    local livePickupId = `OnFire_{player.UserId}`
    fireEffectsByPlayer[player] = {
-      LastMovementPosition = nil,
-      LastSpawnPosition = nil,
-      LastDirection = nil,
+      LogicalTrailState = {
+         LastMovementPosition = nil,
+         LastSpawnPosition = nil,
+         LastDirection = nil,
+      },
+      ParticleTrailState = {
+         LastMovementPosition = nil,
+         LastSpawnPosition = nil,
+         LastDirection = nil,
+      },
       EndsAt = now + FIRE_EFFECT_LASTS,
       NextDamageAt = now + FIRE_EFFECT_DAMAGE_FREQUENCY,
       LivePickupId = livePickupId,
@@ -204,8 +232,8 @@ local function updateServer(deltaTime: number)
 
       local character = player.Character
       local rootPart = character and character.PrimaryPart
-      if rootPart and shouldSpawnTrail(state, rootPart.Position) then
-         spawnServerTrail(rootPart.Position)
+      if rootPart then
+         updateTrailSamples(state, rootPart.Position)
       end
 
       if now >= state.NextDamageAt then
@@ -229,7 +257,7 @@ local function updateServer(deltaTime: number)
       end
 
       for _, trail in ipairs(logicalTrails) do
-         if (rootPart.Position - trail.Position).Magnitude <= TRAIL_DAMAGE_DISTANCE then
+         if (rootPart.Position - trail.Position).Magnitude <= TRAIL_DAMAGE_RADIUS then
             applyFireEffect(player)
             break
          end
@@ -302,17 +330,22 @@ function FireBoomerang.onPickup(player: Player, _timestamp: number?): number?
 
       local state: ServerEffectState
       state = {
-         LastMovementPosition = nil,
-         LastSpawnPosition = nil,
-         LastDirection = nil,
+         LogicalTrailState = {
+            LastMovementPosition = nil,
+            LastSpawnPosition = nil,
+            LastDirection = nil,
+         },
+         ParticleTrailState = {
+            LastMovementPosition = nil,
+            LastSpawnPosition = nil,
+            LastDirection = nil,
+         },
          DisconnectMovement = SharedTasks.ThrownWeaponMoved:Add(function(weaponPlayer: Player, _toolId: string, newPosition: Vector3)
             if weaponPlayer ~= player then
                return
             end
 
-            if shouldSpawnTrail(state, newPosition) then
-               spawnServerTrail(newPosition)
-            end
+            updateTrailSamples(state, newPosition)
          end),
       }
       serverEffectsByPlayer[player] = state
