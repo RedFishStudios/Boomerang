@@ -14,10 +14,9 @@ local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibra
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local ToolController = require(ReplicatedStorage.Client.Core.ToolController)
 local CameraPaddingController = require(ReplicatedStorage.Client.Core.CameraPaddingController)
+local ArenaLibrary = require(ReplicatedStorage.Shared.Library.ArenaLibrary)
 
 local localPlayer = Players.LocalPlayer
-
-local MapFolder = game.Workspace:WaitForChild("Arena")
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -68,7 +67,7 @@ CustomCameraController.Mode = "Overhead" :: "Overhead" | "Regular"
 
 -- // Get list of objects that should be included in view
 local function getCameraFocusMapObjects(): {Instance?}
-   local currentMap = MapFolder:FindFirstChildWhichIsA("Model")
+   local currentMap = ArenaLibrary.getArenaModel()
    if not currentMap then
       return {}
    end

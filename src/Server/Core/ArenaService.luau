@@ -18,6 +18,7 @@ local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.Colli
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local GameTeamLibrary = require(game.ReplicatedStorage.Shared.Library.GameTeamLibrary)
+local ArenaLibrary = require(ReplicatedStorage.Shared.Library.ArenaLibrary)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -34,7 +35,7 @@ type MapChangedTask = (newMapName: string)->()
 -------------------------------------------------------------------------------
 
 local mapFolder = game.ServerStorage.Server.Assets.Maps
-local arenaFolder = game.Workspace.Arena
+local arenaFolder = ArenaLibrary.getArenaFolder()
 
 local registeredMaps: {
    [string]: Model
@@ -353,7 +354,7 @@ function ArenaService.getAllMapModels()
 end
 
 function ArenaService.getArenaModel(): Model?
-   return arenaFolder:FindFirstChildWhichIsA("Model")
+   return ArenaLibrary.getArenaModel()
 end
 
 function ArenaService.getConfig(configName: string)
