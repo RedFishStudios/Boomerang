@@ -75,7 +75,7 @@ local function applyExplosion(player: Player, position: Vector3)
       end
       local distance = ((character.PrimaryPart.Position - position)*Vector3.new(1, 0, 1)).Magnitude
       if distance < 12 then
-         CombatLibrary.attackHitPlayer(player, nil, p, nil, 10000, true)
+         CombatLibrary.attackHitPlayer(player, "ExplosiveBoomerang", p, nil, 10000, true)
       end
    end
 
