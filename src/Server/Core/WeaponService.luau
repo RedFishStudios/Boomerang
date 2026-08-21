@@ -202,6 +202,83 @@ local function playerIsWeaponLocked(player: Player): boolean
    return isLocked
 end
 
+local function throwForPlayer(
+   player: Player,
+   toolId: string,
+   direction: Vector3?,
+   startPosition: Vector3?,
+   timeSinceAiming: number,
+   aimStrengthAlpha: number
+)
+   if playerIsWeaponLocked(player) then
+      return
+   end
+
+   local canThrow, reason = WeaponLibrary.canThrow(player, toolId)
+   if not canThrow then
+      if reason == "AlreadyThrown" then
+         print(`player already has a thrown weapon`)
+      elseif reason == "InvalidToolId" then
+         print(`invalid toolId`)
+      elseif reason == "HasForceField" then
+         print("player has forcefield")
+      end
+      return
+   end
+
+   local character = player.Character
+   if not character or not character.PrimaryPart then
+      return
+   end
+
+   local toolData = Tools[toolId]
+   local trustedDirection = getHorizontalDirection(direction or character.PrimaryPart.CFrame.LookVector)
+   local trustedStartPosition = character.PrimaryPart.Position + trustedDirection * 3
+   if startPosition then
+      local maxStartDistanceFromCharacter = 12
+      local distanceFromCharacter = (startPosition - character.PrimaryPart.Position).Magnitude
+      if distanceFromCharacter <= maxStartDistanceFromCharacter then
+         trustedStartPosition = startPosition
+      end
+   end
+
+   ThrownWeapons.Data[player] = {
+      OwnerUserId = player.UserId,
+      ToolId = toolId,
+      State = ThrownWeapons.StateEnum.Outgoing,
+      ReplicationPart = nil,
+      TestRaycastVisualizers = {}
+   }
+   for _ = 1, 3 do
+      local visualizer = Instance.new("Part")
+      visualizer.Name = "TestRaycastVisualizer"
+      visualizer.Shape = Enum.PartType.Ball
+      visualizer.Size = Vector3.new(0.5, 0.5, 0.5)
+      visualizer.Material = "Neon"
+      visualizer.Anchored = true
+      visualizer.CanCollide = false
+      visualizer.CanQuery = false
+      visualizer.CanTouch = false
+      visualizer.Transparency = 0.5
+      visualizer.Color = Color3.fromRGB(255, 0, 0)
+      visualizer.Parent = workspace
+      table.insert(ThrownWeapons.Data[player].TestRaycastVisualizers, visualizer)
+   end
+
+   local logic = getLogic(toolData.LogicClass)
+   if not logic or not logic.throw then
+      warn(`WeaponService: no throw logic found for {toolData.LogicClass}`)
+      return
+   end
+   logic.throw(player, toolId, toolData, ThrownWeapons.Data[player], {
+      Direction = trustedDirection,
+      StartPosition = trustedStartPosition,
+      TimeSinceAiming = timeSinceAiming,
+      AimStrengthAlpha = aimStrengthAlpha,
+   })
+   WeaponService.WeaponThrownTasks:Execute("parallel", player, toolId)
+end
+
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
@@ -325,74 +402,39 @@ function WeaponService.init()
       
       -- Client-only animation replication will handle this later.
 
-      if playerIsWeaponLocked(player) then
-         return
-      end
 
-      local canThrow, reason = WeaponLibrary.canThrow(player, toolId)
-      if not canThrow then
-         if reason == "AlreadyThrown" then
-            print(`player already has a thrown weapon`)
-         elseif reason == "InvalidToolId" then
-            print(`invalid toolId`)
-         elseif reason == "HasForceField" then
-            print("player has forcefield")
+      if GlobalConfig.SyncAbilitiesToEveryPlayer then
+         for _, throwPlayer in ipairs(Players:GetPlayers()) do
+            if throwPlayer == player then
+               throwForPlayer(
+                  throwPlayer,
+                  toolId,
+                  if typeof(clientDirection) == "Vector3" then clientDirection else nil,
+                  if typeof(clientStartPosition) == "Vector3" then clientStartPosition else nil,
+                  timeSinceAiming,
+                  aimStrengthAlpha
+               )
+            else
+               throwForPlayer(
+                  throwPlayer,
+                  toolId,
+                  CharacterService.getLookDirection(throwPlayer),
+                  nil,
+                  timeSinceAiming,
+                  aimStrengthAlpha
+               )
+            end
          end
-         return
+      else
+         throwForPlayer(
+            player,
+            toolId,
+            if typeof(clientDirection) == "Vector3" then clientDirection else nil,
+            if typeof(clientStartPosition) == "Vector3" then clientStartPosition else nil,
+            timeSinceAiming,
+            aimStrengthAlpha
+         )
       end
-      local toolData = Tools[toolId]
-
-      if not character or not character.PrimaryPart then
-         return
-      end
-
-      local trustedDirection = getHorizontalDirection(
-         if typeof(clientDirection) == "Vector3" then clientDirection else character.PrimaryPart.CFrame.LookVector
-      )
-      local trustedStartPosition = character.PrimaryPart.Position + trustedDirection * 3
-      if typeof(clientStartPosition) == "Vector3" then
-         local maxStartDistanceFromCharacter = 12
-         local distanceFromCharacter = (clientStartPosition - character.PrimaryPart.Position).Magnitude
-         if distanceFromCharacter <= maxStartDistanceFromCharacter then
-            trustedStartPosition = clientStartPosition
-         end
-      end
-
-      ThrownWeapons.Data[player] = {
-         OwnerUserId = player.UserId,
-         ToolId = toolId,
-         State = ThrownWeapons.StateEnum.Outgoing,
-         ReplicationPart = nil,
-         TestRaycastVisualizers = {}
-      }
-      for i = 1, 3 do
-         local visualizer = Instance.new("Part")
-         visualizer.Name = "TestRaycastVisualizer"
-         visualizer.Shape = Enum.PartType.Ball
-         visualizer.Size = Vector3.new(0.5, 0.5, 0.5)
-         visualizer.Material = "Neon"
-         visualizer.Anchored = true
-         visualizer.CanCollide = false
-         visualizer.CanQuery = false
-         visualizer.CanTouch = false
-         visualizer.Transparency = 0.5
-         visualizer.Color = Color3.fromRGB(255, 0, 0)
-         visualizer.Parent = workspace
-         table.insert(ThrownWeapons.Data[player].TestRaycastVisualizers, visualizer)
-      end
-
-      local Logic = getLogic(toolData.LogicClass)
-      if not Logic or not Logic.throw then
-         warn(`WeaponService: no throw logic found for {toolData.LogicClass}`)
-         return
-      end
-      Logic.throw(player, toolId, toolData, ThrownWeapons.Data[player], {
-         Direction = trustedDirection,
-         StartPosition = trustedStartPosition,
-         TimeSinceAiming = timeSinceAiming,
-         AimStrengthAlpha = aimStrengthAlpha,
-      })
-      WeaponService.WeaponThrownTasks:Execute("parallel", player, toolId)
 	end
 
    -- // Boomerang visibility/removing visibility from client
@@ -508,46 +550,6 @@ function WeaponService.init()
          if character and character:FindFirstChild("Humanoid") then
             character.Humanoid.WalkSpeed = GlobalConfig.DefaultWalkSpeed
          end
-      end
-   end)
-
-   -- // Clash logic
-   RunService.Heartbeat:Connect(function()
-      local fullChecked: {[Player]: boolean} = {}
-      local thrownWeapons = ThrownWeapons.Data
-      for playerA, weaponA in pairs(thrownWeapons) do
-         local cframeA = weaponA.CFrame
-         if not cframeA then
-            continue
-         end
-         local currentPositionA = cframeA.Position
-         local previousPositionA = weaponA.LastPosition or currentPositionA
-
-         for playerB, weaponB in pairs(thrownWeapons) do
-            if playerA == playerB or fullChecked[playerB] then
-               continue
-            end
-            local cframeB = weaponB.CFrame
-            if not cframeB then
-               continue
-            end
-            local currentPositionB = cframeB.Position
-            local previousPositionB = weaponB.LastPosition or currentPositionB
-
-            if weaponMovementsOverlap(previousPositionA, currentPositionA, previousPositionB, currentPositionB) then
-               local Part = Instance.new("Part")
-               Part.Position = currentPositionA
-               part.Parent = game.Workspace
-               part.Color = Color3.new(1, 0, 0)
-               part.Size = Vector3.new(1, 1, 1)
-               local PartB = Instance.new("Part")
-               PartB.Position = currentPositionB
-               partB.Parent = game.Workspace
-               partB.Color = Color3.new(1, 0, 0)
-               partB.Size = Vector3.new(1, 1, 1)
-            end
-         end
-         fullChecked[playerA] = true
       end
    end)
 end
