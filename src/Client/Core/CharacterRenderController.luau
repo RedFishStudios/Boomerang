@@ -256,8 +256,10 @@ local function createCharacterModel(player: Player, canYield: boolean?)
          for _, track in pairs(playingTracks) do
             local syncedTrack = syncedTracks[track.Animation.AnimationId]
             local speed = track.Speed
-            if syncedTrack and not syncedTrack.IsPlaying then
-               syncedTrack:Play()
+            if syncedTrack then
+               if not syncedTrack.IsPlaying then
+                  syncedTrack:Play()
+               end
                syncedTrack:AdjustSpeed(speed*2)
             end
          end
@@ -416,7 +418,7 @@ local function everyFrame(deltaTime)
       if model.Parent ~= CharactersFolder then
          model.Parent = CharactersFolder
       end
-      setAuthoritativeCharacterTransparency(p, 0.5)
+      setAuthoritativeCharacterTransparency(p, 1)
       syncCharacterPositions(p, model, p.Character)
    end
 end
