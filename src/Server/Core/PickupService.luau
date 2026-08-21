@@ -133,6 +133,7 @@ local function activatePickup(player: Player, livePickupId: LivePickupId, ...)
       return
    end
 
+   
    -- // Grant random pickup class
    local pickupClassId
    if GlobalConfig.ForceOverwritePickup then
