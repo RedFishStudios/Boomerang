@@ -1,7 +1,7 @@
 local PhysicsService = game:GetService("PhysicsService")
 local RunService = game:GetService("RunService")
 
-local function createCollisionGroup(groupName: string, collidesWith: {string})
+local function collisionGroupData(groupName: string, collidesWith: {string})
    if RunService:IsServer() then
       PhysicsService:RegisterCollisionGroup(groupName)
    end
@@ -45,22 +45,18 @@ local function configureCollisionMatrix(setupDataByGroup)
 end
 
 local SetupData = {
-   Players = createCollisionGroup("Players", {"ArenaWalls"}),
-   ThrownWeapons = createCollisionGroup("ThrownWeapons", {"ArenaWalls", "Players"}),
-   HandWeapons = createCollisionGroup("HandWeapons", {"Players"}),
-   ArenaWalls = createCollisionGroup("ArenaWalls", {"Players", "ThrownWeapons"}),
-   ArenaFloor = createCollisionGroup("ArenaFloor", {"Camera"}),
-   Camera = createCollisionGroup("Camera", {"ArenaFloor"}),
-   WaterParts = createCollisionGroup("WaterParts", {"Players", "WaterDetector"}),
-   WaterDetector = createCollisionGroup("WaterDetector", {"WaterParts"}),
+   Players = collisionGroupData("Players", {"ArenaWalls"}),
+   ThrownWeapons = collisionGroupData("ThrownWeapons", {"ArenaWalls", "Players"}),
+   HandWeapons = collisionGroupData("HandWeapons", {"Players"}),
+   ArenaWalls = collisionGroupData("ArenaWalls", {"Players", "ThrownWeapons"}),
+   Fire = collisionGroupData("Fire", {"Players"}),
+   ArenaFloor = collisionGroupData("ArenaFloor", {"Camera"}),
+   Camera = collisionGroupData("Camera", {"ArenaFloor"}),
+   WaterParts = collisionGroupData("WaterParts", {"Players", "WaterDetector"}),
+   WaterDetector = collisionGroupData("WaterDetector", {"WaterParts"}),
 }
 
 configureCollisionMatrix(SetupData)
-
-if RunService:IsServer() then
-   PhysicsService:CollisionGroupSetCollidable(SetupData.WaterParts.Name, "Default", false)
-   PhysicsService:CollisionGroupSetCollidable(SetupData.WaterDetector.Name, "Default", false)
-end
 
 local CollisionGroups = {
    Players = deepRegisterCollisionGroups(SetupData.Players),
@@ -71,6 +67,7 @@ local CollisionGroups = {
    Camera = deepRegisterCollisionGroups(SetupData.Camera),
    WaterParts = deepRegisterCollisionGroups(SetupData.WaterParts),
    WaterDetector = deepRegisterCollisionGroups(SetupData.WaterDetector),
+   Fire = deepRegisterCollisionGroups(SetupData.Fire),
 }
 
 return CollisionGroups
