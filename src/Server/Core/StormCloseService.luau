@@ -23,6 +23,7 @@ local Gamemodes = require(ReplicatedStorage.Shared.Constants.Gamemodes)
 local Maps = require(ReplicatedStorage.Shared.Constants.Maps)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local StormCloseLibrary = require(ReplicatedStorage.Shared.Library.StormCloseLibrary)
+local GameplayPhaseEnums = require(ReplicatedStorage.Shared.Constants.Enums.GameplayPhases)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -175,8 +176,8 @@ end
 
 function StormCloseService.begin(x, y)
    if 1==1 then
-      warn(`cancelling storm close service, for testing`)
-      return
+      --warn(`cancelling storm close service, for testing`)
+      --return
    end
    clear()
    local gameStateData = GameStateLibrary.getGameStateData()
@@ -198,7 +199,7 @@ function StormCloseService.begin(x, y)
       if paused then
          return
       end
-	if gameStateData.CurrentRoundData:Get() == nil then
+	   if gameStateData.GameplayPhase:Get() ~= GameplayPhaseEnums.RoundActive then
          return
       end
 
@@ -257,14 +258,19 @@ function StormCloseService.init()
 		stormCloseRemote:FireClient(player, StormCloseLibrary.REMOTE_ACTION_CREATE, stormState.centerPosition, stormState.currentWidth, stormState.currentHeight)
 	end)
 
-	gameStateData.CurrentRoundData:Subscribe(function(currentRoundData)
-      warn(`change in round id detected`)
-      StormCloseService.teardown()
+   -- // Tear down when arena is exited
+   gameStateData.GameplayPhase:Subscribe(function(newPhase)
+      if newPhase == GameplayPhaseEnums.LobbyVoting then
+         StormCloseService.teardown()
+      end
+   end)
 
+   -- // Set up when round begins
+	gameStateData.CurrentRoundData:Subscribe(function(currentRoundData)
 		if currentRoundData == nil then
-         warn(`no round id for storm close`)
          return
       end
+      StormCloseService.teardown()
 
 		task.defer(function()
 			local latestRoundData = gameStateData.CurrentRoundData:Get()
