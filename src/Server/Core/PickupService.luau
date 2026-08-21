@@ -132,7 +132,27 @@ local function activatePickup(player: Player, livePickupId: LivePickupId, ...)
       warn(`PickupService.activatePickup: Player {player.Name} is too far away from pickup {livePickupId}`)
       return
    end
-   local pickupClassId = livePickup.ClassId
+
+   -- // Grant random pickup class
+   local pickupClassId
+   if GlobalConfig.ForceOverwritePickup then
+      pickupClassId = GlobalConfig.ForceOverwritePickup
+   else
+      local availableClassIds = table.clone(availablePickupClasses)
+      repeat
+         local selected = availableClassIds[math.random(1, #availableClassIds)]
+         if PickupLibrary.hasPickupEffectActive(player.UserId, selected) then
+            table.remove(availableClassIds, table.find(availableClassIds, selected))
+         else
+            pickupClassId = selected
+         end
+      until pickupClassId ~= nil or #availableClassIds == 0
+   end
+   if not pickupClassId then
+      warn(`PickupService.activatePickup: No available pickup class for player {player.Name}`)
+      pickupClassId = availablePickupClasses[math.random(1, #availablePickupClasses)]
+   end
+
    local logic = getLogic(pickupClassId)
    if not logic then
       warn(`PickupService.activatePickup: No logic found for pickup {pickupClassId}`)
@@ -227,12 +247,10 @@ function PickupService.init()
             local spawn = pickupSpawns[math.random(1, #pickupSpawns)]
             local uuid = HttpService:GenerateGUID(false)
             PickupLibrary.LivePickups[uuid] = {
-               ClassId = if GlobalConfig.ForceOverwritePickup then GlobalConfig.ForceOverwritePickup else availablePickupClasses[math.random(1, #availablePickupClasses)],
                DespawnsAt = now + DESPAWN_TIME,
                Position = spawn.Position,
             }
             replicationData.Spawned[uuid] = {
-               Position = spawn.Position,
                DespawnsAt = now + DESPAWN_TIME,
             }
          end

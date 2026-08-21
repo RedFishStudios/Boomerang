@@ -324,6 +324,7 @@ local function getWeaponCFrame(thrownWeaponData: ThrownWeapons.Data): CFrame?
 end
 
 local function setWeaponCFrame(thrownWeaponData: ThrownWeapons.Data, cframe: CFrame, deltaTime: number?)
+   thrownWeaponData.LastPosition = thrownWeaponData.CFrame.Position
    thrownWeaponData.CFrame = cframe
 
    local host = thrownWeaponData.Host
@@ -615,6 +616,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    local throwServerTime = (options and options.ThrowServerTime) or workspace:GetServerTimeNow()
    local lastBounceOrigin = throwOrigin
    local bounced = false
+   thrownWeaponData.LastPosition = startPosition
    thrownWeaponData.CFrame = startCFrame
    thrownWeaponData.VisualRotation = math.random() * math.pi * 2
 
@@ -643,6 +645,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          partHost.Parent = WeaponsFolder
          thrownWeaponData.Host = partHost
       else
+         thrownWeaponData.LastPosition = startPosition
          thrownWeaponData.CFrame = startCFrame
       end
    else

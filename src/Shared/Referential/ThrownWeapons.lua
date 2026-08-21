@@ -19,6 +19,7 @@ export type Data = {
    OwnerUserId: number,
 
    Host: (Part | Model)?,
+   LastPosition: Vector3?,
    CFrame: CFrame?,
    Direction: Vector3?,
    Speed: number?,
