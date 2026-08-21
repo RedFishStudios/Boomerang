@@ -869,6 +869,7 @@ function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapo
    end
    if isServer then
       fireDespawned(player.UserId, returnToPlayer)
+      SharedTasks.ThrownWeaponRemoved:Execute("serial", player, thrownWeaponData.ToolId)
       if returnToPlayer then
          WeaponService.WeaponReturnedTasks:Execute("parallel", player, thrownWeaponData.ToolId)
       end

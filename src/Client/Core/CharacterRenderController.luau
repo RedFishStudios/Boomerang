@@ -416,7 +416,7 @@ local function everyFrame(deltaTime)
       if model.Parent ~= CharactersFolder then
          model.Parent = CharactersFolder
       end
-      setAuthoritativeCharacterTransparency(p, 1)
+      setAuthoritativeCharacterTransparency(p, 0.5)
       syncCharacterPositions(p, model, p.Character)
    end
 end

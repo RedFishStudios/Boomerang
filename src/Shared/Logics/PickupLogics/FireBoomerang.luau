@@ -33,7 +33,7 @@ end
 
 local TRAIL_LIFETIME = 3
 local PARTICLE_TRAIL_DISTANCE = 2
-local OWNER_TRAIL_MINIMUM_DISTANCE = 2
+local OWNER_TRAIL_MINIMUM_DISTANCE = 3
 local DIRECTION_CHANGE_DEGREES = 35
 local DIRECTION_CHANGE_DOT = math.cos(math.rad(DIRECTION_CHANGE_DEGREES))
 local MAX_SURFACE_RAYCAST_DISTANCE = 9
@@ -76,6 +76,7 @@ type ServerEffectState = {
    TrailState: MovementTrailState,
    HasSpawnedThrownTrail: boolean,
    DisconnectMovement: () -> (),
+   DisconnectRemoval: () -> (),
 }
 
 type FireEffectState = {
@@ -100,6 +101,7 @@ local function clearServerEffect(player: Player)
    if state then
       serverEffectsByPlayer[player] = nil
       state.DisconnectMovement()
+      state.DisconnectRemoval()
    end
 end
 
@@ -202,7 +204,7 @@ local function removeFireEffect(player: Player)
    PickupLibrary.removePickupEffectActive(player.UserId, state.LivePickupId, nil, false)
 end
 
-local function applyFireEffect(player: Player)
+local function applyFireEffect(player: Player, fromPosition: Vector3?)
    if not isServer or fireEffectsByPlayer[player] or PickupLibrary.hasPickupEffectActive(player.UserId, ON_FIRE_EFFECT_ID) then
       return
    end
@@ -364,6 +366,16 @@ function FireBoomerang.onPickup(player: Player, _timestamp: number?): number?
             LastDirection = nil,
          },
          HasSpawnedThrownTrail = false,
+         DisconnectRemoval = SharedTasks.ThrownWeaponRemoved:Add(function(weaponPlayer: Player, _toolId: string)
+            if weaponPlayer ~= player then
+               return
+            end
+
+            state.TrailState.LastMovementPosition = nil
+            state.TrailState.LastSpawnPosition = nil
+            state.TrailState.LastDirection = nil
+            state.HasSpawnedThrownTrail = false
+         end),
          DisconnectMovement = SharedTasks.ThrownWeaponMoved:Add(function(
             weaponPlayer: Player,
             _toolId: string,
@@ -381,7 +393,10 @@ function FireBoomerang.onPickup(player: Player, _timestamp: number?): number?
             end
 
             local isNearOwner = (newPosition - rootPart.Position).Magnitude < OWNER_TRAIL_MINIMUM_DISTANCE
-            if isNearOwner and (isRecalling or not state.HasSpawnedThrownTrail) then
+            if not state.HasSpawnedThrownTrail and isNearOwner then
+               return
+            end
+            if isRecalling and isNearOwner then
                return
             end
 
