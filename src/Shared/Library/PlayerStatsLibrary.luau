@@ -8,6 +8,7 @@ local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
+local GameplayPhaseEnum = require(ReplicatedStorage.Shared.Constants.Enums.GameplayPhases)
 
 local RunService = game:GetService("RunService")
 
@@ -118,9 +119,25 @@ function PlayerStatsLibrary.init()
       PlayersUtil.PlayerAdded:Add(function(player)
          newPlayerStats(player)
       end)
-      GameStateLibrary.LobbyIntermissionStartedTasks:Add(function()
-         for _, player in pairs(Players:GetPlayers()) do
-            newPlayerStats(player)
+      local gameStateData = GameStateLibrary.getGameStateData()
+      gameStateData.GameplayPhase:Subscribe(function(newPhase)
+         if newPhase == GameplayPhaseEnum.LobbyVoting then
+            for _, player in pairs(Players:GetPlayers()) do
+               newPlayerStats(player)
+            end
+            if isServer then
+               for _, player in pairs(Players:GetPlayers()) do
+                  local character = player.Character
+                  if not character then
+                     continue
+                  end
+                  local humanoid = character:FindFirstChild("Humanoid")
+                  if not humanoid then
+                     continue
+                  end
+                  humanoid.Health = humanoid.MaxHealth
+               end
+            end
          end
       end)
    else
