@@ -12,6 +12,7 @@ local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local HitboxLibrary = require(ReplicatedStorage.Shared.Library.HitboxLibrary)
+local CombatLibrary = require(ReplicatedStorage.Shared.Library.CombatLibrary)
 local ExplosiveBoomerang = require(ReplicatedStorage.Shared.Logics.PickupLogics.ExplosiveBoomerang)
 local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 local GameplayPhaseEnums = require(ReplicatedStorage.Shared.Constants.Enums.GameplayPhases)
@@ -22,6 +23,7 @@ local spawnFireTrail = SimpleRemotes.getUnreliableEvent("SpawnFireTrail")
 local PickupService
 local ToolController
 local WaterEnvironmentLogic = require(ReplicatedStorage.Shared.Logics.Environment.Water)
+local PermanentFireEnvironmentLogic = require(ReplicatedStorage.Shared.Logics.Environment.PermanentFire)
 
 local isServer = RunService:IsServer()
 
@@ -40,7 +42,7 @@ local MAX_SURFACE_RAYCAST_DISTANCE = 9
 local MAX_SURFACE_RAYCAST_ITERATIONS = 64
 local MIN_MOVEMENT_DISTANCE = 0.01
 local FIRE_EFFECT_DAMAGE_FREQUENCY = 1
-local FIRE_EFFECT_DAMAGE = 5
+local FIRE_EFFECT_DAMAGE = 10
 local FIRE_EFFECT_LASTS = 10
 local FIRE_EFFECT_UPDATE_RATE = 1 / 20
 local TRAIL_DAMAGE_CROSS_SECTION = Vector3.new(4, 4, MIN_MOVEMENT_DISTANCE)
@@ -49,6 +51,7 @@ local ON_FIRE_EFFECT_ID = "OnFire"
 local DASH_ABILITY_ID = "Dash"
 local EXPLOSION_LIFETIME = 9
 local EXPLOSION_DAMAGE_RADIUS = 10
+local FIRE_EFFECT_TOOL_ID = "FireEffect"
 
 type TrailRecord = {
    Particle: Part,
@@ -59,11 +62,14 @@ type TrailSegmentRecord = {
    StartPosition: Vector3,
    EndPosition: Vector3,
    SpawnedAt: number,
+   Attacker: Player,
+   SelfHitAttacker: Player?,
 }
 
 type LogicalExplosionRecord = {
    Position: Vector3,
    ExpiresAt: number,
+   Attacker: Player,
 }
 
 type MovementTrailState = {
@@ -85,6 +91,8 @@ type FireEffectState = {
    NextDamageAt: number,
    LivePickupId: string,
    DashCount: number,
+   Attacker: Player?,
+   KillCredited: boolean,
 }
 
 local serverEffectsByPlayer: {[Player]: ServerEffectState} = {}
@@ -141,11 +149,13 @@ local function canSpawnTrailAt(position: Vector3): boolean
    return waterResult == nil
 end
 
-local function recordTrailSegment(startPosition: Vector3, endPosition: Vector3)
+local function recordTrailSegment(startPosition: Vector3, endPosition: Vector3, attacker: Player, selfHitAttacker: Player?)
    table.insert(trailSegments, {
       StartPosition = startPosition,
       EndPosition = endPosition,
       SpawnedAt = workspace:GetServerTimeNow(),
+      Attacker = attacker,
+      SelfHitAttacker = selfHitAttacker,
    })
 end
 
@@ -153,7 +163,12 @@ local function spawnParticleTrail(position: Vector3)
    spawnFireTrail:FireAllClients(position)
 end
 
-local function updateTrailSamples(state: FireEffectState | ServerEffectState, position: Vector3): boolean
+local function updateTrailSamples(
+   state: FireEffectState | ServerEffectState,
+   position: Vector3,
+   attacker: Player,
+   selfHitAttacker: Player?
+): boolean
    if not canSpawnTrailAt(position) then
       return false
    end
@@ -161,7 +176,7 @@ local function updateTrailSamples(state: FireEffectState | ServerEffectState, po
    local previousTrailPosition = state.TrailState.LastSpawnPosition
    if shouldSpawnTrail(state.TrailState, position, PARTICLE_TRAIL_DISTANCE) then
       if previousTrailPosition and (position - previousTrailPosition).Magnitude >= MIN_MOVEMENT_DISTANCE then
-         recordTrailSegment(previousTrailPosition, position)
+         recordTrailSegment(previousTrailPosition, position, attacker, selfHitAttacker)
       end
       spawnParticleTrail(position)
       return true
@@ -204,7 +219,7 @@ local function removeFireEffect(player: Player)
    PickupLibrary.removePickupEffectActive(player.UserId, state.LivePickupId, nil, false)
 end
 
-local function applyFireEffect(player: Player, fromPosition: Vector3?)
+local function applyFireEffect(player: Player, attacker: Player?)
    if not isServer or fireEffectsByPlayer[player] or PickupLibrary.hasPickupEffectActive(player.UserId, ON_FIRE_EFFECT_ID) then
       return
    end
@@ -229,6 +244,8 @@ local function applyFireEffect(player: Player, fromPosition: Vector3?)
       NextDamageAt = now + FIRE_EFFECT_DAMAGE_FREQUENCY,
       LivePickupId = livePickupId,
       DashCount = 0,
+      Attacker = if attacker ~= player then attacker else nil,
+      KillCredited = false,
    }
    PickupLibrary.setPickupEffectActive(player.UserId, livePickupId, ON_FIRE_EFFECT_ID, now + FIRE_EFFECT_LASTS)
 end
@@ -263,14 +280,18 @@ local function updateServer(deltaTime: number)
       local character = player.Character
       local rootPart = character and character.PrimaryPart
       if rootPart then
-         updateTrailSamples(state, rootPart.Position)
+         updateTrailSamples(state, rootPart.Position, player, state.Attacker)
       end
 
       if now >= state.NextDamageAt and currentPhase == GameplayPhaseEnums.RoundActive then
          state.NextDamageAt = now + FIRE_EFFECT_DAMAGE_FREQUENCY
          local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-         if humanoid then
+         if humanoid and humanoid.Health > 0 then
             humanoid:TakeDamage(FIRE_EFFECT_DAMAGE)
+            if humanoid.Health <= 0 and state.Attacker and state.Attacker ~= player and not state.KillCredited then
+               state.KillCredited = true
+               CombatLibrary.PlayerKilledPlayerTasks:Execute("parallel", state.Attacker, player, FIRE_EFFECT_TOOL_ID)
+            end
          end
       end
    end
@@ -288,7 +309,8 @@ local function updateServer(deltaTime: number)
 
       for _, segment in ipairs(trailSegments) do
          if trailSegmentHitsCharacter(segment, character) then
-            applyFireEffect(player)
+            local attacker = if segment.Attacker == player then segment.SelfHitAttacker else segment.Attacker
+            applyFireEffect(player, attacker)
             break
          end
       end
@@ -299,7 +321,7 @@ local function updateServer(deltaTime: number)
 
       for _, explosion in ipairs(logicalExplosions) do
          if (rootPart.Position - explosion.Position).Magnitude <= EXPLOSION_DAMAGE_RADIUS then
-            applyFireEffect(player)
+            applyFireEffect(player, explosion.Attacker)
             break
          end
       end
@@ -400,7 +422,7 @@ function FireBoomerang.onPickup(player: Player, _timestamp: number?): number?
                return
             end
 
-            state.HasSpawnedThrownTrail = updateTrailSamples(state, newPosition) or state.HasSpawnedThrownTrail
+            state.HasSpawnedThrownTrail = updateTrailSamples(state, newPosition, player, nil) or state.HasSpawnedThrownTrail
          end),
       }
       serverEffectsByPlayer[player] = state
@@ -435,6 +457,7 @@ local function _init()
          table.insert(logicalExplosions, {
             Position = explosionCFrame.Position,
             ExpiresAt = workspace:GetServerTimeNow() + EXPLOSION_LIFETIME,
+            Attacker = player,
          })
          PickupService.triggerEnd(player, script.Name)
       end)
@@ -456,6 +479,11 @@ local function _init()
       WaterEnvironmentLogic.PlayerEnteredWater:Add(function(player: Player)
          if fireEffectsByPlayer[player] then
             removeFireEffect(player)
+         end
+      end)
+      PermanentFireEnvironmentLogic.PlayerTouchedFire:Add(function(player: Player, permanentfirePart: BasePart)
+         if not fireEffectsByPlayer[player] then
+            applyFireEffect(player, nil)
          end
       end)
       gameStateData.GameplayPhase:Subscribe(function(newPhase: string)
