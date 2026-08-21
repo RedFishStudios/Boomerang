@@ -174,7 +174,7 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
-function StormCloseService.begin(x, y)
+function StormCloseService.begin(x, y, centerPoint: Vector3)
    if 1==1 then
       --warn(`cancelling storm close service, for testing`)
       --return
@@ -182,7 +182,7 @@ function StormCloseService.begin(x, y)
    clear()
    local gameStateData = GameStateLibrary.getGameStateData()
 
-	local centerPosition: Vector3? = nil
+	local centerPosition: Vector3? = centerPoint
 	local width = x
 	local height = y
 
@@ -222,8 +222,8 @@ function StormCloseService.begin(x, y)
             lastClosureStepIndex = lastClosureStepIndex + 1
             lastClosureStepTimestamp = currentTime
 
-            local newX = math.max(0, x - (lastClosureStepIndex * 10))
-            local newY = math.max(0, y - (lastClosureStepIndex * 10))
+			local newX = math.max(0, width - (lastClosureStepIndex * 10))
+			local newY = math.max(0, height - (lastClosureStepIndex * 10))
 
 			setStormTarget(newX, newY)
          end
@@ -295,7 +295,7 @@ function StormCloseService.init()
 				return
 			end
 
-			StormCloseService.begin(stormCloseConfigPart.Size.X, stormCloseConfigPart.Size.Z)
+			StormCloseService.begin(stormCloseConfigPart.Size.X, stormCloseConfigPart.Size.Z, stormCloseConfigPart.Position)
 		end)
    end)
 end
