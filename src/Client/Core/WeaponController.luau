@@ -26,6 +26,7 @@ local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 local PlatformController = require(ReplicatedStorage.Client.Core.PlatformController)
 local CharacterRenderController = require(ReplicatedStorage.Client.Core.CharacterRenderController)
 local PlayerStatsLibrary = require(ReplicatedStorage.Shared.Library.PlayerStatsLibrary)
+local GameplayPhaseEnum = require(ReplicatedStorage.Shared.Constants.Enums.GameplayPhases)
 
 local ToolLogics = ReplicatedStorage.Shared.Logics.WeaponLogics
 local ToolLogicModules = {}
@@ -715,8 +716,8 @@ function WeaponController.init()
    RunService.PreSimulation:Connect(updateSmoothing)
 
    local gameStateData = GameStateLibrary.getGameStateData()
-   gameStateData.CurrentRoundData:Subscribe(function(currentRoundData)
-      if currentRoundData == nil then
+   gameStateData.GameplayPhase:Subscribe(function(gameplayPhase)
+      if gameplayPhase == GameplayPhaseEnum.LobbyVoting then
          setLocalAimState(false)
          pendingLocalThrow = nil
          AnimationController.stopAllCoreAnimations(Players.LocalPlayer)
