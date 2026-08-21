@@ -535,6 +535,46 @@ function WeaponService.init()
       end
    end)
 
+   -- // Clash logic
+   RunService.Heartbeat:Connect(function()
+      local fullChecked: {[Player]: boolean} = {}
+      local thrownWeapons = ThrownWeapons.Data
+      for playerA, weaponA in pairs(thrownWeapons) do
+         local cframeA = weaponA.CFrame
+         if not cframeA then
+            continue
+         end
+         local currentPositionA = cframeA.Position
+         local previousPositionA = weaponA.LastPosition or currentPositionA
+
+         for playerB, weaponB in pairs(thrownWeapons) do
+            if playerA == playerB or fullChecked[playerB] then
+               continue
+            end
+            local cframeB = weaponB.CFrame
+            if not cframeB then
+               continue
+            end
+            local currentPositionB = cframeB.Position
+            local previousPositionB = weaponB.LastPosition or currentPositionB
+
+            if weaponMovementsOverlap(previousPositionA, currentPositionA, previousPositionB, currentPositionB) then
+               local Part = Instance.new("Part")
+               Part.Position = currentPositionA
+               Part.Parent = game.Workspace
+               Part.Color = Color3.new(1, 0, 0)
+               Part.Size = Vector3.new(1, 1, 1)
+               local PartB = Instance.new("Part")
+               PartB.Position = currentPositionB
+               PartB.Parent = game.Workspace
+               PartB.Color = Color3.new(1, 0, 0)
+               PartB.Size = Vector3.new(1, 1, 1)
+            end
+         end
+         fullChecked[playerA] = true
+      end
+   end)
+
    -- // Reset boomerangs when starting/stopping game
    local gameStateData = GameStateLibrary.getGameStateData()
    gameStateData.CurrentRoundData:Subscribe(function()
