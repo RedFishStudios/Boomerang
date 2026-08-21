@@ -38,7 +38,7 @@ local pickupReplication = SimpleRemotes.getUnreliableEvent("PickupReplication")
 local livePickupReplication = SimpleRemotes.getEvent("LivePickupReplication")
 local initLivePickups = SimpleRemotes.getFunction("InitLivePickups")
 
-local pickupClasses: {PickupClassId} = {}
+local availablePickupClasses: {PickupClassId} = {}
 
 local SPAWN_INTERVAL = 5
 local FAILED_SPAWN_COOLDOWN = SPAWN_INTERVAL/2
@@ -76,13 +76,10 @@ end
 
 local function getLogic(pickupClassId: PickupClassId)
 	if not PickupLogicModules[pickupClassId] then
-      local _module = PickupLogics:WaitForChild(pickupClassId, 5)
-      if not _module then
+      local _module = PickupLogics:FindFirstChild(pickupClassId, true)
+      if not _module or not _module:IsA("ModuleScript") then
          warn(`PickupService.getLogic: Pickup logic module {pickupClassId} not found`)
          return
-      end
-      if not table.find(pickupClasses, pickupClassId) then
-         table.insert(pickupClasses, pickupClassId)
       end
 		local module = require(_module)
 		PickupLogicModules[pickupClassId] = module
@@ -90,9 +87,28 @@ local function getLogic(pickupClassId: PickupClassId)
 	return PickupLogicModules[pickupClassId]
 end
 
+local function loadAvailablePickupClasses()
+   table.clear(availablePickupClasses)
+
+   for _, descendant in ipairs(PickupLogics:GetDescendants()) do
+      if not descendant:IsA("ModuleScript") then
+         continue
+      end
+
+      local pickupClassId = descendant.Name
+      local logic = require(descendant)
+      PickupLogicModules[pickupClassId] = logic
+      if logic.Disabled ~= true then
+         table.insert(availablePickupClasses, pickupClassId)
+      end
+   end
+
+   table.sort(availablePickupClasses)
+end
+
 local function getClassIdCaseInsensitive(insensitivePickupClassId: string)
    insensitivePickupClassId = string.lower(insensitivePickupClassId)
-   for _, pickupId in ipairs(pickupClasses) do
+   for _, pickupId in ipairs(availablePickupClasses) do
       if string.lower(pickupId) == insensitivePickupClassId then
          return pickupId
       end
@@ -171,6 +187,8 @@ end
 -------------------------------------------------------------------------------
 
 function PickupService.init()
+   loadAvailablePickupClasses()
+
    local gameStateData = GameStateLibrary.getGameStateData()
 
    initLivePickups.OnServerInvoke = function(_player: Player): PickupLibrary.LivePickupReplicationData
@@ -191,7 +209,6 @@ function PickupService.init()
       if gameplayPhase == GameplayPhaseEnum.LobbyVoting then
          PickupLibrary.clearAllPickupEffectsActive()
          PickupLibrary.LivePickups = {}
-         PickupLibrary.UserPickupEffectsActive = {}
       end
    end)
 
@@ -203,14 +220,14 @@ function PickupService.init()
          Spawned = {},
       }
       local pickupSpawns = ArenaService.getPickupSpawns()
-      if #pickupSpawns > 0 and #pickupClasses > 0 then
+      if #pickupSpawns > 0 and #availablePickupClasses > 0 then
          local now = workspace:GetServerTimeNow()
          local startCount = 1
          for _ = 1, startCount do
             local spawn = pickupSpawns[math.random(1, #pickupSpawns)]
             local uuid = HttpService:GenerateGUID(false)
             PickupLibrary.LivePickups[uuid] = {
-               ClassId = if GlobalConfig.ForceOverwritePickup then GlobalConfig.ForceOverwritePickup else pickupClasses[math.random(1, #pickupClasses)],
+               ClassId = if GlobalConfig.ForceOverwritePickup then GlobalConfig.ForceOverwritePickup else availablePickupClasses[math.random(1, #availablePickupClasses)],
                DespawnsAt = now + DESPAWN_TIME,
                Position = spawn.Position,
             }
@@ -227,12 +244,6 @@ function PickupService.init()
    --   activatePickup(player, livePickupId, ...)
    --end)
 
-   for _, module in pairs(PickupLogics:GetChildren()) do
-      local pickupId = module.Name
-      table.insert(pickupClasses, pickupId)
-      getLogic(pickupId)
-   end
-
    RunService.Heartbeat:Connect(function()
       local now = workspace:GetServerTimeNow()
       local roundActive = gameStateData.CurrentRoundData:Get() ~= nil
@@ -240,7 +251,7 @@ function PickupService.init()
       -- // Spawn new pick ups if round is active
       -- Note: Do this before despawns so that new spawns don't immediately consume a released spawn point
       if roundActive then
-         if now - lastSpawn >= SPAWN_INTERVAL and now - lastFailedSpawn >= FAILED_SPAWN_COOLDOWN and PickupLibrary.getLivePickupCount() < getMaxLivePickups() then
+         if #availablePickupClasses > 0 and now - lastSpawn >= SPAWN_INTERVAL and now - lastFailedSpawn >= FAILED_SPAWN_COOLDOWN and PickupLibrary.getLivePickupCount() < getMaxLivePickups() then
             local pickupSpawns = ArenaService.getPickupSpawns()
             local livingPlayersInArena = gameStateData.LivingPlayersInArena:Get()
 
@@ -278,7 +289,7 @@ function PickupService.init()
             else
                lastSpawn = now
                local spawn = pickupSpawns[math.random(1, #pickupSpawns)]
-               local pickupClassId = pickupClasses[math.random(1, #pickupClasses)]
+               local pickupClassId = availablePickupClasses[math.random(1, #availablePickupClasses)]
                local uuid = HttpService:GenerateGUID(false)
                local despawnTime = now + DESPAWN_TIME
                PickupLibrary.LivePickups[uuid] = {
@@ -362,13 +373,13 @@ function PickupService.init()
       end
       pickupClassId = getClassIdCaseInsensitive(pickupClassId)
       if not pickupClassId then
-         ChatService.tellPlayerPrintMessage(player, `{pickupClassId} is not a recognized class. Recognizable class names are: {table.concat(pickupClasses, ", ")}`, Color3.fromRGB(241, 89, 18))
+         ChatService.tellPlayerPrintMessage(player, `{pickupClassId} is not a recognized class. Recognizable class names are: {table.concat(availablePickupClasses, ", ")}`, Color3.fromRGB(241, 89, 18))
          return
       end
       local logic = getLogic(pickupClassId)
       if not logic then
          warn(`PickupService.activatePickup: No logic found for pickup {pickupClassId}`)
-         ChatService.tellPlayerPrintMessage(player, `{pickupClassId} is not a recognized class. Recognizable class names are: {table.concat(pickupClasses, ", ")}`, Color3.fromRGB(241, 89, 18))
+         ChatService.tellPlayerPrintMessage(player, `{pickupClassId} is not a recognized class. Recognizable class names are: {table.concat(availablePickupClasses, ", ")}`, Color3.fromRGB(241, 89, 18))
          return
       end
       if logic.canActivate and not logic.canActivate(player) then

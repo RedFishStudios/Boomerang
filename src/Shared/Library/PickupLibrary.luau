@@ -4,10 +4,12 @@ local initiated = false
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
 local isServer = RunService:IsServer()
 
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local pickupEffectStateChanged = SimpleRemotes.getEvent("PickupEffectStateChanged")
+local PickupLogics = ReplicatedStorage.Shared.Logics.PickupLogics
 
 -------------------------------------------------------------------------------
 -- TYPES
@@ -170,7 +172,38 @@ function PickupLibrary.removePickupEffectActiveByClassId(userId: number, pickupC
 end
 
 function PickupLibrary.clearAllPickupEffectsActive()
+   local activeEffects = PickupLibrary.UserPickupEffectsActive
    PickupLibrary.UserPickupEffectsActive = {}
+
+   for userId, userEffects in pairs(activeEffects) do
+      local player = Players:GetPlayerByUserId(userId)
+      if not player then
+         continue
+      end
+
+      for _, activePickupData in pairs(userEffects) do
+         if PickupLibrary.isDataOnlyEffect(activePickupData.ClassId) then
+            continue
+         end
+
+         local logicModule = PickupLogics:FindFirstChild(activePickupData.ClassId, true)
+         if logicModule and logicModule:IsA("ModuleScript") then
+            local loaded, logic = pcall(require, logicModule)
+            if not loaded then
+               warn(`PickupLibrary: Failed to load {activePickupData.ClassId} while clearing effects: {logic}`)
+               continue
+            end
+
+            if logic.onEnd then
+               local ended, endError = pcall(logic.onEnd, player)
+               if not ended then
+                  warn(`PickupLibrary: Failed to end {activePickupData.ClassId} for {player.Name}: {endError}`)
+               end
+            end
+         end
+      end
+   end
+
    if isServer then
       pickupEffectStateChanged:FireAllClients({
          ClearAll = true,

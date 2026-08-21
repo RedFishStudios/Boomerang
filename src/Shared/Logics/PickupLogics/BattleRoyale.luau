@@ -4,6 +4,8 @@
 
 local BattleRoyale = {}
 
+BattleRoyale.Disabled = true
+
 local RunService = game:GetService("RunService")
 
 local GlobalConfig = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Constants"):WaitForChild("GlobalConfig"))

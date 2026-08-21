@@ -174,20 +174,8 @@ function PickupController.init()
 
    SimpleRemotes.getEvent("PickupEffectStateChanged").OnClientEvent:Connect(function(effectData: PickupLibrary.PickupEffectStateChangedReplicationData)
       if effectData.ClearAll then
-         for userId, activePickups in pairs(PickupLibrary.UserPickupEffectsActive) do
-            local player = Players:GetPlayerByUserId(userId)
-            if player then
-               for _, activePickupData in pairs(activePickups) do
-                  if not PickupLibrary.isDataOnlyEffect(activePickupData.ClassId) then
-                     local logic = getLogic(activePickupData.ClassId)
-                     if logic and logic.onEnd then
-                        logic.onEnd(player)
-                     end
-                  end
-               end
-            end
-         end
-         PickupLibrary.UserPickupEffectsActive = {}
+         PickupLibrary.clearAllPickupEffectsActive()
+         return
       end
 
       if effectData.active then
