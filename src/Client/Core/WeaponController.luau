@@ -653,7 +653,7 @@ function WeaponController.init()
       end
    end)
 
-   thrownBoomerangSpawnedEvent.OnClientEvent:Connect(function(toolId: string, payload: buffer)
+   thrownBoomerangSpawnedEvent.OnClientEvent:Connect(function(toolId: string, payload: buffer, instanceId: string)
    local ownerUserId, offset = BufferUtil.readUserId(payload, 0)
       local startPosition
       startPosition, offset = BufferUtil.readVector3_96(payload, offset)
@@ -680,6 +680,7 @@ function WeaponController.init()
          StartPosition = startPosition,
          Direction = getHorizontalDirection(direction),
          Speed = speed,
+         InstanceId = instanceId,
          ThrowServerTime = throwServerTime,
       }
 

@@ -77,6 +77,7 @@ type ThrowInitOptions = {
    StartPosition: Vector3?,
    Direction: Vector3?,
    Speed: number?,
+   InstanceId: string?,
    ThrowServerTime: number?,
    TimeSinceAiming: number?,
    AimStrengthAlpha: number?,
@@ -323,7 +324,7 @@ local function updateRaycastVisualizers(weaponData: ThrownWeapons.Data, rayOrigi
 end
 
 -- // Notify all users of a boomerang spawn
-local function fireSpawned(ownerUserId: number, boomerangId: string, position: Vector3, direction: Vector3, speed: number, throwServerTime: number)
+local function fireSpawned(ownerUserId: number, boomerangId: string, instanceId: string, position: Vector3, direction: Vector3, speed: number, throwServerTime: number)
    if not isServer then
       return
    end
@@ -336,7 +337,7 @@ local function fireSpawned(ownerUserId: number, boomerangId: string, position: V
    offset = BufferUtil.writef32(payload, offset, speed)
    BufferUtil.writef64(payload, offset, throwServerTime)
 
-   thrownBoomerangSpawnedRemote:FireAllClients(boomerangId, payload)
+   thrownBoomerangSpawnedRemote:FireAllClients(boomerangId, payload, instanceId)
 end
 
 -- // Notify all users of a boomerang despawn
@@ -519,7 +520,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       AnimationController.playCoreAnimation(player, "Throw")
    end
 
-   local boomerangInstanceId = HttpService:GenerateGUID(false)
+   local boomerangInstanceId = (options and options.InstanceId) or HttpService:GenerateGUID(false)
    thrownWeaponData.InstanceId = boomerangInstanceId
 
    local direction = getHorizontalDirection((options and options.Direction) or character.PrimaryPart.CFrame.LookVector)
@@ -573,7 +574,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    OriginRep.Position = throwOrigin]]
 
    if isServer then
-      fireSpawned(player.UserId, boomerangId, startPosition, direction, speed, throwServerTime)
+      fireSpawned(player.UserId, boomerangId, boomerangInstanceId, startPosition, direction, speed, throwServerTime)
       thrownWeaponData.State = ThrownWeapons.StateEnum.Outgoing
       if PROJECTILE_HITBOX_VISUALIZER_ENABLED then
          -- Server creates and monitors a simple representation part for debugging.

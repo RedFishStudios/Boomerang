@@ -14,12 +14,14 @@ local ServerStorage = game:GetService("ServerStorage")
 local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local WeaponService = require(ServerStorage.Server.Core.WeaponService)
+local SoundLibrary = require(ReplicatedStorage.Shared.Library.SoundLibrary)
+local Sounds = require(ReplicatedStorage.Shared.Constants.Sounds)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
-local WEAPON_OVERLAP_RADIUS = 2
+local WEAPON_OVERLAP_RADIUS = 4
 local WEAPON_OVERLAP_RADIUS_SQUARED = WEAPON_OVERLAP_RADIUS ^ 2
 local CLASH_COOLDOWN = 1
 
@@ -189,6 +191,10 @@ function ClashService.init()
                )
                WeaponService.clashWeapon(playerA, weaponA, directionA, collisionPoint)
                WeaponService.clashWeapon(playerB, weaponB, directionB, collisionPoint)
+
+               SoundLibrary.stop(weaponA.InstanceId)
+               SoundLibrary.stop(weaponB.InstanceId)
+               SoundLibrary.play(`{weaponA.InstanceId}-{weaponB.InstanceId}-Clash`, Sounds.Data.BoomerangClash.Name, collisionPoint)
                break
             end
          end

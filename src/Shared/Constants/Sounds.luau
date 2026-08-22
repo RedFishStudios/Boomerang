@@ -55,6 +55,10 @@ local sounds: {
          Name = "BoomerangCatch",
          Id = 4458219865
       },
+      BoomerangClash = {
+         Name = "BoomerangClash",
+         Id = 9117451558
+      },
       PickupGeneric = {
          Name = "PickupGeneric",
          Id = 123582256549202

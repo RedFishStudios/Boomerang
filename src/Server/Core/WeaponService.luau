@@ -381,7 +381,6 @@ function WeaponService.init()
       
       -- Client-only animation replication will handle this later.
 
-
       if GlobalConfig.SyncAbilitiesToEveryPlayer then
          for _, throwPlayer in ipairs(Players:GetPlayers()) do
             if throwPlayer == player then
