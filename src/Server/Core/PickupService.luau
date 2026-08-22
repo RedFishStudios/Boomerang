@@ -203,6 +203,26 @@ function PickupService.triggerEnd(player: Player, pickupClassId: string)
    end
 end
 
+function PickupService.createLivePickupAtPosition(position: Vector3, pickupClassId: string?)
+   local uuid = HttpService:GenerateGUID(false)
+   local despawnTime = workspace:GetServerTimeNow() + DESPAWN_TIME
+   PickupLibrary.LivePickups[uuid] = {
+      ClassId = pickupClassId or availablePickupClasses[math.random(1, #availablePickupClasses)],
+      DespawnsAt = despawnTime,
+      Position = position
+   }
+   -- Replicate
+   local replicationData: PickupLibrary.LivePickupReplicationData = {
+      Spawned = {
+         [uuid] = {
+            Position = position,
+            DespawnsAt = despawnTime
+         }
+      }
+   }
+   livePickupReplication:FireAllClients(replicationData)
+end
+
 -------------------------------------------------------------------------------
 -- CORE FUNCTIONS
 -------------------------------------------------------------------------------
@@ -308,11 +328,10 @@ function PickupService.init()
             else
                lastSpawn = now
                local spawn = pickupSpawns[math.random(1, #pickupSpawns)]
-               local pickupClassId = availablePickupClasses[math.random(1, #availablePickupClasses)]
                local uuid = HttpService:GenerateGUID(false)
                local despawnTime = now + DESPAWN_TIME
                PickupLibrary.LivePickups[uuid] = {
-                  ClassId = if GlobalConfig.ForceOverwritePickup then GlobalConfig.ForceOverwritePickup else pickupClassId,
+                  ClassId = if GlobalConfig.ForceOverwritePickup then GlobalConfig.ForceOverwritePickup else availablePickupClasses[math.random(1, #availablePickupClasses)],
                   DespawnsAt = despawnTime,
                   Position = spawn.Position
                }
