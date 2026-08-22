@@ -63,6 +63,7 @@ local latestLocalYaw: number? = nil
 local lastSentYaw: number? = nil
 local lastSentAt = 0
 local touchAimAngle: number? = nil
+local isAiming = false
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -151,9 +152,18 @@ local function onPreSimulation(dT: number)
 
 	local mouseBehavior = UserInputService.MouseBehavior
 	local isMouseLocked = mouseBehavior == Enum.MouseBehavior.LockCenter or mouseBehavior == Enum.MouseBehavior.LockCurrentPosition
+	local controlScheme = PlatformController.getDominantControlScheme()
+	local usesMovementFacing = controlScheme == "Touch" or controlScheme == "Console"
 
 	if localOriginPosition then
-		if touchAimAngle ~= nil then
+		if not isAiming and usesMovementFacing then
+			local character = player.Character
+			local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+			local moveDirection = humanoid and humanoid.MoveDirection
+			if moveDirection and moveDirection.Magnitude > 1e-5 then
+				localYaw = CharacterLogic.getYawFromLookAt(localOriginPosition, localOriginPosition + moveDirection.Unit)
+			end
+		elseif touchAimAngle ~= nil then
 			local lookVector = getTouchAimLookVectorFromAngle(touchAimAngle)
 			if lookVector then
 				localYaw = CharacterLogic.getYawFromLookAt(localOriginPosition, localOriginPosition + lookVector)
@@ -256,6 +266,10 @@ function CharacterController.setTouchAimAngle(angle: number?)
 	else
 		touchAimAngle = nil
 	end
+end
+
+function CharacterController.setAiming(nextIsAiming: boolean)
+	isAiming = nextIsAiming
 end
 
 function CharacterController.getTouchAimLookVector(angle: number?): Vector3?

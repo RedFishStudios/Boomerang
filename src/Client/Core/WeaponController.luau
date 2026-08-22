@@ -152,6 +152,7 @@ local function setLocalAimState(nextState: boolean)
    end
 
    isAiming = nextState
+   CharacterController.setAiming(nextState)
 
    if not nextState then
       CharacterController.setTouchAimAngle(nil)
