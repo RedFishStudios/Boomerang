@@ -737,6 +737,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          bounced = true
          direction = direction - 2 * direction:Dot(obstructionRaycastResult.Normal) * obstructionRaycastResult.Normal
          direction = getHorizontalDirection(direction)
+         SharedTasks.ThrownWeaponHitObject:Execute("parallel", player, thrownWeaponData.ToolId, obstructionRaycastResult.Instance, obstructionRaycastResult.Position)
          if energy == 0 then
             if shouldRecallTransitions then
                Boomerang.recall(player, boomerangId, toolData, thrownWeaponData)
