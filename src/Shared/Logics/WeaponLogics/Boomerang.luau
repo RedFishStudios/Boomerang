@@ -517,7 +517,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    end
 
    if AnimationController then
-      AnimationController.playCoreAnimation(player, "Throw")
+      task.spawn(AnimationController.playCoreAnimation, player, "Throw")
    end
 
    local boomerangInstanceId = (options and options.InstanceId) or HttpService:GenerateGUID(false)
