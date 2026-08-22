@@ -120,6 +120,10 @@ local function setupFunctionality()
       AbilityController.activate("Dash")
    end)
 
+   Gui.Stab.Activated:Connect(function()
+      AbilityController.activate("Stab")
+   end)
+
 	aimThumbstick.InputBegan:Connect(touchStarted)
 	UserInputService.TouchMoved:Connect(drag)
 	UserInputService.TouchEnded:Connect(touchEnded)
