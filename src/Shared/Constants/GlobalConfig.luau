@@ -24,7 +24,7 @@ local GlobalConfig = {
    RaycastVisualizersEnabled = false,
    ProjectileHitboxVisualizerEnabled = false,
    ParryVisualizersEnabled = false,
-   SyncAbilitiesToEveryPlayer = true
+   SyncAbilitiesToEveryPlayer = false
 }
 
 return GlobalConfig
