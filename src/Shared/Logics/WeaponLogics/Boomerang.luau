@@ -56,6 +56,10 @@ local RECALL_CATCH_RADIUS_MIN = 1.5
 local CLASH_SPEED_SCALE = 0.5
 local CLASH_MINIMUM_SPEED = 12
 local CLASH_DECELERATION = 120
+local CLASH_FALL_ACCELERATION = 120
+local CLASH_MAX_FALL_SPEED = 80
+local CLASH_GROUND_RAY_DISTANCE = 2048
+local CLASH_GROUND_EPSILON = 0.02
 local DEAD_PICKUP_DISTANCE = 3
 
 local WEAPON_UNRELIABLE_CODES = RemoteCodes.Weapon.Unreliable
@@ -93,14 +97,7 @@ type ClashInitOptions = {
    Position: Vector3?,
 }
 
-local function _getCurrentArena(): Model?
-   local arenaFolder = workspace:FindFirstChild("Arenas")
-   if not arenaFolder then
-      return nil
-   end
-   return arenaFolder:FindFirstChildWhichIsA("Model")
-end
-
+-- // Flatten a direction vector
 local function getHorizontalDirection(direction: Vector3): Vector3
    local horizontal = Vector3.new(direction.X, 0, direction.Z)
    if horizontal.Magnitude <= 1e-5 then
@@ -109,100 +106,8 @@ local function getHorizontalDirection(direction: Vector3): Vector3
    return horizontal.Unit
 end
 
--- // Create a new beam with relevant attachments attached at the most recent beam segment position and the second most recent beam segment position
---[[local function _addNewBeam(thrownWeaponData: ThrownWeapons.Data)
-   local history = thrownWeaponData.BeamSegmentHistory
-   if not history or #history < 2 then
-      return
-   end
-   if not thrownWeaponData.Beams then
-      thrownWeaponData.Beams = {}
-   end
-
-   local startPosition = history[#history - 1]
-   local endPosition = history[#history]
-
-   local beamAttachment0 = Instance.new("Attachment")
-   beamAttachment0.Name = "BeamAttachment0"
-   beamAttachment0.WorldPosition = startPosition
-   beamAttachment0.Parent = thrownWeaponData.Host.Parent
-
-   local beamAttachment1 = Instance.new("Attachment")
-   beamAttachment1.Name = "BeamAttachment1"
-   beamAttachment1.WorldPosition = endPosition
-   beamAttachment1.Parent = thrownWeaponData.Host.Parent
-
-   local beam = Instance.new("Beam")
-   beam.Name = "BoomerangBeam"
-   beam.Attachment0 = beamAttachment0
-   beam.Attachment1 = beamAttachment1
-   beam.FaceCamera = true
-   beam.Width0 = 1
-   beam.Width1 = 1
-   beam.TextureMode = Enum.TextureMode.Stretch
-   beam.TextureLength = 4
-   beam.TextureSpeed = 2
-   beam.Parent = thrownWeaponData.Host.Parent
-
-   table.insert(thrownWeaponData.Beams, {
-      Beam = beam,
-      Attachment0 = beamAttachment0,
-      Attachment1 = beamAttachment1
-   })
-
-   while #thrownWeaponData.Beams >= GlobalConfig.MaximumIndividualWeaponBeamSegments do
-      local oldBeamData = table.remove(thrownWeaponData.Beams, 1)
-      if oldBeamData then
-         oldBeamData.Beam:Destroy()
-         oldBeamData.Attachment0:Destroy()
-         oldBeamData.Attachment1:Destroy()
-      end
-   end
-
-   -- // Adjust beam transparency trail
-   local beamCount = #thrownWeaponData.Beams
-   if beamCount == 1 then
-      local newestBeam = thrownWeaponData.Beams[1]
-      newestBeam.Beam.Transparency = NumberSequence.new({
-         NumberSequenceKeypoint.new(0, 0),
-         NumberSequenceKeypoint.new(1, 1),
-      })
-      return
-   end
-
-   local transparencyBoundaries = table.create(beamCount + 1)
-   transparencyBoundaries[1] = 1
-
-   local interiorBoundaryCount = beamCount - 1
-   for boundaryIndex = 2, beamCount do
-      local progress = if interiorBoundaryCount <= 1 then 1 else ((boundaryIndex - 2) / (interiorBoundaryCount - 1))
-      transparencyBoundaries[boundaryIndex] = 1 - progress
-   end
-
-   transparencyBoundaries[beamCount + 1] = 1
-
-   for beamIndex, beamData in ipairs(thrownWeaponData.Beams) do
-      beamData.Beam.Transparency = NumberSequence.new({
-         NumberSequenceKeypoint.new(0, transparencyBoundaries[beamIndex]),
-         NumberSequenceKeypoint.new(1, transparencyBoundaries[beamIndex + 1]),
-      })
-   end
-end]]
-
--- // Beam visuals
--- Client-only; register a rendered position snapshot for the beam
---[[local function _registerBeamSegment(thrownWeaponData: ThrownWeapons.Data, position: Vector3)
-   local history = thrownWeaponData.BeamSegmentHistory
-   if not history then
-      history = {}
-      thrownWeaponData.BeamSegmentHistory = history
-   end
-   table.insert(history, position)
-   if #history > GlobalConfig.MaximumIndividualWeaponBeamSegments then
-      table.remove(history, 1)
-   end
-end]]
-
+-- // Update the rotation of the trail based on the boomerang's movement
+--    This ensures the trail leaves fully broad streak behind the boomerang
 local function updateTrailOrientation(thrownWeaponData: ThrownWeapons.Data)
 	local positions = thrownWeaponData.LastMovementPositions
 	if not positions or #positions < 2 then
@@ -236,7 +141,7 @@ local function updateTrailOrientation(thrownWeaponData: ThrownWeapons.Data)
 	thrownWeaponData.TrailObject.Attachment1.Position = perpendicular * width
 end
 
--- // Add trail visual
+-- // Add trail
 local function addTrail(thrownWeaponData: ThrownWeapons.Data)
    if isServer then
       return
@@ -310,6 +215,7 @@ local function addTrail(thrownWeaponData: ThrownWeapons.Data)
 	updateTrailOrientation(thrownWeaponData)
 end
 
+-- // Get distance between two points flattened on the Y axis
 local function getHorizontalDistance(fromPosition: Vector3, toPosition: Vector3): number
    local delta = Vector3.new(toPosition.X - fromPosition.X, 0, toPosition.Z - fromPosition.Z)
    return delta.Magnitude
@@ -329,8 +235,31 @@ local function getWeaponCFrame(thrownWeaponData: ThrownWeapons.Data): CFrame?
    if host and host.Parent then
       return host:GetPivot()
    end
-
    return thrownWeaponData.CFrame
+end
+
+-- // For a clashed boomerang, raycast downwards to detect where the boomerang should come to a rest
+local function getClashRestingY(thrownWeaponData: ThrownWeapons.Data, position: Vector3, raycastParams: RaycastParams): number?
+   local host = thrownWeaponData.Host
+   if not host or not host.Parent then
+      return nil
+   end
+
+   local result = workspace:Raycast(position, Vector3.new(0, -CLASH_GROUND_RAY_DISTANCE, 0), raycastParams)
+   if not result then
+      return nil
+   end
+
+   local boundsCFrame, boundsSize
+   if host:IsA("Model") then
+      boundsCFrame, boundsSize = host:GetBoundingBox()
+   else
+      boundsCFrame, boundsSize = host.CFrame, host.Size
+   end
+
+   local bottomY = boundsCFrame.Position.Y - boundsSize.Y * 0.5
+   local pivotToBottom = math.max(0, position.Y - bottomY)
+   return result.Position.Y + pivotToBottom + CLASH_GROUND_EPSILON
 end
 
 local function setWeaponCFrame(thrownWeaponData: ThrownWeapons.Data, cframe: CFrame, deltaTime: number?)
@@ -922,7 +851,8 @@ function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapo
 end
 
 function Boomerang.setDead(player: Player, thrownWeaponData: ThrownWeapons.Data, position: Vector3?)
-   if thrownWeaponData.MovementConnection then
+   local isClientClashFall = not isServer and thrownWeaponData.State == ThrownWeapons.StateEnum.Clashed
+   if thrownWeaponData.MovementConnection and not isClientClashFall then
       thrownWeaponData.MovementConnection:Disconnect()
       thrownWeaponData.MovementConnection = nil
    end
@@ -982,6 +912,16 @@ function Boomerang.clash(player: Player, thrownWeaponData: ThrownWeapons.Data, o
    local direction = getHorizontalDirection(options.Direction)
    local speed = options.Speed or math.max((thrownWeaponData.Speed or 0) * CLASH_SPEED_SCALE, CLASH_MINIMUM_SPEED)
    local nextReplicationAt = 0
+   local fallSpeed = 0
+   local isGrounded = false
+   local groundRaycastParams
+   if not isServer then
+      groundRaycastParams = RaycastParams.new()
+      groundRaycastParams.FilterType = Enum.RaycastFilterType.Exclude
+      groundRaycastParams.FilterDescendantsInstances = {thrownWeaponData.Host, Characters}
+      groundRaycastParams.IgnoreWater = true
+      groundRaycastParams.CollisionGroup = CollisionGroupConstants.Camera
+   end
    thrownWeaponData.State = ThrownWeapons.StateEnum.Clashed
    thrownWeaponData.Direction = direction
    thrownWeaponData.Speed = speed
@@ -1014,6 +954,18 @@ function Boomerang.clash(player: Player, thrownWeaponData: ThrownWeapons.Data, o
       speed = nextSpeed
       local nextPosition = currentPivot.Position + direction * travelDistance
 
+      if not isServer and not isGrounded and groundRaycastParams then
+         fallSpeed = math.min(CLASH_MAX_FALL_SPEED, fallSpeed + CLASH_FALL_ACCELERATION * deltaTime)
+         local restingY = getClashRestingY(thrownWeaponData, nextPosition, groundRaycastParams)
+         local nextY = nextPosition.Y - fallSpeed * deltaTime
+         if restingY and nextY <= restingY then
+            nextY = restingY
+            fallSpeed = 0
+            isGrounded = true
+         end
+         nextPosition = Vector3.new(nextPosition.X, nextY, nextPosition.Z)
+      end
+
       setWeaponCFrame(thrownWeaponData, (currentPivot - currentPivot.Position) + nextPosition, deltaTime)
       thrownWeaponData.Speed = speed
 
@@ -1025,7 +977,7 @@ function Boomerang.clash(player: Player, thrownWeaponData: ThrownWeapons.Data, o
       if speed <= 0 then
          if isServer then
             Boomerang.setDead(player, thrownWeaponData)
-         else
+         elseif isGrounded then
             if thrownWeaponData.MovementConnection then
                thrownWeaponData.MovementConnection:Disconnect()
                thrownWeaponData.MovementConnection = nil
