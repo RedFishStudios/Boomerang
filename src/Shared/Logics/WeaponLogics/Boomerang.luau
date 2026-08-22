@@ -53,6 +53,10 @@ local CATCHUP_STEP = 1 / 60
 local AIM_START_SPEED_BONUS_MULTIPLIER = 1.0
 local AIM_SPEED_FADE_RATE = 2.0
 local RECALL_CATCH_RADIUS_MIN = 1.5
+local CLASH_SPEED_SCALE = 0.5
+local CLASH_MINIMUM_SPEED = 12
+local CLASH_DECELERATION = 30
+local DEAD_PICKUP_DISTANCE = 3
 
 local WEAPON_UNRELIABLE_CODES = RemoteCodes.Weapon.Unreliable
 local WEAPON_RAYCAST_COLLISION_GROUP = CollisionGroupConstants.ThrownWeapons
@@ -81,6 +85,12 @@ type RecallInitOptions = {
 
 type RemoveFromFieldOptions = {
    ReturnToPlayer: boolean?
+}
+
+type ClashInitOptions = {
+   Direction: Vector3,
+   Speed: number?,
+   Position: Vector3?,
 }
 
 local function _getCurrentArena(): Model?
@@ -911,6 +921,120 @@ function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapo
    end
 end
 
+function Boomerang.setDead(player: Player, thrownWeaponData: ThrownWeapons.Data, position: Vector3?)
+   if thrownWeaponData.MovementConnection then
+      thrownWeaponData.MovementConnection:Disconnect()
+      thrownWeaponData.MovementConnection = nil
+   end
+
+   local pivot = getWeaponCFrame(thrownWeaponData)
+   if not pivot then
+      return
+   end
+   if position then
+      local deadPosition = Vector3.new(position.X, pivot.Position.Y, position.Z)
+      setWeaponCFrame(thrownWeaponData, (pivot - pivot.Position) + deadPosition)
+   end
+
+   thrownWeaponData.State = ThrownWeapons.StateEnum.Dead
+   thrownWeaponData.Speed = 0
+   thrownWeaponData.SyncTargetPosition = nil
+
+   if isServer then
+      local deadPivot = getWeaponCFrame(thrownWeaponData)
+      if deadPivot then
+         fireSnapshot(player.UserId, deadPivot.Position, thrownWeaponData.Direction or Vector3.zero, 0, thrownWeaponData.State)
+      end
+
+      thrownWeaponData.MovementConnection = RunService.Heartbeat:Connect(function()
+         if ThrownWeapons.Data[player] ~= thrownWeaponData then
+            if thrownWeaponData.MovementConnection then
+               thrownWeaponData.MovementConnection:Disconnect()
+               thrownWeaponData.MovementConnection = nil
+            end
+            return
+         end
+
+         local currentPivot = getWeaponCFrame(thrownWeaponData)
+         local character = player.Character
+         local rootPart = character and character.PrimaryPart
+         if currentPivot and rootPart and getHorizontalDistance(currentPivot.Position, rootPart.Position) <= DEAD_PICKUP_DISTANCE then
+            Boomerang.removeFromField(player, thrownWeaponData)
+         end
+      end)
+   end
+end
+
+function Boomerang.clash(player: Player, thrownWeaponData: ThrownWeapons.Data, options: ClashInitOptions)
+   if thrownWeaponData.State == ThrownWeapons.StateEnum.Clashed or thrownWeaponData.State == ThrownWeapons.StateEnum.Dead then
+      return
+   end
+
+   local pivot = getWeaponCFrame(thrownWeaponData)
+   if not pivot then
+      return
+   end
+   if thrownWeaponData.MovementConnection then
+      thrownWeaponData.MovementConnection:Disconnect()
+      thrownWeaponData.MovementConnection = nil
+   end
+
+   local direction = getHorizontalDirection(options.Direction)
+   local speed = options.Speed or math.max((thrownWeaponData.Speed or 0) * CLASH_SPEED_SCALE, CLASH_MINIMUM_SPEED)
+   local nextReplicationAt = 0
+   thrownWeaponData.State = ThrownWeapons.StateEnum.Clashed
+   thrownWeaponData.Direction = direction
+   thrownWeaponData.Speed = speed
+   thrownWeaponData.SyncTargetPosition = nil
+
+   if options.Position then
+      local initialPosition = Vector3.new(options.Position.X, pivot.Position.Y, options.Position.Z)
+      setWeaponCFrame(thrownWeaponData, (pivot - pivot.Position) + initialPosition)
+   end
+
+   if isServer then
+      local initialPivot = getWeaponCFrame(thrownWeaponData)
+      if initialPivot then
+         fireSnapshot(player.UserId, initialPivot.Position, direction, speed, thrownWeaponData.State)
+      end
+   end
+
+   thrownWeaponData.MovementConnection = RunService.Stepped:Connect(function(time, deltaTime)
+      if ThrownWeapons.Data[player] ~= thrownWeaponData then
+         return
+      end
+
+      local currentPivot = getWeaponCFrame(thrownWeaponData)
+      if not currentPivot then
+         return
+      end
+
+      local nextSpeed = math.max(0, speed - CLASH_DECELERATION * deltaTime)
+      local travelDistance = (speed + nextSpeed) * 0.5 * deltaTime
+      speed = nextSpeed
+      local nextPosition = currentPivot.Position + direction * travelDistance
+
+      setWeaponCFrame(thrownWeaponData, (currentPivot - currentPivot.Position) + nextPosition, deltaTime)
+      thrownWeaponData.Speed = speed
+
+      if isServer and time >= nextReplicationAt then
+         nextReplicationAt = time + REPLICATION_RATE
+         fireSnapshot(player.UserId, nextPosition, direction, speed, thrownWeaponData.State)
+      end
+
+      if speed <= 0 then
+         if isServer then
+            Boomerang.setDead(player, thrownWeaponData)
+         else
+            if thrownWeaponData.MovementConnection then
+               thrownWeaponData.MovementConnection:Disconnect()
+               thrownWeaponData.MovementConnection = nil
+            end
+         end
+      end
+   end)
+end
+
 function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.Tool, thrownWeaponData: ThrownWeapons.Data, options: RecallInitOptions?)
    if not toolData.Boomerang then
       warn(`this is not a boomerang`)
@@ -922,8 +1046,10 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       warn(`no host position found for thrown tool`)
       return
    end
-   if thrownWeaponData.State == ThrownWeapons.StateEnum.Returning then
-      print(`already returning`)
+   if thrownWeaponData.State == ThrownWeapons.StateEnum.Returning
+      or thrownWeaponData.State == ThrownWeapons.StateEnum.Clashed
+      or thrownWeaponData.State == ThrownWeapons.StateEnum.Dead
+   then
       return
    end
 

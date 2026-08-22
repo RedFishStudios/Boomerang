@@ -313,6 +313,16 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
    end
 
    local previousState = thrownWeaponData.State
+   if previousState == ThrownWeapons.StateEnum.Dead then
+      return
+   end
+   if previousState == ThrownWeapons.StateEnum.Clashed
+      and state ~= ThrownWeapons.StateEnum.Clashed
+      and state ~= ThrownWeapons.StateEnum.Dead
+   then
+      return
+   end
+
    local catchup = math.clamp(workspace:GetServerTimeNow() - serverTime, 0, MAX_SNAPSHOT_CATCHUP)
    local authoritativePosition = position + direction * speed * catchup
 
@@ -321,19 +331,32 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
    thrownWeaponData.Direction = direction
    thrownWeaponData.Speed = speed
 
-   if previousState ~= ThrownWeapons.StateEnum.Returning and state == ThrownWeapons.StateEnum.Returning then
+   if previousState ~= state then
       local toolData = Tools[thrownWeaponData.ToolId]
       if toolData then
          local logic = getLogic(toolData.LogicClass)
-         logic.recall(forPlayer, thrownWeaponData.ToolId, toolData, thrownWeaponData, {
-            InitialSpeed = speed,
-         })
+         if state == ThrownWeapons.StateEnum.Returning then
+            logic.recall(forPlayer, thrownWeaponData.ToolId, toolData, thrownWeaponData, {
+               InitialSpeed = speed,
+            })
+         elseif state == ThrownWeapons.StateEnum.Clashed and logic.clash then
+            logic.clash(forPlayer, thrownWeaponData, {
+               Direction = direction,
+               Speed = speed,
+               Position = position,
+            })
+         elseif state == ThrownWeapons.StateEnum.Dead and logic.setDead then
+            logic.setDead(forPlayer, thrownWeaponData, position)
+         end
       end
    end
 
    thrownWeaponData.State = state
 
    local currentPosition = thrownWeaponData.Host:GetPivot().Position
+   if state == ThrownWeapons.StateEnum.Clashed or state == ThrownWeapons.StateEnum.Dead then
+      authoritativePosition = Vector3.new(authoritativePosition.X, currentPosition.Y, authoritativePosition.Z)
+   end
    local errorDistance = (authoritativePosition - currentPosition).Magnitude
    if errorDistance >= HARD_SNAP_DISTANCE then
       local currentPivot = thrownWeaponData.Host:GetPivot()
@@ -361,6 +384,9 @@ local function updateSmoothing(deltaTime: number)
       local currentPivot = host:GetPivot()
       local currentPosition = currentPivot.Position
       local targetPosition = thrownWeaponData.SyncTargetPosition
+      if thrownWeaponData.State == ThrownWeapons.StateEnum.Clashed or thrownWeaponData.State == ThrownWeapons.StateEnum.Dead then
+         targetPosition = Vector3.new(targetPosition.X, currentPosition.Y, targetPosition.Z)
+      end
       local errorDistance = (targetPosition - currentPosition).Magnitude
 
       if errorDistance <= 0.05 then

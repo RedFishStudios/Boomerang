@@ -5,11 +5,15 @@ local ThrownWeapons = {}
 ThrownWeapons.StateEnum = {
    Outgoing = 1,
    Exhausted = 2,
-   Returning = 3
+   Returning = 3,
+   Clashed = 4,
+   Dead = 5,
 } :: {
    ["Outgoing"]: number,
    ["Exhausted"]: number,
-   ["Returning"]: number
+   ["Returning"]: number,
+   ["Clashed"]: number,
+   ["Dead"]: number,
 }
 
 export type Data = {

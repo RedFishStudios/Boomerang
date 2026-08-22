@@ -28,7 +28,6 @@ local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local AnimationService = require(ServerStorage.Server.Core.AnimationService)
 local CharacterService = require(ServerStorage.Server.Core.CharacterService)
 local HitboxService = require(ServerStorage.Server.Core.HitboxService)
-local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local PlayerStatsLibrary = require(ReplicatedStorage.Shared.Library.PlayerStatsLibrary)
 
 local ToolLogics = ReplicatedStorage.Shared.Logics.WeaponLogics
@@ -252,6 +251,21 @@ function WeaponService.isAiming(player: Player): boolean
    return aiming[player] ~= nil
 end
 
+function WeaponService.clashWeapon(player: Player, thrownWeaponData: ThrownWeapons.Data, direction: Vector3, position: Vector3)
+   local toolData = Tools[thrownWeaponData.ToolId]
+   if not toolData then
+      return
+   end
+
+   local logic = getLogic(toolData.LogicClass)
+   if logic and logic.clash then
+      logic.clash(player, thrownWeaponData, {
+         Direction = direction,
+         Position = position,
+      })
+   end
+end
+
 function WeaponService.applyLockOnWeapon(player: Player, forTime: number)
    PlayerStatsLibrary.setStat(player, "WeaponLockedUntilTimestamp", game.Workspace:GetServerTimeNow() + forTime)
 
@@ -421,6 +435,9 @@ function WeaponService.init()
       local thrownWeaponData = ThrownWeapons.Data[Player]
       if not thrownWeaponData then
          print(`player has no thrown weapon to recall`)
+         return
+      end
+      if thrownWeaponData.State == ThrownWeapons.StateEnum.Clashed or thrownWeaponData.State == ThrownWeapons.StateEnum.Dead then
          return
       end
 
