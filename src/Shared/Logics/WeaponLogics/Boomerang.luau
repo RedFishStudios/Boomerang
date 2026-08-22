@@ -3,6 +3,7 @@
 local Boomerang = {}
 
 local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
 
 local isServer = RunService:IsServer()
 
@@ -452,6 +453,7 @@ local function isCameraObstructedToPoint(cameraPosition: Vector3, targetPosition
    raycastParams.IgnoreWater = true
 
    local excludedInstances = filter or {}
+   raycastParams.FilterDescendantsInstances = excludedInstances
    for _ = 1, 12 do
       local raycastResult = workspace:Raycast(cameraPosition, direction * distance, raycastParams)
       if not raycastResult then
@@ -463,9 +465,31 @@ local function isCameraObstructedToPoint(cameraPosition: Vector3, targetPosition
       end
 
       table.insert(excludedInstances, raycastResult.Instance)
+      raycastParams.FilterDescendantsInstances = excludedInstances
    end
 
    return false
+end
+
+local function updateOwnWeaponHighlight(player: Player, thrownWeaponData: ThrownWeapons.Data, position: Vector3, isClashedOrDead: boolean?)
+   if isServer or not ToolController or player ~= Players.LocalPlayer then
+      return
+   end
+
+   local camera = workspace.CurrentCamera
+   local host = thrownWeaponData.Host
+   local character = player.Character
+   local obstructionFilter = {}
+   if character then
+      table.insert(obstructionFilter, character)
+   end
+   if host then
+      table.insert(obstructionFilter, host)
+   end
+   local isObstructed = camera ~= nil and host ~= nil
+      and isCameraObstructedToPoint(camera.CFrame.Position, position, obstructionFilter)
+      or false
+   ToolController.applyHighlight(isObstructed, isClashedOrDead)
 end
 
 local function damagedPlayer(player: Player, boomerangId: string, thrownWeaponData: ThrownWeapons.Data, victimModel: Model): boolean
@@ -658,15 +682,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          if not thrownWeaponData.Host or not thrownWeaponData.Host.Parent then
             return false
          end
-         if ToolController then
-            local camera = workspace.CurrentCamera
-            if camera then
-               local isObstructed = isCameraObstructedToPoint(camera.CFrame.Position, pivot.Position, {character, thrownWeaponData.Host})
-               ToolController.applyHighlight(isObstructed)
-            else
-               ToolController.applyHighlight(false)
-            end
-         end
+         updateOwnWeaponHighlight(player, thrownWeaponData, pivot.Position)
       end
 
       if energy > 0 and speed > defaultSpeed then
@@ -801,6 +817,10 @@ function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapo
    local returnToPlayer = options == nil or options.ReturnToPlayer ~= false
    local shouldReattachLocally = returnToPlayer and (not isServer) and thrownWeaponData.ReuseEquippedHost == true
 
+   if not isServer and ToolController and player == Players.LocalPlayer then
+      ToolController.applyHighlight(false, false)
+   end
+
    if returnToPlayer and AnimationController then
       AnimationController.playCoreAnimation(player, "Catch")
    end
@@ -871,6 +891,15 @@ function Boomerang.setDead(player: Player, thrownWeaponData: ThrownWeapons.Data,
    thrownWeaponData.Speed = 0
    thrownWeaponData.SyncTargetPosition = nil
 
+   if not isServer and not isClientClashFall and player == Players.LocalPlayer then
+      thrownWeaponData.MovementConnection = RunService.RenderStepped:Connect(function()
+         local currentPivot = getWeaponCFrame(thrownWeaponData)
+         if currentPivot then
+            updateOwnWeaponHighlight(player, thrownWeaponData, currentPivot.Position, true)
+         end
+      end)
+   end
+
    if isServer then
       local deadPivot = getWeaponCFrame(thrownWeaponData)
       if deadPivot then
@@ -933,6 +962,11 @@ function Boomerang.clash(player: Player, thrownWeaponData: ThrownWeapons.Data, o
       setWeaponCFrame(thrownWeaponData, (pivot - pivot.Position) + initialPosition)
    end
 
+   local clashPivot = getWeaponCFrame(thrownWeaponData)
+   if clashPivot then
+      updateOwnWeaponHighlight(player, thrownWeaponData, clashPivot.Position, true)
+   end
+
    if isServer then
       local initialPivot = getWeaponCFrame(thrownWeaponData)
       if initialPivot then
@@ -947,6 +981,12 @@ function Boomerang.clash(player: Player, thrownWeaponData: ThrownWeapons.Data, o
 
       local currentPivot = getWeaponCFrame(thrownWeaponData)
       if not currentPivot then
+         return
+      end
+
+
+      if not isServer and speed <= 0 and isGrounded then
+         updateOwnWeaponHighlight(player, thrownWeaponData, currentPivot.Position, true)
          return
       end
 
@@ -969,6 +1009,7 @@ function Boomerang.clash(player: Player, thrownWeaponData: ThrownWeapons.Data, o
 
       setWeaponCFrame(thrownWeaponData, (currentPivot - currentPivot.Position) + nextPosition, deltaTime)
       thrownWeaponData.Speed = speed
+      updateOwnWeaponHighlight(player, thrownWeaponData, nextPosition, true)
 
       if isServer and time >= nextReplicationAt then
          nextReplicationAt = time + REPLICATION_RATE
@@ -978,11 +1019,6 @@ function Boomerang.clash(player: Player, thrownWeaponData: ThrownWeapons.Data, o
       if speed <= 0 then
          if isServer then
             Boomerang.setDead(player, thrownWeaponData)
-         elseif isGrounded then
-            if thrownWeaponData.MovementConnection then
-               thrownWeaponData.MovementConnection:Disconnect()
-               thrownWeaponData.MovementConnection = nil
-            end
          end
       end
    end)
@@ -1061,15 +1097,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          return
       end
 
-      if not isServer and ToolController then
-         local camera = workspace.CurrentCamera
-         if camera then
-            local isObstructed = isCameraObstructedToPoint(camera.CFrame.Position, hostPivot.Position, {currentCharacter, hostPart})
-            ToolController.applyHighlight(isObstructed)
-         else
-            ToolController.applyHighlight(false)
-         end
-      end
+      updateOwnWeaponHighlight(player, thrownWeaponData, hostPivot.Position)
 
       local toPlayer = (rootPart.Position - hostPivot.Position)
       local horizontalDistance = getHorizontalDistance(hostPivot.Position, rootPart.Position)

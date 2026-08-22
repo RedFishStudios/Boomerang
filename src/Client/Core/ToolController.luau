@@ -31,13 +31,9 @@ local MotorC0ObserverConnections: {[Player]: RBXScriptConnection} = {}
 local DesiredToolParticles: {[Player]: {[string]: true}} = {}
 local LiveToolParticles: {[Player]: {[string]: Part}} = {}
 local nextParticlePlayId = 0
-local Highlights: {
-   {
-      Highlight: Highlight,
-      In: true?,
-      Out: true?
-   }
-} = {}
+local activeHighlight: Highlight? = nil
+local activeHighlightTween: Tween? = nil
+local activeHighlightColor: Color3? = nil
 
 local ToolAssets = ToolLibrary.getToolAssetsFolder()
 local WeaponsFolder = workspace:WaitForChild("Weapons")
@@ -523,36 +519,68 @@ function ToolController.finishToolThrow(player: Player)
 	end
 end
 
-function ToolController.applyHighlight(enabled: boolean)
-   if enabled then
-      for _, highlightData in ipairs(Highlights) do
-         if highlightData.In then
-            return
-         end
-      end
-      local myTool = getDetachedTool(localPlayer)
-      if not myTool then
-         return
-      end
-      local highlight = Instance.new("Highlight")
-      highlight.Adornee = myTool
-      highlight.Parent = myTool
-      highlight.OutlineColor = Color3.new(0.976471, 0.247059, 1)
-      highlight.OutlineTransparency = 0
-      highlight.FillTransparency = 1
-      highlight.Enabled = true
-      table.insert(Highlights, {Highlight = highlight, In = true})
-      TweenService:Create(highlight, TweenInfo.new(0.1), {OutlineTransparency = 0}):Play()
-   else
-      for _, highlightData in ipairs(Highlights) do
-         if highlightData.In then
-            local highlight = highlightData.Highlight
-            TweenService:Create(highlight, TweenInfo.new(0.1), {OutlineTransparency = 1}):Play()
-            highlightData.In = nil
-            highlightData.Out = true
-         end
-      end
-   end
+function ToolController.applyHighlight(isObstructed: boolean, isClashedOrDead: boolean?)
+	local outlineColor = if isObstructed
+		then Color3.new(0.976471, 0.247059, 1)
+		elseif isClashedOrDead
+		then Color3.new(1, 1, 1)
+		else nil
+	local myTool = getDetachedTool(localPlayer)
+
+	if activeHighlight and not activeHighlight.Parent then
+		activeHighlight = nil
+		activeHighlightTween = nil
+		activeHighlightColor = nil
+	end
+
+	if outlineColor and myTool and activeHighlight and activeHighlight.Adornee == myTool and activeHighlightColor == outlineColor then
+		return
+	end
+
+	if activeHighlightTween then
+		activeHighlightTween:Cancel()
+		activeHighlightTween:Destroy()
+		activeHighlightTween = nil
+	end
+
+	if not outlineColor or not myTool then
+		local highlight = activeHighlight
+		if not highlight then
+			return
+		end
+
+		activeHighlightColor = nil
+		local fadeOutTween = TweenService:Create(highlight, TweenInfo.new(0.1), {OutlineTransparency = 1})
+		activeHighlightTween = fadeOutTween
+		fadeOutTween.Completed:Once(function(playbackState)
+			if playbackState == Enum.PlaybackState.Completed and activeHighlight == highlight and activeHighlightTween == fadeOutTween then
+				activeHighlight = nil
+				activeHighlightTween = nil
+				highlight:Destroy()
+			end
+		end)
+		fadeOutTween:Play()
+		return
+	end
+
+	if not activeHighlight or activeHighlight.Adornee ~= myTool then
+		if activeHighlight then
+			activeHighlight:Destroy()
+		end
+		activeHighlight = Instance.new("Highlight")
+		activeHighlight.Adornee = myTool
+		activeHighlight.Parent = myTool
+		activeHighlight.OutlineTransparency = 1
+		activeHighlight.FillTransparency = 1
+		activeHighlight.Enabled = true
+	end
+
+	activeHighlightColor = outlineColor
+	activeHighlightTween = TweenService:Create(activeHighlight, TweenInfo.new(0.1), {
+		OutlineColor = outlineColor,
+		OutlineTransparency = 0,
+	})
+	activeHighlightTween:Play()
 end
 
 function ToolController.isHolstered(model: Model)
