@@ -66,6 +66,10 @@ local sounds: {
       Explosion = {
          Name = "Explosion",
          Id = 117211977307268
+      },
+      Zapped = {
+         Name = "Zapped",
+         Id = 130444530731279
       }
    },
    Defaults = {

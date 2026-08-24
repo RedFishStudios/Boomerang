@@ -2,6 +2,7 @@ local ParticlesLibrary = {}
 
 local SimpleRemotes = require(game.ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local PlayParticle = SimpleRemotes.getEvent("PlayParticle")
+local PlayParticleToObjectSize = SimpleRemotes.getEvent("PlayParticleToObjectSize")
 local EmitParticle = SimpleRemotes.getEvent("EmitParticle")
 
 local ParticleAssets = game.ReplicatedStorage.Shared.Assets.Particles
@@ -61,6 +62,77 @@ function ParticlesLibrary.destroy(particle: Part, yield: boolean?)
    else
       destroy(particle)
    end
+end
+
+function ParticlesLibrary.playToObjectSize(particlePlayId: string, particleName: string, host: Instance, startEmit: number?, particleLifetime: number?)
+   if isServer then
+      PlayParticleToObjectSize:FireAllClients(particlePlayId, particleName, host, startEmit, particleLifetime)
+      return
+   end
+
+   if registeredParticlePlayCalls[particlePlayId] and registeredParticlePlayCalls[particlePlayId][particleName] then
+      local callTimedout = os.clock() - registeredParticlePlayCalls[particlePlayId][particleName] > 3
+      if not callTimedout then
+         return
+      end
+   end
+   if not registeredParticlePlayCalls[particlePlayId] then
+      registeredParticlePlayCalls[particlePlayId] = {}
+   end
+   registeredParticlePlayCalls[particlePlayId][particleName] = os.clock()
+
+   local particleTemplate = getParticle(particleName)
+   if not particleTemplate then
+      warn("Particle template not found for: " .. particleName)
+      return
+   end
+
+   local particle = particleTemplate:Clone()
+   local emitters: {ParticleEmitter} = {}
+   local subParticleLifetime = 0
+   for _, descendant in ipairs(particle:GetDescendants()) do
+      if descendant:IsA("ParticleEmitter") then
+         table.insert(emitters, descendant)
+         subParticleLifetime = math.max(subParticleLifetime, descendant.Lifetime.Max)
+      end
+   end
+
+   for _, emitter in ipairs(emitters) do
+      emitter.Parent = host
+      emitter.Enabled = true
+   end
+   particle:Destroy()
+
+   if startEmit then
+      for _, emitter in ipairs(emitters) do
+         task.spawn(function()
+            local emitterLifetime = math.max(emitter.Lifetime.Min, particleLifetime or subParticleLifetime)
+            local interval = (emitterLifetime / startEmit) * .07
+            for _ = 1, startEmit do
+               if not emitter.Parent then
+                  return
+               end
+               emitter:Emit(1)
+               task.wait(interval)
+            end
+         end)
+      end
+   end
+
+   if particleLifetime then
+      task.spawn(function()
+         task.wait(particleLifetime)
+         for _, emitter in ipairs(emitters) do
+            emitter.Enabled = false
+         end
+         task.wait(subParticleLifetime * 1.1)
+         for _, emitter in ipairs(emitters) do
+            emitter:Destroy()
+         end
+      end)
+   end
+
+   return emitters
 end
 
 function ParticlesLibrary.play(particlePlayId: string, particleName: string, host: Instance | Vector3, startEmit: number?, particleLifetime: number?, anchored: boolean?)
@@ -224,6 +296,9 @@ function ParticlesLibrary.init()
 
    if isServer then
    else
+      PlayParticleToObjectSize.OnClientEvent:Connect(function(particlePlayId: string, particleName: string, host: Instance, startEmit: number?, particleLifetime: number?)
+         ParticlesLibrary.playToObjectSize(particlePlayId, particleName, host, startEmit, particleLifetime)
+      end)
       PlayParticle.OnClientEvent:Connect(function(particlePlayId: string, particleName: string, host: Instance | Vector3, startEmit: number?, particleLifetime: number?, anchored: boolean?)
          ParticlesLibrary.play(particlePlayId, particleName, host, startEmit, particleLifetime, anchored)
       end)

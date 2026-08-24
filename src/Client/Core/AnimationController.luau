@@ -28,7 +28,7 @@ local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 -- TYPES
 -------------------------------------------------------------------------------
 
-export type CoreTrackNames = "Charging" | "Throw" | "Catch" | "Stab" | "Dash"
+export type CoreTrackNames = "Charging" | "Throw" | "Catch" | "Stab" | "Dash" | "Zapped"
 
 type TrackEntry = {
    Track: AnimationTrack,
@@ -56,7 +56,7 @@ local playerTrackData: {
    [Player]: PlayerTrackData
 } = {}
 
-local DefaultCoreTrackNames: { CoreTrackNames } = { "Charging", "Throw", "Catch", "Stab", "Dash" }
+local DefaultCoreTrackNames: { CoreTrackNames } = { "Charging", "Throw", "Catch", "Stab", "Dash", "Zapped" }
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -109,6 +109,9 @@ local function createTrackEntry(animator: Animator, trackName: string, animation
    local track = animator:LoadAnimation(animation)
    track.Name = trackName
    track.Looped = animationData.Looping
+   if animationData.Priority then
+      track.Priority = animationData.Priority
+   end
 
    return {
       Track = track,
@@ -239,6 +242,7 @@ local function ensureAnimationTracksForCurrentCharacter(player: Player, yield: n
 end
 
 local function playCoreAnimationLocal(player: Player, coreTrackName: CoreTrackNames)
+   print(`playing core animation {coreTrackName} for {player}`)
    local tracks = ensureAnimationTracksForCurrentCharacter(player, 10)
    if not tracks then
       warn(`animationtracks.playCoreAnimation failed, no tracks for {player}`)
@@ -253,15 +257,18 @@ local function playCoreAnimationLocal(player: Player, coreTrackName: CoreTrackNa
 
    local animationData = Animations[trackData.LoadedAnimationKey]
    if not animationData then
+      print("no animation data: ", trackData.LoadedAnimationKey)
       return
    end
 
+   print("calling :Play")
    trackData.Track:Play(animationData.FadeIn)
 
    task.spawn(function()
       local layer = trackData.Layer
       for otherTrackName, otherTrackData in pairs(tracks) do
          if otherTrackName ~= coreTrackName and otherTrackData.Layer == layer and otherTrackData.Track and otherTrackData.Track.IsPlaying then
+            print(`stopping core animation {otherTrackName} for {player} because {coreTrackName} is playing`)
             AnimationController.stopCoreAnimation(player, otherTrackName)
          end
       end
@@ -373,6 +380,13 @@ end
 -------------------------------------------------------------------------------
 
 function AnimationController.init()
+   game:GetService("ContextActionService"):BindAction("testanimation", function(actionName, inputState)
+      if inputState == Enum.UserInputState.Begin then
+         local player = Players.LocalPlayer
+         AnimationController.playCoreAnimation(player, "Zapped")
+      end
+   end, false, Enum.KeyCode.F)
+
    for _, existingPlayer in pairs(Players:GetPlayers()) do
       if CharacterRenderController.getCharacterModel(existingPlayer, false) then
          ensureAnimationTracksForCurrentCharacter(existingPlayer, false)

@@ -4,7 +4,8 @@ local Animations: {
       Layer: string,
       FadeIn: number?,
       FadeOut: number?,
-      Looping: boolean
+      Looping: boolean,
+      Priority: Enum.AnimationPriority?,
    }
 } = {
    Test = {
@@ -51,6 +52,15 @@ local Animations: {
       FadeIn = .05,
       FadeOut = .1,
       Looping = false
+   },
+
+   Zapped = {
+      Id = 111468555566905,
+      Layer = "Ability",
+      FadeIn = .05,
+      FadeOut = .05,
+      Looping = true,
+      Priority = Enum.AnimationPriority.Action4,
    }
 }
 

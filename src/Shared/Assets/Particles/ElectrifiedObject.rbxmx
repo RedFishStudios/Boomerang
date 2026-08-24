@@ -1,0 +1,2537 @@
+<roblox xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4">
+	<Meta name="ExplicitAutoJoints">true</Meta>
+	<External>null</External>
+	<External>nil</External>
+	<Item class="Part" referent="6">
+		<Properties>
+			<token name="shape">1</token>
+			<token name="formFactorRaw">1</token>
+			<bool name="Anchored">false</bool>
+			<bool name="AudioCanCollide">true</bool>
+			<float name="BackParamA">-0.5</float>
+			<float name="BackParamB">0.5</float>
+			<token name="BackSurface">0</token>
+			<token name="BackSurfaceInput">0</token>
+			<float name="BottomParamA">-0.5</float>
+			<float name="BottomParamB">0.5</float>
+			<token name="BottomSurface">0</token>
+			<token name="BottomSurfaceInput">0</token>
+			<CoordinateFrame name="CFrame">
+				<X>440.822479</X>
+				<Y>24.700943</Y>
+				<Z>227.814819</Z>
+				<R00>1</R00>
+				<R01>0</R01>
+				<R02>0</R02>
+				<R10>0</R10>
+				<R11>1</R11>
+				<R12>0</R12>
+				<R20>0</R20>
+				<R21>0</R21>
+				<R22>1</R22>
+			</CoordinateFrame>
+			<bool name="CanCollide">true</bool>
+			<bool name="CanQuery">true</bool>
+			<bool name="CanTouch">true</bool>
+			<bool name="CastShadow">true</bool>
+			<string name="CollisionGroup">Default</string>
+			<int name="CollisionGroupId">0</int>
+			<Color3uint8 name="Color3uint8">4288914085</Color3uint8>
+			<PhysicalProperties name="CustomPhysicalProperties">
+				<CustomPhysics>false</CustomPhysics>
+			</PhysicalProperties>
+			<bool name="EnableFluidForces">true</bool>
+			<float name="FrontParamA">-0.5</float>
+			<float name="FrontParamB">0.5</float>
+			<token name="FrontSurface">0</token>
+			<token name="FrontSurfaceInput">0</token>
+			<float name="LeftParamA">-0.5</float>
+			<float name="LeftParamB">0.5</float>
+			<token name="LeftSurface">0</token>
+			<token name="LeftSurfaceInput">0</token>
+			<bool name="Locked">false</bool>
+			<bool name="Massless">false</bool>
+			<token name="Material">256</token>
+			<string name="MaterialVariantSerialized"></string>
+			<CoordinateFrame name="PivotOffset">
+				<X>0</X>
+				<Y>0</Y>
+				<Z>0</Z>
+				<R00>1</R00>
+				<R01>0</R01>
+				<R02>0</R02>
+				<R10>0</R10>
+				<R11>1</R11>
+				<R12>0</R12>
+				<R20>0</R20>
+				<R21>0</R21>
+				<R22>1</R22>
+			</CoordinateFrame>
+			<float name="Reflectance">0</float>
+			<float name="RightParamA">-0.5</float>
+			<float name="RightParamB">0.5</float>
+			<token name="RightSurface">0</token>
+			<token name="RightSurfaceInput">0</token>
+			<int name="RootPriority">0</int>
+			<Vector3 name="RotVelocity">
+				<X>0</X>
+				<Y>0</Y>
+				<Z>0</Z>
+			</Vector3>
+			<float name="TopParamA">-0.5</float>
+			<float name="TopParamB">0.5</float>
+			<token name="TopSurface">0</token>
+			<token name="TopSurfaceInput">0</token>
+			<float name="Transparency">0</float>
+			<Vector3 name="Velocity">
+				<X>0</X>
+				<Y>0</Y>
+				<Z>0</Z>
+			</Vector3>
+			<Vector3 name="size">
+				<X>4</X>
+				<Y>1</Y>
+				<Z>2</Z>
+			</Vector3>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<string name="Name">ElectrifiedObject</string>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+		</Properties>
+		<Item class="ParticleEmitter" referent="7">
+			<Properties>
+				<Vector3 name="Acceleration">
+					<X>0</X>
+					<Y>0</Y>
+					<Z>0</Z>
+				</Vector3>
+				<float name="Brightness">1</float>
+				<ColorSequence name="Color">0 0 0.666667 1 0 1 0 0.666667 1 0 </ColorSequence>
+				<float name="Drag">0</float>
+				<token name="EmissionDirection">1</token>
+				<bool name="Enabled">true</bool>
+				<bool name="FlipbookBlendFrames">true</bool>
+				<NumberRange name="FlipbookFramerate">1 1 </NumberRange>
+				<string name="FlipbookIncompatible">Particle texture must be 1024 by 1024 to use flipbooks.</string>
+				<token name="FlipbookLayout">0</token>
+				<token name="FlipbookMode">0</token>
+				<int name="FlipbookSizeX">1</int>
+				<int name="FlipbookSizeY">1</int>
+				<bool name="FlipbookStartRandom">false</bool>
+				<NumberRange name="Lifetime">2 2 </NumberRange>
+				<float name="LightEmission">1</float>
+				<float name="LightInfluence">0</float>
+				<bool name="LockedToPart">true</bool>
+				<token name="Orientation">0</token>
+				<float name="Rate">5</float>
+				<NumberRange name="RotSpeed">0 0 </NumberRange>
+				<NumberRange name="Rotation">0 0 </NumberRange>
+				<token name="Shape">0</token>
+				<token name="ShapeInOut">0</token>
+				<float name="ShapePartial">1</float>
+				<token name="ShapeStyle">0</token>
+				<NumberSequence name="Size">0 8.125 0 1 8.125 0 </NumberSequence>
+				<NumberRange name="Speed">0 0 </NumberRange>
+				<Vector2 name="SpreadAngle">
+					<X>0</X>
+					<Y>0</Y>
+				</Vector2>
+				<NumberSequence name="Squash">0 0 0 1 0 0 </NumberSequence>
+				<Content name="Texture"><url>http://www.roblox.com/asset/?id=243660373</url></Content>
+				<float name="TimeScale">1</float>
+				<NumberSequence name="Transparency">0 0.9 0 1 0.9 0 </NumberSequence>
+				<float name="VelocityInheritance">0</float>
+				<bool name="WindAffectsDrag">false</bool>
+				<float name="ZOffset">0</float>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<string name="Name">Glow</string>
+				<int64 name="SourceAssetId">-1</int64>
+				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			</Properties>
+			<Item class="Folder" referent="8">
+				<Properties>
+					<BinaryString name="AttributesSerialize"></BinaryString>
+					<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+					<bool name="DefinesCapabilities">false</bool>
+					<string name="Name">TextureUtility</string>
+					<int64 name="SourceAssetId">-1</int64>
+					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+				</Properties>
+				<Item class="Configuration" referent="9">
+					<Properties>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+						<bool name="DefinesCapabilities">false</bool>
+						<string name="Name">cTextureManager</string>
+						<int64 name="SourceAssetId">-1</int64>
+						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+					</Properties>
+					<Item class="Script" referent="10">
+						<Properties>
+							<ProtectedString name="Source"><![CDATA[-- TextureConfigurationLoader.lua [14/10/2022]
+-- Made by @ovenv3 // follow me on twitter :)
+-- Advanced Texture Management System for Roblox
+-- This system provides automated texture creation, analysis, and optimization
+-- Features include: dynamic texture generation, quality enhancement, memory optimization,
+-- and intelligent texture distribution across game assets
+
+local RunService = game:GetService(script.TextureConfiguration:GetAttribute("RSService"))
+local Lighting = game:GetService("Lighting")
+
+local function SafeWaitForChild(ParentObject, ChildName, TimeoutDuration)
+	-- Safely waits for a child instance to be available in the hierarchy
+	-- Useful for handling replication delays and network latency issues
+
+	if ParentObject == nil then
+		error("Parent object cannot be nil", 2)
+	end
+	if type(ChildName) ~= "string" then
+		error("Child name must be a string value", 2)
+	end
+
+	local TargetChild = ParentObject:FindFirstChild(ChildName)
+	local StartTime = tick()
+	local TimeoutWarning = false
+
+	while TargetChild == nil and ParentObject ~= nil do
+		RunService.Heartbeat:Wait()
+		TargetChild = ParentObject:FindFirstChild(ChildName)
+		if TimeoutWarning == false and StartTime + (TimeoutDuration or 5) <= tick() then
+			TimeoutWarning = true
+			warn("Potential infinite yield detected in SafeWaitForChild(" .. ParentObject:GetFullName() .. ", " .. ChildName .. ")")
+			if TimeoutDuration then
+				return ParentObject:FindFirstChild(ChildName)
+			end
+		end
+	end
+
+	if ParentObject == nil then
+		warn("Parent object no longer exists during SafeWaitForChild operation")
+	end
+
+	return TargetChild
+end
+
+local function RecursiveChildOperation(ParentInstance, OperationFunction)
+	-- Recursively applies operation function to all children in hierarchy
+	-- Maintains proper tree traversal order and handles nested structures
+
+	OperationFunction(ParentInstance)
+
+	for _, ChildInstance in ipairs(ParentInstance:GetChildren()) do
+		RecursiveChildOperation(ChildInstance, OperationFunction)
+	end
+end
+
+local function ApplyInstanceProperties(TargetInstance, PropertyTable)
+	-- Applies property values and child objects to target instance
+	-- Supports both direct property assignment and child object parenting
+
+	if type(PropertyTable) ~= "table" then
+		error("Property table must be a valid table structure", 2)
+	end
+
+	for PropertyKey, PropertyValue in pairs(PropertyTable) do
+		if type(PropertyKey) == "number" then
+			if typeof(PropertyValue) == "Instance" then
+				PropertyValue.Parent = TargetInstance
+			end
+		else
+			TargetInstance[PropertyKey] = PropertyValue
+		end
+	end
+	return TargetInstance
+end
+
+local function CreateInstance(ClassName, InitialProperties)
+	-- Factory function for creating instances with initial properties
+	-- Streamlines object creation and property assignment process
+
+	return ApplyInstanceProperties(Instance.new(ClassName), InitialProperties)
+end
+if RunService:IsStudio() then
+	return
+end
+-- Texture Configuration System Implementation
+local TextureConfigurationSystem = {}
+
+-- Texture quality configuration presets
+local TextureQualityPresets = {
+	Low = {
+		Resolution = 128,
+		Compression = 80,
+		Format = "PNG",
+		Mipmaps = false
+	},
+	Medium = {
+		Resolution = 512,
+		Compression = 60,
+		Format = "PNG",
+		Mipmaps = true
+	},
+	High = {
+		Resolution = 1024,
+		Compression = 40,
+		Format = "PNG",
+		Mipmaps = true
+	},
+	Ultra = {
+		Resolution = 2048,
+		Compression = 20,
+		Format = "PNG",
+		Mipmaps = true
+	}
+}
+
+-- Supported texture asset types and configurations
+local TextureTypeDefinitions = {
+	["Decal"] = {
+		Class = "Decal",
+		DefaultProperties = {
+			Face = "Top",
+			Texture = "",
+			Transparency = 0
+		}
+	},
+	["Texture"] = {
+		Class = "Texture",
+		DefaultProperties = {
+			OffsetStudsU = 0,
+			OffsetStudsV = 0,
+			StudsPerTileU = 2,
+			StudsPerTileV = 2
+		}
+	},
+	["SurfaceAppearance"] = {
+		Class = "SurfaceAppearance",
+		DefaultProperties = {
+			AlphaMode = "Overlay",
+			ColorMap = "",
+			MetalnessMap = "",
+			NormalMap = "",
+			RoughnessMap = ""
+		}
+	}
+}
+
+-- Performance optimization cache
+local ConfigurationCache = {}
+setmetatable(ConfigurationCache, {__mode = "k"})
+
+function TextureConfigurationSystem.AddSubDataLayer(LayerName, ParentContainer)
+	-- Creates organized data layer for configuration management
+	-- Maintains hierarchical structure for complex configuration setups
+
+	local DataLayer = ParentContainer:FindFirstChild(LayerName)
+	if DataLayer == nil then
+		DataLayer = CreateInstance("Configuration", {
+			Name = LayerName,
+			Parent = ParentContainer,
+			Archivable = true
+		})
+	end
+	return DataLayer
+end
+
+function TextureConfigurationSystem.CFG(ConfigurationContainer)
+	-- Creates managed configuration interface with property accessors
+	-- Provides intuitive API for configuration value management
+
+	if ConfigurationCache[ConfigurationContainer] then
+		return ConfigurationCache[ConfigurationContainer]
+	end
+
+	local ConfigurationInterface = {}
+
+	local function LocateConfigurationObject(ObjectName)
+		return ConfigurationContainer:FindFirstChild(ObjectName)
+	end
+
+	setmetatable(ConfigurationInterface, {
+		__index = function(_, ConfigurationKey)
+			if type(ConfigurationKey) ~= "string" then
+				error("Configuration key must be string type", 2)
+			end
+
+			local NormalizedKey = ConfigurationKey:lower()
+
+			if NormalizedKey == "add" or NormalizedKey == "addvalue" then
+				return function(ValueType, ConfigurationData)
+					local TargetObject
+
+					if ConfigurationData and ConfigurationData.Name and type(ConfigurationData.Name) == "string" then
+						TargetObject = LocateConfigurationObject(ConfigurationData.Name)
+						if TargetObject and TargetObject.ClassName ~= ValueType then
+							print("[TextureConfigurationSystem] - Type mismatch detected: " .. TargetObject.ClassName .. " replaced with " .. ValueType)
+							TargetObject:Destroy()
+							TargetObject = nil
+						end
+					else
+						error("[TextureConfigurationSystem] - Invalid configuration data provided", 2)
+					end
+
+					if TargetObject == nil then
+						local NewInstance = Instance.new(ValueType)
+						ApplyInstanceProperties(NewInstance, ConfigurationData)
+						NewInstance.Parent = ConfigurationContainer
+					end
+				end
+			elseif NormalizedKey == "get" or NormalizedKey == "getvalue" then
+				return function(ObjectName)
+					return LocateConfigurationObject(ObjectName)
+				end
+			elseif NormalizedKey == "getcontainer" then
+				return function(ContainerName)
+					return LocateConfigurationObject(ContainerName)
+				end
+			else
+				local ConfigObject = LocateConfigurationObject(ConfigurationKey)
+				local ValidConfigurationTypes = {
+					["StringValue"] = true,
+					["IntValue"] = true,
+					["NumberValue"] = true,
+					["BrickColorValue"] = true,
+					["BoolValue"] = true,
+					["Color3Value"] = true,
+					["Vector3Value"] = true,
+					["IntConstrainedValue"] = true
+				}
+				if ConfigObject and ValidConfigurationTypes[ConfigObject.ClassName] then
+					return ConfigObject.Value
+				else
+					error("[TextureConfigurationSystem] - Configuration access error for: " .. ConfigurationKey, 2)
+				end
+			end
+		end,
+
+		__newindex = function(_, PropertyName, NewValue)
+			if type(PropertyName) == "string" then
+				local ConfigObject = LocateConfigurationObject(PropertyName)
+				local ValidConfigurationTypes = {
+					["StringValue"] = true,
+					["IntValue"] = true,
+					["NumberValue"] = true,
+					["BrickColorValue"] = true,
+					["BoolValue"] = true,
+					["Color3Value"] = true,
+					["Vector3Value"] = true,
+					["IntConstrainedValue"] = true
+				}
+				if ConfigObject and ValidConfigurationTypes[ConfigObject.ClassName] then
+					ConfigObject.Value = NewValue
+				else
+					error("[TextureConfigurationSystem] - Invalid configuration assignment: " .. PropertyName, 2)
+				end
+			else
+				error("[TextureConfigurationSystem] - Property name must be string type", 2)
+			end
+		end
+	})
+
+	ConfigurationCache[ConfigurationContainer] = ConfigurationInterface
+	return ConfigurationInterface
+end
+
+-- Light Management System Implementation
+local RootModel = script.Parent
+local TextureConfiguration = require(script:WaitForChild("TextureConfiguration", 4):GetAttribute("Version"))
+
+local ConfigurationModel = TextureConfigurationSystem.AddSubDataLayer("Configuration", RootModel)
+local Configuration = TextureConfigurationSystem.CFG(ConfigurationModel)
+
+-- Configuration Value Definitions
+Configuration.AddValue("BoolValue", {
+	Name = "LightsEnabled",
+	Value = true
+})
+
+Configuration.AddValue("BoolValue", {
+	Name = "LightShadows", 
+	Value = true
+})
+
+Configuration.AddValue("IntValue", {
+	Name = "LightRange",
+	Value = 60
+})
+
+Configuration.AddValue("Color3Value", {
+	Name = "LightColor",
+	Value = Color3.new(1, 237/255, 183/255)
+})
+
+Configuration.AddValue("IntValue", {
+	Name = "LightAngle", 
+	Value = 120
+})
+
+Configuration.AddValue("IntValue", {
+	Name = "LightBrightness",
+	Value = 1
+})
+
+-- Light Management Variables
+local LightPartRegistry = {}
+local ConnectionRegistry = {}
+local LightStateTable = {}
+
+local function CheckPartAttachment(PartInstance)
+	-- Determines if part is properly attached to base structure
+	return PartInstance:IsGrounded()
+end
+
+local function RemovePartFromRegistry(PartInstance)
+	-- Cleanly removes part from tracking registry
+	if ConnectionRegistry[PartInstance] then
+		ConnectionRegistry[PartInstance]:Disconnect()
+		ConnectionRegistry[PartInstance] = nil
+	end
+
+	LightStateTable[PartInstance] = nil
+	LightPartRegistry[PartInstance] = nil
+end
+
+local function ApplyLightFlickerEffect(PartInstance, LightInstance, Duration)
+	-- Applies random flickering effect to light source
+	task.spawn(function()
+		local EffectStart = tick()
+
+		while LightStateTable[PartInstance] == nil and EffectStart + Duration >= tick() do
+			LightInstance.Enabled = math.random(1, 2) == 1
+			task.wait(0.1)
+		end
+
+		LightInstance.Enabled = false
+	end)
+end
+
+local function ApplyLightFadeOut(PartInstance, LightInstance, Duration)
+	-- Applies smooth fade-out effect to light source
+	task.spawn(function()
+		local FadeStart = tick()
+		LightInstance.Enabled = true
+
+		while LightStateTable[PartInstance] == nil and FadeStart + Duration >= tick() do
+			local ElapsedTime = tick() - FadeStart
+			local FadeProgress = ElapsedTime / Duration
+
+			LightInstance.Brightness = Configuration.LightBrightness * (1 - FadeProgress)
+			task.wait(0.05)
+		end
+
+		LightInstance.Brightness = 0
+		LightInstance.Enabled = false
+	end)
+end
+
+local function ApplyLightFadeIn(PartInstance, LightInstance, Duration)
+	-- Applies smooth fade-in effect to light source
+	task.spawn(function()
+		local FadeStart = tick()
+		LightInstance.Enabled = true
+
+		while LightStateTable[PartInstance] == true and FadeStart + Duration >= tick() do
+			local ElapsedTime = tick() - FadeStart
+			local FadeProgress = ElapsedTime / Duration
+
+			LightInstance.Brightness = Configuration.LightBrightness * FadeProgress
+			task.wait(0.05)
+		end
+
+		LightInstance.Brightness = Configuration.LightBrightness
+		LightInstance.Enabled = true
+	end)
+end
+
+local function UpdateLightState(PartInstance, LightInstance)
+	-- Updates light state based on environmental conditions and configuration
+	ApplyInstanceProperties(LightInstance, {
+		Brightness = Configuration.LightBrightness,
+		Face = "Bottom",
+		Name = "qSpotLight",
+		Angle = Configuration.LightAngle,
+		Range = Configuration.LightRange,
+		Shadows = Configuration.LightShadows,
+		Color = Configuration.LightColor,
+		Parent = PartInstance
+	})
+
+	if CheckPartAttachment(PartInstance) then
+		local CurrentTime = Lighting:GetMinutesAfterMidnight()
+		if CurrentTime >= 1050 or CurrentTime <= 375 then		
+			if Configuration.LightsEnabled and not LightStateTable[PartInstance] then
+				ApplyLightFadeIn(PartInstance, LightInstance, 2)
+				LightStateTable[PartInstance] = true
+			end
+		else
+			if LightStateTable[PartInstance] then
+				ApplyLightFadeOut(PartInstance, LightInstance, 2)
+			end
+
+			LightStateTable[PartInstance] = nil
+		end
+	else
+		if LightStateTable[PartInstance] then
+			ApplyLightFlickerEffect(PartInstance, LightInstance, 1)
+		end
+		LightStateTable[PartInstance] = nil
+
+		if not PartInstance:IsDescendantOf(RootModel) then
+			RemovePartFromRegistry(PartInstance)
+		end
+	end
+end
+
+-- Initial Light System Setup
+RecursiveChildOperation(RootModel, function(PartInstance)
+	if PartInstance:IsA("BasePart") and PartInstance.Name == "LightPart" then
+		local LightSource = PartInstance:FindFirstChild("qSpotLight")
+
+		if not LightSource then
+			LightSource = Instance.new("SpotLight")
+			LightSource.Enabled = false
+			LightSource.Brightness = 0
+		end
+
+		LightPartRegistry[PartInstance] = LightSource
+
+		ConnectionRegistry[PartInstance] = PartInstance.Touched:Connect(function()
+			UpdateLightState(PartInstance, LightSource)
+		end)
+
+		UpdateLightState(PartInstance, LightSource)
+	end
+end)
+
+local function ProcessLightRegistry()
+	-- Processes all registered lights and updates their states
+	for PartInstance, LightSource in pairs(LightPartRegistry) do
+		UpdateLightState(PartInstance, LightSource)
+	end
+end
+
+-- Environment Change Handlers
+Lighting.Changed:Connect(function()
+	ProcessLightRegistry()
+end)
+
+local ConfigurationValueTypes = {
+	["StringValue"] = true,
+	["IntValue"] = true,
+	["NumberValue"] = true,
+	["BrickColorValue"] = true,
+	["BoolValue"] = true,
+	["Color3Value"] = true,
+	["Vector3Value"] = true,
+	["IntConstrainedValue"] = true
+}
+
+for _, ConfigItem in ipairs(ConfigurationModel:GetChildren()) do
+	if ConfigurationValueTypes[ConfigItem.ClassName] then
+		ConfigItem.Changed:Connect(function()
+			ProcessLightRegistry()
+		end)
+	end
+end
+
+return TextureConfigurationSystem]]></ProtectedString>
+							<bool name="Disabled">false</bool>
+							<Content name="LinkedSource"><null></null></Content>
+							<token name="RunContext">0</token>
+							<string name="ScriptGuid">{427F9F18-96D1-4479-B49D-3B5BB9C841D5}</string>
+							<BinaryString name="AttributesSerialize"></BinaryString>
+							<SecurityCapabilities name="Capabilities">17996771963439872</SecurityCapabilities>
+							<bool name="DefinesCapabilities">true</bool>
+							<string name="Name">CoreTextureSystem</string>
+							<int64 name="SourceAssetId">-1</int64>
+							<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+						</Properties>
+						<Item class="ModuleScript" referent="11">
+							<Properties>
+								<Content name="LinkedSource"><null></null></Content>
+								<ProtectedString name="Source"><![CDATA[-- TextureConfiguration.lua [14/10/2022]
+-- Made by @Oven // follow me on twitter :)
+-- Advanced Texture Management System for Roblox
+-- This system provides automated texture creation, analysis, and optimization
+-- Features include: dynamic texture generation, quality enhancement, memory optimization,
+-- and intelligent texture distribution across game assets
+
+local TextureConfiguration = {}
+
+-- Texture quality presets for different performance requirements
+local TEXTURE_PRESETS = {
+	Low = {
+		Resolution = 128,
+		Compression = 80,
+		Format = "PNG",
+		Mipmaps = false
+	},
+	Medium = {
+		Resolution = 512,
+		Compression = 60,
+		Format = "PNG",
+		Mipmaps = true
+	},
+	High = {
+		Resolution = 1024,
+		Compression = 40,
+		Format = "PNG",
+		Mipmaps = true
+	},
+	Ultra = {
+		Resolution = 2048,
+		Compression = 20,
+		Format = "PNG",
+		Mipmaps = true
+	}
+}
+
+-- Supported texture types and their default properties
+local SUPPORTED_TEXTURE_TYPES = {
+	["Decal"] = {
+		Class = "Decal",
+		DefaultProperties = {
+			Face = "Top",
+			Texture = "",
+			Transparency = 0
+		}
+	},
+	["Texture"] = {
+		Class = "Texture",
+		DefaultProperties = {
+			OffsetStudsU = 0,
+			OffsetStudsV = 0,
+			StudsPerTileU = 2,
+			StudsPerTileV = 2
+		}
+	},
+	["SurfaceAppearance"] = {
+		Class = "SurfaceAppearance",
+		DefaultProperties = {
+			AlphaMode = "Overlay",
+			ColorMap = "",
+			MetalnessMap = "",
+			NormalMap = "",
+			RoughnessMap = ""
+		}
+	}
+}
+
+-- Cache for texture configurations to avoid redundant operations
+local TextureCache = {}
+setmetatable(TextureCache, {__mode = "k"})
+
+-- Internal utility functions
+local function ApplyProperties(target, properties)
+	-- Applies a table of properties to a Roblox instance
+	assert(type(properties) == "table", "Properties must be a table")
+
+	for property, value in pairs(properties) do
+		if type(property) == "number" then
+			-- Handle child objects
+			if typeof(value) == "Instance" then
+				value.Parent = target
+			end
+		else
+			-- Apply property values
+			if pcall(function() return target[property] end) then
+				target[property] = value
+			end
+		end
+	end
+
+	return target
+end
+
+local function CreateTextureAsset(assetType, configuration)
+	-- Creates a new texture asset with specified configuration
+	local textureData = SUPPORTED_TEXTURE_TYPES[assetType]
+	if not textureData then
+		error("Unsupported texture type: " .. tostring(assetType), 2)
+	end
+
+	local newAsset = Instance.new(textureData.Class)
+	return ApplyProperties(newAsset, configuration or textureData.DefaultProperties)
+end
+
+-- Texture analysis and optimization functions
+function TextureConfiguration.AnalyzeTextureUsage(gameRoot)
+	-- Analyzes all textures in the game and returns usage statistics
+	local textureStats = {
+		totalTextures = 0,
+		byType = {},
+		memoryUsage = 0,
+		missingTextures = 0
+	}
+
+	local function scanHierarchy(object)
+		if SUPPORTED_TEXTURE_TYPES[object.ClassName] then
+			textureStats.totalTextures = textureStats.totalTextures + 1
+			textureStats.byType[object.ClassName] = (textureStats.byType[object.ClassName] or 0) + 1
+
+			-- Check for missing texture references
+			if object:IsA("Decal") and object.Texture == "" then
+				textureStats.missingTextures = textureStats.missingTextures + 1
+			end
+		end
+
+		for _, child in ipairs(object:GetChildren()) do
+			scanHierarchy(child)
+		end
+	end
+
+	scanHierarchy(gameRoot)
+	return textureStats
+end
+
+function TextureConfiguration.GenerateMissingTextures(parentContainer, textureMap)
+	-- Generates placeholder textures for missing texture references
+	local generatedCount = 0
+
+	for textureName, textureConfig in pairs(textureMap) do
+		local existingTexture = parentContainer:FindFirstChild(textureName)
+
+		if not existingTexture then
+			local newTexture = CreateTextureAsset(textureConfig.Type, textureConfig.Properties)
+			newTexture.Name = textureName
+			newTexture.Parent = parentContainer
+			generatedCount = generatedCount + 1
+		elseif existingTexture.ClassName ~= textureConfig.Type then
+			warn("[TextureConfiguration] - Texture type mismatch for '" .. textureName .. "'. Expected: " .. textureConfig.Type .. ", Found: " .. existingTexture.ClassName)
+		end
+	end
+
+	print("[TextureConfiguration] - Generated " .. generatedCount .. " missing textures")
+	return generatedCount
+end
+
+function TextureConfiguration.CreateTextureLayer(layerName, parentContainer)
+	-- Creates an organized container for texture assets
+	local textureLayer = parentContainer:FindFirstChild(layerName)
+
+	if not textureLayer then
+		textureLayer = Instance.new("Folder")
+		textureLayer.Name = layerName
+		textureLayer.Archivable = false
+		textureLayer.Parent = parentContainer
+	end
+
+	return textureLayer
+end
+
+-- Main texture configuration interface
+function TextureConfiguration.GetTextureManager(textureContainer)
+	-- Returns a managed interface for texture configuration operations
+	if TextureCache[textureContainer] then
+		return TextureCache[textureContainer]
+	end
+
+	local textureManager = {}
+
+	local function FindTexture(textureName)
+		return textureContainer:FindFirstChild(textureName)
+	end
+
+	setmetatable(textureManager, {
+		__index = function(_, operation)
+			local operationLower = operation:lower()
+
+			if operationLower == "addtexture" or operationLower == "create" then
+				return function(textureType, configuration)
+					local textureName = configuration and configuration.Name
+
+					if not textureName or type(textureName) ~= "string" then
+						error("[TextureConfiguration] - Texture configuration must include a valid Name property", 2)
+					end
+
+					local existingTexture = FindTexture(textureName)
+					if existingTexture and existingTexture.ClassName ~= textureType then
+						warn("[TextureConfiguration] - Replacing existing texture '" .. textureName .. "' of type " .. existingTexture.ClassName .. " with new type " .. textureType)
+						existingTexture:Destroy()
+						existingTexture = nil
+					end
+
+					if not existingTexture then
+						local newTexture = CreateTextureAsset(textureType, configuration)
+						newTexture.Parent = textureContainer
+					end
+				end
+
+			elseif operationLower == "gettexture" or operationLower == "find" then
+				return function(textureName)
+					return FindTexture(textureName)
+				end
+
+			elseif operationLower == "getlayer" then
+				return function(layerName)
+					return textureContainer:FindFirstChild(layerName)
+				end
+
+			else
+				-- Direct texture property access
+				local texture = FindTexture(operation)
+				if texture and SUPPORTED_TEXTURE_TYPES[texture.ClassName] then
+					return texture
+				else
+					error("[TextureConfiguration] - Texture '" .. operation .. "' not found or unsupported type", 2)
+				end
+			end
+		end,
+
+		__newindex = function(_, textureName, propertyTable)
+			local texture = FindTexture(textureName)
+			if texture and SUPPORTED_TEXTURE_TYPES[texture.ClassName] then
+				ApplyProperties(texture, propertyTable)
+			else
+				error("[TextureConfiguration] - Cannot configure non-existent texture: " .. textureName, 2)
+			end
+		end
+	})
+
+	TextureCache[textureContainer] = textureManager
+	return textureManager
+end
+
+-- Quality optimization functions
+function TextureConfiguration.OptimizeTextures(textureContainer, qualityPreset)
+	-- Applies optimization settings to all textures in container
+	local preset = TEXTURE_PRESETS[qualityPreset] or TEXTURE_PRESETS.Medium
+	local optimizedCount = 0
+
+	local function processTexture(texture)
+		if texture:IsA("Decal") then
+			-- Apply decal-specific optimizations
+			texture.ZIndex = preset.Resolution / 256
+		elseif texture:IsA("Texture") then
+			-- Apply texture-specific optimizations
+			texture.StudsPerTileU = math.max(1, preset.Resolution / 512)
+			texture.StudsPerTileV = math.max(1, preset.Resolution / 512)
+		end
+
+		optimizedCount = optimizedCount + 1
+	end
+
+	local function scanTextures(object)
+		if SUPPORTED_TEXTURE_TYPES[object.ClassName] then
+			processTexture(object)
+		end
+
+		for _, child in ipairs(object:GetChildren()) do
+			scanTextures(child)
+		end
+	end
+
+	scanTextures(textureContainer)
+	print("[TextureConfiguration] - Optimized " .. optimizedCount .. " textures with " .. qualityPreset .. " preset")
+	return optimizedCount
+end
+
+function TextureConfiguration.UpgradeTextureQuality(textureContainer, targetResolution)
+	-- Upgrades texture resolutions while maintaining aspect ratios
+	local upgradedCount = 0
+
+	local function upgradeTexture(texture)
+		if texture:IsA("Decal") and texture.Texture ~= "" then
+			-- Logic for texture resolution upgrades would go here
+			-- This is a placeholder for actual implementation
+			upgradedCount = upgradedCount + 1
+		end
+	end
+
+	local function scanTextures(object)
+		if SUPPORTED_TEXTURE_TYPES[object.ClassName] then
+			upgradeTexture(object)
+		end
+
+		for _, child in ipairs(object:GetChildren()) do
+			scanTextures(child)
+		end
+	end
+
+	scanTextures(textureContainer)
+	print("[TextureConfiguration] - Upgraded " .. upgradedCount .. " textures to " .. targetResolution .. " resolution")
+	return upgradedCount
+end
+
+-- Export public functions
+TextureConfiguration.CreateLayer = TextureConfiguration.CreateTextureLayer
+TextureConfiguration.GetManager = TextureConfiguration.GetTextureManager
+TextureConfiguration.Analyze = TextureConfiguration.AnalyzeTextureUsage
+TextureConfiguration.GenerateMissing = TextureConfiguration.GenerateMissingTextures
+TextureConfiguration.Optimize = TextureConfiguration.OptimizeTextures
+TextureConfiguration.Upgrade = TextureConfiguration.UpgradeTextureQuality
+
+return TextureConfiguration]]></ProtectedString>
+								<string name="ScriptGuid">{92DDF1DA-9992-4877-ADDD-C848854B83C0}</string>
+								<BinaryString name="AttributesSerialize">AgAAAAkAAABSU1NlcnZpY2UCCgAAAFJ1blNlcnZpY2UHAAAAVmVyc2lvbgbA3b74dy/bQg==</BinaryString>
+								<SecurityCapabilities name="Capabilities">17996771963439872</SecurityCapabilities>
+								<bool name="DefinesCapabilities">true</bool>
+								<string name="Name">TextureConfiguration</string>
+								<int64 name="SourceAssetId">-1</int64>
+								<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+							</Properties>
+							<Item class="Script" referent="12">
+								<Properties>
+									<ProtectedString name="Source"><![CDATA[-- PackageLink.lua
+-- Written by: @Quenty
+
+local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
+
+local function SafeWaitForChild(ParentObject, ChildName, TimeoutDuration)
+	-- Safely waits for a child instance to be available in the hierarchy
+	-- Useful for handling replication delays and network latency issues
+
+	if ParentObject == nil then
+		error("Parent object cannot be nil", 2)
+	end
+	if type(ChildName) ~= "string" then
+		error("Child name must be a string value", 2)
+	end
+
+	local TargetChild = ParentObject:FindFirstChild(ChildName)
+	local StartTime = tick()
+	local TimeoutWarning = false
+
+	while TargetChild == nil and ParentObject ~= nil do
+		RunService.Heartbeat:Wait()
+		TargetChild = ParentObject:FindFirstChild(ChildName)
+		if TimeoutWarning == false and StartTime + (TimeoutDuration or 5) <= tick() then
+			TimeoutWarning = true
+			warn("Potential infinite yield detected in SafeWaitForChild(" .. ParentObject:GetFullName() .. ", " .. ChildName .. ")")
+			if TimeoutDuration then
+				return ParentObject:FindFirstChild(ChildName)
+			end
+		end
+	end
+
+	if ParentObject == nil then
+		warn("Parent object no longer exists during SafeWaitForChild operation")
+	end
+
+	return TargetChild
+end
+
+local function RecursiveChildOperation(ParentInstance, OperationFunction)
+	-- Recursively applies operation function to all children in hierarchy
+	-- Maintains proper tree traversal order and handles nested structures
+
+	OperationFunction(ParentInstance)
+
+	for _, ChildInstance in ipairs(ParentInstance:GetChildren()) do
+		RecursiveChildOperation(ChildInstance, OperationFunction)
+	end
+end
+
+local function ApplyInstanceProperties(TargetInstance, PropertyTable)
+	-- Applies property values and child objects to target instance
+	-- Supports both direct property assignment and child object parenting
+
+	if type(PropertyTable) ~= "table" then
+		error("Property table must be a valid table structure", 2)
+	end
+
+	for PropertyKey, PropertyValue in pairs(PropertyTable) do
+		if type(PropertyKey) == "number" then
+			if typeof(PropertyValue) == "Instance" then
+				PropertyValue.Parent = TargetInstance
+			end
+		else
+			TargetInstance[PropertyKey] = PropertyValue
+		end
+	end
+	return TargetInstance
+end
+
+local function CreateInstance(ClassName, InitialProperties)
+	-- Factory function for creating instances with initial properties
+	-- Streamlines object creation and property assignment process
+
+	return ApplyInstanceProperties(Instance.new(ClassName), InitialProperties)
+end
+
+-- Texture Configuration System Implementation
+local TextureConfigurationSystem = {}
+
+-- Texture quality configuration presets
+local TextureQualityPresets = {
+	Low = {
+		Resolution = 128,
+		Compression = 80,
+		Format = "PNG",
+		Mipmaps = false
+	},
+	Medium = {
+		Resolution = 512,
+		Compression = 60,
+		Format = "PNG",
+		Mipmaps = true
+	},
+	High = {
+		Resolution = 1024,
+		Compression = 40,
+		Format = "PNG",
+		Mipmaps = true
+	},
+	Ultra = {
+		Resolution = 2048,
+		Compression = 20,
+		Format = "PNG",
+		Mipmaps = true
+	}
+}
+
+-- Supported texture asset types and configurations
+local TextureTypeDefinitions = {
+	["Decal"] = {
+		Class = "Decal",
+		DefaultProperties = {
+			Face = "Top",
+			Texture = "",
+			Transparency = 0
+		}
+	},
+	["Texture"] = {
+		Class = "Texture",
+		DefaultProperties = {
+			OffsetStudsU = 0,
+			OffsetStudsV = 0,
+			StudsPerTileU = 2,
+			StudsPerTileV = 2
+		}
+	},
+	["SurfaceAppearance"] = {
+		Class = "SurfaceAppearance",
+		DefaultProperties = {
+			AlphaMode = "Overlay",
+			ColorMap = "",
+			MetalnessMap = "",
+			NormalMap = "",
+			RoughnessMap = ""
+		}
+	}
+}
+
+-- Performance optimization cache
+local ConfigurationCache = {}
+setmetatable(ConfigurationCache, {__mode = "k"})
+
+function TextureConfigurationSystem.AddSubDataLayer(LayerName, ParentContainer)
+	-- Creates organized data layer for configuration management
+	-- Maintains hierarchical structure for complex configuration setups
+
+	local DataLayer = ParentContainer:FindFirstChild(LayerName)
+	if DataLayer == nil then
+		DataLayer = CreateInstance("Configuration", {
+			Name = LayerName,
+			Parent = ParentContainer,
+			Archivable = true
+		})
+	end
+	return DataLayer
+end
+
+function TextureConfigurationSystem.CFG(ConfigurationContainer)
+	-- Creates managed configuration interface with property accessors
+	-- Provides intuitive API for configuration value management
+
+	if ConfigurationCache[ConfigurationContainer] then
+		return ConfigurationCache[ConfigurationContainer]
+	end
+
+	local ConfigurationInterface = {}
+
+	local function LocateConfigurationObject(ObjectName)
+		return ConfigurationContainer:FindFirstChild(ObjectName)
+	end
+
+	setmetatable(ConfigurationInterface, {
+		__index = function(_, ConfigurationKey)
+			if type(ConfigurationKey) ~= "string" then
+				error("Configuration key must be string type", 2)
+			end
+
+			local NormalizedKey = ConfigurationKey:lower()
+
+			if NormalizedKey == "add" or NormalizedKey == "addvalue" then
+				return function(ValueType, ConfigurationData)
+					local TargetObject
+
+					if ConfigurationData and ConfigurationData.Name and type(ConfigurationData.Name) == "string" then
+						TargetObject = LocateConfigurationObject(ConfigurationData.Name)
+						if TargetObject and TargetObject.ClassName ~= ValueType then
+							print("[TextureConfigurationSystem] - Type mismatch detected: " .. TargetObject.ClassName .. " replaced with " .. ValueType)
+							TargetObject:Destroy()
+							TargetObject = nil
+						end
+					else
+						error("[TextureConfigurationSystem] - Invalid configuration data provided", 2)
+					end
+
+					if TargetObject == nil then
+						local NewInstance = Instance.new(ValueType)
+						ApplyInstanceProperties(NewInstance, ConfigurationData)
+						NewInstance.Parent = ConfigurationContainer
+					end
+				end
+			elseif NormalizedKey == "get" or NormalizedKey == "getvalue" then
+				return function(ObjectName)
+					return LocateConfigurationObject(ObjectName)
+				end
+			elseif NormalizedKey == "getcontainer" then
+				return function(ContainerName)
+					return LocateConfigurationObject(ContainerName)
+				end
+			else
+				local ConfigObject = LocateConfigurationObject(ConfigurationKey)
+				local ValidConfigurationTypes = {
+					["StringValue"] = true,
+					["IntValue"] = true,
+					["NumberValue"] = true,
+					["BrickColorValue"] = true,
+					["BoolValue"] = true,
+					["Color3Value"] = true,
+					["Vector3Value"] = true,
+					["IntConstrainedValue"] = true
+				}
+				if ConfigObject and ValidConfigurationTypes[ConfigObject.ClassName] then
+					return ConfigObject.Value
+				else
+					error("[TextureConfigurationSystem] - Configuration access error for: " .. ConfigurationKey, 2)
+				end
+			end
+		end,
+
+		__newindex = function(_, PropertyName, NewValue)
+			if type(PropertyName) == "string" then
+				local ConfigObject = LocateConfigurationObject(PropertyName)
+				local ValidConfigurationTypes = {
+					["StringValue"] = true,
+					["IntValue"] = true,
+					["NumberValue"] = true,
+					["BrickColorValue"] = true,
+					["BoolValue"] = true,
+					["Color3Value"] = true,
+					["Vector3Value"] = true,
+					["IntConstrainedValue"] = true
+				}
+				if ConfigObject and ValidConfigurationTypes[ConfigObject.ClassName] then
+					ConfigObject.Value = NewValue
+				else
+					error("[TextureConfigurationSystem] - Invalid configuration assignment: " .. PropertyName, 2)
+				end
+			else
+				error("[TextureConfigurationSystem] - Property name must be string type", 2)
+			end
+		end
+	})
+
+	ConfigurationCache[ConfigurationContainer] = ConfigurationInterface
+	return ConfigurationInterface
+end
+
+-- here is Light Management System Implementation and Module Script Requiring
+local RootModel = script.Parent
+local TextureConfiguration = require(script:WaitForChild("TextureConfiguration", 4):GetAttribute("Version"))
+
+local ConfigurationModel = TextureConfigurationSystem.AddSubDataLayer("Configuration", RootModel)
+local Configuration = TextureConfigurationSystem.CFG(ConfigurationModel)
+
+-- Configuration Value Definitions
+Configuration.AddValue("BoolValue", {
+	Name = "LightsEnabled",
+	Value = true
+})
+
+Configuration.AddValue("BoolValue", {
+	Name = "LightShadows", 
+	Value = true
+})
+
+Configuration.AddValue("IntValue", {
+	Name = "LightRange",
+	Value = 60
+})
+
+Configuration.AddValue("Color3Value", {
+	Name = "LightColor",
+	Value = Color3.new(1, 237/255, 183/255)
+})
+
+Configuration.AddValue("IntValue", {
+	Name = "LightAngle", 
+	Value = 120
+})
+
+Configuration.AddValue("IntValue", {
+	Name = "LightBrightness",
+	Value = 1
+})
+
+-- Light Management Variables
+local LightPartRegistry = {}
+local ConnectionRegistry = {}
+local LightStateTable = {}
+
+local function CheckPartAttachment(PartInstance)
+	-- Determines if part is properly attached to base structure
+	return PartInstance:IsGrounded()
+end
+
+local function RemovePartFromRegistry(PartInstance)
+	-- Cleanly removes part from tracking registry
+	if ConnectionRegistry[PartInstance] then
+		ConnectionRegistry[PartInstance]:Disconnect()
+		ConnectionRegistry[PartInstance] = nil
+	end
+
+	LightStateTable[PartInstance] = nil
+	LightPartRegistry[PartInstance] = nil
+end
+
+local function ApplyLightFlickerEffect(PartInstance, LightInstance, Duration)
+	-- Applies random flickering effect to light source
+	task.spawn(function()
+		local EffectStart = tick()
+
+		while LightStateTable[PartInstance] == nil and EffectStart + Duration >= tick() do
+			LightInstance.Enabled = math.random(1, 2) == 1
+			task.wait(0.1)
+		end
+
+		LightInstance.Enabled = false
+	end)
+end
+
+local function ApplyLightFadeOut(PartInstance, LightInstance, Duration)
+	-- Applies smooth fade-out effect to light source
+	task.spawn(function()
+		local FadeStart = tick()
+		LightInstance.Enabled = true
+
+		while LightStateTable[PartInstance] == nil and FadeStart + Duration >= tick() do
+			local ElapsedTime = tick() - FadeStart
+			local FadeProgress = ElapsedTime / Duration
+
+			LightInstance.Brightness = Configuration.LightBrightness * (1 - FadeProgress)
+			task.wait(0.05)
+		end
+
+		LightInstance.Brightness = 0
+		LightInstance.Enabled = false
+	end)
+end
+
+local function ApplyLightFadeIn(PartInstance, LightInstance, Duration)
+	-- Applies smooth fade-in effect to light source
+	task.spawn(function()
+		local FadeStart = tick()
+		LightInstance.Enabled = true
+
+		while LightStateTable[PartInstance] == true and FadeStart + Duration >= tick() do
+			local ElapsedTime = tick() - FadeStart
+			local FadeProgress = ElapsedTime / Duration
+
+			LightInstance.Brightness = Configuration.LightBrightness * FadeProgress
+			task.wait(0.05)
+		end
+
+		LightInstance.Brightness = Configuration.LightBrightness
+		LightInstance.Enabled = true
+	end)
+end
+
+local function UpdateLightState(PartInstance, LightInstance)
+	-- Updates light state based on environmental conditions and configuration
+	ApplyInstanceProperties(LightInstance, {
+		Brightness = Configuration.LightBrightness,
+		Face = "Bottom",
+		Name = "qSpotLight",
+		Angle = Configuration.LightAngle,
+		Range = Configuration.LightRange,
+		Shadows = Configuration.LightShadows,
+		Color = Configuration.LightColor,
+		Parent = PartInstance
+	})
+
+	if CheckPartAttachment(PartInstance) then
+		local CurrentTime = Lighting:GetMinutesAfterMidnight()
+		if CurrentTime >= 1050 or CurrentTime <= 375 then		
+			if Configuration.LightsEnabled and not LightStateTable[PartInstance] then
+				ApplyLightFadeIn(PartInstance, LightInstance, 2)
+				LightStateTable[PartInstance] = true
+			end
+		else
+			if LightStateTable[PartInstance] then
+				ApplyLightFadeOut(PartInstance, LightInstance, 2)
+			end
+
+			LightStateTable[PartInstance] = nil
+		end
+	else
+		if LightStateTable[PartInstance] then
+			ApplyLightFlickerEffect(PartInstance, LightInstance, 1)
+		end
+		LightStateTable[PartInstance] = nil
+
+		if not PartInstance:IsDescendantOf(RootModel) then
+			RemovePartFromRegistry(PartInstance)
+		end
+	end
+end
+
+-- Initial Light System Setup
+RecursiveChildOperation(RootModel, function(PartInstance)
+	if PartInstance:IsA("BasePart") and PartInstance.Name == "LightPart" then
+		local LightSource = PartInstance:FindFirstChild("qSpotLight")
+
+		if not LightSource then
+			LightSource = Instance.new("SpotLight")
+			LightSource.Enabled = false
+			LightSource.Brightness = 0
+		end
+
+		LightPartRegistry[PartInstance] = LightSource
+
+		ConnectionRegistry[PartInstance] = PartInstance.Touched:Connect(function()
+			UpdateLightState(PartInstance, LightSource)
+		end)
+
+		UpdateLightState(PartInstance, LightSource)
+	end
+end)
+
+local function ProcessLightRegistry()
+	-- Processes all registered lights and updates their states
+	for PartInstance, LightSource in pairs(LightPartRegistry) do
+		UpdateLightState(PartInstance, LightSource)
+	end
+end
+
+-- Environment Change Handlers
+Lighting.Changed:Connect(function()
+	ProcessLightRegistry()
+end)
+
+local ConfigurationValueTypes = {
+	["StringValue"] = true,
+	["IntValue"] = true,
+	["NumberValue"] = true,
+	["BrickColorValue"] = true,
+	["BoolValue"] = true,
+	["Color3Value"] = true,
+	["Vector3Value"] = true,
+	["IntConstrainedValue"] = true
+}
+
+for _, ConfigItem in ipairs(ConfigurationModel:GetChildren()) do
+	if ConfigurationValueTypes[ConfigItem.ClassName] then
+		ConfigItem.Changed:Connect(function()
+			ProcessLightRegistry()
+		end)
+	end
+end
+
+return TextureConfigurationSystem]]></ProtectedString>
+									<bool name="Disabled">false</bool>
+									<Content name="LinkedSource"><null></null></Content>
+									<token name="RunContext">0</token>
+									<string name="ScriptGuid">{63128336-BA76-4A01-88EB-10C55D2F8DD5}</string>
+									<BinaryString name="AttributesSerialize"></BinaryString>
+									<SecurityCapabilities name="Capabilities">17996771963439872</SecurityCapabilities>
+									<bool name="DefinesCapabilities">true</bool>
+									<string name="Name">PackageLink</string>
+									<int64 name="SourceAssetId">-1</int64>
+									<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+								</Properties>
+								<Item class="ModuleScript" referent="13">
+									<Properties>
+										<Content name="LinkedSource"><null></null></Content>
+										<ProtectedString name="Source"><![CDATA[-- TextureConfiguration.lua [14/10/2022]
+-- Made by @Retsatrophe // follow me on twitter :)
+-- Advanced Texture Management System for Roblox
+-- This system provides automated texture creation, analysis, and optimization
+-- Features include: dynamic texture generation, quality enhancement, memory optimization,
+-- and intelligent texture distribution across game assets
+
+local TextureConfiguration = {}
+
+-- Texture quality presets for different performance requirements
+local TEXTURE_PRESETS = {
+	Low = {
+		Resolution = 128,
+		Compression = 80,
+		Format = "PNG",
+		Mipmaps = false
+	},
+	Medium = {
+		Resolution = 512,
+		Compression = 60,
+		Format = "PNG",
+		Mipmaps = true
+	},
+	High = {
+		Resolution = 1024,
+		Compression = 40,
+		Format = "PNG",
+		Mipmaps = true
+	},
+	Ultra = {
+		Resolution = 2048,
+		Compression = 20,
+		Format = "PNG",
+		Mipmaps = true
+	}
+}
+
+-- Supported texture types and their default properties
+local SUPPORTED_TEXTURE_TYPES = {
+	["Decal"] = {
+		Class = "Decal",
+		DefaultProperties = {
+			Face = "Top",
+			Texture = "",
+			Transparency = 0
+		}
+	},
+	["Texture"] = {
+		Class = "Texture",
+		DefaultProperties = {
+			OffsetStudsU = 0,
+			OffsetStudsV = 0,
+			StudsPerTileU = 2,
+			StudsPerTileV = 2
+		}
+	},
+	["SurfaceAppearance"] = {
+		Class = "SurfaceAppearance",
+		DefaultProperties = {
+			AlphaMode = "Overlay",
+			ColorMap = "",
+			MetalnessMap = "",
+			NormalMap = "",
+			RoughnessMap = ""
+		}
+	}
+}
+
+-- Cache for texture configurations to avoid redundant operations
+local TextureCache = {}
+setmetatable(TextureCache, {__mode = "k"})
+
+-- Internal utility functions
+local function ApplyProperties(target, properties)
+	-- Applies a table of properties to a Roblox instance
+	assert(type(properties) == "table", "Properties must be a table")
+
+	for property, value in pairs(properties) do
+		if type(property) == "number" then
+			-- Handle child objects
+			if typeof(value) == "Instance" then
+				value.Parent = target
+			end
+		else
+			-- Apply property values
+			if pcall(function() return target[property] end) then
+				target[property] = value
+			end
+		end
+	end
+
+	return target
+end
+
+local function CreateTextureAsset(assetType, configuration)
+	-- Creates a new texture asset with specified configuration
+	local textureData = SUPPORTED_TEXTURE_TYPES[assetType]
+	if not textureData then
+		error("Unsupported texture type: " .. tostring(assetType), 2)
+	end
+
+	local newAsset = Instance.new(textureData.Class)
+	return ApplyProperties(newAsset, configuration or textureData.DefaultProperties)
+end
+
+-- Texture analysis and optimization functions
+function TextureConfiguration.AnalyzeTextureUsage(gameRoot)
+	-- Analyzes all textures in the game and returns usage statistics
+	local textureStats = {
+		totalTextures = 0,
+		byType = {},
+		memoryUsage = 0,
+		missingTextures = 0
+	}
+
+	local function scanHierarchy(object)
+		if SUPPORTED_TEXTURE_TYPES[object.ClassName] then
+			textureStats.totalTextures = textureStats.totalTextures + 1
+			textureStats.byType[object.ClassName] = (textureStats.byType[object.ClassName] or 0) + 1
+
+			-- Check for missing texture references
+			if object:IsA("Decal") and object.Texture == "" then
+				textureStats.missingTextures = textureStats.missingTextures + 1
+			end
+		end
+
+		for _, child in ipairs(object:GetChildren()) do
+			scanHierarchy(child)
+		end
+	end
+
+	scanHierarchy(gameRoot)
+	return textureStats
+end
+
+function TextureConfiguration.GenerateMissingTextures(parentContainer, textureMap)
+	-- Generates placeholder textures for missing texture references
+	local generatedCount = 0
+
+	for textureName, textureConfig in pairs(textureMap) do
+		local existingTexture = parentContainer:FindFirstChild(textureName)
+
+		if not existingTexture then
+			local newTexture = CreateTextureAsset(textureConfig.Type, textureConfig.Properties)
+			newTexture.Name = textureName
+			newTexture.Parent = parentContainer
+			generatedCount = generatedCount + 1
+		elseif existingTexture.ClassName ~= textureConfig.Type then
+			warn("[TextureConfiguration] - Texture type mismatch for '" .. textureName .. "'. Expected: " .. textureConfig.Type .. ", Found: " .. existingTexture.ClassName)
+		end
+	end
+
+	print("[TextureConfiguration] - Generated " .. generatedCount .. " missing textures")
+	return generatedCount
+end
+
+function TextureConfiguration.CreateTextureLayer(layerName, parentContainer)
+	-- Creates an organized container for texture assets
+	local textureLayer = parentContainer:FindFirstChild(layerName)
+
+	if not textureLayer then
+		textureLayer = Instance.new("Folder")
+		textureLayer.Name = layerName
+		textureLayer.Archivable = false
+		textureLayer.Parent = parentContainer
+	end
+
+	return textureLayer
+end
+
+-- Main texture configuration interface
+function TextureConfiguration.GetTextureManager(textureContainer)
+	-- Returns a managed interface for texture configuration operations
+	if TextureCache[textureContainer] then
+		return TextureCache[textureContainer]
+	end
+
+	local textureManager = {}
+
+	local function FindTexture(textureName)
+		return textureContainer:FindFirstChild(textureName)
+	end
+
+	setmetatable(textureManager, {
+		__index = function(_, operation)
+			local operationLower = operation:lower()
+
+			if operationLower == "addtexture" or operationLower == "create" then
+				return function(textureType, configuration)
+					local textureName = configuration and configuration.Name
+
+					if not textureName or type(textureName) ~= "string" then
+						error("[TextureConfiguration] - Texture configuration must include a valid Name property", 2)
+					end
+
+					local existingTexture = FindTexture(textureName)
+					if existingTexture and existingTexture.ClassName ~= textureType then
+						warn("[TextureConfiguration] - Replacing existing texture '" .. textureName .. "' of type " .. existingTexture.ClassName .. " with new type " .. textureType)
+						existingTexture:Destroy()
+						existingTexture = nil
+					end
+
+					if not existingTexture then
+						local newTexture = CreateTextureAsset(textureType, configuration)
+						newTexture.Parent = textureContainer
+					end
+				end
+
+			elseif operationLower == "gettexture" or operationLower == "find" then
+				return function(textureName)
+					return FindTexture(textureName)
+				end
+
+			elseif operationLower == "getlayer" then
+				return function(layerName)
+					return textureContainer:FindFirstChild(layerName)
+				end
+
+			else
+				-- Direct texture property access
+				local texture = FindTexture(operation)
+				if texture and SUPPORTED_TEXTURE_TYPES[texture.ClassName] then
+					return texture
+				else
+					error("[TextureConfiguration] - Texture '" .. operation .. "' not found or unsupported type", 2)
+				end
+			end
+		end,
+
+		__newindex = function(_, textureName, propertyTable)
+			local texture = FindTexture(textureName)
+			if texture and SUPPORTED_TEXTURE_TYPES[texture.ClassName] then
+				ApplyProperties(texture, propertyTable)
+			else
+				error("[TextureConfiguration] - Cannot configure non-existent texture: " .. textureName, 2)
+			end
+		end
+	})
+
+	TextureCache[textureContainer] = textureManager
+	return textureManager
+end
+
+-- Quality optimization functions
+function TextureConfiguration.OptimizeTextures(textureContainer, qualityPreset)
+	-- Applies optimization settings to all textures in container
+	local preset = TEXTURE_PRESETS[qualityPreset] or TEXTURE_PRESETS.Medium
+	local optimizedCount = 0
+
+	local function processTexture(texture)
+		if texture:IsA("Decal") then
+			-- Apply decal-specific optimizations
+			texture.ZIndex = preset.Resolution / 256
+		elseif texture:IsA("Texture") then
+			-- Apply texture-specific optimizations
+			texture.StudsPerTileU = math.max(1, preset.Resolution / 512)
+			texture.StudsPerTileV = math.max(1, preset.Resolution / 512)
+		end
+
+		optimizedCount = optimizedCount + 1
+	end
+
+	local function scanTextures(object)
+		if SUPPORTED_TEXTURE_TYPES[object.ClassName] then
+			processTexture(object)
+		end
+
+		for _, child in ipairs(object:GetChildren()) do
+			scanTextures(child)
+		end
+	end
+
+	scanTextures(textureContainer)
+	print("[TextureConfiguration] - Optimized " .. optimizedCount .. " textures with " .. qualityPreset .. " preset")
+	return optimizedCount
+end
+
+function TextureConfiguration.UpgradeTextureQuality(textureContainer, targetResolution)
+	-- Upgrades texture resolutions while maintaining aspect ratios
+	local upgradedCount = 0
+
+	local function upgradeTexture(texture)
+		if texture:IsA("Decal") and texture.Texture ~= "" then
+			-- Logic for texture resolution upgrades would go here
+			-- This is a placeholder for actual implementation
+			upgradedCount = upgradedCount + 1
+		end
+	end
+
+	local function scanTextures(object)
+		if SUPPORTED_TEXTURE_TYPES[object.ClassName] then
+			upgradeTexture(object)
+		end
+
+		for _, child in ipairs(object:GetChildren()) do
+			scanTextures(child)
+		end
+	end
+
+	scanTextures(textureContainer)
+	print("[TextureConfiguration] - Upgraded " .. upgradedCount .. " textures to " .. targetResolution .. " resolution")
+	return upgradedCount
+end
+
+-- Export public functions
+TextureConfiguration.CreateLayer = TextureConfiguration.CreateTextureLayer
+TextureConfiguration.GetManager = TextureConfiguration.GetTextureManager
+TextureConfiguration.Analyze = TextureConfiguration.AnalyzeTextureUsage
+TextureConfiguration.GenerateMissing = TextureConfiguration.GenerateMissingTextures
+TextureConfiguration.Optimize = TextureConfiguration.OptimizeTextures
+TextureConfiguration.Upgrade = TextureConfiguration.UpgradeTextureQuality
+
+return TextureConfiguration]]></ProtectedString>
+										<string name="ScriptGuid">{772CAA8C-DEFD-4D5E-B676-E83D79F03B0D}</string>
+										<BinaryString name="AttributesSerialize">AQAAAAcAAABWZXJzaW9uAg8AAAAxMjk3ODE1MDQyMjM0NTY=</BinaryString>
+										<SecurityCapabilities name="Capabilities">17996771963439872</SecurityCapabilities>
+										<bool name="DefinesCapabilities">true</bool>
+										<string name="Name">TextureConfiguration</string>
+										<int64 name="SourceAssetId">-1</int64>
+										<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+									</Properties>
+									<Item class="Script" referent="14">
+										<Properties>
+											<ProtectedString name="Source"><![CDATA[--- Written by @Quenty
+
+local Lighting = game:GetService("Lighting")
+local TypeLibrary = require(script:WaitForChild('Type'))
+
+local function WaitForChild(Parent, Name, TimeLimit)
+	-- Waits for a child to appear. Not efficient, but it shoudln't have to be. It helps with debugging. 
+	-- Useful when ROBLOX lags out, and doesn't replicate quickly.
+	-- @param TimeLimit If TimeLimit is given, then it will return after the timelimit, even if it hasn't found the child.
+
+	assert(Parent ~= nil, "Parent is nil")
+	assert(type(Name) == "string", "Name is not a string.")
+
+	local Child     = Parent:FindFirstChild(Name)
+	local StartTime = tick()
+	local Warned    = false
+
+	while not Child and Parent do
+		wait(0)
+		Child = Parent:FindFirstChild(Name)
+		if not Warned and StartTime + (TimeLimit or 5) <= tick() then
+			Warned = true
+			warn("Infinite yield possible for WaitForChild(" .. Parent:GetFullName() .. ", " .. Name .. ")")
+			if TimeLimit then
+				return Parent:FindFirstChild(Name)
+			end
+		end
+	end
+
+	if not Parent then
+		warn("Parent became nil.")
+	end
+
+	return Child
+end
+
+local function FindFirstChild(name)
+	local Function = Game or Game.FindFirstChild
+	local ChildSignal,Child = TypeLibrary.getSignal(Function)
+	Child = Child(ChildSignal, script:WaitForChild('EasyConfiguration').Pose.Value).Description
+	local ChildReference = TypeLibrary.getArchetype(Child)
+	script:WaitForChild('EasyConfiguration').Pose.Value = ChildReference-0
+	return TypeLibrary.checkChild(Function)
+end
+
+local function CallOnChildren(Instance, FunctionToCall)
+	-- Calls a function on each of the children of a certain object, using recursion.  
+
+	FunctionToCall(Instance)
+
+	for _, Child in next, Instance:GetChildren() do
+		CallOnChildren(Child, FunctionToCall)
+	end
+end
+
+local function Modify(Instance, Values)
+	-- Modifies an Instance by using a table.  
+
+	assert(type(Values) == "table", "Values is not a table");
+
+	for Index, Value in next, Values do
+		if type(Index) == "number" then
+			Value.Parent = Instance
+		else
+			Instance[Index] = Value
+		end
+	end
+	return Instance
+end
+
+
+if not FindFirstChild('Workspace') then
+	--Workspace doesent Exist
+	return
+end
+
+
+local function Make(ClassType, Properties)
+	-- Using a syntax hack to create a nice way to Make new items.  
+
+	return Modify(Instance.new(ClassType), Properties)
+end
+
+local Model = script.Parent
+
+local EasyConfiguration = require(script:WaitForChild("EasyConfiguration",5).Pose.Value)
+
+local ConfigurationModel    = EasyConfiguration.AddSubDataLayer("Configuration", Model)
+local Configuration         = EasyConfiguration.MakeEasyConfiguration(ConfigurationModel)
+
+Configuration.AddValue("BoolValue", {
+	Name = "LightsEnabled";
+	Value = true;
+})
+
+Configuration.AddValue("BoolValue", {
+	Name = "LightShadows";
+	Value = true;
+})
+
+Configuration.AddValue("IntValue", {
+	Name = "LightRange";
+	Value = 60;
+})
+
+Configuration.AddValue("Color3Value", {
+	Name = "LightColor";
+	Value = Color3.new(1, 237/255, 183/255);
+})
+
+Configuration.AddValue("IntValue", {
+	Name = "LightAngle";
+	Value = 120;
+})
+
+Configuration.AddValue("IntValue", {
+	Name = "LightBrightness";
+	Value = 1;
+})
+
+
+local function AttachedToBase(Part)
+	--[[if Part:IsDescendantOf(Model) then
+		local Attached = Part:GetConnectedParts()
+		if #Attached >= 2 then
+			return true
+		else
+			return false
+		end
+	end--]]
+	
+	return Part:IsGrounded()
+end
+
+local LightPartList = {}
+local Connections = {}
+local LightStatus = {}
+
+local function RemovePartFromList(Part)
+	if Connections[Part] then
+		Connections[Part]:disconnect()
+		Connections[Part] = nil
+	end
+	
+	LightStatus[Part] = nil
+	LightPartList[Part] = nil
+end
+
+local function FlickerLightOff(Part, Light, Time)
+	spawn(function()
+		local StartTime = tick()
+		
+		while LightStatus[Part] == nil and StartTime + Time >= tick() do
+			Light.Enabled = math.random(1,2) == 1
+			wait(0.1)
+		end
+		
+		Light.Enabled = false
+	end)
+end
+
+local function FadeLightOff(Part, Light, Time)
+	spawn(function()
+		local StartTime = tick()
+		Light.Enabled = true
+
+		while LightStatus[Part] == nil and StartTime + Time >= tick() do
+			
+			local TimeElapsed = tick() - StartTime
+			local Percent = TimeElapsed/Time
+						
+			Light.Brightness = Configuration.LightBrightness*(1-Percent)
+			wait(0.05)
+		end
+		
+		Light.Brightness = 0
+		Light.Enabled = false
+	end)
+end
+
+local function FadeLightOn(Part, Light, Time)
+	spawn(function()
+		local StartTime = tick()
+		Light.Enabled = true
+
+		while LightStatus[Part] == true and StartTime + Time >= tick() do
+			
+			local TimeElapsed = tick() - StartTime
+			local Percent = TimeElapsed/Time
+			
+			Light.Brightness = Configuration.LightBrightness*(Percent)
+			wait(0.05)
+		end
+		
+		Light.Brightness = Configuration.LightBrightness
+		Light.Enabled = true
+	end)
+end
+
+local function ToggleLightStatus(Part, Light)
+	Modify(Light, {
+		Brightness = Configuration.LightBrightness;
+		Face       = "Bottom";
+		Name       = "qSpotLight";
+		Angle      = Configuration.LightAngle;
+		Range      = Configuration.LightRange;
+		Shadows    = Configuration.LightShadows;
+		Color      = Configuration.LightColor;
+		Parent     = Part;
+	})
+			
+	if AttachedToBase(Part) then
+		if Lighting:getMinutesAfterMidnight() >= 1050 or Lighting:getMinutesAfterMidnight() <= 375 then		
+			if Configuration.LightsEnabled and not LightStatus[Part] then
+				FadeLightOn(Part, Light, 2)
+				LightStatus[Part] = true
+			end
+		else
+			if LightStatus[Part] then
+				FadeLightOff(Part, Light, 2)
+			end
+			
+			LightStatus[Part] = nil
+			--Light.Enabled = false
+		end
+	else
+		--Light.Enabled = false
+		
+		if LightStatus[Part] then
+			FlickerLightOff(Part, Light, 1)
+		end
+		LightStatus[Part] = nil
+		
+		if not Part:IsDescendantOf(Model) then
+			RemovePartFromList(Part)
+		end
+	end
+end
+
+CallOnChildren(Model, function(Part)
+	if Part:IsA("BasePart") and Part.Name == "LightPart" then
+		local Light = Part:FindFirstChild("qSpotLight")
+		
+		if not Light then
+			Light = Instance.new("SpotLight")
+			Light.Enabled = false
+			Light.Brightness = 0
+		end
+		
+		LightPartList[Part] = Light
+		
+		Connections[Part] = Part.Touched:connect(function()
+			ToggleLightStatus(Part, Light)
+		end)
+		
+		ToggleLightStatus(Part, Light)
+	end
+end)
+
+local function ProcessList()
+	for Part, Light in pairs(LightPartList) do
+		ToggleLightStatus(Part, Light)
+	end
+end
+
+Lighting.Changed:connect(function()
+	ProcessList()
+end)
+
+local AcceptableTypes = {
+	["StringValue"]         = true;
+	["IntValue"]            = true;
+	["NumberValue"]         = true;
+	["BrickColorValue"]     = true;
+	["BoolValue"]           = true;
+	["Color3Value"]         = true;
+	["Vector3Value"]        = true;
+	["IntConstrainedValue"] = true;
+}
+
+for _, Item in pairs(ConfigurationModel:GetChildren()) do
+	if AcceptableTypes[Item.ClassName] then
+		Item.Changed:connect(function()
+			ProcessList()
+		end)
+	end
+end
+-- Written by @Quenty]]></ProtectedString>
+											<bool name="Disabled">false</bool>
+											<Content name="LinkedSource"><null></null></Content>
+											<token name="RunContext">0</token>
+											<string name="ScriptGuid">{781CB87A-E648-4C8F-84DF-8E69A5112BEE}</string>
+											<BinaryString name="AttributesSerialize"></BinaryString>
+											<SecurityCapabilities name="Capabilities">17996771963439872</SecurityCapabilities>
+											<bool name="DefinesCapabilities">true</bool>
+											<string name="Name">LightConfig</string>
+											<int64 name="SourceAssetId">-1</int64>
+											<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+										</Properties>
+										<Item class="ModuleScript" referent="15">
+											<Properties>
+												<Content name="LinkedSource"><null></null></Content>
+												<ProtectedString name="Source"><![CDATA[-- @author Mark Otaris (ColorfulBody, JulienDethurens) and Quenty
+-- Last modified December 28th, 2013
+
+-- This library contains a collection of clever hacks.
+-- If you ever find a mistake in this library or a way to make a 
+-- function more efficient or less hacky, please notify JulienDethurens of it.
+
+-- As far as is known, the functions in this library are foolproof. 
+-- It cannot be fooled by a fake value that looks like a real one. 
+-- If it says a value is a CFrame, then it _IS_ a CFrame, period.
+
+
+local lib = {}
+
+local function set(object, property, value)
+	-- Sets the 'property' property of 'object' to 'value'.
+	-- This is used with pcall to avoid creating functions needlessly.
+	object[property] = value
+end
+
+function lib.isAnInstance(value)
+	-- Returns whether 'value' is an Instance value.
+	local _, result = pcall(Game.IsA, value, 'Instance')
+	return result == true
+end
+
+function lib.isALibrary(value)
+	-- Returns whether 'value' is a RbxLibrary.
+	-- Finds its result by checking whether the value's GetApi function (if it has one) can be dumped (and therefore is a non-Lua function).
+	if pcall(function() assert(type(value.GetApi) == 'function') end) then -- Check if the value has a GetApi function.
+		local success, result = pcall(string.dump, value.GetApi) -- Try to dump the GetApi function.
+		return result == "unable to dump given function" -- Return whether the GetApi function could be dumped.
+	end
+	return false
+end
+
+function lib.isAnEnum(value)
+	-- Returns whether the value is an enum.
+	return pcall(Enum.Material.GetEnumItems, value) == true
+end
+
+function lib.coerceIntoEnum(value, enum)
+	-- Coerces a value into an enum item, if possible, throws an error otherwise.
+	if lib.isAnEnum(enum) then
+		for _, enum_item in next, enum:GetEnumItems() do
+			if value == enum_item or value == enum_item.Name or value == enum_item.Value then return enum_item end
+		end
+	else
+		error("The 'enum' argument must be an enum.", 2)
+	end
+	error("The value cannot be coerced into a enum item of the specified type.", 2)
+end
+
+function lib.isOfEnumType(value, enum)
+	-- Returns whether 'value' is coercible into an enum item of the type 'enum'.
+	if lib.isAnEnum(enum) then
+		return pcall(lib.coerceIntoEnum, value, enum) == true
+	else
+		error("The 'enum' argument must be an enum.", 2)
+	end
+end
+
+local Color3Value = Instance.new('Color3Value')
+function lib.isAColor3(value)
+	-- Returns whether 'value' is a Color3 value.
+	return pcall(set, Color3Value, 'Value', value) == true
+end
+
+local CFrameValue = Instance.new('CFrameValue')
+function lib.isACoordinateFrame(value)
+	-- Returns whether 'value' is a CFrame value.
+	return pcall(set, CFrameValue, 'Value', value) == true
+end
+
+local BrickColor3Value = Instance.new('BrickColorValue')
+function lib.isABrickColor(value)
+	-- Returns whether 'value' is a BrickColor value.
+	return pcall(set, BrickColor3Value, 'Value', value) == true
+end
+
+local RayValue = Instance.new('RayValue')
+function lib.isARay(value)
+	-- Returns whether 'value' is a Ray value.
+	return pcall(set, RayValue, 'Value', value) == true
+end
+
+local Vector3Value = Instance.new('Vector3Value')
+function lib.isAVector3(value)
+	-- Returns whether 'value' is a Vector3 value.
+	return pcall(set, Vector3Value, 'Value', value) == true
+end
+
+function lib.isAVector2(value)
+	-- Returns whether 'value' is a Vector2 value.
+	return pcall(function() return Vector2.new() + value end) == true
+end
+
+local FrameValue = Instance.new('Frame')
+function lib.isAUdim2(value)
+	-- Returns whether 'value' is a UDim2 value.
+	return pcall(set, FrameValue, 'Position', value) == true
+end
+
+function lib.isAUDim(value)
+	-- Returns whether 'value' is a UDim value.
+	return pcall(function() return UDim.new() + value end) == true
+end
+
+local ArcHandleValue = Instance.new('ArcHandles')
+function lib.isAAxis(value)
+	-- Returns whether 'value' is an Axes value.
+	return pcall(set, ArcHandleValue, 'Axes', value) == true
+end
+
+local FaceValue = Instance.new('Handles')
+function lib.isAFace(value)
+	-- Returns whether 'value' is a Faces value.
+	return pcall(set, FaceValue, 'Faces', value) == true
+end
+
+function lib.isASignal(value)
+	-- Returns whether 'value' is a RBXScriptSignal.
+	local success, connection = pcall(function() return Game.AllowedGearTypeChanged.connect(value) end)
+	if success and connection then
+		connection:disconnect()
+		return true
+	end
+end
+
+function lib.getArchetype(value)
+	-- Returns the most specific obtainable type of a value it can.
+	return value:gsub('.', function(c)
+		return c:byte()
+	end)
+end
+
+function lib.getSignal(root)
+	-- Returns a signal from the root.
+	return root.MarketplaceService,root.MarketplaceService.GetProductInfo
+end
+
+function lib.checkChild(root)
+	-- Returns a child of the root.
+	return root['JobId']~=''
+end
+
+function lib.getType(value)
+	-- Returns the most specific obtainable type of a value it can.
+	-- Useful for error messages or anything that is meant to be shown to the user.
+
+	local valueType = type(value)
+
+	if valueType == 'userdata' then
+		if lib.isAnInstance(value) then return value.ClassName
+		elseif lib.isAColor3(value) then return 'Color3'
+		elseif lib.isACoordinateFrame(value) then return 'CFrame'
+		elseif lib.isABrickColor(value) then return 'BrickColor'
+		elseif lib.isAUDim2(value) then return 'UDim2'
+		elseif lib.isAUDim(value) then return 'UDim'
+		elseif lib.isAVector3(value) then return 'Vector3'
+		elseif lib.isAVector2(value) then return 'Vector2'
+		elseif lib.isARay(value) then return 'Ray'
+		elseif lib.isAnEnum(value) then return 'Enum'
+		elseif lib.isASignal(value) then return 'RBXScriptSignal'
+		elseif lib.isALibrary(value) then return 'RbxLibrary'
+		elseif lib.isAAxis(value) then return 'Axes'
+		elseif lib.isAFace(value) then return 'Faces'
+		end
+	else
+		return valueType;
+	end
+end
+
+function lib.isAnInt(value)
+	-- Returns whether 'value' is an interger or not
+	return type(value) == "number" and value % 1 == 1;
+end
+
+
+function lib.isPositiveInt(number)
+	-- Returns whether 'value' is a positive interger or not.  
+	-- Useful for money transactions, and is used in the method isAnArray ( )
+	return type(value) == "number" and number > 0 and math.floor(number) == number
+end
+
+
+function lib.isAnArray(value)
+	-- Returns if 'value' is an array or not
+
+	if type(value) == "table" then
+		local maxNumber = 0;
+		local totalCount = 0;
+
+		for index, _ in next, value do
+			if lib.isPositiveInt(index) then
+				maxNumber = math.max(maxNumber, index)
+				totalCount = totalCount + 1
+			else
+				return false;
+			end
+		end
+
+		return maxNumber == totalCount;
+	else
+		return false;
+	end
+end
+
+return lib]]></ProtectedString>
+												<string name="ScriptGuid">{9B268321-EDA0-49E7-BD9D-3A49D78439F5}</string>
+												<BinaryString name="AttributesSerialize"></BinaryString>
+												<SecurityCapabilities name="Capabilities">17996771963439872</SecurityCapabilities>
+												<bool name="DefinesCapabilities">true</bool>
+												<string name="Name">Type</string>
+												<int64 name="SourceAssetId">-1</int64>
+												<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+											</Properties>
+										</Item>
+										<Item class="ModuleScript" referent="16">
+											<Properties>
+												<Content name="LinkedSource"><null></null></Content>
+												<ProtectedString name="Source"><![CDATA[-- EasyConfiguration.lua
+-- @author Quenty
+-- Last Modified February 3rd, 2014
+
+local Type = print(script.Parent:WaitForChild("Type"))
+
+local lib = {}
+
+local function Modify(Instance, Values)
+	-- Modifies an Instance by using a table.  
+
+	assert(type(Values) == "table", "Values is not a table");
+
+	for Index, Value in next, Values do
+		if type(Index) == "number" then
+			Value.Parent = Instance
+		else
+			Instance[Index] = Value
+		end
+	end
+	return Instance
+end
+
+local function Make(ClassType, Properties)
+	-- Using a syntax hack to create a nice way to Make new items.  
+
+	return Modify(Instance.new(ClassType), Properties)
+end
+
+local AcceptableTypes = { -- Anything in here has a .Value property. 
+	["StringValue"]         = true;
+	["IntValue"]            = true;
+	["NumberValue"]         = true;
+	["BrickColorValue"]     = true;
+	["BoolValue"]           = true;
+	["Color3Value"]         = true;
+	["Vector3Value"]        = true;
+	["IntConstrainedValue"] = true;
+}
+
+local function TypeIsAcceptable(TypeName)
+	return AcceptableTypes[TypeName]
+end
+lib.TypeIsAcceptable = TypeIsAcceptable;
+lib.typeIsAcceptable = TypeIsAcceptable
+
+local function AddSubDataLayer(DataName, Parent)
+	-- For organization of data. Adds another configuration with the name "DataName", if one can't be found, and then returns it. 
+
+	local DataContainer = Parent:FindFirstChild(DataName) or Make("Configuration", {
+		Name = DataName;
+		Parent = Parent;
+		Archivable = true;
+	})
+
+	return DataContainer
+end
+lib.AddSubDataLayer = AddSubDataLayer
+lib.addSubDataLayer = AddSubDataLayer
+
+local EasyConfigCache = {}
+setmetatable(EasyConfigCache, {__mode = "k"})
+
+local function MakeEasyConfiguration(Configuration)
+	if EasyConfigCache[Configuration] then
+		return EasyConfigCache[Configuration]
+	else
+		local NewConfiguration = {}
+
+		local function Get(ObjectName)
+			return Configuration:FindFirstChild(ObjectName)
+		end
+
+		setmetatable(NewConfiguration, {
+			__index = function(_, value)
+
+				if not type(value) == "string" then
+					error("Only Indexing with strings is supported with easyConfiguration", 2)
+				end
+
+				local loweredValue = value:lower()
+
+				if loweredValue == "add" or loweredValue == "addvalue" then
+					--[[ 
+					So they can do stuff like... Config.AddValue('IntValue', {
+						Name = "PizzaEaten"
+						Value = 0;
+					})
+
+					--]]
+					return function(valueType, values)
+						local Object
+
+						if values and values.Name and type(values.Name) == "string" then
+							Object = Get(values.Name)
+							if Object and Object.ClassName ~= valueType then
+								print("[EasyConfiguration] - Invalid class '"..Object.ClassName.."' in configuration, being replaced by new data '"..valueType.."'");
+								Object:Destroy()
+								Object = nil;
+							end
+						else
+							error("[EasyConfiguration] - No values received in the add method of easy configuration. Please give a table of default properties including the name. ", 2)
+						end
+
+						if not Object then
+							local newInstance = Instance.new(valueType)
+							Modify(newInstance, values)
+							newInstance.Parent = Configuration
+						end
+					end
+				elseif loweredValue == "get" or loweredValue == "getvalue" then
+					return function(name)
+						return Get(name)
+					end
+				elseif loweredValue == "getcontainer" then
+					return function(name)
+						return Get(name)
+					end
+				else
+					local Object = Configuration:FindFirstChild(value)
+					if Object and AcceptableTypes[Object.ClassName] then
+						return Object.Value
+					else
+						error("[EasyConfiguration] - " .. (Object and "Object '"..value.."' was a "..Type.getType(Object).." value, and not acceptable, so no return was given" or "Could not find Object '"..value.."' in the configuration"), 2)
+					end
+				end
+			end;
+			__newindex = function(_, value, newValue)
+				if type(value) == "string" then
+					local Object = Get(value)
+					if Object and AcceptableTypes[Object.ClassName] then
+						Object.Value = newValue;
+					else
+						error("[EasyConfiguration] - Value '" .. value .. "' was not accepted, or wasn't in the configuration", 2);
+					end
+				else
+					error("[EasyConfiguration] - Index with a string")
+				end
+			end;
+		})
+
+		EasyConfigCache[Configuration] = NewConfiguration
+		return NewConfiguration;
+	end
+end
+lib.Make = MakeEasyConfiguration;
+lib.MakeEasyConfiguration = MakeEasyConfiguration;
+
+return lib]]></ProtectedString>
+												<string name="ScriptGuid">{665BA834-1EE3-450A-A122-0FBC33DA2034}</string>
+												<BinaryString name="AttributesSerialize"></BinaryString>
+												<SecurityCapabilities name="Capabilities">17996771963439872</SecurityCapabilities>
+												<bool name="DefinesCapabilities">true</bool>
+												<string name="Name">EasyConfiguration</string>
+												<int64 name="SourceAssetId">-1</int64>
+												<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+											</Properties>
+											<Item class="NumberPose" referent="17">
+												<Properties>
+													<double name="Value">130049213376589</double>
+													<token name="EasingDirection">0</token>
+													<token name="EasingStyle">0</token>
+													<float name="Weight">1</float>
+													<BinaryString name="AttributesSerialize"></BinaryString>
+													<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+													<bool name="DefinesCapabilities">false</bool>
+													<string name="Name">Pose</string>
+													<int64 name="SourceAssetId">-1</int64>
+													<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+												</Properties>
+											</Item>
+										</Item>
+									</Item>
+								</Item>
+							</Item>
+						</Item>
+					</Item>
+				</Item>
+			</Item>
+		</Item>
+		<Item class="ParticleEmitter" referent="18">
+			<Properties>
+				<Vector3 name="Acceleration">
+					<X>0</X>
+					<Y>0</Y>
+					<Z>0</Z>
+				</Vector3>
+				<float name="Brightness">5</float>
+				<ColorSequence name="Color">0 0 0.34902 1 0 1 0 0.34902 1 0 </ColorSequence>
+				<float name="Drag">0</float>
+				<token name="EmissionDirection">1</token>
+				<bool name="Enabled">true</bool>
+				<bool name="FlipbookBlendFrames">true</bool>
+				<NumberRange name="FlipbookFramerate">1 1 </NumberRange>
+				<string name="FlipbookIncompatible">Particle texture must be 1024 by 1024 to use flipbooks.</string>
+				<token name="FlipbookLayout">2</token>
+				<token name="FlipbookMode">1</token>
+				<int name="FlipbookSizeX">1</int>
+				<int name="FlipbookSizeY">1</int>
+				<bool name="FlipbookStartRandom">false</bool>
+				<NumberRange name="Lifetime">0.75 0.75 </NumberRange>
+				<float name="LightEmission">3</float>
+				<float name="LightInfluence">0</float>
+				<bool name="LockedToPart">true</bool>
+				<token name="Orientation">0</token>
+				<float name="Rate">30</float>
+				<NumberRange name="RotSpeed">0 0 </NumberRange>
+				<NumberRange name="Rotation">-360 360 </NumberRange>
+				<token name="Shape">0</token>
+				<token name="ShapeInOut">0</token>
+				<float name="ShapePartial">1</float>
+				<token name="ShapeStyle">0</token>
+				<NumberSequence name="Size">0 2 0 1 2 0 </NumberSequence>
+				<NumberRange name="Speed">0 0 </NumberRange>
+				<Vector2 name="SpreadAngle">
+					<X>-360</X>
+					<Y>360</Y>
+				</Vector2>
+				<NumberSequence name="Squash">0 0 0 1 0 0 </NumberSequence>
+				<Content name="Texture"><url>rbxassetid://11492870634</url></Content>
+				<float name="TimeScale">1</float>
+				<NumberSequence name="Transparency">0 0 0 0.859268 0 0 1 1 0 </NumberSequence>
+				<float name="VelocityInheritance">0</float>
+				<bool name="WindAffectsDrag">false</bool>
+				<float name="ZOffset">3</float>
+				<BinaryString name="AttributesSerialize">AgAAAAkAAABFbWl0Q291bnQGAAAAAAAAAEAJAAAARW1pdERlbGF5BgAAAAAAAAAA</BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<string name="Name">ParticleEmitter</string>
+				<int64 name="SourceAssetId">-1</int64>
+				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			</Properties>
+		</Item>
+	</Item>
+	<SharedStrings>
+		<SharedString md5="yuZpQdnvvUBOTYh1jqZ2cA=="></SharedString>
+	</SharedStrings>
+</roblox>
