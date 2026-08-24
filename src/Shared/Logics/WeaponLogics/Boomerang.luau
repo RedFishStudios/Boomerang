@@ -24,6 +24,7 @@ local GameTeamLibrary = require(ReplicatedStorage.Shared.Library.GameTeamLibrary
 local CombatLibrary = require(ReplicatedStorage.Shared.Library.CombatLibrary)
 local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
 local SharedTasks = require(ReplicatedStorage.Shared.Constants.SharedTasks)
+local HomingBoomerang = require(ReplicatedStorage.Shared.Logics.PickupLogics.HomingBoomerang)
 local HttpService = game:GetService("HttpService")
 
 local AnimationController
@@ -106,6 +107,37 @@ local function getHorizontalDirection(direction: Vector3): Vector3
       return Vector3.new(0, 0, -1)
    end
    return horizontal.Unit
+end
+
+local function getNearestEnemyDirection(player: Player, position: Vector3): Vector3?
+   local nearestDirection = nil
+   local nearestDistance = math.huge
+
+   for _, otherPlayer in ipairs(Players:GetPlayers()) do
+      if otherPlayer == player or not GameTeamLibrary.areEnemies(player, otherPlayer) then
+         continue
+      end
+
+      local character = otherPlayer.Character
+      local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+      local rootPart = character and character.PrimaryPart
+      if not humanoid or humanoid.Health <= 0 or not rootPart then
+         continue
+      end
+
+      local toTarget = Vector3.new(
+         rootPart.Position.X - position.X,
+         0,
+         rootPart.Position.Z - position.Z
+      )
+      local distance = toTarget.Magnitude
+      if distance > 1e-5 and distance < nearestDistance then
+         nearestDistance = distance
+         nearestDirection = toTarget.Unit
+      end
+   end
+
+   return nearestDirection
 end
 
 -- // Update the rotation of the trail based on the boomerang's movement
@@ -700,6 +732,15 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       end
 
       local rayOrigin = pivot.Position
+
+      if isServer and thrownWeaponData.Homing then
+         local targetDirection = getNearestEnemyDirection(player, rayOrigin)
+         if targetDirection then
+            local homingAlpha = math.clamp(HomingBoomerang.HOMING_INFLUENCE * deltaTime, 0, 1)
+            direction = getHorizontalDirection(direction:Lerp(targetDirection, homingAlpha))
+         end
+      end
+
       local rayDistance = speed * deltaTime
 
       -- Distance-based recall
@@ -835,7 +876,7 @@ function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapo
       fireDespawned(player.UserId, returnToPlayer)
       SharedTasks.ThrownWeaponRemoved:Execute("serial", player, thrownWeaponData.ToolId)
       if returnToPlayer then
-         WeaponService.WeaponReturnedTasks:Execute("parallel", player, thrownWeaponData.ToolId)
+         SharedTasks.WeaponReturnedTasks:Execute("parallel", player, thrownWeaponData.ToolId)
       end
    elseif returnToPlayer then
       SoundLibrary.play(thrownWeaponData.InstanceId, Sounds.Data.BoomerangCatch.Name, player.Character)

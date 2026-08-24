@@ -206,7 +206,7 @@ function ClashService.init()
    PlayersUtil.PlayerRemoving:Add(function(player)
       clearAllClashRecords(player)
    end)
-   WeaponService.WeaponReturnedTasks:Add(function(player: Player)
+   SharedTasks.WeaponReturnedTasks:Add(function(player: Player)
       clearAllClashRecords(player)
    end)
 end

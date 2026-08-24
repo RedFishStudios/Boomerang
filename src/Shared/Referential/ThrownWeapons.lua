@@ -30,6 +30,7 @@ export type Data = {
    SyncTargetPosition: Vector3?,
    ServerDirection: Vector3?,
    ServerSpeed: number?,
+   Homing: boolean?,
    ReuseEquippedHost: boolean?,
    ExistingHost: Model?,
    LastMovementPositions: {Vector3}?,

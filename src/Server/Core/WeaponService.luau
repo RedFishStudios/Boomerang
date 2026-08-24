@@ -29,6 +29,7 @@ local AnimationService = require(ServerStorage.Server.Core.AnimationService)
 local CharacterService = require(ServerStorage.Server.Core.CharacterService)
 local HitboxService = require(ServerStorage.Server.Core.HitboxService)
 local PlayerStatsLibrary = require(ReplicatedStorage.Shared.Library.PlayerStatsLibrary)
+local SharedTasks = require(ReplicatedStorage.Shared.Constants.SharedTasks)
 
 local ToolLogics = ReplicatedStorage.Shared.Logics.WeaponLogics
 local ToolLogicModules = {}
@@ -46,8 +47,6 @@ local AIM_WALK_SPEED_RETURN_TWEEN_EXPONENT = 2.0
 -- TYPES
 -------------------------------------------------------------------------------
 
-type WeaponThrownTask = (player: Player, toolId: string) -> ()
-type WeaponReturnedTask = (player: Player, toolId: string) -> ()
 type WeaponKilledPlayerTask = (attacker: Player, victim: Player, toolId: string) -> ()
 type WeaponStruckObjectTask = (player: Player, toolId: string, raycastResult: RaycastResult) -> ()
 type WeaponReachedEventPointTask = (player: Player, toolId: string, position: Vector3) -> ()
@@ -131,8 +130,6 @@ end
 -- PUBLIC VARIABLES
 -------------------------------------------------------------------------------
 
-WeaponService.WeaponThrownTasks = TasksList.new() :: TasksList.TasksList<WeaponThrownTask>
-WeaponService.WeaponReturnedTasks = TasksList.new() :: TasksList.TasksList<WeaponReturnedTask>
 WeaponService.WeaponKilledPlayer = TasksList.new() :: TasksList.TasksList<WeaponKilledPlayerTask>
 WeaponService.WeaponStruckObject = TasksList.new() :: TasksList.TasksList<WeaponStruckObjectTask>
 WeaponService.WeaponReachedEventPoint = TasksList.new() :: TasksList.TasksList<WeaponReachedEventPointTask>
@@ -240,7 +237,7 @@ local function throwForPlayer(
       TimeSinceAiming = timeSinceAiming,
       AimStrengthAlpha = aimStrengthAlpha,
    })
-   WeaponService.WeaponThrownTasks:Execute("parallel", player, toolId)
+   SharedTasks.WeaponThrownTasks:Execute("serial", player, toolId)
 end
 
 -------------------------------------------------------------------------------
@@ -416,13 +413,13 @@ function WeaponService.init()
 	end
 
    -- // Boomerang visibility/removing visibility from client
-   WeaponService.WeaponThrownTasks:Add(function(player: Player, toolId: string)
+   SharedTasks.WeaponThrownTasks:Add(function(player: Player, toolId: string)
       if equippedToolIds[player] then
          equippedToolVisible[player] = false
          weaponEquipStateEvent:FireAllClients(player.UserId, "SetVisible", false)
       end
    end)
-   WeaponService.WeaponReturnedTasks:Add(function(player: Player, toolId: string)
+   SharedTasks.WeaponReturnedTasks:Add(function(player: Player, toolId: string)
       if equippedToolIds[player] then
          equippedToolVisible[player] = true
          weaponEquipStateEvent:FireAllClients(player.UserId, "SetVisible", true)
