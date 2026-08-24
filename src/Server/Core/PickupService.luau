@@ -133,7 +133,6 @@ local function activatePickup(player: Player, livePickupId: LivePickupId, ...)
       return
    end
 
-   
    -- // Grant random pickup class
    local pickupClassId
    if GlobalConfig.ForceOverwritePickup then
@@ -153,6 +152,8 @@ local function activatePickup(player: Player, livePickupId: LivePickupId, ...)
       warn(`PickupService.activatePickup: No available pickup class for player {player.Name}`)
       pickupClassId = availablePickupClasses[math.random(1, #availablePickupClasses)]
    end
+
+   print(`Activating pickup {pickupClassId} for player {player.Name}`)
 
    local logic = getLogic(pickupClassId)
    if not logic then
@@ -204,6 +205,7 @@ function PickupService.triggerEnd(player: Player, pickupClassId: string)
 end
 
 function PickupService.createLivePickupAtPosition(position: Vector3, pickupClassId: string?)
+   print("creating live pickup at position: ", position)
    local uuid = HttpService:GenerateGUID(false)
    local despawnTime = workspace:GetServerTimeNow() + DESPAWN_TIME
    PickupLibrary.LivePickups[uuid] = {
@@ -220,6 +222,7 @@ function PickupService.createLivePickupAtPosition(position: Vector3, pickupClass
          }
       }
    }
+   print("replicating")
    livePickupReplication:FireAllClients(replicationData)
 end
 
@@ -273,6 +276,7 @@ function PickupService.init()
             }
             replicationData.Spawned[uuid] = {
                DespawnsAt = now + DESPAWN_TIME,
+               Position = spawn.Position,
             }
          end
       end

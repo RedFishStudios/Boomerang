@@ -31,12 +31,7 @@ export type PickupClassId = string -- Name of the pickup logic module
 
 export type LivePickupReplicationData = {
    ClearAll: true?,
-   Spawned: {
-      [LivePickupId]: {
-         Position: Vector3,
-         DespawnsAt: number
-      }
-   }?,
+   Spawned: { [LivePickupId]: LivePickupData }?,
    Despawned: {LivePickupId}?
 }
 

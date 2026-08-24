@@ -237,7 +237,7 @@ function PlayerDataService.start()
 				player:SetAttribute("DataInitialized", true)
 				PlayerDataService.ProfileAddedTasks:Execute("parallel", player, profile.DataProxy, profile)
 
-				warn(`Loaded profile for {player.Name}: `, profile)
+				--warn(`Loaded profile for {player.Name}: `, profile)
 			else
 				profile:EndSession()
 			end

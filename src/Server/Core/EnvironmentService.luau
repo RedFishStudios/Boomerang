@@ -91,7 +91,27 @@ function EnvironmentService.start()
             continue
          end
 
+         -- // Custom modules
          local className = attributes["ClassName"]
+         if className == "Custom" then
+            local logicModule = c:FindFirstChildWhichIsA("ModuleScript")
+            if logicModule then
+               local m = require(logicModule)
+               if not m.validate or not m.onObjectAdded then
+                  warn(`Custom functional object {c.Name} missing validate or onObjectAdded function`)
+                  c:SetAttribute("Invalid", true)
+                  continue
+               end
+               local Valid = m.validate(c)
+               if not Valid then
+                  c:SetAttribute("Invalid", true)
+                  continue
+               end
+            end
+            continue
+         end
+
+         -- // Common class modules
          local logicModule = EnvironmentLogicModules[className]
          if not logicModule then
             warn(`No logic module found for functional object class {className}`)
@@ -136,8 +156,20 @@ function EnvironmentService.start()
             continue
          end
          local className = attributes["ClassName"]
-         local logicModule = EnvironmentLogicModules[className]
-         logicModule.onObjectAdded(c)
+
+         if className == "Custom" then
+            local logicModule = c:FindFirstChildWhichIsA("ModuleScript")
+            if not logicModule then
+               warn(`No logic module found for custom functional object {c.Name}`)
+               c:SetAttribute("Invalid", true)
+               continue
+            end
+            local m = require(logicModule)
+            m.onObjectAdded(c)
+         else
+            local logicModule = EnvironmentLogicModules[className]
+            logicModule.onObjectAdded(c)
+         end
       end
    end)
 end
