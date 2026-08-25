@@ -60,6 +60,8 @@ local function clearZapped(player: Player)
    end
    zappedPlayers[player] = nil
 
+   PickupLibrary.removePickupEffectActiveByClassId(player.UserId, "Zapped")
+
    if player.Character == state.Character then
       state.Character.PrimaryPart.Anchored = false
    end
@@ -103,6 +105,7 @@ local function applyZapped(player: Player, sourceWater: Instance?)
       state.SourceWaters[sourceWater] = true
       state.EndsAt = electrifiedWaters[sourceWater].ExpiresAt + ZAP_LENGTH
    end
+   
    zappedPlayers[player] = state
    rootPart.Anchored = true
 
@@ -112,6 +115,7 @@ local function applyZapped(player: Player, sourceWater: Instance?)
    local particleId = `ElectricPlayer_{player.UserId}_{workspace:GetServerTimeNow()}`
    ParticlesLibrary.play(particleId, "ElectricPlayer", rootPart, nil, state.EndsAt - now)
    SoundLibrary.play(particleId, Sounds.Data.Zapped.Name, rootPart)
+   PickupLibrary.setPickupEffectActive(player.UserId, "Zapped", "Zapped")
    playZappedAnimation:FireClient(player, true)
 end
 

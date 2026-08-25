@@ -3,6 +3,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
 local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
+local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
 
 local WeaponLibrary = {}
 
@@ -19,6 +20,11 @@ function WeaponLibrary.canThrow(player: Player, toolId: string): boolean
 
    if ThrownWeapons.Data[player] then
       print("player already has thrown weapon")
+      return false
+   end
+
+   if PickupLibrary.hasPickupEffectActive(player.UserId, "Zapped") then
+      print("player is zapped")
       return false
    end
 

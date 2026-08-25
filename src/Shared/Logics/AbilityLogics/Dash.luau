@@ -16,6 +16,7 @@ local ParticlesLibrary = require(ReplicatedStorage.Shared.Library.ParticlesLibra
 local HitboxLibrary = require(ReplicatedStorage.Shared.Library.HitboxLibrary)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local PlayerStatsLibrary = require(ReplicatedStorage.Shared.Library.PlayerStatsLibrary)
+local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
 
 local PlayDash = SimpleRemotes.getEvent("PlayDash")
 
@@ -93,6 +94,10 @@ end
 
 function Dash.canActivate(player: Player)
    if isPlayerAiming(player) then
+      return false
+   end
+
+   if PickupLibrary.hasPickupEffectActive(player.UserId, "Zapped") then
       return false
    end
 

@@ -15,6 +15,7 @@ local HitboxLibrary = require(ReplicatedStorage.Shared.Library.HitboxLibrary)
 local ParticlesLibrary = require(ReplicatedStorage.Shared.Library.ParticlesLibrary)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local CombatLibrary = require(ReplicatedStorage.Shared.Library.CombatLibrary)
+local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
 
 local isServer = RunService:IsServer()
 
@@ -437,6 +438,10 @@ end
 
 function Stab.canActivate(player: Player): boolean
    if isPlayerAiming(player) then
+      return false
+   end
+
+   if PickupLibrary.hasPickupEffectActive(player.UserId, "Zapped") then
       return false
    end
 

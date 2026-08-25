@@ -241,8 +241,8 @@ local function ensureAnimationTracksForCurrentCharacter(player: Player, yield: n
    return getPlayerTracks(player)
 end
 
-local function playCoreAnimationLocal(player: Player, coreTrackName: CoreTrackNames)
-   print(`playing core animation {coreTrackName} for {player}`)
+local function playCoreAnimationLocal(player: Player, coreTrackName: CoreTrackNames, debug: string?)
+   print(`playing core animation {coreTrackName} for {player} for {debug}`)
    local tracks = ensureAnimationTracksForCurrentCharacter(player, 10)
    if not tracks then
       warn(`animationtracks.playCoreAnimation failed, no tracks for {player}`)
@@ -261,7 +261,7 @@ local function playCoreAnimationLocal(player: Player, coreTrackName: CoreTrackNa
       return
    end
 
-   print("calling :Play")
+   print("calling :Play on " .. coreTrackName)
    trackData.Track:Play(animationData.FadeIn)
 
    task.spawn(function()
@@ -313,8 +313,8 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
-function AnimationController.playCoreAnimation(player: Player, coreTrackName: CoreTrackNames)
-   playCoreAnimationLocal(player, coreTrackName)
+function AnimationController.playCoreAnimation(player: Player, coreTrackName: CoreTrackNames, debug: string?)
+   playCoreAnimationLocal(player, coreTrackName, debug)
 end
 
 function AnimationController.stopAllCoreAnimations(player: Player)
