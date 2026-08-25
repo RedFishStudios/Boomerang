@@ -17,9 +17,9 @@ function CustomObjectBecomesPickup.onObjectAdded(functionalChild: Instance)
    table.insert(SessionDestroyers[functionalChild], SharedTasks.ThrownWeaponHitObject:Add(function(player: Player, toolId: string, hitObject: Instance, hitPosition: Vector3)
       if hitObject == functionalChild then
          PickupService.createLivePickupAtPosition(hitPosition)
+         hitObject:Destroy()
+         CustomObjectBecomesPickup.cleanup(functionalChild)
       end
-      hitObject:Destroy()
-      CustomObjectBecomesPickup.cleanup(functionalChild)
    end))
 end
 
