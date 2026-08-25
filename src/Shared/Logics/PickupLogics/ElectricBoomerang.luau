@@ -71,7 +71,7 @@ local function applyZapped(player: Player, sourceWater: Instance?)
       return
    end
 
-   local currentPhase = GameStateLibrary.getGameStateData().GameplayPhase
+   local currentPhase = GameStateLibrary.getGameStateData().GameplayPhase:Get()
    if currentPhase ~= GameplayPhaseEnums.RoundActive then
       return
    end
