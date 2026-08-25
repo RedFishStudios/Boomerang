@@ -35,7 +35,8 @@ local Animations: {
       Layer = "WeaponAction",
       FadeIn = .2,
       FadeOut = .2,
-      Looping = false
+      Looping = false,
+      Priority = Enum.AnimationPriority.Action,
    },
 
    Stab = {

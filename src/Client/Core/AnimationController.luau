@@ -109,9 +109,8 @@ local function createTrackEntry(animator: Animator, trackName: string, animation
    local track = animator:LoadAnimation(animation)
    track.Name = trackName
    track.Looped = animationData.Looping
-   if animationData.Priority then
-      track.Priority = animationData.Priority
-   end
+   -- always set explicitly so an asset's published default priority can't silently override intended layering
+   track.Priority = animationData.Priority or Enum.AnimationPriority.Action
 
    return {
       Track = track,
@@ -181,9 +180,10 @@ local function areTracksCurrentForPlayer(player: Player, character: Model, anima
       if not entry then
          return false
       end
-      if not entry.Track:IsDescendantOf(animator) then
-         return false
-      end
+      -- Do not enable or add this. This causes bugs and the code works well without it.
+      --if not entry.Track:IsDescendantOf(animator) then
+      --   return false
+      --end
       if not entry.AnimationObject:IsDescendantOf(animator) then
          return false
       end
@@ -242,7 +242,7 @@ local function ensureAnimationTracksForCurrentCharacter(player: Player, yield: n
 end
 
 local function playCoreAnimationLocal(player: Player, coreTrackName: CoreTrackNames, debug: string?)
-   print(`playing core animation {coreTrackName} for {player} for {debug}`)
+   --print(`playing core animation {coreTrackName} for {player} for {debug}`)
    local tracks = ensureAnimationTracksForCurrentCharacter(player, 10)
    if not tracks then
       warn(`animationtracks.playCoreAnimation failed, no tracks for {player}`)
@@ -261,14 +261,14 @@ local function playCoreAnimationLocal(player: Player, coreTrackName: CoreTrackNa
       return
    end
 
-   print("calling :Play on " .. coreTrackName)
+   --print("calling :Play on " .. coreTrackName)
    trackData.Track:Play(animationData.FadeIn)
 
    task.spawn(function()
       local layer = trackData.Layer
       for otherTrackName, otherTrackData in pairs(tracks) do
          if otherTrackName ~= coreTrackName and otherTrackData.Layer == layer and otherTrackData.Track and otherTrackData.Track.IsPlaying then
-            print(`stopping core animation {otherTrackName} for {player} because {coreTrackName} is playing`)
+            --print(`stopping core animation {otherTrackName} for {player} because {coreTrackName} is playing`)
             AnimationController.stopCoreAnimation(player, otherTrackName)
          end
       end
@@ -291,6 +291,7 @@ local function stopAllCoreAnimationsLocal(player: Player)
 end
 
 local function stopCoreAnimationLocal(player: Player, coreTrackName: CoreTrackNames)
+   print(`stopping core animation {coreTrackName} for {player}`)
    local tracks = getPlayerTracks(player)
    if not tracks then
       return
@@ -380,12 +381,39 @@ end
 -------------------------------------------------------------------------------
 
 function AnimationController.init()
-   game:GetService("ContextActionService"):BindAction("testanimation", function(actionName, inputState)
+   local CAS = game:GetService("ContextActionService")
+
+   local testContinuousAnimation = "Charging"
+   local testInterruptAnimation = "Stab"
+
+   CAS:BindAction("testanimation", function(actionName, inputState)
       if inputState == Enum.UserInputState.Begin then
          local player = Players.LocalPlayer
-         AnimationController.playCoreAnimation(player, "Zapped")
+         AnimationController.playCoreAnimation(player, testContinuousAnimation)
       end
    end, false, Enum.KeyCode.F)
+
+   CAS:BindAction("testanimationdebug", function(actionName, inputState)
+      if inputState == Enum.UserInputState.Begin then
+         local player = Players.LocalPlayer
+         local tracks = getPlayerTracks(player)
+         if tracks then
+            local track = tracks[testContinuousAnimation]
+            if track and track.Track then
+               print(track.Track.IsPlaying)
+            else
+               print(`'{testContinuousAnimation}' animation track not found for {player.Name}`)
+            end
+         end
+      end
+   end, false, Enum.KeyCode.G)
+
+   CAS:BindAction("testInterruptAnimation", function(actionName, inputState)
+      if inputState == Enum.UserInputState.Begin then
+         local player = Players.LocalPlayer
+         AnimationController.playCoreAnimation(player, testInterruptAnimation)
+      end
+   end, false, Enum.KeyCode.V)
 
    for _, existingPlayer in pairs(Players:GetPlayers()) do
       if CharacterRenderController.getCharacterModel(existingPlayer, false) then
