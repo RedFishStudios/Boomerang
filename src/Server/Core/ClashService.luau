@@ -16,6 +16,7 @@ local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local WeaponService = require(ServerStorage.Server.Core.WeaponService)
 local SoundLibrary = require(ReplicatedStorage.Shared.Library.SoundLibrary)
 local Sounds = require(ReplicatedStorage.Shared.Constants.Sounds)
+local SharedTasks = require(ReplicatedStorage.Shared.Constants.SharedTasks)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
