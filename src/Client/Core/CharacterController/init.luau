@@ -27,6 +27,7 @@ local BufferUtil = require(ReplicatedStorage.Shared.Utils.BufferUtil)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local RaycastsUtility = require(ReplicatedStorage.Shared.Utils.RaycastsUtility)
 local PlatformController = require(ReplicatedStorage.Client.Core.PlatformController)
+local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -129,6 +130,9 @@ end
 
 local function onPreSimulation(dT: number)
    if not PlayersUtil.isAlive(player) then
+      return
+   end
+   if PickupLibrary.hasPickupEffectActive(player.UserId, "Zapped") then
       return
    end
 
