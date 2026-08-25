@@ -59,6 +59,31 @@ local maxLivePickupsPerPlayerCount = {
    [8] = 4
 }
 
+-- // If the player has [key] pickup effect active, then they cannot pickup any of the { values }
+local NotCompatible: {
+   [string]: {string}
+} = {
+   TeleportBoomerang = {
+      "FireBoomerang", "ElectricBoomerang"
+   }
+}
+
+-- Fullfill reverse lookups from what is manually defined in NotCompatible
+local function instantiateReverseCompatibility()
+   for k, v in pairs(NotCompatible) do
+      for _, incompatible in ipairs(v) do
+         if NotCompatible[incompatible] then
+            if not table.find(NotCompatible[incompatible], k) then
+               table.insert(NotCompatible[incompatible], k)
+            end
+         else
+            NotCompatible[incompatible] = {k}
+         end
+      end
+   end
+end
+instantiateReverseCompatibility()
+
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
 -------------------------------------------------------------------------------
@@ -106,6 +131,38 @@ local function loadAvailablePickupClasses()
    table.sort(availablePickupClasses)
 end
 
+-- // Builds the set of pickup classes the player cannot receive right now, based on their currently active effects
+local function getIncompatibleClassIds(userId: number): {[PickupClassId]: boolean}
+   local incompatible = {}
+   local userEffects = PickupLibrary.UserPickupEffectsActive[userId]
+   if userEffects then
+      for _, activePickupData in pairs(userEffects) do
+         incompatible[activePickupData.ClassId] = true
+         local notCompatibleList = NotCompatible[activePickupData.ClassId]
+         if notCompatibleList then
+            for _, incompatibleClassId in ipairs(notCompatibleList) do
+               incompatible[incompatibleClassId] = true
+            end
+         end
+      end
+   end
+   return incompatible
+end
+
+local function getRandomAvailablePickupClass(userId: number): PickupClassId?
+   local incompatible = getIncompatibleClassIds(userId)
+   local candidates = {}
+   for _, classId in ipairs(availablePickupClasses) do
+      if not incompatible[classId] then
+         table.insert(candidates, classId)
+      end
+   end
+   if #candidates == 0 then
+      return nil
+   end
+   return candidates[math.random(1, #candidates)]
+end
+
 local function getClassIdCaseInsensitive(insensitivePickupClassId: string)
    insensitivePickupClassId = string.lower(insensitivePickupClassId)
    for _, pickupId in ipairs(availablePickupClasses) do
@@ -133,21 +190,8 @@ local function activatePickup(player: Player, livePickupId: LivePickupId, ...)
       return
    end
 
-   -- // Grant random pickup class
-   local pickupClassId
-   if GlobalConfig.ForceOverwritePickup then
-      pickupClassId = GlobalConfig.ForceOverwritePickup
-   else
-      local availableClassIds = table.clone(availablePickupClasses)
-      repeat
-         local selected = availableClassIds[math.random(1, #availableClassIds)]
-         if PickupLibrary.hasPickupEffectActive(player.UserId, selected) then
-            table.remove(availableClassIds, table.find(availableClassIds, selected))
-         else
-            pickupClassId = selected
-         end
-      until pickupClassId ~= nil or #availableClassIds == 0
-   end
+   -- // Use the classId established on the live pickup, otherwise roll a new compatible one now
+   local pickupClassId = livePickup.ClassId or GlobalConfig.ForceOverwritePickup or getRandomAvailablePickupClass(player.UserId)
    if not pickupClassId then
       warn(`PickupService.activatePickup: No available pickup class for player {player.Name}`)
       pickupClassId = availablePickupClasses[math.random(1, #availablePickupClasses)]
@@ -209,7 +253,7 @@ function PickupService.createLivePickupAtPosition(position: Vector3, pickupClass
    local uuid = HttpService:GenerateGUID(false)
    local despawnTime = workspace:GetServerTimeNow() + DESPAWN_TIME
    PickupLibrary.LivePickups[uuid] = {
-      ClassId = pickupClassId or availablePickupClasses[math.random(1, #availablePickupClasses)],
+      ClassId = pickupClassId or GlobalConfig.ForceOverwritePickup,
       DespawnsAt = despawnTime,
       Position = position
    }
@@ -335,7 +379,7 @@ function PickupService.init()
                local uuid = HttpService:GenerateGUID(false)
                local despawnTime = now + DESPAWN_TIME
                PickupLibrary.LivePickups[uuid] = {
-                  ClassId = if GlobalConfig.ForceOverwritePickup then GlobalConfig.ForceOverwritePickup else availablePickupClasses[math.random(1, #availablePickupClasses)],
+                  ClassId = GlobalConfig.ForceOverwritePickup,
                   DespawnsAt = despawnTime,
                   Position = spawn.Position
                }
