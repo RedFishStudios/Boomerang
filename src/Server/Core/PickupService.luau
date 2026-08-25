@@ -225,6 +225,35 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
+function PickupService.grantPickupClassId(player: Player, pickupClassId: string)
+   pickupClassId = getClassIdCaseInsensitive(pickupClassId)
+   if not pickupClassId then
+      warn(`PickupService.grantPickupClassId: No logic found for pickup {pickupClassId}`)
+      return
+   end
+   local logic = getLogic(pickupClassId)
+   if not logic then
+      warn(`PickupService.grantPickupClassId: No logic found for pickup {pickupClassId}`)
+      return
+   end
+   if logic.canActivate and not logic.canActivate(player) then
+      warn(`PickupService.grantPickupClassId: Player {player.Name} cannot activate pickup {pickupClassId}`)
+      return
+   end
+
+   local fakeLivePickupId = HttpService:GenerateGUID(false)
+
+   local endsAt = nil
+   if logic.onPickup then
+      endsAt = logic.onPickup(player)
+      if endsAt then
+         PickupLibrary.setPickupEffectActive(player.UserId, fakeLivePickupId, pickupClassId, endsAt)
+      end
+   end
+
+   pickupReplication:FireAllClients(fakeLivePickupId, pickupClassId, player.UserId, workspace:GetServerTimeNow())
+end
+
 function PickupService.hasPickupEffectActive(player: Player, pickupClassId: string)
    return PickupLibrary.hasPickupEffectActive(player.UserId, pickupClassId)
 end

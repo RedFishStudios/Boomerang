@@ -32,6 +32,13 @@ local Gamemodes: {
       StormClose = true,
       TimeLasts = 30
    },
+   HotPotato = {
+      Id = "HotPotato",
+      Subheader = "Throw your boomerang to pass the bomb!",
+      CanRespawn = true,
+      StormClose = false,
+      TimeLasts = 300
+   }
    --[[ThrowBoomerang = {
       Id = "ThrowBoomerang",
       Display = "Throw Boomerang",

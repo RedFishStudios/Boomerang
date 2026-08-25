@@ -27,6 +27,11 @@ local PickupCancelCodeEnum = require(ReplicatedStorage.Shared.Constants.Enums.Pi
 
 local isServer = RunService:IsServer()
 
+local PickupService
+if isServer then
+   PickupService = require(game:GetService("ServerStorage").Server.Core.PickupService)
+end
+
 -------------------------------------------------------------------------------
 -- CONSTANTS
 -------------------------------------------------------------------------------
@@ -35,10 +40,13 @@ local isServer = RunService:IsServer()
 -- TYPES
 -------------------------------------------------------------------------------
 
+type attackHitPlayerCallback = (attacker: Player, attackerToolId: string?, victim: Player, victimHumanoid: Humanoid?, damageAmount: number) -> (boolean)
+
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
 -------------------------------------------------------------------------------
 
+local attackHitPlayerCallbacks: {[string]: attackHitPlayerCallback} = {}
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -62,6 +70,14 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
+function CombatLibrary.addAttackHitPlayerCallback(key: string, callback: attackHitPlayerCallback)
+   attackHitPlayerCallbacks[key] = callback
+end
+
+function CombatLibrary.removeAttackHitPlayerCallback(key: string)
+   attackHitPlayerCallbacks[key] = nil
+end
+
 function CombatLibrary.attackHitPlayer(attacker: Player, attackerToolId: string?, victim: Player, victimHumanoid: Humanoid?, damageAmount: number, doNotPlaySliceEffect: boolean?)
    warn(`damaged player called`)
    local eventId = `{(if attacker then attacker.UserId else 0)}_vs_{victim.UserId}`
@@ -74,10 +90,22 @@ function CombatLibrary.attackHitPlayer(attacker: Player, attackerToolId: string?
    if not humanoid then
       return
    end
+   
    if PickupLibrary.hasPickupEffectActive(victim.UserId, "Shield") then
       if isServer then
          PickupLibrary.removePickupEffectActiveByClassId(victim.UserId, "Shield", PickupCancelCodeEnum.ShieldBroken, false)
       end
+      return
+   end
+
+   for k, v in pairs(attackHitPlayerCallbacks) do
+      local attackInterruptedByCallback = v(attacker, attackerToolId, victim, humanoid, damageAmount)
+      if attackInterruptedByCallback then
+         return
+      end
+   end
+
+   if PickupLibrary.hasPickupEffectActive(victim.UserId, "HotPotato") then
       return
    end
 
