@@ -14,6 +14,8 @@ local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local Sounds = require(ReplicatedStorage.Shared.Constants.Sounds)
 local ExplosiveBoomerang = require(ReplicatedStorage.Shared.Logics.PickupLogics.ExplosiveBoomerang)
 local WaterEnvironmentLogic = require(ReplicatedStorage.Shared.Logics.Environment.Water)
+local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
+local GameplayPhaseEnums = require(ReplicatedStorage.Shared.Constants.Enums.GameplayPhases)
 
 local isServer = RunService:IsServer()
 local EFFECT_DURATION_SECONDS = GlobalConfig.GenericEffectTimeout
@@ -66,6 +68,11 @@ end
 
 local function applyZapped(player: Player, sourceWater: Instance?)
    if not isServer then
+      return
+   end
+
+   local currentPhase = GameStateLibrary.getGameStateData().GameplayPhase
+   if currentPhase ~= GameplayPhaseEnums.RoundActive then
       return
    end
 
@@ -261,6 +268,16 @@ if isServer then
       )
       applyElectricExplosion(explosionCFrame.Position)
       PickupService.triggerEnd(player, script.Name)
+   end)
+
+   local gameStateData = GameStateLibrary.getGameStateData()
+   gameStateData.GameplayPhase:Subscribe(function(newPhase)
+      if newPhase ~= GameplayPhaseEnums.RoundActive then
+         for player, _ in pairs(zappedPlayers) do
+            clearZapped(player)
+         end
+         table.clear(electrifiedWaters)
+      end
    end)
 else
    local zappedAnimationGeneration = 0
