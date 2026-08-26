@@ -2,6 +2,9 @@ local CharacterRenderLibrary = {}
 
 local StarterGui = game:GetService("StarterGui")
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
+
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
 -------------------------------------------------------------------------------
@@ -142,6 +145,13 @@ end
 -------------------------------------------------------------------------------
 
 function CharacterRenderLibrary.init()
+   PlayersUtil.PlayerRemoving:Add(function(player: Player)
+      CharacterRenderLibrary.removeReplicatedModelForPlayer(player, player.UserId)
+      local Folder = CharacterRenderLibrary.getReplicationFolderForPlayer(player)
+      if Folder then
+         Folder:Destroy()
+      end
+   end)
 end
 
 function CharacterRenderLibrary.start()
