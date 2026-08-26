@@ -287,7 +287,11 @@ local function updateServer(deltaTime: number)
          state.NextDamageAt = now + FIRE_EFFECT_DAMAGE_FREQUENCY
          local humanoid = character and character:FindFirstChildOfClass("Humanoid")
          if humanoid and humanoid.Health > 0 then
-            CombatLibrary.applyDamageToHumanoid(player, humanoid, FIRE_EFFECT_DAMAGE, `Killed by environment`)
+            if state.Attacker then
+               CombatLibrary.applyDamageToHumanoid(player, humanoid, FIRE_EFFECT_DAMAGE, `Killed by {state.Attacker.DisplayName}`, state.Attacker)
+            else
+               CombatLibrary.applyDamageToHumanoid(player, humanoid, FIRE_EFFECT_DAMAGE, `Killed by environment`)
+            end
             if humanoid.Health <= 0 and state.Attacker and state.Attacker ~= player and not state.KillCredited then
                state.KillCredited = true
                CombatLibrary.PlayerKilledPlayerTasks:Execute("parallel", state.Attacker, player, FIRE_EFFECT_TOOL_ID)
