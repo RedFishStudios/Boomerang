@@ -202,9 +202,28 @@ local function createCharacterModel(player: Player, canYield: boolean?)
       local elapsed = 0
       repeat
          elapsed += RunService.Heartbeat:Wait()
+
+         local loadedDescendants = 0
+         local targetDescendants = 0
+
          sourceModel = CharacterRenderLibrary.getReplicatedModelForPlayer(localPlayer, player.UserId)
          if not sourceModel then
             sourceModel = CharacterRenderLibrary.getReplicatedModelForPlayer(localPlayer, sourceUserId)
+         end
+
+         if sourceModel then
+            targetDescendants = sourceModel:GetAttribute("Descendants")
+            if not targetDescendants then
+               sourceModel = nil
+               continue
+            end
+            for _, d in pairs(sourceModel:GetDescendants()) do
+               loadedDescendants += 1
+            end
+            if loadedDescendants < targetDescendants then
+               warn(`skipping loaded model without enough descendants`)
+               sourceModel = nil
+            end
          end
       until sourceModel or elapsed > 5
    end

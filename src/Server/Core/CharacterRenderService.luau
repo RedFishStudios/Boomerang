@@ -26,7 +26,7 @@ local function isPlayerConnected(player: Player): boolean
 end
 
 local function createCharacterModelForPlayer(player: Player): Model?
-   task.wait(math.random() * 0.5) -- Random wait to avoid hammering the API if multiple players join at once
+   task.wait(math.random()) -- Random wait to avoid hammering the API if multiple players join at once
 
    local sourceUserId = CharacterRenderLibrary.getCharacterSourceUserId(player.UserId)
 
@@ -74,13 +74,16 @@ local function createCharacterModelForPlayer(player: Player): Model?
 
    modelResult.Name = CharacterRenderLibrary.getModelNameForUserId(player.UserId)
 
+   local descendantCount = 0
    for _, d in pairs(modelResult:GetDescendants()) do
+      descendantCount += 1
       if d:IsA("BasePart") then
          d.CanCollide = false
          d.CanTouch = false
          d.CanQuery = false
       end
    end
+   modelResult:SetAttribute("Descendants", descendantCount)
 
    return modelResult
 end
