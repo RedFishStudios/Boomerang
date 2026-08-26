@@ -491,6 +491,13 @@ local function _init()
             for player, _ in pairs(fireEffectsByPlayer) do
                removeFireEffect(player)
             end
+            for trailIndex = #clientTrails, 1, -1 do
+               local trail = clientTrails[trailIndex]
+               if trail.Particle.Parent then
+                  trail.Particle:Destroy()
+               end
+            end
+            table.clear(clientTrails)
          end
       end)
       PlayersUtil.PlayerRemoving:Add(function(player: Player)
