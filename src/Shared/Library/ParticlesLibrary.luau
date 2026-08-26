@@ -160,6 +160,14 @@ function ParticlesLibrary.play(particlePlayId: string, particleName: string, hos
    local particle = particleTemplate:Clone()
 
    if typeof(host) == "Instance" then
+      if host:IsA("Model") then
+         newHost = host.PrimaryPart or host:FindFirstChildWhichIsA("Part") or host:FindFirstChildWhichIsA("MeshPart")
+         host = newHost
+         if not newHost then
+            warn(`unable to resolve host {host} for particle: {particleName}`)
+            return
+         end
+      end
       particle:PivotTo(host:GetPivot())
       local weld = Instance.new("WeldConstraint")
       weld.Part0 = host
