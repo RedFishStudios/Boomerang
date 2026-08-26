@@ -213,9 +213,7 @@ local function activatePickup(player: Player, livePickupId: LivePickupId, ...)
    local endsAt = nil
    if logic.onPickup then
       endsAt = logic.onPickup(player, ...)
-      if endsAt then
-         PickupLibrary.setPickupEffectActive(player.UserId, livePickupId, pickupClassId, endsAt)
-      end
+      PickupLibrary.setPickupEffectActive(player.UserId, livePickupId, pickupClassId, endsAt)
    end
 
    pickupReplication:FireAllClients(livePickupId, pickupClassId, player.UserId, workspace:GetServerTimeNow())
@@ -246,9 +244,7 @@ function PickupService.grantPickupClassId(player: Player, pickupClassId: string)
    local endsAt = nil
    if logic.onPickup then
       endsAt = logic.onPickup(player)
-      if endsAt then
-         PickupLibrary.setPickupEffectActive(player.UserId, fakeLivePickupId, pickupClassId, endsAt)
-      end
+      PickupLibrary.setPickupEffectActive(player.UserId, fakeLivePickupId, pickupClassId, endsAt)
    end
 
    pickupReplication:FireAllClients(fakeLivePickupId, pickupClassId, player.UserId, workspace:GetServerTimeNow())
@@ -506,17 +502,11 @@ function PickupService.init()
 
       local endsAt = nil
       if logic.onPickup then
-         print("calling on pickup")
          endsAt = logic.onPickup(player)
-         if endsAt then
-            PickupLibrary.setPickupEffectActive(player.UserId, fakeLivePickupId, pickupClassId, endsAt)
-            print("setting pickup effect active")
-         end
+         PickupLibrary.setPickupEffectActive(player.UserId, fakeLivePickupId, pickupClassId, endsAt)
       end
 
       pickupReplication:FireAllClients(fakeLivePickupId, pickupClassId, player.UserId, workspace:GetServerTimeNow())
-
-      print("GRANTED!")
    end)
 end
 

@@ -1,5 +1,7 @@
 local HotPotato = {}
 
+HotPotato.Disabled = true
+
 local RunService = game:GetService("RunService")
 
 local GlobalConfig = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Constants"):WaitForChild("GlobalConfig"))
@@ -43,7 +45,7 @@ local nextHolderRoundId: number? = nil
 -- CONFIGS
 --------------------------------------------------------------------------------
 
-local EXPLOSION_COUNTER_RANGE = NumberRange.new(3, 5)
+local EXPLOSION_COUNTER = 10
 local NEXT_HOLDER_DELAY = 3
 
 --------------------------------------------------------------------------------
@@ -91,7 +93,7 @@ end
 
 local function start()
    if isServer then
-      local explosionCounter = math.random(EXPLOSION_COUNTER_RANGE.Min, EXPLOSION_COUNTER_RANGE.Max)
+      local explosionCounter = EXPLOSION_COUNTER
 
       if heartbeatConnection then
          heartbeatConnection:Disconnect()
@@ -129,6 +131,7 @@ local function start()
       CombatLibrary.addAttackHitPlayerCallback("HotPotato", function(attacker: Player, attackerToolId: string?, victim: Player, victimHumanoid: Humanoid?, damageAmount: number)
          if attacker == currentHolder then
             PickupService.grantPickupClassId(victim, "HotPotato")
+            PickupService.triggerEnd(attacker, "HotPotato")
             return true
          end
          return false
@@ -145,6 +148,10 @@ function HotPotato.onPickup(player: Player, position: CFrame)
       currentHolder = player
    else
       -- Client context
+      if Particles[player] then
+         ParticlesLibrary.destroy(Particles[player])
+         Particles[player] = nil
+      end
       Particles[player] = ParticlesLibrary.play(`{player.UserId}_HotPotato`, "HotPotato", player.Character)
    end
 end

@@ -170,14 +170,8 @@ function PickupController.init()
          return
       end
 
-      if logic.onPickup then
-         local endsAt = logic.onPickup(player, timestamp)
-         if endsAt then
-            PickupLibrary.setPickupEffectActive(userId, livePickupId, pickupId, endsAt)
-         end
-      else
-         PickupLibrary.setPickupEffectActive(userId, livePickupId, pickupId)
-      end
+      local endsAt = logic.onPickup(player, timestamp)
+      PickupLibrary.setPickupEffectActive(userId, livePickupId, pickupId, endsAt)
    end)
 
    SimpleRemotes.getEvent("LivePickupReplication").OnClientEvent:Connect(applyLivePickupReplication)

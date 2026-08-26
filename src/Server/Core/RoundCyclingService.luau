@@ -25,7 +25,7 @@ local GameplayPhases = require(SharedConstants.Enums.GameplayPhases)
 local CommandService = require(ServerStorage.Server.Core.CommandService)
 local ChatService = require(ServerStorage.Server.Core.ChatService)
 
-local GamemodeLogics = ServerStorage.Server.Logics.GamemodeLogics
+local GamemodeLogics = ReplicatedStorage.Shared.Logics.GamemodeLogics
 local GamemodeLogicModules = {}
 
 -------------------------------------------------------------------------------
