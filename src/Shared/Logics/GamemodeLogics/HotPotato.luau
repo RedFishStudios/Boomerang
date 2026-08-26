@@ -44,6 +44,7 @@ local elapsed = 0
 local heartbeatConnection: RBXScriptConnection? = nil
 local nextHolderElapsed = 0
 local nextHolderRoundId: number? = nil
+local PerMatchDestroyerFunctions: {()->()} = {}
 
 --------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS
@@ -140,6 +141,11 @@ local function teardown()
    nextHolderElapsed = 0
    nextHolderRoundId = nil
 
+   for _, destroyer in ipairs(PerMatchDestroyerFunctions) do
+      destroyer()
+   end
+   table.clear(PerMatchDestroyerFunctions)
+
    CombatLibrary.removeAttackHitPlayerCallback(HOT_POTATO_EFFECT_ID)
 end
 
@@ -158,22 +164,20 @@ function HotPotatoRoundLogic.setup()
       if randomPlayer then
          grantHolderEffect(randomPlayer)
       end
+
+      table.insert(PerMatchDestroyerFunctions, CurrentGameState.getGameStateData().LivingPlayersInArena:Subscribe(function(livingPlayers: {Player})
+         if #livingPlayers <= 1 and not (RunService:IsStudio() and #game.Players:GetPlayers() == 1) then
+            local winner = livingPlayers[1]
+            HotPotatoRoundLogic.teardown(winner)
+         end
+      end))
    end
 end
 
-function HotPotatoRoundLogic.teardown()
+function HotPotatoRoundLogic.teardown(winner: Player?)
    if isServer then
       teardown()
-
-      local winner
-      local highestKills = 0
-      for player, killCount in pairs(Kills) do
-         if killCount > highestKills then
-            highestKills = killCount
-            winner = player
-         end
-      end
-      CurrentGameState.RoundFinishedTasks:Execute("parallel", winner, if winner then `{winner.Name} wins with {highestKills} kills!` else "No winner")
+      CurrentGameState.RoundFinishedTasks:Execute("parallel", winner, winner and (winner.Name .. " won!") or "No winner")
    end
 end
 
