@@ -440,6 +440,22 @@ function ArenaService.init()
 
       registeredMaps[c.Name] = c
 	end
+
+   -- Register players falling too low
+   local DEATH_Y = GlobalConfig.DeathHeight
+   RunService.Heartbeat:Connect(function()
+      for _, player in ipairs(Players:GetPlayers()) do
+         local character = player.Character
+         if character and character.PrimaryPart then
+            if character.PrimaryPart.Position.Y < DEATH_Y then
+               local humanoid = character:FindFirstChildOfClass("Humanoid")
+               if humanoid then
+                  humanoid.Health = 0
+               end
+            end
+         end
+      end
+   end)
 end
 
 function ArenaService.start()

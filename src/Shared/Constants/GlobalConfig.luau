@@ -1,5 +1,7 @@
 local GlobalConfig = {
-   BoomerangHeight = 6.6,
+   WeaponHeight = 21.081,
+   DeathHeight = 14.207,
+   
    CharacterFocalHeight = 6.6,
    SkipVoting = false,
    CanHurtSelf = false,
