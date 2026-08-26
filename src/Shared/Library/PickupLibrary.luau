@@ -73,6 +73,7 @@ PickupLibrary.UserPickupEffectsActive = {} :: {
 
 local DATA_ONLY_EFFECTS: {[PickupClassId]: boolean} = {
    OnFire = true,
+   HotPotato = true,
 }
 
 -------------------------------------------------------------------------------
