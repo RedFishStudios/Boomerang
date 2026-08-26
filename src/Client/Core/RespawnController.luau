@@ -41,21 +41,6 @@ local localPlayer = Players.LocalPlayer
 -------------------------------------------------------------------------------
 
 function RespawnController.init()
-   local DeathScreenGrayscale = Instance.new("ColorCorrectionEffect")
-   DeathScreenGrayscale.Name = "DeathScreenGrayscale"
-   DeathScreenGrayscale.Saturation = -1
-   DeathScreenGrayscale.Enabled = false
-   DeathScreenGrayscale.Parent = LightingService
-
-	localPlayer.CharacterAdded:Connect(function(character)
-      print("spawned")
-      DeathScreenGrayscale.Enabled = false
-      local humanoid = character:WaitForChild("Humanoid")
-      humanoid.Died:Connect(function()
-         print("died")
-         DeathScreenGrayscale.Enabled = true
-      end)
-   end)
 end
 
 -- function RespawnController.start() end

@@ -8,6 +8,7 @@ local SimpleRemotes = require(game:GetService("ReplicatedStorage"):WaitForChild(
 local NewMovingPlatform = SimpleRemotes.getEvent("NewMovingPlatform")
 local _MovingPlatformSnapshot = SimpleRemotes.getUnreliableEvent("MovingPlatformSnapshot")
 local CollisionGroupConstants = require(game.ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
+local CombatLibrary = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Library"):WaitForChild("CombatLibrary"))
 
 type MovingPlatformAttributes = {
    Speed: number,

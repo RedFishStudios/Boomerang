@@ -25,6 +25,8 @@ local SoundLibrary = require(ReplicatedStorage.Shared.Library.SoundLibrary)
 local Sounds = require(ReplicatedStorage.Shared.Constants.Sounds)
 local PickupCancelCodeEnum = require(ReplicatedStorage.Shared.Constants.Enums.PickupCancelCodes)
 
+local playerDeathReasonRemote = SimpleRemotes.getEvent("PlayerDeathReason")
+
 local isServer = RunService:IsServer()
 
 local PickupService
@@ -69,6 +71,13 @@ end
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
+
+function CombatLibrary.applyDamageToHumanoid(player: Player, humanoid: Humanoid, damageAmount: number, deathCause: string)
+   humanoid:TakeDamage(damageAmount)
+   if humanoid.Health <= 0 then
+      playerDeathReasonRemote:FireClient(player, deathCause)
+   end
+end
 
 function CombatLibrary.addAttackHitPlayerCallback(key: string, callback: attackHitPlayerCallback)
    attackHitPlayerCallbacks[key] = callback
@@ -120,9 +129,11 @@ function CombatLibrary.attackHitPlayer(attacker: Player, attackerToolId: string?
    end
 
    if isServer then
-      humanoid:TakeDamage(damageAmount)
       if attacker and attackerToolId then
+         CombatLibrary.applyDamageToHumanoid(victim, humanoid, 10000, `Killed by {attacker.DisplayName}`)
          CombatLibrary.PlayerKilledPlayerTasks:Execute("parallel", attacker, victim, attackerToolId)
+      else
+         CombatLibrary.applyDamageToHumanoid(victim, humanoid, 10000, `Killed by environment`)
       end
    end
 end

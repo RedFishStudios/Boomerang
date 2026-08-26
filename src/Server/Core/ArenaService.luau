@@ -19,6 +19,9 @@ local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local GameTeamLibrary = require(game.ReplicatedStorage.Shared.Library.GameTeamLibrary)
 local ArenaLibrary = require(ReplicatedStorage.Shared.Library.ArenaLibrary)
+local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
+
+local playerDeathReasonRemote = SimpleRemotes.getEvent("PlayerDeathReason")
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -451,6 +454,7 @@ function ArenaService.init()
                local humanoid = character:FindFirstChildOfClass("Humanoid")
                if humanoid then
                   humanoid.Health = 0
+                  playerDeathReasonRemote:FireClient(player, `Fell out of bounds`)
                end
             end
          end
