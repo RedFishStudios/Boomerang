@@ -22,6 +22,8 @@ local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local LobbyService = require(ServerStorage.Server.Core.LobbyService)
 local GameTeamService = require(ServerStorage.Server.Core.GameTeamService)
 local GameplayPhases = require(SharedConstants.Enums.GameplayPhases)
+local CommandService = require(ServerStorage.Server.Core.CommandService)
+local ChatService = require(ServerStorage.Server.Core.ChatService)
 
 local GamemodeLogics = ServerStorage.Server.Logics.GamemodeLogics
 local GamemodeLogicModules = {}
@@ -45,6 +47,9 @@ local roundDurationConnection: RBXScriptConnection? = nil
 local currentRoundEndsAt: number? = nil
 local currentRoundId = 0
 
+local nextGamemode: string? = nil
+local nextMap: string? = nil
+
 local VoteUpdatedEvent = SimpleRemotes.getEvent("VoteUpdated")
 
 local votes: {[Player]: number} = {}
@@ -65,6 +70,24 @@ local function getLogic(roundTypeId: string)
 		GamemodeLogicModules[roundTypeId] = module
 	end
 	return GamemodeLogicModules[roundTypeId]
+end
+
+local function getGamemodeIdCaseInsensitive(insensitiveGamemodeId: string): string?
+   for gamemodeId in pairs(Gamemodes) do
+      if string.lower(gamemodeId) == string.lower(insensitiveGamemodeId) then
+         return gamemodeId
+      end
+   end
+   return nil
+end
+
+local function getMapNameCaseInsensitive(insensitiveMapName: string): string?
+   for _, mapModel in ipairs(ArenaService.getAllMapModels()) do
+      if string.lower(mapModel.Name) == string.lower(insensitiveMapName) then
+         return mapModel.Name
+      end
+   end
+   return nil
 end
 
 local function updateRoundDuration()
@@ -131,6 +154,20 @@ function RoundCyclingService.getNextGamemodeChoices(): {string}
 end
 
 function RoundCyclingService.setNextRound(roundTypeId: string, mapName: string)
+   if nextGamemode then
+      roundTypeId = nextGamemode
+      nextGamemode = nil
+      local forcedAvailableMaps = ArenaService.getAvailableMaps(roundTypeId)
+      if #forcedAvailableMaps > 0 then
+         mapName = forcedAvailableMaps[math.random(#forcedAvailableMaps)]
+      end
+   end
+
+   if nextMap then
+      mapName = nextMap
+      nextMap = nil
+   end
+
    currentRoundId += 1
 
    local roundType = Gamemodes[roundTypeId]
@@ -173,6 +210,45 @@ end
 function RoundCyclingService.init()
    SimpleRemotes.getEvent("VoteUpdated")
    local gameStateData = GameStateLibrary.getGameStateData()
+
+   CommandService.addCommand("EndRound", "/endround", "/endRound", function(player: Player, _args: {string})
+      if not RoundCyclingService.isInRound() then
+         ChatService.tellPlayerPrintMessage(player, "No round is currently active", Color3.fromRGB(241, 89, 18))
+         return
+      end
+      currentRoundEndsAt = workspace:GetServerTimeNow()
+      updateRoundDuration()
+   end)
+
+   CommandService.addCommand("SetNextGamemode", "/setnextgamemode", nil, function(player: Player, args: {string})
+      local gamemodeId = args[1]
+      if not gamemodeId then
+         ChatService.tellPlayerPrintMessage(player, "No gamemode provided", Color3.fromRGB(241, 89, 18))
+         return
+      end
+      gamemodeId = getGamemodeIdCaseInsensitive(gamemodeId)
+      if not gamemodeId then
+         ChatService.tellPlayerPrintMessage(player, `{args[1]} is not a recognized gamemode`, Color3.fromRGB(241, 89, 18))
+         return
+      end
+      nextGamemode = gamemodeId
+      ChatService.tellPlayerPrintMessage(player, `Next round will be {gamemodeId}`, Color3.fromRGB(89, 241, 18))
+   end)
+
+   CommandService.addCommand("SetNextMap", "/setnextmap", nil, function(player: Player, args: {string})
+      local mapName = args[1]
+      if not mapName then
+         ChatService.tellPlayerPrintMessage(player, "No map provided", Color3.fromRGB(241, 89, 18))
+         return
+      end
+      mapName = getMapNameCaseInsensitive(mapName)
+      if not mapName then
+         ChatService.tellPlayerPrintMessage(player, `{args[1]} is not a recognized map`, Color3.fromRGB(241, 89, 18))
+         return
+      end
+      nextMap = mapName
+      ChatService.tellPlayerPrintMessage(player, `Next round will be on {mapName}`, Color3.fromRGB(89, 241, 18))
+   end)
 
    PlayersUtil.CharacterDied:Add(function(player: Player, _character: Model, _humanoid: Humanoid)
       local currentLivingPlayers = gameStateData.LivingPlayersInArena:Get()
