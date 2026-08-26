@@ -33,8 +33,12 @@ function EliminationRoundLogic.setup()
       GameTeamService.setFreeForAll()
       StormCloseService.begin(ArenaService.getCurrentArenaPosition() or Vector3.new(0, 0, 0))
 
+      -- players are still trickling into LivingPlayersInArena at round start, so only treat a *decrease* to <=1 as an elimination win
+      local lastLivingPlayersCount = #CurrentGameState.getGameStateData().LivingPlayersInArena:Get()
       table.insert(PerMatchDestroyerFunctions, CurrentGameState.getGameStateData().LivingPlayersInArena:Subscribe(function(livingPlayers: {Player})
-         if #livingPlayers <= 1 and not (RunService:IsStudio() and #game.Players:GetPlayers() == 1) then
+         local previousCount = lastLivingPlayersCount
+         lastLivingPlayersCount = #livingPlayers
+         if #livingPlayers < previousCount and #livingPlayers <= 1 and not (RunService:IsStudio() and #game.Players:GetPlayers() == 1) then
             local winner = livingPlayers[1]
             EliminationRoundLogic.teardown(winner)
          end

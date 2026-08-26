@@ -168,8 +168,12 @@ function HotPotatoRoundLogic.setup()
          grantHolderEffect(randomPlayer)
       end
 
+      -- players are still trickling into LivingPlayersInArena at round start, so only treat a *decrease* to <=1 as a win
+      local lastLivingPlayersCount = #players
       table.insert(PerMatchDestroyerFunctions, CurrentGameState.getGameStateData().LivingPlayersInArena:Subscribe(function(livingPlayers: {Player})
-         if #livingPlayers <= 1 and not (RunService:IsStudio() and #game.Players:GetPlayers() == 1) then
+         local previousCount = lastLivingPlayersCount
+         lastLivingPlayersCount = #livingPlayers
+         if #livingPlayers < previousCount and #livingPlayers <= 1 and not (RunService:IsStudio() and #game.Players:GetPlayers() == 1) then
             local winner = livingPlayers[1]
             HotPotatoRoundLogic.teardown(winner)
          end
