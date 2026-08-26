@@ -17,7 +17,7 @@ local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
 local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
-local CurrentGameState = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
+local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local HitboxLibrary = require(ReplicatedStorage.Shared.Library.HitboxLibrary)
 local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
 local ParticlesLibrary = require(ReplicatedStorage.Shared.Library.ParticlesLibrary)
@@ -105,7 +105,12 @@ function CombatLibrary.attackHitPlayer(attacker: Player, attackerToolId: string?
       end
    end
 
-   if PickupLibrary.hasPickupEffectActive(victim.UserId, "HotPotato") then
+   local currentRoundData = GameStateLibrary.getGameStateData().CurrentRoundData
+   if not currentRoundData or not currentRoundData:Get() then
+      return
+   end
+   local currentGamemode = currentRoundData:Get().Gamemode
+   if currentGamemode == "HotPotato" then
       return
    end
 

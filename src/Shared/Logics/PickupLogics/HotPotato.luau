@@ -8,11 +8,15 @@ local GameStateLibrary = require(game:GetService("ReplicatedStorage"):WaitForChi
 local SharedTasks = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Constants"):WaitForChild("SharedTasks"))
 local CombatLibrary = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Library"):WaitForChild("CombatLibrary"))
 local SimpleRemotes = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Networking"):WaitForChild("SimpleRemotes"))
+local SoundLibrary = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Library"):WaitForChild("SoundLibrary"))
 
 local isServer = RunService:IsServer()
 local PickupService
+local CharacterRenderController
 if isServer then
    PickupService = require(game:GetService("ServerStorage"):WaitForChild("Server"):WaitForChild("Core"):WaitForChild("PickupService"))
+else
+   CharacterRenderController = require(game:GetService("ReplicatedStorage"):WaitForChild("Client"):WaitForChild("Core"):WaitForChild("CharacterRenderController"))
 end
 
 --------------------------------------------------------------------------------
@@ -63,12 +67,10 @@ local function teardown()
 end
 
 local function explode(player: Player)
+   print("player exploded")
    if not isServer then
       return
    end
-   
-   explodePlayerRemote:FireAllClients(player)
-
    local character = player.Character
    if not character then
       return
@@ -77,7 +79,12 @@ local function explode(player: Player)
    if not humanoid then
       return
    end
+   if humanoid.Health <= 0 then
+      return
+   end
+
    humanoid.Health = 0
+   explodePlayerRemote:FireAllClients(player)
 
    local currentRoundData = GameStateLibrary.getGameStateData().CurrentRoundData:Get()
    nextHolderElapsed = 0
@@ -94,8 +101,9 @@ local function start()
       end
       heartbeatConnection = game:GetService("RunService").Heartbeat:Connect(function(dt)
          elapsed += dt
-         if elapsed >= explosionCounter then
+         if elapsed >= explosionCounter and currentHolder then
             explode(currentHolder)
+            currentHolder = nil
          end
 
          if nextHolderRoundId ~= nil then
@@ -134,6 +142,7 @@ function HotPotato.onPickup(player: Player, position: CFrame)
       if not hotPotatoActive then
          start()
       end
+      currentHolder = player
    else
       -- Client context
       Particles[player] = ParticlesLibrary.play(`{player.UserId}_HotPotato`, "HotPotato", player.Character)
@@ -154,13 +163,32 @@ function HotPotato.onEnd(player: Player, position: CFrame)
    end
 end
 
+if isServer then
+else
+   explodePlayerRemote.OnClientEvent:Connect(function(player: Player)
+      SoundLibrary.play(`{player.UserId}_HotPotato_Explode`, "Explosion", player.Character.PrimaryPart, nil, true)
+      if Particles[player] then
+         ParticlesLibrary.destroy(Particles[player], false)
+         Particles[player] = nil
+      end
+      local character = CharacterRenderController.getCharacterModel(player)
+      if character then
+         for _, d in pairs(character:GetDescendants()) do
+            if d:IsA("BallSocketConstraint") or d:IsA("Motor6D") then
+               d:Destroy()
+            elseif d:IsA("MeshPart") or d:IsA("Part") or d:IsA("BasePart") then
+               d.Anchored = false
+               local randomDirection = Vector3.new(
+                  math.random(-10, 10),
+                  math.random(5, 15),
+                  math.random(-10, 10)
+               ).Unit
+               local power = math.random(30, 60)
+               d.AssemblyLinearVelocity = randomDirection * power
+            end
+         end
+      end
+   end)
+end
+
 return HotPotato
-
---[[
-
-Hot Potato gamemode
-
-[x] On start, a random player is given the Hot Potato effect
-[x] When a player with the Hot Potato effect strikes another with their boomerang, the effect is transferred to the victim
-
-]]

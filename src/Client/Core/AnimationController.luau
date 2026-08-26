@@ -291,7 +291,7 @@ local function stopAllCoreAnimationsLocal(player: Player)
 end
 
 local function stopCoreAnimationLocal(player: Player, coreTrackName: CoreTrackNames)
-   print(`stopping core animation {coreTrackName} for {player}`)
+   --print(`stopping core animation {coreTrackName} for {player}`)
    local tracks = getPlayerTracks(player)
    if not tracks then
       return

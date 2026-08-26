@@ -365,7 +365,7 @@ function RoundCyclingService.start()
       repeat
          local deltaTime = RunService.Heartbeat:Wait()
          elapsed += deltaTime
-      until elapsed >= VOTE_DURATION or #awaitingVotes == 0
+      until elapsed >= VOTE_DURATION or #awaitingVotes == 0 or nextGamemode ~= nil
       
       -- Tally votes
       -- Restart tally, just for safety
