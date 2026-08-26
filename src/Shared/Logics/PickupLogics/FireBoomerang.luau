@@ -334,7 +334,7 @@ local function updateClient()
       local trail = clientTrails[trailIndex]
       if now - trail.SpawnedAt >= TRAIL_LIFETIME then
          if trail.Particle.Parent then
-            ParticlesLibrary.destroy(trail.Particle, true)
+            ParticlesLibrary.destroy(trail.Particle, false)
          end
          table.remove(clientTrails, trailIndex)
       end
