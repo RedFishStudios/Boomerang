@@ -2,7 +2,7 @@
 	<Meta name="ExplicitAutoJoints">true</Meta>
 	<External>null</External>
 	<External>nil</External>
-	<Item class="ScreenGui" referent="RBXC794ADE5D07541F4AE68A25BB84BD0EF">
+	<Item class="ScreenGui" referent="RBXA9542A7CF8E0476EB0798D20354473B9">
 		<Properties>
 			<bool name="ClipToDeviceSafeArea">true</bool>
 			<int name="DisplayOrder">0</int>
@@ -25,7 +25,7 @@
 			<int64 name="SourceAssetId">-1</int64>
 			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 		</Properties>
-		<Item class="TextLabel" referent="RBXCA053CAD89EA42359C3B73D14B503EF8">
+		<Item class="TextLabel" referent="RBX467E231904854F6F817ECBA2D656E54E">
 			<Properties>
 				<Font name="FontFace">
 					<Family><url>rbxasset://fonts/families/SourceSansPro.json</url></Family>
@@ -119,7 +119,7 @@
 				<int64 name="SourceAssetId">-1</int64>
 				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			</Properties>
-			<Item class="UIStroke" referent="RBX1090A9F2575346AF8FF186142DBE9976">
+			<Item class="UIStroke" referent="RBX90BCE6243A5B42569A3FBD300474248B">
 				<Properties>
 					<token name="ApplyStrokeMode">0</token>
 					<UDim name="BorderOffset">

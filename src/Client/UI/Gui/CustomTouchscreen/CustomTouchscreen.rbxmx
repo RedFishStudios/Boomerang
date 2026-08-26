@@ -2,14 +2,14 @@
 	<Meta name="ExplicitAutoJoints">true</Meta>
 	<External>null</External>
 	<External>nil</External>
-	<Item class="ScreenGui" referent="RBX5FDF6143220D4CD5B813B40E84BF905F">
+	<Item class="ScreenGui" referent="RBXCED6E8A208C6479990662F787C59A619">
 		<Properties>
 			<bool name="ClipToDeviceSafeArea">true</bool>
 			<int name="DisplayOrder">0</int>
 			<token name="SafeAreaCompatibility">1</token>
 			<token name="ScreenInsets">2</token>
 			<bool name="Enabled">true</bool>
-			<bool name="ResetOnSpawn">true</bool>
+			<bool name="ResetOnSpawn">false</bool>
 			<token name="ZIndexBehavior">1</token>
 			<bool name="AutoLocalize">true</bool>
 			<Ref name="RootLocalizationTable">null</Ref>
@@ -25,7 +25,7 @@
 			<int64 name="SourceAssetId">-1</int64>
 			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 		</Properties>
-		<Item class="Frame" referent="RBXB81C7520E5AD4DBEB75E47053D5120F7">
+		<Item class="Frame" referent="RBX0D8BC6839701414DAE88A849075B6E06">
 			<Properties>
 				<token name="Style">0</token>
 				<bool name="Active">false</bool>
@@ -89,7 +89,7 @@
 				<int64 name="SourceAssetId">-1</int64>
 				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			</Properties>
-			<Item class="UICorner" referent="RBX875F4520D4A147D58C4DAB2579E5C110">
+			<Item class="UICorner" referent="RBX15EDA8B6D33B40F8BA1E3F935CC07DDE">
 				<Properties>
 					<UDim name="BottomLeftRadius">
 						<S>1</S>
@@ -115,7 +115,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="UIStroke" referent="RBX38F9FFC240E34D4EBDCA522AFCA70419">
+			<Item class="UIStroke" referent="RBX33FD7D04B5E9448EAA0A7C66BDE8BBFE">
 				<Properties>
 					<token name="ApplyStrokeMode">0</token>
 					<UDim name="BorderOffset">
@@ -142,7 +142,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="TextButton" referent="RBX6C68FEAAE9EB4CD49C319C155E6B35E1">
+			<Item class="TextButton" referent="RBXB3BAF696111A4D2CAACB12459905C05B">
 				<Properties>
 					<Font name="FontFace">
 						<Family><url>rbxasset://fonts/families/SourceSansPro.json</url></Family>
@@ -243,7 +243,7 @@
 					<int64 name="SourceAssetId">-1</int64>
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
-				<Item class="UICorner" referent="RBX6B2D3CC5FABF4EC9B204E705E0FD4854">
+				<Item class="UICorner" referent="RBX2711AC03E45D4C45B655B4AB93E56925">
 					<Properties>
 						<UDim name="BottomLeftRadius">
 							<S>1</S>
@@ -271,7 +271,7 @@
 				</Item>
 			</Item>
 		</Item>
-		<Item class="TextButton" referent="RBX088A7AE5AA4D4B72BAF4AD0A78F0ED68">
+		<Item class="TextButton" referent="RBX078EE580E16740F78707115B0C5B422A">
 			<Properties>
 				<Font name="FontFace">
 					<Family><url>rbxasset://fonts/families/SourceSansPro.json</url></Family>
@@ -372,7 +372,7 @@
 				<int64 name="SourceAssetId">-1</int64>
 				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			</Properties>
-			<Item class="UICorner" referent="RBXB239E2B79D8A41CE989785040E0B6EC5">
+			<Item class="UICorner" referent="RBX99B12C8360624B1C913E099D1832C1C2">
 				<Properties>
 					<UDim name="BottomLeftRadius">
 						<S>0.5</S>
@@ -398,7 +398,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="TextLabel" referent="RBX7BDAF23DFA9F4BC7A62BDF5B7C6A0663">
+			<Item class="TextLabel" referent="RBXDF80930C9F1644B0940AEB39E008D6FB">
 				<Properties>
 					<Font name="FontFace">
 						<Family><url>rbxasset://fonts/families/SourceSansPro.json</url></Family>
@@ -494,7 +494,7 @@
 				</Properties>
 			</Item>
 		</Item>
-		<Item class="TextButton" referent="RBX7FFFD5F044EA4BDFA5F3D8F42E878C40">
+		<Item class="TextButton" referent="RBX8F383FFD1ACF4F1CBD3941DE2A15C8A7">
 			<Properties>
 				<Font name="FontFace">
 					<Family><url>rbxasset://fonts/families/SourceSansPro.json</url></Family>
@@ -595,7 +595,7 @@
 				<int64 name="SourceAssetId">-1</int64>
 				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			</Properties>
-			<Item class="UICorner" referent="RBX1FE32F6C86EC4056A70CA42A7BA7BB34">
+			<Item class="UICorner" referent="RBXC352F8C0048C4FAB870152EE8FAA0693">
 				<Properties>
 					<UDim name="BottomLeftRadius">
 						<S>0.5</S>
@@ -621,7 +621,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="TextLabel" referent="RBX4CE92502504F420D9854C1211C44B596">
+			<Item class="TextLabel" referent="RBX1848FB4F8B8B4ABFA979DC2B4A740B2B">
 				<Properties>
 					<Font name="FontFace">
 						<Family><url>rbxasset://fonts/families/SourceSansPro.json</url></Family>
