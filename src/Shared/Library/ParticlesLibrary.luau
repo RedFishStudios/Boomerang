@@ -58,9 +58,9 @@ end
 
 function ParticlesLibrary.destroy(particle: Part, yield: boolean?)
    if yield then
-      task.spawn(destroy, particle)
-   else
       destroy(particle)
+   else
+      task.spawn(destroy, particle)
    end
 end
 
