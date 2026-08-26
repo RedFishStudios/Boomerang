@@ -1,3 +1,6 @@
+-- TODO: during the Hot Potato gamemode, only the player who is holding the Hot Potato should have a functioning boomerang
+-- No one else is visualized as holding a weapon, and they can't aim
+
 local HotPotatoRoundLogic = {}
 
 local RunService = game:GetService("RunService")

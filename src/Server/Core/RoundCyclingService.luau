@@ -208,6 +208,12 @@ end
 -------------------------------------------------------------------------------
 
 function RoundCyclingService.init()
+   for _, c in pairs(GamemodeLogics:GetChildren()) do
+      if c:IsA("ModuleScript") then
+         GamemodeLogicModules[c.Name] = require(c)
+      end
+   end
+
    SimpleRemotes.getEvent("VoteUpdated")
    local gameStateData = GameStateLibrary.getGameStateData()
 

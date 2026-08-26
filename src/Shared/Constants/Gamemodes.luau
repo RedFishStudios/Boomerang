@@ -24,7 +24,7 @@ local Gamemodes: {
       Subheader = "Have the highest score when the timer runs out!",
       CanRespawn = true,
       StormClose = false,
-      TimeLasts = 3000
+      TimeLasts = 300
    },
    Elimination = {
       Id = "Elimination",
@@ -39,7 +39,7 @@ local Gamemodes: {
       CanRespawn = false,
       StormClose = false,
       PickupsDisabled = true,
-      TimeLasts = 300
+      TimeLasts = 30
    }
    --[[ThrowBoomerang = {
       Id = "ThrowBoomerang",
