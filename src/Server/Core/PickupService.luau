@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ArenaService = require(game.ServerStorage.Server.Core.ArenaService)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
+local Gamemodes = require(ReplicatedStorage.Shared.Constants.Gamemodes)
 local PickupLogics = ReplicatedStorage.Shared.Logics.PickupLogics
 local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
@@ -97,6 +98,12 @@ PickupService.PickupEffectEndedTasks = TasksList.new() :: TasksList.TasksList<(f
 local function getMaxLivePickups(): number
    local playerCount = #Players:GetPlayers()
    return maxLivePickupsPerPlayerCount[playerCount] or 0
+end
+
+local function arePickupsDisabledForCurrentGamemode(): boolean
+   local currentRoundData = GameStateLibrary.getGameStateData().CurrentRoundData:Get()
+   local gamemode = currentRoundData and Gamemodes[currentRoundData.Gamemode]
+   return gamemode ~= nil and gamemode.PickupsDisabled == true
 end
 
 local function getLogic(pickupClassId: PickupClassId)
@@ -333,7 +340,7 @@ function PickupService.init()
          Spawned = {},
       }
       local pickupSpawns = ArenaService.getPickupSpawns()
-      if #pickupSpawns > 0 and #availablePickupClasses > 0 then
+      if not arePickupsDisabledForCurrentGamemode() and #pickupSpawns > 0 and #availablePickupClasses > 0 then
          local now = workspace:GetServerTimeNow()
          local startCount = 1
          for _ = 1, startCount do
@@ -363,7 +370,7 @@ function PickupService.init()
       -- // Spawn new pick ups if round is active
       -- Note: Do this before despawns so that new spawns don't immediately consume a released spawn point
       if roundActive then
-         if #availablePickupClasses > 0 and now - lastSpawn >= SPAWN_INTERVAL and now - lastFailedSpawn >= FAILED_SPAWN_COOLDOWN and PickupLibrary.getLivePickupCount() < getMaxLivePickups() then
+         if not arePickupsDisabledForCurrentGamemode() and #availablePickupClasses > 0 and now - lastSpawn >= SPAWN_INTERVAL and now - lastFailedSpawn >= FAILED_SPAWN_COOLDOWN and PickupLibrary.getLivePickupCount() < getMaxLivePickups() then
             local pickupSpawns = ArenaService.getPickupSpawns()
             local livingPlayersInArena = gameStateData.LivingPlayersInArena:Get()
 

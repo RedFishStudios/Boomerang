@@ -49,17 +49,17 @@ local nextHolderRoundId: number? = nil
 -- LOCAL FUNCTIONS
 --------------------------------------------------------------------------------
 
-local function getHolderLivePickupId(player: Player): string
+local function generateHolderLivePickupId(player: Player): string
    return `HotPotato_{player.UserId}`
+end
+
+local function clearHolderEffect(player: Player)
+   PickupLibrary.removePickupEffectActive(player.UserId, generateHolderLivePickupId(player), nil, false)
 end
 
 local function grantHolderEffect(player: Player)
    currentHolder = player
-   PickupLibrary.setPickupEffectActive(player.UserId, getHolderLivePickupId(player), HOT_POTATO_EFFECT_ID)
-end
-
-local function clearHolderEffect(player: Player)
-   PickupLibrary.removePickupEffectActive(player.UserId, getHolderLivePickupId(player), nil, false)
+   PickupLibrary.setPickupEffectActive(player.UserId, generateHolderLivePickupId(player), HOT_POTATO_EFFECT_ID)
 end
 
 local function explode(player: Player)

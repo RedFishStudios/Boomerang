@@ -8,7 +8,8 @@ export type RoundType = {
    CanRespawn: boolean,
    TimeLasts: number,
    StormClose: boolean?,
-   DashDisabled: boolean?
+   DashDisabled: boolean?,
+   PickupsDisabled: boolean?
 }
 
 -------------------------------------------------------------------------------
@@ -35,8 +36,9 @@ local Gamemodes: {
    HotPotato = {
       Id = "HotPotato",
       Subheader = "Throw your boomerang to pass the bomb!",
-      CanRespawn = true,
+      CanRespawn = false,
       StormClose = false,
+      PickupsDisabled = true,
       TimeLasts = 300
    }
    --[[ThrowBoomerang = {
