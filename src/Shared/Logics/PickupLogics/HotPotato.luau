@@ -32,7 +32,6 @@ local explodePlayerRemote = SimpleRemotes.getEvent("ExplodePlayerPotato")
 local currentHolder: Player = nil
 local hotPotatoActive = false
 local Particles: {[Player]: Part} = {}
-local originTime = 0
 local elapsed = 0
 local heartbeatConnection: RBXScriptConnection? = nil
 local perSessionDestroyers: {()->()} = {}
@@ -59,7 +58,6 @@ local function teardown()
    hotPotatoActive = false
    currentHolder = nil
    elapsed = 0
-   originTime = 0
    nextHolderElapsed = 0
    nextHolderRoundId = nil
    
@@ -93,7 +91,6 @@ end
 
 local function start()
    if isServer then
-      originTime = game.Workspace:GetServerTimeNow()
       local explosionCounter = math.random(EXPLOSION_COUNTER_RANGE.Min, EXPLOSION_COUNTER_RANGE.Max)
 
       if heartbeatConnection then
@@ -112,6 +109,7 @@ local function start()
                local roundIdAtExplosion = nextHolderRoundId
                nextHolderRoundId = nil
                nextHolderElapsed = 0
+               elapsed = 0
 
                local gameStateData = GameStateLibrary.getGameStateData()
                local currentRoundData = gameStateData.CurrentRoundData:Get()
@@ -120,6 +118,8 @@ local function start()
                   if #livingPlayers > 0 then
                      local randomPlayer = livingPlayers[math.random(1, #livingPlayers)]
                      PickupService.grantPickupClassId(randomPlayer, "HotPotato")
+                  else
+                     warn(`hot potato gamemode has no living players to give potato to!`)
                   end
                end
             end
@@ -178,6 +178,8 @@ else
                d:Destroy()
             elseif d:IsA("MeshPart") or d:IsA("Part") or d:IsA("BasePart") then
                d.Anchored = false
+               d.CanCollide = true
+               d.CollisionGroup = "Default"
                local randomDirection = Vector3.new(
                   math.random(-10, 10),
                   math.random(5, 15),
