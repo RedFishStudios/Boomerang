@@ -1,3 +1,10 @@
+--[[
+
+Manages the logics of clashed weapons
+Any weapon type, when it clashes, converts to this logic
+
+]]
+
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 
@@ -63,6 +70,7 @@ local function getWeaponCFrame(clashedWeaponData: ClashedWeapons.Data): CFrame?
 	return clashedWeaponData.CFrame
 end
 
+-- // Returns true if the instance hit by a raycast under a boomerang is viable as an obstruction or if the boomerang should pass through it or not land on it
 local function isViableClashGroundObstruction(hitInstance: Instance): boolean
 	if not hitInstance:IsA("BasePart") then
 		return false
@@ -70,10 +78,11 @@ local function isViableClashGroundObstruction(hitInstance: Instance): boolean
 	return hitInstance.CanCollide and hitInstance.Transparency < 1
 end
 
+-- // Get resting height when a clashed boomerang falls
 local function getClashRestingY(clashedWeaponData: ClashedWeapons.Data, position: Vector3, raycastParams: RaycastParams): number?
 	local host = clashedWeaponData.Host
-	if not host or not host.Parent then
-		return nil
+	if host and not host.Parent then
+		host = nil
 	end
 
 	local ignoreList = table.clone(raycastParams.FilterDescendantsInstances or {})
@@ -100,15 +109,19 @@ local function getClashRestingY(clashedWeaponData: ClashedWeapons.Data, position
 		return nil
 	end
 
-	local boundsCFrame, boundsSize
-	if host:IsA("Model") then
-		boundsCFrame, boundsSize = host:GetBoundingBox()
-	else
-		boundsCFrame, boundsSize = host.CFrame, host.Size
+	local pivotToBottom = 0
+	if host then
+		local boundsCFrame, boundsSize
+		if host:IsA("Model") then
+			boundsCFrame, boundsSize = host:GetBoundingBox()
+		else
+			boundsCFrame, boundsSize = host.CFrame, host.Size
+		end
+
+		local bottomY = boundsCFrame.Position.Y - boundsSize.Y * 0.5
+		pivotToBottom = math.max(0, position.Y - bottomY)
 	end
 
-	local bottomY = boundsCFrame.Position.Y - boundsSize.Y * 0.5
-	local pivotToBottom = math.max(0, position.Y - bottomY)
 	return result.Position.Y + pivotToBottom + CLASH_GROUND_EPSILON
 end
 
@@ -355,14 +368,11 @@ function ClashedWeaponLogic.applyClash(player: Player, clashedWeaponData: Clashe
 	local nextReplicationAt = 0
 	local fallSpeed = 0
 	local isGrounded = false
-	local groundRaycastParams
-	if not isServer then
-		groundRaycastParams = RaycastParams.new()
-		groundRaycastParams.FilterType = Enum.RaycastFilterType.Exclude
-		groundRaycastParams.FilterDescendantsInstances = {clashedWeaponData.Host, Characters}
-		groundRaycastParams.IgnoreWater = true
-		groundRaycastParams.CollisionGroup = CollisionGroupConstants.Camera
-	end
+	local groundRaycastParams = RaycastParams.new()
+	groundRaycastParams.FilterType = Enum.RaycastFilterType.Exclude
+	groundRaycastParams.FilterDescendantsInstances = {clashedWeaponData.Host, Characters}
+	groundRaycastParams.IgnoreWater = true
+	groundRaycastParams.CollisionGroup = CollisionGroupConstants.Camera
 
 	clashedWeaponData.State = ClashedWeapons.StateEnum.Clashed
 	clashedWeaponData.Direction = direction
@@ -401,12 +411,12 @@ function ClashedWeaponLogic.applyClash(player: Player, clashedWeaponData: Clashe
 
 		local nextSpeed = math.max(0, speed - CLASH_DECELERATION * deltaTime)
 		local travelDistance = (speed + nextSpeed) * 0.5 * deltaTime
-		speed = nextSpeed
 		local nextPosition = currentPivot.Position + direction * travelDistance
 
-		if not isServer and not isGrounded and groundRaycastParams then
+		if not isGrounded then
 			local restingY = getClashRestingY(clashedWeaponData, nextPosition, groundRaycastParams)
 			if restingY then
+				speed = nextSpeed
 				fallSpeed = math.min(CLASH_MAX_FALL_SPEED, fallSpeed + CLASH_FALL_ACCELERATION * deltaTime)
 				local nextY = nextPosition.Y - fallSpeed * deltaTime
 				if nextY <= restingY then
@@ -416,9 +426,16 @@ function ClashedWeaponLogic.applyClash(player: Player, clashedWeaponData: Clashe
 				end
 				nextPosition = Vector3.new(nextPosition.X, nextY, nextPosition.Z)
 			else
+				-- Nothing to land on: keep the frame's momentum instead of decelerating or falling
 				fallSpeed = 0
-				nextPosition = Vector3.new(nextPosition.X, currentPivot.Position.Y, nextPosition.Z)
+				nextPosition = Vector3.new(
+					currentPivot.Position.X + direction.X * speed * deltaTime,
+					currentPivot.Position.Y,
+					currentPivot.Position.Z + direction.Z * speed * deltaTime
+				)
 			end
+		else
+			speed = nextSpeed
 		end
 
 		if isServer and clashedWeaponData.ClashOrigin and getHorizontalDistance(clashedWeaponData.ClashOrigin, nextPosition) > CLASH_MAX_HORIZONTAL_DISTANCE then
