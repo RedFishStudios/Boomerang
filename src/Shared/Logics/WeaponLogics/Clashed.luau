@@ -41,7 +41,7 @@ local CLASH_GROUND_EPSILON = 0.02
 local CLASH_OBSTRUCTION_RADIUS = 2
 local CLASH_MAX_HORIZONTAL_DISTANCE = 100
 local DEAD_PICKUP_DISTANCE = 3
-local DEAD_OVERLAP_CHECK_SIZE = Vector3.new(0.1, 0.1, 0.1)
+local DEAD_OVERLAP_CHECK_SIZE = Vector3.new(0.01, 0.01, 0.01)
 local SNAPSHOT_PACKET_SIZE = 1 + 8 + 12 + 12 + 4 + 1 + 8
 local DESPAWN_PACKET_SIZE = 8 + 1
 local WEAPON_UNRELIABLE_CODES = RemoteCodes.Weapon.Unreliable
@@ -193,8 +193,8 @@ local function isPositionInsideCollidablePart(clashedWeaponData: ClashedWeapons.
 	end
 	overlapParams.FilterDescendantsInstances = filter
 
-	for _, part in ipairs(workspace:GetPartBoundsInBox(CFrame.new(position), DEAD_OVERLAP_CHECK_SIZE, overlapParams)) do
-		if part:IsA("BasePart") and part.CanCollide then
+	for _, part in ipairs(workspace:GetPartBoundsInBox(CFrame.new(position + Vector3.new(0, DEAD_OVERLAP_CHECK_SIZE.Y+1, 0)), DEAD_OVERLAP_CHECK_SIZE, overlapParams)) do
+		if part:IsA("BasePart") and part.CanCollide and part.Transparency < 1 then
 			return true
 		end
 	end
