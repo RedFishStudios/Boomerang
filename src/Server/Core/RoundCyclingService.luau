@@ -318,7 +318,7 @@ end
 function RoundCyclingService.start()
    task.spawn(function()
       task.wait(2)
-      RoundCyclingService.setNextRound("Classic", "GenericB")
+      RoundCyclingService.setNextRound("Classic", "GenericE")
 	end)
 
    GameStateLibrary.RoundFinishedTasks:Add(function(winner: Player?, winMessage: string)

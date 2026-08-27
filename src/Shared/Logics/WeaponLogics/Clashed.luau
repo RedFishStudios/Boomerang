@@ -16,6 +16,7 @@ local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local SoundLibrary = require(ReplicatedStorage.Shared.Library.SoundLibrary)
 local Sounds = require(ReplicatedStorage.Shared.Constants.Sounds)
+local RaycastsUtility = require(ReplicatedStorage.Shared.Utils.RaycastsUtility)
 
 local isServer = RunService:IsServer()
 
@@ -31,11 +32,13 @@ local Characters = game.Workspace.Characters
 
 local REPLICATION_RATE = 1 / 20
 local CLASH_DECELERATION = 120
+CLASH_DECELERATION = 80
 local CLASH_FALL_ACCELERATION = 120
 local CLASH_MAX_FALL_SPEED = 80
 local CLASH_GROUND_RAY_DISTANCE = 10
 local CLASH_GROUND_MAX_IGNORE_ITERATIONS = 16
 local CLASH_GROUND_EPSILON = 0.02
+local CLASH_OBSTRUCTION_RADIUS = 2
 local CLASH_MAX_HORIZONTAL_DISTANCE = 100
 local DEAD_PICKUP_DISTANCE = 3
 local SNAPSHOT_PACKET_SIZE = 1 + 8 + 12 + 12 + 4 + 1 + 8
@@ -123,6 +126,59 @@ local function getClashRestingY(clashedWeaponData: ClashedWeapons.Data, position
 	end
 
 	return result.Position.Y + pivotToBottom + CLASH_GROUND_EPSILON
+end
+
+-- // Moves horizontally without entering obstructions, sliding along the struck face; returns the new position, the direction to keep travelling in, and whether the weapon is blocked head-on
+local function resolveHorizontalMovement(
+	position: Vector3,
+	direction: Vector3,
+	travelDistance: number,
+	raycastParams: RaycastParams
+): (Vector3, Vector3, boolean)
+	if travelDistance <= 0 then
+		return position, direction, false
+	end
+
+	local rayDistance = travelDistance + CLASH_OBSTRUCTION_RADIUS
+	local obstruction = RaycastsUtility.raycastProjectileObstruction(position, direction, rayDistance, raycastParams)
+	if not obstruction then
+		return position + direction * travelDistance, direction, false
+	end
+
+	local approachDistance = math.clamp((obstruction.Position - position).Magnitude - CLASH_OBSTRUCTION_RADIUS, 0, travelDistance)
+	local nextPosition = position + direction * approachDistance
+	local remainingDistance = travelDistance - approachDistance
+
+	local normal = Vector3.new(obstruction.Normal.X, 0, obstruction.Normal.Z)
+	if normal.Magnitude <= 1e-5 then
+		return nextPosition, direction, true
+	end
+	normal = normal.Unit
+
+	local slideDirection = direction - normal * direction:Dot(normal)
+	if slideDirection.Magnitude <= 1e-2 then
+		return nextPosition, direction, true
+	end
+	slideDirection = slideDirection.Unit
+
+	if remainingDistance > 0 then
+		local slideObstruction = RaycastsUtility.raycastProjectileObstruction(
+			nextPosition,
+			slideDirection,
+			remainingDistance + CLASH_OBSTRUCTION_RADIUS,
+			raycastParams
+		)
+		if slideObstruction then
+			remainingDistance = math.clamp(
+				(slideObstruction.Position - nextPosition).Magnitude - CLASH_OBSTRUCTION_RADIUS,
+				0,
+				remainingDistance
+			)
+		end
+		nextPosition += slideDirection * remainingDistance
+	end
+
+	return nextPosition, slideDirection, false
 end
 
 local function setWeaponCFrame(clashedWeaponData: ClashedWeapons.Data, cframe: CFrame, deltaTime: number?)
@@ -374,6 +430,12 @@ function ClashedWeaponLogic.applyClash(player: Player, clashedWeaponData: Clashe
 	groundRaycastParams.IgnoreWater = true
 	groundRaycastParams.CollisionGroup = CollisionGroupConstants.Camera
 
+	local obstructionFilter = {Characters}
+	if clashedWeaponData.Host then
+		table.insert(obstructionFilter, 1, clashedWeaponData.Host)
+	end
+	local obstructionRaycastParams = RaycastsUtility.getProjectileObstructionParams(obstructionFilter)
+
 	clashedWeaponData.State = ClashedWeapons.StateEnum.Clashed
 	clashedWeaponData.Direction = direction
 	clashedWeaponData.Speed = speed
@@ -411,12 +473,23 @@ function ClashedWeaponLogic.applyClash(player: Player, clashedWeaponData: Clashe
 
 		local nextSpeed = math.max(0, speed - CLASH_DECELERATION * deltaTime)
 		local travelDistance = (speed + nextSpeed) * 0.5 * deltaTime
-		local nextPosition = currentPivot.Position + direction * travelDistance
+		local nextPosition, nextDirection, isBlocked = resolveHorizontalMovement(currentPivot.Position, direction, travelDistance, obstructionRaycastParams)
+
+		local restingY = if isGrounded then nil else getClashRestingY(clashedWeaponData, nextPosition, groundRaycastParams)
+
+		if isGrounded or restingY or isBlocked then
+			speed = nextSpeed
+		else
+			-- Nothing to land on: keep the frame's momentum instead of decelerating or falling
+			nextPosition, nextDirection =
+				resolveHorizontalMovement(currentPivot.Position, direction, speed * deltaTime, obstructionRaycastParams)
+		end
+
+		direction = nextDirection
+		clashedWeaponData.Direction = direction
 
 		if not isGrounded then
-			local restingY = getClashRestingY(clashedWeaponData, nextPosition, groundRaycastParams)
 			if restingY then
-				speed = nextSpeed
 				fallSpeed = math.min(CLASH_MAX_FALL_SPEED, fallSpeed + CLASH_FALL_ACCELERATION * deltaTime)
 				local nextY = nextPosition.Y - fallSpeed * deltaTime
 				if nextY <= restingY then
@@ -426,20 +499,14 @@ function ClashedWeaponLogic.applyClash(player: Player, clashedWeaponData: Clashe
 				end
 				nextPosition = Vector3.new(nextPosition.X, nextY, nextPosition.Z)
 			else
-				-- Nothing to land on: keep the frame's momentum instead of decelerating or falling
 				fallSpeed = 0
-				nextPosition = Vector3.new(
-					currentPivot.Position.X + direction.X * speed * deltaTime,
-					currentPivot.Position.Y,
-					currentPivot.Position.Z + direction.Z * speed * deltaTime
-				)
 			end
-		else
-			speed = nextSpeed
 		end
 
-		if isServer and clashedWeaponData.ClashOrigin and getHorizontalDistance(clashedWeaponData.ClashOrigin, nextPosition) > CLASH_MAX_HORIZONTAL_DISTANCE then
-			ClashedWeaponLogic.removeFromField(player, clashedWeaponData, false)
+		if clashedWeaponData.ClashOrigin and getHorizontalDistance(clashedWeaponData.ClashOrigin, nextPosition) > CLASH_MAX_HORIZONTAL_DISTANCE then
+			if isServer then
+				ClashedWeaponLogic.removeFromField(player, clashedWeaponData)
+			end
 			return
 		end
 
