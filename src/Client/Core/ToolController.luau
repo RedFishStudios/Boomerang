@@ -9,6 +9,7 @@ local SimpleRemotes = require(game.ReplicatedStorage.Shared.Networking.SimpleRem
 local PlayersUtil = require(game.ReplicatedStorage.Shared.Utils.PlayersUtil)
 local ToolLibrary = require(game.ReplicatedStorage.Shared.Library.ToolLibrary)
 local ThrownWeapons = require(game.ReplicatedStorage.Shared.Referential.ThrownWeapons)
+local ClashedWeapons = require(game.ReplicatedStorage.Shared.Referential.ClashedWeapons)
 local GameStateLibrary = require(game.ReplicatedStorage.Shared.Library.GameStateLibrary)
 local ParticlesLibrary = require(game.ReplicatedStorage.Shared.Library.ParticlesLibrary)
 
@@ -413,7 +414,7 @@ function ToolController.updateTool(player: Player)
 
 	-- Detach/attach is not driven by aiming state
 	-- While aiming/charging, tools remain attached; detachment occurs only during throw flow
-	if DetachedTools[player] and DetachedTools[player] == toolModel and ThrownWeapons.Data[player] and GameStateLibrary.getGameStateData().CurrentRoundData:Get() ~= nil then
+	if DetachedTools[player] and DetachedTools[player] == toolModel and (ThrownWeapons.Data[player] or ClashedWeapons.Data[player]) and GameStateLibrary.getGameStateData().CurrentRoundData:Get() ~= nil then
 		DetachedToolCharacters[player] = character
 		finish()
 		return

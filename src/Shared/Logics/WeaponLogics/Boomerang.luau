@@ -17,14 +17,13 @@ local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
 local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
 local SoundLibrary = require(ReplicatedStorage.Shared.Library.SoundLibrary)
-local ParticlesLibrary = require(ReplicatedStorage.Shared.Library.ParticlesLibrary)
 local Sounds = require(ReplicatedStorage.Shared.Constants.Sounds)
-local HitboxLibrary = require(ReplicatedStorage.Shared.Library.HitboxLibrary)
 local GameTeamLibrary = require(ReplicatedStorage.Shared.Library.GameTeamLibrary)
 local CombatLibrary = require(ReplicatedStorage.Shared.Library.CombatLibrary)
-local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
 local SharedTasks = require(ReplicatedStorage.Shared.Constants.SharedTasks)
 local HomingBoomerang = require(ReplicatedStorage.Shared.Logics.PickupLogics.HomingBoomerang)
+local ClashedWeapons = require(ReplicatedStorage.Shared.Referential.ClashedWeapons)
+local ClashedWeaponLogic = require(ReplicatedStorage.Shared.Logics.WeaponLogics.Clashed)
 local HttpService = game:GetService("HttpService")
 
 local AnimationController
@@ -50,19 +49,11 @@ local thrownWeaponReplicationRemote = SimpleRemotes.getUnreliableEvent("ThrownWe
 local SLOW_RATE = 5
 local UP_VECTOR = Vector3.new(0, 1, 0)
 local REPLICATION_RATE = 1 / 20
-local MAX_CATCHUP_SECONDS = 1.25
-local CATCHUP_STEP = 1 / 60
 local AIM_START_SPEED_BONUS_MULTIPLIER = 1.0
 local AIM_SPEED_FADE_RATE = 2.0
 local RECALL_CATCH_RADIUS_MIN = 1.5
 local CLASH_SPEED_SCALE = 0.5
 local CLASH_MINIMUM_SPEED = 12
-local CLASH_DECELERATION = 120
-local CLASH_FALL_ACCELERATION = 120
-local CLASH_MAX_FALL_SPEED = 80
-local CLASH_GROUND_RAY_DISTANCE = 2048
-local CLASH_GROUND_EPSILON = 0.02
-local DEAD_PICKUP_DISTANCE = 3
 
 local WEAPON_UNRELIABLE_CODES = RemoteCodes.Weapon.Unreliable
 local WEAPON_RAYCAST_COLLISION_GROUP = CollisionGroupConstants.ThrownWeapons
@@ -270,30 +261,6 @@ local function getWeaponCFrame(thrownWeaponData: ThrownWeapons.Data): CFrame?
       return host:GetPivot()
    end
    return thrownWeaponData.CFrame
-end
-
--- // For a clashed boomerang, raycast downwards to detect where the boomerang should come to a rest
-local function getClashRestingY(thrownWeaponData: ThrownWeapons.Data, position: Vector3, raycastParams: RaycastParams): number?
-   local host = thrownWeaponData.Host
-   if not host or not host.Parent then
-      return nil
-   end
-
-   local result = workspace:Raycast(position, Vector3.new(0, -CLASH_GROUND_RAY_DISTANCE, 0), raycastParams)
-   if not result then
-      return nil
-   end
-
-   local boundsCFrame, boundsSize
-   if host:IsA("Model") then
-      boundsCFrame, boundsSize = host:GetBoundingBox()
-   else
-      boundsCFrame, boundsSize = host.CFrame, host.Size
-   end
-
-   local bottomY = boundsCFrame.Position.Y - boundsSize.Y * 0.5
-   local pivotToBottom = math.max(0, position.Y - bottomY)
-   return result.Position.Y + pivotToBottom + CLASH_GROUND_EPSILON
 end
 
 local function setWeaponCFrame(thrownWeaponData: ThrownWeapons.Data, cframe: CFrame, deltaTime: number?)
@@ -755,11 +722,8 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       end
 
       local victimModels = spherecastCharacterHitbox(rayOrigin, direction, rayDistance, hitboxRadius)
-      local playerDamaged = false
       for _, victimModel in ipairs(victimModels) do
-         if damagedPlayer(player, boomerangId, thrownWeaponData, victimModel) then
-            playerDamaged = true
-         end
+         damagedPlayer(player, boomerangId, thrownWeaponData, victimModel)
       end
 
       --if playerDamaged then
@@ -913,62 +877,8 @@ function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapo
    end
 end
 
-function Boomerang.setDead(player: Player, thrownWeaponData: ThrownWeapons.Data, position: Vector3?)
-   local isClientClashFall = not isServer and thrownWeaponData.State == ThrownWeapons.StateEnum.Clashed
-   if thrownWeaponData.MovementConnection and not isClientClashFall then
-      thrownWeaponData.MovementConnection:Disconnect()
-      thrownWeaponData.MovementConnection = nil
-   end
-
-   local pivot = getWeaponCFrame(thrownWeaponData)
-   if not pivot then
-      return
-   end
-   if position then
-      local deadPosition = Vector3.new(position.X, pivot.Position.Y, position.Z)
-      setWeaponCFrame(thrownWeaponData, (pivot - pivot.Position) + deadPosition)
-   end
-
-   thrownWeaponData.State = ThrownWeapons.StateEnum.Dead
-   thrownWeaponData.Speed = 0
-   thrownWeaponData.SyncTargetPosition = nil
-
-   if not isServer and not isClientClashFall and player == Players.LocalPlayer then
-      thrownWeaponData.MovementConnection = RunService.RenderStepped:Connect(function()
-         local currentPivot = getWeaponCFrame(thrownWeaponData)
-         if currentPivot then
-            updateOwnWeaponHighlight(player, thrownWeaponData, currentPivot.Position, true)
-         end
-      end)
-   end
-
-   if isServer then
-      local deadPivot = getWeaponCFrame(thrownWeaponData)
-      if deadPivot then
-         fireSnapshot(player.UserId, deadPivot.Position, thrownWeaponData.Direction or Vector3.zero, 0, thrownWeaponData.State)
-      end
-
-      thrownWeaponData.MovementConnection = RunService.Heartbeat:Connect(function()
-         if ThrownWeapons.Data[player] ~= thrownWeaponData then
-            if thrownWeaponData.MovementConnection then
-               thrownWeaponData.MovementConnection:Disconnect()
-               thrownWeaponData.MovementConnection = nil
-            end
-            return
-         end
-
-         local currentPivot = getWeaponCFrame(thrownWeaponData)
-         local character = player.Character
-         local rootPart = character and character.PrimaryPart
-         if currentPivot and rootPart and getHorizontalDistance(currentPivot.Position, rootPart.Position) <= DEAD_PICKUP_DISTANCE then
-            Boomerang.removeFromField(player, thrownWeaponData)
-         end
-      end)
-   end
-end
-
 function Boomerang.clash(player: Player, thrownWeaponData: ThrownWeapons.Data, options: ClashInitOptions)
-   if thrownWeaponData.State == ThrownWeapons.StateEnum.Clashed or thrownWeaponData.State == ThrownWeapons.StateEnum.Dead then
+   if ClashedWeapons.Data[player] then
       return
    end
 
@@ -983,87 +893,40 @@ function Boomerang.clash(player: Player, thrownWeaponData: ThrownWeapons.Data, o
 
    local direction = getHorizontalDirection(options.Direction)
    local speed = options.Speed or math.max((thrownWeaponData.Speed or 0) * CLASH_SPEED_SCALE, CLASH_MINIMUM_SPEED)
-   local nextReplicationAt = 0
-   local fallSpeed = 0
-   local isGrounded = false
-   local groundRaycastParams
-   if not isServer then
-      groundRaycastParams = RaycastParams.new()
-      groundRaycastParams.FilterType = Enum.RaycastFilterType.Exclude
-      groundRaycastParams.FilterDescendantsInstances = {thrownWeaponData.Host, Characters}
-      groundRaycastParams.IgnoreWater = true
-      groundRaycastParams.CollisionGroup = CollisionGroupConstants.Camera
-   end
-   thrownWeaponData.State = ThrownWeapons.StateEnum.Clashed
-   thrownWeaponData.Direction = direction
-   thrownWeaponData.Speed = speed
-   thrownWeaponData.SyncTargetPosition = nil
 
-   if options.Position then
-      local initialPosition = Vector3.new(options.Position.X, pivot.Position.Y, options.Position.Z)
-      setWeaponCFrame(thrownWeaponData, (pivot - pivot.Position) + initialPosition)
+   if thrownWeaponData.TrailObject then
+      if thrownWeaponData.TrailObject.TrailHost and thrownWeaponData.TrailObject.TrailHost.Parent then
+         thrownWeaponData.TrailObject.TrailHost:Destroy()
+      end
+      thrownWeaponData.TrailObject = nil
    end
 
-   local clashPivot = getWeaponCFrame(thrownWeaponData)
-   if clashPivot then
-      updateOwnWeaponHighlight(player, thrownWeaponData, clashPivot.Position, true)
-   end
+   local clashedWeaponData = {
+      OwnerUserId = thrownWeaponData.OwnerUserId,
+      ToolId = thrownWeaponData.ToolId,
+      State = ClashedWeapons.StateEnum.Clashed,
+      InstanceId = thrownWeaponData.InstanceId,
+      Host = thrownWeaponData.Host,
+      LastPosition = thrownWeaponData.LastPosition,
+      CFrame = pivot,
+      Direction = direction,
+      Speed = speed,
+      ReuseEquippedHost = thrownWeaponData.ReuseEquippedHost,
+      ExistingHost = thrownWeaponData.ExistingHost,
+      TestRaycastVisualizers = thrownWeaponData.TestRaycastVisualizers,
+      VisualRotation = thrownWeaponData.VisualRotation,
+   }
 
-   if isServer then
-      local initialPivot = getWeaponCFrame(thrownWeaponData)
-      if initialPivot then
-         fireSnapshot(player.UserId, initialPivot.Position, direction, speed, thrownWeaponData.State)
-      end
-   end
+   thrownWeaponData.Host = nil
+   thrownWeaponData.TestRaycastVisualizers = {}
+   ThrownWeapons.Data[player] = nil
+   ClashedWeapons.Data[player] = clashedWeaponData
 
-   thrownWeaponData.MovementConnection = RunService.Stepped:Connect(function(time, deltaTime)
-      if ThrownWeapons.Data[player] ~= thrownWeaponData then
-         return
-      end
-
-      local currentPivot = getWeaponCFrame(thrownWeaponData)
-      if not currentPivot then
-         return
-      end
-
-
-      if not isServer and speed <= 0 and isGrounded then
-         updateOwnWeaponHighlight(player, thrownWeaponData, currentPivot.Position, true)
-         return
-      end
-
-      local nextSpeed = math.max(0, speed - CLASH_DECELERATION * deltaTime)
-      local travelDistance = (speed + nextSpeed) * 0.5 * deltaTime
-      speed = nextSpeed
-      local nextPosition = currentPivot.Position + direction * travelDistance
-
-      if not isServer and not isGrounded and groundRaycastParams then
-         fallSpeed = math.min(CLASH_MAX_FALL_SPEED, fallSpeed + CLASH_FALL_ACCELERATION * deltaTime)
-         local restingY = getClashRestingY(thrownWeaponData, nextPosition, groundRaycastParams)
-         local nextY = nextPosition.Y - fallSpeed * deltaTime
-         if restingY and nextY <= restingY then
-            nextY = restingY
-            fallSpeed = 0
-            isGrounded = true
-         end
-         nextPosition = Vector3.new(nextPosition.X, nextY, nextPosition.Z)
-      end
-
-      setWeaponCFrame(thrownWeaponData, (currentPivot - currentPivot.Position) + nextPosition, deltaTime)
-      thrownWeaponData.Speed = speed
-      updateOwnWeaponHighlight(player, thrownWeaponData, nextPosition, true)
-
-      if isServer and time >= nextReplicationAt then
-         nextReplicationAt = time + REPLICATION_RATE
-         fireSnapshot(player.UserId, nextPosition, direction, speed, thrownWeaponData.State)
-      end
-
-      if speed <= 0 then
-         if isServer then
-            Boomerang.setDead(player, thrownWeaponData)
-         end
-      end
-   end)
+   ClashedWeaponLogic.applyClash(player, clashedWeaponData, {
+      Direction = direction,
+      Speed = speed,
+      Position = options.Position,
+   })
 end
 
 function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.Tool, thrownWeaponData: ThrownWeapons.Data, options: RecallInitOptions?)
@@ -1078,8 +941,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       return
    end
    if thrownWeaponData.State == ThrownWeapons.StateEnum.Returning
-      or thrownWeaponData.State == ThrownWeapons.StateEnum.Clashed
-      or thrownWeaponData.State == ThrownWeapons.StateEnum.Dead
+      or ClashedWeapons.Data[player] ~= nil
    then
       return
    end

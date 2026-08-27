@@ -13,6 +13,8 @@ local BufferUtil = require(ReplicatedStorage.Shared.Utils.BufferUtil)
 local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
+local ClashedWeapons = require(ReplicatedStorage.Shared.Referential.ClashedWeapons)
+local ClashedWeaponLogic = require(ReplicatedStorage.Shared.Logics.WeaponLogics.Clashed)
 local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
 local WeaponLibrary = require(ReplicatedStorage.Shared.Library.WeaponLibrary)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
@@ -120,7 +122,7 @@ local function getHorizontalDirection(direction: Vector3): Vector3
 end
 
 local function getWeaponState(): string
-   if ThrownWeapons.Data[Players.LocalPlayer] then
+   if ThrownWeapons.Data[Players.LocalPlayer] or ClashedWeapons.Data[Players.LocalPlayer] then
       return WeaponController.CurrentWeaponState.OnField
    end
 
@@ -129,6 +131,19 @@ local function getWeaponState(): string
    end
 
    return WeaponController.CurrentWeaponState.InHand
+end
+
+local function clearClashedWeapon(forPlayer: Player, returnToPlayer: boolean?)
+   local clashedWeaponData = ClashedWeapons.Data[forPlayer]
+   if not clashedWeaponData then
+      return
+   end
+
+   ClashedWeaponLogic.removeFromField(forPlayer, clashedWeaponData, returnToPlayer ~= false)
+
+   if returnToPlayer ~= false and forPlayer ~= Players.LocalPlayer then
+      ToolController.setToolVisible(forPlayer, true)
+   end
 end
 
 local function playerIsWeaponLocked(): boolean
@@ -165,6 +180,7 @@ end
 local function clearThrownWeapon(forPlayer: Player, returnToPlayer: boolean?)
    local thrownWeaponData = ThrownWeapons.Data[forPlayer]
    if not thrownWeaponData then
+      clearClashedWeapon(forPlayer, returnToPlayer)
       return
    end
    local toolData = Tools[thrownWeaponData.ToolId]
@@ -297,6 +313,8 @@ end
 function WeaponController.handleEquippedToolButton(): string
    if ThrownWeapons.Data[Players.LocalPlayer] then
       recallEquippedTool()
+   elseif ClashedWeapons.Data[Players.LocalPlayer] then
+      return getWeaponState()
    elseif isAiming then
       throwEquippedTool()
    else
@@ -310,19 +328,11 @@ end
 local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vector3, speed: number, state: number, serverTime: number)
    local thrownWeaponData = ThrownWeapons.Data[forPlayer]
    if not thrownWeaponData or not thrownWeaponData.Host or not thrownWeaponData.Host.Parent then
+      ClashedWeaponLogic.applyServerSnapshot(forPlayer, position, direction, speed, state, serverTime)
       return
    end
 
    local previousState = thrownWeaponData.State
-   if previousState == ThrownWeapons.StateEnum.Dead then
-      return
-   end
-   if previousState == ThrownWeapons.StateEnum.Clashed
-      and state ~= ThrownWeapons.StateEnum.Clashed
-      and state ~= ThrownWeapons.StateEnum.Dead
-   then
-      return
-   end
 
    local catchup = math.clamp(workspace:GetServerTimeNow() - serverTime, 0, MAX_SNAPSHOT_CATCHUP)
    local authoritativePosition = position + direction * speed * catchup
@@ -340,24 +350,23 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
             logic.recall(forPlayer, thrownWeaponData.ToolId, toolData, thrownWeaponData, {
                InitialSpeed = speed,
             })
-         elseif state == ThrownWeapons.StateEnum.Clashed and logic.clash then
+         elseif state == ClashedWeapons.StateEnum.Clashed and logic.clash then
             logic.clash(forPlayer, thrownWeaponData, {
                Direction = direction,
                Speed = speed,
                Position = position,
             })
-         elseif state == ThrownWeapons.StateEnum.Dead and logic.setDead then
-            logic.setDead(forPlayer, thrownWeaponData, position)
          end
       end
+   end
+
+   if state == ClashedWeapons.StateEnum.Clashed then
+      return
    end
 
    thrownWeaponData.State = state
 
    local currentPosition = thrownWeaponData.Host:GetPivot().Position
-   if state == ThrownWeapons.StateEnum.Clashed or state == ThrownWeapons.StateEnum.Dead then
-      authoritativePosition = Vector3.new(authoritativePosition.X, currentPosition.Y, authoritativePosition.Z)
-   end
    local errorDistance = (authoritativePosition - currentPosition).Magnitude
    if errorDistance >= HARD_SNAP_DISTANCE then
       local currentPivot = thrownWeaponData.Host:GetPivot()
@@ -385,9 +394,6 @@ local function updateSmoothing(deltaTime: number)
       local currentPivot = host:GetPivot()
       local currentPosition = currentPivot.Position
       local targetPosition = thrownWeaponData.SyncTargetPosition
-      if thrownWeaponData.State == ThrownWeapons.StateEnum.Clashed or thrownWeaponData.State == ThrownWeapons.StateEnum.Dead then
-         targetPosition = Vector3.new(targetPosition.X, currentPosition.Y, targetPosition.Z)
-      end
       local errorDistance = (targetPosition - currentPosition).Magnitude
 
       if errorDistance <= 0.05 then
@@ -741,7 +747,10 @@ function WeaponController.init()
       onSnapshot(forPlayer, position, getHorizontalDirection(direction), speed, state, serverTime)
    end)
 
-   RunService.PreSimulation:Connect(updateSmoothing)
+   RunService.PreSimulation:Connect(function(deltaTime)
+      updateSmoothing(deltaTime)
+      ClashedWeaponLogic.updateSmoothing(deltaTime)
+   end)
 
    local gameStateData = GameStateLibrary.getGameStateData()
    gameStateData.GameplayPhase:Subscribe(function(gameplayPhase)

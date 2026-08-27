@@ -10,24 +10,26 @@ local WeaponService = {}
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
-local CollectionService = game:GetService("CollectionService")
+local _CollectionService = game:GetService("CollectionService")
 local RunService = game:GetService("RunService")
 
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
-local PlayerDataService = require(ServerStorage.Server.Core.PlayerDataService)
-local ProfileTemplate = require(ReplicatedStorage.Shared.Data.ProfileTemplate)
-local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
+local _PlayerDataService = require(ServerStorage.Server.Core.PlayerDataService)
+local _ProfileTemplate = require(ReplicatedStorage.Shared.Data.ProfileTemplate)
+local _RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
+local ClashedWeapons = require(ReplicatedStorage.Shared.Referential.ClashedWeapons)
+local ClashedWeaponLogic = require(ReplicatedStorage.Shared.Logics.WeaponLogics.Clashed)
 local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
 local GameStateLibrary= require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local WeaponLibrary = require(ReplicatedStorage.Shared.Library.WeaponLibrary)
-local ArenaService = require(ServerStorage.Server.Core.ArenaService)
+local _ArenaService = require(ServerStorage.Server.Core.ArenaService)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
-local AnimationService = require(ServerStorage.Server.Core.AnimationService)
+local _AnimationService = require(ServerStorage.Server.Core.AnimationService)
 local CharacterService = require(ServerStorage.Server.Core.CharacterService)
-local HitboxService = require(ServerStorage.Server.Core.HitboxService)
+local _HitboxService = require(ServerStorage.Server.Core.HitboxService)
 local PlayerStatsLibrary = require(ReplicatedStorage.Shared.Library.PlayerStatsLibrary)
 local SharedTasks = require(ReplicatedStorage.Shared.Constants.SharedTasks)
 
@@ -268,6 +270,10 @@ function WeaponService.applyLockOnWeapon(player: Player, forTime: number)
 
    local thrownWeaponData = ThrownWeapons.Data[player]
    if not thrownWeaponData then
+      local clashedWeaponData = ClashedWeapons.Data[player]
+      if clashedWeaponData then
+         ClashedWeaponLogic.removeFromField(player, clashedWeaponData, false)
+      end
       return
    end
 
@@ -433,9 +439,6 @@ function WeaponService.init()
          print(`player has no thrown weapon to recall`)
          return
       end
-      if thrownWeaponData.State == ThrownWeapons.StateEnum.Clashed or thrownWeaponData.State == ThrownWeapons.StateEnum.Dead then
-         return
-      end
 
       local toolData = Tools[thrownWeaponData.ToolId]
       local Logic = getLogic(toolData.LogicClass)
@@ -472,13 +475,17 @@ function WeaponService.init()
          local Logic = getLogic(toolData.LogicClass)
          Logic.removeFromField(player, thrownWeaponData)
       end
+      local clashedWeaponData = ClashedWeapons.Data[player]
+      if clashedWeaponData then
+         ClashedWeaponLogic.removeFromField(player, clashedWeaponData, false)
+      end
    end)
 
    PlayersUtil.PlayerAdded:Add(function(joiningPlayer: Player)
       for player, equippedToolId in pairs(equippedToolIds) do
          if player.Character and player.Character.Parent then
             weaponEquipStateEvent:FireClient(joiningPlayer, player.UserId, "Equip", equippedToolId)
-            if equippedToolVisible[player] == false then
+            if equippedToolVisible[player] == false and (ThrownWeapons.Data[player] or ClashedWeapons.Data[player]) then
                weaponEquipStateEvent:FireClient(joiningPlayer, player.UserId, "SetVisible", false)
             end
          end
@@ -489,6 +496,10 @@ function WeaponService.init()
       aiming[player] = nil
       equippedToolIds[player] = nil
       equippedToolVisible[player] = nil
+      local clashedWeaponData = ClashedWeapons.Data[player]
+      if clashedWeaponData then
+         ClashedWeaponLogic.removeFromField(player, clashedWeaponData, false)
+      end
    end)
 
    PlayersUtil.CharacterDied:Add(function(player: Player, _character: Model, _humanoid: Humanoid)
@@ -499,6 +510,10 @@ function WeaponService.init()
 
       local thrownWeaponData = ThrownWeapons.Data[player]
       if not thrownWeaponData then
+         local clashedWeaponData = ClashedWeapons.Data[player]
+         if clashedWeaponData then
+            ClashedWeaponLogic.removeFromField(player, clashedWeaponData, false)
+         end
          return
       end
       local host = thrownWeaponData.Host
@@ -520,6 +535,9 @@ function WeaponService.init()
          local toolData = Tools[thrownWeaponData.ToolId]
          local Logic = getLogic(toolData.LogicClass)
          Logic.removeFromField(player, thrownWeaponData)
+      end
+      for player, clashedWeaponData in pairs(ClashedWeapons.Data) do
+         ClashedWeaponLogic.removeFromField(player, clashedWeaponData, false)
       end
       for p, _ in pairs(aiming) do
          aiming[p] = nil

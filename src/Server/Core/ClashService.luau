@@ -154,9 +154,6 @@ function ClashService.init()
       local fullChecked: {[Player]: boolean} = {}
       local thrownWeapons = ThrownWeapons.Data
       for playerA, weaponA in pairs(thrownWeapons) do
-         if weaponA.State == ThrownWeapons.StateEnum.Clashed or weaponA.State == ThrownWeapons.StateEnum.Dead then
-            continue
-         end
          local cframeA = weaponA.CFrame
          if not cframeA then
             continue
@@ -166,9 +163,6 @@ function ClashService.init()
 
          for playerB, weaponB in pairs(thrownWeapons) do
             if playerA == playerB or fullChecked[playerB] then
-               continue
-            end
-            if weaponB.State == ThrownWeapons.StateEnum.Clashed or weaponB.State == ThrownWeapons.StateEnum.Dead then
                continue
             end
             if hasClashRecord(playerA, playerB) then
