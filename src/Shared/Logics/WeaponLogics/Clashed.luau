@@ -41,6 +41,7 @@ local CLASH_GROUND_EPSILON = 0.02
 local CLASH_OBSTRUCTION_RADIUS = 2
 local CLASH_MAX_HORIZONTAL_DISTANCE = 100
 local DEAD_PICKUP_DISTANCE = 3
+local DEAD_OVERLAP_CHECK_SIZE = Vector3.new(0.1, 0.1, 0.1)
 local SNAPSHOT_PACKET_SIZE = 1 + 8 + 12 + 12 + 4 + 1 + 8
 local DESPAWN_PACKET_SIZE = 8 + 1
 local WEAPON_UNRELIABLE_CODES = RemoteCodes.Weapon.Unreliable
@@ -128,7 +129,8 @@ local function getClashRestingY(clashedWeaponData: ClashedWeapons.Data, position
 	return result.Position.Y + pivotToBottom + CLASH_GROUND_EPSILON
 end
 
--- // Moves horizontally without entering obstructions, sliding along the struck face; returns the new position, the direction to keep travelling in, and whether the weapon is blocked head-on
+-- // Moves horizontally without entering obstructions, sliding along the struck face
+--    Returns the new position, the direction to keep travelling in, and whether the weapon is blocked head-on
 local function resolveHorizontalMovement(
 	position: Vector3,
 	direction: Vector3,
@@ -179,6 +181,25 @@ local function resolveHorizontalMovement(
 	end
 
 	return nextPosition, slideDirection, false
+end
+
+-- // Failsafe; if a weapon ends up dying inside an obstruction, immediately return it to the player
+local function isPositionInsideCollidablePart(clashedWeaponData: ClashedWeapons.Data, position: Vector3): boolean
+	local overlapParams = OverlapParams.new()
+	overlapParams.FilterType = Enum.RaycastFilterType.Exclude
+	local filter = {Characters}
+	if clashedWeaponData.Host then
+		table.insert(filter, 1, clashedWeaponData.Host)
+	end
+	overlapParams.FilterDescendantsInstances = filter
+
+	for _, part in ipairs(workspace:GetPartBoundsInBox(CFrame.new(position), DEAD_OVERLAP_CHECK_SIZE, overlapParams)) do
+		if part:IsA("BasePart") and part.CanCollide then
+			return true
+		end
+	end
+
+	return false
 end
 
 local function setWeaponCFrame(clashedWeaponData: ClashedWeapons.Data, cframe: CFrame, deltaTime: number?)
@@ -335,6 +356,7 @@ function ClashedWeaponLogic.removeFromField(player: Player, clashedWeaponData: C
 	end
 end
 
+-- // Boomerang has reached final resting point and died there (rip)
 function ClashedWeaponLogic.setDead(player: Player, clashedWeaponData: ClashedWeapons.Data, position: Vector3?)
 	local pivot = getWeaponCFrame(clashedWeaponData)
 	if not pivot then
@@ -350,8 +372,14 @@ function ClashedWeaponLogic.setDead(player: Player, clashedWeaponData: ClashedWe
 	clashedWeaponData.Speed = 0
 	clashedWeaponData.SyncTargetPosition = nil
 
+	local deadPivot = getWeaponCFrame(clashedWeaponData)
+
+	if deadPivot and isPositionInsideCollidablePart(clashedWeaponData, deadPivot.Position) then
+		ClashedWeaponLogic.removeFromField(player, clashedWeaponData)
+		return
+	end
+
 	if isServer then
-		local deadPivot = getWeaponCFrame(clashedWeaponData)
 		if deadPivot then
 			fireSnapshot(player.UserId, deadPivot.Position, clashedWeaponData.Direction or Vector3.zero, 0, clashedWeaponData.State)
 		end
@@ -521,6 +549,10 @@ function ClashedWeaponLogic.applyClash(player: Player, clashedWeaponData: Clashe
 
 		if speed <= 0 and isServer then
 			ClashedWeaponLogic.setDead(player, clashedWeaponData)
+			if ClashedWeapons.Data[player] ~= clashedWeaponData then
+				return
+			end
+
 			local movementConnection = clashedWeaponData.MovementConnection
 			if movementConnection then
 				movementConnection:Disconnect()
