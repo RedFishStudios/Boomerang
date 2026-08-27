@@ -146,8 +146,8 @@ local function clearClashedWeapon(forPlayer: Player, returnToPlayer: boolean?)
    end
 end
 
-local function playerIsWeaponLocked(): boolean
-   local lockedUntil = PlayerStatsLibrary.getStat(localPlayer, "WeaponLockedUntilTimestamp")
+local function playerIsWeaponLocked(player: Player?): boolean
+   local lockedUntil = PlayerStatsLibrary.getStat(player or localPlayer, "WeaponLockedUntilTimestamp")
    return typeof(lockedUntil) == "number" and workspace:GetServerTimeNow() < lockedUntil
 end
 
@@ -460,6 +460,56 @@ local function observeWeaponLockTimestamp()
 
       disconnectWeaponLockHeartbeat()
       setLocalWeaponLocked(false)
+   end)
+end
+
+local remoteWeaponLockedPlayers: {[Player]: true} = {}
+local remoteWeaponLockHeartbeatConnection: RBXScriptConnection? = nil
+
+local function setRemoteWeaponLocked(player: Player, isLocked: boolean)
+   if (remoteWeaponLockedPlayers[player] ~= nil) == isLocked then
+      return
+   end
+
+   if isLocked then
+      remoteWeaponLockedPlayers[player] = true
+      stopAiming(player)
+      ToolController.setAimState(player, false)
+      ToolController.setWeaponLocked(player, true)
+   else
+      remoteWeaponLockedPlayers[player] = nil
+      ToolController.setWeaponLocked(player, false)
+   end
+end
+
+local function observeRemoteWeaponLock(player: Player)
+   setRemoteWeaponLocked(player, playerIsWeaponLocked(player))
+
+   if next(remoteWeaponLockedPlayers) == nil then
+      if remoteWeaponLockHeartbeatConnection then
+         remoteWeaponLockHeartbeatConnection:Disconnect()
+         remoteWeaponLockHeartbeatConnection = nil
+      end
+      return
+   end
+
+   if remoteWeaponLockHeartbeatConnection then
+      return
+   end
+
+   remoteWeaponLockHeartbeatConnection = RunService.Heartbeat:Connect(function()
+      for lockedPlayer in pairs(remoteWeaponLockedPlayers) do
+         if not lockedPlayer.Parent then
+            remoteWeaponLockedPlayers[lockedPlayer] = nil
+         elseif not playerIsWeaponLocked(lockedPlayer) then
+            setRemoteWeaponLocked(lockedPlayer, false)
+         end
+      end
+
+      if next(remoteWeaponLockedPlayers) == nil and remoteWeaponLockHeartbeatConnection then
+         remoteWeaponLockHeartbeatConnection:Disconnect()
+         remoteWeaponLockHeartbeatConnection = nil
+      end
    end)
 end
 
@@ -804,12 +854,23 @@ function WeaponController.init()
    end)
 
    PlayerStatsLibrary.StatChangedTasks:Add(function(player: Player, statName: string, value)
-      if player == localPlayer and statName == "WeaponLockedUntilTimestamp" then
+      if statName ~= "WeaponLockedUntilTimestamp" then
+         return
+      end
+
+      if player == localPlayer then
          observeWeaponLockTimestamp()
+      else
+         observeRemoteWeaponLock(player)
       end
    end)
 
    observeWeaponLockTimestamp()
+   for _, player in ipairs(Players:GetPlayers()) do
+      if player ~= localPlayer then
+         observeRemoteWeaponLock(player)
+      end
+   end
 end
 
 function WeaponController.start() end

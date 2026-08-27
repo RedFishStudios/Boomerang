@@ -1,6 +1,3 @@
--- TODO: during the Hot Potato gamemode, only the player who is holding the Hot Potato should have a functioning boomerang
--- No one else is visualized as holding a weapon, and they can't aim
-
 local HotPotatoRoundLogic = {}
 
 local RunService = game:GetService("RunService")
@@ -16,10 +13,12 @@ local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 
 local isServer = RunService:IsServer()
 local GameTeamService
+local WeaponService
 local SoundLibrary
 local CharacterRenderController
 if isServer then
    GameTeamService = require(ServerStorage.Server.Core.GameTeamService)
+   WeaponService = require(ServerStorage.Server.Core.WeaponService)
 else
    SoundLibrary = require(ReplicatedStorage.Shared.Library.SoundLibrary)
    CharacterRenderController = require(ReplicatedStorage.Client.Core.CharacterRenderController)
@@ -32,6 +31,7 @@ end
 local HOT_POTATO_EFFECT_ID = "HotPotato"
 local EXPLOSION_COUNTER = 10
 local NEXT_HOLDER_DELAY = 3
+local NON_HOLDER_WEAPON_LOCK_DURATION = 60 * 60 -- Outlasts the round; cleared on teardown
 
 local explodePlayerRemote = SimpleRemotes.getEvent("ExplodePlayerPotato")
 local pickupEffectStateChanged = SimpleRemotes.getEvent("PickupEffectStateChanged")
@@ -61,8 +61,18 @@ local function clearHolderEffect(player: Player)
    PickupLibrary.removePickupEffectActive(player.UserId, generateHolderLivePickupId(player), nil, false)
 end
 
+local function lockNonHolderWeapons()
+   for _, player in ipairs(CurrentGameState.getGameStateData().LivingPlayersInArena:Get()) do
+      if player ~= currentHolder then
+         WeaponService.applyLockOnWeapon(player, NON_HOLDER_WEAPON_LOCK_DURATION)
+      end
+   end
+end
+
 local function grantHolderEffect(player: Player)
    currentHolder = player
+   WeaponService.removeLockOnWeapon(player)
+   lockNonHolderWeapons()
    PickupLibrary.setPickupEffectActive(player.UserId, generateHolderLivePickupId(player), HOT_POTATO_EFFECT_ID)
 end
 
@@ -96,6 +106,7 @@ local function start()
          local exploding = currentHolder
          currentHolder = nil
          explode(exploding)
+         WeaponService.applyLockOnWeapon(exploding, NON_HOLDER_WEAPON_LOCK_DURATION)
       end
 
       if nextHolderRoundId ~= nil then
@@ -149,6 +160,10 @@ local function teardown()
    end
    table.clear(PerMatchDestroyerFunctions)
 
+   for i, p in pairs(game.Players:GetPlayers()) do
+      WeaponService.removeLockOnWeapon(p)
+   end
+
    CombatLibrary.removeAttackHitPlayerCallback(HOT_POTATO_EFFECT_ID)
 end
 
@@ -171,6 +186,7 @@ function HotPotatoRoundLogic.setup()
       -- players are still trickling into LivingPlayersInArena at round start, so only treat a *decrease* to <=1 as a win
       local lastLivingPlayersCount = #players
       table.insert(PerMatchDestroyerFunctions, CurrentGameState.getGameStateData().LivingPlayersInArena:Subscribe(function(livingPlayers: {Player})
+         lockNonHolderWeapons()
          local previousCount = lastLivingPlayersCount
          lastLivingPlayersCount = #livingPlayers
          if #livingPlayers < previousCount and #livingPlayers <= 1 and not (RunService:IsStudio() and #game.Players:GetPlayers() == 1) then

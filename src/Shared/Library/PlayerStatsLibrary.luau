@@ -15,6 +15,12 @@ local RunService = game:GetService("RunService")
 local initiated = false
 local isServer = RunService:IsServer()
 local replicatePlayerStat = SimpleRemotes.getEvent("ReplicatePlayerStat")
+local replicatePublicPlayerStat = SimpleRemotes.getEvent("ReplicatePublicPlayerStat")
+
+-- // Stats other clients need in order to render a player correctly
+local PublicStats: {[string]: boolean} = {
+   WeaponLockedUntilTimestamp = true,
+}
 
 -------------------------------------------------------------------------------
 -- TYPES
@@ -87,7 +93,11 @@ function PlayerStatsLibrary.setStat(player: Player, statName: string, value: any
    end
    
    if isServer and not doNotReplicate then
-      replicatePlayerStat:FireClient(player, statName, value)
+      if PublicStats[statName] then
+         replicatePublicPlayerStat:FireAllClients(player, statName, value)
+      else
+         replicatePlayerStat:FireClient(player, statName, value)
+      end
    end
 
    PlayerStatsLibrary.StatChangedTasks:Execute("serial", player, statName, value)
@@ -118,6 +128,20 @@ function PlayerStatsLibrary.init()
       end)
       PlayersUtil.PlayerAdded:Add(function(player)
          newPlayerStats(player)
+
+         -- Catch the joining client up on public stats already set on everyone else
+         for _, existingPlayer in ipairs(Players:GetPlayers()) do
+            local existingStats = playerStats[existingPlayer.UserId]
+            if not existingStats or existingPlayer == player then
+               continue
+            end
+            for statName in pairs(PublicStats) do
+               local value = existingStats[statName]
+               if value ~= nil then
+                  replicatePublicPlayerStat:FireClient(player, existingPlayer, statName, value)
+               end
+            end
+         end
       end)
       local gameStateData = GameStateLibrary.getGameStateData()
       gameStateData.GameplayPhase:Subscribe(function(newPhase)
@@ -144,6 +168,13 @@ function PlayerStatsLibrary.init()
       -- Client context
       replicatePlayerStat.OnClientEvent:Connect(function(statName: string, value: any)
          PlayerStatsLibrary.setStat(Players.LocalPlayer, statName, value)
+      end)
+
+      replicatePublicPlayerStat.OnClientEvent:Connect(function(player: Player, statName: string, value: any)
+         if typeof(player) ~= "Instance" or not player:IsA("Player") then
+            return
+         end
+         PlayerStatsLibrary.setStat(player, statName, value)
       end)
    end
 end

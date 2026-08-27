@@ -298,6 +298,10 @@ function WeaponService.applyLockOnWeapon(player: Player, forTime: number)
    end
 end
 
+function WeaponService.removeLockOnWeapon(player: Player)
+   PlayerStatsLibrary.setStat(player, "WeaponLockedUntilTimestamp", nil)
+end
+
 -------------------------------------------------------------------------------
 -- CORE FUNCTIONS
 -------------------------------------------------------------------------------
