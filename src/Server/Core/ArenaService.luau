@@ -20,6 +20,7 @@ local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local GameTeamLibrary = require(game.ReplicatedStorage.Shared.Library.GameTeamLibrary)
 local ArenaLibrary = require(ReplicatedStorage.Shared.Library.ArenaLibrary)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
+local MapDataConstants = require(ReplicatedStorage.Shared.Constants.MapData)
 
 local playerDeathReasonRemote = SimpleRemotes.getEvent("PlayerDeathReason")
 
@@ -95,18 +96,12 @@ end
 -- // Return set of map names that can be chosen from for voting
 function ArenaService.getAvailableMaps(forGamemode: string): {string}
    local availableMapNames = {}
-   for mapName, _ in pairs(registeredMaps) do
-      table.insert(availableMapNames, mapName)
-   end
-   
-   local availableForChoice = {}
-   repeat
-      local choice = availableMapNames[math.random(1, #availableMapNames)]
-      if not table.find(availableForChoice, choice) then
-         table.insert(availableForChoice, choice)
+   for mapName, mapData in pairs(MapDataConstants) do
+      if mapData.ForGamemodes and table.find(mapData.ForGamemodes, forGamemode) then
+         table.insert(availableMapNames, mapName)
       end
-   until #availableForChoice >= 3
-   return availableForChoice
+   end
+   return availableMapNames
 end
 
 function ArenaService.getSpawnPoint(player: Player): BasePart?
