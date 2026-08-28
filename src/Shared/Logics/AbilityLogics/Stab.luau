@@ -17,6 +17,8 @@ local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local CombatLibrary = require(ReplicatedStorage.Shared.Library.CombatLibrary)
 local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
 local WeaponLibrary = require(ReplicatedStorage.Shared.Library.WeaponLibrary)
+local ThrownWeaponsData = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
+local ClashedWeaponsData = require(ReplicatedStorage.Shared.Referential.ClashedWeapons)
 
 local isServer = RunService:IsServer()
 
@@ -452,6 +454,10 @@ function Stab.canActivate(player: Player): boolean
 
    local gameStateData = GameStateLibrary.getGameStateData()
    if gameStateData.CurrentRoundData:Get() == nil then
+      return false
+   end
+
+   if ThrownWeaponsData.Data[player] or ClashedWeaponsData.Data[player] then
       return false
    end
 
