@@ -177,8 +177,8 @@ end
 
 function StormCloseService.begin(x, y, centerPoint: Vector3)
    if 1==1 then
-      --warn(`cancelling storm close service, for testing`)
-      --return
+      warn(`cancelling storm close service, for testing`)
+      return
    end
    clear()
    local gameStateData = GameStateLibrary.getGameStateData()

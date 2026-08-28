@@ -42,6 +42,8 @@ local PARRY_SHAKE_FREQUENCY = 34
 -- TYPES
 -------------------------------------------------------------------------------
 
+type CameraMode = "Overhead" | "Regular"
+
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
 -------------------------------------------------------------------------------
@@ -56,11 +58,13 @@ local smoothedCameraDistance: number? = nil
 local parryShakeStart: number? = nil
 local parryShakeEnd: number? = nil
 
+local lastModeSet: CameraMode = "Overhead"
+
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
 -------------------------------------------------------------------------------
 
-CustomCameraController.Mode = "Overhead" :: "Overhead" | "Regular"
+CustomCameraController.Mode = "Overhead" :: CameraMode
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -435,6 +439,8 @@ local function startOverheadMode()
 end
 
 local function stopOverheadMode()
+   currentCamera = workspace.CurrentCamera
+
    if overheadCameraConnection then
       overheadCameraConnection:Disconnect()
       overheadCameraConnection = nil
@@ -495,15 +501,12 @@ function CustomCameraController.init()
    local gameStateData = GameStateLibrary.getGameStateData()
    gameStateData.GameplayPhase:Subscribe(function(newPhase)
       if newPhase == GameplayPhases.LobbyVoting then
-         if CustomCameraController.Mode == "Regular" then
-            UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-            UserInputService.MouseIconEnabled = true
-         end
+         lastModeSet = CustomCameraController.Mode
+         CustomCameraController.setMode("Regular")
+         UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+         UserInputService.MouseIconEnabled = true
       elseif newPhase == GameplayPhases.RoundActive then
-         if CustomCameraController.Mode == "Regular" then
-            UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
-            UserInputService.MouseIconEnabled = false
-         end
+         CustomCameraController.setMode(lastModeSet)
       end
    end)
 end
@@ -528,6 +531,9 @@ function CustomCameraController.start()
    end)
 
    game:GetService("ContextActionService"):BindAction("SwitchCameraMode", function(actionName, inputState, inputObject)
+      if gameStateData.GameplayPhase:Get() ~= GameplayPhases.RoundActive then
+         return
+      end
       if inputState == Enum.UserInputState.Begin then
          if CustomCameraController.Mode == "Overhead" then
             CustomCameraController.setMode("Regular")

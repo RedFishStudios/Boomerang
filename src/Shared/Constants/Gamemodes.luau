@@ -37,7 +37,7 @@ local Gamemodes: {
       Id = "TeamElimination",
       Subheader = "Eliminate all opponents to win!",
       CanRespawn = false,
-      StormClose = true,
+      StormClose = false,
       TimeLasts = 30
    },
    HotPotato = {
