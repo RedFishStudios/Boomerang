@@ -4,10 +4,13 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
+local CollisionGroupConstants = require(game.ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
+
 function RaycastsUtility.getProjectileObstructionParams(filterDescendantsInstances: { Instance }): RaycastParams
 	local raycastParams = RaycastParams.new()
 	raycastParams.FilterDescendantsInstances = filterDescendantsInstances
 	raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+   raycastParams.CollisionGroup = CollisionGroupConstants.ThrownWeapons
 	return raycastParams
 end
 
