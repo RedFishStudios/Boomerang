@@ -8,7 +8,12 @@
 local RoundController = {}
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local CurrentGameState = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
+local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
+
+local GamemodeLogicsFolder = ReplicatedStorage.Shared.Logics.GamemodeLogics
+local GamemodeLogics: {[string]: any} = {}
+
+local lastRoundGamemode: string? = nil
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -18,8 +23,31 @@ local CurrentGameState = require(ReplicatedStorage.Shared.Library.GameStateLibra
 -- TYPES
 -------------------------------------------------------------------------------
 
+-------------------------------------------------------------------------------
+-- LOCAL FUNCTIONS
+-------------------------------------------------------------------------------
+
+local function getLogic(gamemode: string): any
+  if GamemodeLogics[gamemode] then
+    return GamemodeLogics[gamemode]
+  end
+
+  local logicModule = GamemodeLogicsFolder:FindFirstChild(gamemode)
+  if logicModule then
+    local logic = require(logicModule)
+    GamemodeLogics[gamemode] = logic
+    return logic
+  end
+
+  return nil
+end
+
+-------------------------------------------------------------------------------
+-- PUBLIC FUNCTIONS
+-------------------------------------------------------------------------------
+
 function RoundController.isInRound(): boolean
-  return CurrentGameState.getGameStateData().CurrentRoundData:Get() ~= nil
+  return GameStateLibrary.getGameStateData().CurrentRoundData:Get() ~= nil
 end
 
 -------------------------------------------------------------------------------
@@ -27,7 +55,28 @@ end
 -------------------------------------------------------------------------------
 
 function RoundController.init()
-	
+   local gameStateData = GameStateLibrary.getGameStateData()
+
+   gameStateData.CurrentRoundData:Subscribe(function(roundData)
+      print(roundData)
+      if roundData then
+         -- Round has started
+         local newGamemode = roundData.Gamemode
+         local logic = getLogic(newGamemode)
+         if logic and logic.setup then
+            logic.setup(roundData)
+         end
+         lastRoundGamemode = newGamemode
+      else
+         -- Round has ended
+         if lastRoundGamemode then
+            local logic = getLogic(lastRoundGamemode)
+            if logic and logic.teardown then
+               logic.teardown()
+            end
+         end
+      end
+   end)
 end
 
 -- function RoundController.start() end
