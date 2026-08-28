@@ -85,6 +85,8 @@ GameStateLibrary.RoundStartingTasks = TasksList.new()
 GameStateLibrary.RoundFinishedTasks = TasksList.new() :: TasksList.TasksList<RoundFinishedTask>
 GameStateLibrary.LobbyIntermissionStartedTasks = TasksList.new()
 GameStateLibrary.GameStateSnapshotLoadedTasks = TasksList.new() :: TasksList.TasksList<SnapshotLoadedTask>
+GameStateLibrary.PlayerAddedToArenaTasks = TasksList.new() :: TasksList.TasksList<(player: Player) -> ()>
+GameStateLibrary.PlayerRemovedFromArenaTasks = TasksList.new() :: TasksList.TasksList<(player: Player) -> ()>
 
 local replicatedFieldNames = table.freeze({
    CurrentRoundData = true,
@@ -240,9 +242,29 @@ local function fireSnapshotLoaded(snapshot: GameStateSnapshot, reason: SnapshotL
    GameStateLibrary.GameStateSnapshotLoadedTasks:Execute("parallel", snapshot, reason)
 end
 
+local function onLivingPlayersInArenaChanged(newPlayers: {Player}, oldPlayers: {Player})
+   for _, player in ipairs(newPlayers) do
+      if not table.find(oldPlayers, player) then
+         GameStateLibrary.PlayerAddedToArenaTasks:Execute("parallel", player)
+      end
+   end
+   for _, player in ipairs(oldPlayers) do
+      if not table.find(newPlayers, player) then
+         GameStateLibrary.PlayerRemovedFromArenaTasks:Execute("parallel", player)
+      end
+   end
+end
+
 local function sendInitialSnapshot(player: Player)
    gameStateSyncEvent:FireClient(player, "InitialSnapshot", getReplicatedSnapshotPayload())
 end
+
+local lastLivingPlayersInArena = clonePlayers(CurrentGameStateData.LivingPlayersInArena:Get())
+CurrentGameStateData.LivingPlayersInArena:Subscribe(function(newPlayers: {Player})
+   local oldPlayers = lastLivingPlayersInArena
+   lastLivingPlayersInArena = clonePlayers(newPlayers)
+   onLivingPlayersInArenaChanged(newPlayers, oldPlayers)
+end)
 
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS

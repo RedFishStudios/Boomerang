@@ -5,7 +5,7 @@ local TeamEliminationRoundLogic = {}
 local ServerStorage = game:GetService("ServerStorage")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local CurrentGameState = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
+local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 
 local isServer = RunService:IsServer()
 local ArenaService, GameTeamService, RoundCyclingService, WeaponService, StormCloseService, SpawnService
@@ -89,13 +89,15 @@ function TeamEliminationRoundLogic.setup()
       activeTeams = GameTeamService.establishOppositionTeams()
       StormCloseService.begin(ArenaService.getCurrentArenaPosition() or Vector3.new(0, 0, 0))
 
-      -- players are still trickling into LivingPlayersInArena at round start, so they get assigned as they arrive
-      table.insert(PerMatchDestroyerFunctions, CurrentGameState.getGameStateData().LivingPlayersInArena:Subscribe(function(livingPlayers: {Player})
-         assignUnassignedPlayers(livingPlayers)
-         evaluateWinCondition(livingPlayers)
+      table.insert(PerMatchDestroyerFunctions, GameStateLibrary.PlayerRemovedFromArenaTasks:Add(function(player: Player)
+         local livingPlayers = GameStateLibrary.getGameStateData().LivingPlayersInArena:Get()
+         if #livingPlayers <= 1 and not (RunService:IsStudio() and #game.Players:GetPlayers() == 1) then
+            local winner = livingPlayers[1]
+            TeamEliminationRoundLogic.teardown(winner, winner and winner.Team)
+         end
       end))
 
-      local livingPlayers = CurrentGameState.getGameStateData().LivingPlayersInArena:Get()
+      local livingPlayers = GameStateLibrary.getGameStateData().LivingPlayersInArena:Get()
       assignUnassignedPlayers(livingPlayers)
       evaluateWinCondition(livingPlayers)
    end
@@ -110,7 +112,7 @@ function TeamEliminationRoundLogic.teardown(winner: Player?, winningTeam: Team?)
       clear()
       table.clear(activeTeams)
       GameTeamService.dismantleRoundTeams()
-      CurrentGameState.RoundFinishedTasks:Execute("parallel", winner, winningTeam and (winningTeam.Name .. " won!") or "No winner")
+      GameStateLibrary.RoundFinishedTasks:Execute("parallel", winner, winningTeam and (winningTeam.Name .. " won!") or "No winner")
    end
 end
 

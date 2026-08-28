@@ -5,7 +5,7 @@ local EliminationRoundLogic = {}
 local ServerStorage = game:GetService("ServerStorage")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local CurrentGameState = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
+local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 
 local isServer = RunService:IsServer()
 local ArenaService, GameTeamService, RoundCyclingService, WeaponService, StormCloseService, SpawnService
@@ -33,12 +33,9 @@ function EliminationRoundLogic.setup()
       GameTeamService.setFreeForAll()
       StormCloseService.begin(ArenaService.getCurrentArenaPosition() or Vector3.new(0, 0, 0))
 
-      -- players are still trickling into LivingPlayersInArena at round start, so only treat a *decrease* to <=1 as an elimination win
-      local lastLivingPlayersCount = #CurrentGameState.getGameStateData().LivingPlayersInArena:Get()
-      table.insert(PerMatchDestroyerFunctions, CurrentGameState.getGameStateData().LivingPlayersInArena:Subscribe(function(livingPlayers: {Player})
-         local previousCount = lastLivingPlayersCount
-         lastLivingPlayersCount = #livingPlayers
-         if #livingPlayers < previousCount and #livingPlayers <= 1 and not (RunService:IsStudio() and #game.Players:GetPlayers() == 1) then
+      table.insert(PerMatchDestroyerFunctions, GameStateLibrary.PlayerRemovedFromArenaTasks:Add(function(player: Player)
+         local livingPlayers = GameStateLibrary.getGameStateData().LivingPlayersInArena:Get()
+         if #livingPlayers <= 1 and not (RunService:IsStudio() and #game.Players:GetPlayers() == 1) then
             local winner = livingPlayers[1]
             EliminationRoundLogic.teardown(winner)
          end
@@ -52,7 +49,7 @@ function EliminationRoundLogic.teardown(winner: Player?)
          warn(`Elimination: no winner found`)
       end
       clear()
-      CurrentGameState.RoundFinishedTasks:Execute("parallel", winner, winner and (winner.Name .. " won!") or "No winner")
+      GameStateLibrary.RoundFinishedTasks:Execute("parallel", winner, winner and (winner.Name .. " won!") or "No winner")
    end
 end
 
