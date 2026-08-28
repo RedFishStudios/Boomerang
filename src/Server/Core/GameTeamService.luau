@@ -26,6 +26,8 @@ local GameplayPhases = require(ReplicatedStorage.Shared.Constants.Enums.Gameplay
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
+local OPPOSITION_TEAM_COUNT = 2
+
 -------------------------------------------------------------------------------
 -- TYPES
 -------------------------------------------------------------------------------
@@ -48,6 +50,9 @@ local roundTeamsDismantled = false
 local RoundTeams: {
    [string]: Team,
 } = {}
+
+-- Round teams currently opposing each other; empty outside of team-based gamemodes
+local ActiveOppositionTeams: {Team} = {}
 
 local TeamOptions: {
    [string]: {
@@ -102,6 +107,26 @@ local function safeGetTeam(name: string): Team
    return RoundTeams[name]
 end
 
+local function shuffled<T>(source: {T}): {T}
+   local result = table.clone(source)
+   for index = #result, 2, -1 do
+      local swapIndex = math.random(1, index)
+      result[index], result[swapIndex] = result[swapIndex], result[index]
+   end
+   return result
+end
+
+local function getOppositionTeamOptionNames(): {string}
+   local names = {}
+   for name, teamOptionData in pairs(TeamOptions) do
+      if not teamOptionData.FriendlyFire then
+         table.insert(names, name)
+      end
+   end
+   table.sort(names)
+   return names
+end
+
 ------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
@@ -123,6 +148,7 @@ end
 -- // Dismantle all round-specific teams and set all players to out-of-game
 function GameTeamService.dismantleRoundTeams()
    roundTeamsDismantled = true
+   table.clear(ActiveOppositionTeams)
    for teamName, team in pairs(RoundTeams) do
       if team == OutOfGameTeam then
          continue
@@ -141,6 +167,7 @@ end
 
 -- // Set particpiating members to free-for-all team
 function GameTeamService.setFreeForAll()
+   table.clear(ActiveOppositionTeams)
    local team = safeGetTeam("FreeForAll")
    team.AutoAssignable = false
    local livingPlayersInArena = GameStateLibrary.getGameStateData().LivingPlayersInArena:Get()
@@ -150,8 +177,72 @@ function GameTeamService.setFreeForAll()
 end
 
 -- // Set participating members to opposition teams
-function GameTeamService.setOpposition()
-   -- TODO
+function GameTeamService.establishOppositionTeams(teamCount: number?): {Team}
+   local desiredTeamCount = teamCount or OPPOSITION_TEAM_COUNT
+   local optionNames = getOppositionTeamOptionNames()
+   if #optionNames < desiredTeamCount then
+      error(`GameTeamService: only {#optionNames} non-friendly-fire team options exist; {desiredTeamCount} required`)
+   end
+
+   roundTeamsDismantled = false
+   table.clear(ActiveOppositionTeams)
+
+   local chosenNames = shuffled(optionNames)
+   for index = 1, desiredTeamCount do
+      local team = safeGetTeam(chosenNames[index])
+      team.AutoAssignable = false
+      table.insert(ActiveOppositionTeams, team)
+   end
+
+   -- Deal shuffled players out round-robin so populations stay within one of each other
+   local livingPlayersInArena = shuffled(GameStateLibrary.getGameStateData().LivingPlayersInArena:Get())
+   for index, player in ipairs(livingPlayersInArena) do
+      player.Team = ActiveOppositionTeams[(index - 1) % desiredTeamCount + 1]
+   end
+
+   return table.clone(ActiveOppositionTeams)
+end
+
+function GameTeamService.getActiveOppositionTeams(): {Team}
+   return table.clone(ActiveOppositionTeams)
+end
+
+function GameTeamService.isOnOppositionTeam(player: Player): boolean
+   return player.Team ~= nil and table.find(ActiveOppositionTeams, player.Team) ~= nil
+end
+
+-- // Place a player on whichever opposition team currently has the fewest living members
+function GameTeamService.assignToSmallestOppositionTeam(player: Player): Team?
+   if #ActiveOppositionTeams == 0 then
+      return nil
+   end
+
+   local counts: {[Team]: number} = {}
+   for _, team in ipairs(ActiveOppositionTeams) do
+      counts[team] = 0
+   end
+   for _, livingPlayer in ipairs(GameStateLibrary.getGameStateData().LivingPlayersInArena:Get()) do
+      local team = livingPlayer.Team
+      if livingPlayer ~= player and team and counts[team] then
+         counts[team] += 1
+      end
+   end
+
+   local smallestTeams: {Team} = {}
+   local smallestCount = math.huge
+   for _, team in ipairs(ActiveOppositionTeams) do
+      local count = counts[team]
+      if count < smallestCount then
+         smallestCount = count
+         smallestTeams = {team}
+      elseif count == smallestCount then
+         table.insert(smallestTeams, team)
+      end
+   end
+
+   local chosenTeam = smallestTeams[math.random(1, #smallestTeams)]
+   player.Team = chosenTeam
+   return chosenTeam
 end
 
 -------------------------------------------------------------------------------
@@ -165,8 +256,9 @@ function GameTeamService.init()
    local currentRoundData = currentGameState.CurrentRoundData:Get()
    if currentRoundData == nil or not currentRoundData.CanRespawn then
          GameTeamService.setOutOfGame(player)
+      elseif #ActiveOppositionTeams > 0 then
+         GameTeamService.assignToSmallestOppositionTeam(player)
       else
-         -- TODO: when team vs team gamemodes are added, assign player to a team
          player.Team = safeGetTeam("FreeForAll")
       end
 	end)

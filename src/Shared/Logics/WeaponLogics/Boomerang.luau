@@ -216,7 +216,8 @@ local function addTrail(thrownWeaponData: ThrownWeapons.Data)
       trail.Color = ColorSequence.new(GlobalConfig.EnemyBoomerangTrailColor)
    else
       local team = ownerPlayer.Team
-      trail.Color = ColorSequence.new(if team then team.Color3 else GlobalConfig.EnemyBoomerangTrailColor)
+      print(team.TeamColor)
+      trail.Color = ColorSequence.new(if team then team.TeamColor.Color else GlobalConfig.EnemyBoomerangTrailColor)
    end
 
    trail.Lifetime = GlobalConfig.ThrownWeaponTrailLifetime

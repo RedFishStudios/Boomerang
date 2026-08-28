@@ -97,6 +97,9 @@ end
 function ArenaService.getAvailableMaps(forGamemode: string): {string}
    local availableMapNames = {}
    for mapName, mapData in pairs(MapDataConstants) do
+      if mapData.Debug then
+         continue
+      end
       if mapData.ForGamemodes and table.find(mapData.ForGamemodes, forGamemode) then
          table.insert(availableMapNames, mapName)
       end

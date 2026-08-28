@@ -33,6 +33,13 @@ local Gamemodes: {
       StormClose = true,
       TimeLasts = 30
    },
+   TeamElimination = {
+      Id = "TeamElimination",
+      Subheader = "Eliminate all opponents to win!",
+      CanRespawn = false,
+      StormClose = true,
+      TimeLasts = 30
+   },
    HotPotato = {
       Id = "HotPotato",
       Subheader = "Throw your boomerang to pass the bomb!",
@@ -40,7 +47,7 @@ local Gamemodes: {
       StormClose = false,
       PickupsDisabled = true,
       TimeLasts = 30
-   }
+   },
    --[[ThrowBoomerang = {
       Id = "ThrowBoomerang",
       Display = "Throw Boomerang",

@@ -4,15 +4,18 @@ export type MapData = {
    Id: string,
    ForGamemodes: {string},
    DisguiseAssets: {string},
+   Debug: true?,
 }
 
 local MapData = {
    ["Debug"] = {
       Id = "Debug",
+      Debug = true,
       ForGamemodes = {
          Gamemodes.Classic.Id,
          Gamemodes.Elimination.Id,
-         Gamemodes.HotPotato.Id
+         Gamemodes.HotPotato.Id,
+         Gamemodes.TeamElimination.Id
       },
       DisguiseAssets = {},
    },
@@ -21,7 +24,8 @@ local MapData = {
       ForGamemodes = {
          Gamemodes.Classic.Id,
          Gamemodes.Elimination.Id,
-         Gamemodes.HotPotato.Id
+         Gamemodes.HotPotato.Id,
+         Gamemodes.TeamElimination.Id
       },
       DisguiseAssets = {},
    },
@@ -30,7 +34,8 @@ local MapData = {
       ForGamemodes = {
          Gamemodes.Classic.Id,
          Gamemodes.Elimination.Id,
-         Gamemodes.HotPotato.Id
+         Gamemodes.HotPotato.Id,
+         Gamemodes.TeamElimination.Id
       },
       DisguiseAssets = {},
    },
@@ -39,7 +44,8 @@ local MapData = {
       ForGamemodes = {
          Gamemodes.Classic.Id,
          Gamemodes.Elimination.Id,
-         Gamemodes.HotPotato.Id
+         Gamemodes.HotPotato.Id,
+         Gamemodes.TeamElimination.Id
       },
       DisguiseAssets = {},
    },
@@ -48,7 +54,8 @@ local MapData = {
       ForGamemodes = {
          Gamemodes.Classic.Id,
          Gamemodes.Elimination.Id,
-         Gamemodes.HotPotato.Id
+         Gamemodes.HotPotato.Id,
+         Gamemodes.TeamElimination.Id
       },
       DisguiseAssets = {},
    },
@@ -57,7 +64,8 @@ local MapData = {
       ForGamemodes = {
          Gamemodes.Classic.Id,
          Gamemodes.Elimination.Id,
-         Gamemodes.HotPotato.Id
+         Gamemodes.HotPotato.Id,
+         Gamemodes.TeamElimination.Id
       },
       DisguiseAssets = {},
    }
