@@ -32,6 +32,7 @@ local function configureCollisionMatrix(setupDataByGroup)
 
    -- Start from a fully non-collidable matrix, then opt in explicit relationships.
    for _, groupA in ipairs(groupNames) do
+      PhysicsService:CollisionGroupSetCollidable(groupA, "Default", false)
       for _, groupB in ipairs(groupNames) do
          PhysicsService:CollisionGroupSetCollidable(groupA, groupB, false)
       end
@@ -45,8 +46,8 @@ local function configureCollisionMatrix(setupDataByGroup)
 end
 
 local SetupData = {
-   Players = collisionGroupData("Players", {"ArenaWalls"}),
-   ThrownWeapons = collisionGroupData("ThrownWeapons", {"ArenaWalls", "Players"}),
+   Players = collisionGroupData("Players", {"ArenaWalls", "ArenaFloor", "Default"}),
+   ThrownWeapons = collisionGroupData("ThrownWeapons", {"ArenaWalls", "ThrownWeapons", "Players"}),
    HandWeapons = collisionGroupData("HandWeapons", {"Players"}),
    ArenaWalls = collisionGroupData("ArenaWalls", {"Players", "ThrownWeapons"}),
    Fire = collisionGroupData("Fire", {"Players"}),
@@ -54,6 +55,7 @@ local SetupData = {
    Camera = collisionGroupData("Camera", {"ArenaFloor"}),
    WaterParts = collisionGroupData("WaterParts", {"Players", "WaterDetector"}),
    WaterDetector = collisionGroupData("WaterDetector", {"WaterParts"}),
+   LobbyVolume = collisionGroupData("LobbyVolume", {"LobbyVolume"}),
 }
 
 configureCollisionMatrix(SetupData)
@@ -68,6 +70,7 @@ local CollisionGroups = {
    WaterParts = deepRegisterCollisionGroups(SetupData.WaterParts),
    WaterDetector = deepRegisterCollisionGroups(SetupData.WaterDetector),
    Fire = deepRegisterCollisionGroups(SetupData.Fire),
+   LobbyVolume = deepRegisterCollisionGroups(SetupData.LobbyVolume),
 }
 
 return CollisionGroups

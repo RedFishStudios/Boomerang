@@ -16,6 +16,8 @@ local ToolController = require(ReplicatedStorage.Client.Core.ToolController)
 local CameraPaddingController = require(ReplicatedStorage.Client.Core.CameraPaddingController)
 local ArenaLibrary = require(ReplicatedStorage.Shared.Library.ArenaLibrary)
 local GameplayPhases = require(ReplicatedStorage.Shared.Constants.Enums.GameplayPhases)
+local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
+local LobbyController = require(ReplicatedStorage.Client.Core.LobbyController)
 
 local localPlayer = Players.LocalPlayer
 
@@ -470,6 +472,7 @@ end
 -------------------------------------------------------------------------------
 
 function CustomCameraController.setMode(mode: "Overhead" | "Regular")
+   lastModeSet = mode
    CustomCameraController.Mode = mode
    if mode == "Overhead" then
       startOverheadMode()
@@ -498,14 +501,13 @@ end
 -------------------------------------------------------------------------------
 
 function CustomCameraController.init()
-   local gameStateData = GameStateLibrary.getGameStateData()
-   gameStateData.GameplayPhase:Subscribe(function(newPhase)
-      if newPhase == GameplayPhases.LobbyVoting then
+   LobbyController.ClientIsInLobbyChangedTasks:Add(function(isInLobby)
+      if isInLobby then
          lastModeSet = CustomCameraController.Mode
          CustomCameraController.setMode("Regular")
          UserInputService.MouseBehavior = Enum.MouseBehavior.Default
          UserInputService.MouseIconEnabled = true
-      elseif newPhase == GameplayPhases.RoundActive then
+      else
          CustomCameraController.setMode(lastModeSet)
       end
    end)
@@ -513,7 +515,7 @@ end
 
 function CustomCameraController.start()
    local function onCharacterAdded(character)
-      CustomCameraController.setMode("Overhead")
+      --CustomCameraController.setMode("Overhead")
    end
 
    if localPlayer.Character then
@@ -531,7 +533,7 @@ function CustomCameraController.start()
    end)
 
    game:GetService("ContextActionService"):BindAction("SwitchCameraMode", function(actionName, inputState, inputObject)
-      if gameStateData.GameplayPhase:Get() ~= GameplayPhases.RoundActive then
+      if LobbyController.isInLobby() then
          return
       end
       if inputState == Enum.UserInputState.Begin then

@@ -13,6 +13,7 @@ local LobbyService = {}
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 local SharedConstants = ReplicatedStorage.Shared.Constants
+local CollisionGroupConstants = require(SharedConstants.CollisionGroupConstants)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -50,7 +51,12 @@ end
 -------------------------------------------------------------------------------
 
 function LobbyService.init()
-	
+	local lobbyVolume = lobbyFolder:FindFirstChild("LobbyVolume")
+   if not lobbyVolume then
+      warn("LobbyVolume not found in lobby folder")
+      return
+   end
+   lobbyVolume.CollisionGroup = CollisionGroupConstants.LobbyVolume
 end
 
 -- function LobbyService.start() end
