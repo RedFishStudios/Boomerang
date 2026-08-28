@@ -44,6 +44,7 @@ local updateHotPotatoTimer = SimpleRemotes.getEvent("UpdateHotPotatoTimer")
 --------------------------------------------------------------------------------
 
 -- Server Only
+local initialHolderSet = false
 local currentHolder: Player? = nil
 local Particles: {[Player]: Part} = {}
 local Kills: {[Player]: number} = {}
@@ -79,6 +80,7 @@ local function lockNonHolderWeapons()
 end
 
 local function grantHolderEffect(player: Player)
+   initialHolderSet = true
    currentHolder = player
    WeaponService.removeLockOnWeapon(player)
    lockNonHolderWeapons()
@@ -197,21 +199,32 @@ function HotPotatoRoundLogic.setup()
       startservercontext()
 
       local currentGameData = CurrentGameState.getGameStateData()
-      local players = currentGameData.LivingPlayersInArena:Get()
-      local randomPlayer = players[math.random(1, #players)]
-      if randomPlayer then
+
+      local playersInArena = currentGameData.LivingPlayersInArena:Get()
+      if #playersInArena > 0 then
+         local randomPlayer = playersInArena[math.random(1, #playersInArena)]
          grantHolderEffect(randomPlayer)
       end
 
-      -- players are still trickling into LivingPlayersInArena at round start, so only treat a *decrease* to <=1 as a win
-      local lastLivingPlayersCount = #players
-      table.insert(PerMatchDestroyerFunctions, CurrentGameState.getGameStateData().LivingPlayersInArena:Subscribe(function(livingPlayers: {Player})
-         lockNonHolderWeapons()
-         local previousCount = lastLivingPlayersCount
-         lastLivingPlayersCount = #livingPlayers
-         if #livingPlayers < previousCount and #livingPlayers <= 1 and not (RunService:IsStudio() and #game.Players:GetPlayers() == 1) then
-            local winner = livingPlayers[1]
+      table.insert(PerMatchDestroyerFunctions, CurrentGameState.PlayerRemovedFromArenaTasks:Add(function(player: Player)
+         if player == currentHolder then
+            clearHolderEffect(currentHolder)
+            currentHolder = nil
+            nextHolderElapsed = 0
+            nextHolderRoundId = currentGameData.CurrentRoundData:Get().CurrentRoundId
+         end
+
+         local currentLivingPlayersCount = #currentGameData.LivingPlayersInArena:Get()
+         if currentLivingPlayersCount <= 1 and not (RunService:IsStudio() and #game.Players:GetPlayers() == 1) then
+            local winner = currentGameData.LivingPlayersInArena:Get()[1]
             HotPotatoRoundLogic.teardown(winner)
+         end
+      end))
+
+      -- Race condition failsafe: If this runs before anyone loads into the arena (meaning no one was immediately granted the bomb), then grant the bomb to the first player to load in
+      table.insert(PerMatchDestroyerFunctions, CurrentGameState.PlayerAddedToArenaTasks:Add(function(player: Player)
+         if not currentHolder and not initialHolderSet then
+            grantHolderEffect(player)
          end
       end))
    else
