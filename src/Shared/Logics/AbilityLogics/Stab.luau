@@ -367,6 +367,7 @@ local function beginStagger(player: Player, direction: Vector3)
 end
 
 function Stab.onPickup(userId: number, timestamp: number)
+   print("stab called", userId)
    if isServer or typeof(timestamp) ~= "number" then
       return
    end
@@ -387,6 +388,7 @@ function Stab.onPickup(userId: number, timestamp: number)
    SoundLibrary.play(activationSoundChannelId, Sounds.Data.Stab.Name, player.Character.PrimaryPart, nil, true)
 
    if AnimationController then
+      print("play core animation")
       AnimationController.playCoreAnimation(player, "Stab")
    end
 

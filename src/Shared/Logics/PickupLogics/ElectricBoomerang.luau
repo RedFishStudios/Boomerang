@@ -65,7 +65,7 @@ local function clearZapped(player: Player)
    if player.Character == state.Character then
       state.Character.PrimaryPart.Anchored = false
    end
-   playZappedAnimation:FireClient(player, false)
+   playZappedAnimation:FireAllClients(player, false)
 end
 
 local function applyZapped(player: Player, sourceWater: Instance?)
@@ -116,7 +116,7 @@ local function applyZapped(player: Player, sourceWater: Instance?)
    ParticlesLibrary.play(particleId, "ElectricPlayer", rootPart, nil, state.EndsAt - now)
    SoundLibrary.play(particleId, Sounds.Data.Zapped.Name, rootPart)
    PickupLibrary.setPickupEffectActive(player.UserId, "Zapped", "Zapped")
-   playZappedAnimation:FireClient(player, true)
+   playZappedAnimation:FireAllClients(player, true)
 end
 
 local function electrifyWater(water: Instance)
@@ -285,10 +285,9 @@ if isServer then
    end)
 else
    local zappedAnimationGeneration = 0
-   playZappedAnimation.OnClientEvent:Connect(function(isZapped: boolean)
+   playZappedAnimation.OnClientEvent:Connect(function(player: Player, isZapped: boolean)
       zappedAnimationGeneration += 1
       local generation = zappedAnimationGeneration
-      local player = Players.LocalPlayer
       if isZapped then
          AnimationController.playCoreAnimation(player, "Zapped")
          if generation ~= zappedAnimationGeneration then
