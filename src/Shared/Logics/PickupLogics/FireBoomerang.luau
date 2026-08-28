@@ -348,6 +348,7 @@ end
 local function raycastTrailSurface(origin: Vector3): RaycastResult?
    local raycastParams = RaycastParams.new()
    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+   raycastParams.CollisionGroup = CollisionGroupConstants.ArenaFloorDetector
 
    local ignoredInstances: {Instance} = {}
    local endPosition = origin - Vector3.yAxis * MAX_SURFACE_RAYCAST_DISTANCE
