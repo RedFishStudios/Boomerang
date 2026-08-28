@@ -15,6 +15,7 @@ local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local ToolController = require(ReplicatedStorage.Client.Core.ToolController)
 local CameraPaddingController = require(ReplicatedStorage.Client.Core.CameraPaddingController)
 local ArenaLibrary = require(ReplicatedStorage.Shared.Library.ArenaLibrary)
+local GameplayPhases = require(ReplicatedStorage.Shared.Constants.Enums.GameplayPhases)
 
 local localPlayer = Players.LocalPlayer
 
@@ -491,6 +492,20 @@ end
 -------------------------------------------------------------------------------
 
 function CustomCameraController.init()
+   local gameStateData = GameStateLibrary.getGameStateData()
+   gameStateData.GameplayPhase:Subscribe(function(newPhase)
+      if newPhase == GameplayPhases.LobbyVoting then
+         if CustomCameraController.Mode == "Regular" then
+            UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+            UserInputService.MouseIconEnabled = true
+         end
+      elseif newPhase == GameplayPhases.RoundActive then
+         if CustomCameraController.Mode == "Regular" then
+            UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+            UserInputService.MouseIconEnabled = false
+         end
+      end
+   end)
 end
 
 function CustomCameraController.start()
