@@ -25,6 +25,12 @@ function WeaponLibrary.canThrow(player: Player, toolId: string): boolean
       return false
    end
 
+   local livingPlayersInArena = gameStateData.LivingPlayersInArena:Get()
+   if not table.find(livingPlayersInArena, player) then
+      print("player not in arena")
+      return false
+   end
+
    if ThrownWeapons.Data[player] or ClashedWeapons.Data[player] then
       print("player already has thrown weapon")
       return false
