@@ -5,11 +5,17 @@ local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons
 local ClashedWeapons = require(ReplicatedStorage.Shared.Referential.ClashedWeapons)
 local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
 local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
+local PlayerStatsLibrary = require(ReplicatedStorage.Shared.Library.PlayerStatsLibrary)
 
 local WeaponLibrary = {}
 
 local function hasForceField(character: Model): boolean
    return character:FindFirstChildWhichIsA("ForceField") ~= nil
+end
+
+function WeaponLibrary.playerIsWeaponLocked(player: Player?): boolean
+   local lockedUntil = PlayerStatsLibrary.getStat(player or game.Players.LocalPlayer, "WeaponLockedUntilTimestamp")
+   return typeof(lockedUntil) == "number" and workspace:GetServerTimeNow() < lockedUntil
 end
 
 function WeaponLibrary.canThrow(player: Player, toolId: string): boolean

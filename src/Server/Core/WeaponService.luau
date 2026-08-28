@@ -265,6 +265,10 @@ function WeaponService.clashWeapon(player: Player, thrownWeaponData: ThrownWeapo
    end
 end
 
+function WeaponService.playerIsWeaponLocked(player: Player): boolean
+   return WeaponLibrary.playerIsWeaponLocked(player)
+end
+
 function WeaponService.applyLockOnWeapon(player: Player, forTime: number)
    PlayerStatsLibrary.setStat(player, "WeaponLockedUntilTimestamp", game.Workspace:GetServerTimeNow() + forTime)
 
@@ -327,7 +331,7 @@ function WeaponService.init()
    replicationPart.Parent = game.ReplicatedStorage.Shared.Assets
 
    aimEvent.OnServerEvent:Connect(function(player: Player, toolId, clientPosition: Vector3)
-      if playerIsWeaponLocked(player) then
+      if WeaponService.playerIsWeaponLocked(player) then
          return
       end
 

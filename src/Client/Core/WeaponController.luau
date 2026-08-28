@@ -146,11 +146,6 @@ local function clearClashedWeapon(forPlayer: Player, returnToPlayer: boolean?)
    end
 end
 
-local function playerIsWeaponLocked(player: Player?): boolean
-   local lockedUntil = PlayerStatsLibrary.getStat(player or localPlayer, "WeaponLockedUntilTimestamp")
-   return typeof(lockedUntil) == "number" and workspace:GetServerTimeNow() < lockedUntil
-end
-
 local function syncWeaponStateChanged()
    local newWeaponState = getWeaponState()
    if newWeaponState == currentWeaponState then
@@ -204,7 +199,7 @@ local function beginEquippedToolAim(): boolean
       return true
    end
 
-   if playerIsWeaponLocked() then
+   if WeaponController.playerIsWeaponLocked() then
       return false
    end
 
@@ -234,7 +229,7 @@ local function throwEquippedTool(forcedDirection: Vector3?): boolean
       return false
    end
 
-   if playerIsWeaponLocked() then
+   if WeaponController.playerIsWeaponLocked() then
       setLocalAimState(false)
       return false
    end
@@ -442,7 +437,7 @@ local function setLocalWeaponLocked(isLocked: boolean)
 end
 
 local function observeWeaponLockTimestamp()
-   if not playerIsWeaponLocked() then
+   if not WeaponController.playerIsWeaponLocked() then
       disconnectWeaponLockHeartbeat()
       setLocalWeaponLocked(false)
       return
@@ -454,7 +449,7 @@ local function observeWeaponLockTimestamp()
    end
 
    weaponLockHeartbeatConnection = RunService.Heartbeat:Connect(function()
-      if playerIsWeaponLocked() then
+      if WeaponController.playerIsWeaponLocked() then
          return
       end
 
@@ -483,7 +478,7 @@ local function setRemoteWeaponLocked(player: Player, isLocked: boolean)
 end
 
 local function observeRemoteWeaponLock(player: Player)
-   setRemoteWeaponLocked(player, playerIsWeaponLocked(player))
+   setRemoteWeaponLocked(player, WeaponController.playerIsWeaponLocked(player))
 
    if next(remoteWeaponLockedPlayers) == nil then
       if remoteWeaponLockHeartbeatConnection then
@@ -501,7 +496,7 @@ local function observeRemoteWeaponLock(player: Player)
       for lockedPlayer in pairs(remoteWeaponLockedPlayers) do
          if not lockedPlayer.Parent then
             remoteWeaponLockedPlayers[lockedPlayer] = nil
-         elseif not playerIsWeaponLocked(lockedPlayer) then
+         elseif not WeaponController.playerIsWeaponLocked(lockedPlayer) then
             setRemoteWeaponLocked(lockedPlayer, false)
          end
       end
@@ -612,6 +607,10 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
+function WeaponController.playerIsWeaponLocked(player: Player?): boolean
+   return WeaponLibrary.playerIsWeaponLocked(player)
+end
+
 function WeaponController.startThrownWeapon(forPlayer: Player, toolId: string, toolData: Tools.Tool, initOptions)
    clearThrownWeapon(forPlayer)
 
@@ -692,7 +691,7 @@ function WeaponController.init()
          return
       end
 
-      if forPlayer == localPlayer and playerIsWeaponLocked() then
+      if forPlayer == localPlayer and WeaponController.playerIsWeaponLocked() then
          setLocalWeaponLocked(true)
          return
       end

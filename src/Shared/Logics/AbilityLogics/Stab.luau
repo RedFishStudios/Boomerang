@@ -16,6 +16,7 @@ local ParticlesLibrary = require(ReplicatedStorage.Shared.Library.ParticlesLibra
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local CombatLibrary = require(ReplicatedStorage.Shared.Library.CombatLibrary)
 local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
+local WeaponLibrary = require(ReplicatedStorage.Shared.Library.WeaponLibrary)
 
 local isServer = RunService:IsServer()
 
@@ -442,6 +443,10 @@ function Stab.canActivate(player: Player): boolean
    end
 
    if PickupLibrary.hasPickupEffectActive(player.UserId, "Zapped") then
+      return false
+   end
+
+   if WeaponLibrary.playerIsWeaponLocked(player) then
       return false
    end
 
