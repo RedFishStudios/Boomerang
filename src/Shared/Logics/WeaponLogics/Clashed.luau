@@ -186,6 +186,7 @@ end
 -- // Failsafe; if a weapon ends up dying inside an obstruction, immediately return it to the player
 local function isPositionInsideCollidablePart(clashedWeaponData: ClashedWeapons.Data, position: Vector3): boolean
 	local overlapParams = OverlapParams.new()
+   overlapParams.CollisionGroup = CollisionGroupConstants.ArenaFloorDetector
 	overlapParams.FilterType = Enum.RaycastFilterType.Exclude
 	local filter = {Characters}
 	if clashedWeaponData.Host then
@@ -250,6 +251,7 @@ local function isCameraObstructedToPoint(cameraPosition: Vector3, targetPosition
 	local direction = toTarget.Unit
 	local raycastParams = RaycastParams.new()
 	raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+   raycastParams.CollisionGroup = CollisionGroupConstants.Camera
 	raycastParams.IgnoreWater = true
 
 	local excludedInstances = filter or {}

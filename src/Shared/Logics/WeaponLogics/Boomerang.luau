@@ -450,6 +450,7 @@ local function isCameraObstructedToPoint(cameraPosition: Vector3, targetPosition
    local direction = toTarget.Unit
    local raycastParams = RaycastParams.new()
    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+   raycastParams.CollisionGroup = CollisionGroupConstants.Camera
    raycastParams.IgnoreWater = true
 
    local excludedInstances = filter or {}
