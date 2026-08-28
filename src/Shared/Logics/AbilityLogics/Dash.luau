@@ -17,6 +17,7 @@ local HitboxLibrary = require(ReplicatedStorage.Shared.Library.HitboxLibrary)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local PlayerStatsLibrary = require(ReplicatedStorage.Shared.Library.PlayerStatsLibrary)
 local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
+local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 
 local PlayDash = SimpleRemotes.getEvent("PlayDash")
 
@@ -128,6 +129,7 @@ function Dash.canActivate(player: Player)
    local rayDirection = Vector3.new(0, -5, 0)
    local raycastParams = RaycastParams.new()
    raycastParams.FilterDescendantsInstances = {character}
+   raycastParams.CollisionGroup = CollisionGroupConstants.ArenaFloorDetector
    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
    local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
    if not raycastResult then
