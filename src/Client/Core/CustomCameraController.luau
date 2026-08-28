@@ -514,8 +514,13 @@ function CustomCameraController.init()
 end
 
 function CustomCameraController.start()
+   local initialModeSet = false
    local function onCharacterAdded(character)
-      --CustomCameraController.setMode("Overhead")
+      if initialModeSet then
+         return
+      end
+      initialModeSet = true
+      CustomCameraController.setMode("Overhead")
    end
 
    if localPlayer.Character then
