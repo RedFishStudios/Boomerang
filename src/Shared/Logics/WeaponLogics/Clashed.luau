@@ -195,6 +195,11 @@ local function isPositionInsideCollidablePart(clashedWeaponData: ClashedWeapons.
 
 	for _, part in ipairs(workspace:GetPartBoundsInBox(CFrame.new(position + Vector3.new(0, DEAD_OVERLAP_CHECK_SIZE.Y+1, 0)), DEAD_OVERLAP_CHECK_SIZE, overlapParams)) do
 		if part:IsA("BasePart") and part.CanCollide and part.Transparency < 1 then
+         --[[local a = Instance.new("Part")
+         a.Color = Color3.new(1, 0, 0)
+         a.Material = "Neon"
+         a.Parent = game.Workspace
+         a.Position = position + Vector3.new(0, DEAD_OVERLAP_CHECK_SIZE.Y+1, 0)]]
 			return true
 		end
 	end
