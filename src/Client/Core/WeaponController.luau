@@ -29,6 +29,7 @@ local PlatformController = require(ReplicatedStorage.Client.Core.PlatformControl
 local CharacterRenderController = require(ReplicatedStorage.Client.Core.CharacterRenderController)
 local PlayerStatsLibrary = require(ReplicatedStorage.Shared.Library.PlayerStatsLibrary)
 local GameplayPhaseEnum = require(ReplicatedStorage.Shared.Constants.Enums.GameplayPhases)
+local LobbyController = require(ReplicatedStorage.Client.Core.LobbyController)
 
 local ToolLogics = ReplicatedStorage.Shared.Logics.WeaponLogics
 local ToolLogicModules = {}
