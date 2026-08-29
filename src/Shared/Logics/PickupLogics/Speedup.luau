@@ -9,7 +9,13 @@ local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
 
 local isServer = RunService:IsServer()
 
-local TIME_LASTS = 5
+local WeaponService
+
+if isServer then
+   WeaponService = require(game.ServerStorage.Server.Core.WeaponService)
+end
+
+local TIME_LASTS = 15
 local SPEED_MULTIPLIER = 1.5
 
 function Speedup.onPickup(player: Player, startedAt: number?): number?
@@ -18,14 +24,16 @@ function Speedup.onPickup(player: Player, startedAt: number?): number?
       -- Server context
       local character = player.Character
       if character then
-         PlayerStatsLibrary.setStat(player, "Speed", GlobalConfig.DefaultWalkSpeed * SPEED_MULTIPLIER, true)
+         local doNotApplyNow = WeaponService.isAiming(player)
+         print(doNotApplyNow)
+         PlayerStatsLibrary.setStat(player, "RunSpeed", GlobalConfig.DefaultWalkSpeed * SPEED_MULTIPLIER, doNotApplyNow, true)
       end
    else
       -- Client context
       -- Maybe a sound, gui etc
       SoundLibrary.play(nil, "PickupGeneric", nil, nil, nil)
       if player == game.Players.LocalPlayer then
-         PlayerStatsLibrary.setStat(player, "Speed", GlobalConfig.DefaultWalkSpeed * SPEED_MULTIPLIER, true)
+         PlayerStatsLibrary.setStat(player, "RunSpeed", GlobalConfig.DefaultWalkSpeed * SPEED_MULTIPLIER, nil, true)
       end
    end
 
@@ -37,7 +45,8 @@ function Speedup.onEnd(player: Player)
       -- Server context
       local character = player.Character
       if character then
-         PlayerStatsLibrary.setStat(player, "Speed", GlobalConfig.DefaultWalkSpeed)
+         local doNotApplyNow = WeaponService.isAiming(player)
+         PlayerStatsLibrary.setStat(player, "RunSpeed", GlobalConfig.DefaultWalkSpeed * SPEED_MULTIPLIER, doNotApplyNow, true)
       end
    else
       -- Client context

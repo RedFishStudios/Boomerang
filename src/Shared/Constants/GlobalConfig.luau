@@ -12,7 +12,7 @@ local GlobalConfig = {
    ForceEquippedTool = "ClassicBoomerang",
    ThrownWeaponTrailLifetime = .3,
    BoomerangHitThrottle = .5,
-   ForceOverwritePickup = nil,
+   ForceOverwritePickup = "Speedup",
    GenericEffectTimeout = 15,
 
    MyBoomerangTrailColor = Color3.new(0.984314, 0.988235, 0.988235),

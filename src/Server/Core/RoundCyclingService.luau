@@ -299,7 +299,6 @@ function RoundCyclingService.init()
       votes[player] = index
       totalVotes[index] += 1
 
-      
       local i = table.find(awaitingVotes, player)
       if i then
          table.remove(awaitingVotes, i)

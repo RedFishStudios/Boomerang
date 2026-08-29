@@ -17,8 +17,8 @@ local isServer = RunService:IsServer()
 local replicatePlayerStat = SimpleRemotes.getEvent("ReplicatePlayerStat")
 local replicatePublicPlayerStat = SimpleRemotes.getEvent("ReplicatePublicPlayerStat")
 
--- // Stats other clients need in order to render a player correctly
-local PublicStats: {[string]: boolean} = {
+-- // Stats replicated to all clients
+local ReplicatedStats: {[string]: boolean} = {
    WeaponLockedUntilTimestamp = true,
 }
 
@@ -26,7 +26,9 @@ local PublicStats: {[string]: boolean} = {
 -- TYPES
 -------------------------------------------------------------------------------
 
-export type StatKey = "Speed" | "WeaponLockedUntilTimestamp"
+export type StatKey = "RunSpeed" | "WeaponLockedUntilTimestamp"
+
+export type CurrentMovementState = "Aiming" | "FreeMotion"
 
 export type PlayerStats = {
    [StatKey]: any
@@ -37,7 +39,10 @@ export type PlayerStats = {
 -------------------------------------------------------------------------------
 
 local defaultStats: PlayerStats = {
-   Speed = GlobalConfig.DefaultWalkSpeed,
+   RunSpeed = GlobalConfig.DefaultWalkSpeed,
+   CurrentSpeed = GlobalConfig.DefaultWalkSpeed,
+   CurrentMovementState = "FreeMotion",
+
    WeaponLockedUntilTimestamp = nil
 }
 
@@ -54,11 +59,17 @@ PlayerStatsLibrary.StatChangedTasks = TasksList.new() :: TasksList.TasksList<(pl
 -------------------------------------------------------------------------------
 
 local StatApplicators: {[string]: (player: Player, value: any, stats: PlayerStats)->()} = {
-   Speed = function(player: Player, value: number, stats: PlayerStats)
+   RunSpeed = function(player: Player, value: number, stats: PlayerStats)
+      if stats.CurrentMovementState ~= "FreeMotion" then
+         return
+      end
+      PlayerStatsLibrary.setStat(player, "CurrentSpeed", value, false, true)
+   end,
+   CurrentSpeed = function(player: Player, value: number, stats: PlayerStats)
       if player.Character and player.Character:FindFirstChild("Humanoid") then
          player.Character.Humanoid.WalkSpeed = value
       end
-   end
+   end,
 }
 
 local function newPlayerStats(player: Player)
@@ -77,7 +88,7 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
-function PlayerStatsLibrary.setStat(player: Player, statName: string, value: any, doNotReplicate: boolean?)
+function PlayerStatsLibrary.setStat(player: Player, statName: string, value: any, doNotApplyNow: boolean?, doNotReplicate: boolean?)
    local userStats = playerStats[player.UserId]
    if not userStats then
       if not player.Parent then
@@ -88,12 +99,12 @@ function PlayerStatsLibrary.setStat(player: Player, statName: string, value: any
    userStats[statName] = value
 
    local applicator = StatApplicators[statName]
-   if applicator then
+   if applicator and not doNotApplyNow then
       applicator(player, value, userStats)
    end
    
    if isServer and not doNotReplicate then
-      if PublicStats[statName] then
+      if ReplicatedStats[statName] then
          replicatePublicPlayerStat:FireAllClients(player, statName, value)
       else
          replicatePlayerStat:FireClient(player, statName, value)
@@ -135,7 +146,7 @@ function PlayerStatsLibrary.init()
             if not existingStats or existingPlayer == player then
                continue
             end
-            for statName in pairs(PublicStats) do
+            for statName in pairs(ReplicatedStats) do
                local value = existingStats[statName]
                if value ~= nil then
                   replicatePublicPlayerStat:FireClient(player, existingPlayer, statName, value)

@@ -6,8 +6,11 @@ local ClashedWeapons = require(ReplicatedStorage.Shared.Referential.ClashedWeapo
 local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
 local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
 local PlayerStatsLibrary = require(ReplicatedStorage.Shared.Library.PlayerStatsLibrary)
+local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 
 local WeaponLibrary = {}
+
+local AimingPlayers: {[number]: boolean} = {}
 
 local function hasForceField(character: Model): boolean
    return character:FindFirstChildWhichIsA("ForceField") ~= nil
@@ -59,6 +62,15 @@ function WeaponLibrary.canThrow(player: Player, toolId: string): boolean
    end
 
    return true
+end
+
+function WeaponLibrary.init()
+   PlayersUtil.PlayerRemoving:Add(function(player)
+      AimingPlayers[player.UserId] = nil
+   end)
+   PlayersUtil.CharacterDied:Add(function(player)
+      AimingPlayers[player.UserId] = nil
+   end)
 end
 
 return WeaponLibrary

@@ -69,7 +69,7 @@ local equippedToolVisible: {[Player]: boolean} = {}
 
 -- The TweenWalkSpeed functions exclusively and purely exist to hide conflicts between CharacterController and server authoritative positioning
 
-local function tweenWalkSpeed(humanoid: Humanoid, targetWalkSpeed: number, tweenDuration: number, tweenExponent: number, shouldContinue: (() -> boolean)?): boolean
+local function tweenWalkSpeed(player: Player, humanoid: Humanoid, targetWalkSpeed: number, tweenDuration: number, tweenExponent: number, shouldContinue: (() -> boolean)?): boolean
    local initialWalkSpeed = humanoid.WalkSpeed
    local elapsed = 0
 
@@ -89,14 +89,14 @@ local function tweenWalkSpeed(humanoid: Humanoid, targetWalkSpeed: number, tween
    end
 
    if humanoid.Parent and (not shouldContinue or shouldContinue()) then
-      humanoid.WalkSpeed = targetWalkSpeed
+      PlayerStatsLibrary.setStat(player, "CurrentSpeed", targetWalkSpeed, nil, nil)
       return true
    end
 
    return false
 end
 
-local function tweenWalkSpeedInverse(humanoid: Humanoid, targetWalkSpeed: number, tweenDuration: number, tweenExponent: number): boolean
+local function tweenWalkSpeedInverse(player: Player, humanoid: Humanoid, targetWalkSpeed: number, tweenDuration: number, tweenExponent: number): boolean
    local initialWalkSpeed = humanoid.WalkSpeed
    local elapsed = 0
 
@@ -113,7 +113,7 @@ local function tweenWalkSpeedInverse(humanoid: Humanoid, targetWalkSpeed: number
    end
 
    if humanoid.Parent then
-      humanoid.WalkSpeed = targetWalkSpeed
+      PlayerStatsLibrary.setStat(player, "CurrentSpeed", targetWalkSpeed, nil, nil)
       return true
    end
 
@@ -160,7 +160,7 @@ local function playerIsWeaponLocked(player: Player): boolean
    end
    local isLocked = game.Workspace:GetServerTimeNow() < lockedUntil
    if not isLocked then
-      PlayerStatsLibrary.setStat(player, "WeaponLockedUntilTimestamp", nil, true)
+      PlayerStatsLibrary.setStat(player, "WeaponLockedUntilTimestamp", nil, nil, true)
    end
    return isLocked
 end
@@ -351,9 +351,11 @@ function WeaponService.init()
       end
 
       aiming[player] = os.clock()
+      PlayerStatsLibrary.setStat(player, "CurrentMovementState", "Aiming", nil, nil)
 
       task.spawn(function()
          tweenWalkSpeed(
+            player,
             humanoid,
             GlobalConfig.AimingWalkSpeed,
             AIM_WALK_SPEED_TWEEN_DURATION,
@@ -376,13 +378,15 @@ function WeaponService.init()
       local aimStrengthAlpha = timeSinceAiming / GlobalConfig.AimFullStrength
 
       aiming[player] = nil
+      PlayerStatsLibrary.setStat(player, "CurrentMovementState", "FreeMotion", nil, nil)
       local character = player.Character
       local humanoid = character and character:FindFirstChildWhichIsA("Humanoid")
       if humanoid then
          task.spawn(function()
             tweenWalkSpeedInverse(
+               player,
                humanoid,
-               GlobalConfig.DefaultWalkSpeed,
+               PlayerStatsLibrary.getStat(player, "RunSpeed") or GlobalConfig.DefaultWalkSpeed,
                AIM_WALK_SPEED_RETURN_TWEEN_DURATION,
                AIM_WALK_SPEED_RETURN_TWEEN_EXPONENT
             )
@@ -468,6 +472,7 @@ function WeaponService.init()
    PlayersUtil.CharacterDestroying:Add(function(player: Player, character: Model)
       if aiming[player] ~= nil then
          aiming[player] = nil
+         PlayerStatsLibrary.setStat(player, "CurrentMovementState", "FreeMotion", nil, nil)
          aimStateEvent:FireAllClients(player.UserId, false)
       end
 
@@ -502,6 +507,7 @@ function WeaponService.init()
 
    PlayersUtil.PlayerRemoving:Add(function(player: Player)
       aiming[player] = nil
+      PlayerStatsLibrary.setStat(player, "CurrentMovementState", "FreeMotion", nil, nil)
       equippedToolIds[player] = nil
       equippedToolVisible[player] = nil
       local clashedWeaponData = ClashedWeapons.Data[player]
@@ -513,6 +519,7 @@ function WeaponService.init()
    PlayersUtil.CharacterDied:Add(function(player: Player, _character: Model, _humanoid: Humanoid)
       if aiming[player] ~= nil then
          aiming[player] = nil
+         PlayerStatsLibrary.setStat(player, "CurrentMovementState", "FreeMotion", nil, nil)
          aimStateEvent:FireAllClients(player.UserId, false)
       end
 
@@ -548,11 +555,12 @@ function WeaponService.init()
          ClashedWeaponLogic.removeFromField(player, clashedWeaponData, false)
       end
       for p, _ in pairs(aiming) do
+         PlayerStatsLibrary.setStat(p, "CurrentMovementState", "FreeMotion", nil, nil)
          aiming[p] = nil
          aimStateEvent:FireAllClients(p.UserId, false)
          local character = p.Character
          if character and character:FindFirstChild("Humanoid") then
-            character.Humanoid.WalkSpeed = GlobalConfig.DefaultWalkSpeed
+            PlayerStatsLibrary.setStat(p, "CurrentSpeed", PlayerStatsLibrary.getStat(p, "RunSpeed") or GlobalConfig.DefaultWalkSpeed, nil, nil)
          end
       end
    end)
