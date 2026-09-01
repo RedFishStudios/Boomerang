@@ -30,7 +30,6 @@ export type Data = {
    VisualRotation: number?,
    
    MovementConnection: RBXScriptConnection?,
-   TestRaycastVisualizers: {Part}
 }
 
 ClashedWeapons.Data = {} :: {

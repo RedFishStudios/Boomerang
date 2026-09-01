@@ -94,26 +94,6 @@ local function getLogic(toolId: string)
 	return ToolLogicModules[toolId]
 end
 
-local function createRaycastVisualizers()
-   if not GlobalConfig.RaycastVisualizersEnabled then
-      return {}
-   end
-
-   local visualizers = {}
-   for i = 1, 3 do
-      local part = Instance.new("Part")
-      part.Size = Vector3.new(1, 1, 1)
-      part.Anchored = true
-      part.CanTouch = false
-      part.CanQuery = false
-      part.CanCollide = false
-      part.Transparency = 1
-      part.Parent = workspace
-      visualizers[i] = part
-   end
-   return visualizers
-end
-
 local function getHorizontalDirection(direction: Vector3): Vector3
    local horizontal = Vector3.new(direction.X, 0, direction.Z)
    if horizontal.Magnitude <= 1e-5 then
@@ -620,7 +600,6 @@ function WeaponController.startThrownWeapon(forPlayer: Player, toolId: string, t
       ToolId = toolId,
       State = ThrownWeapons.StateEnum.Outgoing,
       ReplicationPart = nil,
-      TestRaycastVisualizers = createRaycastVisualizers(),
       SyncTargetPosition = nil,
       ServerDirection = nil,
       ServerSpeed = nil,

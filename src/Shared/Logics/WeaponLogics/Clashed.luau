@@ -342,12 +342,6 @@ function ClashedWeaponLogic.removeFromField(player: Player, clashedWeaponData: C
 		clashedWeaponData.MovementConnection = nil
 	end
 
-	for _, part in ipairs(clashedWeaponData.TestRaycastVisualizers) do
-		if part and part.Parent then
-			part:Destroy()
-		end
-	end
-
 	ClashedWeapons.Data[player] = nil
 
 	if isServer then

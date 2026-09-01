@@ -210,23 +210,7 @@ local function throwForPlayer(
       ToolId = toolId,
       State = ThrownWeapons.StateEnum.Outgoing,
       ReplicationPart = nil,
-      TestRaycastVisualizers = {}
    }
-   for _ = 1, 3 do
-      local visualizer = Instance.new("Part")
-      visualizer.Name = "TestRaycastVisualizer"
-      visualizer.Shape = Enum.PartType.Ball
-      visualizer.Size = Vector3.new(0.5, 0.5, 0.5)
-      visualizer.Material = "Neon"
-      visualizer.Anchored = true
-      visualizer.CanCollide = false
-      visualizer.CanQuery = false
-      visualizer.CanTouch = false
-      visualizer.Transparency = 0.5
-      visualizer.Color = Color3.fromRGB(255, 0, 0)
-      visualizer.Parent = workspace
-      table.insert(ThrownWeapons.Data[player].TestRaycastVisualizers, visualizer)
-   end
 
    local logic = getLogic(toolData.LogicClass)
    if not logic or not logic.throw then

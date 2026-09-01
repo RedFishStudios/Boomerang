@@ -39,7 +39,6 @@ export type Data = {
    },
    
    MovementConnection: RBXScriptConnection?,
-   TestRaycastVisualizers: {Part}
 }
 
 ThrownWeapons.Data = {} :: {
