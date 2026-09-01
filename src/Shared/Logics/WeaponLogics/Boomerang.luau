@@ -57,6 +57,8 @@ local CLASH_SPEED_SCALE = 0.5
 local CLASH_MINIMUM_SPEED = 12
 local OBSTRUCTION_BLOCKCAST_HEIGHT = 1
 local OBSTRUCTION_BLOCKCAST_DEPTH = 0.2
+local OBSTRUCTION_BLOCKCAST_WIDTH_SCALE = 1.4
+local OBSTRUCTION_BLOCKCAST_SKIN = 1
 local BLOCKCAST_VISUALIZER_LIFETIME = 0.05
 
 local WEAPON_UNRELIABLE_CODES = RemoteCodes.Weapon.Unreliable
@@ -305,7 +307,7 @@ local function updateRaycastVisualizers(castCFrame: CFrame, castSize: Vector3, r
    sweepPart.CanCollide = false
    sweepPart.CanQuery = false
    sweepPart.CanTouch = false
-   sweepPart.Transparency = 0.6
+   sweepPart.Transparency = 0.85
    sweepPart.Color = if result then Color3.fromRGB(255, 0, 0) else Color3.fromRGB(0, 255, 0)
    sweepPart.Size = Vector3.new(castSize.X, castSize.Y, sweepLength)
    sweepPart.CFrame = castCFrame * CFrame.new(0, 0, -sweepLength / 2)
@@ -377,6 +379,7 @@ local function fireSnapshot(ownerUserId: number, position: Vector3, direction: V
 end
 
 -- // Sweeping a single flat, horizontal block for obstructions along the boomerang's path
+-- The cast origin is pulled back by a skin margin so consecutive frames overlap, preventing tunneling through thin/concave corners
 local function blockcastWithHorizontalHitbox(
    rayOrigin: Vector3,
    direction: Vector3,
@@ -386,11 +389,13 @@ local function blockcastWithHorizontalHitbox(
 ): RaycastResult?
    rayDistance = math.max(rayDistance, hitboxRadius)
 
-   local castCFrame = getObstructionBlockcastCFrame(rayOrigin, direction)
-   local castSize = Vector3.new(hitboxRadius * 2, OBSTRUCTION_BLOCKCAST_HEIGHT, OBSTRUCTION_BLOCKCAST_DEPTH)
+   local castOrigin = rayOrigin - direction * OBSTRUCTION_BLOCKCAST_SKIN
+   local castDistance = rayDistance + OBSTRUCTION_BLOCKCAST_SKIN
+   local castCFrame = getObstructionBlockcastCFrame(castOrigin, direction)
+   local castSize = Vector3.new(hitboxRadius * OBSTRUCTION_BLOCKCAST_WIDTH_SCALE, OBSTRUCTION_BLOCKCAST_HEIGHT, OBSTRUCTION_BLOCKCAST_DEPTH)
 
-   local result = RaycastsUtility.blockcastProjectileObstruction(castCFrame, castSize, direction, rayDistance, raycastParams)
-   updateRaycastVisualizers(castCFrame, castSize, rayDistance, result)
+   local result = RaycastsUtility.blockcastProjectileObstruction(castCFrame, castSize, direction, castDistance, raycastParams)
+   updateRaycastVisualizers(castCFrame, castSize, castDistance, result)
    return result
 end
 
@@ -1062,6 +1067,15 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          blendedDirection = blendedDirection.Unit
          local blendedSpeed = slideSpeed * slideMomentum + speed * (1 - slideMomentum)
          local blendedDistance = math.min(blendedSpeed * deltaTime, horizontalDistance)
+
+         -- blendedDirection can diverge from the already-tested `direction` while momentum decays;
+         -- re-check it so the boomerang can't clip into a corner along the untested blend
+         local blendedObstruction = blockcastWithHorizontalHitbox(rayOrigin, blendedDirection, blendedDistance, hitboxRadius, raycastParams)
+         if blendedObstruction then
+            blendedDistance = math.max((blendedObstruction.Position - rayOrigin).Magnitude - hitboxRadius, 0)
+            blendedSpeed = 0
+            slideMomentum = 0
+         end
 
          slideSpeed = math.max(speed, slideSpeed * slideMomentum)
          setWeaponCFrame(thrownWeaponData, hostPivot + blendedDirection * blendedDistance, deltaTime)
