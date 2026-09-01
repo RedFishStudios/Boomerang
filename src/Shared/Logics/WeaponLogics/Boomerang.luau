@@ -54,6 +54,8 @@ local AIM_SPEED_FADE_RATE = 2.0
 local RECALL_CATCH_RADIUS_MIN = 1.5
 local CLASH_SPEED_SCALE = 0.5
 local CLASH_MINIMUM_SPEED = 12
+local OBSTRUCTION_BLOCKCAST_HEIGHT = 1
+local OBSTRUCTION_BLOCKCAST_DEPTH = 0.2
 
 local WEAPON_UNRELIABLE_CODES = RemoteCodes.Weapon.Unreliable
 local WEAPON_RAYCAST_COLLISION_GROUP = CollisionGroupConstants.ThrownWeapons
@@ -247,13 +249,9 @@ local function getHorizontalDistance(fromPosition: Vector3, toPosition: Vector3)
    return delta.Magnitude
 end
 
-local function getHorizontalRayOrigins(rayOrigin: Vector3, direction: Vector3, hitboxRadius: number): {Vector3}
-   local rightDirection = direction:Cross(UP_VECTOR).Unit
-   return {
-      rayOrigin,
-      rayOrigin - rightDirection * hitboxRadius,
-      rayOrigin + rightDirection * hitboxRadius,
-   }
+-- // CFrame for a flat, horizontal blockcast oriented towards the travel direction
+local function getObstructionBlockcastCFrame(rayOrigin: Vector3, direction: Vector3): CFrame
+   return CFrame.lookAt(rayOrigin, rayOrigin + direction, UP_VECTOR)
 end
 
 local function getWeaponCFrame(thrownWeaponData: ThrownWeapons.Data): CFrame?
@@ -292,12 +290,12 @@ local function setWeaponCFrame(thrownWeaponData: ThrownWeapons.Data, cframe: CFr
    end
 end
 
-local function updateRaycastVisualizers(weaponData: ThrownWeapons.Data, rayOrigin: Vector3, direction: Vector3, rayDistance: number, hitboxRadius: number, raycastResult: RaycastResult?, finalResult: RaycastResult?)
+local function updateRaycastVisualizers(weaponData: ThrownWeapons.Data, rayOrigin: Vector3, direction: Vector3, rayDistance: number, hitboxRadius: number, result: RaycastResult?)
    if not RAYCAST_VISUALIZERS_ENABLED then
       return
    end
 
-   for i, p in pairs(weaponData.TestRaycastVisualizers) do
+   for _, p in pairs(weaponData.TestRaycastVisualizers) do
       if p and p.Parent then
          p.Color = Color3.new(0.164706, 0.960784, 0.007843)
          p.Transparency = .5
@@ -305,22 +303,12 @@ local function updateRaycastVisualizers(weaponData: ThrownWeapons.Data, rayOrigi
    end
 
    rayDistance = math.max(rayDistance, hitboxRadius)
-   local horizontalRayOrigins = getHorizontalRayOrigins(rayOrigin, direction, hitboxRadius)
-   local leftOrigin = horizontalRayOrigins[2]
-   local rightOrigin = horizontalRayOrigins[3]
+   weaponData.TestRaycastVisualizers[1].Position = rayOrigin
+   weaponData.TestRaycastVisualizers[2].Position = rayOrigin + direction * rayDistance
 
-   weaponData.TestRaycastVisualizers[1].Position = rayOrigin + direction * rayDistance
-   weaponData.TestRaycastVisualizers[2].Position = leftOrigin + direction * rayDistance
-   weaponData.TestRaycastVisualizers[3].Position = rightOrigin + direction * rayDistance
-
-   if raycastResult then
-      weaponData.TestRaycastVisualizers[1].Position = raycastResult.Position
-      weaponData.TestRaycastVisualizers[1].Color = Color3.new(1, 0, 0)
-   end
-
-   if finalResult then
-      weaponData.TestRaycastVisualizers[3].Position = finalResult.Position
-      weaponData.TestRaycastVisualizers[3].Color = Color3.new(1, 0, 0)
+   if result then
+      weaponData.TestRaycastVisualizers[2].Position = result.Position
+      weaponData.TestRaycastVisualizers[2].Color = Color3.new(1, 0, 0)
    end
 end
 
@@ -371,8 +359,8 @@ local function fireSnapshot(ownerUserId: number, position: Vector3, direction: V
    thrownWeaponReplicationRemote:FireAllClients(payload)
 end
 
--- // Raycasting horizontally for horizontal moving boomerang collisions
-local function raycastWithHorizontalHitbox(
+-- // Sweeping a single flat, horizontal block for obstructions along the boomerang's path
+local function blockcastWithHorizontalHitbox(
    rayOrigin: Vector3,
    direction: Vector3,
    rayDistance: number,
@@ -382,27 +370,12 @@ local function raycastWithHorizontalHitbox(
 ): RaycastResult?
    rayDistance = math.max(rayDistance, hitboxRadius)
 
-   local horizontalRayOrigins = getHorizontalRayOrigins(rayOrigin, direction, hitboxRadius)
-   local leftOrigin = horizontalRayOrigins[2]
-   local rightOrigin = horizontalRayOrigins[3]
+   local castCFrame = getObstructionBlockcastCFrame(rayOrigin, direction)
+   local castSize = Vector3.new(hitboxRadius * 2, OBSTRUCTION_BLOCKCAST_HEIGHT, OBSTRUCTION_BLOCKCAST_DEPTH)
 
-   local raycastResult = RaycastsUtility.raycastProjectileObstruction(rayOrigin, direction, rayDistance, raycastParams)
-   if raycastResult then
-      updateRaycastVisualizers(weaponData, rayOrigin, direction, rayDistance, hitboxRadius, raycastResult, nil)
-      return raycastResult
-   end
-
-   raycastResult = RaycastsUtility.raycastProjectileObstruction(leftOrigin, direction, rayDistance, raycastParams)
-   if raycastResult then
-      updateRaycastVisualizers(weaponData, rayOrigin, direction, rayDistance, hitboxRadius, raycastResult, nil)
-      return raycastResult
-   end
-
-   local finalResult = RaycastsUtility.raycastProjectileObstruction(rightOrigin, direction, rayDistance, raycastParams)
-   if finalResult then
-      updateRaycastVisualizers(weaponData, rayOrigin, direction, rayDistance, hitboxRadius, nil, finalResult)
-   end
-   return finalResult
+   local result = RaycastsUtility.blockcastProjectileObstruction(castCFrame, castSize, direction, rayDistance, raycastParams)
+   updateRaycastVisualizers(weaponData, rayOrigin, direction, rayDistance, hitboxRadius, result)
+   return result
 end
 
 local function spherecastCharacterHitbox(rayOrigin: Vector3, direction: Vector3, rayDistance: number, hitboxRadius: number): {Model}
@@ -735,7 +708,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       --   end
       --end
 
-      local obstructionRaycastResult = raycastWithHorizontalHitbox(rayOrigin, direction, rayDistance, hitboxRadius, raycastParams, thrownWeaponData)
+      local obstructionRaycastResult = blockcastWithHorizontalHitbox(rayOrigin, direction, rayDistance, hitboxRadius, raycastParams, thrownWeaponData)
       if obstructionRaycastResult then
          if isServer and WeaponService then
             WeaponService.WeaponStruckObject:Execute("parallel", player, thrownWeaponData.ToolId, obstructionRaycastResult)
@@ -1030,7 +1003,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       -- // Raycast in that direction for an obstruction
       local rayOrigin = hostPivot.Position
       local rayDistance = (math.max(speed, hitboxRadius)) * deltaTime
-      local raycastResult = raycastWithHorizontalHitbox(rayOrigin, direction, rayDistance, hitboxRadius, raycastParams, thrownWeaponData)
+      local raycastResult = blockcastWithHorizontalHitbox(rayOrigin, direction, rayDistance, hitboxRadius, raycastParams, thrownWeaponData)
       local sliding = false
 
       -- // If we hit something, adjust movement direction to move perpendicular to the obstruction
@@ -1065,7 +1038,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          --   slideDirection * slideDistance,
          --   raycastParams
          --)
-         local slideHit = raycastWithHorizontalHitbox(rayOrigin, slideDirection, rayDistance, hitboxRadius*.5, raycastParams, thrownWeaponData)
+         local slideHit = blockcastWithHorizontalHitbox(rayOrigin, slideDirection, rayDistance, hitboxRadius*.5, raycastParams, thrownWeaponData)
 
          if slideHit and not slideHit.Instance:IsDescendantOf(Characters) then
             speed = 0
