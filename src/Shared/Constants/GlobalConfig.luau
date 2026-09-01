@@ -23,10 +23,10 @@ local GlobalConfig = {
 
    -- Use for debugging
    -- Enabling these can greatly increase lag or network traffic
-   RaycastVisualizersEnabled = true,
+   RaycastVisualizersEnabled = false,
    ProjectileHitboxVisualizerEnabled = false,
    ParryVisualizersEnabled = false,
-   SyncAbilitiesToEveryPlayer = true
+   SyncAbilitiesToEveryPlayer = false
 }
 
 return GlobalConfig

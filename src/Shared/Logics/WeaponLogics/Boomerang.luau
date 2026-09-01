@@ -273,18 +273,10 @@ local function setWeaponCFrame(thrownWeaponData: ThrownWeapons.Data, cframe: CFr
    local host = thrownWeaponData.Host
    if host and host.Parent then
       if not isServer then
-         local direction = thrownWeaponData.Direction
-         if direction and direction.Magnitude > 1e-5 then
-            local visualRotation = (thrownWeaponData.VisualRotation or 0) + (BOOMERANG_SPIN_SPEED * (deltaTime or 0))
-            thrownWeaponData.VisualRotation = visualRotation
-
-            local faceDirection = getHorizontalDirection(direction)
-            local baseCFrame = CFrame.new(cframe.Position, cframe.Position + faceDirection)
-            local spinCFrame = CFrame.Angles(0, visualRotation, 0)
-            host:PivotTo(baseCFrame * spinCFrame)
-         else
-            host:PivotTo(cframe)
-         end
+         -- Spin is constant and flat regardless of movement direction, speed, or state
+         local visualRotation = (thrownWeaponData.VisualRotation or 0) + (BOOMERANG_SPIN_SPEED * (deltaTime or 0))
+         thrownWeaponData.VisualRotation = visualRotation
+         host:PivotTo(CFrame.new(cframe.Position) * CFrame.Angles(0, visualRotation, 0))
       else
          host:PivotTo(cframe)
       end
@@ -1034,12 +1026,26 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          local normal = raycastResult.Normal
          slideDirection = direction - normal * direction:Dot(normal)
          local slideMagnitude = slideDirection.Magnitude
-         slideDirection = slideDirection.Unit
 
-         -- Obstruction is directly between player and wall = stop movement
          if slideMagnitude < 0.01 then
-            speed = 0
-            return
+            -- A near head-on hit against a convex corner's tip gives a degenerate (near-zero) tangent
+            -- off the normal; fall back to the tangents of the travel direction itself so the
+            -- boomerang isn't stuck forever waiting on a usable slide direction
+            local rightTangent = direction:Cross(UP_VECTOR).Unit
+            local rightBlocked = blockcastWithHorizontalHitbox(rayOrigin, rightTangent, rayDistance, hitboxRadius*.5, raycastParams)
+            local leftBlocked = blockcastWithHorizontalHitbox(rayOrigin, -rightTangent, rayDistance, hitboxRadius*.5, raycastParams)
+
+            if not rightBlocked then
+               slideDirection = rightTangent
+            elseif not leftBlocked then
+               slideDirection = -rightTangent
+            else
+               speed = 0
+               return
+            end
+            slideMagnitude = 1
+         else
+            slideDirection = slideDirection.Unit
          end
 
          -- Determine new slide speed
@@ -1055,8 +1061,15 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          local slideHit = blockcastWithHorizontalHitbox(rayOrigin, slideDirection, rayDistance, hitboxRadius*.5, raycastParams)
 
          if slideHit and not slideHit.Instance:IsDescendantOf(Characters) then
-            speed = 0
-            return
+            -- The chosen slide direction is itself obstructed (common at convex corners); try the
+            -- opposite tangent instead of getting stuck
+            slideDirection = -slideDirection
+            slideHit = blockcastWithHorizontalHitbox(rayOrigin, slideDirection, rayDistance, hitboxRadius*.5, raycastParams)
+
+            if slideHit and not slideHit.Instance:IsDescendantOf(Characters) then
+               speed = 0
+               return
+            end
          end
 
          setWeaponCFrame(thrownWeaponData, hostPivot + slideDirection * slideDistance, deltaTime)
