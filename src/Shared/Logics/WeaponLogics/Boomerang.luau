@@ -563,9 +563,9 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    end]]
    
    local startCFrame = CFrame.new(startPosition)
-   local throwOrigin = startPosition
    local throwServerTime = (options and options.ThrowServerTime) or workspace:GetServerTimeNow()
-   local lastBounceOrigin = throwOrigin
+   -- Path length, not displacement from the origin, so homing curvature can't extend the throw
+   local distanceTraveled = 0
    local bounced = false
    thrownWeaponData.LastPosition = startPosition
    thrownWeaponData.CFrame = startCFrame
@@ -699,7 +699,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       local rayDistance = speed * deltaTime
 
       -- Distance-based recall
-      if (rayOrigin - lastBounceOrigin).Magnitude >= (if bounced then bounceDistance else initThrowDistance) then
+      if distanceTraveled >= (if bounced then bounceDistance else initThrowDistance) then
          if shouldRecallTransitions then
             if isServer and WeaponService then
                WeaponService.WeaponReachedEventPoint:Execute("parallel", player, thrownWeaponData.ToolId, rayOrigin)
@@ -744,7 +744,8 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       end
 
       local currentCFrame = pivot
-      setWeaponCFrame(thrownWeaponData, currentCFrame + direction * speed * deltaTime, deltaTime)
+      setWeaponCFrame(thrownWeaponData, currentCFrame + direction * rayDistance, deltaTime)
+      distanceTraveled += rayDistance
       thrownWeaponData.Direction = direction
       thrownWeaponData.Speed = speed
       return true
