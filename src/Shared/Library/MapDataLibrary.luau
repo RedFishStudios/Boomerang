@@ -23,17 +23,16 @@ local MapData = require(game.ReplicatedStorage.Shared.Constants.MapData)
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
-function MapDataLibrary.getMapDataForGamemode(gamemodeId: string): MapData.MapData
-   local data = MapData[gamemodeId]
-   if not data then
-      return MapData.Debug
-   end
-   return data
-end
-
 -------------------------------------------------------------------------------
 -- CORE FUNCTIONS
 -------------------------------------------------------------------------------
 
+function MapDataLibrary.init()
+
+end
+
+function MapDataLibrary.start()
+   
+end
 
 return MapDataLibrary

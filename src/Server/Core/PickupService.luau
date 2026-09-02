@@ -18,6 +18,7 @@ local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local GameplayPhaseEnum = require(ReplicatedStorage.Shared.Constants.Enums.GameplayPhases)
 local CommandService = require(game.ServerStorage.Server.Core.CommandService)
 local ChatService = require(game.ServerStorage.Server.Core.ChatService)
+local MapDataConstants = require(ReplicatedStorage.Shared.Constants.MapData)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -157,10 +158,21 @@ local function getIncompatibleClassIds(userId: number): {[PickupClassId]: boolea
 end
 
 local function getRandomAvailablePickupClass(userId: number): PickupClassId?
-   local incompatible = getIncompatibleClassIds(userId)
+   local currentGameState = GameStateLibrary.getGameStateData()
+   local currentRoundData = currentGameState.CurrentRoundData:Get()
+   if not currentRoundData then
+      return nil
+   end
+   local currentMapData = MapDataConstants.MapData[currentRoundData.MapId]
+   if not currentMapData then
+      warn(`PickupService.getRandomAvailablePickupClass: No map data found for map {currentRoundData.MapId}`)
+      return nil
+   end
+   local incompatibleUser = getIncompatibleClassIds(userId)
+   local incompatibleMap = currentMapData.DisabledPickups or {}
    local candidates = {}
    for _, classId in ipairs(availablePickupClasses) do
-      if not incompatible[classId] then
+      if not incompatibleUser[classId] and not table.find(incompatibleMap, classId) then
          table.insert(candidates, classId)
       end
    end

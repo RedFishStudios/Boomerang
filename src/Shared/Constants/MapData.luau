@@ -4,6 +4,7 @@ export type MapData = {
    Id: string,
    ForGamemodes: {string},
    DisguiseAssets: {string},
+   DisabledPickups: {string}?, -- Pickup Ids that are disabled on this map (ie. map has no water for water-based pickups)
    Debug: true?,
 }
 
