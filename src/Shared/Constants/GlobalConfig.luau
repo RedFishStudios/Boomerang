@@ -1,6 +1,13 @@
+local RunService = game:GetService("RunService")
+
+local isStudio = RunService:IsStudio()
+
 local GlobalConfig = {
    WeaponHeight = 21.081,
    DeathHeight = 14.207,
+
+  -- PlayersRequredToStart = if isStudio then 1 else 2,
+  PlayersRequiredToStart = 2,
    
    CharacterFocalHeight = 6.6,
    SkipVoting = false,

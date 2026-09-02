@@ -4,6 +4,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
+local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 
 local ROOT_PART_LOAD_TIMEOUT_SECONDS = 10
 
@@ -13,6 +14,7 @@ PlayersUtil.CharacterAdded = TasksList.new() :: TasksList.TasksList<(player: Pla
 PlayersUtil.CharacterDestroying = TasksList.new() :: TasksList.TasksList<(player: Player, character: Model) -> ()>
 PlayersUtil.CharacterDied = TasksList.new() :: TasksList.TasksList<(player: Player, character: Model, humanoid: Humanoid) -> ()>
 PlayersUtil.CharacterLoaded = TasksList.new() :: TasksList.TasksList<(player: Player, character: Model, humanoid: Humanoid, rootPart: BasePart) -> ()> -- character's vitals (rootpart and humanoid) have loaded
+PlayersUtil.GameEnteredTooFewPlayers = TasksList.new() :: TasksList.TasksList<()->()> -- Game's players have gone below the value of GlobalConfig.PlayersRequiredToStart
 
 local playerAddedConnections: { [Player]: RBXScriptConnection } = {}
 local playerCharacterConnections: { [Player]: { [string]: RBXScriptConnection } } = {}
@@ -112,6 +114,10 @@ local function onPlayerRemoving(player: Player)
 	end
 
 	disconnectCharacterConnections(player)
+   
+   if #Players:GetPlayers() < GlobalConfig.PlayersRequiredToStart then
+      PlayersUtil.GameEnteredTooFewPlayers:Execute("deferred")
+   end
 end
 
 for _, player in Players:GetPlayers() do

@@ -4,6 +4,7 @@ local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CurrentGameState = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
+local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 
 local isServer = RunService:IsServer()
 local GameTeamService, RoundCyclingService, CombatService
@@ -31,6 +32,11 @@ function ClassicRoundLogic.setup()
 
       table.insert(PerMatchDestroyerFunctions, CombatService.PlayerKilledPlayerTasks:Add(function(attacker: Player, victim: Player, attackerToolId: string)
          Kills[attacker] = (Kills[attacker] or 0) + 1
+      end))
+
+      -- // Highest-kills winner naturally stays nil if no one has scored a kill yet
+      table.insert(PerMatchDestroyerFunctions, PlayersUtil.GameEnteredTooFewPlayers:Add(function()
+         ClassicRoundLogic.teardown()
       end))
    end
 end

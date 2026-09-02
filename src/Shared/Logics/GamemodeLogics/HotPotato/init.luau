@@ -10,6 +10,7 @@ local CombatLibrary = require(ReplicatedStorage.Shared.Library.CombatLibrary)
 local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
 local ParticlesLibrary = require(ReplicatedStorage.Shared.Library.ParticlesLibrary)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
+local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 
 local isServer = RunService:IsServer()
 local GameTeamService
@@ -226,6 +227,13 @@ function HotPotatoRoundLogic.setup()
          if not currentHolder and not initialHolderSet then
             grantHolderEffect(player)
          end
+      end))
+
+      -- // Only declare a winner if a single involved player remains; otherwise there is no winner
+      table.insert(PerMatchDestroyerFunctions, PlayersUtil.GameEnteredTooFewPlayers:Add(function()
+         local livingPlayers = currentGameData.LivingPlayersInArena:Get()
+         local winner = if #livingPlayers == 1 then livingPlayers[1] else nil
+         HotPotatoRoundLogic.teardown(winner)
       end))
    else
       local localPlayer = game.Players.LocalPlayer

@@ -6,6 +6,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
+local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 
 local isServer = RunService:IsServer()
 local ArenaService, GameTeamService, RoundCyclingService, WeaponService, StormCloseService, SpawnService
@@ -95,6 +96,13 @@ function TeamEliminationRoundLogic.setup()
             local winner = livingPlayers[1]
             TeamEliminationRoundLogic.teardown(winner, winner and winner.Team)
          end
+      end))
+
+      -- // Only declare a winner if a single involved player remains; otherwise there is no winner
+      table.insert(PerMatchDestroyerFunctions, PlayersUtil.GameEnteredTooFewPlayers:Add(function()
+         local livingPlayers = GameStateLibrary.getGameStateData().LivingPlayersInArena:Get()
+         local winner = if #livingPlayers == 1 then livingPlayers[1] else nil
+         TeamEliminationRoundLogic.teardown(winner, winner and winner.Team)
       end))
 
       local livingPlayers = GameStateLibrary.getGameStateData().LivingPlayersInArena:Get()
