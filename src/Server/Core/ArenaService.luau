@@ -44,7 +44,6 @@ local arenaFolder = ArenaLibrary.getArenaFolder()
 local registeredMaps: {
    [string]: Model
 } = {}
-local pendingInitialSpawnWorkerToken: {}? = nil
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -270,50 +269,6 @@ function ArenaService.sendToArena(player: Player)
    end
 end
 
--- // Spawn thread to continually attempt to send players to the arena if original sends failed (such as their characters not being loaded)
-local function startPendingInitialSpawnWorker(playersAwaitingInitialSpawn: {[Player]: true}, roundId: number?)
-   local workerToken = {}
-   pendingInitialSpawnWorkerToken = workerToken
-
-   if next(playersAwaitingInitialSpawn) == nil then
-      return
-   end
-
-   task.spawn(function()
-      local gameStateData = CurrentGameState.getGameStateData()
-      while pendingInitialSpawnWorkerToken == workerToken and next(playersAwaitingInitialSpawn) ~= nil do
-         local currentRoundData = gameStateData.CurrentRoundData:Get()
-         if currentRoundData == nil or currentRoundData.CurrentRoundId ~= roundId then
-            if pendingInitialSpawnWorkerToken == workerToken then
-               pendingInitialSpawnWorkerToken = nil
-            end
-            return
-         end
-
-         local livingPlayersInArena = gameStateData.LivingPlayersInArena:Get()
-         for player, _ in pairs(playersAwaitingInitialSpawn) do
-            if pendingInitialSpawnWorkerToken ~= workerToken then
-               return
-            end
-            if player.Parent ~= Players or table.find(livingPlayersInArena, player) then
-               playersAwaitingInitialSpawn[player] = nil
-            elseif ArenaService.isReadyToSendToArena(player) then
-               ArenaService.sendToArena(player)
-               playersAwaitingInitialSpawn[player] = nil
-            end
-         end
-
-         if next(playersAwaitingInitialSpawn) ~= nil then
-            RunService.Heartbeat:Wait()
-         end
-      end
-
-      if pendingInitialSpawnWorkerToken == workerToken then
-         pendingInitialSpawnWorkerToken = nil
-      end
-   end)
-end
-
 -- // Set the arena to this map name
 function ArenaService.setArena(mapName: string)
    local map = registeredMaps[mapName]
@@ -334,19 +289,7 @@ function ArenaService.setArena(mapName: string)
       LivingPlayersInArena = {},
    })
 
-   local gameStateData = CurrentGameState.getGameStateData()
-   local currentRoundData = gameStateData.CurrentRoundData:Get()
-   local roundId = currentRoundData and currentRoundData.CurrentRoundId
-   local playersAwaitingInitialSpawn = {} :: {[Player]: true}
-   for _, player in ipairs(Players:GetPlayers()) do
-      if ArenaService.isReadyToSendToArena(player) then
-         ArenaService.sendToArena(player)
-      else
-         playersAwaitingInitialSpawn[player] = true
-      end
-   end
-
-   startPendingInitialSpawnWorker(playersAwaitingInitialSpawn, roundId)
+   -- // Sending players into the new arena is owned by SpawnService, which listens for this event
    ArenaService.MapChangedTasks:Execute("parallel", mapName)
 end
 

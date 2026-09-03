@@ -271,7 +271,7 @@ end)
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
-function GameStateLibrary.getSnapshot()
+function GameStateLibrary.getSnapshot() 
    return getSnapshot()
 end
 
