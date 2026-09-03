@@ -221,7 +221,7 @@ local function createCharacterModel(player: Player, canYield: boolean?)
                loadedDescendants += 1
             end
             if loadedDescendants < targetDescendants then
-               warn(`skipping loaded model without enough descendants`)
+               --warn(`skipping loaded model without enough descendants`)
                sourceModel = nil
             end
          end

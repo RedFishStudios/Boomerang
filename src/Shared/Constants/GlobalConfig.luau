@@ -12,7 +12,6 @@ local GlobalConfig = {
    CharacterFocalHeight = 6.6,
    SkipVoting = false,
    CanHurtSelf = false,
-   MinimumNeededPlayers = 1,
    SpawnShieldDuration = 2,
    NilDataType = "nil_",
    AimFullStrength = 2.0,

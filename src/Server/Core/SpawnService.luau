@@ -114,8 +114,7 @@ function SpawnService.init()
    local gameStateData = GameStateLibrary.getGameStateData()
 
    gameStateData.GameplayPhase:Subscribe(function(gameplayPhase)
-      if gameplayPhase == GameplayPhases.LobbyVoting then
-         warn(`lobby voting began!`)
+      if gameplayPhase == GameplayPhases.LobbyVoting or gameplayPhase == GameplayPhases.PendingPlayers or gameplayPhase == GameplayPhases.LobbyEnded then
          local lobbySpawnPosition = LobbyService.getSpawnPoint().Position
          for _, player in pairs(Players:GetPlayers()) do
             SpawnService.sendPlayerTo(player, lobbySpawnPosition, true)

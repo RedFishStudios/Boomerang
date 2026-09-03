@@ -137,13 +137,13 @@ end
 function PickupController.init()
    for i, logicModule in pairs(PickupLogics:GetChildren()) do
       if logicModule:IsA("ModuleScript") then
-         print(`initializing {logicModule.Name}`)
+         --print(`initializing {logicModule.Name}`)
          getLogic(logicModule.Name)
       end
    end
    PickupLogics.ChildAdded:Connect(function(child)
       if child:IsA("ModuleScript") then
-         print(`initializing child added {child.Name}`)
+         --print(`initializing child added {child.Name}`)
          getLogic(child.Name)
       end
    end)

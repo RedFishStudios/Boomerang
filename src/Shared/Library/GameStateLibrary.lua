@@ -71,6 +71,7 @@ local gameStateSyncEvent = SimpleRemotes.getEvent("GameStateSync")
 
 local GameStateLibrary = {}
 GameStateLibrary.Ready = false
+GameStateLibrary.HasSyncedState = isServer -- Server data is authoritative immediately; client data isn't trustworthy until the initial snapshot arrives
 
 local CurrentGameStateData: CurrentGameStateDataType = {
    CurrentRoundData = ReactiveValue.new(nil :: CurrentRoundData?),
@@ -399,6 +400,7 @@ function GameStateLibrary.init()
       gameStateSyncEvent.OnClientEvent:Connect(function(action: string, payload: any)
          if action == "InitialSnapshot" then
             applySnapshotLocal(payload)
+            GameStateLibrary.HasSyncedState = true
             fireSnapshotLoaded(getSnapshot(), "InitialReplication")
             return
          end

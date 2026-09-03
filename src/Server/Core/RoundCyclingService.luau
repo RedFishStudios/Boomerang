@@ -35,6 +35,7 @@ local GamemodeLogicModules = {}
 
 local INTERMISSION_DURATION = 10
 local VOTE_DURATION = 8
+local PRE_INTERMISSION_DURATION = 5
 
 -------------------------------------------------------------------------------
 -- TYPES
@@ -44,8 +45,7 @@ local VOTE_DURATION = 8
 -- PRIVATE VARIABLES
 -------------------------------------------------------------------------------
 
-local roundDurationConnection: RBXScriptConnection? = nil
-local currentRoundEndsAt: number? = nil
+local gameLoopConnection: RBXScriptConnection? = nil
 local currentRoundId = 0
 
 local nextGamemode: string? = nil
@@ -57,8 +57,6 @@ local votes: {[Player]: number} = {}
 local totalVotes = {0, 0}
 local awaitingVotes: {Player} = {}
 
-local votingInterrupted = false -- Set true when the game drops below GlobalConfig.PlayersRequiredToStart mid-intermission/voting
-
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
 -------------------------------------------------------------------------------
@@ -66,19 +64,6 @@ local votingInterrupted = false -- Set true when the game drops below GlobalConf
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
-
-local function hasEnoughPlayers(): boolean
-   return #game.Players:GetPlayers() >= GlobalConfig.PlayersRequiredToStart
-end
-
-local function enterPendingPlayers()
-   local snapshot = GameStateLibrary.getSnapshot()
-   snapshot.CurrentRoundData = nil
-   snapshot.CurrentTimerEndsAt = nil
-   snapshot.IntermissionData = nil
-   snapshot.GameplayPhase = GameplayPhases.PendingPlayers
-   GameStateLibrary.applySnapshot(snapshot)
-end
 
 local function getLogic(roundTypeId: string)
 	if not GamemodeLogicModules[roundTypeId] then
@@ -104,31 +89,6 @@ local function getMapNameCaseInsensitive(insensitiveMapName: string): string?
       end
    end
    return nil
-end
-
-local function updateRoundDuration()
-   local gameStateData = GameStateLibrary.getGameStateData()
-   if not currentRoundEndsAt then
-      return
-   end
-   local secondsLeft = math.max(0, currentRoundEndsAt - workspace:GetServerTimeNow())
-   if secondsLeft <= 0 and roundDurationConnection then
-      roundDurationConnection:Disconnect()
-      roundDurationConnection = nil
-      currentRoundEndsAt = nil
-      local currentRoundData = gameStateData.CurrentRoundData:Get()
-      local currentGamemode = if currentRoundData then currentRoundData.Gamemode else nil
-      if currentGamemode then
-         local roundLogic = getLogic(currentGamemode)
-         local snapshot = GameStateLibrary.getSnapshot()
-         snapshot.CurrentRoundData = nil
-         snapshot.CurrentTimerEndsAt = nil
-         GameStateLibrary.applySnapshot(snapshot)
-         if roundLogic and roundLogic.teardown then
-            roundLogic.teardown()
-         end
-      end
-   end
 end
 
 -------------------------------------------------------------------------------
@@ -210,13 +170,147 @@ function RoundCyclingService.setNextRound(roundTypeId: string, mapName: string)
    if roundLogic and roundLogic.setup then
       roundLogic.setup()
    end
+end
 
-	currentRoundEndsAt = roundEndsAt
-   if roundDurationConnection  then
-      roundDurationConnection:Disconnect()
-      roundDurationConnection = nil
+-------------------------------------------------------------------------------
+-- STATE MACHINE HELPERS
+-------------------------------------------------------------------------------
+
+-- // Forces the phase to PendingPlayers, clearing any in-progress intermission/vote state
+local function transitionToPendingPlayers()
+   local snapshot = GameStateLibrary.getSnapshot()
+   snapshot.CurrentRoundData = nil
+   snapshot.CurrentTimerEndsAt = nil
+   snapshot.IntermissionData = nil
+   snapshot.GameplayPhase = GameplayPhases.PendingPlayers
+   GameStateLibrary.applySnapshot(snapshot)
+end
+
+-- // Ends whatever round is active (timer expiry or forced); the resulting RoundFinishedTasks callback drives PreIntermission
+local function endActiveRound()
+   local currentRoundData = GameStateLibrary.getGameStateData().CurrentRoundData:Get()
+   local currentGamemode = if currentRoundData then currentRoundData.Gamemode else nil
+   local snapshot = GameStateLibrary.getSnapshot()
+   snapshot.CurrentRoundData = nil
+   snapshot.CurrentTimerEndsAt = nil
+   GameStateLibrary.applySnapshot(snapshot)
+   if currentGamemode then
+      local roundLogic = getLogic(currentGamemode)
+      if roundLogic and roundLogic.teardown then
+         roundLogic.teardown()
+      end
    end
-   roundDurationConnection = RunService.Heartbeat:Connect(updateRoundDuration)
+end
+
+-- // Populates vote options and moves into LobbyVoting; the per-frame gate closes it out once its timer/votes are done
+local function enterLobbyVoting(winMessage: string?)
+   local possibleGamemodes = RoundCyclingService.getNextGamemodeChoices()
+   totalVotes[1] = 0
+   totalVotes[2] = 0
+   table.clear(votes)
+   table.clear(awaitingVotes)
+   for _, p in pairs(game.Players:GetPlayers()) do
+      table.insert(awaitingVotes, p)
+   end
+
+   local snapshot = GameStateLibrary.getSnapshot()
+   snapshot.CurrentRoundData = nil
+   snapshot.CurrentTimerEndsAt = workspace:GetServerTimeNow() + VOTE_DURATION
+   snapshot.IntermissionData = {
+      WinMessage = winMessage,
+      VoteOptions = possibleGamemodes,
+      VoteCount = {0, 0},
+      ChosenGamemode = nil,
+   }
+   snapshot.GameplayPhase = GameplayPhases.LobbyVoting
+   GameStateLibrary.applySnapshot(snapshot)
+end
+
+-- // Tallies votes, picks the next gamemode, and moves into LobbyEnded to await the actual round start
+local function finishVotingAndEnterLobbyEnded()
+   totalVotes[1] = 0
+   totalVotes[2] = 0
+   for _, vote in pairs(votes) do
+      if vote == 1 then
+         totalVotes[1] += 1
+      elseif vote == 2 then
+         totalVotes[2] += 1
+      end
+   end
+
+   local intermissionData = GameStateLibrary.getGameStateData().IntermissionData:Get()
+   local possibleGamemodes = if intermissionData then intermissionData.VoteOptions else RoundCyclingService.getNextGamemodeChoices()
+
+   local chosenGamemode
+   if totalVotes[1] > totalVotes[2] then
+      chosenGamemode = possibleGamemodes[1]
+   elseif totalVotes[2] > totalVotes[1] then
+      chosenGamemode = possibleGamemodes[2]
+   else
+      chosenGamemode = possibleGamemodes[math.random(#possibleGamemodes)]
+   end
+
+   local snapshot = GameStateLibrary.getSnapshot()
+   snapshot.CurrentTimerEndsAt = workspace:GetServerTimeNow() + (INTERMISSION_DURATION - VOTE_DURATION)
+   if intermissionData then
+      local updatedIntermissionData = table.clone(intermissionData)
+      updatedIntermissionData.VoteCount = table.clone(totalVotes)
+      updatedIntermissionData.ChosenGamemode = chosenGamemode
+      snapshot.IntermissionData = updatedIntermissionData
+   end
+   snapshot.GameplayPhase = GameplayPhases.LobbyEnded
+   GameStateLibrary.applySnapshot(snapshot)
+end
+
+-- // Starts the chosen gamemode's round once LobbyEnded's timer has elapsed
+local function startChosenRound()
+   local intermissionData = GameStateLibrary.getGameStateData().IntermissionData:Get()
+   local chosenGamemode = intermissionData and intermissionData.ChosenGamemode
+   if not chosenGamemode then
+      return
+   end
+   local availableMaps = ArenaService.getAvailableMaps(chosenGamemode)
+   local map = availableMaps[math.random(#availableMaps)]
+   RoundCyclingService.setNextRound(chosenGamemode, map)
+end
+
+-- // Single per-frame authority over GameplayPhase transitions; avoids nested coroutines/yields entirely
+local function updateGameStateEveryFrame(_dt: number)
+   local gameStateData = GameStateLibrary.getGameStateData()
+   local currentPhase = gameStateData.GameplayPhase:Get()
+   local playerCount = #game.Players:GetPlayers()
+
+   if playerCount < GlobalConfig.PlayersRequiredToStart then
+      -- // A round in progress is left for its own gamemode logic/timer to end; every other phase is interrupted
+      if currentPhase ~= GameplayPhases.RoundActive and currentPhase ~= GameplayPhases.PendingPlayers then
+         transitionToPendingPlayers()
+      end
+      return
+   end
+
+   local timerEndsAt = gameStateData.CurrentTimerEndsAt:Get()
+   local timerElapsed = timerEndsAt ~= nil and workspace:GetServerTimeNow() >= timerEndsAt
+
+   if currentPhase == GameplayPhases.RoundActive then
+      if timerElapsed then
+         endActiveRound()
+      end
+   elseif currentPhase == GameplayPhases.PreIntermission then
+      if timerElapsed then
+         local intermissionData = gameStateData.IntermissionData:Get()
+         enterLobbyVoting(intermissionData and intermissionData.WinMessage)
+      end
+   elseif currentPhase == GameplayPhases.LobbyVoting then
+      if timerElapsed or #awaitingVotes == 0 or nextGamemode ~= nil then
+         finishVotingAndEnterLobbyEnded()
+      end
+   elseif currentPhase == GameplayPhases.LobbyEnded then
+      if timerElapsed then
+         startChosenRound()
+      end
+   elseif currentPhase == GameplayPhases.PendingPlayers then
+      enterLobbyVoting(nil)
+   end
 end
 
 -------------------------------------------------------------------------------
@@ -238,8 +332,7 @@ function RoundCyclingService.init()
          ChatService.tellPlayerPrintMessage(player, "No round is currently active", Color3.fromRGB(241, 89, 18))
          return
       end
-      currentRoundEndsAt = workspace:GetServerTimeNow()
-      updateRoundDuration()
+      endActiveRound()
    end)
 
    CommandService.addCommand("SetNextGamemode", "/setnextgamemode", nil, function(player: Player, args: {string})
@@ -330,116 +423,12 @@ function RoundCyclingService.init()
    end)
 end
 
--- // Runs lobby voting through to the next round; bails out to PendingPlayers whenever the player count drops below GlobalConfig.PlayersRequiredToStart
-local function runVoteCycle(winMessage: string?)
-   if not hasEnoughPlayers() then
-      enterPendingPlayers()
-      return
-   end
-
-   -- // Prep for lobby voting
-   local possibleGamemodes = RoundCyclingService.getNextGamemodeChoices()
-   totalVotes[1] = 0
-   totalVotes[2] = 0
-   table.clear(votes)
-   table.clear(awaitingVotes)
-   for _, p in pairs(game.Players:GetPlayers()) do
-      table.insert(awaitingVotes, p)
-   end
-
-   votingInterrupted = false
-   local intermissionEndsAt = workspace:GetServerTimeNow() + INTERMISSION_DURATION
-   local snapshot = GameStateLibrary.getSnapshot()
-   snapshot.CurrentRoundData = nil
-   snapshot.CurrentTimerEndsAt = intermissionEndsAt
-   snapshot.IntermissionData = {
-      WinMessage = winMessage,
-      VoteOptions = possibleGamemodes,
-      VoteCount = {0, 0},
-      ChosenGamemode = nil,
-   }
-   snapshot.GameplayPhase = GameplayPhases.LobbyVoting
-   GameStateLibrary.applySnapshot(snapshot)
-
-   -- Wait for votes
-   local elapsed = 0
-   repeat
-      local deltaTime = RunService.Heartbeat:Wait()
-      elapsed += deltaTime
-   until votingInterrupted or elapsed >= VOTE_DURATION or #awaitingVotes == 0 or nextGamemode ~= nil
-
-   if votingInterrupted or not hasEnoughPlayers() then
-      enterPendingPlayers()
-      return
-   end
-
-   -- Tally votes
-   -- Restart tally, just for safety
-   totalVotes[1] = 0
-   totalVotes[2] = 0
-   for player, vote in pairs(votes) do
-      if vote == 1 then
-         totalVotes[1] += 1
-      elseif vote == 2 then
-         totalVotes[2] += 1
-      end
-   end
-
-   local chosenGamemode
-   if totalVotes[1] > totalVotes[2] then
-      chosenGamemode = possibleGamemodes[1]
-   elseif totalVotes[2] > totalVotes[1] then
-      chosenGamemode = possibleGamemodes[2]
-   else
-      chosenGamemode = possibleGamemodes[math.random(#possibleGamemodes)]
-   end
-   local untilNewRound = INTERMISSION_DURATION - VOTE_DURATION
-
-   local intermissionData = GameStateLibrary.getGameStateData().IntermissionData:Get()
-   if intermissionData then
-      local updatedIntermissionData = table.clone(intermissionData)
-      updatedIntermissionData.VoteCount = table.clone(totalVotes)
-      updatedIntermissionData.ChosenGamemode = chosenGamemode
-      GameStateLibrary.applyValues({
-         IntermissionData = updatedIntermissionData,
-      })
-   end
-
-   elapsed = 0
-   repeat
-      local deltaTime = RunService.Heartbeat:Wait()
-      elapsed += deltaTime
-   until votingInterrupted or elapsed >= untilNewRound
-
-   if votingInterrupted or not hasEnoughPlayers() then
-      enterPendingPlayers()
-      return
-   end
-
-   local availableMaps = ArenaService.getAvailableMaps(chosenGamemode)
-   local map = availableMaps[math.random(#availableMaps)]
-
-   RoundCyclingService.setNextRound(chosenGamemode, map)
-end
-
 function RoundCyclingService.start()
-   local gameStateData = GameStateLibrary.getGameStateData()
-
-   if not hasEnoughPlayers() and not RoundCyclingService.isInRound() then
-      enterPendingPlayers()
-   end
-
-   GameStateLibrary.RoundFinishedTasks:Add(function(winner: Player?, winMessage: string)
-      if roundDurationConnection  then
-         roundDurationConnection:Disconnect()
-         roundDurationConnection = nil
-         currentRoundEndsAt = nil
-      end
-
-      -- // Pre-Intermission
+   GameStateLibrary.RoundFinishedTasks:Add(function(_winner: Player?, winMessage: string)
+      -- // Pre-Intermission; the per-frame gate advances to voting once PRE_INTERMISSION_DURATION elapses
       local snapshot = GameStateLibrary.getSnapshot()
       snapshot.CurrentRoundData = nil
-      snapshot.CurrentTimerEndsAt = nil
+      snapshot.CurrentTimerEndsAt = workspace:GetServerTimeNow() + PRE_INTERMISSION_DURATION
       snapshot.IntermissionData = {
          WinMessage = winMessage,
          VoteOptions = {},
@@ -449,34 +438,20 @@ function RoundCyclingService.start()
       snapshot.GameplayPhase = GameplayPhases.PreIntermission
       snapshot.LivingPlayersInArena = {}
       GameStateLibrary.applySnapshot(snapshot)
-
-      task.spawn(function()
-         if not hasEnoughPlayers() then
-            enterPendingPlayers()
-            return
-         end
-         task.wait(5)
-         runVoteCycle(winMessage)
-      end)
    end)
 
-   -- // Gamemode logic modules end the round themselves while RoundActive; otherwise interrupt voting/intermission and wait in PendingPlayers
-   PlayersUtil.GameEnteredTooFewPlayers:Add(function()
-      votingInterrupted = true
-      if gameStateData.GameplayPhase:Get() == GameplayPhases.RoundActive then
-         return
-      end
-      enterPendingPlayers()
-   end)
-
-   PlayersUtil.PlayerAdded:Add(function(player: Player)
-      if gameStateData.GameplayPhase:Get() ~= GameplayPhases.PendingPlayers or not hasEnoughPlayers() then
-         return
-      end
-      task.spawn(runVoteCycle, nil)
-   end)
+   if gameLoopConnection then
+      gameLoopConnection:Disconnect()
+   end
+   gameLoopConnection = RunService.Heartbeat:Connect(updateGameStateEveryFrame)
 end
 
 -- function RoundCyclingService.test() end
 
 return RoundCyclingService
+
+--[[
+
+A round should not start or be active when the game does not have enough players.
+
+]]
