@@ -95,10 +95,12 @@ end
 
 function Dash.canActivate(player: Player)
    if isPlayerAiming(player) then
+      print("cannot dash: is aiming")
       return false
    end
 
    if PickupLibrary.hasPickupEffectActive(player.UserId, "Zapped") then
+      print("cannot dash: is zapped")
       return false
    end
 
@@ -133,11 +135,13 @@ function Dash.canActivate(player: Player)
    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
    local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
    if not raycastResult then
+      print("cannot dash: not grounded")
       return false
    end
 
    local cooldown = cooldowns[player]
    if cooldown and os.clock() < cooldown then
+      print("cannot dash: on cooldown")
       return false
    end
    return true
