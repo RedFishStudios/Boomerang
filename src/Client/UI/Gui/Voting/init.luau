@@ -34,8 +34,6 @@ local function getGamemodeDisplayName(gamemodeId: string?): string
 end
 
 local function refreshUi(snapshot)
-   warn(`refreshing voting gui`)
-   print(snapshot)
 	local intermissionData = snapshot.IntermissionData
 	local isVoting = snapshot.GameplayPhase == GameplayPhases.LobbyVoting
 	local options = intermissionData and intermissionData.VoteOptions
@@ -58,14 +56,11 @@ end
 -------------------------------------------------------------------------------
 
 function VotingGui.open()
-   warn(`opening voting gui`)
-   print(Gui)
 	VotingGui.Open = true
 	Gui.Enabled = true
 end
 
 function VotingGui.close(_instant: boolean?)
-   warn(`closing voting gui`)
 	VotingGui.Open = false
 	Gui.Enabled = false
 end

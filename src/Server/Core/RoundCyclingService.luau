@@ -327,6 +327,17 @@ function RoundCyclingService.init()
    SimpleRemotes.getEvent("VoteUpdated")
    local gameStateData = GameStateLibrary.getGameStateData()
 
+   CommandService.addCommand("PrintGameState", "/printgamestate", nil, function(player: Player, _args: {string})
+      local snapshot = GameStateLibrary.getSnapshot()
+      for k, v in pairs(snapshot) do
+         if typeof(v) == "table" and v.Get then
+            print("|", k, v:Get())
+         else
+            print("|", k, v)
+         end
+      end
+   end)
+
    CommandService.addCommand("EndRound", "/endround", "/endRound", function(player: Player, _args: {string})
       if not RoundCyclingService.isInRound() then
          ChatService.tellPlayerPrintMessage(player, "No round is currently active", Color3.fromRGB(241, 89, 18))
@@ -449,9 +460,3 @@ end
 -- function RoundCyclingService.test() end
 
 return RoundCyclingService
-
---[[
-
-A round should not start or be active when the game does not have enough players.
-
-]]
