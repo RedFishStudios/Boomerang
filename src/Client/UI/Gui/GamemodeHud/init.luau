@@ -12,7 +12,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ClientMods = ReplicatedStorage.Client
 local SharedMods = ReplicatedStorage.Shared
 
-local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local Gamemodes = require(SharedMods.Constants.Gamemodes)
 local _UIController = require(ClientMods.UI.UIController)
 local GameStateLibrary = require(SharedMods.Library.GameStateLibrary)
@@ -27,11 +26,6 @@ local shownWholeSeconds: number?
 local GuiHeader: Frame?
 local GamemodeLabel: TextLabel?
 local SubheaderLabel: TextLabel?
-local VoteContainer: Frame?
-local OptionAButton: TextButton?
-local OptionBButton: TextButton?
-local OptionACount: TextLabel?
-local OptionBCount: TextLabel?
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Local Functions
@@ -78,52 +72,12 @@ local function startCountdown(fallbackText: string)
    countdownConnection = RunService.Heartbeat:Connect(updateTimer)
 end
 
-local function updateVoteCounts(optionA: number, optionB: number)
-   if not OptionACount or not OptionBCount then
-      return
-   end
-
-   OptionACount.Text = tostring(optionA)
-   OptionBCount.Text = tostring(optionB)
-end
-
--- // Apply in-intermission display
-local function applyIntermissionUi()
-   if not VoteContainer or not GamemodeLabel or not SubheaderLabel or not OptionAButton or not OptionBButton then
-      return
-   end
-
-   local gameStateData = GameStateLibrary.getGameStateData()
-   local intermissionData = gameStateData.IntermissionData:Get()
-   if not intermissionData then
-      return
-   end
-   local options = intermissionData.VoteOptions
-   local optionA = options[1]
-   local optionB = options[2]
-   local votes = intermissionData.VoteCount
-   local voteA = votes[1]
-   local voteB = votes[2]
-   local chosenGamemode = intermissionData.ChosenGamemode
-
-   VoteContainer.Visible = chosenGamemode == nil
-   GamemodeLabel.Text = "Intermission"
-   SubheaderLabel.Text = intermissionData.WinMessage or ""
-   updateVoteCounts(voteA, voteB)
-
-   OptionAButton.TextLabel.Text = if optionA and Gamemodes[optionA] then (Gamemodes[optionA].Display or optionA) else (optionA or "")
-   OptionBButton.TextLabel.Text = if optionB and Gamemodes[optionB] then (Gamemodes[optionB].Display or optionB) else (optionB or "")
-
-   startCountdown("")
-end
-
 -- // Apply in-round display
 local function applyRoundUi()
-   if not VoteContainer or not GamemodeLabel or not SubheaderLabel then
+   if not GamemodeLabel or not SubheaderLabel then
       return
    end
 
-   VoteContainer.Visible = false
    local currentRoundData = GameStateLibrary.getGameStateData().CurrentRoundData:Get()
    local newGamemode = if currentRoundData then currentRoundData.Gamemode else nil
    local gamemodeData = newGamemode and Gamemodes[newGamemode] or nil
@@ -142,20 +96,14 @@ end
 -- // Refresh hud display using current game state data
 local function refreshUiFromGameState()
    local gameStateData = GameStateLibrary.getGameStateData()
-   if gameStateData.CurrentRoundData:Get() ~= nil then
+   if gameStateData.CurrentRoundData:Get() == nil then
+      GamemodeHudGui.close(true)
+   else
+      GamemodeHudGui.open()
       applyRoundUi()
       return
    end
 
-   local intermissionData = gameStateData.IntermissionData:Get()
-   if intermissionData and #intermissionData.VoteOptions > 0 then
-      applyIntermissionUi()
-      return
-   end
-
-   if VoteContainer then
-      VoteContainer.Visible = false
-   end
    stopCountdown()
    if TimerLabel then
       TimerLabel.Text = ""
@@ -194,22 +142,6 @@ local function _init()
    GamemodeLabel = Gui.Header.GamemodeLabel
    SubheaderLabel = Gui.Header.SubheaderLabel
    TimerLabel = Gui.Header.TimerLabel
-
-   VoteContainer = Gui.VoteContainer
-   OptionAButton = VoteContainer.OptionA
-   OptionBButton = VoteContainer.OptionB
-   OptionACount = VoteContainer.OptionA.VoteCount
-   OptionBCount = VoteContainer.OptionB.VoteCount
-
-   VoteContainer.Visible = false
-
-   OptionAButton.Activated:Connect(function()
-      SimpleRemotes.getEvent("VoteUpdated"):FireServer(1)
-   end)
-
-   OptionBButton.Activated:Connect(function()
-      SimpleRemotes.getEvent("VoteUpdated"):FireServer(2)
-   end)
 end
 _init()
 
