@@ -163,7 +163,7 @@ local function getRandomAvailablePickupClass(userId: number): PickupClassId?
    if not currentRoundData then
       return nil
    end
-   local currentMapData = MapDataConstants.MapData[currentRoundData.MapId]
+   local currentMapData = MapDataConstants[currentRoundData.CurrentMapName]
    if not currentMapData then
       warn(`PickupService.getRandomAvailablePickupClass: No map data found for map {currentRoundData.MapId}`)
       return nil
