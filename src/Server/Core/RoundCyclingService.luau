@@ -279,17 +279,20 @@ local function updateGameStateEveryFrame(_dt: number)
    local gameStateData = GameStateLibrary.getGameStateData()
    local currentPhase = gameStateData.GameplayPhase:Get()
    local playerCount = #game.Players:GetPlayers()
+   local timerEndsAt = gameStateData.CurrentTimerEndsAt:Get()
+   local timerElapsed = timerEndsAt ~= nil and workspace:GetServerTimeNow() >= timerEndsAt
 
    if playerCount < GlobalConfig.PlayersRequiredToStart then
-      -- // A round in progress is left for its own gamemode logic/timer to end; every other phase is interrupted
-      if currentPhase ~= GameplayPhases.RoundActive and currentPhase ~= GameplayPhases.PendingPlayers then
+      -- // Let normal round teardown display PreIntermission before returning to the pending-player state.
+      if currentPhase == GameplayPhases.PreIntermission then
+         if timerElapsed then
+            transitionToPendingPlayers()
+         end
+      elseif currentPhase ~= GameplayPhases.RoundActive and currentPhase ~= GameplayPhases.PendingPlayers then
          transitionToPendingPlayers()
       end
       return
    end
-
-   local timerEndsAt = gameStateData.CurrentTimerEndsAt:Get()
-   local timerElapsed = timerEndsAt ~= nil and workspace:GetServerTimeNow() >= timerEndsAt
 
    if currentPhase == GameplayPhases.RoundActive then
       if timerElapsed then

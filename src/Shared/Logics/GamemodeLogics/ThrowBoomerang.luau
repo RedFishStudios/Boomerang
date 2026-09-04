@@ -7,6 +7,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CurrentGameState = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local SharedTasks = require(ReplicatedStorage.Shared.Constants.SharedTasks)
+local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 
 local isServer = RunService:IsServer()
 local GameTeamService, RoundCyclingService, WeaponService
@@ -41,6 +42,10 @@ function ThrowBoomerangRoundLogic.setup()
             winner = player
             ThrowBoomerangRoundLogic.teardown()
          end
+      end))
+
+      table.insert(PerMatchDestroyerFunctions, PlayersUtil.GameEnteredTooFewPlayers:Add(function()
+         ThrowBoomerangRoundLogic.teardown()
       end))
    end
 end
