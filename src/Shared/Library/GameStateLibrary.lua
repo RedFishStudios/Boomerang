@@ -75,7 +75,7 @@ GameStateLibrary.HasSyncedState = isServer -- Server data is authoritative immed
 
 local CurrentGameStateData: CurrentGameStateDataType = {
    CurrentRoundData = ReactiveValue.new(nil :: CurrentRoundData?),
-   GameplayPhase = ReactiveValue.new(GameplayPhases.LobbyEnded),
+   GameplayPhase = ReactiveValue.new(GameplayPhases.PendingPlayers),
    CurrentTimerEndsAt = ReactiveValue.new(nil :: number?),
    IntermissionData = ReactiveValue.new(nil :: IntermissionData?),
 

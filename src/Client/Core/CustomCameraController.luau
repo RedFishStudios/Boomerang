@@ -501,6 +501,13 @@ end
 -------------------------------------------------------------------------------
 
 function CustomCameraController.init()
+   if LobbyController.isInLobby() then
+      CustomCameraController.setMode("Regular")
+   else
+      CustomCameraController.setMode("Overhead")
+   end
+   lastModeSet = CustomCameraController.Mode
+
    LobbyController.ClientIsInLobbyChangedTasks:Add(function(isInLobby)
       if isInLobby then
          lastModeSet = CustomCameraController.Mode
