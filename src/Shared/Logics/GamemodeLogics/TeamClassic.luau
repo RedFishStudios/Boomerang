@@ -5,12 +5,12 @@ local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CurrentGameState = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
+local CombatLibrary = require(ReplicatedStorage.Shared.Library.CombatLibrary)
 
 local isServer = RunService:IsServer()
 local GameTeamService, CombatService
 if isServer then
    GameTeamService = require(ServerStorage.Server.Core.GameTeamService)
-   CombatService = require(ServerStorage.Server.Core.CombatService)
 end
 
 local PerMatchDestroyerFunctions: {()->()} = {}
@@ -35,7 +35,7 @@ function TeamClassic.setup()
       TeamKills[team] = 0
    end
 
-   table.insert(PerMatchDestroyerFunctions, CombatService.PlayerKilledPlayerTasks:Add(function(attacker: Player, _victim: Player, _attackerToolId: string)
+   table.insert(PerMatchDestroyerFunctions, CombatLibrary.PlayerKilledPlayerTasks:Add(function(attacker: Player, _victim: Player, _attackerToolId: string)
       local team = attacker.Team
       if team and TeamKills[team] ~= nil then
          TeamKills[team] += 1
