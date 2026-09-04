@@ -110,7 +110,7 @@ function RaycastsUtility.blockcastProjectileObstruction(
 	return nil
 end
 
-function RaycastsUtility.getMouseWorldPosition(maxDistance: number?, raycastParams: RaycastParams?, position: Vector2?): Vector3?
+function RaycastsUtility.getMouseWorldPosition(maxDistance: number?, raycastParams: RaycastParams, position: Vector2?): Vector3?
 	if not RunService:IsClient() then
 		return nil
 	end
@@ -122,7 +122,7 @@ function RaycastsUtility.getMouseWorldPosition(maxDistance: number?, raycastPara
 	end
 
 	local mouseLocation = position or UserInputService:GetMouseLocation()
-	local unitRay = camera:ViewportPointToRay(mouseLocation.X, mouseLocation.Y)
+	local unitRay = camera:ScreenPointToRay(mouseLocation.X, mouseLocation.Y)
 	local distance = maxDistance or 2048
 
 	local raycastResult = workspace:Raycast(unitRay.Origin, unitRay.Direction * distance, raycastParams)

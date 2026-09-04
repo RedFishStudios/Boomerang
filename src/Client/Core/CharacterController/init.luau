@@ -29,6 +29,7 @@ local RaycastsUtility = require(ReplicatedStorage.Shared.Utils.RaycastsUtility)
 local PlatformController = require(ReplicatedStorage.Client.Core.PlatformController)
 local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
 local LobbyController = require(ReplicatedStorage.Client.Core.LobbyController)
+local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -49,6 +50,12 @@ type SolverState = {
 	TargetYaw: number,
 	RenderYaw: number,
 }
+
+local testGui = Instance.new("ScreenGui")
+testGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+testGui.ScreenInsets = Enum.ScreenInsets.None
+testGui.Enabled = true
+testGui.ResetOnSpawn = false
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
@@ -186,8 +193,23 @@ local function onPreSimulation(dT: number)
 			end
 		else
 			local lastInWorld = PlatformController.getLastMousePositionInWorld()
-			local localTarget = RaycastsUtility.getMouseWorldPosition(2048, nil, if lastInWorld then Vector2.new(lastInWorld.X, lastInWorld.Y) else nil)
-			if localTarget then
+         --[[local f = Instance.new("Frame")
+         f.Size = UDim2.fromOffset(5, 5)
+         f.Parent = testGui
+         f.Position = UDim2.fromOffset(lastInWorld.X, lastInWorld.Y)]]
+         lastInWorld += Vector3.new(0, -60, 0)
+
+         local raycastParams = RaycastParams.new()
+         raycastParams.CollisionGroup = CollisionGroupConstants.ArenaFloorDetector
+			local localTarget = RaycastsUtility.getMouseWorldPosition(2048, raycastParams, if lastInWorld then Vector2.new(lastInWorld.X, lastInWorld.Y) else nil)
+
+         if localTarget then
+            --[[local g = Instance.new("Part")
+            g.Size = Vector3.new(0.2, 0.2, 0.2)
+            g.Material = "Neon"
+            g.Position = localTarget
+            g.Anchored = true
+            g.Parent = workspace]]
 				localYaw = CharacterLogic.getYawFromLookAt(localOriginPosition, localTarget)
 			end
 		end
