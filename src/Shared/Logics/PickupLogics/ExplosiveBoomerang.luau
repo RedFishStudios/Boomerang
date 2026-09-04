@@ -14,6 +14,7 @@ local GameStateLibrary = require(ReplicatedStorage:WaitForChild("Shared"):WaitFo
 local CombatLibrary = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Library"):WaitForChild("CombatLibrary"))
 local GlobalConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"):WaitForChild("GlobalConfig"))
 local TasksList = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Classes"):WaitForChild("TasksList"))
+local CollisionGroupConstants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"):WaitForChild("CollisionGroupConstants"))
 
 local EFFECT_DURATION_SECONDS = GlobalConfig.GenericEffectTimeout
 local isServer = RunService:IsServer()
@@ -51,6 +52,7 @@ local function applyExplosion(player: Player, position: Vector3)
    local raycastParams = RaycastParams.new()
    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
    raycastParams.FilterDescendantsInstances = {player.Character}
+   raycastParams.CollisionGroup = CollisionGroupConstants.ArenaFloorDetector
    local raycastResult = workspace:Raycast(position, Vector3.new(0, -100, 0), raycastParams)
    if raycastResult then
       position = raycastResult.Position
