@@ -86,7 +86,6 @@ local function grantHolderEffect(player: Player)
    WeaponService.removeLockOnWeapon(player)
    lockNonHolderWeapons()
    PickupLibrary.setPickupEffectActive(player.UserId, generateHolderLivePickupId(player), HOT_POTATO_EFFECT_ID)
-   updateHotPotatoTimer:FireAllClients(workspace:GetServerTimeNow() + EXPLOSION_COUNTER)
 end
 
 local function explode(player: Player)
@@ -137,6 +136,7 @@ local function startservercontext()
                if #livingPlayers > 0 then
                   local randomPlayer = livingPlayers[math.random(1, #livingPlayers)]
                   grantHolderEffect(randomPlayer)
+                  updateHotPotatoTimer:FireAllClients(workspace:GetServerTimeNow() + EXPLOSION_COUNTER)
                else
                   warn(`hot potato gamemode has no living players to give potato to!`)
                end
@@ -205,6 +205,7 @@ function HotPotatoRoundLogic.setup()
       if #playersInArena > 0 then
          local randomPlayer = playersInArena[math.random(1, #playersInArena)]
          grantHolderEffect(randomPlayer)
+         updateHotPotatoTimer:FireAllClients(workspace:GetServerTimeNow() + EXPLOSION_COUNTER)
       end
 
       table.insert(PerMatchDestroyerFunctions, CurrentGameState.PlayerRemovedFromArenaTasks:Add(function(player: Player)
@@ -226,6 +227,7 @@ function HotPotatoRoundLogic.setup()
       table.insert(PerMatchDestroyerFunctions, CurrentGameState.PlayerAddedToArenaTasks:Add(function(player: Player)
          if not currentHolder and not initialHolderSet then
             grantHolderEffect(player)
+            updateHotPotatoTimer:FireAllClients(workspace:GetServerTimeNow() + EXPLOSION_COUNTER)
          end
       end))
 
@@ -240,7 +242,6 @@ function HotPotatoRoundLogic.setup()
       local guiClone = guiTemplate:Clone()
       guiClone.Parent = localPlayer.PlayerGui
       guiClone.Enabled = true
-      print(guiClone)
 
       heartbeatConnection = RunService.Heartbeat:Connect(function(dt)
          if scheduledPotatoExplosionClient then
