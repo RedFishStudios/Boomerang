@@ -21,7 +21,7 @@ local GameplayPhaseEnum = require(ReplicatedStorage.Shared.Constants.Enums.Gamep
 -- TYPES
 -------------------------------------------------------------------------------
 
-export type Stats = "Kills"
+export type Stats = "Elims"
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
@@ -80,21 +80,21 @@ function LeaderstatService.init()
       leaderstats.Parent = player
 
       playerLeaderstatValues[player] = {
-         Kills = createLeaderstat(leaderstats, "Kills", 0)
+         Elims = createLeaderstat(leaderstats, "Elims", 0)
       }
    end)
    PlayersUtil.PlayerRemoving:Add(function(player: Player)
       playerLeaderstatValues[player] = nil
    end)
    CombatLibrary.PlayerKilledPlayerTasks:Add(function(killer: Player, victim: Player, weaponId: string)
-      LeaderstatService.addValue(killer, "Kills", 1)
+      LeaderstatService.addValue(killer, "Elims", 1)
    end)
    
    local gameStateData = GameStateLibrary.getGameStateData()
    gameStateData.GameplayPhase:Subscribe(function(gameplayPhase: string)
       if gameplayPhase == GameplayPhaseEnum.LobbyVoting then
          for _, player in pairs(Players:GetPlayers()) do
-            LeaderstatService.setValue(player, "Kills", 0)
+            LeaderstatService.setValue(player, "Elims", 0)
          end
       end
    end)

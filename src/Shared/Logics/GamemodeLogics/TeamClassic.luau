@@ -14,14 +14,14 @@ if isServer then
 end
 
 local PerMatchDestroyerFunctions: {()->()} = {}
-local TeamKills: {[Team]: number} = {}
+local TeamElims: {[Team]: number} = {}
 
 local function clear()
    for _, destroyer in ipairs(PerMatchDestroyerFunctions) do
       destroyer()
    end
    table.clear(PerMatchDestroyerFunctions)
-   table.clear(TeamKills)
+   table.clear(TeamElims)
 end
 
 function TeamClassic.setup()
@@ -32,13 +32,13 @@ function TeamClassic.setup()
    clear()
    local activeTeams = GameTeamService.establishOppositionTeams()
    for _, team in ipairs(activeTeams) do
-      TeamKills[team] = 0
+      TeamElims[team] = 0
    end
 
-   table.insert(PerMatchDestroyerFunctions, CombatLibrary.PlayerKilledPlayerTasks:Add(function(attacker: Player, _victim: Player, _attackerToolId: string)
+   table.insert(PerMatchDestroyerFunctions, CombatLibrary.PlayerElimedPlayerTasks:Add(function(attacker: Player, _victim: Player, _attackerToolId: string)
       local team = attacker.Team
-      if team and TeamKills[team] ~= nil then
-         TeamKills[team] += 1
+      if team and TeamElims[team] ~= nil then
+         TeamElims[team] += 1
       end
    end))
 
@@ -53,14 +53,14 @@ function TeamClassic.teardown()
    end
 
    local winningTeam: Team?
-   local highestKills = 0
+   local highestElims = 0
    local isTie = false
-   for team, killCount in pairs(TeamKills) do
-      if killCount > highestKills then
+   for team, elimCount in pairs(TeamElims) do
+      if elimCount > highestElims then
          winningTeam = team
-         highestKills = killCount
+         highestElims = elimCount
          isTie = false
-      elseif killCount == highestKills and killCount > 0 then
+      elseif elimCount == highestElims and elimCount > 0 then
          isTie = true
       end
    end
@@ -74,7 +74,7 @@ function TeamClassic.teardown()
    CurrentGameState.RoundFinishedTasks:Execute(
       "parallel",
       nil,
-      if winningTeam then `{winningTeam.Name} wins with {highestKills} kills!` else "No winner"
+      if winningTeam then `{winningTeam.Name} wins with {highestElims} elims!` else "No winner"
    )
 end
 

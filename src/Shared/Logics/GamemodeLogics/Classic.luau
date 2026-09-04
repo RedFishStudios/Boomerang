@@ -16,14 +16,14 @@ end
 
 local PerMatchDestroyerFunctions: {()->()} = {}
 
-local Kills: {[Player]: number} = {}
+local Elims: {[Player]: number} = {}
 
 local function clear()
    for _, destroyer in ipairs(PerMatchDestroyerFunctions) do
       destroyer()
    end
    table.clear(PerMatchDestroyerFunctions)
-   table.clear(Kills)
+   table.clear(Elims)
 end
 
 function ClassicRoundLogic.setup()
@@ -31,10 +31,10 @@ function ClassicRoundLogic.setup()
       GameTeamService.setFreeForAll()
 
       table.insert(PerMatchDestroyerFunctions, CombatLibrary.PlayerKilledPlayerTasks:Add(function(attacker: Player, victim: Player, attackerToolId: string)
-         Kills[attacker] = (Kills[attacker] or 0) + 1
+         Elims[attacker] = (Elims[attacker] or 0) + 1
       end))
 
-      -- // Highest-kills winner naturally stays nil if no one has scored a kill yet
+      -- // Highest-elims winner naturally stays nil if no one has scored an elim yet
       table.insert(PerMatchDestroyerFunctions, PlayersUtil.GameEnteredTooFewPlayers:Add(function()
          ClassicRoundLogic.teardown()
       end))
@@ -44,15 +44,15 @@ end
 function ClassicRoundLogic.teardown()
    if isServer then
       local winner
-      local highestKills = 0
-      for player, killCount in pairs(Kills) do
-         if killCount > highestKills then
-            highestKills = killCount
+      local highestElims = 0
+      for player, elimCount in pairs(Elims) do
+         if elimCount > highestElims then
+            highestElims = elimCount
             winner = player
          end
       end
       clear()
-      CurrentGameState.RoundFinishedTasks:Execute("parallel", winner, if winner then `{winner.Name} wins with {highestKills} kills!` else "No winner")
+      CurrentGameState.RoundFinishedTasks:Execute("parallel", winner, if winner then `{winner.Name} wins with {highestElims} elims!` else "No winner")
    end
 end
 
