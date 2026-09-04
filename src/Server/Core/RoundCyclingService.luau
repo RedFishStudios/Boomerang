@@ -34,7 +34,7 @@ local GamemodeLogicModules = {}
 -------------------------------------------------------------------------------
 
 local INTERMISSION_DURATION = 10
-local VOTE_DURATION = 8
+local VOTE_DURATION = 30
 local PRE_INTERMISSION_DURATION = 5
 
 -------------------------------------------------------------------------------

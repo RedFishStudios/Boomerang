@@ -12,6 +12,8 @@ export type RoundType = {
    PickupsDisabled: boolean?
 }
 
+local FIVE_MINUTES = 5 * 60
+
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
 -------------------------------------------------------------------------------
@@ -24,28 +26,28 @@ local Gamemodes: {
       Subheader = "Have the highest score when the timer runs out!",
       CanRespawn = true,
       StormClose = false,
-      TimeLasts = 30
+      TimeLasts = FIVE_MINUTES
    },
    TeamClassic = {
       Id = "TeamClassic",
       Subheader = "Have the highest team score when the timer runs out!",
       CanRespawn = true,
       StormClose = false,
-      TimeLasts = 30
+      TimeLasts = FIVE_MINUTES
    },
    Elimination = {
       Id = "Elimination",
       Subheader = "Eliminate all opponents to win!",
       CanRespawn = false,
       StormClose = true,
-      TimeLasts = 30
+      TimeLasts = FIVE_MINUTES
    },
    TeamElimination = {
       Id = "TeamElimination",
       Subheader = "Eliminate all opponents to win!",
       CanRespawn = false,
       StormClose = false,
-      TimeLasts = 30
+      TimeLasts = FIVE_MINUTES
    },
    HotPotato = {
       Id = "HotPotato",
@@ -53,14 +55,14 @@ local Gamemodes: {
       CanRespawn = false,
       StormClose = false,
       PickupsDisabled = true,
-      TimeLasts = 30
+      TimeLasts = FIVE_MINUTES
    },
    --[[ThrowBoomerang = {
       Id = "ThrowBoomerang",
       Display = "Throw Boomerang",
       Subheader = "Throw the boomerang 5 times (test)",
       CanRespawn = true,
-      TimeLasts = 60,
+      TimeLasts = FIVE_MINUTES,
       --DashDisabled = true
    },]]
 }
