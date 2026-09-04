@@ -11,7 +11,6 @@ local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.Colli
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local SoundLibrary = require(ReplicatedStorage.Shared.Library.SoundLibrary)
 local Sounds = require(ReplicatedStorage.Shared.Constants.Sounds)
-local HitboxLibrary = require(ReplicatedStorage.Shared.Library.HitboxLibrary)
 local ParticlesLibrary = require(ReplicatedStorage.Shared.Library.ParticlesLibrary)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local CombatLibrary = require(ReplicatedStorage.Shared.Library.CombatLibrary)
@@ -45,10 +44,10 @@ end
 
 local STAB_COOLDOWN = .5
 
-local HITBOX_SIZE = Vector3.new(2, 2, 3)
+local HITBOX_SIZE = Vector3.new(2, 2, 2)
 local HITBOX_DURATION = .2
 local HITBOX_DELAY = .08
-local HITBOX_DISTANCE = 1
+local HITBOX_DISTANCE = 3
 local HITBOX_VERTICAL_OFFSET = -2
 local STAB_KILL_DAMAGE = 100000
 local STAB_DISTANCE = 2 + HITBOX_DISTANCE
@@ -93,6 +92,7 @@ local ActiveStaggers: {
 local stabCount: {[Player]: number} = {}
 
 local staggerConnection: RBXScriptConnection? = nil
+local parryOccurredEvent = SimpleRemotes.getEvent("ParryOccurred")
 
 -------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS
@@ -260,6 +260,9 @@ local function cancelStagger(player: Player)
    if rootPart and rootPart.Parent then
       local velocity = rootPart.AssemblyLinearVelocity
       rootPart.AssemblyLinearVelocity = Vector3.new(0, velocity.Y, 0)
+      if isServer and rootPart:CanSetNetworkOwnership() then
+         rootPart:SetNetworkOwnershipAuto()
+      end
    end
 
    ActiveStaggers[player] = nil
@@ -343,6 +346,10 @@ local function beginStagger(player: Player, direction: Vector3)
    local originalJumpHeight = humanoid.JumpHeight
    local originalAutoRotate = humanoid.AutoRotate
 
+   if isServer and rootPart:CanSetNetworkOwnership() then
+      rootPart:SetNetworkOwner(nil)
+   end
+
    humanoid.WalkSpeed = 0
    humanoid.JumpPower = 0
    humanoid.JumpHeight = 0
@@ -411,17 +418,21 @@ local function applyParry(stabberPlayer: Player, stabberRootPart: BasePart, vict
    if ActiveStaggers[stabberPlayer] or ActiveStaggers[victimPlayer] then
       return
    end
+
+   if not isServer then
+      if CameraController and (stabberPlayer == Players.LocalPlayer or victimPlayer == Players.LocalPlayer) then
+         CameraController.parryEffect()
+      end
+      return
+   end
+
    local stabberToVictim = getHorizontalDirectionFromTo(stabberPlayer, stabberRootPart, victimRootPart)
    local victimToStabber = -stabberToVictim
 
    beginStagger(stabberPlayer, victimToStabber)
    beginStagger(victimPlayer, stabberToVictim)
-
-   if not isServer and CameraController then
-      if stabberPlayer == game.Players.LocalPlayer or victimPlayer == game.Players.LocalPlayer then
-         CameraController.parryEffect()
-      end
-   end
+   parryOccurredEvent:FireClient(stabberPlayer)
+   parryOccurredEvent:FireClient(victimPlayer)
 end
 
 local function isPlayerAiming(player: Player): boolean
@@ -493,9 +504,6 @@ function Stab.activate(player: Player)
    local overlapParams = OverlapParams.new()
    overlapParams.FilterType = Enum.RaycastFilterType.Exclude
    overlapParams.FilterDescendantsInstances = {character}
-   -- "Players" doesn't collide with "Players" (players don't push each other), so filtering the
-   -- query by that group would silently exclude every other player's hitbox; "HandWeapons" does
-   -- collide with "Players" and correctly returns overlapping player hitboxes for this melee attack
    overlapParams.CollisionGroup = CollisionGroupConstants.HandWeapons
 
    local registeredKillHits: {[Player]: boolean} = {}
@@ -617,5 +625,13 @@ GameStateLibrary.getGameStateData().CurrentRoundData:Subscribe(function()
    cancelAllStaggers()
    stopStaggerUpdateConnectionIfIdle()
 end)
+
+if not isServer then
+   parryOccurredEvent.OnClientEvent:Connect(function()
+      if CameraController then
+         CameraController.parryEffect()
+      end
+   end)
+end
 
 return Stab
