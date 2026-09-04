@@ -7,7 +7,7 @@ local GlobalConfig = {
    DeathHeight = 14.207,
 
   --PlayersRequiredToStart = if isStudio then 1 else 2,
-  PlayersRequiredToStart = 2,
+  PlayersRequiredToStart = 1,
    
    CharacterFocalHeight = 6.6,
    SkipVoting = false,

@@ -28,6 +28,7 @@ local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local RaycastsUtility = require(ReplicatedStorage.Shared.Utils.RaycastsUtility)
 local PlatformController = require(ReplicatedStorage.Client.Core.PlatformController)
 local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
+local LobbyController = require(ReplicatedStorage.Client.Core.LobbyController)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -158,9 +159,10 @@ local function onPreSimulation(dT: number)
 	local isMouseLocked = mouseBehavior == Enum.MouseBehavior.LockCenter or mouseBehavior == Enum.MouseBehavior.LockCurrentPosition
 	local controlScheme = PlatformController.getDominantControlScheme()
 	local usesMovementFacing = controlScheme == "Touch" or controlScheme == "Console"
+	local shouldUseMovementFacing = LobbyController.isInLobby() or (not isAiming and usesMovementFacing)
 
 	if localOriginPosition then
-		if not isAiming and usesMovementFacing then
+		if shouldUseMovementFacing then
 			local character = player.Character
 			local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 			local moveDirection = humanoid and humanoid.MoveDirection
