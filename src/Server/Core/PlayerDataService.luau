@@ -248,7 +248,6 @@ function PlayerDataService.start()
 end
 
 function PlayerDataService.init()
-	-- Removing profiles
 	Players.PlayerRemoving:Connect(function(player)
 		local profile = profiles[player]
 		if profile then
@@ -258,7 +257,6 @@ function PlayerDataService.init()
 		end
 	end)
 
-	-- Pushing schedules
 	RunService.PostSimulation:Connect(function()
 		task.defer(task.defer, function()
 			for player, schedule in replicationSchedule do
@@ -268,7 +266,6 @@ function PlayerDataService.init()
 		end)
 	end)
 
-	-- Remotes
 	getDataRemote.OnServerInvoke = function(player: Player)
 		if not player:GetAttribute("DataInitialized") then
 			player:GetAttributeChangedSignal("DataInitialized"):Wait()

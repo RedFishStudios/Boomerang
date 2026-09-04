@@ -21,6 +21,8 @@ local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
 local CurrentGameState = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local ArenaService = require(ServerStorage.Server.Core.ArenaService)
 local HitboxLibrary = require(ReplicatedStorage.Shared.Library.HitboxLibrary)
+local CombatLibrary = require(ReplicatedStorage.Shared.Library.CombatLibrary)
+local PlayerDataService = require(ServerStorage.Server.Core.PlayerDataService)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -39,19 +41,9 @@ local HitboxLibrary = require(ReplicatedStorage.Shared.Library.HitboxLibrary)
 -- PUBLIC VARIABLES
 -------------------------------------------------------------------------------
 
-CombatService.PlayerKilledPlayerTasks = TasksList.new() :: TasksList.TasksList<(killer: Player, victim: Player, weaponId: string) -> ()>
-
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
-
-local function getHumanoid(player: Player): Humanoid?
-	local character = player.Character
-	if character then
-		return character:FindFirstChildOfClass("Humanoid")
-	end
-	return nil
-end
 
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
@@ -62,6 +54,17 @@ end
 -------------------------------------------------------------------------------
 
 function CombatService.init()
+   CombatLibrary.PlayerKilledPlayerTasks:Add(function(killer: Player, victim: Player, weaponId: string)
+      warn(`combatservice detected kill`)
+      if not killer or not victim then
+         return
+      end
+      local killerProfile = PlayerDataService.get(killer)
+      if not killerProfile then
+         return
+      end
+      killerProfile.Elims += 1
+   end)
 end
 
 return CombatService

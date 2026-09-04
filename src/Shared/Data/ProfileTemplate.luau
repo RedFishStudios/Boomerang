@@ -3,8 +3,6 @@ local ProfileTemplate = {}
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
-local EconomyConstants = require(ReplicatedStorage.Shared.Constants.EconomyConstants)
-local EquipmentConstants = require(ReplicatedStorage.Shared.Constants.EquipmentConstants)
 local CRC32C = require(ReplicatedStorage.Shared.Hashing.CRC32C)
 local BufferUtil = require(ReplicatedStorage.Shared.Utils.BufferUtil)
 
@@ -21,42 +19,11 @@ export type Template = typeof(ProfileTemplate.get())
 function ProfileTemplate.get()
 	local profile = {}
 
-	-------------------------------------------------------------------------------
-	-- PRIVATE VARIABLES
-	-------------------------------------------------------------------------------
-
-	local currencies: { [EconomyConstants.Currency]: number } = { Cash = 0, Gems = 0 }
-
-	local banData: { BanAmount: number, Pending: {
-		ExecuteAt: number,
-		Duration: number,
-		PrivateReason: string,
-		PublicReason: string,
-	}? } = { BanAmount = 0 }
-
-	-------------------------------------------------------------------------------
-	-- PUBLIC VARIABLES
-	-------------------------------------------------------------------------------
-
-	profile.DailyRewards = {
-		LastClaim = 0,
-		Streak = 0,
-	}
-
-	-- Core
-	profile.Currencies = currencies
-	profile.ItemInventory = buffer.create(0)
-	profile.BanData = banData
-
-	-- Services
-
-	-------------------------------------------------------------------------------
-	-- LOGIC
-	-------------------------------------------------------------------------------
+   profile.Elims = 0
+   profile.Wins = 0
+   profile.Losses = 0
 
 	return profile
 end
-
-warn("Profile Template:", ProfileTemplate.get())
 
 return ProfileTemplate
