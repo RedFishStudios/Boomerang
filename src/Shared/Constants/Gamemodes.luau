@@ -26,6 +26,13 @@ local Gamemodes: {
       StormClose = false,
       TimeLasts = 30
    },
+   TeamClassic = {
+      Id = "TeamClassic",
+      Subheader = "Have the highest team score when the timer runs out!",
+      CanRespawn = true,
+      StormClose = false,
+      TimeLasts = 30
+   },
    Elimination = {
       Id = "Elimination",
       Subheader = "Eliminate all opponents to win!",
