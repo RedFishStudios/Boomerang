@@ -9,7 +9,7 @@ local GlobalConfig = {
   --PlayersRequiredToStart = if isStudio then 1 else 2,
   PlayersRequiredToStart = 1,
    
-   CharacterFocalHeight = 6.6,
+   CharacterFocalHeight = 154.902,
    SkipVoting = false,
    CanHurtSelf = false,
    SpawnShieldDuration = 2,

@@ -486,7 +486,6 @@ function CustomCameraController.getMode()
 end
 
 function CustomCameraController.parryEffect()
-   print('start parry effect')
    local now = os.clock()
    parryShakeStart = now
    parryShakeEnd = now + PARRY_SHAKE_DURATION
