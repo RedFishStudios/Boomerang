@@ -480,7 +480,7 @@
 					<Item class="TextLabel" referent="RBXAC5E45919C6C4798A9A022F19D443555">
 						<Properties>
 							<Font name="FontFace">
-								<Family><url>rbxasset://fonts/families/ComicNeueAngular.json</url></Family>
+								<Family><url>rbxasset://fonts/families/SourceSansPro.json</url></Family>
 								<Weight>700</Weight>
 								<Style>Normal</Style>
 							</Font>
@@ -1203,7 +1203,7 @@
 					<Item class="TextLabel" referent="RBX0D4CAA80D6F148AE9DA2385D8E259D99">
 						<Properties>
 							<Font name="FontFace">
-								<Family><url>rbxasset://fonts/families/ComicNeueAngular.json</url></Family>
+								<Family><url>rbxasset://fonts/families/SourceSansPro.json</url></Family>
 								<Weight>700</Weight>
 								<Style>Normal</Style>
 							</Font>
