@@ -2,7 +2,7 @@
 	<Meta name="ExplicitAutoJoints">true</Meta>
 	<External>null</External>
 	<External>nil</External>
-	<Item class="ScreenGui" referent="RBX8E5F2325F5F1461BA4295F599EB4CD15">
+	<Item class="ScreenGui" referent="RBX4611BE230D6A4A8BA200416754EE2FE0">
 		<Properties>
 			<bool name="ClipToDeviceSafeArea">false</bool>
 			<int name="DisplayOrder">0</int>
@@ -25,7 +25,7 @@
 			<int64 name="SourceAssetId">-1</int64>
 			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 		</Properties>
-		<Item class="Frame" referent="RBXAD60E85BEE494D6B81E157FFFB943B59">
+		<Item class="Frame" referent="RBXB1C79A58AEBD4731912BC2D161742324">
 			<Properties>
 				<token name="Style">0</token>
 				<bool name="Active">false</bool>
@@ -89,7 +89,7 @@
 				<int64 name="SourceAssetId">-1</int64>
 				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			</Properties>
-			<Item class="UIAspectRatioConstraint" referent="RBX43DC42381B84486785D8D05424B86924">
+			<Item class="UIAspectRatioConstraint" referent="RBX04BAAF7ED8BB4558B577F23D2DF46547">
 				<Properties>
 					<float name="AspectRatio">3.47000003</float>
 					<token name="AspectType">1</token>
@@ -102,10 +102,10 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="TextLabel" referent="RBX9389B46474AB442693D653F2380A52E4">
+			<Item class="TextLabel" referent="RBX203BB2B2A25946A1B253A31C040AEF32">
 				<Properties>
 					<Font name="FontFace">
-						<Family><url>rbxasset://fonts/families/ComicNeueAngular.json</url></Family>
+						<Family><url>rbxasset://fonts/families/FredokaOne.json</url></Family>
 						<Weight>700</Weight>
 						<Style>Normal</Style>
 					</Font>
@@ -196,7 +196,7 @@
 					<int64 name="SourceAssetId">-1</int64>
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
-				<Item class="UIStroke" referent="RBX25F1280AE3A943FDAE822E0E525361AA">
+				<Item class="UIStroke" referent="RBX096C7798B6134FB6A15C9411D38B8C7E">
 					<Properties>
 						<token name="ApplyStrokeMode">0</token>
 						<UDim name="BorderOffset">
@@ -205,14 +205,14 @@
 						</UDim>
 						<token name="BorderStrokePosition">0</token>
 						<Color3 name="Color">
-							<R>0</R>
-							<G>0</G>
-							<B>0</B>
+							<R>0.0274509825</R>
+							<G>0.113725498</G>
+							<B>0.274509817</B>
 						</Color3>
 						<bool name="Enabled">true</bool>
 						<token name="LineJoinMode">0</token>
 						<token name="StrokeSizingMode">1</token>
-						<float name="Thickness">0.0500000007</float>
+						<float name="Thickness">0.0799999982</float>
 						<float name="Transparency">0</float>
 						<int name="ZIndex">1</int>
 						<BinaryString name="AttributesSerialize"></BinaryString>
@@ -224,10 +224,10 @@
 					</Properties>
 				</Item>
 			</Item>
-			<Item class="TextLabel" referent="RBX81AC213083D249958CE5483336790BC8">
+			<Item class="TextLabel" referent="RBXEB8CB9D05E9448F881FEBB715DCC76DB">
 				<Properties>
 					<Font name="FontFace">
-						<Family><url>rbxasset://fonts/families/ComicNeueAngular.json</url></Family>
+						<Family><url>rbxasset://fonts/families/SourceSansPro.json</url></Family>
 						<Weight>700</Weight>
 						<Style>Normal</Style>
 					</Font>
@@ -318,7 +318,7 @@
 					<int64 name="SourceAssetId">-1</int64>
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
-				<Item class="UIStroke" referent="RBXCBA81E65E8C249D7BDB13A226137C1F6">
+				<Item class="UIStroke" referent="RBX5CA33BB798394650A23346598BC4A714">
 					<Properties>
 						<token name="ApplyStrokeMode">0</token>
 						<UDim name="BorderOffset">
@@ -327,9 +327,9 @@
 						</UDim>
 						<token name="BorderStrokePosition">0</token>
 						<Color3 name="Color">
-							<R>0</R>
-							<G>0</G>
-							<B>0</B>
+							<R>0.0274509806</R>
+							<G>0.113725491</G>
+							<B>0.274509817</B>
 						</Color3>
 						<bool name="Enabled">true</bool>
 						<token name="LineJoinMode">0</token>
@@ -346,10 +346,10 @@
 					</Properties>
 				</Item>
 			</Item>
-			<Item class="TextLabel" referent="RBX52C5184672CE42519AD93A312782D5B2">
+			<Item class="TextLabel" referent="RBX6ECA13DA2B354B849A323984371BE76A">
 				<Properties>
 					<Font name="FontFace">
-						<Family><url>rbxasset://fonts/families/ComicNeueAngular.json</url></Family>
+						<Family><url>rbxasset://fonts/families/SourceSansPro.json</url></Family>
 						<Weight>700</Weight>
 						<Style>Normal</Style>
 					</Font>
@@ -440,7 +440,7 @@
 					<int64 name="SourceAssetId">-1</int64>
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
-				<Item class="UIStroke" referent="RBX9F61A62B3F9B4463B76969E57B4F01F9">
+				<Item class="UIStroke" referent="RBX0E998EC1A75448FDADA40FE63A71883D">
 					<Properties>
 						<token name="ApplyStrokeMode">0</token>
 						<UDim name="BorderOffset">

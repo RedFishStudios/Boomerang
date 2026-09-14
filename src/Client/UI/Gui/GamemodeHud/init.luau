@@ -48,7 +48,7 @@ local function updateTimer()
    local wholeSeconds = math.ceil(secondsLeft)
    if shownWholeSeconds ~= wholeSeconds then
       shownWholeSeconds = wholeSeconds
-      TimerLabel.Text = tostring(wholeSeconds)
+      TimerLabel.Text = string.format("%d:%02d", wholeSeconds // 60, wholeSeconds % 60)
    end
 
    if secondsLeft <= 0 then
@@ -82,7 +82,7 @@ local function applyRoundUi()
    local newGamemode = if currentRoundData then currentRoundData.Gamemode else nil
    local gamemodeData = newGamemode and Gamemodes[newGamemode] or nil
    if gamemodeData and newGamemode then
-      GamemodeLabel.Text = gamemodeData.Name or newGamemode
+      GamemodeLabel.Text = gamemodeData.Display or newGamemode
       SubheaderLabel.Text = gamemodeData.Subheader or ""
       startCountdown(gamemodeData.Timer or "")
       return
