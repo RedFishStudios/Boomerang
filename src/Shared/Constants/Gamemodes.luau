@@ -30,6 +30,7 @@ local Gamemodes: {
    },
    TeamClassic = {
       Id = "TeamClassic",
+      Display = "Team Classic",
       Subheader = "Have the highest team score when the timer runs out!",
       CanRespawn = true,
       StormClose = false,
@@ -44,6 +45,7 @@ local Gamemodes: {
    },
    TeamElimination = {
       Id = "TeamElimination",
+      Display = "Team Elimination",
       Subheader = "Eliminate all opponents to win!",
       CanRespawn = false,
       StormClose = false,
@@ -51,6 +53,7 @@ local Gamemodes: {
    },
    HotPotato = {
       Id = "HotPotato",
+      Display = "Hot Potato",
       Subheader = "Throw your boomerang to pass the bomb!",
       CanRespawn = false,
       StormClose = false,
