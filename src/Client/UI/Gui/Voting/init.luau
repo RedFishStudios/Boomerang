@@ -17,10 +17,12 @@ Gui.ResetOnSpawn = false
 Gui.IgnoreGuiInset = true
 
 local VoteContainer = Gui:WaitForChild("VoteContainer") :: Frame
-local OptionAButton = VoteContainer:WaitForChild("OptionA") :: TextButton
-local OptionBButton = VoteContainer:WaitForChild("OptionB") :: TextButton
-local OptionACount = OptionAButton:WaitForChild("VoteCount") :: TextLabel
-local OptionBCount = OptionBButton:WaitForChild("VoteCount") :: TextLabel
+local ButtonRow = VoteContainer:WaitForChild("ButtonRow") :: Frame
+local ExitButton = VoteContainer:WaitForChild("Exit") :: TextButton
+local OptionAButton = ButtonRow:WaitForChild("OptionA") :: TextButton
+local OptionBButton = ButtonRow:WaitForChild("OptionB") :: TextButton
+local OptionACount = OptionAButton:WaitForChild("VoteCount"):WaitForChild("TextLabel") :: TextLabel
+local OptionBCount = OptionBButton:WaitForChild("VoteCount"):WaitForChild("TextLabel") :: TextLabel
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -79,6 +81,10 @@ local function _init()
 
 	OptionBButton.Activated:Connect(function()
 		SimpleRemotes.getEvent("VoteUpdated"):FireServer(2)
+	end)
+
+	ExitButton.Activated:Connect(function()
+		VotingGui.close()
 	end)
 end
 _init()
