@@ -288,9 +288,9 @@ local function updateServer(deltaTime: number)
          local humanoid = character and character:FindFirstChildOfClass("Humanoid")
          if humanoid and humanoid.Health > 0 then
             if state.Attacker then
-               CombatLibrary.applyDamageToHumanoid(player, humanoid, FIRE_EFFECT_DAMAGE, `Killed by {state.Attacker.DisplayName}`, state.Attacker)
+               CombatLibrary.applyDamageToHumanoid(player, humanoid, FIRE_EFFECT_DAMAGE, state.Attacker, nil)
             else
-               CombatLibrary.applyDamageToHumanoid(player, humanoid, FIRE_EFFECT_DAMAGE, `Killed by environment`)
+               CombatLibrary.applyDamageToHumanoid(player, humanoid, FIRE_EFFECT_DAMAGE, nil, "Burned to death")
             end
             if humanoid.Health <= 0 and state.Attacker and state.Attacker ~= player and not state.KillCredited then
                state.KillCredited = true

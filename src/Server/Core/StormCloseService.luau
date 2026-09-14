@@ -150,7 +150,7 @@ local function damagePlayersOutsideStorm(livingPlayers: { Player })
 		end
 
 		if not StormCloseLibrary.isPointInsideRectangle(rootPart.Position, stormState.centerPosition, stormState.currentWidth, stormState.currentHeight) then
-			 CombatLibrary.applyDamageToHumanoid(player, humanoid, DAMAGE_AMOUNT, `Killed by barrier`)
+			 CombatLibrary.applyDamageToHumanoid(player, humanoid, DAMAGE_AMOUNT, nil, "the storm barrier")
 		end
 	end
 end

@@ -395,7 +395,7 @@ function ArenaService.init()
                local humanoid = character:FindFirstChildOfClass("Humanoid")
                if humanoid then
                   humanoid.Health = 0
-                  playerDeathReasonRemote:FireClient(player, `Fell out of bounds`)
+                  playerDeathReasonRemote:FireClient(player, nil, "falling out of bounds")
                end
             end
          end

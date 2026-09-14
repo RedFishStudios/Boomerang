@@ -5,6 +5,7 @@ DeathScreen.Open = false
 local _TweenService = game:GetService("TweenService")
 
 local Player = game:GetService("Players").LocalPlayer
+local Players = game:GetService("Players")
 
 -- // Modules // --
 
@@ -24,7 +25,9 @@ local SimpleRemotes = require(SharedMods.Networking.SimpleRemotes)
 local Gui = script.DeathScreen
 Gui.IgnoreGuiInset = true
 
-local centreTextLabel = Gui.TextLabel
+local titleLabel = Gui.Title :: TextLabel
+local byLabel = Gui.ByLabel :: TextLabel
+local usernameLabel = Gui.Username :: TextLabel
 
 local deathScreenGrayscale = Instance.new("ColorCorrectionEffect")
 deathScreenGrayscale.Name = "DeathScreenGrayscale"
@@ -39,9 +42,20 @@ deathScreenGrayscale.Saturation = -1
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-function DeathScreen.display(text: string)
-   centreTextLabel.Text = text
-   centreTextLabel.Visible = true
+function DeathScreen.display(killerUserId: number?, causeLabel: string?)
+   local currentRoundData = GameStateLibrary.getGameStateData().CurrentRoundData:Get()
+   local canRespawn = currentRoundData ~= nil and currentRoundData.CanRespawn
+   titleLabel.Text = if canRespawn then "Downed!" else "Eliminated!"
+
+   local killerPlayer = killerUserId and Players:GetPlayerByUserId(killerUserId)
+   byLabel.Text = if killerPlayer then "By " .. killerPlayer.DisplayName else (causeLabel or "Unknown")
+   usernameLabel.Visible = killerPlayer ~= nil
+   if killerPlayer then
+      usernameLabel.Text = "@" .. killerPlayer.Name
+   end
+
+   titleLabel.Visible = true
+   byLabel.Visible = true
    DeathScreen.open()
 end
 
@@ -52,7 +66,9 @@ end
 
 function DeathScreen.close(Instant: boolean?)
    Gui.Enabled = false
-   centreTextLabel.Visible = false
+   titleLabel.Visible = false
+   byLabel.Visible = false
+   usernameLabel.Visible = false
    deathScreenGrayscale.Enabled = false
 end
 
@@ -64,7 +80,7 @@ local function _init()
 
    deathScreenGrayscale.Parent = game:GetService("Lighting")
 
-   SimpleRemotes.getEvent("PlayerDeathReason").OnClientEvent:Connect(function(reason)
+   SimpleRemotes.getEvent("PlayerDeathReason").OnClientEvent:Connect(function(killerUserId: number?, causeLabel: string?)
       local character = Player.Character
       if character then
          local humanoid = character:FindFirstChildOfClass("Humanoid")
@@ -75,7 +91,7 @@ local function _init()
             end
          end
       end
-      DeathScreen.display(reason)
+      DeathScreen.display(killerUserId, causeLabel)
    end)
 
    PlayersUtil.CharacterDied:Add(function(_player, character)

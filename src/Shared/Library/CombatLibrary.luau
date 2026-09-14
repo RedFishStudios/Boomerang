@@ -72,10 +72,10 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
-function CombatLibrary.applyDamageToHumanoid(player: Player, humanoid: Humanoid, damageAmount: number, deathCause: string)
+function CombatLibrary.applyDamageToHumanoid(player: Player, humanoid: Humanoid, damageAmount: number, killer: Player?, causeLabel: string?)
    humanoid:TakeDamage(damageAmount)
    if humanoid.Health <= 0 then
-      playerDeathReasonRemote:FireClient(player, deathCause)
+      playerDeathReasonRemote:FireClient(player, killer and killer.UserId or nil, causeLabel)
    end
 end
 
@@ -130,10 +130,10 @@ function CombatLibrary.attackHitPlayer(attacker: Player, attackerToolId: string?
 
    if isServer then
       if attacker and attackerToolId then
-         CombatLibrary.applyDamageToHumanoid(victim, humanoid, 10000, `Killed by {attacker.DisplayName}`)
+         CombatLibrary.applyDamageToHumanoid(victim, humanoid, 10000, attacker, nil)
          CombatLibrary.PlayerKilledPlayerTasks:Execute("parallel", attacker, victim, attackerToolId)
       else
-         CombatLibrary.applyDamageToHumanoid(victim, humanoid, 10000, `Killed by environment`)
+         CombatLibrary.applyDamageToHumanoid(victim, humanoid, 10000, nil, "Unknown")
       end
    end
 end
