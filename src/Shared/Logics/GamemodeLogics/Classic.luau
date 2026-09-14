@@ -45,14 +45,21 @@ function ClassicRoundLogic.teardown()
    if isServer then
       local winner
       local highestElims = 0
+      local isTie = false
       for player, elimCount in pairs(Elims) do
          if elimCount > highestElims then
             highestElims = elimCount
             winner = player
+            isTie = false
+         elseif elimCount == highestElims and elimCount > 0 then
+            isTie = true
          end
       end
+      if isTie then
+         winner = nil
+      end
       clear()
-      CurrentGameState.RoundFinishedTasks:Execute("parallel", winner, if winner then `{winner.Name} wins with {highestElims} elims!` else "No winner")
+      CurrentGameState.RoundFinishedTasks:Execute("parallel", winner, nil, isTie)
    end
 end
 

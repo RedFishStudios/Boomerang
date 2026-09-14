@@ -57,7 +57,7 @@ function EliminationRoundLogic.teardown(winner: Player?)
          warn(`Elimination: no winner found`)
       end
       clear()
-      GameStateLibrary.RoundFinishedTasks:Execute("parallel", winner, winner and (winner.Name .. " won!") or "No winner")
+      GameStateLibrary.RoundFinishedTasks:Execute("parallel", winner, nil)
    end
 end
 

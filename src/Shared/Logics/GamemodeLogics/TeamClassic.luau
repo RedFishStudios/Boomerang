@@ -35,7 +35,7 @@ function TeamClassic.setup()
       TeamElims[team] = 0
    end
 
-   table.insert(PerMatchDestroyerFunctions, CombatLibrary.PlayerElimedPlayerTasks:Add(function(attacker: Player, _victim: Player, _attackerToolId: string)
+   table.insert(PerMatchDestroyerFunctions, CombatLibrary.PlayerKilledPlayerTasks:Add(function(attacker: Player, _victim: Player, _attackerToolId: string)
       local team = attacker.Team
       if team and TeamElims[team] ~= nil then
          TeamElims[team] += 1
@@ -71,11 +71,7 @@ function TeamClassic.teardown()
 
    clear()
    GameTeamService.dismantleRoundTeams()
-   CurrentGameState.RoundFinishedTasks:Execute(
-      "parallel",
-      nil,
-      if winningTeam then `{winningTeam.Name} wins with {highestElims} elims!` else "No winner"
-   )
+   CurrentGameState.RoundFinishedTasks:Execute("parallel", nil, winningTeam, isTie)
 end
 
 return TeamClassic

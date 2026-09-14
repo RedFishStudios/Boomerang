@@ -120,7 +120,7 @@ function TeamEliminationRoundLogic.teardown(winner: Player?, winningTeam: Team?)
       clear()
       table.clear(activeTeams)
       GameTeamService.dismantleRoundTeams()
-      GameStateLibrary.RoundFinishedTasks:Execute("parallel", winner, winningTeam and (winningTeam.Name .. " won!") or "No winner")
+      GameStateLibrary.RoundFinishedTasks:Execute("parallel", winner, winningTeam)
    end
 end
 

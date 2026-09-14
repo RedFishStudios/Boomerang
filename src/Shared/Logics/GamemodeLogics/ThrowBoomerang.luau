@@ -53,7 +53,7 @@ end
 function ThrowBoomerangRoundLogic.teardown()
    if isServer then
       clear()
-      CurrentGameState.RoundFinishedTasks:Execute("parallel", winner, winner and (winner.Name .. " won!") or "No winner")
+      CurrentGameState.RoundFinishedTasks:Execute("parallel", winner, nil)
    end
 end
 

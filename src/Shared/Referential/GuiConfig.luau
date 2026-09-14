@@ -33,7 +33,7 @@ GuiConfig.StrokeColors = {
 -- [string]: Font face with commonly used gui fonts -- the title uses a distinct display font from body/button text
 GuiConfig.Fonts = {
 	Title = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWeight.Regular),
-	Body = Font.new("rbxasset://fonts/families/ComicNeueAngular.json", Enum.FontWeight.Bold),
+	Body = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold),
 	Icon = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWeight.Bold),
 }
 

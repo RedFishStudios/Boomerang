@@ -14,7 +14,7 @@ local GameplayPhases = require(ReplicatedStorage.Shared.Constants.Enums.Gameplay
 -- PRIVATE VARIABLES
 -------------------------------------------------------------------------------
 
-type RoundFinishedTask = (winner: Player?, winMessage: string) -> ()
+type RoundFinishedTask = (winner: Player?, winningTeam: Team?, isTie: boolean?) -> ()
 type SnapshotLoadedReason = "ServerApplied" | "ServerReplicated" | "InitialReplication"
 type CurrentRoundData = {
    CurrentRoundId: number,
@@ -22,8 +22,14 @@ type CurrentRoundData = {
    CurrentMapName: string,
    CanRespawn: boolean,
 }
+-- // Minimal winner payload: clients resolve UserId -> Player locally instead of the server sending a pre-built display string
+type WinnerInfo = {
+   Type: "Player" | "Team" | "Tie",
+   UserId: number?,
+   TeamName: string?,
+}
 type IntermissionData = {
-   WinMessage: string?,
+   WinnerInfo: WinnerInfo?,
    VoteOptions: {string},
    VoteCount: {number},
    ChosenGamemode: string?,
@@ -135,12 +141,19 @@ local function arraysMatch<T>(first: {T}, second: {T}): boolean
    return true
 end
 
+local function winnerInfoMatches(first: WinnerInfo?, second: WinnerInfo?): boolean
+   if first == nil or second == nil then
+      return first == second
+   end
+   return first.Type == second.Type and first.UserId == second.UserId and first.TeamName == second.TeamName
+end
+
 local function cloneIntermissionData(source: IntermissionData?): IntermissionData?
    if source == nil then
       return nil
    end
    return {
-      WinMessage = source.WinMessage,
+      WinnerInfo = if source.WinnerInfo then table.clone(source.WinnerInfo) else nil,
       VoteOptions = table.clone(source.VoteOptions),
       VoteCount = table.clone(source.VoteCount),
       ChosenGamemode = source.ChosenGamemode,
@@ -151,7 +164,7 @@ local function intermissionDataMatches(first: IntermissionData?, second: Intermi
    if first == nil or second == nil then
       return first == second
    end
-   return first.WinMessage == second.WinMessage
+   return winnerInfoMatches(first.WinnerInfo, second.WinnerInfo)
       and first.ChosenGamemode == second.ChosenGamemode
       and arraysMatch(first.VoteOptions, second.VoteOptions)
       and arraysMatch(first.VoteCount, second.VoteCount)

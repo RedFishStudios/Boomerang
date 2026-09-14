@@ -203,7 +203,7 @@ local function endActiveRound()
 end
 
 -- // Populates vote options and moves into LobbyVoting; the per-frame gate closes it out once its timer/votes are done
-local function enterLobbyVoting(winMessage: string?)
+local function enterLobbyVoting(winnerInfo: {Type: string, UserId: number?, TeamName: string?}?)
    local possibleGamemodes = RoundCyclingService.getNextGamemodeChoices()
    totalVotes[1] = 0
    totalVotes[2] = 0
@@ -217,7 +217,7 @@ local function enterLobbyVoting(winMessage: string?)
    snapshot.CurrentRoundData = nil
    snapshot.CurrentTimerEndsAt = workspace:GetServerTimeNow() + VOTE_DURATION
    snapshot.IntermissionData = {
-      WinMessage = winMessage,
+      WinnerInfo = winnerInfo,
       VoteOptions = possibleGamemodes,
       VoteCount = {0, 0},
       ChosenGamemode = nil,
@@ -301,7 +301,7 @@ local function updateGameStateEveryFrame(_dt: number)
    elseif currentPhase == GameplayPhases.PreIntermission then
       if timerElapsed then
          local intermissionData = gameStateData.IntermissionData:Get()
-         enterLobbyVoting(intermissionData and intermissionData.WinMessage)
+         enterLobbyVoting(intermissionData and intermissionData.WinnerInfo)
       end
    elseif currentPhase == GameplayPhases.LobbyVoting then
       if timerElapsed or #awaitingVotes == 0 or nextGamemode ~= nil then
@@ -438,13 +438,18 @@ function RoundCyclingService.init()
 end
 
 function RoundCyclingService.start()
-   GameStateLibrary.RoundFinishedTasks:Add(function(_winner: Player?, winMessage: string)
+   GameStateLibrary.RoundFinishedTasks:Add(function(winner: Player?, winningTeam: Team?, isTie: boolean?)
       -- // Pre-Intermission; the per-frame gate advances to voting once PRE_INTERMISSION_DURATION elapses
+      local winnerInfo = if isTie
+         then { Type = "Tie" }
+         elseif winningTeam then { Type = "Team", TeamName = winningTeam.Name }
+         elseif winner then { Type = "Player", UserId = winner.UserId }
+         else nil
       local snapshot = GameStateLibrary.getSnapshot()
       snapshot.CurrentRoundData = nil
       snapshot.CurrentTimerEndsAt = workspace:GetServerTimeNow() + PRE_INTERMISSION_DURATION
       snapshot.IntermissionData = {
-         WinMessage = winMessage,
+         WinnerInfo = winnerInfo,
          VoteOptions = {},
          VoteCount = {0, 0},
          ChosenGamemode = nil,
