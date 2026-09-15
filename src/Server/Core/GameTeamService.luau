@@ -62,20 +62,20 @@ local TeamOptions: {
    },
 } = {
    FreeForAll = {
-      Name = "Free for All!",
+      Name = "Free for All",
       Color = BrickColor.new("White"),
       FriendlyFire = true
    },
    TeamRed = {
-      Name = "Team Red!",
+      Name = "Team Red",
       Color = BrickColor.new("ReallyRed"),
    },
    TeamBlue = {
-      Name = "Team Blue!",
+      Name = "Team Blue",
       Color = BrickColor.new("Bright blue"),
    },
    TeamGreen = {
-      Name = "Team Green!",
+      Name = "Team Green",
       Color = BrickColor.new("Bright green"),
    },
 }
