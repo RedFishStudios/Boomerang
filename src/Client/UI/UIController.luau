@@ -1,8 +1,14 @@
 -- NOTE: THIS IS NOW FUNCTIONAL AND ITS USE SHOULD BE UNIVERSALIZED
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
+
 local UIController = {}
 
 local UIModules = {}
+
+-- // Opt-in notification for gui modules that explicitly fire it from their own open()/close(); NOT automatically fired for every gui
+UIController.GuiToggledTasks = TasksList.new() :: TasksList.TasksList<(guiName: string, isOpen: boolean) -> ()>
 
 export type UiType =
 	  "Primary"   -- Full screen

@@ -124,4 +124,19 @@ function TeamEliminationRoundLogic.teardown(winner: Player?, winningTeam: Team?)
    end
 end
 
+-- // True if removing this player would leave the round at (or below) its last-player-standing threshold
+function TeamEliminationRoundLogic.willKillEndRound(player: Player): boolean
+   if RunService:IsStudio() and #game.Players:GetPlayers() == 1 then
+      return false
+   end
+   local livingPlayers = GameStateLibrary.getGameStateData().LivingPlayersInArena:Get()
+   local remaining = 0
+   for _, livingPlayer in ipairs(livingPlayers) do
+      if livingPlayer ~= player then
+         remaining += 1
+      end
+   end
+   return remaining <= 1
+end
+
 return TeamEliminationRoundLogic

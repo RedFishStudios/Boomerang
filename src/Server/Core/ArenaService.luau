@@ -22,6 +22,8 @@ local ArenaLibrary = require(ReplicatedStorage.Shared.Library.ArenaLibrary)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local MapDataConstants = require(ReplicatedStorage.Shared.Constants.MapData)
 
+-- // Can't require CombatLibrary here: it (transitively, via PickupService) requires ArenaService,
+-- // and RoundCyclingService also requires ArenaService, so this stays a direct remote fire (no round-ending suppression check).
 local playerDeathReasonRemote = SimpleRemotes.getEvent("PlayerDeathReason")
 
 -------------------------------------------------------------------------------

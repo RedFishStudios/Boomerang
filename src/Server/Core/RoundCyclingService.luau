@@ -113,6 +113,21 @@ function RoundCyclingService.canSpawnIntoRound(player: Player): boolean
    return currentRoundData.CanRespawn
 end
 
+-- // Lets the active gamemode logic declare, ahead of time, whether a given player's death is the one that will end the round
+-- // (e.g. last-player-standing modes); gamemode logic modules opt in by implementing an optional `willKillEndRound(player)`
+function RoundCyclingService.willKillEndRound(player: Player): boolean
+   local currentRoundData = GameStateLibrary.getGameStateData().CurrentRoundData:Get()
+   local currentGamemode = currentRoundData and currentRoundData.Gamemode
+   if not currentGamemode then
+      return false
+   end
+   local roundLogic = getLogic(currentGamemode)
+   if not roundLogic or not roundLogic.willKillEndRound then
+      return false
+   end
+   return roundLogic.willKillEndRound(player)
+end
+
 function RoundCyclingService.getNextGamemodeChoices(): {string}
    local availableGamemodes = {}
    for gamemodeId, _ in pairs(Gamemodes) do

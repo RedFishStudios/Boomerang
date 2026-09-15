@@ -265,6 +265,21 @@ function HotPotatoRoundLogic.teardown(winner: Player?)
    end
 end
 
+-- // True if removing this player would leave the round at (or below) its last-player-standing threshold
+function HotPotatoRoundLogic.willKillEndRound(player: Player): boolean
+   if RunService:IsStudio() and #game.Players:GetPlayers() == 1 then
+      return false
+   end
+   local livingPlayers = CurrentGameState.getGameStateData().LivingPlayersInArena:Get()
+   local remaining = 0
+   for _, livingPlayer in ipairs(livingPlayers) do
+      if livingPlayer ~= player then
+         remaining += 1
+      end
+   end
+   return remaining <= 1
+end
+
 if not isServer then
    -- // Holder's particle follows the replicated "HotPotato" data-only effect state instead of an onPickup/onEnd pickup logic module
    pickupEffectStateChanged.OnClientEvent:Connect(function(effectData: PickupLibrary.PickupEffectStateChangedReplicationData)

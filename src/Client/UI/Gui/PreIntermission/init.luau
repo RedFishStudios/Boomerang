@@ -13,7 +13,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ClientMods = ReplicatedStorage.Client
 local SharedMods = ReplicatedStorage.Shared
 
-local _UIController = require(ClientMods.UI.UIController)
+local UIController = require(ClientMods.UI.UIController)
 local GameStateLibrary = require(SharedMods.Library.GameStateLibrary)
 local AbilityController = require(ClientMods.Core.AbilityController)
 local WeaponController = require(ClientMods.Core.WeaponController)
@@ -74,11 +74,13 @@ end
 function PreIntermissionGui.open()
    PreIntermissionGui.Open = true	
 	Gui.Enabled = true
+	UIController.GuiToggledTasks:Execute("parallel", "PreIntermission", true)
 end
 
 function PreIntermissionGui.close(Instant: boolean?)
    PreIntermissionGui.Open = false
 	Gui.Enabled = false
+	UIController.GuiToggledTasks:Execute("parallel", "PreIntermission", false)
 end
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------

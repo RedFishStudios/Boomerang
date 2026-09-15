@@ -13,7 +13,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ClientMods = ReplicatedStorage.Client
 local SharedMods = ReplicatedStorage.Shared
 
-local _UIController = require(ClientMods.UI.UIController)
+local UIController = require(ClientMods.UI.UIController)
 local GameStateLibrary = require(SharedMods.Library.GameStateLibrary)
 local AbilityController = require(ClientMods.Core.AbilityController)
 local WeaponController = require(ClientMods.Core.WeaponController)
@@ -60,6 +60,10 @@ function DeathScreen.display(killerUserId: number?, causeLabel: string?)
 end
 
 function DeathScreen.open()
+   -- // Failsafe: never show the death screen over PreIntermission (e.g. a final elimination death that also ends the round)
+   if UIController.get("PreIntermission").Open then
+      return
+   end
    Gui.Enabled = true
    deathScreenGrayscale.Enabled = true
 end
@@ -79,6 +83,12 @@ local function _init()
    Gui.Enabled = true
 
    deathScreenGrayscale.Parent = game:GetService("Lighting")
+
+   UIController.GuiToggledTasks:Add(function(guiName: string, isOpen: boolean)
+      if guiName == "PreIntermission" and isOpen then
+         DeathScreen.close()
+      end
+   end)
 
    SimpleRemotes.getEvent("PlayerDeathReason").OnClientEvent:Connect(function(killerUserId: number?, causeLabel: string?)
       local character = Player.Character

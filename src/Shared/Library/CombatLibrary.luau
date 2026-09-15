@@ -34,6 +34,16 @@ if isServer then
    PickupService = require(game:GetService("ServerStorage").Server.Core.PickupService)
 end
 
+-- // Lazily required: ArenaService (required by RoundCyclingService) also requires CombatLibrary, so requiring
+-- // RoundCyclingService eagerly here would be a load-time circular require. Safe to resolve on first real use.
+local RoundCyclingService
+local function getRoundCyclingService()
+   if not RoundCyclingService and isServer then
+      RoundCyclingService = require(game:GetService("ServerStorage").Server.Core.RoundCyclingService)
+   end
+   return RoundCyclingService
+end
+
 -------------------------------------------------------------------------------
 -- CONSTANTS
 -------------------------------------------------------------------------------
@@ -75,8 +85,17 @@ end
 function CombatLibrary.applyDamageToHumanoid(player: Player, humanoid: Humanoid, damageAmount: number, killer: Player?, causeLabel: string?)
    humanoid:TakeDamage(damageAmount)
    if humanoid.Health <= 0 then
-      playerDeathReasonRemote:FireClient(player, killer and killer.UserId or nil, causeLabel)
+      CombatLibrary.notifyDeathReason(player, killer, causeLabel)
    end
+end
+
+-- // Single chokepoint for the death screen notification; skipped when this player's death is what ends the round (PreIntermission covers that case instead)
+function CombatLibrary.notifyDeathReason(player: Player, killer: Player?, causeLabel: string?)
+   local roundCyclingService = isServer and getRoundCyclingService()
+   if roundCyclingService and roundCyclingService.willKillEndRound(player) then
+      return
+   end
+   playerDeathReasonRemote:FireClient(player, killer and killer.UserId or nil, causeLabel)
 end
 
 function CombatLibrary.addAttackHitPlayerCallback(key: string, callback: attackHitPlayerCallback)
