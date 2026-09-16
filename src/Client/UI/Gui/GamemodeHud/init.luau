@@ -15,6 +15,7 @@ local SharedMods = ReplicatedStorage.Shared
 local Gamemodes = require(SharedMods.Constants.Gamemodes)
 local _UIController = require(ClientMods.UI.UIController)
 local GameStateLibrary = require(SharedMods.Library.GameStateLibrary)
+local PlayersUtil = require(SharedMods.Utils.PlayersUtil)
 
 -- // Gui Values // --
 
@@ -26,6 +27,11 @@ local shownWholeSeconds: number?
 local GuiHeader: Frame?
 local GamemodeLabel: TextLabel?
 --local SubheaderLabel: TextLabel?
+
+local ColoredImage: ImageLabel?
+local GrayscaleImage: ImageLabel?
+local GamemodeLabelGradient: UIGradient?
+local TimerLabelGradient: UIGradient?
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Local Functions
@@ -132,6 +138,22 @@ function GamemodeHudGui.getCameraPadding(): number
    return GuiHeader.AbsoluteSize.Y * .75
 end
 
+-- // Switch the hud between its colored and grayscale presentation
+local function setDead(isDead: boolean)
+   if ColoredImage then
+      ColoredImage.Visible = not isDead
+   end
+   if GrayscaleImage then
+      GrayscaleImage.Visible = isDead
+   end
+   if GamemodeLabelGradient then
+      GamemodeLabelGradient.Enabled = not isDead
+   end
+   if TimerLabelGradient then
+      TimerLabelGradient.Enabled = not isDead
+   end
+end
+
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 local function _init()
@@ -142,6 +164,23 @@ local function _init()
    GamemodeLabel = Gui.Header.GamemodeLabel
    --SubheaderLabel = Gui.Header.SubheaderLabel
    TimerLabel = Gui.Header.TimerLabel
+
+   ColoredImage = Gui.Header:WaitForChild("Colored") :: ImageLabel
+   GrayscaleImage = Gui.Header:WaitForChild("Grayscale") :: ImageLabel
+   GamemodeLabelGradient = GamemodeLabel:WaitForChild("UIGradient") :: UIGradient
+   TimerLabelGradient = TimerLabel:WaitForChild("UIGradient") :: UIGradient
+
+   PlayersUtil.CharacterDied:Add(function(_player, _character)
+      if _player == Player then
+         setDead(true)
+      end
+   end)
+
+   PlayersUtil.CharacterAdded:Add(function(_player, _character)
+      if _player == Player then
+         setDead(false)
+      end
+   end)
 end
 _init()
 

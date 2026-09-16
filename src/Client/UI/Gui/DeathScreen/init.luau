@@ -42,6 +42,7 @@ deathScreenGrayscale.Saturation = -1
 local imageContainerGoalPosition = imageContainer.Position
 local imageContainerOffscreenPosition = imageContainerGoalPosition - UDim2.fromScale(0, 1)
 local IMAGE_CONTAINER_TWEEN_INFO = TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+local IMAGE_CONTAINER_TWEEN_INFO_OUT = TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.In)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Local Functions
@@ -71,27 +72,35 @@ function DeathScreen.display(killerUserId: number?, causeLabel: string?)
    DeathScreen.open()
 end
 
+local instanceKey = nil
+
 function DeathScreen.open()
-   print("open called")
    -- // Failsafe: never show the death screen over PreIntermission (e.g. a final elimination death that also ends the round)
    if UIController.get("PreIntermission").Open then
       return
    end
+   instanceKey = math.random(10000)
    Gui.Enabled = true
-   deathScreenGrayscale.Enabled = true
 
    imageContainer.Position = imageContainerOffscreenPosition
    TweenService:Create(imageContainer, IMAGE_CONTAINER_TWEEN_INFO, { Position = imageContainerGoalPosition }):Play()
 end
 
 function DeathScreen.close(Instant: boolean?)
-   Gui.Enabled = false
-   downedLabel.Visible = false
-   eliminatedLabel.Visible = false
-   byDisplayNameLabel.Visible = false
-   byUsernameLabel.Visible = false
-   byNonPlayerLabel.Visible = false
-   deathScreenGrayscale.Enabled = false
+   local thisInstance = math.random(10000)
+   instanceKey = thisInstance
+   TweenService:Create(imageContainer, IMAGE_CONTAINER_TWEEN_INFO_OUT, { Position = imageContainerOffscreenPosition }):Play()
+   task.spawn(function()
+      task.wait(.6)
+      if instanceKey == thisInstance then
+         Gui.Enabled = false
+         downedLabel.Visible = false
+         eliminatedLabel.Visible = false
+         byDisplayNameLabel.Visible = false
+         byUsernameLabel.Visible = false
+         byNonPlayerLabel.Visible = false
+      end
+   end)
 end
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -109,13 +118,11 @@ local function _init()
    end)
 
    SimpleRemotes.getEvent("PlayerDeathReason").OnClientEvent:Connect(function(killerUserId: number?, causeLabel: string?)
-      print("PlayerDeathReason fired")
       local character = Player.Character
       if character then
          local humanoid = character:FindFirstChildOfClass("Humanoid")
          if humanoid then
             if humanoid.Health > 0 then
-               print(`declining death message notification received while alive...?`)
                return
             end
          end
@@ -125,12 +132,14 @@ local function _init()
 
    PlayersUtil.CharacterDied:Add(function(_player, character)
       if _player == Player then
+         deathScreenGrayscale.Enabled = true
          DeathScreen.open()
       end
    end)
 
    PlayersUtil.CharacterAdded:Add(function(_player, character)
       if _player == Player then
+         deathScreenGrayscale.Enabled = false
          DeathScreen.close()
       end
    end)
