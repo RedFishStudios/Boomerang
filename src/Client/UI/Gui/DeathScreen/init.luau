@@ -2,7 +2,7 @@ local DeathScreen = {}
 DeathScreen.Type = "HUD"
 DeathScreen.Open = false
 
-local _TweenService = game:GetService("TweenService")
+local TweenService = game:GetService("TweenService")
 
 local Player = game:GetService("Players").LocalPlayer
 local Players = game:GetService("Players")
@@ -25,14 +25,23 @@ local SimpleRemotes = require(SharedMods.Networking.SimpleRemotes)
 local Gui = script.DeathScreen
 Gui.IgnoreGuiInset = true
 
-local titleLabel = Gui.Title :: TextLabel
-local byLabel = Gui.ByLabel :: TextLabel
-local usernameLabel = Gui.Username :: TextLabel
+local imageContainer = Gui:WaitForChild("ImageLabel")
+local downedLabel = imageContainer:WaitForChild("Downed") :: TextLabel
+local eliminatedLabel = imageContainer:WaitForChild("Eliminated") :: TextLabel
+local byDisplayNameLabel = imageContainer:WaitForChild("ByDisplayName") :: TextLabel
+local byUsernameLabel = imageContainer:WaitForChild("ByUsername") :: TextLabel
+local byNonPlayerLabel = imageContainer:WaitForChild("ByNonPlayer") :: TextLabel
 
 local deathScreenGrayscale = Instance.new("ColorCorrectionEffect")
 deathScreenGrayscale.Name = "DeathScreenGrayscale"
 deathScreenGrayscale.Enabled = false
 deathScreenGrayscale.Saturation = -1
+
+-- // Animation Values // --
+
+local imageContainerGoalPosition = imageContainer.Position
+local imageContainerOffscreenPosition = imageContainerGoalPosition - UDim2.fromScale(0, 1)
+local IMAGE_CONTAINER_TWEEN_INFO = TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Local Functions
@@ -45,34 +54,43 @@ deathScreenGrayscale.Saturation = -1
 function DeathScreen.display(killerUserId: number?, causeLabel: string?)
    local currentRoundData = GameStateLibrary.getGameStateData().CurrentRoundData:Get()
    local canRespawn = currentRoundData ~= nil and currentRoundData.CanRespawn
-   titleLabel.Text = if canRespawn then "Downed!" else "Eliminated!"
+   downedLabel.Visible = canRespawn
+   eliminatedLabel.Visible = not canRespawn
 
    local killerPlayer = killerUserId and Players:GetPlayerByUserId(killerUserId)
-   byLabel.Text = if killerPlayer then "By " .. killerPlayer.DisplayName else (causeLabel or "Unknown")
-   usernameLabel.Visible = killerPlayer ~= nil
+   byDisplayNameLabel.Visible = killerPlayer ~= nil
+   byUsernameLabel.Visible = killerPlayer ~= nil
+   byNonPlayerLabel.Visible = killerPlayer == nil
    if killerPlayer then
-      usernameLabel.Text = "@" .. killerPlayer.Name
+      byDisplayNameLabel.Text = "By " .. killerPlayer.DisplayName
+      byUsernameLabel.Text = "@" .. killerPlayer.Name
+   else
+      byNonPlayerLabel.Text = causeLabel or "Unknown"
    end
 
-   titleLabel.Visible = true
-   byLabel.Visible = true
    DeathScreen.open()
 end
 
 function DeathScreen.open()
+   print("open called")
    -- // Failsafe: never show the death screen over PreIntermission (e.g. a final elimination death that also ends the round)
    if UIController.get("PreIntermission").Open then
       return
    end
    Gui.Enabled = true
    deathScreenGrayscale.Enabled = true
+
+   imageContainer.Position = imageContainerOffscreenPosition
+   TweenService:Create(imageContainer, IMAGE_CONTAINER_TWEEN_INFO, { Position = imageContainerGoalPosition }):Play()
 end
 
 function DeathScreen.close(Instant: boolean?)
    Gui.Enabled = false
-   titleLabel.Visible = false
-   byLabel.Visible = false
-   usernameLabel.Visible = false
+   downedLabel.Visible = false
+   eliminatedLabel.Visible = false
+   byDisplayNameLabel.Visible = false
+   byUsernameLabel.Visible = false
+   byNonPlayerLabel.Visible = false
    deathScreenGrayscale.Enabled = false
 end
 
@@ -91,6 +109,7 @@ local function _init()
    end)
 
    SimpleRemotes.getEvent("PlayerDeathReason").OnClientEvent:Connect(function(killerUserId: number?, causeLabel: string?)
+      print("PlayerDeathReason fired")
       local character = Player.Character
       if character then
          local humanoid = character:FindFirstChildOfClass("Humanoid")

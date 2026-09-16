@@ -25,7 +25,7 @@ local shownWholeSeconds: number?
 
 local GuiHeader: Frame?
 local GamemodeLabel: TextLabel?
-local SubheaderLabel: TextLabel?
+--local SubheaderLabel: TextLabel?
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Local Functions
@@ -74,7 +74,7 @@ end
 
 -- // Apply in-round display
 local function applyRoundUi()
-   if not GamemodeLabel or not SubheaderLabel then
+   if not GamemodeLabel then
       return
    end
 
@@ -83,13 +83,13 @@ local function applyRoundUi()
    local gamemodeData = newGamemode and Gamemodes[newGamemode] or nil
    if gamemodeData and newGamemode then
       GamemodeLabel.Text = gamemodeData.Display or newGamemode
-      SubheaderLabel.Text = gamemodeData.Subheader or ""
+      --SubheaderLabel.Text = gamemodeData.Subheader or ""
       startCountdown(gamemodeData.Timer or "")
       return
    end
 
    GamemodeLabel.Text = ""
-   SubheaderLabel.Text = ""
+   --SubheaderLabel.Text = ""
    startCountdown("")
 end
 
@@ -140,7 +140,7 @@ local function _init()
 
    GuiHeader = Gui.Header
    GamemodeLabel = Gui.Header.GamemodeLabel
-   SubheaderLabel = Gui.Header.SubheaderLabel
+   --SubheaderLabel = Gui.Header.SubheaderLabel
    TimerLabel = Gui.Header.TimerLabel
 end
 _init()

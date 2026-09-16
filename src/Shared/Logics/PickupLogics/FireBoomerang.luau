@@ -290,7 +290,7 @@ local function updateServer(deltaTime: number)
             if state.Attacker then
                CombatLibrary.applyDamageToHumanoid(player, humanoid, FIRE_EFFECT_DAMAGE, state.Attacker, nil)
             else
-               CombatLibrary.applyDamageToHumanoid(player, humanoid, FIRE_EFFECT_DAMAGE, nil, "Burned to death")
+               CombatLibrary.applyDamageToHumanoid(player, humanoid, FIRE_EFFECT_DAMAGE, nil, "Burned to ashes")
             end
             if humanoid.Health <= 0 and state.Attacker and state.Attacker ~= player and not state.KillCredited then
                state.KillCredited = true

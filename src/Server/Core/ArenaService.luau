@@ -395,9 +395,9 @@ function ArenaService.init()
          if character and character.PrimaryPart then
             if character.PrimaryPart.Position.Y < DEATH_Y then
                local humanoid = character:FindFirstChildOfClass("Humanoid")
-               if humanoid then
+               if humanoid and humanoid.Health > 0 then -- only fire once, before Health hits 0 and the character gets destroyed
                   humanoid.Health = 0
-                  playerDeathReasonRemote:FireClient(player, nil, "falling out of bounds")
+                  playerDeathReasonRemote:FireClient(player, nil, "Out of bounds")
                end
             end
          end
