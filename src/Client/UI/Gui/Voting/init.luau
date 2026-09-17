@@ -2,6 +2,8 @@ local VotingGui = {}
 VotingGui.Type = "HUD"
 VotingGui.Open = false
 
+local TweenService = game:GetService("TweenService")
+
 local Player = game:GetService("Players").LocalPlayer
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -16,13 +18,23 @@ local Gui = script:WaitForChild("Voting") :: ScreenGui
 Gui.ResetOnSpawn = false
 Gui.IgnoreGuiInset = true
 
-local VoteContainer = Gui:WaitForChild("VoteContainer") :: Frame
-local ButtonRow = VoteContainer:WaitForChild("ButtonRow") :: Frame
-local ExitButton = VoteContainer:WaitForChild("Exit") :: TextButton
-local OptionAButton = ButtonRow:WaitForChild("OptionA") :: TextButton
-local OptionBButton = ButtonRow:WaitForChild("OptionB") :: TextButton
-local OptionACount = OptionAButton:WaitForChild("VoteCount"):WaitForChild("TextLabel") :: TextLabel
-local OptionBCount = OptionBButton:WaitForChild("VoteCount"):WaitForChild("TextLabel") :: TextLabel
+local Container = Gui:WaitForChild("Container") :: ImageLabel
+local OptionAText = Container:WaitForChild("OptionAText") :: TextLabel
+local OptionBText = Container:WaitForChild("OptionBText") :: TextLabel
+local OptionAButton = Container:WaitForChild("OptionA") :: ImageButton
+local OptionBButton = Container:WaitForChild("OptionB") :: ImageButton
+local ExitButton = Container:WaitForChild("Exit") :: ImageButton
+local OptionACount = Container:WaitForChild("OptionACount"):WaitForChild("TextLabel") :: TextLabel
+local OptionBCount = Container:WaitForChild("OptionBCount"):WaitForChild("TextLabel") :: TextLabel
+
+-- // Animation Values // --
+
+local containerGoalPosition = Container.Position
+local containerOffscreenPosition = containerGoalPosition - UDim2.fromScale(0, 1)
+local CONTAINER_TWEEN_INFO_IN = TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+local CONTAINER_TWEEN_INFO_OUT = TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+
+local instanceKey = nil
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -33,6 +45,27 @@ local function getGamemodeDisplayName(gamemodeId: string?): string
 		return Gamemodes[gamemodeId].Display or gamemodeId
 	end
 	return gamemodeId or ""
+end
+
+local BUTTON_HOVER_SCALE = 1.05
+local BUTTON_HOVER_TWEEN_INFO = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+local function setupButtonHover(button: GuiButton)
+	local defaultSize = button.Size
+	local hoverSize = UDim2.new(
+		defaultSize.X.Scale * BUTTON_HOVER_SCALE,
+		defaultSize.X.Offset * BUTTON_HOVER_SCALE,
+		defaultSize.Y.Scale * BUTTON_HOVER_SCALE,
+		defaultSize.Y.Offset * BUTTON_HOVER_SCALE
+	)
+
+	button.MouseEnter:Connect(function()
+		TweenService:Create(button, BUTTON_HOVER_TWEEN_INFO, { Size = hoverSize }):Play()
+	end)
+
+	button.MouseLeave:Connect(function()
+		TweenService:Create(button, BUTTON_HOVER_TWEEN_INFO, { Size = defaultSize }):Play()
+	end)
 end
 
 local function refreshUi(snapshot)
@@ -46,8 +79,8 @@ local function refreshUi(snapshot)
 		return
 	end
 
-	OptionAButton.TextLabel.Text = getGamemodeDisplayName(options[1])
-	OptionBButton.TextLabel.Text = getGamemodeDisplayName(options[2])
+	OptionAText.Text = getGamemodeDisplayName(options[1])
+	OptionBText.Text = getGamemodeDisplayName(options[2])
 	OptionACount.Text = tostring(voteCount[1] or 0)
 	OptionBCount.Text = tostring(voteCount[2] or 0)
 	VotingGui.open()
@@ -59,12 +92,24 @@ end
 
 function VotingGui.open()
 	VotingGui.Open = true
+	instanceKey = math.random(10000)
 	Gui.Enabled = true
+
+	Container.Position = containerOffscreenPosition
+	TweenService:Create(Container, CONTAINER_TWEEN_INFO_IN, { Position = containerGoalPosition }):Play()
 end
 
 function VotingGui.close(_instant: boolean?)
 	VotingGui.Open = false
-	Gui.Enabled = false
+	local thisInstance = math.random(10000)
+	instanceKey = thisInstance
+	TweenService:Create(Container, CONTAINER_TWEEN_INFO_OUT, { Position = containerOffscreenPosition }):Play()
+	task.spawn(function()
+		task.wait(.6)
+		if instanceKey == thisInstance then
+			Gui.Enabled = false
+		end
+	end)
 end
 
 -------------------------------------------------------------------------------
@@ -74,6 +119,10 @@ end
 local function _init()
 	Gui.Parent = Player.PlayerGui
 	Gui.Enabled = false
+
+	setupButtonHover(OptionAButton)
+	setupButtonHover(OptionBButton)
+	setupButtonHover(ExitButton)
 
 	OptionAButton.Activated:Connect(function()
 		SimpleRemotes.getEvent("VoteUpdated"):FireServer(1)
@@ -97,3 +146,4 @@ function VotingGui.start()
 end
 
 return VotingGui
+

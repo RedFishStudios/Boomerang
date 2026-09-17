@@ -30,6 +30,7 @@ local CharacterRenderController = require(ReplicatedStorage.Client.Core.Characte
 local PlayerStatsLibrary = require(ReplicatedStorage.Shared.Library.PlayerStatsLibrary)
 local GameplayPhaseEnum = require(ReplicatedStorage.Shared.Constants.Enums.GameplayPhases)
 local LobbyController = require(ReplicatedStorage.Client.Core.LobbyController)
+local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 
 local ToolLogics = ReplicatedStorage.Shared.Logics.WeaponLogics
 local ToolLogicModules = {}
@@ -236,7 +237,12 @@ local function throwEquippedTool(forcedDirection: Vector3?): boolean
       direction = getHorizontalDirection(localCharacter.PrimaryPart.CFrame.LookVector)
     else
       local lastInWorld = PlatformController.getLastMousePositionInWorld()
-      local mouseWorldPosition = RaycastsUtility.getMouseWorldPosition(2048, nil, if lastInWorld then Vector2.new(lastInWorld.X, lastInWorld.Y) else nil)
+      if lastInWorld then
+         lastInWorld += Vector3.new(0, -60, 0)
+      end
+      local params = RaycastParams.new()
+      params.CollisionGroup = CollisionGroupConstants.ArenaFloorDetector
+      local mouseWorldPosition = RaycastsUtility.getMouseWorldPosition(2048, params, if lastInWorld then Vector2.new(lastInWorld.X, lastInWorld.Y) else nil)
       if throwOrigin and mouseWorldPosition then
          direction = getHorizontalDirection(mouseWorldPosition - throwOrigin)
       elseif localCharacter and localCharacter.PrimaryPart then
