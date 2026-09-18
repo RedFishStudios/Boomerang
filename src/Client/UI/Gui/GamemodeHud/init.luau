@@ -123,7 +123,7 @@ end
 local function refreshUiFromGameState()
    local gameStateData = GameStateLibrary.getGameStateData()
    if gameStateData.CurrentRoundData:Get() == nil then
-      GamemodeHudGui.close(true)
+      GamemodeHudGui.close()
    else
       GamemodeHudGui.open()
       applyRoundUi()

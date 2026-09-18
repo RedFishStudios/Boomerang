@@ -2,7 +2,7 @@
 	<Meta name="ExplicitAutoJoints">true</Meta>
 	<External>null</External>
 	<External>nil</External>
-	<Item class="ScreenGui" referent="RBX159D4037CFA541B889F9F9B116BD94C7">
+	<Item class="ScreenGui" referent="RBXD17EB48AF8D34DF3BAAF407E57B96BEA">
 		<Properties>
 			<bool name="ClipToDeviceSafeArea">true</bool>
 			<int name="DisplayOrder">0</int>
@@ -25,7 +25,7 @@
 			<int64 name="SourceAssetId">-1</int64>
 			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 		</Properties>
-		<Item class="ImageLabel" referent="RBX36C5B37E24F8460C9F104330D24C915B">
+		<Item class="ImageLabel" referent="RBX559FAAFC2722498F8162CA7D7D21D840">
 			<Properties>
 				<Content name="Image"><url>rbxassetid://78176532595052</url></Content>
 				<Color3 name="ImageColor3">
@@ -122,7 +122,7 @@
 				<int64 name="SourceAssetId">-1</int64>
 				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			</Properties>
-			<Item class="TextLabel" referent="RBXC87E86A5A025443787DDDACF41E9BA70">
+			<Item class="TextLabel" referent="RBX0F369A491B384BC0BF17CA71FF66E76B">
 				<Properties>
 					<Font name="FontFace">
 						<Family><url>rbxasset://fonts/families/SourceSansPro.json</url></Family>
@@ -217,7 +217,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="TextLabel" referent="RBX099579A547804F6692F1BAF45B890F80">
+			<Item class="TextLabel" referent="RBX6D743C8069F14AE69DA1AC45D1C3D77C">
 				<Properties>
 					<Font name="FontFace">
 						<Family><url>rbxasset://fonts/families/SourceSansPro.json</url></Family>
@@ -312,7 +312,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="UIAspectRatioConstraint" referent="RBX9989EC12B8784D1696D1FFBC88410105">
+			<Item class="UIAspectRatioConstraint" referent="RBX338690C139E84282AE7064D9AC5F46F1">
 				<Properties>
 					<float name="AspectRatio">1</float>
 					<token name="AspectType">1</token>
@@ -325,11 +325,11 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="TextLabel" referent="RBXEBED94BF96114E55997F5DD72C02014A">
+			<Item class="TextLabel" referent="RBXE4E8053465B54AA2A1B969D30F2207A3">
 				<Properties>
 					<Font name="FontFace">
-						<Family><url>rbxasset://fonts/families/SourceSansPro.json</url></Family>
-						<Weight>700</Weight>
+						<Family><url>rbxasset://fonts/families/FredokaOne.json</url></Family>
+						<Weight>400</Weight>
 						<Style>Normal</Style>
 					</Font>
 					<float name="LineHeight">1</float>
@@ -419,7 +419,7 @@
 					<int64 name="SourceAssetId">-1</int64>
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
-				<Item class="UIStroke" referent="RBXDF5AABBC47D14320B0E688B2CD9D25EF">
+				<Item class="UIStroke" referent="RBX0C96679BD2164C038DC1AEB638ED2029">
 					<Properties>
 						<token name="ApplyStrokeMode">0</token>
 						<UDim name="BorderOffset">
@@ -446,7 +446,7 @@
 						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 					</Properties>
 				</Item>
-				<Item class="UIGradient" referent="RBXB303F57C32BA43ACBB06B515723D6D3A">
+				<Item class="UIGradient" referent="RBX741B68AA51F94ED58752EA27B6193B9C">
 					<Properties>
 						<ColorSequence name="Color">0 1 0.937255 0.686275 0 1 0.968627 0.54902 0.129412 0 </ColorSequence>
 						<bool name="Enabled">true</bool>
@@ -468,11 +468,11 @@
 					</Properties>
 				</Item>
 			</Item>
-			<Item class="TextLabel" referent="RBX14D8EA84B4BE406E9CD7D2F4320C63C8">
+			<Item class="TextLabel" referent="RBX293BAFE749BB463B8C037B3DA64DF74A">
 				<Properties>
 					<Font name="FontFace">
-						<Family><url>rbxasset://fonts/families/SourceSansPro.json</url></Family>
-						<Weight>700</Weight>
+						<Family><url>rbxasset://fonts/families/FredokaOne.json</url></Family>
+						<Weight>400</Weight>
 						<Style>Normal</Style>
 					</Font>
 					<float name="LineHeight">1</float>
@@ -562,7 +562,7 @@
 					<int64 name="SourceAssetId">-1</int64>
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
-				<Item class="UIStroke" referent="RBX30DEEABF3324423AA1880267F8FA49E6">
+				<Item class="UIStroke" referent="RBX78AB9D3A9AE844A6A9524AD30657E45A">
 					<Properties>
 						<token name="ApplyStrokeMode">0</token>
 						<UDim name="BorderOffset">
@@ -589,7 +589,7 @@
 						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 					</Properties>
 				</Item>
-				<Item class="UIGradient" referent="RBXFC90261B5F764C9F9276F6468C6FF76B">
+				<Item class="UIGradient" referent="RBXBC944C2BE9A34681A0322DD063E29408">
 					<Properties>
 						<ColorSequence name="Color">0 1 0.635294 0.572549 0 1 0.952941 0.203922 0.180392 0 </ColorSequence>
 						<bool name="Enabled">true</bool>
@@ -611,7 +611,7 @@
 					</Properties>
 				</Item>
 			</Item>
-			<Item class="TextLabel" referent="RBX60D63762CD7148C29FDC6C5284EC5FB3">
+			<Item class="TextLabel" referent="RBX0428DA9A8787400B8E86614C1613945F">
 				<Properties>
 					<Font name="FontFace">
 						<Family><url>rbxasset://fonts/families/SourceSansPro.json</url></Family>
