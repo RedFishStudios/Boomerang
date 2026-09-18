@@ -2,7 +2,7 @@
 	<Meta name="ExplicitAutoJoints">true</Meta>
 	<External>null</External>
 	<External>nil</External>
-	<Item class="ScreenGui" referent="RBX76AE43074CAA4F2BA96FFB62F218317B">
+	<Item class="ScreenGui" referent="RBX8074281F6A4A46CFA3715A09361B233A">
 		<Properties>
 			<bool name="ClipToDeviceSafeArea">true</bool>
 			<int name="DisplayOrder">0</int>
@@ -25,9 +25,9 @@
 			<int64 name="SourceAssetId">-1</int64>
 			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 		</Properties>
-		<Item class="ImageLabel" referent="RBX7197DF4CBA0445BAA7E956ABBFD83FF4">
+		<Item class="ImageLabel" referent="RBXC4CA6B619B5B4124AA3A7873354546BA">
 			<Properties>
-				<Content name="Image"><url>rbxassetid://77252643882548</url></Content>
+				<Content name="Image"><url>rbxassetid://93144771802897</url></Content>
 				<Color3 name="ImageColor3">
 					<R>1</R>
 					<G>1</G>
@@ -100,7 +100,7 @@
 				<int name="SelectionOrder">0</int>
 				<token name="Sink">0</token>
 				<UDim2 name="Size">
-					<XS>0.850000024</XS>
+					<XS>0.680000007</XS>
 					<XO>0</XO>
 					<YS>1.10000002</YS>
 					<YO>0</YO>
@@ -122,7 +122,7 @@
 				<int64 name="SourceAssetId">-1</int64>
 				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			</Properties>
-			<Item class="TextLabel" referent="RBX7484DEC7367E4DB1B1413D6F410740BB">
+			<Item class="TextLabel" referent="RBX09AA491B022E485D9A061B352C6FEA7D">
 				<Properties>
 					<Font name="FontFace">
 						<Family><url>rbxasset://fonts/families/SourceSansPro.json</url></Family>
@@ -185,7 +185,7 @@
 					<UDim2 name="Position">
 						<XS>0.5</XS>
 						<XO>0</XO>
-						<YS>0.730000019</YS>
+						<YS>0.75</YS>
 						<YO>0</YO>
 					</UDim2>
 					<float name="Rotation">0</float>
@@ -216,7 +216,7 @@
 					<int64 name="SourceAssetId">-1</int64>
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
-				<Item class="UIStroke" referent="RBX27A73D06829546E3A5B010FF015A5916">
+				<Item class="UIStroke" referent="RBXB2A9C3EA845041BA8DACF6C3C4C5187F">
 					<Properties>
 						<token name="ApplyStrokeMode">0</token>
 						<UDim name="BorderOffset">
@@ -243,7 +243,7 @@
 						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 					</Properties>
 				</Item>
-				<Item class="UIGradient" referent="RBXC317B1421DD4457C8104BD6583F00839">
+				<Item class="UIGradient" referent="RBXFB9CBF75B8A94C549757BD1B026CC1DB">
 					<Properties>
 						<ColorSequence name="Color">0 1 0.937255 0.686275 0 1 0.968627 0.54902 0.129412 0 </ColorSequence>
 						<bool name="Enabled">true</bool>
@@ -265,7 +265,7 @@
 					</Properties>
 				</Item>
 			</Item>
-			<Item class="TextLabel" referent="RBX63CCEC67D8074F5483B8865147996B72">
+			<Item class="TextLabel" referent="RBX1A4E04A3D98E47BB8F09FD29AB7794CF">
 				<Properties>
 					<Font name="FontFace">
 						<Family><url>rbxasset://fonts/families/SourceSansPro.json</url></Family>
@@ -278,7 +278,7 @@
 					<int name="MaxVisibleGraphemes">-1</int>
 					<string name="OpenTypeFeatures"></string>
 					<bool name="RichText">false</bool>
-					<string name="Text">Red Team won!</string>
+					<string name="Text">Redwire won!</string>
 					<Color3 name="TextColor3">
 						<R>1</R>
 						<G>1</G>
@@ -328,7 +328,7 @@
 					<UDim2 name="Position">
 						<XS>0.5</XS>
 						<XO>0</XO>
-						<YS>0.829999983</YS>
+						<YS>0.867999971</YS>
 						<YO>0</YO>
 					</UDim2>
 					<float name="Rotation">0</float>
@@ -337,9 +337,9 @@
 					<int name="SelectionOrder">0</int>
 					<token name="Sink">0</token>
 					<UDim2 name="Size">
-						<XS>0.400000006</XS>
+						<XS>0.800000012</XS>
 						<XO>0</XO>
-						<YS>0.0549999997</YS>
+						<YS>0.0599999987</YS>
 						<YO>0</YO>
 					</UDim2>
 					<token name="SizeConstraint">0</token>
@@ -359,7 +359,7 @@
 					<int64 name="SourceAssetId">-1</int64>
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
-				<Item class="UIStroke" referent="RBXCD46603150D64019A45DD10352273661">
+				<Item class="UIStroke" referent="RBXF6F0977F789E4C80BAB2F7BE4387876B">
 					<Properties>
 						<token name="ApplyStrokeMode">0</token>
 						<UDim name="BorderOffset">
@@ -386,7 +386,7 @@
 						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 					</Properties>
 				</Item>
-				<Item class="UIGradient" referent="RBX65B4CA31DF024E55A1A0B43C021B8079">
+				<Item class="UIGradient" referent="RBXD03C825A51D24D99ADD019C97A855E3B">
 					<Properties>
 						<ColorSequence name="Color">0 1 0.937255 0.686275 0 1 0.968627 0.54902 0.129412 0 </ColorSequence>
 						<bool name="Enabled">true</bool>
@@ -408,7 +408,7 @@
 					</Properties>
 				</Item>
 			</Item>
-			<Item class="TextLabel" referent="RBXC37D6710ED4D4C6BB267A2D63DCDA003">
+			<Item class="TextLabel" referent="RBXAF3E4751B2774A39ACEF73D94EDB700F">
 				<Properties>
 					<Font name="FontFace">
 						<Family><url>rbxasset://fonts/families/SourceSansPro.json</url></Family>
@@ -471,7 +471,7 @@
 					<UDim2 name="Position">
 						<XS>0.5</XS>
 						<XO>0</XO>
-						<YS>0.875</YS>
+						<YS>0.920000017</YS>
 						<YO>0</YO>
 					</UDim2>
 					<float name="Rotation">0</float>
@@ -503,7 +503,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="TextLabel" referent="RBX7F65A0C9F6B74441BBCBE32E7945A71F">
+			<Item class="TextLabel" referent="RBXB308C683764E4F67B0B55102D14347C3">
 				<Properties>
 					<Font name="FontFace">
 						<Family><url>rbxasset://fonts/families/SourceSansPro.json</url></Family>
@@ -566,7 +566,7 @@
 					<UDim2 name="Position">
 						<XS>0.5</XS>
 						<XO>0</XO>
-						<YS>0.839999974</YS>
+						<YS>0.879999995</YS>
 						<YO>0</YO>
 					</UDim2>
 					<float name="Rotation">0</float>
@@ -575,9 +575,9 @@
 					<int name="SelectionOrder">0</int>
 					<token name="Sink">0</token>
 					<UDim2 name="Size">
-						<XS>0.400000006</XS>
+						<XS>0.800000012</XS>
 						<XO>0</XO>
-						<YS>0.0549999997</YS>
+						<YS>0.0599999987</YS>
 						<YO>0</YO>
 					</UDim2>
 					<token name="SizeConstraint">0</token>
@@ -597,7 +597,7 @@
 					<int64 name="SourceAssetId">-1</int64>
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
-				<Item class="UIStroke" referent="RBXDD4BC7F9A69344888CCA9A53E0C85B85">
+				<Item class="UIStroke" referent="RBX3B9BE468D52D4A6D9131AEBBD885DE9A">
 					<Properties>
 						<token name="ApplyStrokeMode">0</token>
 						<UDim name="BorderOffset">
@@ -624,7 +624,7 @@
 						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 					</Properties>
 				</Item>
-				<Item class="UIGradient" referent="RBX0DAA4D76A1164AD89A553C3576C760F2">
+				<Item class="UIGradient" referent="RBX150C01A393604B44BBD5535D5EA2AEA8">
 					<Properties>
 						<ColorSequence name="Color">0 1 0.937255 0.686275 0 1 0.968627 0.54902 0.129412 0 </ColorSequence>
 						<bool name="Enabled">true</bool>
