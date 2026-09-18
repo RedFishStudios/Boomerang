@@ -35,6 +35,7 @@ local CONTAINER_TWEEN_INFO_IN = TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.E
 local CONTAINER_TWEEN_INFO_OUT = TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.In)
 
 local instanceKey = nil
+local activeTween = nil
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -45,6 +46,24 @@ local function getGamemodeDisplayName(gamemodeId: string?): string
 		return Gamemodes[gamemodeId].Display or gamemodeId
 	end
 	return gamemodeId or ""
+end
+
+local function updateOptionTextSize(textLabel: TextLabel)
+	textLabel.TextScaled = false
+	textLabel.TextSize = textLabel.AbsoluteSize.Y / 2
+end
+
+local function updateOptionTextSizes()
+	updateOptionTextSize(OptionAText)
+	updateOptionTextSize(OptionBText)
+end
+
+local function playContainerTween(tweenInfo: TweenInfo, goalPosition: UDim2)
+	if activeTween then
+		activeTween:Cancel()
+	end
+	activeTween = TweenService:Create(Container, tweenInfo, { Position = goalPosition })
+	activeTween:Play()
 end
 
 local BUTTON_HOVER_SCALE = 1.05
@@ -94,16 +113,17 @@ function VotingGui.open()
 	VotingGui.Open = true
 	instanceKey = math.random(10000)
 	Gui.Enabled = true
+	updateOptionTextSizes()
 
 	Container.Position = containerOffscreenPosition
-	TweenService:Create(Container, CONTAINER_TWEEN_INFO_IN, { Position = containerGoalPosition }):Play()
+	playContainerTween(CONTAINER_TWEEN_INFO_IN, containerGoalPosition)
 end
 
 function VotingGui.close(_instant: boolean?)
 	VotingGui.Open = false
 	local thisInstance = math.random(10000)
 	instanceKey = thisInstance
-	TweenService:Create(Container, CONTAINER_TWEEN_INFO_OUT, { Position = containerOffscreenPosition }):Play()
+	playContainerTween(CONTAINER_TWEEN_INFO_OUT, containerOffscreenPosition)
 	task.spawn(function()
 		task.wait(.6)
 		if instanceKey == thisInstance then
@@ -119,6 +139,8 @@ end
 local function _init()
 	Gui.Parent = Player.PlayerGui
 	Gui.Enabled = false
+	OptionAText.TextScaled = false
+	OptionBText.TextScaled = false
 
 	setupButtonHover(OptionAButton)
 	setupButtonHover(OptionBButton)
