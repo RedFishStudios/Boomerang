@@ -108,7 +108,7 @@ local function applyRoundUi()
    local newGamemode = if currentRoundData then currentRoundData.Gamemode else nil
    local gamemodeData = newGamemode and Gamemodes[newGamemode] or nil
    if gamemodeData and newGamemode then
-      GamemodeLabel.Text = gamemodeData.Display or newGamemode
+      GamemodeLabel.Text = string.gsub(gamemodeData.Display or newGamemode, "\n", "  ")
       --SubheaderLabel.Text = gamemodeData.Subheader or ""
       startCountdown(gamemodeData.Timer or "")
       return

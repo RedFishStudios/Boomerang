@@ -110,6 +110,11 @@ end
 -------------------------------------------------------------------------------
 
 function VotingGui.open()
+	if VotingGui.Open then
+		updateOptionTextSizes()
+		return
+	end
+
 	VotingGui.Open = true
 	instanceKey = math.random(10000)
 	Gui.Enabled = true
@@ -119,10 +124,24 @@ function VotingGui.open()
 	playContainerTween(CONTAINER_TWEEN_INFO_IN, containerGoalPosition)
 end
 
-function VotingGui.close(_instant: boolean?)
+function VotingGui.close(instant: boolean?)
+	if not VotingGui.Open and not Gui.Enabled then
+		return
+	end
+
 	VotingGui.Open = false
 	local thisInstance = math.random(10000)
 	instanceKey = thisInstance
+	if instant then
+		if activeTween then
+			activeTween:Cancel()
+			activeTween = nil
+		end
+		Container.Position = containerOffscreenPosition
+		Gui.Enabled = false
+		return
+	end
+
 	playContainerTween(CONTAINER_TWEEN_INFO_OUT, containerOffscreenPosition)
 	task.spawn(function()
 		task.wait(.6)
