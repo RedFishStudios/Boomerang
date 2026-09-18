@@ -1,7 +1,8 @@
 local GamemodeHudGui = {}
 GamemodeHudGui.Type = "HUD"
+GamemodeHudGui.Open = false
 
-local _TweenService = game:GetService("TweenService")
+local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 
 local Player = game:GetService("Players").LocalPlayer
@@ -20,6 +21,7 @@ local PlayersUtil = require(SharedMods.Utils.PlayersUtil)
 -- // Gui Values // --
 
 local Gui = script:WaitForChild("Gamemode")
+local Header = Gui:WaitForChild("Header") :: Frame
 local countdownConnection: RBXScriptConnection?
 local TimerLabel: TextLabel?
 local shownWholeSeconds: number?
@@ -33,8 +35,26 @@ local GrayscaleImage: ImageLabel?
 local GamemodeLabelGradient: UIGradient?
 local TimerLabelGradient: UIGradient?
 
+-- // Animation Values // --
+
+local headerGoalPosition = Header.Position
+local headerOffscreenPosition = headerGoalPosition - UDim2.fromScale(0, 1)
+local HEADER_TWEEN_INFO_IN = TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+local HEADER_TWEEN_INFO_OUT = TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+
+local instanceKey = nil
+local activeTween = nil
+
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Local Functions
+
+local function playHeaderTween(tweenInfo: TweenInfo, goalPosition: UDim2)
+   if activeTween then
+      activeTween:Cancel()
+   end
+   activeTween = TweenService:Create(Header, tweenInfo, { Position = goalPosition })
+   activeTween:Play()
+end
 
 local function stopCountdown()
    if countdownConnection then
@@ -122,13 +142,42 @@ end
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function GamemodeHudGui.open()
+   if GamemodeHudGui.Open then
+      return
+   end
+
+   instanceKey = math.random(10000)
 	GamemodeHudGui.Open = true	
 	Gui.Enabled = true
+
+   Header.Position = headerOffscreenPosition
+   playHeaderTween(HEADER_TWEEN_INFO_IN, headerGoalPosition)
 end
 
 function GamemodeHudGui.close(Instant: boolean?)
+   if not GamemodeHudGui.Open and not Gui.Enabled then
+      return
+   end
+
+   local thisInstance = math.random(10000)
+   instanceKey = thisInstance
 	GamemodeHudGui.Open = false
-	Gui.Enabled = false
+   if Instant then
+      if activeTween then
+         activeTween:Cancel()
+         activeTween = nil
+      end
+      Header.Position = headerOffscreenPosition
+      Gui.Enabled = false
+   else
+      playHeaderTween(HEADER_TWEEN_INFO_OUT, headerOffscreenPosition)
+      task.spawn(function()
+         task.wait(0.6)
+         if instanceKey == thisInstance then
+            Gui.Enabled = false
+         end
+      end)
+   end
 end
 
 function GamemodeHudGui.getCameraPadding(): number
@@ -158,15 +207,16 @@ end
 
 local function _init()
    Gui.Parent = Player.PlayerGui
-   Gui.Enabled = true
+   Gui.Enabled = false
+   Header.Position = headerOffscreenPosition
 
-   GuiHeader = Gui.Header
-   GamemodeLabel = Gui.Header.GamemodeLabel
-   --SubheaderLabel = Gui.Header.SubheaderLabel
-   TimerLabel = Gui.Header.TimerLabel
+   GuiHeader = Header
+   GamemodeLabel = Header.GamemodeLabel
+   --SubheaderLabel = Header.SubheaderLabel
+   TimerLabel = Header.TimerLabel
 
-   ColoredImage = Gui.Header:WaitForChild("Colored") :: ImageLabel
-   GrayscaleImage = Gui.Header:WaitForChild("Grayscale") :: ImageLabel
+   ColoredImage = Header:WaitForChild("Colored") :: ImageLabel
+   GrayscaleImage = Header:WaitForChild("Grayscale") :: ImageLabel
    GamemodeLabelGradient = GamemodeLabel:WaitForChild("UIGradient") :: UIGradient
    TimerLabelGradient = TimerLabel:WaitForChild("UIGradient") :: UIGradient
 

@@ -2,7 +2,7 @@ local PreIntermissionGui = {}
 PreIntermissionGui.Type = "HUD"
 PreIntermissionGui.Open = false
 
-local _TweenService = game:GetService("TweenService")
+local TweenService = game:GetService("TweenService")
 
 local Player = game:GetService("Players").LocalPlayer
 local Players = game:GetService("Players")
@@ -15,8 +15,8 @@ local SharedMods = ReplicatedStorage.Shared
 
 local UIController = require(ClientMods.UI.UIController)
 local GameStateLibrary = require(SharedMods.Library.GameStateLibrary)
-local AbilityController = require(ClientMods.Core.AbilityController)
-local WeaponController = require(ClientMods.Core.WeaponController)
+local _AbilityController = require(ClientMods.Core.AbilityController)
+local _WeaponController = require(ClientMods.Core.WeaponController)
 local GameplayPhases = require(SharedMods.Constants.Enums.GameplayPhases)
 
 -- // Gui Values // --
@@ -25,14 +25,21 @@ local Gui = script.PreIntermission
 Gui.ResetOnSpawn = false
 Gui.IgnoreGuiInset = true
 
-local TeamResultContainer = Gui:WaitForChild("TeamResultContainer") :: Frame
-local TeamSubtitle = TeamResultContainer:WaitForChild("Subtitle") :: TextLabel
+local imageContainer = Gui:WaitForChild("ImageLabel") :: ImageLabel
+local winningPlayerLabel = imageContainer:WaitForChild("WinningPlayer") :: TextLabel
+local playerUsernameLabel = imageContainer:WaitForChild("Username") :: TextLabel
+local winningTeamLabel = imageContainer:WaitForChild("WinningTeam") :: TextLabel
 
-local PlayerResultContainer = Gui:WaitForChild("PlayerResultContainer") :: Frame
-local PlayerSubtitle = PlayerResultContainer:WaitForChild("Subtitle") :: TextLabel
-local PlayerUsername = PlayerResultContainer:WaitForChild("Username") :: TextLabel
+-- // Animation Values // --
+
+local imageContainerGoalPosition = imageContainer.Position
+local imageContainerOffscreenPosition = imageContainerGoalPosition - UDim2.fromScale(0, 1)
+local IMAGE_CONTAINER_TWEEN_INFO = TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+local IMAGE_CONTAINER_TWEEN_INFO_OUT = TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.In)
 
 local lastRegisteredGameplayPhase = nil
+local instanceKey = nil
+local activeTween = nil
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Local Functions
@@ -43,26 +50,55 @@ type WinnerInfo = {
 	TeamName: string?,
 }
 
+local function getPlayerNames(userId: number): (string, string)
+	local winningPlayer = Players:GetPlayerByUserId(userId)
+	if winningPlayer then
+		return winningPlayer.DisplayName, winningPlayer.Name
+	end
+
+	local success, userInfos = pcall(function()
+		return Players:GetUserInfosByUserIdsAsync({ userId })
+	end)
+	local userInfo = success and userInfos[1]
+	if userInfo then
+		return userInfo.DisplayName, userInfo.Username
+	end
+
+	return "Player", "Unknown"
+end
+
+local function playImageContainerTween(tweenInfo: TweenInfo, goalPosition: UDim2)
+	if activeTween then
+		activeTween:Cancel()
+	end
+	activeTween = TweenService:Create(imageContainer, tweenInfo, { Position = goalPosition })
+	activeTween:Play()
+end
+
 local function displayWinnerInfo(winnerInfo: WinnerInfo?)
 	if winnerInfo and winnerInfo.Type == "Player" and winnerInfo.UserId then
-		local winningPlayer = Players:GetPlayerByUserId(winnerInfo.UserId)
-		PlayerSubtitle.Text = (winningPlayer and winningPlayer.DisplayName or "Player") .. " won!"
-		PlayerUsername.Text = "@" .. (winningPlayer and winningPlayer.Name or "Unknown")
-		PlayerResultContainer.Visible = true
-		TeamResultContainer.Visible = false
+		local displayName, username = getPlayerNames(winnerInfo.UserId)
+		winningPlayerLabel.Text = displayName .. " won!"
+		playerUsernameLabel.Text = "@" .. username
+		winningPlayerLabel.Visible = true
+		playerUsernameLabel.Visible = true
+		winningTeamLabel.Visible = false
 	elseif winnerInfo and winnerInfo.Type == "Team" and winnerInfo.TeamName then
-		TeamSubtitle.Text = winnerInfo.TeamName .. " Wins!"
-		TeamResultContainer.Visible = true
-		PlayerResultContainer.Visible = false
+		winningTeamLabel.Text = winnerInfo.TeamName .. " won!"
+		winningTeamLabel.Visible = true
+		winningPlayerLabel.Visible = false
+		playerUsernameLabel.Visible = false
 	elseif winnerInfo and winnerInfo.Type == "Tie" then
-		TeamSubtitle.Text = "Game tied!"
-		TeamResultContainer.Visible = true
-		PlayerResultContainer.Visible = false
+		winningTeamLabel.Text = "Game tied!"
+		winningTeamLabel.Visible = true
+		winningPlayerLabel.Visible = false
+		playerUsernameLabel.Visible = false
 	else
 		-- // No winning player/team: fall back to the team container with a generic message
-		TeamSubtitle.Text = "No Winner"
-		TeamResultContainer.Visible = true
-		PlayerResultContainer.Visible = false
+		winningTeamLabel.Text = "No winner"
+		winningTeamLabel.Visible = true
+		winningPlayerLabel.Visible = false
+		playerUsernameLabel.Visible = false
 	end
 end
 
@@ -72,14 +108,37 @@ end
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function PreIntermissionGui.open()
-   PreIntermissionGui.Open = true	
+	instanceKey = math.random(10000)
+	PreIntermissionGui.Open = true	
 	Gui.Enabled = true
+
+	imageContainer.Position = imageContainerOffscreenPosition
+	playImageContainerTween(IMAGE_CONTAINER_TWEEN_INFO, imageContainerGoalPosition)
+
 	UIController.GuiToggledTasks:Execute("parallel", "PreIntermission", true)
 end
 
 function PreIntermissionGui.close(Instant: boolean?)
-   PreIntermissionGui.Open = false
-	Gui.Enabled = false
+	local thisInstance = math.random(10000)
+	instanceKey = thisInstance
+	PreIntermissionGui.Open = false
+	if Instant then
+		if activeTween then
+			activeTween:Cancel()
+			activeTween = nil
+		end
+		imageContainer.Position = imageContainerOffscreenPosition
+		Gui.Enabled = false
+	else
+		playImageContainerTween(IMAGE_CONTAINER_TWEEN_INFO_OUT, imageContainerOffscreenPosition)
+		task.spawn(function()
+			task.wait(0.6)
+			if instanceKey == thisInstance then
+				Gui.Enabled = false
+			end
+		end)
+	end
+
 	UIController.GuiToggledTasks:Execute("parallel", "PreIntermission", false)
 end
 
@@ -87,6 +146,7 @@ end
 
 local function _init()
    Gui.Enabled = false
+	imageContainer.Position = imageContainerOffscreenPosition
    Gui.Parent = Player.PlayerGui
 end
 _init()
