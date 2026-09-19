@@ -17,12 +17,14 @@ local GameTeamService
 local WeaponService
 local SoundLibrary
 local CharacterRenderController
+local ItemAcquiredGui
 if isServer then
    GameTeamService = require(ServerStorage.Server.Core.GameTeamService)
    WeaponService = require(ServerStorage.Server.Core.WeaponService)
 else
    SoundLibrary = require(ReplicatedStorage.Shared.Library.SoundLibrary)
    CharacterRenderController = require(ReplicatedStorage.Client.Core.CharacterRenderController)
+   ItemAcquiredGui = require(ReplicatedStorage.Client.UI.Gui.ItemAcquired)
 end
 
 local guiTemplate = script:WaitForChild("HotPotatoGui")
@@ -306,6 +308,7 @@ if not isServer then
 
       if effectData.active then
          Particles[player] = ParticlesLibrary.play(`{player.UserId}_HotPotato`, "HotPotato", player.Character)
+         ItemAcquiredGui.acquiredItem("HotPotato")
       end
    end)
 
