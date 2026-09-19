@@ -10,6 +10,7 @@ local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibra
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
 local GameplayPhaseEnum = require(ReplicatedStorage.Shared.Constants.Enums.GameplayPhases)
+local UIController = require(ReplicatedStorage.Client.UI.UIController)
 
 local localPlayer = Players.LocalPlayer
 
@@ -158,6 +159,13 @@ function PickupController.init()
    pickupReplication.OnClientEvent:Connect(function(livePickupId: string, pickupId: string, userId: number, timestamp: number)
       --print(`received: livePickupId: {livePickupId}, pickupId: {pickupId}, userId: {userId}, timestamp: {timestamp}`)
       destroy(livePickupId)
+
+      if userId == localPlayer.UserId then
+         -- UIController.get can yield while the gui module loads
+         task.spawn(function()
+            UIController.get("ItemAcquired").acquiredItem(pickupId)
+         end)
+      end
 
       local logic = getLogic(pickupId)
       if not logic or not logic.onPickup then
