@@ -49,6 +49,10 @@ local playerPolicyCache: {
    [number]: PlayerPolicyCache
 } = {}
 
+local playerPolicyPending: {
+   [number]: boolean
+} = {}
+
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
 -------------------------------------------------------------------------------
@@ -67,6 +71,26 @@ function PolicyLibrary.getPlayerPolicyData(userId: number): PlayerPolicyData?
        return playerPolicyCache[userId].Data
    end
 
+   -- If already pending, yield until done or timeout
+   if playerPolicyPending[userId] then
+       local timeout = 0
+       while playerPolicyPending[userId] and timeout < 50 do
+           task.wait(0.1)
+           timeout += 1
+           if playerPolicyCache[userId] and playerPolicyCache[userId].Data then
+               return playerPolicyCache[userId].Data
+           end
+       end
+       -- Return cached data if available after wait, otherwise nil
+       if playerPolicyCache[userId] and playerPolicyCache[userId].Data then
+           return playerPolicyCache[userId].Data
+       end
+       return nil
+   end
+
+   -- Mark as pending
+   playerPolicyPending[userId] = true
+
    local tries = 0
    while tries < 3 do
        tries += 1
@@ -79,12 +103,14 @@ function PolicyLibrary.getPlayerPolicyData(userId: number): PlayerPolicyData?
                Data = data,
                LastUpdated = os.time()
            }
+           playerPolicyPending[userId] = nil
            return data
        else
          task.wait(tries * 1.5)
        end
    end
 
+   playerPolicyPending[userId] = nil
    return nil
 end
 
@@ -114,6 +140,7 @@ function PolicyLibrary.init()
    if isServer then
       PlayersUtil.PlayerRemoving:Connect(function(player)
          playerPolicyCache[player.UserId] = nil
+         playerPolicyPending[player.UserId] = nil
       end)
    else
    end
