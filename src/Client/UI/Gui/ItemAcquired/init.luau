@@ -235,11 +235,6 @@ end
 _init()
 
 function ItemAcquiredGui.start()
-   game:GetService("ContextActionService"):BindAction("testacquireitemnotif", function(_, inputState)
-       if inputState == Enum.UserInputState.Begin then
-           ItemAcquiredGui.acquiredItem("OnFire")
-       end
-   end, false, Enum.KeyCode.B)
 end
 
 return ItemAcquiredGui
