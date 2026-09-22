@@ -2,7 +2,7 @@
 	<Meta name="ExplicitAutoJoints">true</Meta>
 	<External>null</External>
 	<External>nil</External>
-	<Item class="Frame" referent="RBX41696C160C73423180D31B90707AA764">
+	<Item class="Frame" referent="RBXC980CD74609745F089830D097D498D18">
 		<Properties>
 			<token name="Style">0</token>
 			<bool name="Active">false</bool>
@@ -66,33 +66,7 @@
 			<int64 name="SourceAssetId">-1</int64>
 			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 		</Properties>
-		<Item class="UICorner" referent="RBX0D5B6D08B74B48F3BF4D42F88A83F4AA">
-			<Properties>
-				<UDim name="BottomLeftRadius">
-					<S>0</S>
-					<O>12</O>
-				</UDim>
-				<UDim name="BottomRightRadius">
-					<S>0</S>
-					<O>12</O>
-				</UDim>
-				<UDim name="TopLeftRadius">
-					<S>0</S>
-					<O>12</O>
-				</UDim>
-				<UDim name="TopRightRadius">
-					<S>0</S>
-					<O>12</O>
-				</UDim>
-				<BinaryString name="AttributesSerialize"></BinaryString>
-				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
-				<bool name="DefinesCapabilities">false</bool>
-				<string name="Name">UICorner</string>
-				<int64 name="SourceAssetId">-1</int64>
-				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
-			</Properties>
-		</Item>
-		<Item class="TextLabel" referent="RBX17621F44EBED40529D2EA6BB25E012B7">
+		<Item class="TextLabel" referent="RBXFF4A1A33449D4C8DBB5619856CB29949">
 			<Properties>
 				<Font name="FontFace">
 					<Family><url>rbxasset://fonts/families/FredokaOne.json</url></Family>
@@ -188,7 +162,7 @@
 				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			</Properties>
 		</Item>
-		<Item class="ImageLabel" referent="RBXCE1BC4867EEC46688F6CCDE77C3CE465">
+		<Item class="ImageLabel" referent="RBX2CA8899EE57241F49081D5B976CD0A07">
 			<Properties>
 				<Content name="Image"><url>rbxasset://textures/ui/GuiImagePlaceholder.png</url></Content>
 				<Color3 name="ImageColor3">
@@ -286,7 +260,7 @@
 				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			</Properties>
 		</Item>
-		<Item class="TextLabel" referent="RBX082754F74F68404E87C8E3422B7B52C3">
+		<Item class="TextLabel" referent="RBXC5CFFDDA712E47FC81E813B74DCE5E75">
 			<Properties>
 				<Font name="FontFace">
 					<Family><url>rbxasset://fonts/families/FredokaOne.json</url></Family>
@@ -382,7 +356,7 @@
 				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			</Properties>
 		</Item>
-		<Item class="TextButton" referent="RBX9C910961040A4CE1B20D76179E79AD8D">
+		<Item class="TextButton" referent="RBX5CBABF2AEB6B4A21939D62365427B5A7">
 			<Properties>
 				<Font name="FontFace">
 					<Family><url>rbxasset://fonts/families/SourceSansPro.json</url></Family>
@@ -483,7 +457,7 @@
 				<int64 name="SourceAssetId">-1</int64>
 				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			</Properties>
-			<Item class="ImageLabel" referent="RBX95CA5CFB673642C8BF549F0CBC503945">
+			<Item class="ImageLabel" referent="RBX11191A35B00A4D31AE445D26834CCC1D">
 				<Properties>
 					<Content name="Image"><url>rbxassetid://122688171791110</url></Content>
 					<Color3 name="ImageColor3">
@@ -581,7 +555,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="TextLabel" referent="RBX73B46A4FC75D4F8AB78118395B7B1909">
+			<Item class="TextLabel" referent="RBX9DE64F09FF604E8A840690E9A19A453E">
 				<Properties>
 					<Font name="FontFace">
 						<Family><url>rbxasset://fonts/families/ComicNeueAngular.json</url></Family>
@@ -671,12 +645,12 @@
 					<BinaryString name="AttributesSerialize"></BinaryString>
 					<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
 					<bool name="DefinesCapabilities">false</bool>
-					<string name="Name">TextLabel</string>
+					<string name="Name">PriceText</string>
 					<int64 name="SourceAssetId">-1</int64>
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="ImageButton" referent="RBX8EBBDCF006944DC69B01146E61265CFF">
+			<Item class="ImageButton" referent="RBX6E2E4047DE8B485F9D3C6C0BF2965AEC">
 				<Properties>
 					<Content name="HoverImage"><null></null></Content>
 					<Content name="Image"><url>rbxassetid://78111289121317</url></Content>
@@ -777,13 +751,13 @@
 					<BinaryString name="AttributesSerialize"></BinaryString>
 					<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
 					<bool name="DefinesCapabilities">false</bool>
-					<string name="Name">ImageButton</string>
+					<string name="Name">Gift</string>
 					<int64 name="SourceAssetId">-1</int64>
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
 		</Item>
-		<Item class="TextButton" referent="RBX87BB8DC447F3475C9779E07B00591EF5">
+		<Item class="TextButton" referent="RBX472BF35F89E34D4A8EB57B34331BF01D">
 			<Properties>
 				<Font name="FontFace">
 					<Family><url>rbxasset://fonts/families/SourceSansPro.json</url></Family>
@@ -880,11 +854,11 @@
 				<BinaryString name="AttributesSerialize"></BinaryString>
 				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
 				<bool name="DefinesCapabilities">false</bool>
-				<string name="Name">Purchase</string>
+				<string name="Name">Currency</string>
 				<int64 name="SourceAssetId">-1</int64>
 				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			</Properties>
-			<Item class="ImageButton" referent="RBX64F425ED9C3E4B46BBA245AF4028A017">
+			<Item class="ImageButton" referent="RBX22F9C63EE8F74F08A28683C6F86B72A8">
 				<Properties>
 					<Content name="HoverImage"><null></null></Content>
 					<Content name="Image"><url>rbxassetid://78111289121317</url></Content>
@@ -985,12 +959,12 @@
 					<BinaryString name="AttributesSerialize"></BinaryString>
 					<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
 					<bool name="DefinesCapabilities">false</bool>
-					<string name="Name">ImageButton</string>
+					<string name="Name">Gift</string>
 					<int64 name="SourceAssetId">-1</int64>
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="ImageLabel" referent="RBXF799F28E19204B6A924E20EB117DB93E">
+			<Item class="ImageLabel" referent="RBX104BA80E3970438393AD110A08A3E233">
 				<Properties>
 					<Content name="Image"><url>rbxassetid://12697954790</url></Content>
 					<Color3 name="ImageColor3">
@@ -1088,7 +1062,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="TextLabel" referent="RBXED5D60EDF7104C54B22C0CD155DBB60B">
+			<Item class="TextLabel" referent="RBXC2E0CBE59B27413484F5A3BEC4B8C783">
 				<Properties>
 					<Font name="FontFace">
 						<Family><url>rbxasset://fonts/families/ComicNeueAngular.json</url></Family>
@@ -1178,11 +1152,37 @@
 					<BinaryString name="AttributesSerialize"></BinaryString>
 					<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
 					<bool name="DefinesCapabilities">false</bool>
-					<string name="Name">TextLabel</string>
+					<string name="Name">PriceText</string>
 					<int64 name="SourceAssetId">-1</int64>
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
+		</Item>
+		<Item class="UICorner" referent="RBX4DFCB00AAE0840E094C42E3AA1E9EE0B">
+			<Properties>
+				<UDim name="BottomLeftRadius">
+					<S>0</S>
+					<O>12</O>
+				</UDim>
+				<UDim name="BottomRightRadius">
+					<S>0</S>
+					<O>12</O>
+				</UDim>
+				<UDim name="TopLeftRadius">
+					<S>0</S>
+					<O>12</O>
+				</UDim>
+				<UDim name="TopRightRadius">
+					<S>0</S>
+					<O>12</O>
+				</UDim>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<string name="Name">UICorner</string>
+				<int64 name="SourceAssetId">-1</int64>
+				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			</Properties>
 		</Item>
 	</Item>
 	<SharedStrings>

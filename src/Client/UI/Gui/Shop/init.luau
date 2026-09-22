@@ -6,14 +6,17 @@ local player = game:GetService("Players").LocalPlayer
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local HttpService = game:GetService("HttpService")
 local SharedMods = ReplicatedStorage.Shared
 local ShopItems = require(SharedMods.Referential.ShopItems)
 local Items = require(SharedMods.Referential.Items)
+local MarketplaceLibrary = require(SharedMods.Library.MarketplaceLibrary)
+local PolicyLibrary = require(SharedMods.Library.PolicyLibrary)
 
 local ShopScreenGui: ScreenGui? = script:WaitForChild("Shop")
 local TabButtons: Frame?
 local Content: ScrollingFrame?
-local _CurrentTab: ShopItems.ShopTab?
+local CurrentTab: ShopItems.ShopTab?
 local CurrentTabButtons: {TextButton} = {}
 local CurrentListings: {Frame} = {}
 
@@ -23,6 +26,8 @@ local itemTypeToDisplay: {
    Skin = "Weapon Skin",
    Weapon = "New Weapon"
 }
+
+local lastTabChangeId: string? = nil
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -43,43 +48,61 @@ local function clearTabButtons()
 end
 
 local function loadTab(tab: ShopItems.ShopTab)
-   _CurrentTab = tab
+   CurrentTab = tab
    clearItemListings()
+   lastTabChangeId = HttpService:GenerateGUID(false)
+   local thisTabChangeId = lastTabChangeId
    
    for _, itemId in ipairs(tab.Items) do
       local itemData = Items[itemId]
       if itemData and not itemData.OffSale then
-         -- Clone the ItemListingTemplate
+         -- Check regional law restrictions
+         if itemData.IsPaidRandomItem then
+            local canAcquire = not PolicyLibrary.arePaidRandomItemsRestricted(game.Players.LocalPlayer)
+            if not canAcquire then
+               continue
+            end
+         end
+
+         -- Create listing template
          local template = script:FindFirstChild("ItemListingTemplate")
          if not template then
             warn("ItemListingTemplate not found")
             continue
          end
-         
          local listing = template:Clone()
          listing.Name = itemId
          
-         -- Update the listing with item data
-         local itemName = listing:FindFirstChild("ItemName")
-         if itemName then
-            itemName.Text = itemData.Name
+         listing.ItemName.Text = itemData.Name
+         listing.ItemType.Text = itemTypeToDisplay[itemData.Type] or "type error"
+
+         -- Toggle gifting based on regional law restrictions
+         listing.Robux.Gift.Visible = false
+         listing.Currency.Gift.Visible = false
+         if PolicyLibrary.isPaidItemTradingAllowed(game.Players.LocalPlayer) then
+            listing.Robux.Gift.Visible = true
+            listing.Currency.Gift.Visible = true
          end
          
-         local subtitle = listing:FindFirstChild("ItemType")
-         if subtitle then
-            subtitle.Text = itemTypeToDisplay[itemData.Type]
+         -- Display robux price based on availability and regional law restrictions
+         local productId = itemData.ProductId
+         if productId then
+            listing.Robux.Visible = true
+            task.spawn(function()
+               local productPrice = MarketplaceLibrary.getProductPrice(productId)
+               if productPrice and lastTabChangeId == thisTabChangeId then 
+                  local clientCanPurchaseItem = MarketplaceLibrary.playerCanPurchaseItem(game.Players.LocalPlayer, productId)
+                  if clientCanPurchaseItem then
+                     listing.Robux.PriceText.Text = productPrice
+                  end
+               end
+            end)
+         else
+            listing.Robux.Visible = false
          end
-         
-         local robuxPrice = listing:FindFirstChild("BuyWithRobux")
-         if robuxPrice then
-            robuxPrice.Text = "0 Ⓡ"
-         end
-         
-         local currencyPrice = listing:FindFirstChild("BuyWithCurrency")
-         if currencyPrice then
-            currencyPrice.Text = itemData.Price .. " $"
-         end
-         
+
+         listing.Currency.PriceText.Text = itemData.Price
+  
          listing.Parent = Content
          table.insert(CurrentListings, listing)
       end
@@ -154,6 +177,7 @@ function ShopGui.open()
       return
    end
    
+   lastTabChangeId = HttpService:GenerateGUID(false)
    ShopScreenGui.Enabled = true
    ShopGui.Open = true
    loadTabButtons()

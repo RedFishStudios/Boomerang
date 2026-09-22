@@ -7,14 +7,8 @@ local PolicyLibrary = require(script.Parent.PolicyLibrary)
 
 local CACHE_TIMEOUT = 120
 
-local RobuxLibrary = {}
-
-export type RobuxItem = {
-	Id: number,
-	Display: string,
-	IconId: number?, -- Overrides product's real icon
-	IsPaidRandomItem: boolean?, -- Item is disabled in a region where paid random items are restricted
-}
+local MarketplaceLibrary = {}
+local MarketplaceItems = require(ReplicatedStorage.Shared.Referential.MarketplaceItems)
 
 -- // https://create.roblox.com/docs/reference/engine/classes/MarketplaceService#GetProductInfo
 export type RobuxItemInfo = {
@@ -38,19 +32,6 @@ export type RobuxItemInfo = {
    TargetId: number
 }
 
-local RobuxItems: {
-   ByName: { [string]: RobuxItem },
-   ById: { [number]: RobuxItem }
-} = {
-   ByName = {
-      Placeholder = {
-         Id = 3714074543,
-         Display = "Placeholder",
-	   }
-   },
-   ById = {}
-}
-
 local InfoCache: {
    [number]: {
       CachedAt: number,
@@ -58,10 +39,13 @@ local InfoCache: {
    }
 } = {}
 
--- // Initialize ById tables
-for name, product in pairs(RobuxItems.ByName) do
-	RobuxItems.ById[product.Id] = product
-end
+local productPending: {
+   [number]: boolean
+} = {}
+
+local gamepassPending: {
+   [number]: boolean
+} = {}
 
 local yieldingConnections: {
    [number]: RBXScriptConnection
@@ -76,7 +60,7 @@ local function resolveItemIdentifier(product: string | number): number?
 		return product
 	end
 
-   local item = RobuxItems.ByName[product]
+   local item = MarketplaceItems.ByName[product]
    if not item then
       return nil
    end
@@ -88,11 +72,11 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
-function RobuxLibrary.getItemDataById(id: number): RobuxItem?
-   return RobuxItems.ById[id]
+function MarketplaceLibrary.getItemDataById(id: number): MarketplaceItems.RobuxItem?
+   return MarketplaceItems.ById[id]
 end
 
-function RobuxLibrary.getItemInfo(item: string | number): RobuxItemInfo?
+function MarketplaceLibrary.getProductInfo(item: string | number): RobuxItemInfo?
 	local itemId = resolveItemIdentifier(item)
 	if not itemId then
 		return nil
@@ -104,9 +88,33 @@ function RobuxLibrary.getItemInfo(item: string | number): RobuxItemInfo?
 		return cached.Info
 	end
 
+	-- If already pending, yield until done or timeout
+	if productPending[itemId] then
+		local timeout = 0
+		while productPending[itemId] and timeout < 50 do
+			task.wait(0.1)
+			timeout += 1
+			local cached2 = InfoCache[itemId]
+			if cached2 and (os.clock() - cached2.CachedAt) <= CACHE_TIMEOUT then
+				return cached2.Info
+			end
+		end
+		-- Return cached data if available after wait, otherwise nil
+		local cached2 = InfoCache[itemId]
+		if cached2 and (os.clock() - cached2.CachedAt) <= CACHE_TIMEOUT then
+			return cached2.Info
+		end
+		return nil
+	end
+
+	-- Mark as pending
+	productPending[itemId] = true
+
 	local success, info = pcall(function()
 		return MarketplaceService:GetProductInfoAsync(itemId, Enum.InfoType.Product)
 	end)
+
+	productPending[itemId] = nil
 
 	if not success or typeof(info) ~= "table" then
 		return nil
@@ -120,8 +128,8 @@ function RobuxLibrary.getItemInfo(item: string | number): RobuxItemInfo?
 	return info
 end
 
-function RobuxLibrary.getItemPrice(item: string | number): number?
-	local info = RobuxLibrary.getItemInfo(item)
+function MarketplaceLibrary.getProductPrice(item: string | number): number?
+	local info = MarketplaceLibrary.getProductInfo(item)
 	if not info then
 		return nil
 	end
@@ -134,7 +142,8 @@ function RobuxLibrary.getItemPrice(item: string | number): number?
 	return price
 end
 
-function RobuxLibrary.promptProductPurchase(player: Player, item: string | number, yieldForAnswer: boolean?): boolean?
+
+function MarketplaceLibrary.promptProductPurchase(player: Player, item: string | number, yieldForAnswer: boolean?): boolean?
 	local itemId = resolveItemIdentifier(item)
 	if not itemId then
       warn(`Invalid item: ${item}`)
@@ -169,7 +178,73 @@ function RobuxLibrary.promptProductPurchase(player: Player, item: string | numbe
 	return nil
 end
 
-function RobuxLibrary.promptGamepassPurchase(player: Player, gamepassId: number, yieldForAnswer: boolean?): boolean?
+function MarketplaceLibrary.getGamepassInfo(item: string | number): RobuxItemInfo?
+	local itemId = resolveItemIdentifier(item)
+	if not itemId then
+		return nil
+	end
+
+	local now = os.clock()
+	local cached = InfoCache[itemId]
+	if cached and (now - cached.CachedAt) <= CACHE_TIMEOUT then
+		return cached.Info
+	end
+
+	-- If already pending, yield until done or timeout
+	if gamepassPending[itemId] then
+		local timeout = 0
+		while gamepassPending[itemId] and timeout < 50 do
+			task.wait(0.1)
+			timeout += 1
+			local cached2 = InfoCache[itemId]
+			if cached2 and (os.clock() - cached2.CachedAt) <= CACHE_TIMEOUT then
+				return cached2.Info
+			end
+		end
+		-- Return cached data if available after wait, otherwise nil
+		local cached2 = InfoCache[itemId]
+		if cached2 and (os.clock() - cached2.CachedAt) <= CACHE_TIMEOUT then
+			return cached2.Info
+		end
+		return nil
+	end
+
+	-- Mark as pending
+	gamepassPending[itemId] = true
+
+	local success, info = pcall(function()
+		return MarketplaceService:GetProductInfoAsync(itemId, Enum.InfoType.GamePass)
+	end)
+
+	gamepassPending[itemId] = nil
+
+	if not success or typeof(info) ~= "table" then
+		return nil
+	end
+
+	InfoCache[itemId] = {
+		CachedAt = now,
+		Info = info,
+	}
+
+	return info
+end
+
+function MarketplaceLibrary.getGamepassPrice(item: string | number): number?
+	local info = MarketplaceLibrary.getGamepassInfo(item)
+	if not info then
+		return nil
+	end
+
+	local price = info.PriceInRobux
+	if typeof(price) ~= "number" then
+		return nil
+	end
+
+	return price
+end
+
+function MarketplaceLibrary.promptGamepassPurchase(player: Player, gamepassId: number, yieldForAnswer: boolean?): boolean?
 	local itemId = gamepassId
 	if not itemId then
       warn(`Invalid gamepassId: ${gamepassId}`)
@@ -205,13 +280,13 @@ function RobuxLibrary.promptGamepassPurchase(player: Player, gamepassId: number,
 end
 
 -- // Enforce regional laws
-function RobuxLibrary.playerCanPurchaseItem(player: Player, item: string | number): boolean
+function MarketplaceLibrary.playerCanPurchaseItem(player: Player, item: string | number): boolean
 	local itemId = resolveItemIdentifier(item)
 	if not itemId then
 		return false
 	end
 
-   local itemData = RobuxItems.ById[itemId]
+   local itemData = MarketplaceItems.ById[itemId]
    if not itemData then
       return false
    end
@@ -229,4 +304,4 @@ function RobuxLibrary.playerCanPurchaseItem(player: Player, item: string | numbe
 
 	return true
 end
-return RobuxLibrary
+return MarketplaceLibrary

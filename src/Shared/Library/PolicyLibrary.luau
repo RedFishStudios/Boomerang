@@ -138,7 +138,7 @@ end
 
 function PolicyLibrary.init()
    if isServer then
-      PlayersUtil.PlayerRemoving:Connect(function(player)
+      PlayersUtil.PlayerRemoving:Add(function(player)
          playerPolicyCache[player.UserId] = nil
          playerPolicyPending[player.UserId] = nil
       end)
