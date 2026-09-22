@@ -88,6 +88,7 @@ local function loadTab(tab: ShopItems.ShopTab)
          local productId = itemData.ProductId
          if productId then
             listing.Robux.Visible = true
+            listing.Robux.PriceText.Text = "..."
             task.spawn(function()
                local productPrice = MarketplaceLibrary.getProductPrice(productId)
                if productPrice and lastTabChangeId == thisTabChangeId then 
