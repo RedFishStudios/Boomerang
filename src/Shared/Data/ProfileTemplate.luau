@@ -17,13 +17,17 @@ export type Template = typeof(ProfileTemplate.get())
 -------------------------------------------------------------------------------
 
 function ProfileTemplate.get()
-	local profile = {}
+	local baseProfile = {
+      Elims = 0,
+      Wins = 0,
+      Losses = 0,
+      DailyRewards = {
+         Streak = 0,
+         LastClaim = 0
+      }
+   }
 
-   profile.Elims = 0
-   profile.Wins = 0
-   profile.Losses = 0
-
-	return profile
+	return baseProfile
 end
 
 return ProfileTemplate
