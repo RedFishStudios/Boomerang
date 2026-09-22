@@ -66,7 +66,9 @@ local playerPolicyPending: {
 -------------------------------------------------------------------------------
 
 -- // MAY YIELD
-function PolicyLibrary.getPlayerPolicyData(userId: number): PlayerPolicyData?
+function PolicyLibrary.getPlayerPolicyData(player: Player): PlayerPolicyData?
+   local userId = player.UserId
+   print("loading player policy data for userId:", userId)
    if playerPolicyCache[userId] and playerPolicyCache[userId].Data then
        return playerPolicyCache[userId].Data
    end
@@ -95,7 +97,7 @@ function PolicyLibrary.getPlayerPolicyData(userId: number): PlayerPolicyData?
    while tries < 3 do
        tries += 1
        local success, data = pcall(function()
-           return PolicyService:GetPolicyInfoForPlayerAsync(userId)
+           return PolicyService:GetPolicyInfoForPlayerAsync(player)
        end)
 
        if success then
@@ -104,18 +106,21 @@ function PolicyLibrary.getPlayerPolicyData(userId: number): PlayerPolicyData?
                LastUpdated = os.time()
            }
            playerPolicyPending[userId] = nil
+           print("successfully loaded player policy data for userId:", userId)
            return data
        else
+         warn(data)
          task.wait(tries * 1.5)
        end
    end
 
    playerPolicyPending[userId] = nil
+   print("failed to load player policy data for userId:", userId)
    return nil
 end
 
 function PolicyLibrary.arePaidRandomItemsRestricted(player: Player): boolean
-	local policyData = PolicyLibrary.getPlayerPolicyData(player.UserId)
+	local policyData = PolicyLibrary.getPlayerPolicyData(player)
    if policyData then
       return policyData.ArePaidRandomItemsRestricted
    end
@@ -124,7 +129,7 @@ function PolicyLibrary.arePaidRandomItemsRestricted(player: Player): boolean
 end
 
 function PolicyLibrary.isPaidItemTradingAllowed(player: Player): boolean
-	local policyData = PolicyLibrary.getPlayerPolicyData(player.UserId)
+	local policyData = PolicyLibrary.getPlayerPolicyData(player)
    if policyData then
       return policyData.IsPaidItemTradingAllowed
    end
