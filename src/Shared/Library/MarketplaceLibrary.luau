@@ -2,6 +2,7 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 
 local PolicyLibrary = require(script.Parent.PolicyLibrary)
 
@@ -47,9 +48,12 @@ local gamepassPending: {
    [number]: boolean
 } = {}
 
-local yieldingConnections: {
-   [number]: RBXScriptConnection
-} = {}
+-------------------------------------------------------------------------------
+-- PUBLIC VALUES
+-------------------------------------------------------------------------------
+
+MarketplaceLibrary.ProductPurchasePromptFinishedTasks = TasksList.new() :: TasksList.TasksList<(player: Player, productId: number, wasPurchased: boolean) -> ()>
+MarketplaceLibrary.GamepassPurchasePromptFinishedTasks = TasksList.new() :: TasksList.TasksList<(player: Player, gamepassId: number, wasPurchased: boolean) -> ()>
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -156,22 +160,20 @@ function MarketplaceLibrary.promptProductPurchase(player: Player, item: string |
       local answer = nil
       local elapsed = 0
 
-		if yieldingConnections[itemId] then
-			yieldingConnections[itemId]:Disconnect()
-			yieldingConnections[itemId] = nil
-		end
-      yieldingConnections[itemId] = MarketplaceService.PromptProductPurchaseFinished:Connect(function(playerWhoPurchased: Player, purchasedItemId: number, wasPurchased: boolean)
+      local destroyer
+      destroyer = MarketplaceLibrary.ProductPurchasePromptFinishedTasks:Add(function(playerWhoPurchased, purchasedItemId, wasPurchased)
          if playerWhoPurchased == player and purchasedItemId == itemId then
-            yieldingConnections[itemId]:Disconnect()
-            yieldingConnections[itemId] = nil
+            answer = wasPurchased
+            destroyer()
          end
-         answer = wasPurchased
       end)
       
       repeat
          elapsed = elapsed + task.wait()
       until answer ~= nil or elapsed >= 60
 
+      -- Cleanup task if it wasn't already cleaned up by the event
+      destroyer()
       return answer
 	end
 
@@ -257,22 +259,20 @@ function MarketplaceLibrary.promptGamepassPurchase(player: Player, gamepassId: n
       local answer = nil
       local elapsed = 0
 
-		if yieldingConnections[itemId] then
-			yieldingConnections[itemId]:Disconnect()
-			yieldingConnections[itemId] = nil
-		end
-      yieldingConnections[itemId] = MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(playerWhoPurchased: Player, purchasedItemId: number, wasPurchased: boolean)
+      local destroyer
+      destroyer = MarketplaceLibrary.GamepassPurchasePromptFinishedTasks:Add(function(playerWhoPurchased: Player, purchasedItemId: number, wasPurchased: boolean)
          if playerWhoPurchased == player and purchasedItemId == itemId then
-            yieldingConnections[itemId]:Disconnect()
-            yieldingConnections[itemId] = nil
+            answer = wasPurchased
+            destroyer()
          end
-         answer = wasPurchased
       end)
       
       repeat
          elapsed = elapsed + task.wait()
       until answer ~= nil or elapsed >= 60
 
+      -- Cleanup task if it wasn't already cleaned up by the event
+      destroyer()
       return answer
 	end
 
@@ -304,4 +304,14 @@ function MarketplaceLibrary.playerCanPurchaseItem(player: Player, item: string |
 
 	return true
 end
+
+function MarketplaceLibrary.init()
+   MarketplaceService.PromptProductPurchaseFinished:Connect(function(player: Player, productId: number, wasPurchased: boolean)
+      MarketplaceLibrary.ProductPurchasePromptFinishedTasks:Execute("paralell", player, productId, wasPurchased)
+   end)
+   MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player: Player, gamepassId: number, wasPurchased: boolean)
+      MarketplaceLibrary.GamepassPurchasePromptFinishedTasks:Execute("paralell", player, gamepassId, wasPurchased)
+   end)
+end
+
 return MarketplaceLibrary
