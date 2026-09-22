@@ -178,7 +178,6 @@ function ShopGui.open()
       return
    end
    
-   lastTabChangeId = HttpService:GenerateGUID(false)
    ShopScreenGui.Enabled = true
    ShopGui.Open = true
    loadTabButtons()
@@ -188,6 +187,7 @@ function ShopGui.close()
    if not ShopScreenGui then
       return
    end
+   lastTabChangeId = HttpService:GenerateGUID(false)
    
    ShopScreenGui.Enabled = false
    ShopGui.Open = false
