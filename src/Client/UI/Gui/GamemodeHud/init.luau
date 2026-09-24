@@ -1,6 +1,7 @@
 local GamemodeHudGui = {}
 GamemodeHudGui.Type = "HUD"
 GamemodeHudGui.Open = false
+GamemodeHudGui.SupercededBy = {}
 
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
@@ -10,11 +11,9 @@ local Player = game:GetService("Players").LocalPlayer
 -- // Modules // --
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ClientMods = ReplicatedStorage.Client
 local SharedMods = ReplicatedStorage.Shared
 
 local Gamemodes = require(SharedMods.Constants.Gamemodes)
-local _UIController = require(ClientMods.UI.UIController)
 local GameStateLibrary = require(SharedMods.Library.GameStateLibrary)
 local PlayersUtil = require(SharedMods.Utils.PlayersUtil)
 
@@ -44,6 +43,7 @@ local HEADER_TWEEN_INFO_OUT = TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.Eas
 
 local instanceKey = nil
 local activeTween = nil
+local isSuperceded = false
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Local Functions
@@ -54,6 +54,28 @@ local function playHeaderTween(tweenInfo: TweenInfo, goalPosition: UDim2)
    end
    activeTween = TweenService:Create(Header, tweenInfo, { Position = goalPosition })
    activeTween:Play()
+end
+
+local function animateAway(instant: boolean?)
+   local thisInstance = math.random(10000)
+   instanceKey = thisInstance
+   if instant then
+      if activeTween then
+         activeTween:Cancel()
+         activeTween = nil
+      end
+      Header.Position = headerOffscreenPosition
+      Gui.Enabled = false
+      return
+   end
+
+   playHeaderTween(HEADER_TWEEN_INFO_OUT, headerOffscreenPosition)
+   task.spawn(function()
+      task.wait(0.6)
+      if instanceKey == thisInstance then
+         Gui.Enabled = false
+      end
+   end)
 end
 
 local function stopCountdown()
@@ -142,13 +164,19 @@ end
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function GamemodeHudGui.open()
-   if GamemodeHudGui.Open then
+   if GamemodeHudGui.Open and not isSuperceded then
+      return
+   end
+
+   GamemodeHudGui.Open = true
+   if #GamemodeHudGui.SupercededBy > 0 then
+      isSuperceded = true
       return
    end
 
    instanceKey = math.random(10000)
-	GamemodeHudGui.Open = true	
-	Gui.Enabled = true
+   isSuperceded = false
+   Gui.Enabled = true
 
    Header.Position = headerOffscreenPosition
    playHeaderTween(HEADER_TWEEN_INFO_IN, headerGoalPosition)
@@ -159,25 +187,18 @@ function GamemodeHudGui.close(Instant: boolean?)
       return
    end
 
-   local thisInstance = math.random(10000)
-   instanceKey = thisInstance
-	GamemodeHudGui.Open = false
-   if Instant then
-      if activeTween then
-         activeTween:Cancel()
-         activeTween = nil
-      end
-      Header.Position = headerOffscreenPosition
-      Gui.Enabled = false
-   else
-      playHeaderTween(HEADER_TWEEN_INFO_OUT, headerOffscreenPosition)
-      task.spawn(function()
-         task.wait(0.6)
-         if instanceKey == thisInstance then
-            Gui.Enabled = false
-         end
-      end)
+   GamemodeHudGui.Open = false
+   isSuperceded = false
+   animateAway(Instant)
+end
+
+function GamemodeHudGui.supercede()
+   if not GamemodeHudGui.Open then
+      return
    end
+
+   isSuperceded = true
+   animateAway()
 end
 
 function GamemodeHudGui.getCameraPadding(): number

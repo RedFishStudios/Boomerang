@@ -87,14 +87,37 @@ function UIController.toggleUI(uiName: string, toggle: boolean, ...)
 	end
 end
 
+-- // The superceding gui forces the superceded gui to close while the superceding gui is open
 function UIController.supercede(supercedingGuiName: string, supercededGuiName: string)
+   local Superceded = UIModules[supercededGuiName]
 	if UIModules[supercedingGuiName] and UIModules[supercededGuiName] then
-		UIModules[supercededGuiName].close()
-	end
+      if not Superceded.SupercededBy then
+         Superceded.SupercededBy = {}
+      end
+		if not table.find(Superceded.SupercededBy, supercedingGuiName) then
+			table.insert(Superceded.SupercededBy, supercedingGuiName)
+		end
+		Superceded.supercede()
+	else
+      warn(`UiController.supercede: One of these guis not found: {supercedingGuiName}, {supercededGuiName}`)
+   end
 end
 
+-- // A superceding gui is closed, no longer obscuring the superceded gui
 function UIController.unSupercede(supercedingGuiName: string, supercededGuiName: string)
-   
+   local Superceded = UIModules[supercededGuiName]
+   if Superceded then
+      if Superceded.SupercededBy then
+         for i = #Superceded.SupercededBy, 1, -1 do
+            if Superceded.SupercededBy[i] == supercedingGuiName then
+               table.remove(Superceded.SupercededBy, i)
+            end
+         end
+         if Superceded.Open and #Superceded.SupercededBy == 0 then
+            Superceded.open()
+         end
+      end
+   end
 end
 
 --------------------------------------------------------------------------------------------------------------------------------------------------

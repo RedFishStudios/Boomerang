@@ -47,10 +47,6 @@ local CONTAINER_TWEEN_INFO_IN = TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.E
 local CONTAINER_TWEEN_INFO_OUT = TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In)
 local activeTween: Tween?
 
--- Gamemode HUD management
-local GamemodeHudController: any?
-local ShouldHideGamemodeHud = false
-
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
@@ -164,16 +160,6 @@ local function playContainerTween(tweenInfo: TweenInfo, goalPosition: UDim2)
 	activeTween:Play()
 end
 
-local function updateGamemodeHudVisibility()
-	if not GamemodeHudController then return end
-	
-	if ShopGui.Open and ShouldHideGamemodeHud then
-		GamemodeHudController.close()
-	elseif not ShopGui.Open and ShouldHideGamemodeHud then
-		GamemodeHudController.open()
-	end
-end
-
 local function loadTabButtons()
    clearTabButtons()
    
@@ -229,7 +215,8 @@ function ShopGui.open()
    Container.Position = containerOffscreenPosition
    loadTabButtons()
    playContainerTween(CONTAINER_TWEEN_INFO_IN, containerGoalPosition)
-   updateGamemodeHudVisibility()
+   UIController.supercede("Shop", "GamemodeHud")
+   
 end
 
 function ShopGui.close()
@@ -242,12 +229,12 @@ function ShopGui.close()
    playContainerTween(CONTAINER_TWEEN_INFO_OUT, containerOffscreenPosition)
    clearTabButtons()
    clearItemListings()
+   UIController.unSupercede("Shop", "GamemodeHud")
    
    task.spawn(function()
       task.wait(0.4)
       if not ShopGui.Open then
          ShopScreenGui.Enabled = false
-         updateGamemodeHudVisibility()
       end
    end)
 end
@@ -288,17 +275,6 @@ local function _init()
       warn(`exit click`)
       ShopGui.close()
    end)
-   
-   -- Try to get GamemodeHudController for hiding/showing
-   local GuiFolder = script.Parent.Parent
-   local GamemodeHudFolder = GuiFolder:FindFirstChild("GamemodeHud")
-   if GamemodeHudFolder then
-      local gamemodeHudModule = GamemodeHudFolder:FindFirstChild("init")
-      if gamemodeHudModule then
-         GamemodeHudController = require(gamemodeHudModule)
-         ShouldHideGamemodeHud = true
-      end
-   end
 end
 
 function ShopGui.start()
