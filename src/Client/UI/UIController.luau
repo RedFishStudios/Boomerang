@@ -87,6 +87,16 @@ function UIController.toggleUI(uiName: string, toggle: boolean, ...)
 	end
 end
 
+function UIController.supercede(supercedingGuiName: string, supercededGuiName: string)
+	if UIModules[supercedingGuiName] and UIModules[supercededGuiName] then
+		UIModules[supercededGuiName].close()
+	end
+end
+
+function UIController.unSupercede(supercedingGuiName: string, supercededGuiName: string)
+   
+end
+
 --------------------------------------------------------------------------------------------------------------------------------------------------
 
 function UIController.init()

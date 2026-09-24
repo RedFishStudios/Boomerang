@@ -71,7 +71,6 @@ function CombatService.init()
    end
    
    CombatLibrary.PlayerKilledPlayerTasks:Add(function(killer: Player, victim: Player, weaponId: string)
-      warn(`combatservice detected kill`)
       if not killer or not victim then
          print("NO KILLER OR VICTIM")
          print(killer, victim)
