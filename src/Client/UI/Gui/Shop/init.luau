@@ -38,6 +38,9 @@ local TabButton = 77349291529962
 local BUTTON_WIDTH = 0.23
 local BUTTON_PADDING = 0.03
 local BUTTON_TOTAL_WIDTH = BUTTON_WIDTH + BUTTON_PADDING
+local ACTION_BUTTON_HOVER_SCALE = 1.05
+local ACTION_BUTTON_HOVER_TILT = 3
+local ACTION_BUTTON_HOVER_TWEEN_INFO = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
 -- Animation values
 local Container: Frame?
@@ -63,6 +66,37 @@ local function clearTabButtons()
       button:Destroy()
    end
    CurrentTabButtons = {}
+end
+
+local function setupActionButtonHover(button: GuiButton)
+   local defaultSize = button.Size
+   local defaultRotation = button.Rotation
+   local hoverSize = UDim2.new(
+      defaultSize.X.Scale * ACTION_BUTTON_HOVER_SCALE,
+      defaultSize.X.Offset * ACTION_BUTTON_HOVER_SCALE,
+      defaultSize.Y.Scale * ACTION_BUTTON_HOVER_SCALE,
+      defaultSize.Y.Offset * ACTION_BUTTON_HOVER_SCALE
+   )
+   local activeHoverTween: Tween?
+
+   local function tweenTo(size: UDim2, rotation: number)
+      if activeHoverTween then
+         activeHoverTween:Cancel()
+      end
+      activeHoverTween = TweenService:Create(button, ACTION_BUTTON_HOVER_TWEEN_INFO, {
+         Size = size,
+         Rotation = rotation,
+      })
+      activeHoverTween:Play()
+   end
+
+   button.MouseEnter:Connect(function()
+      tweenTo(hoverSize, defaultRotation + ACTION_BUTTON_HOVER_TILT)
+   end)
+
+   button.MouseLeave:Connect(function()
+      tweenTo(defaultSize, defaultRotation)
+   end)
 end
 
 local function loadTab(tab: ShopItems.ShopTab)
@@ -121,6 +155,8 @@ local function loadTab(tab: ShopItems.ShopTab)
          end
 
          listing.Currency.PriceText.Text = itemData.Price
+         setupActionButtonHover(listing.Currency)
+         setupActionButtonHover(listing.Robux)
   
          listing.Parent = Content
          table.insert(CurrentListings, listing)
@@ -179,6 +215,7 @@ local function loadTabButtons()
       local template = script:WaitForChild("TabButtonTemplate")
       local tabButton = template:Clone()
       tabButton.Name = tabName
+      tabButton.TextLabel.Text = tab.Name
       
       -- Manually position button based on index
       local xOffset = buttonIndex * BUTTON_TOTAL_WIDTH
@@ -271,6 +308,7 @@ local function _init()
    
    -- Wire close button
    local exitButton = imageLabel:WaitForChild("Exit")
+   setupActionButtonHover(exitButton)
    exitButton.MouseButton1Click:Connect(function()
       warn(`exit click`)
       ShopGui.close()

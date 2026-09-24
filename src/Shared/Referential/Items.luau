@@ -32,18 +32,21 @@ return {
       Name = "Example Weapon",
       Price = 20,
       OffSale = nil,
+      ProductId = MarketplaceItems.ByName.Placeholder.Id,
       Type = "Weapon"
    },
    ExampleWeapon2 = {
       Name = "Example Weapon",
       Price = 20,
       OffSale = nil,
+      ProductId = MarketplaceItems.ByName.Placeholder.Id,
       Type = "Weapon"
    },
    ExampleWeapon3 = {
       Name = "Example Weapon",
       Price = 20,
       OffSale = nil,
+      ProductId = MarketplaceItems.ByName.Placeholder.Id,
       Type = "Weapon"
    }
 } :: {

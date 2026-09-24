@@ -17,7 +17,7 @@ local ShopItems: {
       ExampleTab1 = {
          Order = 1,
          AutoSelect = true,
-         Name = "Example Tab 1",
+         Name = "Weapons",
          Items = {
             "ExampleItem1",
             "ExampleItem2"
@@ -26,7 +26,7 @@ local ShopItems: {
       ExampleTab2 = {
          Order = 2,
          AutoSelect = nil,
-         Name = "Example Tab 2",
+         Name = "Skins",
          Items = {
             "ExampleWeapon1",
             "ExampleWeapon2",

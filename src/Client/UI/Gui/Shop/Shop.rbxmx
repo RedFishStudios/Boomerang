@@ -2,13 +2,13 @@
 	<Meta name="ExplicitAutoJoints">true</Meta>
 	<External>null</External>
 	<External>nil</External>
-	<Item class="ScreenGui" referent="RBXF6AEC6CA03A04B3199CCE9916E9E3EA5">
+	<Item class="ScreenGui" referent="RBX19801440D40D4625A87234DF06399B27">
 		<Properties>
 			<bool name="ClipToDeviceSafeArea">true</bool>
 			<int name="DisplayOrder">0</int>
 			<token name="SafeAreaCompatibility">1</token>
 			<token name="ScreenInsets">2</token>
-			<bool name="Enabled">true</bool>
+			<bool name="Enabled">false</bool>
 			<bool name="ResetOnSpawn">false</bool>
 			<token name="ZIndexBehavior">1</token>
 			<bool name="AutoLocalize">true</bool>
@@ -25,7 +25,7 @@
 			<int64 name="SourceAssetId">-1</int64>
 			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 		</Properties>
-		<Item class="Frame" referent="RBXEE41FF035A4E4BE78EEBC9F4B0DB5399">
+		<Item class="Frame" referent="RBX43C79EB18C8646B3ACF3D71CBE865CFB">
 			<Properties>
 				<token name="Style">0</token>
 				<bool name="Active">false</bool>
@@ -89,7 +89,7 @@
 				<int64 name="SourceAssetId">-1</int64>
 				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			</Properties>
-			<Item class="ImageLabel" referent="RBXE843B26072DA4B60BBF4C4C117AF39D5">
+			<Item class="ImageLabel" referent="RBX6BD00F154A9F4FF5B38AB7C1A9E7CDB4">
 				<Properties>
 					<Content name="Image"><url>rbxassetid://82321904713712</url></Content>
 					<Color3 name="ImageColor3">
@@ -186,7 +186,7 @@
 					<int64 name="SourceAssetId">-1</int64>
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
-				<Item class="ScrollingFrame" referent="RBXA75FBFCAB8914BF08203694CC35BBC6F">
+				<Item class="ScrollingFrame" referent="RBX425E4DAA989242D2869F9EAA356800DB">
 					<Properties>
 						<token name="AutomaticCanvasSize">0</token>
 						<Content name="BottomImage"><url>rbxasset://textures/ui/Scroll/scroll-bottom.png</url></Content>
@@ -276,7 +276,7 @@
 						<int64 name="SourceAssetId">-1</int64>
 						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 					</Properties>
-					<Item class="UIGridLayout" referent="RBX19A9FDD1788C4C4D916615BF7D050F5A">
+					<Item class="UIGridLayout" referent="RBX0C514F4AD2AB42F38B1383F9E119D13D">
 						<Properties>
 							<UDim2 name="CellPadding">
 								<XS>0.0250000004</XS>
@@ -304,7 +304,7 @@
 							<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 						</Properties>
 					</Item>
-					<Item class="UICorner" referent="RBX2F87452C40A64C0EAA1189C6121F779D">
+					<Item class="UICorner" referent="RBX0242200F02A94896A35D8A975F12CEC5">
 						<Properties>
 							<UDim name="BottomLeftRadius">
 								<S>0.0500000007</S>
@@ -330,7 +330,7 @@
 							<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 						</Properties>
 					</Item>
-					<Item class="UIPadding" referent="RBXBF8D6FDD2DD348F795984ABF3E9BA3B1">
+					<Item class="UIPadding" referent="RBX8FD0764C03714A0E97E058442D7C53F9">
 						<Properties>
 							<UDim name="PaddingBottom">
 								<S>0</S>
@@ -357,7 +357,7 @@
 						</Properties>
 					</Item>
 				</Item>
-				<Item class="ImageButton" referent="RBX27E0EC13E56F4D03A170DCBC79BA90DA">
+				<Item class="ImageButton" referent="RBX392309D08D3547E5973487AD40F495B0">
 					<Properties>
 						<Content name="HoverImage"><null></null></Content>
 						<Content name="Image"><url>rbxassetid://128558576339961</url></Content>
@@ -464,7 +464,7 @@
 					</Properties>
 				</Item>
 			</Item>
-			<Item class="UIAspectRatioConstraint" referent="RBXA2704228C81A4B919CE3D3F1950F110E">
+			<Item class="UIAspectRatioConstraint" referent="RBX037BF94B4A814895A0AAB73226C398F2">
 				<Properties>
 					<float name="AspectRatio">1.28999996</float>
 					<token name="AspectType">0</token>
@@ -477,7 +477,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="Frame" referent="RBX4C68A58F136042FDA5C5705D6E0157CD">
+			<Item class="Frame" referent="RBX91BBCA02E7CB4DD38A6214674F4A128D">
 				<Properties>
 					<token name="Style">0</token>
 					<bool name="Active">false</bool>
