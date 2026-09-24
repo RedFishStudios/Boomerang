@@ -2,7 +2,7 @@
 	<Meta name="ExplicitAutoJoints">true</Meta>
 	<External>null</External>
 	<External>nil</External>
-	<Item class="ScreenGui" referent="RBX19801440D40D4625A87234DF06399B27">
+	<Item class="ScreenGui" referent="RBXD795E3519C744840B55C756EB788C713">
 		<Properties>
 			<bool name="ClipToDeviceSafeArea">true</bool>
 			<int name="DisplayOrder">0</int>
@@ -25,7 +25,7 @@
 			<int64 name="SourceAssetId">-1</int64>
 			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 		</Properties>
-		<Item class="Frame" referent="RBX43C79EB18C8646B3ACF3D71CBE865CFB">
+		<Item class="Frame" referent="RBXD021161E8B7F45979CB3FF8407B97CF0">
 			<Properties>
 				<token name="Style">0</token>
 				<bool name="Active">false</bool>
@@ -89,9 +89,9 @@
 				<int64 name="SourceAssetId">-1</int64>
 				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			</Properties>
-			<Item class="ImageLabel" referent="RBX6BD00F154A9F4FF5B38AB7C1A9E7CDB4">
+			<Item class="ImageLabel" referent="RBXA55CBE98D9934E21879EF6009AA4621F">
 				<Properties>
-					<Content name="Image"><url>rbxassetid://82321904713712</url></Content>
+					<Content name="Image"><url>rbxassetid://98903155069966</url></Content>
 					<Color3 name="ImageColor3">
 						<R>1</R>
 						<G>1</G>
@@ -186,7 +186,7 @@
 					<int64 name="SourceAssetId">-1</int64>
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
-				<Item class="ScrollingFrame" referent="RBX425E4DAA989242D2869F9EAA356800DB">
+				<Item class="ScrollingFrame" referent="RBXA5254956DCFB45F48228D862707CDD73">
 					<Properties>
 						<token name="AutomaticCanvasSize">0</token>
 						<Content name="BottomImage"><url>rbxasset://textures/ui/Scroll/scroll-bottom.png</url></Content>
@@ -276,7 +276,7 @@
 						<int64 name="SourceAssetId">-1</int64>
 						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 					</Properties>
-					<Item class="UIGridLayout" referent="RBX0C514F4AD2AB42F38B1383F9E119D13D">
+					<Item class="UIGridLayout" referent="RBX61017BD3460A47829FA6AB730ADF9A60">
 						<Properties>
 							<UDim2 name="CellPadding">
 								<XS>0.0250000004</XS>
@@ -304,7 +304,7 @@
 							<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 						</Properties>
 					</Item>
-					<Item class="UICorner" referent="RBX0242200F02A94896A35D8A975F12CEC5">
+					<Item class="UICorner" referent="RBX8C35E6F6EFF746EBBBD4F50E668FC589">
 						<Properties>
 							<UDim name="BottomLeftRadius">
 								<S>0.0500000007</S>
@@ -330,7 +330,7 @@
 							<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 						</Properties>
 					</Item>
-					<Item class="UIPadding" referent="RBX8FD0764C03714A0E97E058442D7C53F9">
+					<Item class="UIPadding" referent="RBX03CCD00E82E64881B83804CDF4A5D2C2">
 						<Properties>
 							<UDim name="PaddingBottom">
 								<S>0</S>
@@ -357,7 +357,7 @@
 						</Properties>
 					</Item>
 				</Item>
-				<Item class="ImageButton" referent="RBX392309D08D3547E5973487AD40F495B0">
+				<Item class="ImageButton" referent="RBX1967D50EE45643768797E9C0181DDF7A">
 					<Properties>
 						<Content name="HoverImage"><null></null></Content>
 						<Content name="Image"><url>rbxassetid://128558576339961</url></Content>
@@ -464,7 +464,7 @@
 					</Properties>
 				</Item>
 			</Item>
-			<Item class="UIAspectRatioConstraint" referent="RBX037BF94B4A814895A0AAB73226C398F2">
+			<Item class="UIAspectRatioConstraint" referent="RBXCC460251AA6A46CC98D7319BBB4D27D3">
 				<Properties>
 					<float name="AspectRatio">1.28999996</float>
 					<token name="AspectType">0</token>
@@ -477,7 +477,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="Frame" referent="RBX91BBCA02E7CB4DD38A6214674F4A128D">
+			<Item class="Frame" referent="RBXAB24F2491F4647DD8587702910F89492">
 				<Properties>
 					<token name="Style">0</token>
 					<bool name="Active">false</bool>
