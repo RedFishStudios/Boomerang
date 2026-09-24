@@ -33,8 +33,30 @@ local MOVE_TWEEN_INFO = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDi
 local ENTER_TWEEN_INFO = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local DESTROY_TWEEN_INFO = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 
+local SimpleRemotes = require(game.ReplicatedStorage.Shared.Networking.SimpleRemotes)
+
 local activeNotifications: { CanvasGroup } = {}
 local currentScale = 1
+
+local ElimTypes: {
+   [string]: {
+      DisplayString: string,
+      Img: number
+   }
+} = {
+   Boomerang = {
+      DisplayString = "Boomeranged",
+      Img = 0
+   },
+   Stab = {
+      DisplayString = "Slashed",
+      Img = 0
+   },
+   Burned = {
+      DisplayString = "Burned",
+      Img = 0
+   }
+}
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -230,7 +252,13 @@ local function showElimMessage(userIdA: number, userIdB: number, elimType: strin
    PlayerBFrame.Image = getPlayerBustImage(userIdB)
 
    local elimTypeLabel = frame:FindFirstChild("ElimType")
-   elimTypeLabel.Text = elimType
+   local elimTypeData = ElimTypes[elimType]
+   if elimTypeData then
+      elimTypeLabel.Text = elimTypeData.DisplayString
+   else
+      warn(`Unknown ElimType: ${elimType}`)
+      elimTypeLabel.Text = elimType
+   end
    
    -- Get colors based on relationship
    local colorGradient, strokeGradient, textColor = getRelationshipColor(playerA, playerB)
@@ -303,6 +331,12 @@ local function _init()
             ElimMessageGui.showElimMessage(game.Players.LocalPlayer.UserId, game.Players.LocalPlayer.UserId, "Tested")
          end
    end, false, Enum.KeyCode.Z)
+   
+   -- Listen for elim messages from the server
+   local elimMessageRemote = SimpleRemotes.getEvent("ElimMessage")
+   elimMessageRemote.OnClientEvent:Connect(function(userIdA: number, userIdB: number, elimType: string)
+      ElimMessageGui.showElimMessage(userIdA, userIdB, elimType)
+   end)
 end
 _init()
 
