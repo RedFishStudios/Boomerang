@@ -250,6 +250,8 @@ function ShopGui.open()
    ShopGui.Open = true
    ShopScreenGui.Enabled = true
    Container.Position = containerOffscreenPosition
+   clearTabButtons()
+   clearItemListings()
    loadTabButtons()
    playContainerTween(CONTAINER_TWEEN_INFO_IN, containerGoalPosition)
    UIController.supercede("Shop", "GamemodeHud")
@@ -264,14 +266,14 @@ function ShopGui.close()
    
    ShopGui.Open = false
    playContainerTween(CONTAINER_TWEEN_INFO_OUT, containerOffscreenPosition)
-   clearTabButtons()
-   clearItemListings()
    UIController.unSupercede("Shop", "GamemodeHud")
    
    task.spawn(function()
       task.wait(0.4)
       if not ShopGui.Open then
          ShopScreenGui.Enabled = false
+         clearTabButtons()
+         clearItemListings()
       end
    end)
 end
