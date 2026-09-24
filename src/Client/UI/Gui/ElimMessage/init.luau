@@ -3,8 +3,12 @@ ElimMessageGui.Type = "HUD"
 ElimMessageGui.Open = false
 
 local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
 
-local Player = game:GetService("Players").LocalPlayer
+local Player = Players.LocalPlayer
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local GameTeamLibrary = require(ReplicatedStorage.Shared.Library.GameTeamLibrary)
 
 local Gui = script:WaitForChild("ElimMessage") :: ScreenGui
 Gui.ResetOnSpawn = false
@@ -144,8 +148,57 @@ local function beginDestruction(frame: CanvasGroup)
 end
 
 local function getPlayerBustImage(userId: number): string
-   print(userId)
    return "rbxthumb://type=AvatarBust&id=" .. userId .. "&w=420&h=420"
+end
+
+-- Color gradients for different relationship types
+-- RED (enemy) - current colors
+local RED_COLOR_GRADIENT = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(125, 12, 42)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 20, 63))
+})
+local RED_STROKE_GRADIENT = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 14, 90)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 14, 90))
+})
+local RED_TEXT_COLOR = Color3.fromRGB(255, 14, 90)
+
+-- GREEN (self/local player)
+local GREEN_COLOR_GRADIENT = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(12, 125, 42)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 255, 63))
+})
+local GREEN_STROKE_GRADIENT = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(14, 255, 90)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(14, 255, 90))
+})
+local GREEN_TEXT_COLOR = Color3.fromRGB(14, 255, 90)
+
+local function getRelationshipColor(playerA: Player, playerB: Player)
+	if playerA == Player then
+		-- Local player eliminated someone - GREEN
+		return GREEN_COLOR_GRADIENT, GREEN_STROKE_GRADIENT, GREEN_TEXT_COLOR
+	elseif playerB == Player then
+		-- Local player was eliminated
+		-- Check if they were eliminated by an enemy or ally
+		if GameTeamLibrary.areEnemies(playerA, playerB) then
+			-- Eliminated by enemy - RED
+			return RED_COLOR_GRADIENT, RED_STROKE_GRADIENT, RED_TEXT_COLOR
+		else
+			-- Eliminated by ally - BLUE
+			return GREEN_COLOR_GRADIENT, GREEN_STROKE_GRADIENT, GREEN_TEXT_COLOR
+		end
+	else
+		-- Neither player is local player
+		-- Check if playerA and playerB are enemies
+		if GameTeamLibrary.areEnemies(playerA, playerB) then
+			-- Enemy eliminated another enemy or neutral - RED (default enemy perspective)
+			return RED_COLOR_GRADIENT, RED_STROKE_GRADIENT, RED_TEXT_COLOR
+		else
+			-- Ally eliminated ally - BLUE
+			return GREEN_COLOR_GRADIENT, GREEN_STROKE_GRADIENT, GREEN_TEXT_COLOR
+		end
+	end
 end
 
 local function showElimMessage(userIdA: number, userIdB: number, elimType: string)
@@ -176,7 +229,23 @@ local function showElimMessage(userIdA: number, userIdB: number, elimType: strin
    local PlayerBFrame = frame:FindFirstChild("PlayerB")
    PlayerBFrame.Image = getPlayerBustImage(userIdB)
 
-   frame:FindFirstChild("ElimType").Text = elimType
+   local elimTypeLabel = frame:FindFirstChild("ElimType")
+   elimTypeLabel.Text = elimType
+   
+   -- Get colors based on relationship
+   local colorGradient, strokeGradient, textColor = getRelationshipColor(playerA, playerB)
+   
+   -- Set Color frame gradient and stroke
+   local colorFrame = frame:FindFirstChild("Color")
+   local colorFrameGradient = colorFrame:FindFirstChild("UIGradient")
+   colorFrameGradient.Color = colorGradient
+   
+   local colorStroke = colorFrame:FindFirstChild("UIStroke")
+   local strokeGradientChild = colorStroke:FindFirstChild("UIGradient")
+   strokeGradientChild.Color = strokeGradient
+   
+   -- Set ElimType text color
+   elimTypeLabel.TextColor3 = textColor
 
 	table.insert(activeNotifications, 1, frame)
 	frame.Parent = Gui
