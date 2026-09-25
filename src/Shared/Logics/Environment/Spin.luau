@@ -6,6 +6,7 @@ local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 
 local SECONDS_PER_SPIN_ATTRIBUTE_NAME = "SPS"
+local CLOCKWISE_ATTRIBUTE_NAME = "Clockwise"
 local DEFAULT_SECONDS_PER_SPIN = 5
 local RADIANS_PER_ROTATION = math.pi * 2
 local NewSpin = SimpleRemotes.getEvent("NewSpin")
@@ -15,6 +16,7 @@ type SpinData = {
    InitialPivot: CFrame,
    SecondsPerSpin: number,
    StartedAt: number,
+   Clockwise: boolean,
 }
 
 local spins: {SpinData} = {}
@@ -46,6 +48,9 @@ end
 local function getPivot(spinData: SpinData, serverTime: number): CFrame
    local elapsed = serverTime - spinData.StartedAt
    local angle = (elapsed / spinData.SecondsPerSpin) * RADIANS_PER_ROTATION
+   if spinData.Clockwise then
+      angle = -angle
+   end
    return spinData.InitialPivot * CFrame.Angles(0, angle, 0)
 end
 
@@ -91,12 +96,14 @@ function Spin.onObjectAdded(functionalChild: BasePart, birth: number?)
       secondsPerSpin = DEFAULT_SECONDS_PER_SPIN
    end
 
+   local clockwise = functionalChild:GetAttribute(CLOCKWISE_ATTRIBUTE_NAME) == true
    local startedAt = birth or workspace:GetServerTimeNow()
    table.insert(spins, {
       Part = functionalChild,
       InitialPivot = functionalChild:GetPivot(),
       SecondsPerSpin = secondsPerSpin,
       StartedAt = startedAt,
+      Clockwise = clockwise,
    })
 
    if isServer then
