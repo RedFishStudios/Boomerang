@@ -2,6 +2,7 @@ local Portal = {}
 
 local SessionConnections: {[Instance]: RBXScriptConnection} = {}
 local TeleportDebounces: {[Player]: number} = {}
+local AwaitingDebounce: {[Player]: number} = {}
 
 local Players = game:GetService("Players")
 
@@ -40,8 +41,7 @@ function Portal.onObjectAdded(functionalChild: Instance)
       return
    end
 
-   local function teleportFrom(targetAttachment: Attachment, hit: BasePart)
-      warn(`calling teleport from`)
+   local function teleportFrom(targetAttachment: Attachment, hit: BasePart, sourcePart: BasePart)
       local character = hit:FindFirstAncestorOfClass("Model")
       local player = character and Players:GetPlayerFromCharacter(character)
       local rootPart = character and character.PrimaryPart
@@ -51,7 +51,29 @@ function Portal.onObjectAdded(functionalChild: Instance)
 
       local now = workspace:GetServerTimeNow()
       if TeleportDebounces[player] and TeleportDebounces[player] > now then
-         return
+         local thisDebounceId = (AwaitingDebounce[player] or 0) + 1
+         AwaitingDebounce[player] = thisDebounceId
+         repeat
+            task.wait(.1)
+         until AwaitingDebounce[player] ~= thisDebounceId or TeleportDebounces[player] > now or not player.Parent
+         if not player.Parent then
+            AwaitingDebounce[player] = nil
+            return
+         end
+         if AwaitingDebounce[player] ~= thisDebounceId then
+            -- A different thread began awaiting debounce
+            return
+         end
+         local touching = sourcePart:GetTouchingParts()
+         local yep = false
+         for _, part in ipairs(touching) do
+            if part == hit then
+               yep = true
+            end
+         end
+         if not yep then 
+            return
+         end
       end
       TeleportDebounces[player] = now + 1
 
@@ -68,10 +90,10 @@ function Portal.onObjectAdded(functionalChild: Instance)
    end
 
    SessionConnections[functionalChild] = functionalChild.Touched:Connect(function(hit)
-      teleportFrom(otherAttachment, hit)
+      teleportFrom(otherAttachment, hit, functionalChild)
    end)
    SessionConnections[otherPart] = otherPart.Touched:Connect(function(hit)
-      teleportFrom(functionalAttachment, hit)
+      teleportFrom(functionalAttachment, hit, otherPart)
    end)
 end
 
@@ -83,6 +105,7 @@ function Portal.cleanup()
    end
    SessionConnections = {}
    table.clear(TeleportDebounces)
+   table.clear(AwaitingDebounce)
 end
 
 return Portal
