@@ -165,9 +165,23 @@ function EnvironmentService.start()
                continue
             end
             local m = require(logicModule)
+            local success, valid = pcall(m.validate, c)
+            if not success or not valid then
+               warn(`Error validating live custom functional object {c.Name}: {valid}`)
+               c:SetAttribute("Invalid", true)
+               continue
+            end
             m.onObjectAdded(c)
          else
             local logicModule = EnvironmentLogicModules[className]
+            if logicModule.validate then
+               local success, valid = pcall(logicModule.validate, c)
+               if not success or not valid then
+                  warn(`Error validating live functional object {c.Name}: {valid}`)
+                  c:SetAttribute("Invalid", true)
+                  continue
+               end
+            end
             logicModule.onObjectAdded(c)
          end
       end
