@@ -112,12 +112,10 @@ function ExplosiveBoomerang.onPickup(player: Player, position: CFrame)
 end
 
 function ExplosiveBoomerang.onEnd(player: Player)
-   print("ON END CALLED")
    if isServer then
       clearSubscriptions(player)
    else
       -- Client context
-      print("remove particle")
       ToolController.removeParticleFromTool(player, "ExplosiveBoomerang")
    end
 end

@@ -3,7 +3,7 @@ local Gamemodes = require(script.Parent.Parent.Constants.Gamemodes)
 export type MapData = {
    Id: string,
    ForGamemodes: {string},
-   DisguiseAssets: {string},
+   DisguiseAssets: {string}, -- Names of disguise asset models
    DisabledPickups: {string}?, -- Pickup Ids that are disabled on this map (ie. map has no water for water-based pickups)
    Debug: true?,
 }

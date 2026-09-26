@@ -56,20 +56,20 @@ local AcquirableNotifData: {
    },
    DashNoclip = {
       Id = "DashNoclip",
-      Title = "Phase Dash",
-      Subtitle = "Dash straight through obstacles",
+      Title = "Clip Dash",
+      Subtitle = "Dash straight through walls!",
       Img = 9
    },
    Decoy = {
       Id = "Decoy",
       Title = "Decoy",
-      Subtitle = "A copy of you wanders off to distract others",
+      Subtitle = "A clone of you has spawned!",
       Img = 10
    },
    Disguise = {
       Id = "Disguise",
       Title = "Disguise",
-      Subtitle = "Blend in as a map object while standing still",
+      Subtitle = "Become disguised when standing still",
       Img = 11
    },
    BattleRoyale = {

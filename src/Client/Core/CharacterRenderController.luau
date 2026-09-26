@@ -9,6 +9,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 local CharacterRenderLibrary = require(ReplicatedStorage.Shared.Library.CharacterRenderLibrary)
+local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
+local MapData = require(ReplicatedStorage.Shared.Constants.MapData)
+local Disguise = require(ReplicatedStorage.Shared.Logics.PickupLogics.Disguise)
+local CharacterMovementController = require(ReplicatedStorage.Client.Core.CharacterMovementController)
 
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 
@@ -30,6 +34,7 @@ local animationSyncConnections: {[Player]: RBXScriptConnection} = {}
 local characterDeathConnections: {[Player]: RBXScriptConnection} = {}
 local characterPositionOffsets: {[Player]: Vector3} = {}
 local ragdollApplied: {[Player]: true} = {}
+local disguiseModels: {[Player]: Model} = {}
 
 -- // [authoritativeAnimationId]: [customCharacterAnimationTrack]
 --    The authoritative model is used as the reference point for animations and animations are synced to that authoritative model
@@ -55,6 +60,10 @@ local function clear(player: Player)
       localCharacterModels[player]:Destroy()
    end
    localCharacterModels[player] = nil
+   if disguiseModels[player] then
+      disguiseModels[player]:Destroy()
+   end
+   disguiseModels[player] = nil
    creatingCharacterModels[player] = nil
    characterPositionOffsets[player] = nil
    if characterDescendantConnections[player] then
@@ -76,6 +85,67 @@ local function clear(player: Player)
       characterDeathConnections[player]:Disconnect()
    end
    characterDeathConnections[player] = nil
+end
+
+local function getDisguiseModel(player: Player): Model?
+   local assetId = Disguise.getAssetId(player)
+   if not assetId then
+      return nil
+   end
+
+   local currentRoundData = GameStateLibrary.getGameStateData().CurrentRoundData:Get()
+   local mapData = currentRoundData and MapData[currentRoundData.CurrentMapName]
+   local mapAssetId = mapData and mapData.DisguiseAssets and table.find(mapData.DisguiseAssets, assetId) and assetId
+
+   local model = Instance.new("Model")
+   model.Name = `{player.UserId}_Disguise_{mapAssetId or assetId}`
+
+   local part = Instance.new("Part")
+   part.Name = "DisguisePlaceholder"
+   part.Size = Vector3.new(5, 5, 5)
+   part.Anchored = true
+   part.CanCollide = false
+   part.CanTouch = false
+   part.CanQuery = false
+   part.Transparency = 0
+   part.Parent = model
+   model.PrimaryPart = part
+   return model
+end
+
+local function employDisguise(player: Player)
+   if not Disguise.isActive(player) or disguiseModels[player] then
+      return
+   end
+
+   local disguiseModel = getDisguiseModel(player)
+   if not disguiseModel then
+      return
+   end
+
+   if localCharacterModels[player] then
+      localCharacterModels[player].Parent = nil
+   end
+   disguiseModel.Parent = CharactersFolder
+   disguiseModels[player] = disguiseModel
+end
+
+local function removeDisguise(player: Player)
+   if disguiseModels[player] then
+      disguiseModels[player]:Destroy()
+      disguiseModels[player] = nil
+   end
+
+   if localCharacterModels[player] and player.Character then
+      localCharacterModels[player].Parent = CharactersFolder
+   end
+end
+
+local function syncDisguisePosition(player: Player, disguiseModel: Model)
+   local character = player.Character
+   if character and character.PrimaryPart then
+      disguiseModel:PivotTo(character:GetPivot())
+   end
 end
 
 local ragdollCollisionEnabledNames = {"LeftHand", "Left Arm", "UpperTorso", "RightHand", "Right Arm", "LeftFoot", "Left Leg", "RightFoot", "Right Leg", "Head"}
@@ -425,6 +495,15 @@ end
 
 local function everyFrame(deltaTime)
    for _, p in pairs(game.Players:GetPlayers()) do
+      if disguiseModels[p] then
+         if Disguise.isActive(p) then
+            setAuthoritativeCharacterTransparency(p, 1)
+            syncDisguisePosition(p, disguiseModels[p])
+            continue
+         end
+         removeDisguise(p)
+      end
+
       local model = getCharacterModel(p, false)
       if not model then
          setAuthoritativeCharacterTransparency(p, .5)
@@ -447,6 +526,9 @@ end
 -------------------------------------------------------------------------------
 
 function CharacterRenderController.getCharacterModel(player: Player, canYield: boolean?): Model?
+   if disguiseModels[player] then
+      return disguiseModels[player]
+   end
    return getCharacterModel(player, canYield)
 end
 
@@ -461,6 +543,30 @@ function CharacterRenderController.init()
 
    PlayersUtil.CharacterDestroying:Add(function(player)
       clear(player)
+   end)
+
+   CharacterMovementController.PlayerStoppedMoving:Add(function(player)
+      if Disguise.isActive(player) then
+         employDisguise(player)
+      end
+   end)
+
+   CharacterMovementController.PlayerStartedMoving:Add(function(player)
+      removeDisguise(player)
+   end)
+
+   Disguise.StateChanged:Add(function(userId: number, active: boolean)
+      local player = Players:GetPlayerByUserId(userId)
+      if not player then
+         return
+      end
+      if active then
+         if not CharacterMovementController.isMoving(player) then
+            employDisguise(player)
+         end
+      else
+         removeDisguise(player)
+      end
    end)
 
    RunService.RenderStepped:Connect(everyFrame)
