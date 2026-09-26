@@ -10,6 +10,7 @@ local NewMovingPlatform = SimpleRemotes.getEvent("NewMovingPlatform")
 local _MovingPlatformSnapshot = SimpleRemotes.getUnreliableEvent("MovingPlatformSnapshot")
 local CollisionGroupConstants = require(game.ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 local CombatLibrary = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Library"):WaitForChild("CombatLibrary"))
+local CollisionGroupConstants = require(game.ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 
 type MovingPlatformAttributes = {
    Speed: number,
@@ -293,6 +294,8 @@ function MovingPlatform.validate(functionalChild: Instance): boolean
       warn(`Possessed attributes: {attributes.Speed}, {attributes.StartPivot}, {attributes.EndPivot}`)
       return false
    end
+   
+   platform.CollisionGroup = CollisionGroupConstants.ArenaWalls
 
    return true
 end
