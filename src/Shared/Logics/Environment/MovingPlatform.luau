@@ -1,6 +1,5 @@
 local MovingPlatform = {}
 
-local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local GameStateLibrary = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Library"):WaitForChild("GameStateLibrary"))
 local SimpleRemotes = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Networking"):WaitForChild("SimpleRemotes"))
@@ -108,6 +107,31 @@ local function setMoverConstraintTarget(platformData, pivot: CFrame)
    platformData.Mover.AlignOrientation.CFrame = pivot
 end
 
+local function easeInOutCube(alpha: number): number
+   if alpha < 0.5 then
+      return 4 * alpha * alpha * alpha
+   end
+
+   return 1 - ((-2 * alpha + 2) ^ 3) / 2
+end
+
+local function easeInOutQuart(alpha: number): number
+   if alpha < 0.5 then
+      return 8 * alpha ^ 4
+   end
+
+   return 1 - ((-2 * alpha + 2) ^ 4) / 2
+end
+
+local function easeInOutQuint(x: number): number
+    x = math.clamp(x, 0, 1)
+    if x < 0.5 then
+        return 16 * x * x * x * x * x
+    else
+        return 1 - (-2 * x + 2)^5 / 2
+    end
+end
+
 local function findPlatformById(name: string): Folder?
    local map = game.Workspace.Arena:FindFirstChildWhichIsA("Model")
    if not map then
@@ -118,54 +142,6 @@ local function findPlatformById(name: string): Folder?
       return nil
    end
    return dynamicsFolder:FindFirstChild(name)
-end
-
-local function isCharacterStandingOnPlatform(
-	character: Model,
-	platform: BasePart
-): boolean
-	local humanoid = character:FindFirstChildOfClass("Humanoid")
-	local root = character:FindFirstChild("HumanoidRootPart")
-
-	if not humanoid or not root or humanoid.Health <= 0 then
-		return false
-	end
-
-	-- Don't carry airborne characters.
-	if humanoid.FloorMaterial == Enum.Material.Air then
-		return false
-	end
-
-	local rayParams = RaycastParams.new()
-	rayParams.FilterType = Enum.RaycastFilterType.Include
-	rayParams.FilterDescendantsInstances = { platform }
-
-	local result = workspace:Raycast(
-		root.Position,
-		Vector3.new(0, -6, 0),
-		rayParams
-	)
-
-	return result ~= nil
-end
-
-local connections: {[Player]: RBXScriptConnection} = {}
-
-local function moveStandingPlayersWithPlatform(
-    platformPart: BasePart,
-    deltaPosition: Vector3
-)
-    for _, player in Players:GetPlayers() do
-        local character = player.Character
-        if not character then
-            continue
-        end
-
-        if not isCharacterStandingOnPlatform(character, platformPart) then
-            continue
-        end
-      
-    end
 end
 
 local function getPivot(endPivot: CFrame, startPivot: CFrame, speed: number, restTime: number, serverTime: number, startedAt: number)
@@ -188,7 +164,7 @@ local function getPivot(endPivot: CFrame, startPivot: CFrame, speed: number, res
 
 	-- Moving start -> end
 	if cycle < travelTime then
-		local alpha = cycle / travelTime
+      local alpha = easeInOutQuint(cycle / travelTime)
       return startPivot:Lerp(endPivot, alpha), alpha, true
 	end
 
@@ -203,6 +179,7 @@ local function getPivot(endPivot: CFrame, startPivot: CFrame, speed: number, res
 
 	-- Moving end -> start
 	local alpha = cycle / travelTime
+   alpha = easeInOutQuint(alpha)
    return endPivot:Lerp(startPivot, alpha), alpha, false
 end
 
@@ -218,15 +195,10 @@ local function beginRendering()
          local previousPivot = platformData.CurrentPivot
          local newPosition = pivot.Position
          local lastPosition = previousPivot.Position
-         local deltaPosition = pivot.Position - previousPivot.Position
          if (newPosition - lastPosition).Magnitude > 0.0001 then
             platformData.CurrentPivot = pivot
             setMoverConstraintTarget(platformData, pivot)
             DynamicCollisionLibrary.recordCurrentTransform(platformData.Part, pivot, serverTime)
-
-            if isServer then
-				moveStandingPlayersWithPlatform(platformData.Part, deltaPosition)
-			end
 
             if fromStart then
                if platformData.EndCrushAlpha and alpha > platformData.EndCrushAlpha then
