@@ -4,6 +4,8 @@ local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
+local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
+local DynamicCollisionLibrary = require(ReplicatedStorage.Shared.Library.DynamicCollisionLibrary)
 
 local SECONDS_PER_SPIN_ATTRIBUTE_NAME = "SPS"
 local CLOCKWISE_ATTRIBUTE_NAME = "Clockwise"
@@ -24,6 +26,9 @@ local connections: {RBXScriptConnection} = {}
 local isServer = RunService:IsServer()
 
 local function reset()
+   for _, spinData in spins do
+      DynamicCollisionLibrary.unregister(spinData.Part)
+   end
    table.clear(spins)
    for _, connection in connections do
       connection:Disconnect()
@@ -62,7 +67,10 @@ local function beginRendering()
    table.insert(connections, RunService.PreSimulation:Connect(function()
       local serverTime = workspace:GetServerTimeNow()
       for _, spinData in spins do
-         spinData.Part:PivotTo(getPivot(spinData, serverTime))
+         DynamicCollisionLibrary.capturePreviousTransform(spinData.Part, serverTime)
+         local currentPivot = getPivot(spinData, serverTime)
+         spinData.Part:PivotTo(currentPivot)
+         DynamicCollisionLibrary.recordCurrentTransform(spinData.Part, currentPivot, serverTime)
       end
    end))
 end
@@ -77,6 +85,7 @@ function Spin.validate(functionalChild: Instance): boolean
       warn(`Spin.validate: functionalChild {functionalChild:GetFullName()} is missing a positive {SECONDS_PER_SPIN_ATTRIBUTE_NAME} attribute`)
       functionalChild:SetAttribute(SECONDS_PER_SPIN_ATTRIBUTE_NAME, DEFAULT_SECONDS_PER_SPIN)
    end
+   functionalChild.CollisionGroup = CollisionGroupConstants.ArenaWalls
    return true
 end
 
@@ -105,6 +114,7 @@ function Spin.onObjectAdded(functionalChild: BasePart, birth: number?)
       StartedAt = startedAt,
       Clockwise = clockwise,
    })
+   DynamicCollisionLibrary.register(functionalChild, spins[#spins].InitialPivot, startedAt)
 
    if isServer then
       NewSpin:FireAllClients(functionalChild.Name, startedAt, spins[#spins].InitialPivot)

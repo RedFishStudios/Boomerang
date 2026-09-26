@@ -21,6 +21,7 @@ local SoundLibrary = require(ReplicatedStorage.Shared.Library.SoundLibrary)
 local Sounds = require(ReplicatedStorage.Shared.Constants.Sounds)
 local GameTeamLibrary = require(ReplicatedStorage.Shared.Library.GameTeamLibrary)
 local CombatLibrary = require(ReplicatedStorage.Shared.Library.CombatLibrary)
+local DynamicCollisionLibrary = require(ReplicatedStorage.Shared.Library.DynamicCollisionLibrary)
 local SharedTasks = require(ReplicatedStorage.Shared.Constants.SharedTasks)
 local HomingBoomerang = require(ReplicatedStorage.Shared.Logics.PickupLogics.HomingBoomerang)
 local ClashedWeapons = require(ReplicatedStorage.Shared.Referential.ClashedWeapons)
@@ -104,6 +105,25 @@ local function getHorizontalDirection(direction: Vector3): Vector3
       return Vector3.new(0, 0, -1)
    end
    return horizontal.Unit
+end
+
+local function getDynamicCollisionResponse(raycastResult: RaycastResult, velocity: Vector3): Vector3?
+   local surfaceVelocity = DynamicCollisionLibrary.getPointVelocity(raycastResult.Instance, raycastResult.Position)
+   if not surfaceVelocity then
+      return nil
+   end
+
+   local relativeVelocity = velocity - surfaceVelocity
+   local reflectedRelativeVelocity = relativeVelocity - 2 * relativeVelocity:Dot(raycastResult.Normal) * raycastResult.Normal
+   return reflectedRelativeVelocity + surfaceVelocity
+end
+
+local function getDynamicDisplacement(position: Vector3, radius: number, deltaTime: number): Vector3
+   local velocity = DynamicCollisionLibrary.getOverlappingVelocity(position, radius)
+   if not velocity then
+      return Vector3.zero
+   end
+   return velocity * deltaTime
 end
 
 local function getNearestEnemyDirection(player: Player, position: Vector3): Vector3?
@@ -687,6 +707,8 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       end
 
       local rayOrigin = pivot.Position
+      local dynamicDisplacement = getDynamicDisplacement(rayOrigin, hitboxRadius, deltaTime)
+      rayOrigin += dynamicDisplacement
 
       if isServer and thrownWeaponData.Homing then
          local targetDirection = getNearestEnemyDirection(player, rayOrigin)
@@ -728,8 +750,16 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          end
          energy -= 1
          bounced = true
-         direction = direction - 2 * direction:Dot(obstructionRaycastResult.Normal) * obstructionRaycastResult.Normal
-         direction = getHorizontalDirection(direction)
+         local dynamicResponse = getDynamicCollisionResponse(obstructionRaycastResult, direction * speed)
+         if dynamicResponse then
+            local horizontalResponse = getHorizontalDirection(dynamicResponse)
+            direction = horizontalResponse
+            speed = math.max(Vector3.new(dynamicResponse.X, 0, dynamicResponse.Z).Magnitude, 0.1)
+         else
+            direction = direction - 2 * direction:Dot(obstructionRaycastResult.Normal) * obstructionRaycastResult.Normal
+            direction = getHorizontalDirection(direction)
+         end
+         setWeaponCFrame(thrownWeaponData, pivot + dynamicDisplacement, deltaTime)
          SharedTasks.ThrownWeaponHitObject:Execute("parallel", player, thrownWeaponData.ToolId, obstructionRaycastResult.Instance, obstructionRaycastResult.Position)
          if energy == 0 then
             if shouldRecallTransitions then
@@ -744,7 +774,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       end
 
       local currentCFrame = pivot
-      setWeaponCFrame(thrownWeaponData, currentCFrame + direction * rayDistance, deltaTime)
+      setWeaponCFrame(thrownWeaponData, currentCFrame + dynamicDisplacement + direction * rayDistance, deltaTime)
       distanceTraveled += rayDistance
       thrownWeaponData.Direction = direction
       thrownWeaponData.Speed = speed
@@ -1009,12 +1039,15 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
 
       -- // Raycast in that direction for an obstruction
       local rayOrigin = hostPivot.Position
+      local dynamicDisplacement = getDynamicDisplacement(rayOrigin, hitboxRadius, deltaTime)
+      rayOrigin += dynamicDisplacement
       local rayDistance = (math.max(speed, hitboxRadius)) * deltaTime
       local raycastResult = blockcastWithHorizontalHitbox(rayOrigin, direction, rayDistance, hitboxRadius, raycastParams)
       local sliding = false
 
       -- // If we hit something, adjust movement direction to move perpendicular to the obstruction
       if raycastResult and raycastResult.Instance then
+         local incomingVelocity = direction * speed
          if isServer and WeaponService then
             WeaponService.WeaponStruckObject:Execute("parallel", player, thrownWeaponData.ToolId, raycastResult)
          end
@@ -1025,6 +1058,17 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          -- Determine new movement direction adjacent to the obstructing surface
          -- Prioritize whichever direction brings the boomerang closer to the player
          local normal = raycastResult.Normal
+         local dynamicResponse = getDynamicCollisionResponse(raycastResult, incomingVelocity)
+         if dynamicResponse then
+            local horizontalResponse = Vector3.new(dynamicResponse.X, 0, dynamicResponse.Z)
+            if horizontalResponse.Magnitude > 0.01 then
+               direction = horizontalResponse.Unit
+               speed = horizontalResponse.Magnitude
+               sliding = false
+               slideMomentum = 0
+            end
+         end
+
          slideDirection = direction - normal * direction:Dot(normal)
          local slideMagnitude = slideDirection.Magnitude
 
@@ -1073,7 +1117,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
             end
          end
 
-         setWeaponCFrame(thrownWeaponData, hostPivot + slideDirection * slideDistance, deltaTime)
+         setWeaponCFrame(thrownWeaponData, hostPivot + dynamicDisplacement + slideDirection * slideDistance, deltaTime)
          travelVelocity = slideDirection * slideSpeed
       else
          slideMomentum = math.clamp(slideMomentum - (deltaTime * 10), 0, 1)
@@ -1092,7 +1136,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          end
 
          slideSpeed = math.max(speed, slideSpeed * slideMomentum)
-         setWeaponCFrame(thrownWeaponData, hostPivot + blendedDirection * blendedDistance, deltaTime)
+         setWeaponCFrame(thrownWeaponData, hostPivot + dynamicDisplacement + blendedDirection * blendedDistance, deltaTime)
          travelVelocity = blendedDirection * blendedSpeed
       end
 

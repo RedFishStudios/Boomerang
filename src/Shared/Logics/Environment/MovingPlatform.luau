@@ -4,6 +4,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local GameStateLibrary = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Library"):WaitForChild("GameStateLibrary"))
 local SimpleRemotes = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Networking"):WaitForChild("SimpleRemotes"))
+local DynamicCollisionLibrary = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Library"):WaitForChild("DynamicCollisionLibrary"))
 
 local NewMovingPlatform = SimpleRemotes.getEvent("NewMovingPlatform")
 local _MovingPlatformSnapshot = SimpleRemotes.getUnreliableEvent("MovingPlatformSnapshot")
@@ -48,6 +49,7 @@ local isServer = RunService:IsServer()
 
 local function reset()
    for _, platformData in pairs(platforms) do
+      DynamicCollisionLibrary.unregister(platformData.Part)
       if platformData.Mover then
          if platformData.Mover.AlignPosition then
             platformData.Mover.AlignPosition:Destroy()
@@ -209,7 +211,9 @@ local function beginRendering()
    end
    table.insert(connections, RunService.PreSimulation:Connect(function()
       for _, platformData in pairs(platforms) do
-         local pivot, alpha, fromStart = getPivot(platformData.EndPivot, platformData.StartPivot, platformData.CurrentSpeed, platformData.RestTime or 0, game.Workspace:GetServerTimeNow(), platformData.StartedAt)
+         local serverTime = game.Workspace:GetServerTimeNow()
+         DynamicCollisionLibrary.capturePreviousTransform(platformData.Part, serverTime)
+         local pivot, alpha, fromStart = getPivot(platformData.EndPivot, platformData.StartPivot, platformData.CurrentSpeed, platformData.RestTime or 0, serverTime, platformData.StartedAt)
          local previousPivot = platformData.CurrentPivot
          local newPosition = pivot.Position
          local lastPosition = previousPivot.Position
@@ -217,6 +221,7 @@ local function beginRendering()
          if (newPosition - lastPosition).Magnitude > 0.0001 then
             platformData.CurrentPivot = pivot
             setMoverConstraintTarget(platformData, pivot)
+            DynamicCollisionLibrary.recordCurrentTransform(platformData.Part, pivot, serverTime)
 
             if isServer then
 				moveStandingPlayersWithPlatform(platformData.Part, deltaPosition)
@@ -337,6 +342,7 @@ function MovingPlatform.onObjectAdded(platformFolder: Folder, _birth: number?)
       EndCrush = endCrush,
 		Mover = mover,
    })
+   DynamicCollisionLibrary.register(platform, startPosition, birth)
 
    if isServer then
       NewMovingPlatform:FireAllClients(platform.Name, birth)
