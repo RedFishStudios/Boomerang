@@ -8,6 +8,7 @@ local Players = game:GetService("Players")
 local isServer = RunService:IsServer()
 
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
+local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 local pickupEffectStateChanged = SimpleRemotes.getEvent("PickupEffectStateChanged")
 local PickupLogics = ReplicatedStorage.Shared.Logics.PickupLogics
 
@@ -64,6 +65,9 @@ export type PickupLogic = {
 -------------------------------------------------------------------------------
 
 PickupLibrary.PICKUP_DISTANCE = 1.3
+-- // endsAt is a workspace:GetServerTimeNow() timestamp, or nil if the effect lasts until removed by other means
+PickupLibrary.PickupEffectAddedTasks = TasksList.new() :: TasksList.TasksList<(userId: number, livePickupId: LivePickupId, pickupClassId: PickupClassId, endsAt: number?) -> ()>
+PickupLibrary.PickupEffectRemovedTasks = TasksList.new() :: TasksList.TasksList<(userId: number, livePickupId: LivePickupId, pickupClassId: PickupClassId) -> ()>
 PickupLibrary.LivePickups = {} :: { [LivePickupId]: LivePickupData }
 PickupLibrary.UserPickupEffectsActive = {} :: {
    [number]: {
@@ -113,6 +117,7 @@ function PickupLibrary.setPickupEffectActive(userId: number, livePickupId: LiveP
       EndsAt = endsAt,
    }
    userEffects[livePickupId] = effectData
+   PickupLibrary.PickupEffectAddedTasks:Execute("parallel", userId, livePickupId, pickupClassId, endsAt)
 
    if isServer then
       pickupEffectStateChanged:FireAllClients({
@@ -138,8 +143,14 @@ function PickupLibrary.removePickupEffectActive(userId: number, livePickupId: Li
       if next(userEffects) == nil then
          PickupLibrary.UserPickupEffectsActive[userId] = nil
       end
+      if pickupData then
+         PickupLibrary.PickupEffectRemovedTasks:Execute("parallel", userId, livePickupId, pickupData.ClassId)
+      end
    else
       PickupLibrary.UserPickupEffectsActive[userId] = nil
+      for removedLivePickupId, removedPickupData in pairs(userEffects) do
+         PickupLibrary.PickupEffectRemovedTasks:Execute("parallel", userId, removedLivePickupId, removedPickupData.ClassId)
+      end
    end
 
    if isServer and not doNotReplicate then
@@ -172,6 +183,10 @@ function PickupLibrary.clearAllPickupEffectsActive()
    PickupLibrary.UserPickupEffectsActive = {}
 
    for userId, userEffects in pairs(activeEffects) do
+      for livePickupId, activePickupData in pairs(userEffects) do
+         PickupLibrary.PickupEffectRemovedTasks:Execute("parallel", userId, livePickupId, activePickupData.ClassId)
+      end
+
       local player = Players:GetPlayerByUserId(userId)
       if not player then
          continue

@@ -77,8 +77,7 @@ local function setTarget(hunter: Player, target: Player?)
    end
 end
 
--- // TARGET SELECTION: edit this to change how new targets are chosen.
--- // preferredTarget (the removed player's target) wins step 1 when eligible so the ring stays intact.
+-- // Function to choose next target for player
 local function chooseTarget(hunter: Player, preferredTarget: Player?): Player?
    local candidates = {}
    for member in pairs(Members) do

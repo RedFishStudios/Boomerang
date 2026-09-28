@@ -380,8 +380,8 @@ local function raycastTrailSurface(origin: Vector3): RaycastResult?
    return nil
 end
 
-function FireBoomerang.onPickup(player: Player, _timestamp: number?): number?
-   local endsAt = workspace:GetServerTimeNow() + GlobalConfig.GenericEffectTimeout
+function FireBoomerang.onPickup(player: Player, startedAt: number?): number?
+   local endsAt = (startedAt or workspace:GetServerTimeNow()) + GlobalConfig.GenericEffectTimeout
    if isServer then
       clearServerEffect(player)
 

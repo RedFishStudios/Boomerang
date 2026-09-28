@@ -7,7 +7,7 @@ local TweenService = game:GetService("TweenService")
 local Player = game:GetService("Players").LocalPlayer
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local AcquirableNotifData = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Referential"):WaitForChild("AcquirableNotifData"))
+local AcquirableThingData = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Referential"):WaitForChild("AcquirableThingData"))
 
 local Gui = script:WaitForChild("ItemAcquired") :: ScreenGui
 Gui.ResetOnSpawn = false
@@ -213,7 +213,7 @@ function ItemAcquiredGui.acquiredCustomItem(image: (string | number)?, title: st
 end
 
 function ItemAcquiredGui.acquiredItem(acquirableItemId: string)
-	local itemData = AcquirableNotifData[acquirableItemId]
+	local itemData = AcquirableThingData[acquirableItemId]
 	if not itemData then
 		warn("Acquirable item not found: " .. acquirableItemId)
 		return

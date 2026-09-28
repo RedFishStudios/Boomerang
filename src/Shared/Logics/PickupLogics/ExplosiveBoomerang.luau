@@ -84,8 +84,8 @@ local function applyExplosion(player: Player, position: Vector3)
    clearSubscriptions(player)
 end
 
-function ExplosiveBoomerang.onPickup(player: Player, position: CFrame)
-   local endsAt = workspace:GetServerTimeNow() + EFFECT_DURATION_SECONDS
+function ExplosiveBoomerang.onPickup(player: Player, startedAt: number?): number
+   local endsAt = (startedAt or workspace:GetServerTimeNow()) + EFFECT_DURATION_SECONDS
 
    if isServer then
       cleanupFunctionsByPlayer[player] = {
