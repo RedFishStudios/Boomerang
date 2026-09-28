@@ -17,7 +17,8 @@ local MapData = {
          Gamemodes.Elimination.Id,
          Gamemodes.HotPotato.Id,
          Gamemodes.TeamElimination.Id,
-         Gamemodes.TeamClassic.Id
+         Gamemodes.TeamClassic.Id,
+         Gamemodes.Assassin.Id
       },
       DisguiseAssets = {},
    },
@@ -28,7 +29,8 @@ local MapData = {
          Gamemodes.Elimination.Id,
          Gamemodes.HotPotato.Id,
          Gamemodes.TeamElimination.Id,
-         Gamemodes.TeamClassic.Id
+         Gamemodes.TeamClassic.Id,
+         Gamemodes.Assassin.Id
       },
       DisguiseAssets = {},
    },
@@ -39,7 +41,8 @@ local MapData = {
          Gamemodes.Elimination.Id,
          Gamemodes.HotPotato.Id,
          Gamemodes.TeamElimination.Id,
-         Gamemodes.TeamClassic.Id
+         Gamemodes.TeamClassic.Id,
+         Gamemodes.Assassin.Id
       },
       DisguiseAssets = {},
    },
@@ -50,7 +53,8 @@ local MapData = {
          Gamemodes.Elimination.Id,
          Gamemodes.HotPotato.Id,
          Gamemodes.TeamElimination.Id,
-         Gamemodes.TeamClassic.Id
+         Gamemodes.TeamClassic.Id,
+         Gamemodes.Assassin.Id
       },
       DisguiseAssets = {},
    },
@@ -61,7 +65,8 @@ local MapData = {
          Gamemodes.Elimination.Id,
          Gamemodes.HotPotato.Id,
          Gamemodes.TeamElimination.Id,
-         Gamemodes.TeamClassic.Id
+         Gamemodes.TeamClassic.Id,
+         Gamemodes.Assassin.Id
       },
       DisguiseAssets = {},
    },
@@ -72,7 +77,8 @@ local MapData = {
          Gamemodes.Elimination.Id,
          Gamemodes.HotPotato.Id,
          Gamemodes.TeamElimination.Id,
-         Gamemodes.TeamClassic.Id
+         Gamemodes.TeamClassic.Id,
+         Gamemodes.Assassin.Id
       },
       DisguiseAssets = {},
    }

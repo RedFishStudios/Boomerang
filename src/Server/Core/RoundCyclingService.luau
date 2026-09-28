@@ -106,11 +106,7 @@ end
 
 -- // Returns true if current round permits late joining for the given player
 function RoundCyclingService.canSpawnIntoRound(player: Player): boolean
-   local currentRoundData = GameStateLibrary.getGameStateData().CurrentRoundData:Get()
-   if currentRoundData == nil then
-      return false
-   end
-   return currentRoundData.CanRespawn
+   return SpawnService.canSpawnIntoRound(player)
 end
 
 -- // Lets the active gamemode logic declare, ahead of time, whether a given player's death is the one that will end the round

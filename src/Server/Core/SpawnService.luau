@@ -16,6 +16,7 @@ local ArenaService = require(ServerStorage.Server.Core.ArenaService)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local GameTeamService = require(ServerStorage.Server.Core.GameTeamService)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
+local Gamemodes = require(ReplicatedStorage.Shared.Constants.Gamemodes)
 
 local LobbyService = require(ServerStorage.Server.Core.LobbyService)
 local GameplayPhases = require(ReplicatedStorage.Shared.Constants.Enums.GameplayPhases)
@@ -34,6 +35,8 @@ local GameplayPhases = require(ReplicatedStorage.Shared.Constants.Enums.Gameplay
 
 local playersInLobby: {[Player]: boolean} = {}
 local pendingInitialSpawnWorkerToken: {}? = nil
+-- // Players present when the current round's arena was loaded; used to reject late joiners when LateJoinEnabled is false
+local roundParticipants: {[Player]: true} = {}
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -62,9 +65,7 @@ end
 -- // NOTE: Do not rely on this for critical game logic
 --    This helps the player predict the general area they will spawn and is NOT the definitive declaration of their spawn point
 local function prepPlayerSpawnpoint(player: Player)
-   local gameStateData = GameStateLibrary.getGameStateData()
-   local currentRoundData = gameStateData.CurrentRoundData:Get()
-   if currentRoundData and currentRoundData.CanRespawn then
+   if SpawnService.canSpawnIntoRound(player) then
       player.RespawnLocation = ArenaService.getSpawnPoint(player)
    else
       player.RespawnLocation = LobbyService.getSpawnPoint()
@@ -122,7 +123,9 @@ local function sendAllPlayersToArena()
    local currentRoundData = gameStateData.CurrentRoundData:Get()
    local roundId = currentRoundData and currentRoundData.CurrentRoundId
    local playersAwaitingInitialSpawn = {} :: {[Player]: true}
+   table.clear(roundParticipants)
    for _, player in ipairs(Players:GetPlayers()) do
+      roundParticipants[player] = true
       if SpawnService.isPlayerReadyForArena(player) then
          SpawnService.sendPlayerToArena(player)
       else
@@ -136,6 +139,16 @@ end
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
+
+-- // True if the player may (re)spawn into the active round: respawning must be enabled, and late joiners are only allowed if the gamemode permits it
+function SpawnService.canSpawnIntoRound(player: Player): boolean
+   local currentRoundData = GameStateLibrary.getGameStateData().CurrentRoundData:Get()
+   if currentRoundData == nil or not currentRoundData.CanRespawn then
+      return false
+   end
+   local roundType = Gamemodes[currentRoundData.Gamemode]
+   return (roundType ~= nil and roundType.LateJoinEnabled) or roundParticipants[player] == true
+end
 
 -- // Returns true if the player currently has everything needed to be sent into the arena
 function SpawnService.isPlayerReadyForArena(player: Player): boolean
@@ -208,6 +221,7 @@ function SpawnService.init()
 
    PlayersUtil.PlayerRemoving:Add(function(player: Player)
       playersInLobby[player] = nil
+      roundParticipants[player] = nil
    end)
 
    PlayersUtil.CharacterDied:Add(function(player: Player)
@@ -215,11 +229,7 @@ function SpawnService.init()
    end)
 
    PlayersUtil.CharacterLoaded:Add(function(player: Player, _character: Model, _humanoid: Humanoid, _rootPart: BasePart)
-         local currentRoundData = gameStateData.CurrentRoundData:Get()
-         if currentRoundData == nil then
-            return
-         end
-         if currentRoundData.CanRespawn == false then
+         if not SpawnService.canSpawnIntoRound(player) then
             return
          end
          if SpawnService.isPlayerReadyForArena(player) then

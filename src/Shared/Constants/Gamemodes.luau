@@ -6,6 +6,7 @@ export type RoundType = {
    Display: string?, -- if different from id
    Subheader: string, -- for client display
    CanRespawn: boolean,
+   LateJoinEnabled: boolean, -- only meaningful when CanRespawn is true
    TimeLasts: number,
    StormClose: boolean?,
    DashDisabled: boolean?,
@@ -25,6 +26,7 @@ local Gamemodes: {
       Id = "Classic",
       Subheader = "Have the highest score when the timer runs out!",
       CanRespawn = true,
+      LateJoinEnabled = true,
       StormClose = false,
       TimeLasts = FIVE_MINUTES
    },
@@ -33,6 +35,7 @@ local Gamemodes: {
       Display = "Team\nClassic",
       Subheader = "Have the highest team score when the timer runs out!",
       CanRespawn = true,
+      LateJoinEnabled = true,
       StormClose = false,
       TimeLasts = FIVE_MINUTES
    },
@@ -40,6 +43,7 @@ local Gamemodes: {
       Id = "Elimination",
       Subheader = "Eliminate all opponents to win!",
       CanRespawn = false,
+      LateJoinEnabled = false,
       StormClose = true,
       TimeLasts = FIVE_MINUTES
    },
@@ -48,6 +52,7 @@ local Gamemodes: {
       Display = "Team\nElimination",
       Subheader = "Eliminate all opponents to win!",
       CanRespawn = false,
+      LateJoinEnabled = false,
       StormClose = false,
       TimeLasts = FIVE_MINUTES
    },
@@ -56,6 +61,16 @@ local Gamemodes: {
       Display = "Hot\nPotato",
       Subheader = "Throw your boomerang to pass the bomb!",
       CanRespawn = false,
+      LateJoinEnabled = false,
+      StormClose = false,
+      PickupsDisabled = true,
+      TimeLasts = FIVE_MINUTES
+   },
+   Assassin = {
+      Id = "Assassin",
+      Subheader = "Eliminate your target! Attacking anyone else is fatal.",
+      CanRespawn = true,
+      LateJoinEnabled = false,
       StormClose = false,
       PickupsDisabled = true,
       TimeLasts = FIVE_MINUTES

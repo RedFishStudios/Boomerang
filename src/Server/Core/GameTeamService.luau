@@ -18,6 +18,7 @@ local Players = game:GetService("Players")
 local TeamService = game:GetService("Teams")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
+local Gamemodes = require(ReplicatedStorage.Shared.Constants.Gamemodes)
 
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local GameplayPhases = require(ReplicatedStorage.Shared.Constants.Enums.GameplayPhases)
@@ -254,7 +255,8 @@ function GameTeamService.init()
 	PlayersUtil.PlayerAdded:Add(function(player: Player)
       local currentGameState = GameStateLibrary.getGameStateData()
    local currentRoundData = currentGameState.CurrentRoundData:Get()
-   if currentRoundData == nil or not currentRoundData.CanRespawn then
+   local roundType = currentRoundData and Gamemodes[currentRoundData.Gamemode]
+   if currentRoundData == nil or not currentRoundData.CanRespawn or not (roundType and roundType.LateJoinEnabled) then
          GameTeamService.setOutOfGame(player)
       elseif #ActiveOppositionTeams > 0 then
          GameTeamService.assignToSmallestOppositionTeam(player)

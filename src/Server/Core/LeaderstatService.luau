@@ -21,13 +21,16 @@ local GameplayPhaseEnum = require(ReplicatedStorage.Shared.Constants.Enums.Gamep
 -- TYPES
 -------------------------------------------------------------------------------
 
-export type Stats = "Elims"
+export type Stats = "Elims" | "Points"
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
 -------------------------------------------------------------------------------
 
+local playerLeaderstatFolders: {[Player]: Folder} = {}
 local playerLeaderstatValues: {[Player]: {[Stats]: IntValue}} = {}
+-- // Stats shown only while enabled (e.g. by a gamemode), including for players who join meanwhile
+local enabledOptionalStats: {[Stats]: true} = {}
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -69,6 +72,25 @@ function LeaderstatService.setValue(player: Player, stat: Stats, value: number)
    playerLeaderstatValues[player][stat].Value = value
 end
 
+function LeaderstatService.enableStat(stat: Stats)
+   enabledOptionalStats[stat] = true
+   for player, values in pairs(playerLeaderstatValues) do
+      if not values[stat] then
+         values[stat] = createLeaderstat(playerLeaderstatFolders[player], stat, 0)
+      end
+   end
+end
+
+function LeaderstatService.disableStat(stat: Stats)
+   enabledOptionalStats[stat] = nil
+   for _, values in pairs(playerLeaderstatValues) do
+      if values[stat] then
+         values[stat]:Destroy()
+         values[stat] = nil
+      end
+   end
+end
+
 -------------------------------------------------------------------------------
 -- CORE FUNCTIONS
 -------------------------------------------------------------------------------
@@ -79,11 +101,16 @@ function LeaderstatService.init()
       leaderstats.Name = "leaderstats"
       leaderstats.Parent = player
 
+      playerLeaderstatFolders[player] = leaderstats
       playerLeaderstatValues[player] = {
          Elims = createLeaderstat(leaderstats, "Elims", 0)
       }
+      for stat in pairs(enabledOptionalStats) do
+         playerLeaderstatValues[player][stat] = createLeaderstat(leaderstats, stat, 0)
+      end
    end)
    PlayersUtil.PlayerRemoving:Add(function(player: Player)
+      playerLeaderstatFolders[player] = nil
       playerLeaderstatValues[player] = nil
    end)
    CombatLibrary.PlayerKilledPlayerTasks:Add(function(killer: Player, victim: Player, weaponId: string)
