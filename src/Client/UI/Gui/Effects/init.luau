@@ -4,6 +4,7 @@ EffectsGui.Open = false
 EffectsGui.SupercededBy = {}
 
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 
 local Player = game:GetService("Players").LocalPlayer
 
@@ -20,16 +21,22 @@ local AcquirableThingData = require(SharedMods.Referential.AcquirableThingData)
 
 local Gui = script:WaitForChild("Effects") :: ScreenGui
 local RootFrame = Gui:WaitForChild("Root") :: Frame
-local EffectFrameTemplate = script:WaitForChild("EffectFrameTemplate") :: Frame
+local EffectFrameTemplate = script:WaitForChild("EffectFrameTemplate") :: CanvasGroup
 
 local EFFECT_FRAME_PADDING = 0.15 -- Gap between frames, as a fraction of RootFrame's width
 local PERMANENT_EFFECT_TEXT = "-"
+local MOVE_TWEEN_INFO = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local FADE_IN_TWEEN_INFO = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local FADE_OUT_TWEEN_INFO = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 
 type ActiveEffect = {
-   Frame: Frame,
+   Frame: CanvasGroup,
    TimerLabel: TextLabel,
    EndsAt: number?,
    ShownSeconds: number?,
+   MoveTween: Tween?,
+   FadeTween: Tween?,
+   Destroyed: boolean,
 }
 
 local activeEffects: {[PickupLibrary.LivePickupId]: ActiveEffect} = {}
@@ -37,19 +44,63 @@ local effectOrder: {PickupLibrary.LivePickupId} = {} -- Acquisition order; left 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Layout
--- // Simulates a centered horizontal list; replace the Position assignment here to animate frames into place
+-- // Simulates a centered horizontal list; frames glide to new slots, except a just-added frame which snaps into place
 
 local function getEffectFramePosition(index: number, count: number): UDim2
    local offsetFromCenter = (index - (count + 1) / 2) * (1 + EFFECT_FRAME_PADDING)
    return UDim2.fromScale(0.5 + offsetFromCenter, 0.5)
 end
 
-local function layoutEffectFrames()
+local function layoutEffectFrames(newlyAddedEffect: ActiveEffect?)
    local count = #effectOrder
    for index, livePickupId in ipairs(effectOrder) do
       local effect = activeEffects[livePickupId]
-      effect.Frame.Position = getEffectFramePosition(index, count)
+      local goalPosition = getEffectFramePosition(index, count)
+      if effect.MoveTween then
+         effect.MoveTween:Cancel()
+         effect.MoveTween = nil
+      end
+      if effect == newlyAddedEffect then
+         effect.Frame.Position = goalPosition
+      elseif effect.Frame.Position ~= goalPosition then
+         local moveTween = TweenService:Create(effect.Frame, MOVE_TWEEN_INFO, { Position = goalPosition })
+         effect.MoveTween = moveTween
+         moveTween:Play()
+      end
    end
+end
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Fading
+
+local function playFade(effect: ActiveEffect, tweenInfo: TweenInfo, goalTransparency: number): Tween
+   if effect.FadeTween then
+      effect.FadeTween:Cancel()
+   end
+   local fadeTween = TweenService:Create(effect.Frame, tweenInfo, { GroupTransparency = goalTransparency })
+   effect.FadeTween = fadeTween
+   fadeTween:Play()
+   return fadeTween
+end
+
+local function destroyEffectFrame(effect: ActiveEffect)
+   if effect.Destroyed then
+      return
+   end
+   effect.Destroyed = true
+   effect.Frame:Destroy()
+end
+
+local function fadeOutAndDestroy(effect: ActiveEffect)
+   if effect.MoveTween then
+      effect.MoveTween:Cancel()
+      effect.MoveTween = nil
+   end
+   local fadeTween = playFade(effect, FADE_OUT_TWEEN_INFO, 1)
+   -- // Fires on cancellation too, so the frame is never orphaned
+   fadeTween.Completed:Once(function()
+      destroyEffectFrame(effect)
+   end)
 end
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -101,13 +152,18 @@ local function addEffect(livePickupId: PickupLibrary.LivePickupId, pickupClassId
       TimerLabel = frame:WaitForChild("TextLabel") :: TextLabel,
       EndsAt = endsAt,
       ShownSeconds = nil,
+      MoveTween = nil,
+      FadeTween = nil,
+      Destroyed = false,
    }
    updateEffectTimer(effect, workspace:GetServerTimeNow())
 
    activeEffects[livePickupId] = effect
    table.insert(effectOrder, livePickupId)
-   layoutEffectFrames()
+   layoutEffectFrames(effect)
+   frame.GroupTransparency = 1
    frame.Parent = RootFrame
+   playFade(effect, FADE_IN_TWEEN_INFO, 0)
 end
 
 local function removeEffect(livePickupId: PickupLibrary.LivePickupId)
@@ -120,7 +176,7 @@ local function removeEffect(livePickupId: PickupLibrary.LivePickupId)
    if index then
       table.remove(effectOrder, index)
    end
-   effect.Frame:Destroy()
+   fadeOutAndDestroy(effect)
    layoutEffectFrames()
 end
 
