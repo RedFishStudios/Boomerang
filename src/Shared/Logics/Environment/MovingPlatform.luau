@@ -46,6 +46,8 @@ local platforms: {
 local connections: {RBXScriptConnection} = {}
 local _snapshotFrequency = 5/60
 local isServer = RunService:IsServer()
+local CRUSH_DAMAGE = 1000000
+local CRUSH_CAUSE_LABEL = "Crushed"
 
 local function reset()
    for _, platformData in pairs(platforms) do
@@ -218,7 +220,10 @@ local function beginRendering()
                         if not humanoid or humanoid.Health <= 0 then
                            continue
                         end
-                        humanoid:TakeDamage(1000000) -- TODO:PLACEHOLDER
+                        local hitPlayer = game.Players:GetPlayerFromCharacter(hitCharacter)
+                        if isServer and hitPlayer then
+                           CombatLibrary.applyDamageToHumanoid(hitPlayer, humanoid, CRUSH_DAMAGE, nil, CRUSH_CAUSE_LABEL)
+                        end
                      end
                   end
                end
@@ -238,7 +243,10 @@ local function beginRendering()
                          if not humanoid or humanoid.Health <= 0 then
                            continue
                         end
-                        humanoid:TakeDamage(1000000) -- TODO:PLACEHOLDER
+                        local hitPlayer = game.Players:GetPlayerFromCharacter(hitCharacter)
+                        if isServer and hitPlayer then
+                           CombatLibrary.applyDamageToHumanoid(hitPlayer, humanoid, CRUSH_DAMAGE, nil, CRUSH_CAUSE_LABEL)
+                        end
                      end
                   end
                end
