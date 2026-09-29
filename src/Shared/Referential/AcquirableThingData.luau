@@ -12,6 +12,12 @@ local AcquirableNotifData: {
       Subtitle = "Dash or enter water to survive",
       Img = 1
    },
+   Zapped = {
+      Id = "Zapped",
+      Title = "Zapped",
+      Subtitle = "You're stunned for a moment",
+      Img = 0
+   },
    TeleportBoomerang = {
       Id = "TeleportBoomerang",
       Title = "Teleportation",

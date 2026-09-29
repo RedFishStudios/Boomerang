@@ -22,6 +22,7 @@ local spawnFireTrail = SimpleRemotes.getUnreliableEvent("SpawnFireTrail")
 
 local PickupService
 local ToolController
+local UIController
 local WaterEnvironmentLogic = require(ReplicatedStorage.Shared.Logics.Environment.Water)
 local PermanentFireEnvironmentLogic = require(ReplicatedStorage.Shared.Logics.Environment.PermanentFire)
 
@@ -31,6 +32,7 @@ if isServer then
    PickupService = require(game:GetService("ServerStorage").Server.Core.PickupService)
 else
    ToolController = require(ReplicatedStorage.Client.Core.ToolController)
+   UIController = require(ReplicatedStorage.Client.UI.UIController)
 end
 
 local TRAIL_LIFETIME = 3
@@ -46,7 +48,7 @@ local FIRE_EFFECT_DAMAGE = 10
 local FIRE_EFFECT_LASTS = 15
 local FIRE_EFFECT_UPDATE_RATE = 1 / 20
 local TRAIL_DAMAGE_CROSS_SECTION = Vector3.new(4, 4, MIN_MOVEMENT_DISTANCE)
-local DASH_TO_EXTINGUISH = 5
+local DASH_FIRE_REDUCTION_SECONDS = 3
 local ON_FIRE_EFFECT_ID = "OnFire"
 local DASH_ABILITY_ID = "Dash"
 local EXPLOSION_LIFETIME = 9
@@ -90,7 +92,6 @@ type FireEffectState = {
    EndsAt: number,
    NextDamageAt: number,
    LivePickupId: string,
-   DashCount: number,
    Attacker: Player?,
    KillCredited: boolean,
 }
@@ -243,7 +244,6 @@ local function applyFireEffect(player: Player, attacker: Player?)
       EndsAt = now + FIRE_EFFECT_LASTS,
       NextDamageAt = now + FIRE_EFFECT_DAMAGE_FREQUENCY,
       LivePickupId = livePickupId,
-      DashCount = 0,
       Attacker = if attacker ~= player then attacker else nil,
       KillCredited = false,
    }
@@ -476,9 +476,11 @@ local function _init()
             return
          end
 
-         state.DashCount += 1
-         if state.DashCount >= DASH_TO_EXTINGUISH then
+         state.EndsAt -= DASH_FIRE_REDUCTION_SECONDS
+         if state.EndsAt <= workspace:GetServerTimeNow() then
             removeFireEffect(player)
+         else
+            PickupLibrary.setPickupEffectActive(player.UserId, state.LivePickupId, ON_FIRE_EFFECT_ID, state.EndsAt)
          end
       end)
       WaterEnvironmentLogic.PlayerEnteredWater:Add(function(player: Player)
@@ -522,6 +524,21 @@ local function _init()
       end)
       heartbeatConnection = RunService.Heartbeat:Connect(updateServer)
    else
+      -- // Dash shortening re-sends the same effect, so only notify on a fresh ignition
+      local localPlayerOnFire = false
+      PickupLibrary.PickupEffectAddedTasks:Add(function(userId: number, _livePickupId: string, pickupClassId: string)
+         if pickupClassId ~= ON_FIRE_EFFECT_ID or userId ~= game.Players.LocalPlayer.UserId or localPlayerOnFire then
+            return
+         end
+         localPlayerOnFire = true
+         UIController.get("ItemAcquired").acquiredItem(ON_FIRE_EFFECT_ID)
+      end)
+      PickupLibrary.PickupEffectRemovedTasks:Add(function(userId: number, _livePickupId: string, pickupClassId: string)
+         if pickupClassId == ON_FIRE_EFFECT_ID and userId == game.Players.LocalPlayer.UserId then
+            localPlayerOnFire = false
+         end
+      end)
+
       spawnFireTrail.OnClientEvent:Connect(function(position: Vector3)
          local raycastResult = raycastTrailSurface(position)
          if not raycastResult then

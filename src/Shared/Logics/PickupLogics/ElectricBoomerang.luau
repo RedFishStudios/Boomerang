@@ -25,6 +25,8 @@ local ZAP_LENGTH = 0
 local WATER_RAYCAST_DISTANCE = 9
 local ELECTRIC_EXPLOSION_RADIUS = 15
 
+local ZAPPED_EFFECT_ID = "Zapped"
+
 local playZappedAnimation = SimpleRemotes.getEvent("PlayZappedAnimation")
 
 type ZappedState = {
@@ -46,11 +48,25 @@ local nextElectrificationId = 0
 local PickupService
 local ToolController
 local AnimationController
+local UIController
 if isServer then
    PickupService = require(game:GetService("ServerStorage").Server.Core.PickupService)
 else
    ToolController = require(ReplicatedStorage.Client.Core.ToolController)
    AnimationController = require(ReplicatedStorage.Client.Core.AnimationController)
+   UIController = require(ReplicatedStorage.Client.UI.UIController)
+end
+
+-- // A zap sourced from electrified water lasts until that water stops being electrified
+local function getProjectedZapEnd(state: ZappedState): number
+   local endsAt = state.EndsAt
+   for water in pairs(state.SourceWaters) do
+      local waterState = electrifiedWaters[water]
+      if waterState then
+         endsAt = math.max(endsAt, waterState.ExpiresAt + ZAP_LENGTH)
+      end
+   end
+   return endsAt
 end
 
 local function clearZapped(player: Player)
@@ -60,7 +76,7 @@ local function clearZapped(player: Player)
    end
    zappedPlayers[player] = nil
 
-   PickupLibrary.removePickupEffectActiveByClassId(player.UserId, "Zapped")
+   PickupLibrary.removePickupEffectActiveByClassId(player.UserId, ZAPPED_EFFECT_ID)
 
    if player.Character == state.Character then
       state.Character.PrimaryPart.Anchored = false
@@ -85,6 +101,7 @@ local function applyZapped(player: Player, sourceWater: Instance?)
       if sourceWater and electrifiedWaters[sourceWater] then
          existingState.SourceWaters[sourceWater] = true
       end
+      PickupLibrary.setPickupEffectActive(player.UserId, ZAPPED_EFFECT_ID, ZAPPED_EFFECT_ID, getProjectedZapEnd(existingState))
       return
    end
 
@@ -115,7 +132,7 @@ local function applyZapped(player: Player, sourceWater: Instance?)
    local particleId = `ElectricPlayer_{player.UserId}_{workspace:GetServerTimeNow()}`
    ParticlesLibrary.play(particleId, "ElectricPlayer", rootPart, nil, state.EndsAt - now)
    SoundLibrary.play(particleId, Sounds.Data.Zapped.Name, rootPart)
-   PickupLibrary.setPickupEffectActive(player.UserId, "Zapped", "Zapped")
+   PickupLibrary.setPickupEffectActive(player.UserId, ZAPPED_EFFECT_ID, ZAPPED_EFFECT_ID, getProjectedZapEnd(state))
    playZappedAnimation:FireAllClients(player, true)
 end
 
@@ -284,6 +301,21 @@ if isServer then
       end
    end)
 else
+   -- // Re-zaps re-send the same effect to extend it, so only notify on a fresh zap
+   local localPlayerZapped = false
+   PickupLibrary.PickupEffectAddedTasks:Add(function(userId: number, _livePickupId: string, pickupClassId: string)
+      if pickupClassId ~= ZAPPED_EFFECT_ID or userId ~= Players.LocalPlayer.UserId or localPlayerZapped then
+         return
+      end
+      localPlayerZapped = true
+      UIController.get("ItemAcquired").acquiredItem(ZAPPED_EFFECT_ID)
+   end)
+   PickupLibrary.PickupEffectRemovedTasks:Add(function(userId: number, _livePickupId: string, pickupClassId: string)
+      if pickupClassId == ZAPPED_EFFECT_ID and userId == Players.LocalPlayer.UserId then
+         localPlayerZapped = false
+      end
+   end)
+
    local zappedAnimationGeneration = 0
    playZappedAnimation.OnClientEvent:Connect(function(player: Player, isZapped: boolean)
       zappedAnimationGeneration += 1
