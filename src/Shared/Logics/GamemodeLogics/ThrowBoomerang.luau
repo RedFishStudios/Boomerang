@@ -10,11 +10,12 @@ local SharedTasks = require(ReplicatedStorage.Shared.Constants.SharedTasks)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 
 local isServer = RunService:IsServer()
-local GameTeamService, RoundCyclingService, WeaponService
+local GameTeamService, RoundCyclingService, WeaponService, LeaderstatService
 if isServer then
    GameTeamService = require(ServerStorage.Server.Core.GameTeamService)
    RoundCyclingService = require(ServerStorage.Server.Core.RoundCyclingService)
    WeaponService = require(ServerStorage.Server.Core.WeaponService)
+   LeaderstatService = require(ServerStorage.Server.Core.LeaderstatService)
 end
 
 local PerPlayerCount: {
@@ -38,6 +39,7 @@ function ThrowBoomerangRoundLogic.setup()
       GameTeamService.setFreeForAll()
       table.insert(PerMatchDestroyerFunctions, SharedTasks.WeaponThrownTasks:Add(function(player: Player, toolId: string)
          PerPlayerCount[player] = (PerPlayerCount[player] or 0) + 1
+         LeaderstatService.setValue(player, "Round", PerPlayerCount[player])
          if PerPlayerCount[player] >= 5 then
             winner = player
             ThrowBoomerangRoundLogic.teardown()

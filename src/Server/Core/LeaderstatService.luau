@@ -9,9 +9,8 @@ local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
-local CombatLibrary = require(ReplicatedStorage.Shared.Library.CombatLibrary)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
-local GameplayPhaseEnum = require(ReplicatedStorage.Shared.Constants.Enums.GameplayPhases)
+local PlayerDataService = require(ServerStorage.Server.Core.PlayerDataService)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -21,7 +20,8 @@ local GameplayPhaseEnum = require(ReplicatedStorage.Shared.Constants.Enums.Gamep
 -- TYPES
 -------------------------------------------------------------------------------
 
-export type Stats = "Elims" | "Points"
+-- // Elims mirrors the saved lifetime total; Round is the per-round score set by gamemode logic
+export type Stats = "Elims" | "Round"
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
@@ -101,9 +101,11 @@ function LeaderstatService.init()
       leaderstats.Name = "leaderstats"
       leaderstats.Parent = player
 
+      local profileData = PlayerDataService.get(player)
       playerLeaderstatFolders[player] = leaderstats
       playerLeaderstatValues[player] = {
-         Elims = createLeaderstat(leaderstats, "Elims", 0)
+         Elims = createLeaderstat(leaderstats, "Elims", if profileData then profileData.Elims else 0),
+         Round = createLeaderstat(leaderstats, "Round", 0),
       }
       for stat in pairs(enabledOptionalStats) do
          playerLeaderstatValues[player][stat] = createLeaderstat(leaderstats, stat, 0)
@@ -113,16 +115,18 @@ function LeaderstatService.init()
       playerLeaderstatFolders[player] = nil
       playerLeaderstatValues[player] = nil
    end)
-   CombatLibrary.PlayerKilledPlayerTasks:Add(function(killer: Player, victim: Player, weaponId: string)
-      LeaderstatService.addValue(killer, "Elims", 1)
+   PlayerDataService.ProfileAddedTasks:Add(function(player: Player, data)
+      LeaderstatService.setValue(player, "Elims", data.Elims)
    end)
-   
-   local gameStateData = GameStateLibrary.getGameStateData()
-   gameStateData.GameplayPhase:Subscribe(function(gameplayPhase: string)
-      if gameplayPhase == GameplayPhaseEnum.LobbyVoting then
-         for _, player in pairs(Players:GetPlayers()) do
-            LeaderstatService.setValue(player, "Elims", 0)
-         end
+   PlayerDataService.UpdatedTasks:Add(function(player: Player, index, value, path)
+      if #path == 0 and index == "Elims" then
+         LeaderstatService.setValue(player, "Elims", value)
+      end
+   end)
+
+   GameStateLibrary.RoundStartingTasks:Add(function()
+      for _, player in pairs(Players:GetPlayers()) do
+         LeaderstatService.setValue(player, "Round", 0)
       end
    end)
 end

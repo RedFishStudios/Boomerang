@@ -225,6 +225,11 @@ function PlayerDataService.start()
 			profile:AddUserId(player.UserId)
 			profile:Reconcile()
 
+			-- TEMP TESTING Studio players start with at least 1000 currency
+			if (profile.Data.Currency or 0) < 1000 then
+				profile.Data.Currency = 1000
+			end
+
 			profile.OnSessionEnd:Connect(function()
 				profiles[player] = nil
 				player:Kick(`Profile session end - Please rejoin`)

@@ -7,9 +7,10 @@ local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
+local CombatLibrary = require(ReplicatedStorage.Shared.Library.CombatLibrary)
 
 local isServer = RunService:IsServer()
-local ArenaService, GameTeamService, RoundCyclingService, WeaponService, StormCloseService, SpawnService
+local ArenaService, GameTeamService, RoundCyclingService, WeaponService, StormCloseService, SpawnService, LeaderstatService
 if isServer then
    ArenaService = require(ServerStorage.Server.Core.ArenaService)
    GameTeamService = require(ServerStorage.Server.Core.GameTeamService)
@@ -17,6 +18,7 @@ if isServer then
    WeaponService = require(ServerStorage.Server.Core.WeaponService)
    StormCloseService = require(ServerStorage.Server.Core.StormCloseService)
    SpawnService = require(ServerStorage.Server.Core.SpawnService)
+   LeaderstatService = require(ServerStorage.Server.Core.LeaderstatService)
 end
 
 local PerMatchDestroyerFunctions: {()->()} = {}
@@ -33,6 +35,10 @@ function EliminationRoundLogic.setup()
       clear()
       GameTeamService.setFreeForAll()
       StormCloseService.begin(ArenaService.getCurrentArenaPosition() or Vector3.new(0, 0, 0))
+
+      table.insert(PerMatchDestroyerFunctions, CombatLibrary.PlayerKilledPlayerTasks:Add(function(attacker: Player, _victim: Player, _attackerToolId: string)
+         LeaderstatService.addValue(attacker, "Round", 1)
+      end))
 
       table.insert(PerMatchDestroyerFunctions, GameStateLibrary.PlayerRemovedFromArenaTasks:Add(function(player: Player)
          local livingPlayers = GameStateLibrary.getGameStateData().LivingPlayersInArena:Get()

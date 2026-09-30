@@ -28,7 +28,7 @@ end
 
 local ATTACK_CALLBACK_KEY = "Assassin"
 local WRONG_TARGET_CAUSE_LABEL = "Attacking a non-target"
-local POINTS_STAT = "Points"
+local POINTS_STAT = "Round"
 local TARGET_HIGHLIGHT_COLOR = Color3.fromRGB(255, 0, 0)
 
 local targetUpdatedRemote = SimpleRemotes.getEvent("AssassinTargetUpdated")
@@ -271,11 +271,6 @@ function AssassinRoundLogic.setup()
    end
    clear()
    GameTeamService.setFreeForAll()
-
-   LeaderstatService.enableStat(POINTS_STAT)
-   table.insert(PerMatchDestroyerFunctions, function()
-      LeaderstatService.disableStat(POINTS_STAT)
-   end)
 
    formInitialRing(GameStateLibrary.getGameStateData().LivingPlayersInArena:Get())
 

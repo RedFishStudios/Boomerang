@@ -15,6 +15,7 @@ local MarketplaceLibrary = require(SharedMods.Library.MarketplaceLibrary)
 local PolicyLibrary = require(SharedMods.Library.PolicyLibrary)
 local TweenService = game:GetService("TweenService")
 local UIController = require(ClientMods.UI.UIController)
+local ShopController = require(ClientMods.Core.ShopController)
 
 local ShopScreenGui: ScreenGui? = script:WaitForChild("Shop")
 local TabButtons: Frame?
@@ -155,6 +156,9 @@ local function loadTab(tab: ShopItems.ShopTab)
          end
 
          listing.Currency.PriceText.Text = itemData.Price
+         listing.Currency.MouseButton1Click:Connect(function()
+            ShopController.requestPurchaseItem(itemId)
+         end)
          setupActionButtonHover(listing.Currency)
          setupActionButtonHover(listing.Robux)
   

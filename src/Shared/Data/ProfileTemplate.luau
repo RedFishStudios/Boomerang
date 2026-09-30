@@ -10,7 +10,19 @@ local BufferUtil = require(ReplicatedStorage.Shared.Utils.BufferUtil)
 -- TYPES
 -------------------------------------------------------------------------------
 
-export type Template = typeof(ProfileTemplate.get())
+export type Template = {
+   Elims: number, -- Lifetime elimination stat
+   Wins: number, -- Lifetime wins stat
+   Losses: number, -- Lifetime losses stat
+   Currency: number,
+   DailyRewards: {
+      Streak: number, -- Current daily reward streak
+      LastClaim: number, -- Timestamp of the last claimed daily reward
+   },
+   Inventory: {
+      [string]: number -- Shop item id : amount owned
+   }
+}
 
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
@@ -21,10 +33,12 @@ function ProfileTemplate.get()
       Elims = 0,
       Wins = 0,
       Losses = 0,
+      Currency = 0,
       DailyRewards = {
          Streak = 0,
          LastClaim = 0
-      }
+      },
+      Inventory = {}
    }
 
 	return baseProfile

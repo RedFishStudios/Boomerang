@@ -8,9 +8,10 @@ local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local CombatLibrary = require(ReplicatedStorage.Shared.Library.CombatLibrary)
 
 local isServer = RunService:IsServer()
-local GameTeamService, CombatService
+local GameTeamService, LeaderstatService
 if isServer then
    GameTeamService = require(ServerStorage.Server.Core.GameTeamService)
+   LeaderstatService = require(ServerStorage.Server.Core.LeaderstatService)
 end
 
 local PerMatchDestroyerFunctions: {()->()} = {}
@@ -39,6 +40,7 @@ function TeamClassic.setup()
       local team = attacker.Team
       if team and TeamElims[team] ~= nil then
          TeamElims[team] += 1
+         LeaderstatService.addValue(attacker, "Round", 1)
       end
    end))
 

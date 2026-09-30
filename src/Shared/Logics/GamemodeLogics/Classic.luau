@@ -8,10 +8,11 @@ local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local CombatLibrary = require(ReplicatedStorage.Shared.Library.CombatLibrary)
 
 local isServer = RunService:IsServer()
-local GameTeamService, RoundCyclingService
+local GameTeamService, RoundCyclingService, LeaderstatService
 if isServer then
    GameTeamService = require(ServerStorage.Server.Core.GameTeamService)
    RoundCyclingService = require(ServerStorage.Server.Core.RoundCyclingService)
+   LeaderstatService = require(ServerStorage.Server.Core.LeaderstatService)
 end
 
 local PerMatchDestroyerFunctions: {()->()} = {}
@@ -32,6 +33,7 @@ function ClassicRoundLogic.setup()
 
       table.insert(PerMatchDestroyerFunctions, CombatLibrary.PlayerKilledPlayerTasks:Add(function(attacker: Player, victim: Player, attackerToolId: string)
          Elims[attacker] = (Elims[attacker] or 0) + 1
+         LeaderstatService.setValue(attacker, "Round", Elims[attacker])
       end))
 
       -- // Highest-elims winner naturally stays nil if no one has scored an elim yet
