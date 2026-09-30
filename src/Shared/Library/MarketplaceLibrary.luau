@@ -5,8 +5,12 @@ local RunService = game:GetService("RunService")
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 
 local PolicyLibrary = require(script.Parent.PolicyLibrary)
+local GamepassAccess = require(ReplicatedStorage.Shared.Constants.Enums.GamepassAccess)
 
 local CACHE_TIMEOUT = 120
+local NO_ACCESS_CACHE_TIMEOUT = 30
+
+local isServer = RunService:IsServer()
 
 local MarketplaceLibrary = {}
 local MarketplaceItems = require(ReplicatedStorage.Shared.Referential.MarketplaceItems)
@@ -48,6 +52,20 @@ local gamepassPending: {
    [number]: boolean
 } = {}
 
+-- // Any access other than NoAccess is cached permanently
+local GamepassAccessCache: {
+   [number]: { -- UserId
+      [number]: { -- GamepassId
+         Access: number,
+         CachedAt: number
+      }
+   }
+} = {}
+
+local gamepassOwnershipPending: {
+   [string]: boolean
+} = {}
+
 -------------------------------------------------------------------------------
 -- PUBLIC VALUES
 -------------------------------------------------------------------------------
@@ -70,6 +88,91 @@ local function resolveItemIdentifier(product: string | number): number?
    end
 
 	return item.Id
+end
+
+-- // Returns the raw (non-proxied) profile data, or nil if unavailable in this context
+local function getPlayerProfileData(player: Player)
+   if isServer then
+      local PlayerDataService = require(game:GetService("ServerStorage").Server.Core.PlayerDataService)
+      local profile = PlayerDataService.getProfile(player)
+      return profile and profile.Data
+   end
+
+   if player ~= Players.LocalPlayer then
+      return nil
+   end
+   local PlayerDataController = require(ReplicatedStorage.Client.Core.PlayerDataController)
+   return PlayerDataController.get()
+end
+
+local function getCachedGamepassAccess(userId: number, gamepassId: number): number?
+   local userCache = GamepassAccessCache[userId]
+   local cached = userCache and userCache[gamepassId]
+   if not cached then
+      return nil
+   end
+   if cached.Access == GamepassAccess.NoAccess and (os.clock() - cached.CachedAt) > NO_ACCESS_CACHE_TIMEOUT then
+      return nil
+   end
+   return cached.Access
+end
+
+local function setCachedGamepassAccess(userId: number, gamepassId: number, access: number)
+   local userCache = GamepassAccessCache[userId]
+   if not userCache then
+      userCache = {}
+      GamepassAccessCache[userId] = userCache
+   end
+   userCache[gamepassId] = {
+      Access = access,
+      CachedAt = os.clock(),
+   }
+end
+
+local function getGamepassAccess(player: Player, gamepassId: number): number
+   local userId = player.UserId
+   local cached = getCachedGamepassAccess(userId, gamepassId)
+   if cached then
+      return cached
+   end
+
+   local pendingKey = `{userId}_{gamepassId}`
+
+   -- If already pending, yield until done or timeout
+   if gamepassOwnershipPending[pendingKey] then
+      local timeout = 0
+      while gamepassOwnershipPending[pendingKey] and timeout < 50 do
+         task.wait(0.1)
+         timeout += 1
+      end
+      return getCachedGamepassAccess(userId, gamepassId) or GamepassAccess.NoAccess
+   end
+
+   local profileData = getPlayerProfileData(player)
+   if profileData and profileData.GiftedPasses and table.find(profileData.GiftedPasses, gamepassId) then
+      setCachedGamepassAccess(userId, gamepassId, GamepassAccess.Gifted)
+      return GamepassAccess.Gifted
+   end
+
+   gamepassOwnershipPending[pendingKey] = true
+
+   local success, owns = pcall(function()
+      return MarketplaceService:UserOwnsGamePassAsync(userId, gamepassId)
+   end)
+
+   gamepassOwnershipPending[pendingKey] = nil
+
+   if not success then
+      warn(`UserOwnsGamePassAsync failed for {userId}, {gamepassId}: {owns}`)
+      return GamepassAccess.NoAccess
+   end
+
+   local access = if owns then GamepassAccess.Owns else GamepassAccess.NoAccess
+   -- // Don't cache a negative result if gifts couldn't be checked yet
+   if access ~= GamepassAccess.NoAccess or profileData then
+      setCachedGamepassAccess(userId, gamepassId, access)
+   end
+   return access
 end
 
 -------------------------------------------------------------------------------
@@ -304,12 +407,27 @@ function MarketplaceLibrary.playerCanPurchaseItem(player: Player, item: string |
 
 	return true
 end
+   
+function MarketplaceLibrary.playerOwnsGamepass(player: Player, gamepass: string | number): boolean
+	local gamepassId = resolveItemIdentifier(gamepass)
+	if not gamepassId then
+		return false
+	end
+
+   return getGamepassAccess(player, gamepassId) ~= GamepassAccess.NoAccess
+end
 
 function MarketplaceLibrary.init()
+   Players.PlayerRemoving:Connect(function(player: Player)
+      GamepassAccessCache[player.UserId] = nil
+   end)
    MarketplaceService.PromptProductPurchaseFinished:Connect(function(player: Player, productId: number, wasPurchased: boolean)
       MarketplaceLibrary.ProductPurchasePromptFinishedTasks:Execute("paralell", player, productId, wasPurchased)
    end)
    MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player: Player, gamepassId: number, wasPurchased: boolean)
+      if wasPurchased then
+         setCachedGamepassAccess(player.UserId, gamepassId, GamepassAccess.Owns)
+      end
       MarketplaceLibrary.GamepassPurchasePromptFinishedTasks:Execute("paralell", player, gamepassId, wasPurchased)
    end)
 end
