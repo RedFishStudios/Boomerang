@@ -1,19 +1,14 @@
-export type ProductLogic = {
-   Id: number,
-   Grant: (Player: Player)->(boolean)
-}
-
 local ServerMods = game.ServerStorage.Server
 local SharedMods = game.ReplicatedStorage.Shared
 
 local MarketplaceLibrary = require(SharedMods.Library.MarketplaceLibrary)
+local ProductLogicsUtil = require(script.Parent.ProductLogicsUtil)
 
-local ProductLogicTemplate = {}
-ProductLogicTemplate.Id = MarketplaceLibrary.getItemId("Placeholder")
+local PlaceholderProduct = {}
+PlaceholderProduct.ProductId = MarketplaceLibrary.getItemId("Placeholder")
 
-function ProductLogicTemplate.Grant(Player: Player): boolean
-   warn(`placeholder product purchased by ${Player.Name}`)
-   return true
+function PlaceholderProduct.grant(Player: Player): boolean
+   return ProductLogicsUtil.grantGenericItemToPlayer(Player, "ExampleItem1")
 end
 
-return ProductLogicTemplate :: ProductLogic
+return PlaceholderProduct

@@ -22,6 +22,14 @@ local RegisteredProductLogics: {
 -- TYPES
 -------------------------------------------------------------------------------
 
+type ReceiptInfo = {
+   PurchaseId: string, -- Unique identifier for this purchase
+   PlayerId: number, -- Player id
+   ProductId: number, -- Product id
+   PlaceIdWherePurchased: number, -- Place id where the purchase was made
+   ProductPurchaseChannel: Enum.ProductPurchaseChannel
+}
+
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
@@ -35,7 +43,7 @@ local function getLogic(productId: number): ProductLogic?
 end
 
 -- // Process receipt
-local function processReceipt(receiptInfo)
+local function processReceipt(receiptInfo: ReceiptInfo)
 	local logic = getLogic(receiptInfo.ProductId)
 
 	if not logic then
@@ -43,8 +51,15 @@ local function processReceipt(receiptInfo)
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 
+   local userId = receiptInfo.PlayerId
+   local player = game:GetService("Players"):GetPlayerByUserId(userId)
+   if not player then
+      warn(`Player with userId ${userId} not found`)
+      return Enum.ProductPurchaseDecision.NotProcessedYet
+   end
+
 	local success, result = pcall(function()
-		return logic.grant(receiptInfo)
+		return logic.grant(player)
 	end)
 
 	if not success then
@@ -77,8 +92,14 @@ function ProductService.init()
          continue
       end
       local logic = require(logicModule)
-      if not logic.NotActive and logic.productId then
-         RegisteredProductLogics[logic.productId] = logic
+      print("~~~~~")
+      print("~~~~~")
+      print("~~~~~")
+      print("~~~~~")
+      print(logicModule.Name)
+      print(logic.ProductId)
+      if not logic.NotActive and logic.ProductId then
+         RegisteredProductLogics[logic.ProductId] = logic
       else
          warn(`Logic module ${logicModule.Name} does not have a productId`)
       end

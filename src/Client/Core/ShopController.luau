@@ -7,6 +7,7 @@ local Items = require(ReplicatedStorage.Shared.Referential.Items)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local ItemAcquiredGui = require(ReplicatedStorage.Client.UI.Gui.ItemAcquired)
 local PlayerDataController = require(ReplicatedStorage.Client.Core.PlayerDataController)
+local MarketplaceLibrary = require(ReplicatedStorage.Shared.Library.MarketplaceLibrary)
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
@@ -46,6 +47,14 @@ end
 -- // The ItemAcquired gui is shown by the Inventory replication listener in init()
 function ShopController.requestPurchaseItem(itemId: string): boolean
    return requestPurchaseRemoteFunction:InvokeServer(itemId)
+end
+
+function ShopController.requestRobuxPurchaseItem(itemId: string)
+   local itemData = Items[itemId]
+   if not itemData or not itemData.ProductId then
+      return
+   end
+   MarketplaceLibrary.promptDeveloperProduct(itemData.ProductId)
 end
 
 -------------------------------------------------------------------------------

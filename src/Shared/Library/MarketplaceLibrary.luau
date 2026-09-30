@@ -288,6 +288,16 @@ function MarketplaceLibrary.promptProductPurchase(player: Player, item: string |
 	return nil
 end
 
+-- // Player is optional on the client (defaults to LocalPlayer) and required on the server
+function MarketplaceLibrary.promptDeveloperProduct(item: string | number, player: Player?, yieldForAnswer: boolean?): boolean?
+   local targetPlayer = player or (if isServer then nil else Players.LocalPlayer)
+   if not targetPlayer then
+      warn(`promptDeveloperProduct requires a player on the server`)
+      return nil
+   end
+   return MarketplaceLibrary.promptProductPurchase(targetPlayer, item, yieldForAnswer)
+end
+
 function MarketplaceLibrary.getGamepassInfo(item: string | number): RobuxItemInfo?
 	local itemId = resolveItemIdentifier(item)
 	if not itemId then
@@ -427,13 +437,13 @@ function MarketplaceLibrary.init()
       GamepassAccessCache[player.UserId] = nil
    end)
    MarketplaceService.PromptProductPurchaseFinished:Connect(function(player: Player, productId: number, wasPurchased: boolean)
-      MarketplaceLibrary.ProductPurchasePromptFinishedTasks:Execute("paralell", player, productId, wasPurchased)
+      MarketplaceLibrary.ProductPurchasePromptFinishedTasks:Execute("parallel", player, productId, wasPurchased)
    end)
    MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player: Player, gamepassId: number, wasPurchased: boolean)
       if wasPurchased then
          setCachedGamepassAccess(player.UserId, gamepassId, GamepassAccess.Owns)
       end
-      MarketplaceLibrary.GamepassPurchasePromptFinishedTasks:Execute("paralell", player, gamepassId, wasPurchased)
+      MarketplaceLibrary.GamepassPurchasePromptFinishedTasks:Execute("parallel", player, gamepassId, wasPurchased)
    end)
 end
 
