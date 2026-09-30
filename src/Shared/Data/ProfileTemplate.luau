@@ -21,6 +21,9 @@ export type Template = {
    },
    Inventory: {
       [string]: number -- Shop item id : amount owned
+   },
+   GiftedPasses: {
+      number -- Gamepass id
    }
 }
 
@@ -38,7 +41,8 @@ function ProfileTemplate.get()
          Streak = 0,
          LastClaim = 0
       },
-      Inventory = {}
+      Inventory = {},
+      GiftedPasses = {},
    }
 
 	return baseProfile
