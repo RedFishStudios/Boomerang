@@ -179,6 +179,11 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
+function MarketplaceLibrary.getItemId(item: string | number): number?
+	local itemId = resolveItemIdentifier(item)
+	return itemId
+end
+
 function MarketplaceLibrary.getItemDataById(id: number): MarketplaceItems.RobuxItem?
    return MarketplaceItems.ById[id]
 end

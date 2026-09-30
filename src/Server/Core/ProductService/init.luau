@@ -1,182 +1,88 @@
---[[
-  ProductService
-
-  Description:
-  Handles product purchases
-
-  Author:
-  @SixthAtom
-
-  Date:
-  02-03-2026
-]]
-
 local ProductService = {}
 
 local MarketplaceService = game:GetService("MarketplaceService")
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerStorage = game:GetService("ServerStorage")
 
-local PlayerDataService = require(ServerStorage.Server.Core.PlayerDataService)
-local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
+local ServerMods = game.ServerStorage.Server
+local SharedMods = game.ReplicatedStorage.Shared
+
+local MarketplaceLibrary = require(SharedMods.Library.MarketplaceLibrary)
+
+local ProductLogics = ServerMods.Logics.ProductLogics
+local ProductLogicTemplate = require(ProductLogics:WaitForChild("Template"))
+type ProductLogic = ProductLogicTemplate.ProductLogic
+local RegisteredProductLogics: {
+   [number]: ProductLogic
+} = {}
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
-local PRODUCT_GRANTED_DECISION = Enum.ProductPurchaseDecision.PurchaseGranted
-local PRODUCT_NOT_PROCESSED_DECISION = Enum.ProductPurchaseDecision.NotProcessedYet
-
 -------------------------------------------------------------------------------
 -- TYPES
--------------------------------------------------------------------------------
-
-type ProductHandler = (player: Player) -> boolean
-type GamepassHandler = (player: Player) -> ()
-
-type ReceiptInfo = {
-	PurchaseId: string,
-	PlayerId: number,
-	ProductId: number,
-	PlaceIdWherePurchased: number,
-	CurrencySpent: number,
-	CurrencyType: Enum.CurrencyType,
-	ProductPurchaseChannel: Enum.ProductPurchaseChannel,
-}
-
--------------------------------------------------------------------------------
--- PRIVATE VARIABLES
--------------------------------------------------------------------------------
-
-local devProductHandlers: { [number]: ProductHandler } = {}
-local gamepassHandlers: { [number]: GamepassHandler } = {}
-local gamepassRewardGranted: { [Player]: { [number]: boolean } } = {} -- Tracks granted passes per player to avoid redundant handler calls
-
--------------------------------------------------------------------------------
--- PUBLIC VARIABLES
 -------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
 
-local function processReceipt(receiptInfo: ReceiptInfo)
-	local player = Players:GetPlayerByUserId(receiptInfo.PlayerId)
-	if not player then
-		return PRODUCT_NOT_PROCESSED_DECISION
-	end
-
-	local profile = PlayerDataService.getProfile(player)
-	if not profile then
-		return PRODUCT_NOT_PROCESSED_DECISION
-	end
-
-	local handler = devProductHandlers[receiptInfo.ProductId]
-	if not handler then
-		return PRODUCT_NOT_PROCESSED_DECISION
-	end
-
-	local ok, granted = pcall(handler, player)
-	if not ok or not granted then
-		return PRODUCT_NOT_PROCESSED_DECISION
-	end
-
-	profile:Save()
-
-	return PRODUCT_GRANTED_DECISION
+local function getLogic(productId: number): ProductLogic?
+   if RegisteredProductLogics[productId] then
+      return RegisteredProductLogics[productId]
+   end
+   warn(`No logic found for productId: ${productId}`)
+   return nil
 end
 
-local function passPurchaseFinished(player: Player, id: number, purchased: boolean)
-	if not purchased then
-		return -- RETURN: Purchase was cancelled or failed
+-- // Process receipt
+local function processReceipt(receiptInfo)
+	local logic = getLogic(receiptInfo.ProductId)
+
+	if not logic then
+		warn("No logic for developer product:", receiptInfo.ProductId)
+		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 
-	local handler = gamepassHandlers[id]
-	if not handler then
-		return -- RETURN: No handler registered for this gamepass
+	local success, result = pcall(function()
+		return logic.grant(receiptInfo)
+	end)
+
+	if not success then
+		warn("Failed to grant product:", receiptInfo.ProductId, result)
+		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 
-	local playerGranted = gamepassRewardGranted[player]
-	if not playerGranted or playerGranted[id] then
-		return -- RETURN: Player left or already granted this session
-	end
+	if result and result == true then
+		return Enum.ProductPurchaseDecision.PurchaseGranted
+	else
+      warn(`Failed to grant product: ${receiptInfo.ProductId}, result: ${tostring(result)}`)
+   end
 
-	playerGranted[id] = true
-	handler(player)
-end
-
-local function scanAllGamepasses(player: Player)
-	for id, handler in next, gamepassHandlers do
-		task.spawn(function()
-			local playerGranted = gamepassRewardGranted[player]
-			if not playerGranted then
-				return -- RETURN: Player left before scan completed
-			end
-
-			if playerGranted[id] then
-				return -- RETURN: Already granted this session
-			end
-
-			local ok, owns = pcall(MarketplaceService.UserOwnsGamePassAsync, MarketplaceService, player.UserId, id)
-			if not ok or not owns then
-				return -- RETURN: MPS call failed or player doesn't own pass
-			end
-
-			playerGranted[id] = true
-			handler(player)
-		end)
-	end
-end
-
-local function onPlayerAdded(player: Player)
-	gamepassRewardGranted[player] = {}
-	scanAllGamepasses(player)
-end
-
-local function onPlayerRemoving(player: Player)
-	gamepassRewardGranted[player] = nil
+	return Enum.ProductPurchaseDecision.NotProcessedYet
 end
 
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
-function ProductService.registerDevProducts(products: { [number]: ProductHandler })
-	for id, handler in next, products do
-		if devProductHandlers[id] then
-			error(`DevProductHandler with id {id} already exists.`)
-		end
-		devProductHandlers[id] = handler
-	end
-end
-
-function ProductService.registerGamepasses(passes: { [number]: GamepassHandler })
-	for id, handler in next, passes do
-		if gamepassHandlers[id] then
-			error(`GamePassHandler with id {id} already exists.`)
-		end
-		gamepassHandlers[id] = handler
-	end
-
-	for _, player in next, Players:GetPlayers() do
-		task.spawn(scanAllGamepasses, player)
-	end
-end
-
 -------------------------------------------------------------------------------
--- CORE FUNCTIONS
+-- CORE
 -------------------------------------------------------------------------------
 
 function ProductService.init()
-	MarketplaceService.ProcessReceipt = processReceipt
-	PlayersUtil.PlayerAdded:Add(onPlayerAdded)
-	PlayersUtil.PlayerRemoving:Add(onPlayerRemoving)
-	MarketplaceService.PromptGamePassPurchaseFinished:Connect(passPurchaseFinished)
+   MarketplaceService.ProcessReceipt = processReceipt
+
+   for _, logicModule in ipairs(ProductLogics:GetChildren()) do
+      if logicModule.Name == "ProductLogicsUtil" then
+         continue
+      end
+      local logic = require(logicModule)
+      if not logic.NotActive and logic.productId then
+         RegisteredProductLogics[logic.productId] = logic
+      else
+         warn(`Logic module ${logicModule.Name} does not have a productId`)
+      end
+   end
 end
-
-function ProductService.start() end
-
-function ProductService.test() end
 
 return ProductService
