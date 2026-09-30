@@ -30,20 +30,26 @@ local gridLayout = mainContainer:WaitForChild("UIGridLayout")
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
 
+-- Returns days claimed in the current cycle (0-7), the next claimable day, and whether it can be claimed now
+local function getStreakState(playerData)
+   local currentStreak = playerData.DailyRewards.Streak
+   local lastClaim = playerData.DailyRewards.LastClaim
+   local isClaimable = lastClaim == 0 or (os.time() - lastClaim >= SECONDS_IN_DAY)
+
+   -- Server wraps back to day 1 after the final day is claimed
+   local visualStreak = currentStreak
+   if isClaimable and currentStreak >= DailyRewards.MaxStreakDays then
+      visualStreak = 0
+   end
+
+   return visualStreak, visualStreak + 1, isClaimable
+end
+
 local function updateDayIndicators()
    local playerData = PlayerDataController.get()
    if not playerData then return end
-   
-   local currentStreak = playerData.DailyRewards.Streak
-   local lastClaim = playerData.DailyRewards.LastClaim
-   
-   -- Determine if the next day is claimable based on time elapsed
-   local isClaimable = lastClaim == 0 or (os.time() - lastClaim >= SECONDS_IN_DAY)
-   
-   -- Calculate visual streak within current cycle (1-7)
-   -- Rewards cycle loops back after day 7
-   local visualStreak = ((currentStreak - 1) % DailyRewards.MaxStreakDays) + 1
-   local nextVisualDay = (visualStreak % DailyRewards.MaxStreakDays) + 1
+
+   local visualStreak, nextVisualDay, isClaimable = getStreakState(playerData)
 
    for dayNum = 1, DailyRewards.MaxStreakDays do
       local dayFrame = DayFrames[dayNum]
@@ -162,14 +168,8 @@ function DailyClaimsGui.start()
 
       -- Get day label and update its text
       local playerData = PlayerDataController.get()
-      local currentStreak = playerData.DailyRewards.Streak
-      local lastClaim = playerData.DailyRewards.LastClaim
-      local isClaimable = lastClaim == 0 or (os.time() - lastClaim >= SECONDS_IN_DAY)
-      
-      -- Calculate visual streak within current cycle (1-7)
-      local visualStreak = ((currentStreak - 1) % DailyRewards.MaxStreakDays) + 1
-      local nextVisualDay = (visualStreak % DailyRewards.MaxStreakDays) + 1
-      
+      local _, nextVisualDay, isClaimable = getStreakState(playerData)
+
       local dayLabel = dayFrame:FindFirstChild("DayLabel")
       if dayNum == nextVisualDay and isClaimable then
          dayLabel.Text = "Today"
@@ -195,6 +195,8 @@ function DailyClaimsGui.start()
    end
 
    wireDayFrame(container:WaitForChild("Day" .. DailyRewards.MaxStreakDays), DailyRewards.MaxStreakDays)
+
+   container:WaitForChild("Exit").MouseButton1Click:Connect(DailyClaimsGui.close)
 
    if game:GetService("RunService"):IsStudio() then
       game:GetService("ContextActionService"):BindAction("testopendailyclaimsmenu", function(_, inputState)

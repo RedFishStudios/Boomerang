@@ -2,7 +2,7 @@
 	<Meta name="ExplicitAutoJoints">true</Meta>
 	<External>null</External>
 	<External>nil</External>
-	<Item class="ScreenGui" referent="RBX3BF42B21A4154F19B2F566D9F691424F">
+	<Item class="ScreenGui" referent="RBXCCAC86C3C5ED4F109BB0D37DAAB7A297">
 		<Properties>
 			<bool name="ClipToDeviceSafeArea">true</bool>
 			<int name="DisplayOrder">0</int>
@@ -25,7 +25,7 @@
 			<int64 name="SourceAssetId">-1</int64>
 			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 		</Properties>
-		<Item class="Frame" referent="RBX54B04B14008E4AD1B798A4FE8B0C9B58">
+		<Item class="Frame" referent="RBX4D12192D2358408BA32F3BB913E64F6D">
 			<Properties>
 				<token name="Style">0</token>
 				<bool name="Active">false</bool>
@@ -89,7 +89,7 @@
 				<int64 name="SourceAssetId">-1</int64>
 				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			</Properties>
-			<Item class="UIAspectRatioConstraint" referent="RBX8D2CA369F82540E1B215FD470AED3EDD">
+			<Item class="UIAspectRatioConstraint" referent="RBX8BE7069F7E144FAFAA500E1E62C70A84">
 				<Properties>
 					<float name="AspectRatio">1.71000004</float>
 					<token name="AspectType">0</token>
@@ -102,7 +102,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="Frame" referent="RBX36C902BB0F6B44659AA660BFEBBC1432">
+			<Item class="Frame" referent="RBXA14C040E19D9472286B614142938D42A">
 				<Properties>
 					<token name="Style">0</token>
 					<bool name="Active">false</bool>
@@ -166,7 +166,7 @@
 					<int64 name="SourceAssetId">-1</int64>
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
-				<Item class="UIGridLayout" referent="RBX11C19A1BFBAD4F7D844597854ACDF7E9">
+				<Item class="UIGridLayout" referent="RBXD8E9420687774FF8BA378BBEF2C7A982">
 					<Properties>
 						<UDim2 name="CellPadding">
 							<XS>0</XS>
@@ -194,7 +194,7 @@
 						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 					</Properties>
 				</Item>
-				<Item class="Frame" referent="RBXDA59C24595D942B7AC5C4EFDA9AB960C">
+				<Item class="Frame" referent="RBX5926AED42AF64F43BCEABC57EDD4C3A3">
 					<Properties>
 						<token name="Style">0</token>
 						<bool name="Active">false</bool>
@@ -258,7 +258,7 @@
 						<int64 name="SourceAssetId">-1</int64>
 						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 					</Properties>
-					<Item class="ImageLabel" referent="RBX81EF79FC71E445389A9D009714083493">
+					<Item class="ImageLabel" referent="RBX0D4D462990694E49AD70E789BE1234FA">
 						<Properties>
 							<Content name="Image"><url>rbxasset://textures/ui/GuiImagePlaceholder.png</url></Content>
 							<Color3 name="ImageColor3">
@@ -356,7 +356,7 @@
 							<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 						</Properties>
 					</Item>
-					<Item class="TextLabel" referent="RBXCBBAAB49E3B943DEA267C423EC4DB198">
+					<Item class="TextLabel" referent="RBXB354BC12AD6D4EE682E455542D4F4D22">
 						<Properties>
 							<Font name="FontFace">
 								<Family><url>rbxasset://fonts/families/ComicNeueAngular.json</url></Family>
@@ -451,7 +451,7 @@
 							<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 						</Properties>
 					</Item>
-					<Item class="TextLabel" referent="RBX58FDF36883EA4BED81B87E6F61A95E32">
+					<Item class="TextLabel" referent="RBX767E8B6C202D4139AE3762A709BFC3B3">
 						<Properties>
 							<Font name="FontFace">
 								<Family><url>rbxasset://fonts/families/ComicNeueAngular.json</url></Family>
@@ -546,7 +546,7 @@
 							<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 						</Properties>
 					</Item>
-					<Item class="ImageButton" referent="RBXBE2DA7E9E3554DD39530C26D5DDB3DF5">
+					<Item class="ImageButton" referent="RBX81022ED822734D70A527412E5A6E631F">
 						<Properties>
 							<Content name="HoverImage"><null></null></Content>
 							<Content name="Image"><null></null></Content>
@@ -651,7 +651,7 @@
 							<int64 name="SourceAssetId">-1</int64>
 							<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 						</Properties>
-						<Item class="TextLabel" referent="RBX034491990C214C4488D7B976812FD1F5">
+						<Item class="TextLabel" referent="RBX9739C0648DCD48E2892C1935241A43D0">
 							<Properties>
 								<Font name="FontFace">
 									<Family><url>rbxasset://fonts/families/SourceSansPro.json</url></Family>
@@ -748,7 +748,7 @@
 							</Properties>
 						</Item>
 					</Item>
-					<Item class="ImageLabel" referent="RBX7CF283DE279E4DF8B15BFC57558B0B3A">
+					<Item class="ImageLabel" referent="RBX68AC632284E64AF19CA01753C3F61A2C">
 						<Properties>
 							<Content name="Image"><url>rbxasset://textures/ui/GuiImagePlaceholder.png</url></Content>
 							<Color3 name="ImageColor3">
@@ -845,7 +845,7 @@
 							<int64 name="SourceAssetId">-1</int64>
 							<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 						</Properties>
-						<Item class="TextLabel" referent="RBX763C54D644A84FA3A429ED5A19800D37">
+						<Item class="TextLabel" referent="RBX6E98758891A549139D32A32CB49FEA17">
 							<Properties>
 								<Font name="FontFace">
 									<Family><url>rbxasset://fonts/families/SourceSansPro.json</url></Family>
@@ -942,7 +942,7 @@
 							</Properties>
 						</Item>
 					</Item>
-					<Item class="ImageLabel" referent="RBX292BF4F8AAF34EDC9D8B8566D7D2BE0B">
+					<Item class="ImageLabel" referent="RBX516BB1503A434F9DA106852E7F137C23">
 						<Properties>
 							<Content name="Image"><url>rbxasset://textures/ui/GuiImagePlaceholder.png</url></Content>
 							<Color3 name="ImageColor3">
@@ -1039,7 +1039,7 @@
 							<int64 name="SourceAssetId">-1</int64>
 							<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 						</Properties>
-						<Item class="TextLabel" referent="RBXC5EBE33EE58544469009E488FBA1158D">
+						<Item class="TextLabel" referent="RBX2396E6ECCC674BB8A5750BD5C039FE0B">
 							<Properties>
 								<Font name="FontFace">
 									<Family><url>rbxasset://fonts/families/SourceSansPro.json</url></Family>
@@ -1138,7 +1138,7 @@
 					</Item>
 				</Item>
 			</Item>
-			<Item class="UIPadding" referent="RBX692741B41837425FBCE51D9F4A2E276B">
+			<Item class="UIPadding" referent="RBX309D09467CCF41AFBED2F31BCCE46F34">
 				<Properties>
 					<UDim name="PaddingBottom">
 						<S>0.0700000003</S>
@@ -1164,7 +1164,7 @@
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
 			</Item>
-			<Item class="Frame" referent="RBXF1DAB156EA544EF5822F3AF174E15FCE">
+			<Item class="Frame" referent="RBXC8BEA7E222504FCD92C82EB01FCFF80C">
 				<Properties>
 					<token name="Style">0</token>
 					<bool name="Active">false</bool>
@@ -1228,7 +1228,7 @@
 					<int64 name="SourceAssetId">-1</int64>
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
-				<Item class="ImageButton" referent="RBX13D8317B24F84DA9AD00F8D94C5AA209">
+				<Item class="ImageButton" referent="RBXAF1F633E05C044A383B4DE73716BD99E">
 					<Properties>
 						<Content name="HoverImage"><null></null></Content>
 						<Content name="Image"><null></null></Content>
@@ -1333,7 +1333,7 @@
 						<int64 name="SourceAssetId">-1</int64>
 						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 					</Properties>
-					<Item class="TextLabel" referent="RBX37E38783186B44818097E864F01FB3AF">
+					<Item class="TextLabel" referent="RBX05CFE3E368CF4C10821E41FB9ED05B40">
 						<Properties>
 							<Font name="FontFace">
 								<Family><url>rbxasset://fonts/families/SourceSansPro.json</url></Family>
@@ -1430,7 +1430,7 @@
 						</Properties>
 					</Item>
 				</Item>
-				<Item class="ImageLabel" referent="RBX3A4A7411A24A4C35937141F76AE0E890">
+				<Item class="ImageLabel" referent="RBXD1DEB3347A0F46C98ECC35A0D8EEFDBC">
 					<Properties>
 						<Content name="Image"><url>rbxasset://textures/ui/GuiImagePlaceholder.png</url></Content>
 						<Color3 name="ImageColor3">
@@ -1527,7 +1527,7 @@
 						<int64 name="SourceAssetId">-1</int64>
 						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 					</Properties>
-					<Item class="TextLabel" referent="RBX9FB1ECDDF56741308D3A7028F121AF45">
+					<Item class="TextLabel" referent="RBX2E848EA6933A44D2B1C61EB5DB7EF4B1">
 						<Properties>
 							<Font name="FontFace">
 								<Family><url>rbxasset://fonts/families/SourceSansPro.json</url></Family>
@@ -1624,7 +1624,7 @@
 						</Properties>
 					</Item>
 				</Item>
-				<Item class="ImageLabel" referent="RBXE641485A1ADC411FACE4EC51A615AE4C">
+				<Item class="ImageLabel" referent="RBX2CD7DC49EC5B4B858B39894529EEBBFE">
 					<Properties>
 						<Content name="Image"><url>rbxasset://textures/ui/GuiImagePlaceholder.png</url></Content>
 						<Color3 name="ImageColor3">
@@ -1721,7 +1721,7 @@
 						<int64 name="SourceAssetId">-1</int64>
 						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 					</Properties>
-					<Item class="TextLabel" referent="RBX6FDFDB1ABDFE4F449F2FFE14AE9AA3A0">
+					<Item class="TextLabel" referent="RBXD92F766027014F6B943A58DB9FD68150">
 						<Properties>
 							<Font name="FontFace">
 								<Family><url>rbxasset://fonts/families/SourceSansPro.json</url></Family>
@@ -1818,7 +1818,7 @@
 						</Properties>
 					</Item>
 				</Item>
-				<Item class="ImageLabel" referent="RBXF0C966B1F8EA499788087ED918C3B2A9">
+				<Item class="ImageLabel" referent="RBXC46683E3FA064A079E1E942CBC69887A">
 					<Properties>
 						<Content name="Image"><url>rbxasset://textures/ui/GuiImagePlaceholder.png</url></Content>
 						<Color3 name="ImageColor3">
@@ -1916,7 +1916,7 @@
 						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 					</Properties>
 				</Item>
-				<Item class="TextLabel" referent="RBX543C59F0E15C4106A175F167DA2E0FE7">
+				<Item class="TextLabel" referent="RBX6C9D3CEF131A4A159247519D3D30CAB1">
 					<Properties>
 						<Font name="FontFace">
 							<Family><url>rbxasset://fonts/families/ComicNeueAngular.json</url></Family>
@@ -2011,7 +2011,7 @@
 						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 					</Properties>
 				</Item>
-				<Item class="TextLabel" referent="RBX8AA192AEE0EC441480544209A1C1EE36">
+				<Item class="TextLabel" referent="RBX9AA3FF903A714E04A7BD1391A0088981">
 					<Properties>
 						<Font name="FontFace">
 							<Family><url>rbxasset://fonts/families/ComicNeueAngular.json</url></Family>
@@ -2106,6 +2106,112 @@
 						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 					</Properties>
 				</Item>
+			</Item>
+			<Item class="ImageButton" referent="RBXCD6CEF8D7CAA4D9AB3DF751564E79BD5">
+				<Properties>
+					<Content name="HoverImage"><null></null></Content>
+					<Content name="Image"><url>rbxasset://textures/ui/GuiImagePlaceholder.png</url></Content>
+					<Color3 name="ImageColor3">
+						<R>1</R>
+						<G>1</G>
+						<B>1</B>
+					</Color3>
+					<Vector2 name="ImageRectOffset">
+						<X>0</X>
+						<Y>0</Y>
+					</Vector2>
+					<Vector2 name="ImageRectSize">
+						<X>0</X>
+						<Y>0</Y>
+					</Vector2>
+					<float name="ImageTransparency">0</float>
+					<Content name="PressedImage"><null></null></Content>
+					<token name="ResampleMode">0</token>
+					<token name="ScaleType">0</token>
+					<Rect2D name="SliceCenter">
+						<min>
+							<X>0</X>
+							<Y>0</Y>
+						</min>
+						<max>
+							<X>0</X>
+							<Y>0</Y>
+						</max>
+					</Rect2D>
+					<float name="SliceScale">1</float>
+					<UDim2 name="TileSize">
+						<XS>1</XS>
+						<XO>0</XO>
+						<YS>1</YS>
+						<YO>0</YO>
+					</UDim2>
+					<bool name="AutoButtonColor">true</bool>
+					<Ref name="HoverHapticEffect">null</Ref>
+					<bool name="Modal">false</bool>
+					<Ref name="PressHapticEffect">null</Ref>
+					<bool name="Selected">false</bool>
+					<token name="Style">0</token>
+					<bool name="Active">true</bool>
+					<Vector2 name="AnchorPoint">
+						<X>0.5</X>
+						<Y>0.5</Y>
+					</Vector2>
+					<token name="AutomaticSize">0</token>
+					<Color3 name="BackgroundColor3">
+						<R>1</R>
+						<G>1</G>
+						<B>1</B>
+					</Color3>
+					<float name="BackgroundTransparency">0</float>
+					<Color3 name="BorderColor3">
+						<R>0</R>
+						<G>0</G>
+						<B>0</B>
+					</Color3>
+					<token name="BorderMode">0</token>
+					<int name="BorderSizePixel">0</int>
+					<bool name="ClipsDescendants">false</bool>
+					<bool name="Draggable">false</bool>
+					<bool name="Interactable">true</bool>
+					<int name="LayoutOrder">0</int>
+					<Ref name="NextSelectionDown">null</Ref>
+					<Ref name="NextSelectionLeft">null</Ref>
+					<Ref name="NextSelectionRight">null</Ref>
+					<Ref name="NextSelectionUp">null</Ref>
+					<UDim2 name="Position">
+						<XS>1</XS>
+						<XO>0</XO>
+						<YS>0</YS>
+						<YO>0</YO>
+					</UDim2>
+					<float name="Rotation">0</float>
+					<bool name="Selectable">true</bool>
+					<Ref name="SelectionImageObject">null</Ref>
+					<int name="SelectionOrder">0</int>
+					<token name="Sink">1</token>
+					<UDim2 name="Size">
+						<XS>0.150000006</XS>
+						<XO>0</XO>
+						<YS>0.150000006</YS>
+						<YO>0</YO>
+					</UDim2>
+					<token name="SizeConstraint">2</token>
+					<bool name="Visible">true</bool>
+					<int name="ZIndex">1</int>
+					<bool name="AutoLocalize">true</bool>
+					<Ref name="RootLocalizationTable">null</Ref>
+					<token name="SelectionBehaviorDown">0</token>
+					<token name="SelectionBehaviorLeft">0</token>
+					<token name="SelectionBehaviorRight">0</token>
+					<token name="SelectionBehaviorUp">0</token>
+					<bool name="SelectionGroup">false</bool>
+					<BinaryString name="AttributesSerialize"></BinaryString>
+					<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+					<bool name="DefinesCapabilities">false</bool>
+					<string name="Name">Exit</string>
+					<int64 name="SourceAssetId">-1</int64>
+					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+				</Properties>
 			</Item>
 		</Item>
 	</Item>
