@@ -13,6 +13,11 @@ local ItemAcquiredGui = require(ReplicatedStorage.Client.UI.Gui.ItemAcquired)
 
 local requestPurchaseRemoteFunction = SimpleRemotes.getFunction("RequestPurchase")
 
+local acquiredTitleByType: {[Items.ItemType]: string} = {
+   Weapon = "New weapon acquired!",
+   Skin = "New skin acquired!",
+}
+
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
 -------------------------------------------------------------------------------
@@ -26,12 +31,11 @@ local requestPurchaseRemoteFunction = SimpleRemotes.getFunction("RequestPurchase
 -------------------------------------------------------------------------------
 
 function ShopController.requestPurchaseItem(itemId: string): boolean
-   warn(`sending 1`)
    local success = requestPurchaseRemoteFunction:InvokeServer(itemId)
-   warn(`received response: ${tostring(success)}`)
    if success then
       local itemData = Items[itemId]
-      ItemAcquiredGui.acquiredCustomItem(nil, itemData.Name, "Purchased!")
+      local title = acquiredTitleByType[itemData.Type] or "New item acquired!"
+      ItemAcquiredGui.acquiredCustomItem(nil, title, itemData.Name)
    end
    return success
 end

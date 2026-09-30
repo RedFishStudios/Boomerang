@@ -53,7 +53,6 @@ end
 
 function ShopService.init()
    requestPurchaseRemoteFunction.OnServerInvoke = function(player: Player, itemId: unknown)
-      warn(`received 1`)
       if type(itemId) ~= "string" then
          return false
       end
