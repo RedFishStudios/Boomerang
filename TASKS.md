@@ -191,6 +191,8 @@ Stepping into water kills the player. A splash effect plays on the player and th
 - **Area:** Shared
 - **Files:** `Shared/Constants/Tools.luau`
 
+**On hold (Sol, 2026-10-01): don't start this yet.**
+
 **Problem / goal**
 The client says the boomerang needs to move "way faster" and go decently further: **twice the throw distance and about 50% more speed**. `ClassicBoomerang` is currently `Speed = 60`, `ThrowDistance = 30`.
 
@@ -710,9 +712,9 @@ The shop GUI still has placeholder/progress visuals. Sol finishes the assets.
 Lobby pedestals show a floating, slowly spinning model of the current sale item. Walking up to one shows a prompt to buy it.
 - **Sol:** build the pedestal model(s) in the lobby (Studio) and tag/name them.
 - **Agent:** spawn and spin the current deal's model over each pedestal (client-side is fine), add a ProximityPrompt, and buy through the existing purchase flow.
+- **Sol: focus on Robux** (`MarketplaceLibrary.promptDeveloperProduct` with the item's `ProductId`), **but keep it scalable** so a Currency purchase option can be added later (e.g. a per-pedestal/per-item payment method, not Robux hard-coded into the prompt logic).
 
 **Open questions (ask Sol first)**
-- Is the sale item bought with Currency (`ShopService`), Robux (`MarketplaceLibrary`), or either?
 - Is `ShopItems.CurrentDeal` the item to show, and does it rotate (daily/weekly)?
 - How should pedestals be marked in the place (tag name / folder)?
 
@@ -730,9 +732,9 @@ Lobby pedestals show a floating, slowly spinning model of the current sale item.
 Water now kills (T-028), so electrifying water and "zapping" players no longer make sense. **Remove those concepts entirely** (electrified water state, zapped animation/effect, `PlayZappedAnimation`, the dependency on `Water`).
 New behaviour: when an electric boomerang kills a player, every other player within **5 studs** (configurable) of the victim is also killed, with an **electric arc** drawn between the two. The chain continues from each newly killed player to anyone within 5 studs of them. The thrower can never be affected.
 - Chain kills should be credited to the thrower and go through the normal kill path (elim messages, scoring).
+- **Sol: the chain skips the thrower's teammates** (use `GameTeamLibrary.areEnemies`).
 
 **Open questions (ask Sol first)**
-- Friendly fire: in team modes, does the chain skip the thrower's teammates?
 - "Has a chance to chain-kill": is the chain guaranteed for everyone in range, or is there a probability per link? If a chance, what value?
 - Should there be a max chain length or a short delay between links (for the arcs to read well)?
 
@@ -761,7 +763,7 @@ A leaderboard in the lobby shows the top players by total eliminations (`Profile
 - **Agent:** keep an OrderedDataStore of lifetime elims (updated on save/leave and periodically), refresh the board on an interval, and load the top 3 players' avatars onto the podium.
 
 **Open questions (ask Sol first)**
-- How many players on the board (e.g. top 10/50/100)? How often should it refresh?
+- How often should it refresh? (**Sol: show the top 30 players.**)
 - Global all-time only, or also weekly?
 - Studio data uses the `Dev` key; should the Studio leaderboard use a separate store too?
 
