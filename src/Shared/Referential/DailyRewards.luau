@@ -15,7 +15,7 @@ return {
    Rewards = {
       [1] = {
          Type = "Item",
-         Value = "ExampleItem1"
+         Value = "ExampleItem1" -- TODO:RELEASE placeholder
       },
       [2] = {
          Type = "Currency",
@@ -23,7 +23,7 @@ return {
       },
       [3] = {
          Type = "Item",
-         Value = "ExampleItem2"
+         Value = "ExampleItem2" -- TODO:RELEASE placeholder
       },
       [4] = {
          Type = "Currency",
@@ -31,7 +31,7 @@ return {
       },
       [5] = {
          Type = "Item",
-         Value = "ExampleWeapon1"
+         Value = "ExampleWeapon1" -- TODO:RELEASE placeholder
       },
       [6] = {
          Type = "Currency",
@@ -39,7 +39,7 @@ return {
       },
       [7] = {
          Type = "Item",
-         Value = "ExampleWeapon2"
+         Value = "ExampleWeapon2" -- TODO:RELEASE placeholder
       },
    }
 }

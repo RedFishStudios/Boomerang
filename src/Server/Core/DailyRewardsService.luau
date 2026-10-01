@@ -20,6 +20,7 @@ local DailyRewards = require(ReplicatedStorage.Shared.Referential.DailyRewards)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local PlayerDataService = require(ServerStorage.Server.Core.PlayerDataService)
 local EconomyService = require(ServerStorage.Server.Core.EconomyService)
+local ItemService = require(ServerStorage.Server.Core.ItemService)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -75,18 +76,27 @@ function DailyRewardsService.init()
       end
 
       local newStreak = (profileData.DailyRewards.Streak % DailyRewards.MaxStreakDays) + 1
+      local reward = DailyRewards.Rewards[newStreak]
+
+      -- // Grant first, so a misconfigured reward doesn't use up the player's claim
+      -- // The client is notified through data replication: ItemAcquired for items (ShopController's Inventory listener),
+      -- // and DailyClaims shows the currency popup using the day returned below.
+      local granted = false
+      if reward and reward.Type == "Currency" then
+         granted = EconomyService.addCurrency(player, reward.Value)
+      elseif reward and reward.Type == "Item" then
+         granted = ItemService.grantItem(player, reward.Value, 1)
+      end
+
+      if not granted then
+         warn(`DailyRewardsService: failed to grant day {newStreak} reward to {player.Name}`, reward)
+         return false
+      end
+
       profileData.DailyRewards.Streak = newStreak
       profileData.DailyRewards.LastClaim = os.time()
 
-      local reward = DailyRewards.Rewards[newStreak]
-      if reward.Type == "Currency" then
-         -- TODO: notify player
-         EconomyService.addCurrency(player, reward.Value)
-      elseif reward.Type == "Item" then
-         -- TODO: grant player the item
-      end
-
-      return true
+      return true, newStreak
 	end
 end
 

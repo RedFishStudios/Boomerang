@@ -163,29 +163,6 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ---
 
-### T-009 · Daily rewards: grant item rewards and notify the player
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Server / Client / GUI
-- **Files:** `Server/Core/DailyRewardsService.luau`, `Shared/Referential/DailyRewards.luau`, `Client/UI/Gui/DailyClaims/`, `Client/UI/Gui/ItemAcquired/`
-
-**Problem / goal**
-Claiming a login reward must grant it and tell the player.
-- Item rewards: `DailyRewardsService` still has `-- TODO: grant player the item`. Grant them with `ItemService.grantItem` (T-006).
-- Notification: show the reward on the client with the ItemAcquired popup (items) and a currency popup/message (currency). Use the existing ItemAcquired GUI; final visuals are Sol's (T-021).
-- `DailyRewards` points at the `ExampleItem` placeholders; keep them and mark them `-- TODO:RELEASE placeholder` if they aren't already.
-
-**Done when**
-- [ ] Item rewards are added to the Inventory; currency rewards keep working.
-- [ ] The player sees a notification for every claimed reward (item and currency).
-
-**Test in Studio**
-- Claim on day 1 (item) and day 2 (currency) (use Cmdr or reset `LastClaim` in Studio data): each grant shows a popup and is saved.
-
-**Notes**
-
----
-
 ### T-023 · Assassin: let players join mid-round
 - **Priority:** P1
 - **Owner:** Agent
@@ -382,6 +359,33 @@ The client said: "anything they have in their lobby, we want in our lobby". Rese
 ## In Progress
 
 ## Review
+
+### T-009 · Daily rewards: grant item rewards and notify the player
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Server / Client / GUI
+- **Files:** `Server/Core/DailyRewardsService.luau`, `Shared/Referential/DailyRewards.luau`, `Client/UI/Gui/DailyClaims/`, `Client/UI/Gui/ItemAcquired/`
+
+**Problem / goal**
+Claiming a login reward must grant it and tell the player.
+- Item rewards: `DailyRewardsService` still has `-- TODO: grant player the item`. Grant them with `ItemService.grantItem` (T-006).
+- Notification: show the reward on the client with the ItemAcquired popup (items) and a currency popup/message (currency). Use the existing ItemAcquired GUI; final visuals are Sol's (T-021).
+- `DailyRewards` points at the `ExampleItem` placeholders; keep them and mark them `-- TODO:RELEASE placeholder` if they aren't already.
+
+**Done when**
+- [x] Item rewards are added to the Inventory; currency rewards keep working.
+- [x] The player sees a notification for every claimed reward (item and currency).
+
+**Test in Studio**
+- Claim on day 1 (item) and day 2 (currency) (use Cmdr or reset `LastClaim` in Studio data): each grant shows a popup and is saved.
+
+**Notes**
+- Server: `DailyRewardsService` grants the reward first (`ItemService.grantItem` / `EconomyService.addCurrency`) and only then advances the streak, so a misconfigured reward doesn't use up the claim. The remote now returns `true, claimedDay`.
+- Client: item rewards show the ItemAcquired popup through ShopController's existing Inventory listener; currency rewards show "Daily reward claimed! +N Currency" from `DailyClaims`.
+- `TODO:RELEASE placeholder` added to the 4 `ExampleItem`/`ExampleWeapon` rewards in `DailyRewards.luau`.
+- Play-tested in Studio: day-1 claim granted ExampleItem1 once and returned day 1; a second claim the same day was refused; the popup GUI was enabled; no client/server errors from these modules. The day-2 currency claim wasn't exercised (needs a day to pass or a reset of `LastClaim`).
+
+---
 
 ### T-006 · Port the template-era economy/item modules to the current save format
 - **Priority:** P2

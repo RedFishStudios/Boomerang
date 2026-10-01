@@ -11,6 +11,7 @@ local ClientMods = ReplicatedStorage.Client
 local Items = require(SharedMods.Referential.Items)
 local DailyRewards = require(SharedMods.Referential.DailyRewards)
 local PlayerDataController = require(ClientMods.Core.PlayerDataController)
+local ItemAcquiredGui = require(ClientMods.UI.Gui.ItemAcquired)
 
 local SECONDS_IN_DAY = 86400
 
@@ -73,10 +74,21 @@ local function updateDayIndicators()
    end
 end
 
+-- // Item rewards are announced by ShopController's Inventory listener (ItemAcquired), so only currency is shown here
+local function notifyReward(claimedDay: number)
+   local reward = DailyRewards.Rewards[claimedDay]
+   if reward and reward.Type == "Currency" then
+      ItemAcquiredGui.acquiredCustomItem(nil, "Daily reward claimed!", `+{reward.Value} Currency`)
+   end
+end
+
 local function claim(day: number)
-   local success = claimRemoteFunction:InvokeServer()
+   local success, claimedDay = claimRemoteFunction:InvokeServer()
    if success then
       updateDayIndicators()
+      if typeof(claimedDay) == "number" then
+         notifyReward(claimedDay)
+      end
    end
 end
 
