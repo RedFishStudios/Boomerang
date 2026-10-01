@@ -760,6 +760,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          thrownWeaponData.PortalExitPart = portalExit.ExitPart
          if not isServer then
             retireTrail(thrownWeaponData)
+            thrownWeaponData.SyncTargetPosition = nil -- // A pre-crossing smoothing target would drag it back toward the entry portal
          end
          setWeaponCFrame(thrownWeaponData, CFrame.new(portalExit.Position), deltaTime)
          distanceTraveled += rayDistance

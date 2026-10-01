@@ -396,6 +396,11 @@ local function updateSmoothing(deltaTime: number)
          thrownWeaponData.SyncTargetPosition = nil
          continue
       end
+      -- // A target this far away is stale (e.g. set just before a portal crossing); never drag the boomerang across that gap
+      if errorDistance >= HARD_SNAP_DISTANCE then
+         thrownWeaponData.SyncTargetPosition = nil
+         continue
+      end
 
       local alpha = math.clamp(deltaTime * SOFT_CORRECTION_RATE, 0, 1)
       local correctedPosition = currentPosition:Lerp(targetPosition, alpha)
