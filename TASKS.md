@@ -268,7 +268,7 @@ Stepping into water kills the player. A splash effect plays on the player and th
 - Splash: `ParticlesLibrary.emit` at the water's surface. **`TODO:RELEASE placeholder`:** `Shared/Assets/Particles/Splash.rbxmx` is a basic hand-written droplet burst; replace it with a real effect.
 - Also removed the two debug `print`s in `Water.onObjectAdded`.
 - Water kills in every phase, lobby included, if the lobby has water.
-- A ForceField blocks the damage (`TakeDamage`), so a protected player survives and stays on the surface. Touching the water again after the forcefield ends only triggers if they move.
+- Water kills through the spawn ForceField: `TakeDamage` ignores damage while a ForceField is present, so drowning sets `Humanoid.Health = 0` directly and calls `CombatLibrary.notifyDeathReason` itself.
 - Check in Studio: the `Splash.rbxmx` import (hand-written XML), the drowned ragdoll sinking, and what the body lands on under the water (it still collides with the floor and walls).
 
 ---

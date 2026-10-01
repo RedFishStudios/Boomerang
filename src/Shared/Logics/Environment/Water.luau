@@ -42,13 +42,12 @@ local function drownPlayer(player: Player, character: Model, waterPart: BasePart
       return
    end
 
-   getCombatLibrary().applyDamageToHumanoid(player, humanoid, humanoid.MaxHealth, nil, DROWN_CAUSE_LABEL)
-   if humanoid.Health > 0 then
-      -- // Blocked (e.g. ForceField): stay on the surface
-      return
-   end
-
+   -- // Water kills through shields: TakeDamage is a no-op while the character has a ForceField,
+   -- // so set Health directly and send the death reason ourselves (same as applyDamageToHumanoid)
    character:SetAttribute(DROWNED_ATTRIBUTE, true)
+   humanoid.Health = 0
+   getCombatLibrary().notifyDeathReason(player, nil, DROWN_CAUSE_LABEL)
+
    for _, descendant in ipairs(character:GetDescendants()) do
       if descendant:IsA("BasePart") then
          descendant.CollisionGroup = CollisionGroupConstants.SinkingPlayers
