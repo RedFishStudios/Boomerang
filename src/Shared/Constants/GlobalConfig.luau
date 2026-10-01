@@ -33,7 +33,9 @@ local GlobalConfig = {
    RaycastVisualizersEnabled = false,
    ProjectileHitboxVisualizerEnabled = false,
    ParryVisualizersEnabled = false,
-   SyncAbilitiesToEveryPlayer = false
+   SyncAbilitiesToEveryPlayer = false,
+   AuthoritativeCharacterDebugVisible = false, -- // Shows the server-authoritative character half-transparent (normally fully invisible)
+   ShowAuthoritativeCharacterOnRenderFailure = true, -- // If a player's rendered model failed to load, show the authoritative character so they aren't invisible
 }
 
 return GlobalConfig

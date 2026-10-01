@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
+local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local CharacterRenderLibrary = require(ReplicatedStorage.Shared.Library.CharacterRenderLibrary)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local MapData = require(ReplicatedStorage.Shared.Constants.MapData)
@@ -247,13 +248,20 @@ local function setAuthoritativeCharacterTransparency(player: Player, transparenc
       return
    end
    for _, d in pairs(player.Character:GetDescendants()) do
-      if d:IsA("MeshPart") or d:IsA("BasePart") or d:IsA("Part") then
+      if d:IsA("BasePart") then
          if d.Name:match("Hitbox") then
             continue
          end
          d.Transparency = transparency
+      elseif d:IsA("Decal") then -- // e.g. the face
+         d.Transparency = transparency
       end
    end
+end
+
+-- // The server-authoritative character is never meant to be seen; only the client-rendered model is
+local function getHiddenAuthoritativeTransparency(): number
+   return if GlobalConfig.AuthoritativeCharacterDebugVisible then 0.5 else 1
 end
 
 -- // Create fabricated character model
@@ -506,7 +514,9 @@ local function everyFrame(deltaTime)
 
       local model = getCharacterModel(p, false)
       if not model then
-         setAuthoritativeCharacterTransparency(p, .5)
+         -- // Still loading: stay hidden. Load failed: fall back to showing the authoritative character so the player isn't invisible
+         local renderFailed = lastCreationLoadFailure[p] ~= nil and GlobalConfig.ShowAuthoritativeCharacterOnRenderFailure
+         setAuthoritativeCharacterTransparency(p, if renderFailed then 0 else getHiddenAuthoritativeTransparency())
          continue
       end
       if not p.Character or not p.Character.PrimaryPart then
@@ -516,7 +526,7 @@ local function everyFrame(deltaTime)
       if model.Parent ~= CharactersFolder then
          model.Parent = CharactersFolder
       end
-      setAuthoritativeCharacterTransparency(p, .5)
+      setAuthoritativeCharacterTransparency(p, getHiddenAuthoritativeTransparency())
       syncCharacterPositions(p, model, p.Character)
    end
 end

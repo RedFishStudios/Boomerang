@@ -185,27 +185,6 @@ Stepping into water kills the player. A splash effect plays on the player and th
 
 ---
 
-### T-030 · Make the server-authoritative character invisible
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Client
-- **Files:** `Client/Core/CharacterRenderController.luau`
-
-**Problem / goal**
-Each player has a server-authoritative character (physics/hits) and a client-rendered model. The authoritative character should never be visible. `everyFrame` currently sets it to transparency `0.5` when no rendered model exists (and `1` only during a disguise).
-
-**Done when**
-- [ ] The authoritative character is fully invisible (transparency 1) for every player at all times, including before the rendered model loads.
-- [ ] Hitbox parts keep their current behaviour (they're already skipped).
-
-**Test in Studio**
-- Join with 2 players: only the rendered models are visible, including right after spawning and respawning.
-
-**Notes**
-- If the 0.5 value is a deliberate debug aid, keep it behind a `GlobalConfig` debug switch instead (off by default).
-
----
-
 ### T-031 · Allow jumping in the lobby (instead of dash)
 - **Priority:** P2
 - **Owner:** Agent
@@ -292,6 +271,30 @@ The client said: "anything they have in their lobby, we want in our lobby". Rese
 ## In Progress
 
 ## Review
+
+### T-030 · Make the server-authoritative character invisible
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client
+- **Files:** `Client/Core/CharacterRenderController.luau`
+
+**Problem / goal**
+Each player has a server-authoritative character (physics/hits) and a client-rendered model. The authoritative character should never be visible. `everyFrame` currently sets it to transparency `0.5` when no rendered model exists (and `1` only during a disguise).
+
+**Done when**
+- [ ] The authoritative character is fully invisible (transparency 1) for every player at all times, including before the rendered model loads.
+- [x] Hitbox parts keep their current behaviour (they're already skipped).
+
+**Test in Studio**
+- Join with 2 players: only the rendered models are visible, including right after spawning and respawning.
+
+**Notes**
+- `CharacterRenderController.everyFrame` now keeps the authoritative character fully invisible (transparency 1, including the face decal) while the rendered model exists or is still loading. It was 0.5 before. Hitbox parts are still skipped.
+- `GlobalConfig.AuthoritativeCharacterDebugVisible` (default `false`) brings back the 0.5 view for debugging.
+- **Fallback (deviation from "invisible at all times", please confirm):** if a player's rendered model **failed to load**, the authoritative character is shown (transparency 0), so the player doesn't become invisible. Controlled by `GlobalConfig.ShowAuthoritativeCharacterOnRenderFailure` (default `true`). This matters right now: the Studio output log is flooded with `recently failed to load replicated model for Soulsplosion`, i.e. rendered models are failing to load in Studio play-tests. That's worth its own investigation.
+- Syntax-checked with `luau-compile`; not play-tested.
+
+---
 
 ### T-027 · Explosive boomerang: lasts the whole effect and returns 50% faster
 - **Priority:** P1
