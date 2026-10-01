@@ -514,7 +514,7 @@ local function isCameraObstructedToPoint(cameraPosition: Vector3, targetPosition
    return false
 end
 
-local function updateOwnWeaponHighlight(player: Player, thrownWeaponData: ThrownWeapons.Data, position: Vector3, isClashedOrDead: boolean?)
+local function updateOwnWeaponHighlight(player: Player, thrownWeaponData: ThrownWeapons.Data, position: Vector3, isClashedOrDead: boolean?, fadeOutSeconds: number?)
    if isServer or not ToolController or player ~= Players.LocalPlayer then
       return
    end
@@ -532,7 +532,7 @@ local function updateOwnWeaponHighlight(player: Player, thrownWeaponData: Thrown
    local isObstructed = camera ~= nil and host ~= nil
       and isCameraObstructedToPoint(camera.CFrame.Position, position, obstructionFilter)
       or false
-   ToolController.applyHighlight(isObstructed, isClashedOrDead)
+   ToolController.applyHighlight(isObstructed, isClashedOrDead, fadeOutSeconds)
 end
 
 local function damagedPlayer(player: Player, boomerangId: string, thrownWeaponData: ThrownWeapons.Data, victimModel: Model): boolean
@@ -1186,10 +1186,16 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
 
          -- // Visual only: tilt up toward the player while still being dragged up, easing flat as it reaches hand height
          if not isServer and isManualRecallFromDead then
+            -- // The tilt is exactly 0 once the lift stops (the lift above stops within 0.05 studs of hand height)
             local remainingRise = math.max(rootPart.Position.Y - hostPivot.Position.Y, 0)
-            local targetTilt = math.rad(GlobalConfig.ManualRecallMaxTiltDegrees) * math.clamp(remainingRise / MANUAL_RECALL_TILT_HEIGHT, 0, 1)
+            local riseAlpha = math.clamp((remainingRise - 0.05) / (MANUAL_RECALL_TILT_HEIGHT - 0.05), 0, 1)
+            local targetTilt = math.rad(GlobalConfig.ManualRecallMaxTiltDegrees) * riseAlpha * riseAlpha * (3 - 2 * riseAlpha) -- // smoothstep
             local currentTilt = thrownWeaponData.RecallTiltAngle or 0
-            currentTilt += (targetTilt - currentTilt) * (1 - math.exp(-MANUAL_RECALL_TILT_RESPONSE * deltaTime))
+            if targetTilt < currentTilt then
+               currentTilt = targetTilt -- // Leveling out follows the rise directly (no lag), so it's flat by the peak
+            else
+               currentTilt += (targetTilt - currentTilt) * (1 - math.exp(-MANUAL_RECALL_TILT_RESPONSE * deltaTime)) -- // Tilting in eases
+            end
             thrownWeaponData.RecallTiltAngle = currentTilt
             local towardPlayer = getHorizontalDirection(rootPart.Position - hostPivot.Position)
             local tiltAxis = UP_VECTOR:Cross(towardPlayer)
@@ -1198,7 +1204,8 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          end
       end
 
-      updateOwnWeaponHighlight(player, thrownWeaponData, hostPivot.Position)
+      -- // Leaving the dead state into a manual recall: the dead highlight fades away slowly, matching the sluggish lift
+      updateOwnWeaponHighlight(player, thrownWeaponData, hostPivot.Position, nil, if isManualRecallFromDead then GlobalConfig.ManualRecallHighlightFadeOutSeconds else nil)
 
       local toPlayer = (rootPart.Position - hostPivot.Position)
       local horizontalDistance = getHorizontalDistance(hostPivot.Position, rootPart.Position)

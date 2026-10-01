@@ -32,6 +32,7 @@ local GlobalConfig = {
    ManualRecallMomentumMultiplier = 0.3, -- // How quickly it accelerates/turns toward the player (1 = normal recall)
    ManualRecallLiftRate = 2.5, -- // How quickly it rises to hand height (normal from-ground lift is 8)
    ManualRecallMaxTiltDegrees = 35, -- // Visual tilt toward the player while it's being lifted
+   ManualRecallHighlightFadeOutSeconds = 0.6, -- // The dead boomerang's highlight fades this slowly when a manual recall starts (normal fade: 0.1)
    ExplosiveBoomerangReturnSpeedMultiplier = 1.5, -- // While the effect is active: recall speed x this, and the post-explosion weapon lock / this
 
    MyBoomerangTrailColor = Color3.new(0.984314, 0.988235, 0.988235),

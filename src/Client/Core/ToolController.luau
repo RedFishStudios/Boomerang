@@ -35,6 +35,8 @@ local nextParticlePlayId = 0
 local activeHighlight: Highlight? = nil
 local activeHighlightTween: Tween? = nil
 local activeHighlightColor: Color3? = nil
+local HIGHLIGHT_FADE_IN_SECONDS = 0.25 -- // Highlights always tween into existence
+local HIGHLIGHT_FADE_OUT_SECONDS = 0.1
 
 local ToolAssets = ToolLibrary.getToolAssetsFolder()
 local WeaponsFolder = workspace:WaitForChild("Weapons")
@@ -520,7 +522,8 @@ function ToolController.finishToolThrow(player: Player)
 	end
 end
 
-function ToolController.applyHighlight(isObstructed: boolean, isClashedOrDead: boolean?)
+-- // fadeOutSeconds: optional slower fade when the highlight goes away (e.g. a dead boomerang starting a manual recall)
+function ToolController.applyHighlight(isObstructed: boolean, isClashedOrDead: boolean?, fadeOutSeconds: number?)
 	local outlineColor = if isObstructed
 		then Color3.new(0.976471, 0.247059, 1)
 		elseif isClashedOrDead
@@ -538,6 +541,11 @@ function ToolController.applyHighlight(isObstructed: boolean, isClashedOrDead: b
 		return
 	end
 
+	-- // Already fading out: let it finish (this is called every frame; restarting the tween would never complete it)
+	if (not outlineColor or not myTool) and activeHighlight and activeHighlightColor == nil and activeHighlightTween then
+		return
+	end
+
 	if activeHighlightTween then
 		activeHighlightTween:Cancel()
 		activeHighlightTween:Destroy()
@@ -551,7 +559,7 @@ function ToolController.applyHighlight(isObstructed: boolean, isClashedOrDead: b
 		end
 
 		activeHighlightColor = nil
-		local fadeOutTween = TweenService:Create(highlight, TweenInfo.new(0.1), {OutlineTransparency = 1})
+		local fadeOutTween = TweenService:Create(highlight, TweenInfo.new(fadeOutSeconds or HIGHLIGHT_FADE_OUT_SECONDS), {OutlineTransparency = 1})
 		activeHighlightTween = fadeOutTween
 		fadeOutTween.Completed:Once(function(playbackState)
 			if playbackState == Enum.PlaybackState.Completed and activeHighlight == highlight and activeHighlightTween == fadeOutTween then
@@ -577,7 +585,7 @@ function ToolController.applyHighlight(isObstructed: boolean, isClashedOrDead: b
 	end
 
 	activeHighlightColor = outlineColor
-	activeHighlightTween = TweenService:Create(activeHighlight, TweenInfo.new(0.1), {
+	activeHighlightTween = TweenService:Create(activeHighlight, TweenInfo.new(HIGHLIGHT_FADE_IN_SECONDS), {
 		OutlineColor = outlineColor,
 		OutlineTransparency = 0,
 	})
