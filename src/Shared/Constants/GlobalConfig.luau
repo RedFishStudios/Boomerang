@@ -20,6 +20,13 @@ local GlobalConfig = {
    BoomerangHitThrottle = .5,
    ForceOverwritePickup = nil,
    GenericEffectTimeout = 15,
+   -- // Recall range: when a thrown boomerang would start returning on its own (end of its flight, or out of bounces),
+   -- // it only does so if it's within this many studs (horizontally) of its player. Otherwise it loses momentum and
+   -- // drops into the dead state, like after a clash, and must be manually recalled or picked up.
+   BoomerangRecallRange = 30,
+   -- // If true, a boomerang that is losing momentum because it was out of range resumes returning automatically when it
+   -- // comes back into range. Client wants false for now. NOTE: not wired up yet; it arrives with manual recall (pass 2).
+   DyingBoomerangCanRecoverInRange = false,
    ExplosiveBoomerangReturnSpeedMultiplier = 1.5, -- // While the effect is active: recall speed x this, and the post-explosion weapon lock / this
 
    MyBoomerangTrailColor = Color3.new(0.984314, 0.988235, 0.988235),

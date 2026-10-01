@@ -373,6 +373,10 @@ function ClashedWeaponLogic.setDead(player: Player, clashedWeaponData: ClashedWe
 	clashedWeaponData.Speed = 0
 	clashedWeaponData.SyncTargetPosition = nil
 
+	-- // A resting boomerang stops its flight loop (started in Boomerang.throw on the same channel). On the server this
+	-- // replicates the stop to every client; clients also stop it locally when they receive the Dead snapshot.
+	SoundLibrary.stop(clashedWeaponData.InstanceId)
+
 	local deadPivot = getWeaponCFrame(clashedWeaponData)
 
 	if deadPivot and isPositionInsideCollidablePart(clashedWeaponData, deadPivot.Position) then
@@ -525,6 +529,11 @@ function ClashedWeaponLogic.applyClash(player: Player, clashedWeaponData: Clashe
 					nextY = restingY
 					fallSpeed = 0
 					isGrounded = true
+					-- // Insertion point: "clunk" when the boomerang hits the ground. Played from the server so every player hears it.
+					local clunkSound = Sounds.Data.BoomerangClunk
+					if isServer and clunkSound and clunkSound.Id ~= 0 then
+						SoundLibrary.play(`{clashedWeaponData.InstanceId}_Clunk`, clunkSound.Name, Vector3.new(nextPosition.X, nextY, nextPosition.Z))
+					end
 				end
 				nextPosition = Vector3.new(nextPosition.X, nextY, nextPosition.Z)
 			else

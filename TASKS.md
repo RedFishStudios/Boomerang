@@ -834,6 +834,13 @@ Physical leaderboards in the lobby (see `docs/LOBBY_SPEC.md`): **Most Eliminatio
 - **Area:** Client / Server / Shared
 - **Files:** `Client/Core/WeaponController.luau`, `Server/Core/WeaponService.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`, `Client/UI/Gui/HudButtons/`, `Client/UI/Gui/CustomTouchscreen/`
 
+**Client spec (2026-10-01, supersedes the design-doc analysis below):**
+- Recall range around the player: `GlobalConfig.BoomerangRecallRange` (30).
+- Out of range when it would start returning: no auto-return. It loses momentum and drops into the dead state (as after a clash). Back in range by then: returns as normal (it can leave range, bounce back and still return).
+- Once it starts losing momentum it can't resume auto-return, even back in range (`GlobalConfig.DyingBoomerangCanRecoverInRange`, default false).
+- Manual recall works on a dying or dead boomerang: it moves toward the player only **while held**; releasing puts it back into the dead state. Tapping on a live boomerang just recalls it. Rapid press/release must be safe.
+- **Pass 1 (done, in Review):** out-of-range death via `Boomerang.autoRecallOrDie` (server decides; the client follows the server's Clashed snapshot). **Pass 2 (after Sol's review):** manual recall on dying/dead boomerangs, plus wiring `DyingBoomerangCanRecoverInRange`.
+
 **Problem / goal**
 `docs/GAME_DESIGN.md` §2c: **hold** E / the mobile recall button to pull the boomerang back; releasing stops it where it is; it doesn't pass through walls, takes the fastest valid route, and slides along a surface when the shape allows (otherwise it gets stuck and the player must reposition). Today pressing E fires `WeaponRecall` once (a one-shot recall), and `HudButtons` has a "Recall" entry.
 

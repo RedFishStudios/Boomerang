@@ -47,6 +47,11 @@ local sounds: {
          Looping = true,
          Volume = .5
       },
+      BoomerangClunk = { -- // A dead boomerang hitting the ground (Clashed.luau)
+         Name = "BoomerangClunk",
+         Id = 0, -- TODO:RELEASE placeholder (set the real sound id, then remove DoNotPreload)
+         DoNotPreload = true,
+      },
       BoomerangThud = {
          Name = "BoomerangThud",
          Id = 9120916632

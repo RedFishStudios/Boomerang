@@ -294,6 +294,16 @@ local function getHorizontalDistance(fromPosition: Vector3, toPosition: Vector3)
    return delta.Magnitude
 end
 
+-- // True if the position is within the player's recall range (GlobalConfig.BoomerangRecallRange, horizontal distance)
+local function isWithinRecallRange(player: Player, position: Vector3): boolean
+   local character = player.Character
+   local rootPart = character and character.PrimaryPart
+   if not rootPart then
+      return false
+   end
+   return getHorizontalDistance(position, rootPart.Position) <= GlobalConfig.BoomerangRecallRange
+end
+
 -- // CFrame for a flat, horizontal blockcast oriented towards the travel direction
 local function getObstructionBlockcastCFrame(rayOrigin: Vector3, direction: Vector3): CFrame
    return CFrame.lookAt(rayOrigin, rayOrigin + direction, UP_VECTOR)
@@ -749,8 +759,13 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
             if isServer and WeaponService then
                WeaponService.WeaponReachedEventPoint:Execute("parallel", player, thrownWeaponData.ToolId, rayOrigin)
             end
-            Boomerang.recall(player, boomerangId, toolData, thrownWeaponData)
-            return true
+            if ThrownWeapons.Data[player] ~= thrownWeaponData then
+               return true -- // Removed by an event-point effect (e.g. explosive boomerang)
+            end
+            if Boomerang.autoRecallOrDie(player, boomerangId, toolData, thrownWeaponData, rayOrigin, direction, speed) then
+               return true
+            end
+            -- // Client, out of range: keep flying until the server's decision arrives
          end
       end
 
@@ -803,7 +818,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          SharedTasks.ThrownWeaponHitObject:Execute("parallel", player, thrownWeaponData.ToolId, obstructionRaycastResult.Instance, obstructionRaycastResult.Position)
          if energy == 0 then
             if shouldRecallTransitions then
-               Boomerang.recall(player, boomerangId, toolData, thrownWeaponData)
+               Boomerang.autoRecallOrDie(player, boomerangId, toolData, thrownWeaponData, (pivot + dynamicDisplacement).Position, direction, speed)
             else
                thrownWeaponData.State = ThrownWeapons.StateEnum.Exhausted
             end
@@ -929,6 +944,27 @@ function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapo
    if shouldReattachLocally and ToolController then
       ToolController.finishToolThrow(player)
    end
+end
+
+-- // Where a thrown boomerang would start returning on its own: returns if it's within the player's recall range,
+-- // otherwise loses momentum and drops into the dead state (the clash path).
+-- // Only the server decides death: out of range on the client, nothing happens (returns false) and the boomerang keeps
+-- // flying until the server's Clashed snapshot arrives (WeaponController.onSnapshot then calls clash), so a disagreement
+-- // at the range edge can't leave the client showing a dead boomerang the server is recalling.
+function Boomerang.autoRecallOrDie(player: Player, boomerangId: string, toolData: Tools.Tool, thrownWeaponData: ThrownWeapons.Data, position: Vector3, direction: Vector3, speed: number): boolean
+   if isWithinRecallRange(player, position) then
+      Boomerang.recall(player, boomerangId, toolData, thrownWeaponData)
+      return true
+   end
+   if not isServer then
+      return false
+   end
+   Boomerang.clash(player, thrownWeaponData, {
+      Direction = direction,
+      Speed = speed,
+      Position = position,
+   })
+   return true
 end
 
 function Boomerang.clash(player: Player, thrownWeaponData: ThrownWeapons.Data, options: ClashInitOptions)
