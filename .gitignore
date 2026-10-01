@@ -12,3 +12,6 @@ sourcemap.json
 
 # Local daily change log (never committed)
 /Commits.txt
+
+# Local agent action log for undoing agent commits (never committed)
+/AgentLog.md

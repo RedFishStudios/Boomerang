@@ -6,6 +6,8 @@ The client's UI scope of work (`Game Assets/Boomerang/Gui/Boomerang! UI.pdf`) cu
 
 **Scope:** this spec covers the **MVP** only (round flow, controls, the Classic gamemode, parry/clash, camera). Everything else in the game (the other gamemodes, pickups, environment objects, shop, daily rewards, monetisation) has **no written design**. For those, the existing code and Sol are the reference. Never invent design that isn't here: ask Sol.
 
+> **How authoritative this is:** the client wrote it before the ideas were fully thought out. It's the origin the game orbits around, not always the final word (see CLAUDE.md). **Ignore the sketch descriptions below** (recall diagrams, mobile layout); sketches in other docs (e.g. GUI docs) are fine.
+>
 > **Agents:** don't edit this file unless asked. Where the code differs from this spec, see "Differences between the spec and the code" at the bottom. Don't "fix" the code to match without asking: some differences are deliberate.
 
 ---

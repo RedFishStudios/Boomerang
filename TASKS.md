@@ -17,7 +17,7 @@ The gameplay, code and tooling task board. See [CLAUDE.md](CLAUDE.md) for how th
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - Never move a task to `Done`; Sol does that after testing in Studio.
 
-**Next free ID: T-041**
+**Next free ID: T-051**
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -205,6 +205,55 @@ The client says the boomerang needs to move "way faster" and go decently further
 
 **Test in Studio**
 - Throw on a few maps: the boomerang travels about twice as far and noticeably faster; hits, bounces and recall still work.
+
+**Notes**
+
+---
+
+### T-047 · Lobby station framework (labels, glowing pads, proximity prompts)
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Client / Server / Shared
+- **Files:** New: e.g. `Shared/Library/LobbyStationLibrary.luau` (+ client/server parts); used by T-024, T-042–T-045
+
+**Problem / goal**
+Spec: `docs/LOBBY_SPEC.md`. Every lobby station (pedestals, wheel, crates, group chest, portal) shares the same conventions: a world-space title above it, a glowing activation pad, a proximity prompt or info panel when approached, and locked/unlocked or active visual states. Build this once as a reusable, tag-driven framework (e.g. CollectionService tag `LobbyStation` plus attributes such as `StationId`, `Title`, `ActionText`) so each station only registers its callback. Sol provides the models and art; this task is the behaviour.
+
+**Done when**
+- [ ] A tagged part/model in the lobby gets a title label, prompt and pad highlight automatically.
+- [ ] Stations register server-side handlers by `StationId`; prompts fire them; per-player visual state (e.g. claimed/locked) can be set from the server.
+- [ ] Works with T-024 pedestals; no station-specific code in the framework.
+
+**Notes**
+- Ask Sol for the tag/attribute names if a convention already exists in the place.
+
+---
+
+### T-048 · Track more player stats
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Server / Data
+- **Files:** `Shared/Data/ProfileTemplate.luau`, `Server/Core/PlayerStatService.luau` (or a new `StatsService`), `CombatLibrary`, `AbilityService`, `PickupService`, `RoundCyclingService`
+
+**Problem / goal**
+Save these lifetime stats in the profile (only Eliminations exists today):
+- times each ability was used (e.g. Stab, Dash) and each pickup was acquired (e.g. FireBoomerang): per id
+- time played
+- rounds played (only rounds the player was in from start to finish)
+- rounds won
+- eliminations (already tracked as `Elims`)
+- **defeats** (deaths). Never use the word "kill" in stat names or player-facing text (see CLAUDE.md).
+Use `EconomyService`-style owner functions so other code doesn't write these fields directly.
+
+**Open questions (ask Sol first)**
+- Should the existing `Losses` field stay (round losses), be renamed, or be dropped? (Never repurpose a shipped field.)
+- Does "rounds won" count team wins for every team member, and ties?
+- Are these shown anywhere yet (leaderboards T-032, a stats panel), or only saved for now?
+
+**Done when**
+- [ ] New fields in `ProfileTemplate` (type + `get()`), filled by `Reconcile` for existing profiles.
+- [ ] Each stat increments in exactly one place; time played is saved on leave/autosave.
+- [ ] A Cmdr command shows a player's stats (for testing).
 
 **Notes**
 
@@ -758,13 +807,15 @@ New behaviour: when an electric boomerang kills a player, every other player wit
 - **Files:** New: e.g. `Server/Core/LeaderboardService.luau`; `Shared/Data/ProfileTemplate.luau` (`Elims`)
 
 **Problem / goal**
-A leaderboard in the lobby shows the top players by total eliminations (`Profile.Elims`), with a podium where the top 3 players stand (as rigs/avatars).
+Physical leaderboards in the lobby (see `docs/LOBBY_SPEC.md`): **Most Eliminations** (`Profile.Elims`; never title it "Kills") and **Most Wins** (`Profile.Wins`), top 30 each, with a podium where top players stand (as rigs/avatars). More boards may follow from T-048's stats.
 - **Sol:** build the board and podium in the lobby.
 - **Agent:** keep an OrderedDataStore of lifetime elims (updated on save/leave and periodically), refresh the board on an interval, and load the top 3 players' avatars onto the podium.
 
 **Open questions (ask Sol first)**
 - How often should it refresh? (**Sol: show the top 30 players.**)
 - Global all-time only, or also weekly?
+- Podium: the spec shows a single #1 display; the earlier request was a top-3 podium. Which, and for which board (or rotating)?
+- **Sol:** the podium shows each player's currently equipped avatar, fetched once on server startup (no refresh needed).
 - Studio data uses the `Dev` key; should the Studio leaderboard use a separate store too?
 
 **Notes**
@@ -796,7 +847,7 @@ A leaderboard in the lobby shows the top players by total eliminations (`Profile
 
 | Design doc (§2b–2c, §5) | Current code | Gap |
 |---|---|---|
-| Auto-recall after slicing through a player | Passes through players and keeps going; the "recall on hit" code in `Boomerang.throw` is commented out | Differs (possibly on purpose) |
+| Auto-recall after slicing through a player | Passes through players and keeps going; the "recall on hit" code in `Boomerang.throw` is commented out | **Intentional (Sol): keep it off** |
 | Auto-recall after one ricochet | After the first bounce, the distance check switches to `ThrowDistance`, which has usually been reached, so it recalls right away | Matches in practice |
 | 2+ surface hits: stops where it runs out of energy and waits for manual recall | When `energy` reaches 0 it calls `Boomerang.recall` (auto-returns). The "Exhausted" slow-down branch exists but only runs when recall transitions are off | Differs |
 | **Hold** E / button to recall; releasing stops it where it is | E (or the mobile Throw/Recall button) sends one `WeaponRecall` event; the server runs a full recall to the hand. Releasing does nothing | Differs (the main gap) |
@@ -808,10 +859,10 @@ A leaderboard in the lobby shows the top players by total eliminations (`Profile
 1. **Hold-to-recall (server-authoritative):** `WeaponRecall` carries a boolean (`true` on press, `false` on release). Press: if the boomerang is out and not already returning, `Boomerang.recall(..., { Manual = true })`. Release: new `Boomerang.stopRecall(player, data)` disconnects the recall loop, sets a new `Resting` state (speed 0) and sends a snapshot. Pressing again resumes from there. Release only stops **manual** recalls, never auto-recalls.
 2. **Client sync:** `WeaponController.onSnapshot` already starts a local recall when the state changes to `Returning`; add the reverse (`Returning` → `Resting` calls `stopRecall` locally).
 3. **Exhaustion:** when `energy` hits 0, switch to `Exhausted` (let the existing slow-down run) and then `Resting`, instead of auto-recalling.
-4. **Inputs:** E: `InputBegan` → press, `InputEnded` → release. Mobile/gamepad: a dedicated recall button that uses press/release (`MouseButton1Down` / `MouseButton1Up` + `InputEnded`), placed above Stab as in the sketch. The Throw button's "Recall" mode either becomes hold-based too or goes away.
+4. **Inputs:** E: `InputBegan` → press, `InputEnded` → release. Mobile/gamepad: a dedicated recall button that uses press/release (`MouseButton1Down` / `MouseButton1Up` + `InputEnded`). Its placement is Sol's call (ignore the game design doc's sketch). The Throw button's "Recall" mode either becomes hold-based too or goes away.
 5. Keep the T-027 speed multiplier and the existing kill-on-return behaviour.
 
-Order: (1)+(2) first (they're the core and can ship alone), then (3), then (4)'s mobile button once Sol confirms the layout.
+Order: (1)+(2) first (they're the core and can ship alone), then (3), then (4)'s mobile button once Sol decides the layout. Add a Cmdr command to put the boomerang in each state for testing (e.g. out of energy / resting).
 
 ---
 
@@ -873,6 +924,154 @@ The player needs a HUD with buttons. Known so far:
 "Figure out achievements": decide the list, rewards, whether they map to Roblox badges, how they're saved, and the GUI. Split into tasks once designed.
 
 **Notes**
+
+---
+
+### T-041 · Lobby hub layout blockout
+- **Priority:** P1
+- **Owner:** Sol
+- **Area:** Build (Studio)
+- **Files:** Studio: `workspace.Lobby`
+
+**Problem / goal**
+Spec: `docs/LOBBY_SPEC.md`. Block out a spacious central hub with walking lanes and zones: rewards (wheel, visible from spawn), crates (explosion + sword), social (group rewards), navigation (server portal with open space), competition (leaderboards + podium). Functional parity with the reference, not a copy of its art.
+
+**Open questions (ask Sol first)**
+- Functional parity (same kinds of stations) or close visual parity with the reference?
+- Art direction, floating vs. grounded lobby, which stations must be visible from spawn?
+
+**Notes**
+- 🗣️ **Talk with Sol before starting.** Place-only work; agents can help place tagged stations once T-047 exists.
+
+---
+
+### T-042 · Prize wheel
+- **Priority:** P2
+- **Owner:** Sol → Agent
+- **Area:** Server / Client / Build
+- **Files:** New: wheel station (uses T-047); `MarketplaceLibrary`, `PolicyLibrary`
+
+**Problem / goal**
+Spec: `docs/LOBBY_SPEC.md`. A freestanding prize wheel on a pedestal with segmented rewards and a spin animation, used through a station prompt.
+
+**Open questions (ask Sol first)**
+- Rewards and their weights; is it cosmetic-only or can it affect gameplay?
+- How spins are earned/bought: free per day, Currency, Robux (Robux-first like T-024?), codes (T-049), playtime?
+- Spin animation length; is an "instant spin" Robux option wanted?
+
+**Notes**
+- 🗣️ **Talk with Sol before starting.**
+- A paid random reward: must respect `PolicyLibrary.arePaidRandomItemsRestricted` and Roblox's rules on disclosing odds.
+
+---
+
+### T-043 · Explosion crates (normal + premium) with odds panel
+- **Priority:** P2
+- **Owner:** Sol → Agent
+- **Area:** Server / Client / Build
+- **Files:** `Server/Core/LootBoxService.luau` and `Shared/Referential/LootBoxRates.luau` (currently empty stubs); crate stations (T-047)
+
+**Problem / goal**
+Spec: `docs/LOBBY_SPEC.md`. Two crate stations side by side (a normal and a more elaborate premium crate), each with a world-space name and, when approached, a panel showing rarity odds (e.g. Rare / Legendary / a very rare tier). Build the crate logic generically in `LootBoxService` so T-044 reuses it.
+
+**Open questions (ask Sol first)**
+- Crate names, prices and currency (Robux-first like T-024? Currency?), reward tables and odds.
+- What do "explosion" crates contain in Boomerang (elimination effects?)
+- Do crates open in the lobby (animation) or just act as purchase points with the reward shown in the ItemAcquired popup?
+
+**Notes**
+- 🗣️ **Talk with Sol before starting.**
+- Paid random items: `PolicyLibrary.arePaidRandomItemsRestricted` + odds disclosure required.
+
+---
+
+### T-044 · Sword (boomerang) crate station
+- **Priority:** P2
+- **Owner:** Sol → Agent
+- **Area:** Server / Client / Build
+- **Files:** Crate station (T-047), `LootBoxService` (T-043)
+
+**Problem / goal**
+Spec: `docs/LOBBY_SPEC.md`. A separate crate station for weapon cosmetics, visually distinct from the explosion crates. In Boomerang this is presumably a **boomerang skin** crate.
+
+**Open questions (ask Sol first)**
+- Is this a loot box, a fixed-item shop, or something else? Cost and contents.
+- Depends on how weapons/skins are equipped (T-036).
+
+**Notes**
+- 🗣️ **Talk with Sol before starting.** Reuses T-043's crate logic.
+
+---
+
+### T-045 · Group Rewards chest
+- **Priority:** P2
+- **Owner:** Sol → Agent
+- **Area:** Server / Client / Build
+- **Files:** New: group rewards station (T-047); profile field for claimed state
+
+**Problem / goal**
+Spec: `docs/LOBBY_SPEC.md`. A large chest on a glowing pad with a "GROUP REWARDS" title. Players in the client's Roblox group can claim a reward; the chest shows locked/unlocked/claimed states.
+
+**Open questions (ask Sol first)**
+- The group ID, and is membership required?
+- What's the reward, and is it one-time or on a cooldown?
+
+**Notes**
+- 🗣️ **Talk with Sol before starting.**
+
+---
+
+### T-046 · Server Selection portal
+- **Priority:** P2 *(later: needs destinations first)*
+- **Owner:** Sol
+- **Area:** Design / Build
+- **Files:** -
+
+**Problem / goal**
+Spec: `docs/LOBBY_SPEC.md`. A large portal arch on a glowing ring with a sign, leading to other servers/modes/worlds.
+
+**Open questions (ask Sol first)**
+- What does it lead to in Boomerang? (Today there's a single server type; this needs other places or modes first, e.g. duels/ranked from `docs/research/BLADE_BALL_LOBBY.md`.)
+- Physical selection (several portals) or a follow-up UI?
+
+**Notes**
+- 🗣️ **Talk with Sol before starting.** Probably later; nothing to build until destinations exist.
+
+---
+
+### T-049 · Redeem codes system
+- **Priority:** P2
+- **Owner:** Sol → Agent
+- **Area:** Server / Client / GUI
+- **Files:** New: e.g. `Server/Core/CodesService.luau`, a server-only codes list, a client controller; GUI by Sol
+
+**Problem / goal**
+Players enter a code to receive a reward. Server: validates the code (case-insensitive), checks expiry and that the player hasn't redeemed it (saved in the profile), grants through `EconomyService` / `ItemService`, rate-limits attempts. Client: sends the code from the GUI and shows the result (ItemAcquired popup / message).
+
+**Open questions (ask Sol first)**
+- Reward types (Currency, items, wheel spins later?), expiry dates, limited-use codes?
+- Where is the code entry opened (HUD button, settings)? GUI assets are Sol's.
+
+**Done when**
+- [ ] Codes live in a server-only module (never replicated).
+- [ ] Redeeming works once per player per code and survives rejoin.
+- [ ] A Cmdr command lists codes / resets a player's redeemed codes for testing.
+
+**Notes**
+
+---
+
+### T-050 · HUD button for Daily Rewards
+- **Priority:** P2
+- **Owner:** Sol → Agent
+- **Area:** GUI / Client
+- **Files:** `Client/UI/Gui/HudButtons/`, `Client/UI/Gui/DailyClaims/`
+
+**Problem / goal**
+Add a HUD button that opens the Daily Rewards (DailyClaims) GUI, ideally with an indicator when a reward is claimable. **Sol:** the button asset and placement. **Agent:** wire it to `DailyClaims.toggle()` and the claimable indicator.
+
+**Notes**
+- Part of the HUD button set in T-037.
 
 ---
 

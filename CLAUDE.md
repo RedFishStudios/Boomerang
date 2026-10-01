@@ -11,8 +11,14 @@ Roblox game written in Luau, synced into Studio with Rojo. A fast-paced, round-b
 | Doc | Read it when |
 |---|---|
 | [TASKS.md](TASKS.md) | Always. The task board: what to work on, and its rules. |
-| [docs/GAME_DESIGN.md](docs/GAME_DESIGN.md) | Before any gameplay work. The client's MVP spec (round flow, controls, Classic, parry/clash, camera) and where the code differs from it. |
+| [docs/LOBBY_SPEC.md](docs/LOBBY_SPEC.md) | Before any lobby work. Physical lobby stations (wheel, crates, group chest, server portal, leaderboards) from the client's reference screenshots. |
+| [docs/GAME_DESIGN.md](docs/GAME_DESIGN.md) | Before any gameplay work. The client's MVP spec (round flow, controls, Classic, parry/clash, camera) and where the code differs from it. See "How authoritative the docs are" below. |
 | [Gamemodes design doc](https://docs.google.com/document/d/15GWFwrjrhytRjPqBhBg-Zhc5YLX9CeWJlt8Q_rMttss/edit?tab=t.d4ujxm3y7eay) | Linked from `Shared/Constants/Gamemodes.luau`. Agents probably can't open it. If you need design intent that isn't in GAME_DESIGN.md, ask Sol. |
+
+### How authoritative the docs are
+
+- The client wrote the game design document (`docs/GAME_DESIGN.md`, from the "Boomerang! Technical Document" PDF) before the ideas were fully thought out. It describes the origins the game concept orbits around, but it's often vague and **isn't always the final authority**. The current code, tasks and Sol's decisions can override it. When the doc and the code disagree, ask Sol instead of "fixing" either.
+- **Ignore the sketches in the game design document** (e.g. the recall diagrams and the mobile button layout). Sketches in the GUI documentation or any other documentation are fine to follow.
 
 **What agents can't do:** rely on tools being installed. If a tool you need isn't available, say so; don't work around it. Play-testing and final sign-off are Sol's.
 
@@ -21,6 +27,7 @@ Roblox game written in Luau, synced into Studio with Rojo. A fast-paced, round-b
 - **The repo is the source of truth for code.** Never edit Rojo-synced scripts in Studio; edit the files in `src/` (Rojo syncs them). Studio edits are for place-only content (maps, models, GUI visuals to save back into `.rbxmx`), and only when a task asks for it.
 - Never modify the map package (`ServerStorage.Server.Assets.Maps`) or publish/save the place.
 - Prefer read-only use (inspecting instances, reading the console) unless the task says otherwise.
+- **Use it for building, not for agentic play-testing.** Don't start play sessions or drive the game to test it; Sol play-tests. Instead, when a feature is hard to reach by playing (needs a day to pass, a specific pickup, several players, a certain round state...), add a **Cmdr command** (see "Developer commands") so a human developer can trigger it, and say which command to use in the task Notes.
 
 ## Toolchain
 
@@ -211,12 +218,23 @@ If a prompt mentions a larger *back-end feature* that doesn't exist yet, that ma
 
 ## Workflow for agents
 
+- **Keep credit usage low.** Do the work well, but leave extensive testing and double-checking to Sol and the client: no play-testing, no throwaway test harnesses unless the logic is risky and hard to check by hand, and one syntax check per batch of changes rather than per file. Read only the parts of files you need (`grep` first), and keep task Notes short.
+- **Minimise extra verification layers** unless the prompt asks for them. Sol would rather not spend tokens double-checking a feature that turns out to work fine.
+- **Web research:** if online research starts using a lot of tokens, stop, put it on the back burner, and recommend Sol does it elsewhere (another agent/tool). Don't spend paid credits on long web research here.
+- **Ask instead of guessing:** it's fine to halt a prompt partway, or not start a task at all, when an important question hasn't been answered. Sol would rather answer than have tokens spent researching something Sol already knows.
+- **Never push to GitHub.** Pushing is disabled for safety and isn't part of the agentic workflow. Commit only when a prompt asks; Sol pushes.
+- **Player-facing wording:** avoid the word "kill" in stat names, UI text and leaderboard titles (Roblox audience/monetisation safety). Use "eliminations" for kills and "defeats" for deaths.
+
 - Tasks live in [TASKS.md](TASKS.md). Follow its "How to use this board" rules: only pick up `Ready` tasks, and never mark a task `Done`.
 - **Git: don't commit or push**, and don't switch branches. Leave your changes uncommitted, move the task to `Review`, and fill in its Notes. Sol tests in Studio, then commits and pushes.
 - **Renaming a file** whose name only changes in case (e.g. `Shopservice` → `ShopService`): the repo is on Windows with `core.ignorecase = true`, so git may not notice. Do the rename and flag it in the Notes so Sol can run `git mv` properly.
 - Before you finish, list anything that needs checking in Studio. This includes all `.rbxmx` changes, which are XML and hard to review as text.
 - When a task needs a decision, ask before writing code (see "Open questions" in each task). One clear question beats a guess that has to be undone.
 - Don't guess at gameplay intent. Ask Sol, or note the question in the task.
+
+### Agent log (`AgentLog.md`): when you commit or push
+
+`AgentLog.md` in the repo root is a **local, git-ignored** record for undoing agent work. Whenever a prompt has you commit, append one entry per commit: date, commit SHA, task ID, a one-line summary, the files touched, and how to undo it (normally `git revert <sha>`; note anything a revert won't undo, such as data saved in a DataStore or instances changed in Studio). This lets a later prompt ("undo T-027") be handled quickly and safely.
 
 ### Commits log (`Commits.txt`)
 
