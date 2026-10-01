@@ -280,13 +280,26 @@ local function throwEquippedTool(forcedDirection: Vector3?): boolean
    return true
 end
 
-local function recallEquippedTool(): boolean
-   if not ThrownWeapons.Data[Players.LocalPlayer] then
+-- // Manual recall input: press/release are both sent to the server (it decides; see WeaponService).
+-- // A live boomerang only needs the press; a dying/dead one returns only while held.
+local isRecallHeld = false
+
+function WeaponController.beginRecallInput(): boolean
+   local localPlayer = Players.LocalPlayer
+   if not ThrownWeapons.Data[localPlayer] and not ClashedWeapons.Data[localPlayer] then
       return false
    end
-
-   recallEvent:FireServer()
+   isRecallHeld = true
+   recallEvent:FireServer(true)
    return true
+end
+
+function WeaponController.endRecallInput()
+   if not isRecallHeld then
+      return
+   end
+   isRecallHeld = false
+   recallEvent:FireServer(false)
 end
 
 function WeaponController.getWeaponState(): string
@@ -294,9 +307,8 @@ function WeaponController.getWeaponState(): string
 end
 
 function WeaponController.handleEquippedToolButton(): string
-   if ThrownWeapons.Data[Players.LocalPlayer] then
-      recallEquippedTool()
-   elseif ClashedWeapons.Data[Players.LocalPlayer] then
+   if ThrownWeapons.Data[Players.LocalPlayer] or ClashedWeapons.Data[Players.LocalPlayer] then
+      -- // On the field: the HUD button recalls through beginRecallInput/endRecallInput (press/release), not this tap
       return getWeaponState()
    elseif isAiming then
       throwEquippedTool()
@@ -311,6 +323,16 @@ end
 local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vector3, speed: number, state: number, serverTime: number)
    local thrownWeaponData = ThrownWeapons.Data[forPlayer]
    if not thrownWeaponData or not thrownWeaponData.Host or not thrownWeaponData.Host.Parent then
+      -- // The server started returning a dying/dead boomerang (manual recall): follow it
+      local clashedWeaponData = ClashedWeapons.Data[forPlayer]
+      if state == ThrownWeapons.StateEnum.Returning and clashedWeaponData and clashedWeaponData.Host and clashedWeaponData.Host.Parent then
+         local clashedToolData = Tools[clashedWeaponData.ToolId]
+         local clashedLogic = clashedToolData and getLogic(clashedToolData.LogicClass)
+         if clashedLogic and clashedLogic.recallFromClashed then
+            clashedLogic.recallFromClashed(forPlayer, clashedWeaponData, true)
+         end
+         return
+      end
       ClashedWeaponLogic.applyServerSnapshot(forPlayer, position, direction, speed, state, serverTime)
       return
    end
@@ -825,13 +847,17 @@ function WeaponController.init()
 		end
 
       if input.KeyCode == Enum.KeyCode.E then
-			recallEvent:FireServer()
+			WeaponController.beginRecallInput()
 		end
 	end)
 
    -- NOTE: Parrying is registered as an Ability and handled via AbilityController
 
    UserInputService.InputEnded:Connect(function(input: InputObject, gameProcessed: boolean)
+      -- // Always deliver the recall release (even if a gui took the input), so a held recall can't get stuck
+      if input.KeyCode == Enum.KeyCode.E then
+         WeaponController.endRecallInput()
+      end
       if gameProcessed then
          return
       end 

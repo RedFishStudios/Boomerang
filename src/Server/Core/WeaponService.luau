@@ -428,17 +428,40 @@ function WeaponService.init()
       end
    end)
 
-   -- // Manual recall boomerang
-   recallEvent.OnServerEvent:Connect(function(Player: Player)
-      local thrownWeaponData = ThrownWeapons.Data[Player]
-      if not thrownWeaponData then
-         print(`player has no thrown weapon to recall`)
+   -- // Manual recall. The client sends true on press and false on release (nil = a plain tap/press).
+   -- // Live boomerang: a press recalls it (no need to hold). Dying/dead boomerang: it returns only while held;
+   -- // releasing drops it back into the dead state. Safe to toggle rapidly: each press/release is one state change.
+   recallEvent.OnServerEvent:Connect(function(Player: Player, isPressed: unknown)
+      if isPressed == nil then
+         isPressed = true
+      end
+      if type(isPressed) ~= "boolean" then
          return
       end
 
-      local toolData = Tools[thrownWeaponData.ToolId]
-      local Logic = getLogic(toolData.LogicClass)
-      Logic.recall(Player, thrownWeaponData.ToolId, toolData, thrownWeaponData)
+      local thrownWeaponData = ThrownWeapons.Data[Player]
+      if isPressed then
+         if thrownWeaponData then
+            local toolData = Tools[thrownWeaponData.ToolId]
+            local Logic = toolData and getLogic(toolData.LogicClass)
+            if Logic then
+               Logic.recall(Player, thrownWeaponData.ToolId, toolData, thrownWeaponData)
+            end
+            return
+         end
+         local clashedWeaponData = ClashedWeapons.Data[Player]
+         local toolData = clashedWeaponData and Tools[clashedWeaponData.ToolId]
+         local Logic = toolData and getLogic(toolData.LogicClass)
+         if Logic and Logic.recallFromClashed then
+            Logic.recallFromClashed(Player, clashedWeaponData, true)
+         end
+      elseif thrownWeaponData and thrownWeaponData.RecallFromDead then
+         local toolData = Tools[thrownWeaponData.ToolId]
+         local Logic = toolData and getLogic(toolData.LogicClass)
+         if Logic and Logic.stopRecallFromDead then
+            Logic.stopRecallFromDead(Player, thrownWeaponData)
+         end
+      end
    end)
 
    PlayersUtil.CharacterLoaded:Add(function(player: Player, character: Model, humanoid: Humanoid, rootPart: BasePart)

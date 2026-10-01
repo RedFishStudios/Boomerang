@@ -27,6 +27,7 @@ export type Data = {
    ReuseEquippedHost: boolean?,
    ExistingHost: Model?,
    ClashOrigin: Vector3?,
+   DiedOutOfRange: boolean?, -- // Started dying because it was out of recall range (GlobalConfig.DyingBoomerangCanRecoverInRange)
    VisualRotation: number?,
    
    MovementConnection: RBXScriptConnection?,

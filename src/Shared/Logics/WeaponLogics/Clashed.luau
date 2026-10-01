@@ -17,6 +17,7 @@ local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local SoundLibrary = require(ReplicatedStorage.Shared.Library.SoundLibrary)
 local Sounds = require(ReplicatedStorage.Shared.Constants.Sounds)
 local RaycastsUtility = require(ReplicatedStorage.Shared.Utils.RaycastsUtility)
+local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 
 local isServer = RunService:IsServer()
 
@@ -499,6 +500,18 @@ function ClashedWeaponLogic.applyClash(player: Player, clashedWeaponData: Clashe
 			return
 		end
 
+		-- // Optional rule (GlobalConfig.DyingBoomerangCanRecoverInRange, off by default): a boomerang losing momentum
+		-- // because it was out of range resumes returning if it comes back within range. Server decides; Boomerang sets the hook.
+		if isServer and GlobalConfig.DyingBoomerangCanRecoverInRange and clashedWeaponData.DiedOutOfRange
+			and clashedWeaponData.State == ClashedWeapons.StateEnum.Clashed and ClashedWeaponLogic.onDyingInRange then
+			local character = player.Character
+			local rootPart = character and character.PrimaryPart
+			if rootPart and getHorizontalDistance(currentPivot.Position, rootPart.Position) <= GlobalConfig.BoomerangRecallRange then
+				ClashedWeaponLogic.onDyingInRange(player, clashedWeaponData)
+				return
+			end
+		end
+
 		if not isServer and speed <= 0 and isGrounded then
 			updateOwnWeaponHighlight(player, clashedWeaponData, currentPivot.Position)
 			return
@@ -557,7 +570,9 @@ function ClashedWeaponLogic.applyClash(player: Player, clashedWeaponData: Clashe
 			fireSnapshot(player.UserId, nextPosition, direction, speed, clashedWeaponData.State)
 		end
 
-		if speed <= 0 and isServer then
+		-- // Only dead once it has actually landed (or there's nothing below to land on): a slow boomerang dropped from
+		-- // hand height (e.g. a released manual recall) must finish falling instead of freezing mid-air
+		if speed <= 0 and isServer and (isGrounded or not restingY) then
 			ClashedWeaponLogic.setDead(player, clashedWeaponData)
 			if ClashedWeapons.Data[player] ~= clashedWeaponData then
 				return

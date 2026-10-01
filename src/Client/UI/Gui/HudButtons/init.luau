@@ -3,6 +3,7 @@ HudButtonsGui.Type = "HUD"
 HudButtonsGui.Open = false
 
 local _TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 local Player = game:GetService("Players").LocalPlayer
 
@@ -85,6 +86,24 @@ local function _init()
 
    BoomerangThrowButton.Activated:Connect(function()
       WeaponController.handleEquippedToolButton()
+   end)
+
+   -- // Recall mode (boomerang on the field): press and hold. Track the exact touch/click so another finger lifting
+   -- // (e.g. the joystick) doesn't end the recall.
+   local recallInput: InputObject? = nil
+   BoomerangThrowButton.InputBegan:Connect(function(input: InputObject)
+      if input.UserInputType ~= Enum.UserInputType.Touch and input.UserInputType ~= Enum.UserInputType.MouseButton1 then
+         return
+      end
+      if WeaponController.getWeaponState() == WeaponController.CurrentWeaponState.OnField and WeaponController.beginRecallInput() then
+         recallInput = input
+      end
+   end)
+   UserInputService.InputEnded:Connect(function(input: InputObject)
+      if recallInput and (input == recallInput or (input.UserInputType == Enum.UserInputType.MouseButton1 and recallInput.UserInputType == Enum.UserInputType.MouseButton1)) then
+         recallInput = nil
+         WeaponController.endRecallInput()
+      end
    end)
 
    syncBoomerangThrowButton()

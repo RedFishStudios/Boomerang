@@ -74,6 +74,9 @@ local RAYCAST_VISUALIZERS_ENABLED = GlobalConfig.RaycastVisualizersEnabled
 local PROJECTILE_HITBOX_VISUALIZER_ENABLED = GlobalConfig.ProjectileHitboxVisualizerEnabled
 
 local BOOMERANG_SPIN_SPEED = math.rad(1080)
+local RECALL_FROM_DEAD_LIFT_RATE = 8 -- // How fast a boomerang recalled off the ground rises to hand height
+local MANUAL_RECALL_TILT_HEIGHT = 2 -- // Height still to rise (studs) at which the manual-recall tilt is at its maximum
+local MANUAL_RECALL_TILT_RESPONSE = 6 -- // How quickly the tilt eases toward its target
 
 type ThrowInitOptions = {
    StartPosition: Vector3?,
@@ -98,6 +101,7 @@ type ClashInitOptions = {
    Direction: Vector3,
    Speed: number?,
    Position: Vector3?,
+   DiedOutOfRange: boolean?, -- // Set by autoRecallOrDie (see GlobalConfig.DyingBoomerangCanRecoverInRange)
 }
 
 -- // Flatten a direction vector
@@ -327,7 +331,8 @@ local function setWeaponCFrame(thrownWeaponData: ThrownWeapons.Data, cframe: CFr
          -- Spin is constant and flat regardless of movement direction, speed, or state
          local visualRotation = (thrownWeaponData.VisualRotation or 0) + (BOOMERANG_SPIN_SPEED * (deltaTime or 0))
          thrownWeaponData.VisualRotation = visualRotation
-         host:PivotTo(CFrame.new(cframe.Position) * CFrame.Angles(0, visualRotation, 0))
+         -- // RecallTilt: visual tilt while a manual recall drags it up off the ground (set in Boomerang.recall)
+         host:PivotTo(CFrame.new(cframe.Position) * (thrownWeaponData.RecallTilt or CFrame.identity) * CFrame.Angles(0, visualRotation, 0))
       else
          host:PivotTo(cframe)
       end
@@ -963,8 +968,77 @@ function Boomerang.autoRecallOrDie(player: Player, boomerangId: string, toolData
       Direction = direction,
       Speed = speed,
       Position = position,
+      DiedOutOfRange = true,
    })
    return true
+end
+
+-- // Manual recall of a dying (Clashed) or dead boomerang: it becomes a thrown boomerang again and returns.
+-- // requiresHold: it keeps returning only while the player holds recall (Boomerang.stopRecallFromDead puts it back).
+-- // Server: called from WeaponService on recall press (and by the DyingBoomerangCanRecoverInRange check, without hold).
+-- // Client: called from WeaponController.onSnapshot when the server's snapshot says it is Returning.
+function Boomerang.recallFromClashed(player: Player, clashedWeaponData: ClashedWeapons.Data, requiresHold: boolean)
+   if ThrownWeapons.Data[player] or ClashedWeapons.Data[player] ~= clashedWeaponData then
+      return
+   end
+   local toolData = Tools[clashedWeaponData.ToolId]
+   if not toolData or not toolData.Boomerang then
+      return
+   end
+   local host = clashedWeaponData.Host
+   local pivot = if host and host.Parent then host:GetPivot() else clashedWeaponData.CFrame
+   if not pivot then
+      return
+   end
+
+   if clashedWeaponData.MovementConnection then
+      clashedWeaponData.MovementConnection:Disconnect()
+      clashedWeaponData.MovementConnection = nil
+   end
+
+   local thrownWeaponData: ThrownWeapons.Data = {
+      ToolId = clashedWeaponData.ToolId,
+      State = ThrownWeapons.StateEnum.Exhausted, -- // recall() switches it to Returning
+      InstanceId = clashedWeaponData.InstanceId,
+      OwnerUserId = clashedWeaponData.OwnerUserId,
+      Host = host,
+      LastPosition = pivot.Position,
+      CFrame = pivot,
+      Direction = clashedWeaponData.Direction,
+      Speed = 0,
+      ReuseEquippedHost = clashedWeaponData.ReuseEquippedHost,
+      ExistingHost = clashedWeaponData.ExistingHost,
+      VisualRotation = clashedWeaponData.VisualRotation,
+      RecallFromDead = requiresHold,
+   } :: any
+
+   ClashedWeapons.Data[player] = nil
+   ThrownWeapons.Data[player] = thrownWeaponData
+
+   if not isServer and host and host.PrimaryPart then
+      SoundLibrary.play(thrownWeaponData.InstanceId, Sounds.Data.BoomerangLoop.Name, host.PrimaryPart, nil, true)
+   end
+
+   Boomerang.recall(player, thrownWeaponData.ToolId, toolData, thrownWeaponData, { InitialSpeed = 0 })
+end
+
+-- // Recall button released while recalling a boomerang that was dead: it loses momentum and drops again (server only;
+-- // clients follow the Clashed snapshot). Ignored for boomerangs that weren't recalled from the dead state.
+function Boomerang.stopRecallFromDead(player: Player, thrownWeaponData: ThrownWeapons.Data)
+   if not isServer or not thrownWeaponData.RecallFromDead or thrownWeaponData.State ~= ThrownWeapons.StateEnum.Returning then
+      return
+   end
+   if ThrownWeapons.Data[player] ~= thrownWeaponData then
+      return
+   end
+   local direction = thrownWeaponData.Direction
+   if not direction or direction.Magnitude < 1e-5 then
+      direction = Vector3.new(0, 0, -1)
+   end
+   Boomerang.clash(player, thrownWeaponData, {
+      Direction = direction,
+      Speed = thrownWeaponData.Speed or 0,
+   })
 end
 
 function Boomerang.clash(player: Player, thrownWeaponData: ThrownWeapons.Data, options: ClashInitOptions)
@@ -1004,6 +1078,7 @@ function Boomerang.clash(player: Player, thrownWeaponData: ThrownWeapons.Data, o
       ReuseEquippedHost = thrownWeaponData.ReuseEquippedHost,
       ExistingHost = thrownWeaponData.ExistingHost,
       VisualRotation = thrownWeaponData.VisualRotation,
+      DiedOutOfRange = options.DiedOutOfRange,
    }
 
    thrownWeaponData.Host = nil
@@ -1044,6 +1119,15 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
    -- // Explosive boomerang returns faster while its effect is active (effect state is replicated, so both sides agree)
    if PickupLibrary.hasPickupEffectActive(player.UserId, "ExplosiveBoomerang") then
       maximumSpeed *= GlobalConfig.ExplosiveBoomerangReturnSpeedMultiplier
+   end
+   -- // Held manual recall of a dying/dead boomerang: capped speed and heavy momentum
+   local isManualRecallFromDead = thrownWeaponData.RecallFromDead == true
+   local momentumMultiplier = 1
+   local liftRate = RECALL_FROM_DEAD_LIFT_RATE
+   if isManualRecallFromDead then
+      maximumSpeed *= GlobalConfig.ManualRecallSpeedMultiplier
+      momentumMultiplier = GlobalConfig.ManualRecallMomentumMultiplier
+      liftRate = GlobalConfig.ManualRecallLiftRate
    end
    local speed = math.max((options and options.InitialSpeed) or 0, thrownWeaponData.Speed or 0)
    local slideSpeed = 0
@@ -1093,6 +1177,27 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          return
       end
 
+      -- // Recalled off the ground: rise smoothly to hand height while returning
+      if thrownWeaponData.RecallFromDead ~= nil then
+         local heightDelta = rootPart.Position.Y - hostPivot.Position.Y
+         if math.abs(heightDelta) > 0.05 then
+            hostPivot += Vector3.new(0, heightDelta * math.clamp(deltaTime * liftRate, 0, 1), 0)
+         end
+
+         -- // Visual only: tilt up toward the player while still being dragged up, easing flat as it reaches hand height
+         if not isServer and isManualRecallFromDead then
+            local remainingRise = math.max(rootPart.Position.Y - hostPivot.Position.Y, 0)
+            local targetTilt = math.rad(GlobalConfig.ManualRecallMaxTiltDegrees) * math.clamp(remainingRise / MANUAL_RECALL_TILT_HEIGHT, 0, 1)
+            local currentTilt = thrownWeaponData.RecallTiltAngle or 0
+            currentTilt += (targetTilt - currentTilt) * (1 - math.exp(-MANUAL_RECALL_TILT_RESPONSE * deltaTime))
+            thrownWeaponData.RecallTiltAngle = currentTilt
+            local towardPlayer = getHorizontalDirection(rootPart.Position - hostPivot.Position)
+            local tiltAxis = UP_VECTOR:Cross(towardPlayer)
+            -- // Negative angle about (up x towardPlayer) raises the side facing the player
+            thrownWeaponData.RecallTilt = if tiltAxis.Magnitude > 1e-4 and currentTilt > 1e-3 then CFrame.fromAxisAngle(tiltAxis.Unit, -currentTilt) else nil
+         end
+      end
+
       updateOwnWeaponHighlight(player, thrownWeaponData, hostPivot.Position)
 
       local toPlayer = (rootPart.Position - hostPivot.Position)
@@ -1108,7 +1213,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       end
 
       local alignment = travelVelocity.Unit:Dot(targetDirection)
-      local transitionRate = if alignment < -0.25 then 11 elseif alignment < 0.5 then 8 else 5
+      local transitionRate = (if alignment < -0.25 then 11 elseif alignment < 0.5 then 8 else 5) * momentumMultiplier
       local targetVelocity = targetDirection * maximumSpeed
       local transitionAlpha = 1 - math.exp(-transitionRate * deltaTime)
       travelVelocity = travelVelocity:Lerp(targetVelocity, transitionAlpha)
@@ -1256,6 +1361,11 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       end
       fireSnapshot(player.UserId, currentPivot.Position, immediateDirection, thrownWeaponData.Speed or speed, thrownWeaponData.State)
    end
+end
+
+-- // Hook for the optional "dying boomerang recovers in range" rule (Clashed.luau can't require this module)
+ClashedWeaponLogic.onDyingInRange = function(player: Player, clashedWeaponData: ClashedWeapons.Data)
+   Boomerang.recallFromClashed(player, clashedWeaponData, false)
 end
 
 return Boomerang

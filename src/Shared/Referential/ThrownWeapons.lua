@@ -31,6 +31,9 @@ export type Data = {
    ExistingHost: Model?,
    LastMovementPositions: {Vector3}?,
    HitPlayers: {[Player]: number}?,
+   RecallFromDead: boolean?, -- // Recalled off the ground: true = only while recall is held, false = automatic (recovered)
+   RecallTiltAngle: number?, -- // Client visual: current manual-recall tilt (radians)
+   RecallTilt: CFrame?, -- // Client visual: rotation applied to the model while a manual recall lifts it
    PortalExitAt: number?, -- // os.clock() of the last portal exit (Environment/Portal)
    PortalExitPart: BasePart?, -- // The portal it last came out of
    TrailObject: {

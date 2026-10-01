@@ -25,8 +25,13 @@ local GlobalConfig = {
    -- // drops into the dead state, like after a clash, and must be manually recalled or picked up.
    BoomerangRecallRange = 30,
    -- // If true, a boomerang that is losing momentum because it was out of range resumes returning automatically when it
-   -- // comes back into range. Client wants false for now. NOTE: not wired up yet; it arrives with manual recall (pass 2).
+   -- // comes back into range. Client wants false for now.
    DyingBoomerangCanRecoverInRange = false,
+   -- // Manual recall of a dying/dead boomerang (held recall): slower, heavier, sluggish lift with a visual tilt
+   ManualRecallSpeedMultiplier = 0.7, -- // Max speed = this x the boomerang's normal max speed
+   ManualRecallMomentumMultiplier = 0.3, -- // How quickly it accelerates/turns toward the player (1 = normal recall)
+   ManualRecallLiftRate = 2.5, -- // How quickly it rises to hand height (normal from-ground lift is 8)
+   ManualRecallMaxTiltDegrees = 35, -- // Visual tilt toward the player while it's being lifted
    ExplosiveBoomerangReturnSpeedMultiplier = 1.5, -- // While the effect is active: recall speed x this, and the post-explosion weapon lock / this
 
    MyBoomerangTrailColor = Color3.new(0.984314, 0.988235, 0.988235),
