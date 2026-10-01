@@ -58,8 +58,8 @@ local MapData = {
       },
       DisguiseAssets = {},
    },
-   ["GenericD"] = {
-      Id = "GenericD",
+   ["PartsTest"] = {
+      Id = "PartsTest",
       ForGamemodes = {
          Gamemodes.Classic.Id,
          Gamemodes.Elimination.Id,
@@ -70,8 +70,8 @@ local MapData = {
       },
       DisguiseAssets = {},
    },
-   ["GenericE"] = {
-      Id = "GenericE",
+   ["TerrainTest"] = {
+      Id = "TerrainTest",
       ForGamemodes = {
          Gamemodes.Classic.Id,
          Gamemodes.Elimination.Id,

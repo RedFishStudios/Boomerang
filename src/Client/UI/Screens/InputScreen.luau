@@ -17,7 +17,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 
 local ConnectionsList = require(ReplicatedStorage.Shared.Classes.ConnectionsList)
-local DeviceUtil = require(ReplicatedStorage.Shared.Utils.DeviceUtil)
+local PlatformController = require(ReplicatedStorage.Client.Core.PlatformController)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -91,7 +91,7 @@ local function cleanupEntry(actionId: string)
 end
 
 local function updateMobileVisibility()
-	local isMobileInput = DeviceUtil.isMobile()
+	local isMobileInput = PlatformController.getDominantControlScheme() == "Touch"
 
 	mobileContainer.Visible = isMobileInput
 	for _, entry in mobileEntries do
@@ -256,11 +256,14 @@ end
 -------------------------------------------------------------------------------
 
 function InputScreen.init()
-	DeviceUtil.onDeviceChanged(function()
+	-- // Follows the player's current input, so the buttons appear/disappear when they switch between touch and keyboard/mouse
+	local function onControlSchemeChanged()
 		updateMobileVisibility()
 		refreshRegisteredButtonLayouts()
 		flushPendingMobileButtons()
-	end)
+	end
+	onControlSchemeChanged()
+	PlatformController.DominantControlSchemeChanged:Add(onControlSchemeChanged)
 
 	player.PlayerGui.ChildAdded:Connect(function(child)
 		if child:IsA("ScreenGui") and child.Name == "TouchGui" then

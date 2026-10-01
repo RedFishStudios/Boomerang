@@ -15,11 +15,19 @@ local Workspace = game.Workspace
 local InputsToGadget: {[Enum.UserInputType]: Gadget} = {
 	[Enum.UserInputType.Touch] = "Touchscreen",
 	[Enum.UserInputType.MouseMovement] = "Mouse",
+	[Enum.UserInputType.MouseButton1] = "Mouse",
+	[Enum.UserInputType.MouseButton2] = "Mouse",
+	[Enum.UserInputType.MouseButton3] = "Mouse",
+	[Enum.UserInputType.MouseWheel] = "Mouse",
 	[Enum.UserInputType.Keyboard] = "Keyboard",
 	[Enum.UserInputType.Gamepad1] = "Console",
 	[Enum.UserInputType.Gamepad2] = "Console",
 	[Enum.UserInputType.Gamepad3] = "Console",
-	[Enum.UserInputType.Gamepad4] = "Console"
+	[Enum.UserInputType.Gamepad4] = "Console",
+	[Enum.UserInputType.Gamepad5] = "Console",
+	[Enum.UserInputType.Gamepad6] = "Console",
+	[Enum.UserInputType.Gamepad7] = "Console",
+	[Enum.UserInputType.Gamepad8] = "Console",
 }
 
 local GadgetsUsed: {
@@ -79,52 +87,75 @@ end
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Init
 
+-- // Keyboard and mouse both count as the "PC" scheme
+local function gadgetToScheme(gadget: Gadget): "PC" | "Console" | "Touch"
+	if gadget == "Console" then
+		return "Console"
+	elseif gadget == "Touchscreen" then
+		return "Touch"
+	end
+	return "PC"
+end
+
+local function getInitialControlScheme(): "PC" | "Console" | "Touch"
+	local gadget = PlatformController.getLastInputGadget()
+	if gadget then
+		return gadgetToScheme(gadget)
+	end
+
+	-- // No input yet: fall back to the device's preferred input
+	local preferredInput = UserInputService.PreferredInput
+	if preferredInput == Enum.PreferredInput.Touch then
+		return "Touch"
+	elseif preferredInput == Enum.PreferredInput.Gamepad or GuiService:IsTenFootInterface() then
+		return "Console"
+	elseif preferredInput == Enum.PreferredInput.KeyboardAndMouse then
+		return "PC"
+	end
+	return if UserInputService.TouchEnabled then "Touch" else "PC"
+end
+
+local function setControlScheme(newScheme: "PC" | "Console" | "Touch")
+	if newScheme == dominantControlScheme then
+		return
+	end
+	dominantControlScheme = newScheme
+	PlatformController.NewInputGadget:Execute("serial", newScheme)
+	PlatformController.DominantControlSchemeChanged:Execute("serial", newScheme)
+end
+
 local function _init()
-	if UserInputService.TouchEnabled then
-		dominantControlScheme = "Touch"
+	dominantControlScheme = getInitialControlScheme()
+	if dominantControlScheme == "Touch" then
 		GadgetsUsed["Touchscreen" :: Gadget] = os.clock()
-	elseif GuiService:IsTenFootInterface() then
-		dominantControlScheme = "Console"
-	else
-		dominantControlScheme = "PC"
 	end
 
 	local function registerDetectedInputObject(input: InputObject, gameProcessedEvent: boolean)
 		local inputType = input.UserInputType
-		if InputsToGadget[inputType] then
-			GadgetsUsed[InputsToGadget[inputType]] = os.clock()
+
+		-- // Only real device input switches the scheme (not Focus, TextInput, etc.)
+		local gadget = InputsToGadget[inputType]
+		if not gadget then
+			return
+		end
+		GadgetsUsed[gadget] = os.clock()
+
+		-- // Typing into a TextBox (e.g. the on-screen keyboard in chat) shouldn't hide the touch controls
+		local isTyping = gadget == "Keyboard" and (gameProcessedEvent or UserInputService:GetFocusedTextBox() ~= nil)
+		if not isTyping then
+			setControlScheme(gadgetToScheme(gadget))
 		end
 
-		local gadget = PlatformController.getLastInputGadget()
-		local newScheme = nil
-		if gadget == "Console" then
-			newScheme = "Console"
-		elseif gadget == "Touchscreen" then
-			newScheme = "Touch"
-		else
-			newScheme = "PC"
+		if inputType == Enum.UserInputType.MouseMovement or inputType == Enum.UserInputType.Touch then
+			local position = input.Position
+			if not gameProcessedEvent then
+				lastValidMousePositionInWorld = position + Vector3.new(0, 60, 0) -- offset to account for topbar
+			end
 		end
-
-		if newScheme ~= dominantControlScheme then
-			dominantControlScheme = newScheme
-			PlatformController.NewInputGadget:Execute("serial", newScheme)
-         PlatformController.DominantControlSchemeChanged:Execute("serial", newScheme)
-		end
-
-      if inputType == Enum.UserInputType.MouseMovement or inputType == Enum.UserInputType.Touch then
-         local position = input.Position
-         if not gameProcessedEvent then
-             lastValidMousePositionInWorld = position + Vector3.new(0, 60, 0) -- offset to account for topbar
-         end
-      end
 	end
 
 	UserInputService.InputBegan:Connect(registerDetectedInputObject)
 	UserInputService.InputChanged:Connect(registerDetectedInputObject)
-
-	if UserInputService.TouchEnabled then
-		GadgetsUsed["Touchscreen" :: Gadget] = os.clock()
-	end
 end
 _init()
 

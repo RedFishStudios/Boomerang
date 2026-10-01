@@ -4,8 +4,61 @@ local SessionConnections: {[Instance]: RBXScriptConnection} = {}
 
 local TasksList = require(game:GetService("ReplicatedStorage").Shared.Classes.TasksList)
 local CollisionGroupConstants = require(game:GetService("ReplicatedStorage").Shared.Constants.CollisionGroupConstants)
+local ParticlesLibrary = require(game:GetService("ReplicatedStorage").Shared.Library.ParticlesLibrary)
+
+local isServer = game:GetService("RunService"):IsServer()
+
+local DROWN_CAUSE_LABEL = "Drowned"
+local SPLASH_PARTICLE = "Splash"
+local SPLASH_EMIT_COUNT = 30
+-- // Set on the authoritative character when it drowns; CharacterRenderController reads it so the ragdoll sinks
+local DROWNED_ATTRIBUTE = "Drowned"
+
+-- // Lazily required: CombatLibrary -> PickupLibrary -> pickup logics require this module (load-time circular require)
+local CombatLibrary = nil
+local function getCombatLibrary()
+   if not CombatLibrary then
+      CombatLibrary = require(game:GetService("ReplicatedStorage").Shared.Library.CombatLibrary)
+   end
+   return CombatLibrary
+end
 
 Water.PlayerEnteredWater = TasksList.new() :: TasksList.TasksList<(player: Player, waterPart: Instance) -> ()>
+Water.DROWNED_ATTRIBUTE = DROWNED_ATTRIBUTE
+
+-- // Point on the water's top surface above/below the given position
+local function getSurfacePoint(waterPart: BasePart, position: Vector3): Vector3
+   local localPoint = waterPart.CFrame:PointToObjectSpace(position)
+   return waterPart.CFrame:PointToWorldSpace(Vector3.new(localPoint.X, waterPart.Size.Y / 2, localPoint.Z))
+end
+
+-- // Server only: kill the player through the normal death path, splash, and let the character sink through the water
+local function drownPlayer(player: Player, character: Model, waterPart: BasePart)
+   if character:GetAttribute(DROWNED_ATTRIBUTE) then
+      return
+   end
+   local humanoid = character:FindFirstChildOfClass("Humanoid")
+   if not humanoid or humanoid.Health <= 0 then
+      return
+   end
+
+   getCombatLibrary().applyDamageToHumanoid(player, humanoid, humanoid.MaxHealth, nil, DROWN_CAUSE_LABEL)
+   if humanoid.Health > 0 then
+      -- // Blocked (e.g. ForceField): stay on the surface
+      return
+   end
+
+   character:SetAttribute(DROWNED_ATTRIBUTE, true)
+   for _, descendant in ipairs(character:GetDescendants()) do
+      if descendant:IsA("BasePart") then
+         descendant.CollisionGroup = CollisionGroupConstants.SinkingPlayers
+      end
+   end
+
+   local root = character.PrimaryPart or character:FindFirstChild("HumanoidRootPart")
+   local splashPosition = getSurfacePoint(waterPart, if root and root:IsA("BasePart") then root.Position else character:GetPivot().Position)
+   ParticlesLibrary.emit(`Splash_{player.UserId}_{workspace:GetServerTimeNow()}`, SPLASH_PARTICLE, splashPosition, SPLASH_EMIT_COUNT)
+end
 
 function Water.getCurrentWaterParts(): {Instance}
    local waterParts: {Instance} = {}
@@ -48,7 +101,6 @@ function Water.validate(functionalChild: Instance): boolean
 end
 
 function Water.onObjectAdded(functionalChild: Instance)
-   print(`water object added!`)
    if functionalChild:GetAttribute("Invalid") then
       warn(`invalid`)
       return
@@ -56,7 +108,6 @@ function Water.onObjectAdded(functionalChild: Instance)
    functionalChild.CollisionGroup = CollisionGroupConstants.WaterParts
 
    SessionConnections[functionalChild] = functionalChild.Touched:Connect(function(otherPart)
-      print(`touched part`)
       if otherPart and otherPart.Parent then
          local character = otherPart:FindFirstAncestorWhichIsA("Model")
          if not character then
@@ -67,6 +118,10 @@ function Water.onObjectAdded(functionalChild: Instance)
             return
          end
          Water.PlayerEnteredWater:Execute("serial", player, functionalChild)
+         -- // After the listeners, so an effect that kills on entry (e.g. electrified water) keeps its elim credit
+         if isServer and character == player.Character then
+            drownPlayer(player, character, functionalChild :: BasePart)
+         end
       end
    end)
 end

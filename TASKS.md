@@ -17,7 +17,7 @@ The gameplay, code and tooling task board. See [CLAUDE.md](CLAUDE.md) for how th
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - Never move a task to `Done`; Sol does that after testing in Studio.
 
-**Next free ID: T-051**
+**Next free ID: T-052**
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -139,28 +139,6 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ---
 
-### T-028 · Water kills the player, with a splash
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Shared
-- **Files:** `Shared/Logics/Environment/Water.luau`, `Shared/Library/CombatLibrary.luau`, `Shared/Library/ParticlesLibrary.luau`, `Shared/Assets/Particles/`
-
-**Problem / goal**
-Stepping into water kills the player. A splash effect plays on the player and they fall through the water, so it reads as falling in and dying.
-- Use the normal death path (`CombatLibrary` / death reason) so death screens, elim messages and gamemode scoring behave like other environmental deaths (see `DeadlyPart`).
-- If there's no splash particle yet, add a placeholder entry and mark it `-- TODO:RELEASE placeholder`.
-
-**Done when**
-- [ ] Touching water kills the player once, with a splash effect and the character sinking through the water.
-- [ ] The death counts the same way as other environment deaths (death screen shows a non-player cause).
-
-**Test in Studio**
-- Walk into water in each map that has it: splash, sink, death screen, respawn where the gamemode allows.
-
-**Notes**
-
----
-
 ### T-033 · Boomerang throws faster and further
 - **Priority:** P1
 - **Owner:** Agent
@@ -240,6 +218,60 @@ Use `EconomyService`-style owner functions so other code doesn't write these fie
 ## In Progress
 
 ## Review
+
+### T-051 · Touch controls follow the player's current input
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Client
+- **Files:** `Client/Core/PlatformController.luau`, `Client/UI/Screens/InputScreen.luau`
+
+**Problem / goal**
+Players can switch input mid-game. Touching the screen while on keyboard/mouse shows the touchscreen GUI; using keyboard/mouse while on touch hides it.
+
+**Done when**
+- [ ] Keyboard/mouse → touch: touchscreen GUI (CustomTouchscreen + mobile buttons) appears.
+- [ ] Touch → keyboard/mouse: it disappears.
+
+**Test in Studio**
+- Touch-screen laptop (or a phone/tablet with a keyboard/mouse): start on mouse, tap the screen, then move the mouse / press a key. Repeat starting on touch.
+- On mobile, typing in chat with the on-screen keyboard must not hide the touch controls.
+- Studio's device emulator may not reproduce mixed input well; a real device is the reliable test.
+
+**Notes**
+- `PlatformController` is now the single source of truth: `InputScreen` used `PreferredInput` (via `DeviceUtil`) while `CustomTouchscreen` used `PlatformController`, so they could disagree. `InputScreen` now listens to `DominantControlSchemeChanged`. `DeviceUtil` is untouched (now unused).
+- Fixes in `PlatformController`: unmapped input types (Focus, TextInput...) no longer flip the scheme to PC (this could hide touch controls on mobile when the window regained focus); mouse buttons/wheel and gamepads 5–8 are now recognised; keyboard input while typing in a TextBox is ignored; the starting scheme uses the last input / `PreferredInput` instead of assuming touch on any touch-capable device (touch laptops started in touch mode).
+- Roblox's own thumbstick/jump button (`TouchGui`) is switched by the PlayerModule, not by this code.
+
+---
+
+### T-028 · Water kills the player, with a splash
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared
+- **Files:** `Shared/Logics/Environment/Water.luau`, `Shared/Library/CombatLibrary.luau`, `Shared/Library/ParticlesLibrary.luau`, `Shared/Assets/Particles/`
+
+**Problem / goal**
+Stepping into water kills the player. A splash effect plays on the player and they fall through the water, so it reads as falling in and dying.
+- Use the normal death path (`CombatLibrary` / death reason) so death screens, elim messages and gamemode scoring behave like other environmental deaths (see `DeadlyPart`).
+- If there's no splash particle yet, add a placeholder entry and mark it `-- TODO:RELEASE placeholder`.
+
+**Done when**
+- [ ] Touching water kills the player once, with a splash effect and the character sinking through the water.
+- [ ] The death counts the same way as other environment deaths (death screen shows a non-player cause).
+
+**Test in Studio**
+- Walk into water in each map that has it: splash, sink, death screen, respawn where the gamemode allows.
+
+**Notes**
+- Server-side in `Water.luau`: on touching water, after the `PlayerEnteredWater` listeners run (so electrified water keeps its elim credit), the player is killed via `CombatLibrary.applyDamageToHumanoid` with cause label "Drowned". Only once per life (`Drowned` attribute on the character).
+- Sinking: new collision group `SinkingPlayers` (like `Players` but without `WaterParts`). The server puts the dead authoritative character in it; `CharacterRenderController`'s ragdoll uses it when the `Drowned` attribute is set, so the visible body falls through the water.
+- Splash: `ParticlesLibrary.emit` at the water's surface. **`TODO:RELEASE placeholder`:** `Shared/Assets/Particles/Splash.rbxmx` is a basic hand-written droplet burst; replace it with a real effect.
+- Also removed the two debug `print`s in `Water.onObjectAdded`.
+- Water kills in every phase, lobby included, if the lobby has water.
+- A ForceField blocks the damage (`TakeDamage`), so a protected player survives and stays on the surface. Touching the water again after the forcefield ends only triggers if they move.
+- Check in Studio: the `Splash.rbxmx` import (hand-written XML), the drowned ragdoll sinking, and what the body lands on under the water (it still collides with the floor and walls).
+
+---
 
 ### T-016 · Move the chat commands to Cmdr (they have no permission check)
 - **Priority:** P0 *(before release: any player in a live server can currently end rounds and grant themselves pickups)*
