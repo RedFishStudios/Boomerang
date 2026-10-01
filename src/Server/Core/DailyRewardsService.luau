@@ -19,6 +19,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local DailyRewards = require(ReplicatedStorage.Shared.Referential.DailyRewards) 
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local PlayerDataService = require(ServerStorage.Server.Core.PlayerDataService)
+local EconomyService = require(ServerStorage.Server.Core.EconomyService)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -80,7 +81,7 @@ function DailyRewardsService.init()
       local reward = DailyRewards.Rewards[newStreak]
       if reward.Type == "Currency" then
          -- TODO: notify player
-         profileData.Currency = (profileData.Currency or 0) + reward.Value
+         EconomyService.addCurrency(player, reward.Value)
       elseif reward.Type == "Item" then
          -- TODO: grant player the item
       end

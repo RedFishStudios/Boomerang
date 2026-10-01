@@ -1,14 +1,11 @@
 --[[
-  EconomyService
+	EconomyService
 
-  Description:
-  Handles server-side economy operations
+	Description:
+	Handles server-side economy operations. The game has a single currency: the profile's `Currency` number.
 
-  Author:
-  @SixthAtom
-
-  Date:
-  20-02-2026
+	Author:
+	@SixthAtom
 ]]
 
 local EconomyService = {}
@@ -16,55 +13,68 @@ local EconomyService = {}
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
-local EconomyConstants = require(ReplicatedStorage.Shared.Constants.EconomyConstants)
+local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 local PlayerDataService = require(ServerStorage.Server.Core.PlayerDataService)
 
 -------------------------------------------------------------------------------
--- CONSTANTS
+-- TYPES
 -------------------------------------------------------------------------------
 
-local CURRENCIES = EconomyConstants.Currencies
+type CurrencyChangedTask = (player: Player, newBalance: number, delta: number) -> ()
 
 -------------------------------------------------------------------------------
--- PRIVATE FUNCTIONS
+-- PUBLIC VARIABLES
 -------------------------------------------------------------------------------
 
-local function getPlayerCurrencies(player: Player)
-	return PlayerDataService.get(player).Currencies
-end
-
-local function getPlayerBalance(player: Player, currency: EconomyConstants.Currency)
-	return getPlayerCurrencies(player)[currency]
-end
+EconomyService.CurrencyChangedTasks = TasksList.new() :: TasksList.TasksList<CurrencyChangedTask>
 
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
-function EconomyService.transact(player: Player, currency: EconomyConstants.Currency, amount: number)
-	if currency == CURRENCIES.Free then
-		return true
-	elseif EconomyConstants.isLiquid(currency) then
-		if amount < 0 then
-			if not EconomyService.canAfford(player, { Currency = currency, Amount = math.abs(amount) }) then
-				return false
-			end
-		end
-
-		local newBalance = math.max(0, getPlayerBalance(player, currency) + amount)
-		getPlayerCurrencies(player)[currency] = newBalance
-		return true
+--- Returns the player's Currency, or nil if their data isn't loaded.
+function EconomyService.getBalance(player: Player): number?
+	local data = PlayerDataService.get(player)
+	if not data then
+		return nil
 	end
 
-	return false -- likely a developer product or gamepass, return false and handle off somewhere else
+	return data.Currency or 0
 end
 
-function EconomyService.canAfford(player: Player, price: EconomyConstants.Price)
-	if not EconomyConstants.isLiquid(price.Currency) then
-		return true
+--- Returns true if the player's data is loaded and they have at least `amount` Currency.
+function EconomyService.canAfford(player: Player, amount: number): boolean
+	local balance = EconomyService.getBalance(player)
+	return balance ~= nil and balance >= amount
+end
+
+--- Adds (or, with a negative amount, removes) Currency. The balance never goes below 0.
+--- Returns false if the player's data isn't loaded.
+function EconomyService.addCurrency(player: Player, amount: number): boolean
+	local data = PlayerDataService.get(player)
+	if not data then
+		return false
 	end
 
-	return getPlayerBalance(player, price.Currency) >= price.Amount
+	local oldBalance = data.Currency or 0
+	local newBalance = math.max(0, oldBalance + amount)
+	data.Currency = newBalance -- // Writes go through the data proxy, which replicates them to the client
+
+	EconomyService.CurrencyChangedTasks:Execute("parallel", player, newBalance, newBalance - oldBalance)
+	return true
+end
+
+--- Removes `amount` Currency only if the player can afford it. Returns true if it was spent.
+function EconomyService.spendCurrency(player: Player, amount: number): boolean
+	if amount < 0 then
+		return false
+	end
+
+	if not EconomyService.canAfford(player, amount) then
+		return false
+	end
+
+	return EconomyService.addCurrency(player, -amount)
 end
 
 return EconomyService

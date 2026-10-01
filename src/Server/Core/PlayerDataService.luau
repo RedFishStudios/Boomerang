@@ -28,7 +28,7 @@ local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
-local NON_WIPABLE_INDEXES = { "BanData" }
+local NON_WIPABLE_INDEXES: { string } = {} -- // Profile fields kept when a profile is wiped
 
 local DATA_KEY = RunService:IsStudio() and "Dev" or "Live"
 

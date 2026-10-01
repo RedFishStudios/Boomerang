@@ -3,18 +3,12 @@ ProductLogicsUtil.NotActive = true -- Prevent from registration as a product log
 
 local ServerStorage = game:GetService("ServerStorage")
 
-local PlayerDataService = require(ServerStorage.Server.Core.PlayerDataService)
+local ItemService = require(ServerStorage.Server.Core.ItemService)
 
--- // The data proxy replicates this Inventory write to the client automatically;
+-- // ItemService's Inventory write replicates to the client through the data proxy;
 -- // ShopController listens for Inventory increases and shows the ItemAcquired gui, so no extra remote is needed
 function ProductLogicsUtil.grantGenericItemToPlayer(player: Player, itemId: string): boolean
-   local profileData = PlayerDataService.get(player)
-   if not profileData then
-      return false
-   end
-
-   profileData.Inventory[itemId] = (profileData.Inventory[itemId] or 0) + 1
-   return true
+   return ItemService.grantItem(player, itemId, 1)
 end
 
 return ProductLogicsUtil

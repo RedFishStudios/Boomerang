@@ -15,19 +15,6 @@ local RemoteCodes = GeneralUtil.deepFreeze({
 		},
 	},
 
-	Item = {
-		Events = {
-			Granted = 0,
-			Consumed = 1,
-			Acquired = 2,
-		},
-
-		Functions = {
-			Get = 0,
-			Purchase = 1,
-		},
-	},
-
 	Instances = {
 		Events = {
 			SendAll = 0,
