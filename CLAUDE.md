@@ -4,7 +4,7 @@ Roblox game written in Luau, synced into Studio with Rojo. A fast-paced, round-b
 
 - GitHub: `RedFishStudios/Boomerang`. This is client work: Sol develops it for the client and reports finished changes daily (see "Commits log" below).
 - Active branch: `dev-soul` (Sol's). Other remote branches (`dev-lars`, `playtest-stable`, `chickynoid-migration`, backups) belong to other people or are snapshots. Don't touch them.
-- The codebase grew from a game template (`larsb/roblox-game-template`, by @SixthAtom). Some template-era modules are no longer in sync with the game (see "Template leftovers").
+- The codebase grew from a game template (`larsb/roblox-game-template`, by @SixthAtom). Template code that no longer fits the game is being updated or kept as reference (see "Leftover and reference modules").
 
 ## Start here
 
@@ -14,7 +14,13 @@ Roblox game written in Luau, synced into Studio with Rojo. A fast-paced, round-b
 | [docs/GAME_DESIGN.md](docs/GAME_DESIGN.md) | Before any gameplay work. The client's MVP spec (round flow, controls, Classic, parry/clash, camera) and where the code differs from it. |
 | [Gamemodes design doc](https://docs.google.com/document/d/15GWFwrjrhytRjPqBhBg-Zhc5YLX9CeWJlt8Q_rMttss/edit?tab=t.d4ujxm3y7eay) | Linked from `Shared/Constants/Gamemodes.luau`. Agents probably can't open it. If you need design intent that isn't in GAME_DESIGN.md, ask Sol. |
 
-**What agents can't do:** run Roblox Studio (all play-testing is done by Sol), or rely on tools being installed. If a tool you need isn't available, say so; don't work around it.
+**What agents can't do:** rely on tools being installed. If a tool you need isn't available, say so; don't work around it. Play-testing and final sign-off are Sol's.
+
+**Roblox Studio MCP:** when the session has the `Roblox_Studio` tools (Sol's place is "Boomerang [Development]", placeId 74945725552268), agents can inspect the place, read the output log and run Luau. Rules:
+- Call `list_roblox_studios` and confirm the right place with Sol before changing anything.
+- **The repo is the source of truth for code.** Never edit Rojo-synced scripts in Studio; edit the files in `src/` (Rojo syncs them). Studio edits are for place-only content (maps, models, GUI visuals to save back into `.rbxmx`), and only when a task asks for it.
+- Never modify the map package (`ServerStorage.Server.Assets.Maps`) or publish/save the place.
+- Prefer read-only use (inspecting instances, reading the console) unless the task says otherwise.
 
 ## Toolchain
 
@@ -165,9 +171,10 @@ The server is authoritative. The client may predict (e.g. boomerang throws, dash
 - Read/write through `PlayerDataService.get(player)` (or `getAsync`), never `profile.Data` directly, so changes replicate.
 - **Permanent IDs:** anything saved or sent over the network (item ids, product ids, gamemode ids, pickup class ids) is a fixed, hand-written string or number. Never change or reuse one.
 
-### Template leftovers
+### Currency and items
 
-Some template-era modules still expect the template's old profile (`Currencies`, `ItemInventory`, `EquippedItems`, `BanData`): `EconomyService`, `EconomyController`, `ItemService`, `ItemController`, `ItemConstants`, `EquipmentConstants`. The live shop uses `Items` + `ShopItems` + `Currency`/`Inventory` instead. **Decision: they're to be updated to the current save format, with a single `Currency` number** (task T-006). Until that's done, don't build new features on them.
+- `EconomyService` (server) / `EconomyController` (client) own `Currency`: use `addCurrency` / `spendCurrency`, not direct writes.
+- `ItemService` (server) / `ItemController` (client) own `Inventory` (item id -> amount). Item data is in `Shared/Referential/Items.luau`; shop layout in `ShopItems.luau`.
 
 ## Developer commands (Cmdr)
 

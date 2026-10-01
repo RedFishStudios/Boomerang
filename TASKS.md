@@ -17,7 +17,7 @@ The gameplay, code and tooling task board. See [CLAUDE.md](CLAUDE.md) for how th
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - Never move a task to `Done`; Sol does that after testing in Studio.
 
-**Next free ID: T-017**
+**Next free ID: T-041**
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -139,35 +139,6 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ---
 
-### T-006 · Port the template-era economy/item modules to the current save format
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Server / Client / Data
-- **Files:** `Server/Core/EconomyService.luau`, `Server/Core/ItemService.luau`, `Client/Core/EconomyController.luau`, `Client/Core/ItemController.luau`, `Shared/Constants/ItemConstants.luau`, `Shared/Constants/EquipmentConstants.luau`, `Shared/Constants/EconomyConstants.luau`, `Shared/Utils/EconomyUtil.luau`
-
-**Problem / goal**
-These came from the game template and use profile fields that don't exist in `ProfileTemplate` (`Currencies`, `ItemInventory`). They're auto-loaded: `ItemService` writes an `ItemInventory` field into every profile on load, and `EconomyService.transact` would error if called. **Sol's decisions:**
-- Update them to the current save format (`Currency`, `Inventory` in `ProfileTemplate`; item data in `Shared/Referential/Items.luau` / `ShopItems.luau`).
-- **There is only one currency: `Profile.Currency`, a number.** Remove every multi-currency mention (`Currencies`, `Cash`, `Gems`, `liquidCurrencies`, `{ [Currency]: number }` types...). Prices are a plain number (as in `Items`).
-
-**Open questions (ask Sol first)**
-- Should `ItemService` (grant/consume/purchase) become the one place that changes `Inventory`, with `ShopService` calling it? Or should `ShopService` keep its own logic?
-- Some profiles may already have an `ItemInventory` field saved by `ItemService` (in Studio's `Dev` store, and possibly `Live`). Leave it, or clear it on load?
-
-**Done when**
-- [ ] No auto-loaded module reads or writes profile fields that aren't in `ProfileTemplate`.
-- [ ] No code mentions more than one currency.
-- [ ] `ItemConstants` either reads from `Items` or is no longer used, so there's one item list.
-- [ ] Existing shop purchases still work.
-
-**Test in Studio**
-- Join, buy a shop item with currency: the balance and inventory update and replicate to the client.
-- Rejoin: the purchase was saved. No errors from Economy/Item modules on load.
-
-**Notes**
-
----
-
 ### T-016 · Move the chat commands to Cmdr (they have no permission check)
 - **Priority:** P0 *(before release: any player in a live server can currently end rounds and grant themselves pickups)*
 - **Owner:** Agent
@@ -192,9 +163,257 @@ These came from the game template and use profile fields that don't exist in `Pr
 
 ---
 
+### T-009 · Daily rewards: grant item rewards and notify the player
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Server / Client / GUI
+- **Files:** `Server/Core/DailyRewardsService.luau`, `Shared/Referential/DailyRewards.luau`, `Client/UI/Gui/DailyClaims/`, `Client/UI/Gui/ItemAcquired/`
+
+**Problem / goal**
+Claiming a login reward must grant it and tell the player.
+- Item rewards: `DailyRewardsService` still has `-- TODO: grant player the item`. Grant them with `ItemService.grantItem` (T-006).
+- Notification: show the reward on the client with the ItemAcquired popup (items) and a currency popup/message (currency). Use the existing ItemAcquired GUI; final visuals are Sol's (T-021).
+- `DailyRewards` points at the `ExampleItem` placeholders; keep them and mark them `-- TODO:RELEASE placeholder` if they aren't already.
+
+**Done when**
+- [ ] Item rewards are added to the Inventory; currency rewards keep working.
+- [ ] The player sees a notification for every claimed reward (item and currency).
+
+**Test in Studio**
+- Claim on day 1 (item) and day 2 (currency) (use Cmdr or reset `LastClaim` in Studio data): each grant shows a popup and is saved.
+
+**Notes**
+
+---
+
+### T-023 · Assassin: let players join mid-round
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared / Server
+- **Files:** `Shared/Constants/Gamemodes.luau`, `Shared/Logics/GamemodeLogics/Assassin.luau`, `Server/Core/RoundCyclingService.luau`, `Server/Core/SpawnService.luau`
+
+**Problem / goal**
+New players should be able to join an Assassin round in progress. They're immediately given a target, and are added to the loop that fairly assigns assassins and targets for the rest of the round.
+- `Gamemodes.Assassin` currently has `LateJoinEnabled = false`.
+- `Assassin.luau` already subscribes `addMember` to `GameStateLibrary.PlayerAddedToArenaTasks`, which assigns the newcomer a target and fills in targetless members. Check that this path is complete once late join is on (and that it also works for players who rejoin).
+
+**Done when**
+- [ ] `LateJoinEnabled = true` for Assassin.
+- [ ] A player joining mid-round spawns into the arena, gets a target at once, and becomes someone's target as soon as fairly possible.
+- [ ] Nobody is left without a target or hunted by two assassins because of the join.
+
+**Test in Studio**
+- Start Assassin with 2 players, then join a 3rd mid-round (Studio local server, 3 players): the newcomer gets a target and the target arrows/GUI update for everyone.
+- Leave and rejoin mid-round: no errors, assignments stay consistent.
+
+**Notes**
+
+---
+
+### T-026 · Menus can lock the screen in the over-the-shoulder camera
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Client / GUI
+- **Files:** `Client/UI/UIController.luau`, `Client/Core/CustomCameraController.luau`, `Client/UI/Gui/*`
+
+**Problem / goal**
+In the in-game over-the-shoulder camera the mouse is locked/hidden, so a clickable GUI that appears during a round (e.g. Shop, Daily Claims, Voting, ItemAcquired with buttons) can't be clicked or closed, and the player is stuck. Audit every GUI that can open during a round and make sure the mouse is freed while it's open (e.g. a `Modal` button or `UserInputService.MouseBehavior`/`MouseIconEnabled` handled centrally in `UIController` for menu-type GUIs), and restored when it closes.
+
+**Done when**
+- [ ] Opening any menu-type GUI while in the arena camera frees the mouse; closing the last one restores the camera's mouse lock.
+- [ ] GUIs that shouldn't open during a round are listed in Notes (ask Sol whether to block them).
+
+**Test in Studio**
+- During a round, open each menu (shop, daily claims, settings...) with keyboard/HUD buttons and close it with the mouse.
+- Repeat on gamepad and on a mobile emulator.
+
+**Notes**
+
+---
+
+### T-027 · Explosive boomerang: lasts the whole effect and returns 50% faster
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared
+- **Files:** `Shared/Logics/PickupLogics/ExplosiveBoomerang.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`
+
+**Problem / goal**
+The explosive boomerang currently only explodes once. The effect should stay active after the first explosion (every throw explodes until the pickup effect ends), and while it's active the boomerang returns to the player's hand **50% faster** than now.
+- The module is still marked `-- STUD` / `-- TODO`; check what's implemented before changing it.
+
+**Done when**
+- [ ] Every throw explodes while the effect is active; the effect ends on its normal timer/conditions.
+- [ ] Return speed while the effect is active is 1.5x the normal return speed, set from a config value, not hard-coded.
+- [ ] The `-- STUD` / `-- TODO` header is removed if the pickup is now complete, and `Disabled` is removed if set.
+
+**Test in Studio**
+- `getpickup ExplosiveBoomerang` (chat) or the Cmdr equivalent: throw several times, each throw explodes; the boomerang comes back visibly faster.
+
+**Notes**
+
+---
+
+### T-028 · Water kills the player, with a splash
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared
+- **Files:** `Shared/Logics/Environment/Water.luau`, `Shared/Library/CombatLibrary.luau`, `Shared/Library/ParticlesLibrary.luau`, `Shared/Assets/Particles/`
+
+**Problem / goal**
+Stepping into water kills the player. A splash effect plays on the player and they fall through the water, so it reads as falling in and dying.
+- Use the normal death path (`CombatLibrary` / death reason) so death screens, elim messages and gamemode scoring behave like other environmental deaths (see `DeadlyPart`).
+- If there's no splash particle yet, add a placeholder entry and mark it `-- TODO:RELEASE placeholder`.
+
+**Done when**
+- [ ] Touching water kills the player once, with a splash effect and the character sinking through the water.
+- [ ] The death counts the same way as other environment deaths (death screen shows a non-player cause).
+
+**Test in Studio**
+- Walk into water in each map that has it: splash, sink, death screen, respawn where the gamemode allows.
+
+**Notes**
+
+---
+
+### T-030 · Make the server-authoritative character invisible
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client
+- **Files:** `Client/Core/CharacterRenderController.luau`
+
+**Problem / goal**
+Each player has a server-authoritative character (physics/hits) and a client-rendered model. The authoritative character should never be visible. `everyFrame` currently sets it to transparency `0.5` when no rendered model exists (and `1` only during a disguise).
+
+**Done when**
+- [ ] The authoritative character is fully invisible (transparency 1) for every player at all times, including before the rendered model loads.
+- [ ] Hitbox parts keep their current behaviour (they're already skipped).
+
+**Test in Studio**
+- Join with 2 players: only the rendered models are visible, including right after spawning and respawning.
+
+**Notes**
+- If the 0.5 value is a deliberate debug aid, keep it behind a `GlobalConfig` debug switch instead (off by default).
+
+---
+
+### T-031 · Allow jumping in the lobby (instead of dash)
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Server / Client
+- **Files:** `Server/Core/CharacterService/init.luau`, `Shared/Logics/AbilityLogics/Dash.luau`, `Client/Core/AbilityController.luau`, `Server/Core/LobbyService.luau`, `Server/Core/SpawnService.luau`
+
+**Problem / goal**
+In the lobby, players can jump and can't dash. In the arena it's the reverse (current behaviour). `CharacterService` currently disables jumping for every character (`SetStateEnabled(Jumping, false)`, `JumpHeight = 0`).
+
+**Done when**
+- [ ] Jumping is enabled while the player is in the lobby and disabled when they're sent to the arena (and re-enabled when they return).
+- [ ] Dash can't be used in the lobby. The jump input (Space / mobile jump) jumps in the lobby and dashes in the arena.
+- [ ] Jump height comes from config.
+
+**Test in Studio**
+- In the lobby: Space jumps, no dash. Enter a round: Space dashes, no jump. Return to the lobby: jumping works again. Repeat on mobile.
+
+**Notes**
+
+---
+
+### T-033 · Boomerang throws faster and further
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared
+- **Files:** `Shared/Constants/Tools.luau`
+
+**Problem / goal**
+The client says the boomerang needs to move "way faster" and go decently further: **twice the throw distance and about 50% more speed**. `ClassicBoomerang` is currently `Speed = 60`, `ThrowDistance = 30`.
+
+**Open questions (ask Sol first)**
+- Apply the same multipliers to the other throwables (`Shuriken` 80/40, the 50/20 one), or only to `ClassicBoomerang`?
+
+**Done when**
+- [ ] `ClassicBoomerang` is `Speed = 90`, `ThrowDistance = 60` (and the others as Sol decides).
+- [ ] Anything tuned to the old values (hitbox radius, aim arrow length, auto-recall timing) still looks right; list any you changed.
+
+**Test in Studio**
+- Throw on a few maps: the boomerang travels about twice as far and noticeably faster; hits, bounces and recall still work.
+
+**Notes**
+
+---
+
+### T-034 · Projectiles go through portals
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared
+- **Files:** `Shared/Logics/Environment/Portal.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`, `Shared/Library/DynamicCollisionLibrary.luau`
+
+**Problem / goal**
+Portals currently teleport players only. A thrown boomerang (any projectile) should pass through a portal and come out of the linked one, keeping its speed and direction relative to the exit portal.
+
+**Done when**
+- [ ] A thrown boomerang entering a portal continues from the paired portal with the same relative direction and speed.
+- [ ] Recall (auto and manual) still finds its way back, through the portal or by its normal path; describe which in Notes.
+- [ ] Clients and server agree on the boomerang's position after it passes through (no visible snapping beyond normal replication).
+
+**Test in Studio**
+- On a map with portals: throw through a portal and hit a player on the other side; recall it.
+
+**Notes**
+
+---
+
+### T-040 · Research Blade Ball's lobby
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Design (research)
+- **Files:** `docs/research/BLADE_BALL_LOBBY.md` (new)
+
+**Problem / goal**
+The client said: "anything they have in their lobby, we want in our lobby". Research the current Blade Ball lobby (Roblox) and write a list of every lobby feature, with a short description, screenshots/links where possible, and how it might map to Boomerang (existing system, new system, or asset-only).
+
+**Done when**
+- [ ] `docs/research/BLADE_BALL_LOBBY.md` lists every lobby feature found (shops, pedestals, leaderboards, spin wheels, rewards, quests, social features, etc.), with sources.
+- [ ] Each feature is tagged: already in Boomerang / planned task (ID) / new.
+- [ ] No new tasks are created from it without Sol's approval; propose them in the doc instead.
+
+**Notes**
+
+---
+
 ## In Progress
 
 ## Review
+
+### T-006 · Port the template-era economy/item modules to the current save format
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Server / Client / Data
+- **Files:** `Server/Core/EconomyService.luau`, `Server/Core/ItemService.luau`, `Client/Core/EconomyController.luau`, `Client/Core/ItemController.luau`, `Shared/Constants/ItemConstants.luau`, `Shared/Constants/EquipmentConstants.luau`, `Shared/Constants/EconomyConstants.luau`, `Shared/Utils/EconomyUtil.luau`
+
+**Problem / goal**
+These came from the game template and use profile fields that don't exist in `ProfileTemplate` (`Currencies`, `ItemInventory`). They're auto-loaded: `ItemService` writes an `ItemInventory` field into every profile on load, and `EconomyService.transact` would error if called. **Sol's decisions:**
+- Update them to the current save format (`Currency`, `Inventory` in `ProfileTemplate`; item data in `Shared/Referential/Items.luau` / `ShopItems.luau`).
+- **There is only one currency: `Profile.Currency`, a number.** Remove every multi-currency mention (`Currencies`, `Cash`, `Gems`, `liquidCurrencies`, `{ [Currency]: number }` types...). Prices are a plain number (as in `Items`).
+
+**Done when**
+- [x] No auto-loaded module reads or writes profile fields that aren't in `ProfileTemplate`.
+- [x] No code mentions more than one currency.
+- [x] `ItemConstants` either reads from `Items` or is no longer used, so there's one item list.
+- [ ] Existing shop purchases still work.
+
+**Test in Studio**
+- Join, buy a shop item with currency: the balance and inventory update and replicate to the client.
+- Rejoin: the purchase was saved. No errors from Economy/Item modules on load.
+
+**Notes**
+- Committed in 33a8428 ("Normalized handling of saved player currency values...").
+- `EconomyService`: `getBalance`, `canAfford`, `addCurrency`, `spendCurrency`, `CurrencyChangedTasks`. `EconomyController`: `getBalance`, `canAfford`, `CurrencyChangedTasks`. `EconomyUtil.getPriceDisplayString(price: number)`.
+- `ItemService`: `getAmount`, `hasItem`, `grantItem`, `consumeItem`, `purchaseItem` (returns a ResponseCode), `getInventory`, all on `Profile.Inventory` with item data from `Items`. `ItemController` reads `Inventory` from `PlayerDataController` and fires `ItemGrantedTasks` / `ItemConsumedTasks`.
+- Removed: `EconomyConstants`, `ItemConstants`, `EquipmentConstants`, `RemoteCodes.Item` and the `"Item"` remotes (nothing else used them). `PlayerDataService` no longer lists the stale `BanData` field.
+- `ProductLogicsUtil.grantGenericItemToPlayer`, `DailyRewardsService` (currency rewards) and the Cmdr `givecurrency` command now go through `ItemService` / `EconomyService`. `grantGenericItemToPlayer` now refuses item ids that aren't in `Items`.
+- Decisions made without asking (say if you want them changed): `ShopService.purchaseItem` was left as is so the tested shop flow doesn't change. It duplicates `ItemService.purchaseItem`; making it delegate is a one-line follow-up. Old `ItemInventory` data already saved in some profiles is left alone (it's ignored, never read).
+- Syntax-checked with `luau-compile`; not run in Studio.
+
+---
 
 ### T-001 · ShopService never loads (file name casing), so the shop can hang the client
 - **Priority:** P0 *(if confirmed: the client waits forever for a remote the server never creates)*
@@ -301,6 +520,7 @@ Follow-ups to make agents more useful:
 - [x] `docs/GAME_DESIGN.md`: transcribed from the client's "Boomerang! Technical Document" PDF (MVP spec), with a table of where the code differs (see T-014). The UI scope-of-work PDF only has a cover page so far.
 - [ ] `aftman.toml` only pins Rojo. Add StyLua / Selene / Wally / wally-package-types? Mutatory moved to Rokit; should Boomerang too?
 - [ ] `wally.toml` still names the package `larsb/roblox-game-template`.
+- [x] Roblox Studio MCP: added to the Claude desktop config (`Roblox_Studio`, via `%LOCALAPPDATA%\Roblox\mcp.bat`); confirmed on 2026-10-01 that an agent can list Studio instances and read the place. Usage rules are in CLAUDE.md.
 - [x] Jecs removed (`wally.toml`, `wally.lock`, `Packages/`). Cmdr kept and set up (T-015).
 
 **Done when**
@@ -348,25 +568,6 @@ The client's MVP spec and the code differ in a few places (minimum players, resp
 
 ---
 
-### T-009 · Daily rewards: notify the player and grant item rewards
-- **Priority:** P2
-- **Owner:** Sol → Agent
-- **Area:** Server / GUI
-- **Files:** `src/Server/Core/DailyRewardsService.luau`, `src/Shared/Referential/DailyRewards.luau`, `src/Client/UI/Gui/DailyClaims/`
-
-**Problem / goal**
-`DailyRewardsService` has two TODOs: "notify player" and "grant player the item".
-
-**Open questions (ask Sol first)**
-- What are the rewards per day (currency, items, both)? How should the player be notified (DailyClaims GUI, ItemAcquired popup)?
-
-**Done when**
-- [ ] Claiming a reward grants it and the player sees it.
-
-**Notes**
-
----
-
 ### T-010 · Stub pickups (`-- STUD`): design and implement
 - **Priority:** P2
 - **Owner:** Sol
@@ -388,6 +589,230 @@ These pickups are stubs (`Disabled = true`, marked `-- STUD` / `-- TODO`) with o
 
 **Problem / goal**
 The file headers say "TODO: figure out how teams should work" (HitboxService has the same text, probably copy-pasted). Teams now exist (TeamClassic, TeamElimination). Confirm and remove or rewrite the TODOs.
+
+**Notes**
+
+---
+
+### T-017 · Hot Potato "bomb will explode" GUI (replace the placeholder)
+- **Priority:** P2
+- **Owner:** Sol
+- **Area:** GUI
+- **Files:** `Shared/Logics/GamemodeLogics/HotPotato/HotPotatoGui.rbxmx`, `HotPotato/init.luau`
+
+**Problem / goal**
+The Hot Potato "bomb will explode" GUI is a placeholder. Sol creates the final image assets and layout; an agent can wire up any behaviour changes afterwards.
+
+**Notes**
+
+---
+
+### T-018 · Icons for every pickup effect
+- **Priority:** P2
+- **Owner:** Sol
+- **Area:** GUI
+- **Files:** `Client/UI/Gui/ItemAcquired/`, `Client/UI/Gui/Effects/`, `Shared/Constants/Icons.luau`
+
+**Problem / goal**
+Every pickup effect needs an icon, shown both in the pickup notification (ItemAcquired) and in the status-effects GUI (Effects). Sol creates the images; an agent registers the IDs in `Icons.luau` and hooks them up if that isn't automatic.
+
+**Notes**
+
+---
+
+### T-020 · ItemAcquired: show 3D models in a ViewportFrame
+- **Priority:** P2
+- **Owner:** Sol → Agent
+- **Area:** GUI / Client
+- **Files:** `Client/UI/Gui/ItemAcquired/` (`init.luau`, `Template.rbxmx`)
+
+**Problem / goal**
+ItemAcquired can only show images. When a tool/model is acquired (e.g. a new boomerang), it should show the model in a ViewportFrame instead.
+- **Sol:** add a ViewportFrame (and camera framing preferences) to the ItemAcquired template.
+- **Agent:** clone the item's model into it, frame it automatically (bounding box), optionally spin it slowly, and clean it up when the popup closes. Images stay supported.
+
+**Open questions (ask Sol first)**
+- Where does each item's model come from (e.g. `Shared/Assets/Tools/<ToolId>`)? Should `Items` entries get a `Model` field?
+
+**Notes**
+
+---
+
+### T-021 · Login rewards (Daily Claims) GUI assets
+- **Priority:** P2
+- **Owner:** Sol
+- **Area:** GUI
+- **Files:** `Client/UI/Gui/DailyClaims/DailyClaims.rbxmx`
+
+**Problem / goal**
+The Daily Claims GUI uses placeholder visuals. Sol creates the final assets.
+
+**Notes**
+
+---
+
+### T-022 · Finish the shop GUI assets
+- **Priority:** P2
+- **Owner:** Sol
+- **Area:** GUI
+- **Files:** `Client/UI/Gui/Shop/` (`Shop.rbxmx`, `ItemListingTemplate.rbxmx`, `TabButtonTemplate.rbxmx`)
+
+**Problem / goal**
+The shop GUI still has placeholder/progress visuals. Sol finishes the assets.
+
+**Notes**
+
+---
+
+### T-024 · Shop pedestals in the lobby
+- **Priority:** P2
+- **Owner:** Sol → Agent
+- **Area:** Server / Client
+- **Files:** New: lobby pedestal logic (e.g. an Environment logic or a `LobbyShopService`); `Shared/Referential/ShopItems.luau` (`CurrentDeal`)
+
+**Problem / goal**
+Lobby pedestals show a floating, slowly spinning model of the current sale item. Walking up to one shows a prompt to buy it.
+- **Sol:** build the pedestal model(s) in the lobby (Studio) and tag/name them.
+- **Agent:** spawn and spin the current deal's model over each pedestal (client-side is fine), add a ProximityPrompt, and buy through the existing purchase flow.
+
+**Open questions (ask Sol first)**
+- Is the sale item bought with Currency (`ShopService`), Robux (`MarketplaceLibrary`), or either?
+- Is `ShopItems.CurrentDeal` the item to show, and does it rotate (daily/weekly)?
+- How should pedestals be marked in the place (tag name / folder)?
+
+**Notes**
+
+---
+
+### T-029 · Electric boomerang rework: chain kills
+- **Priority:** P1
+- **Owner:** Sol → Agent
+- **Area:** Shared
+- **Files:** `Shared/Logics/PickupLogics/ElectricBoomerang.luau`, `Shared/Library/CombatLibrary.luau`, `Shared/Assets/Particles/Electric*`
+
+**Problem / goal**
+Water now kills (T-028), so electrifying water and "zapping" players no longer make sense. **Remove those concepts entirely** (electrified water state, zapped animation/effect, `PlayZappedAnimation`, the dependency on `Water`).
+New behaviour: when an electric boomerang kills a player, every other player within **5 studs** (configurable) of the victim is also killed, with an **electric arc** drawn between the two. The chain continues from each newly killed player to anyone within 5 studs of them. The thrower can never be affected.
+- Chain kills should be credited to the thrower and go through the normal kill path (elim messages, scoring).
+
+**Open questions (ask Sol first)**
+- Friendly fire: in team modes, does the chain skip the thrower's teammates?
+- "Has a chance to chain-kill": is the chain guaranteed for everyone in range, or is there a probability per link? If a chance, what value?
+- Should there be a max chain length or a short delay between links (for the arcs to read well)?
+
+**Done when**
+- [ ] The old electric/water/zap code and remotes are gone; nothing else references them.
+- [ ] Chain kills work as specified, with values (radius, chance, delay, max length) in config.
+- [ ] Arcs show on all clients.
+
+**Test in Studio**
+- Group 3–4 test players within a few studs and kill one with an electric boomerang: the others die in a chain with arcs; the thrower never dies; players 6+ studs away survive.
+
+**Notes**
+- Depends on T-028 (water kills).
+
+---
+
+### T-032 · Lobby leaderboard of top eliminations, with a top-3 podium
+- **Priority:** P2
+- **Owner:** Sol → Agent
+- **Area:** Server / Client
+- **Files:** New: e.g. `Server/Core/LeaderboardService.luau`; `Shared/Data/ProfileTemplate.luau` (`Elims`)
+
+**Problem / goal**
+A leaderboard in the lobby shows the top players by total eliminations (`Profile.Elims`), with a podium where the top 3 players stand (as rigs/avatars).
+- **Sol:** build the board and podium in the lobby.
+- **Agent:** keep an OrderedDataStore of lifetime elims (updated on save/leave and periodically), refresh the board on an interval, and load the top 3 players' avatars onto the podium.
+
+**Open questions (ask Sol first)**
+- How many players on the board (e.g. top 10/50/100)? How often should it refresh?
+- Global all-time only, or also weekly?
+- Studio data uses the `Dev` key; should the Studio leaderboard use a separate store too?
+
+**Notes**
+
+---
+
+### T-035 · Manual recall to match the design doc
+- **Priority:** P1
+- **Owner:** Sol → Agent
+- **Area:** Client / Server / Shared
+- **Files:** `Client/Core/WeaponController.luau`, `Server/Core/WeaponService.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`, `Client/UI/Gui/HudButtons/`, `Client/UI/Gui/CustomTouchscreen/`
+
+**Problem / goal**
+`docs/GAME_DESIGN.md` §2c: **hold** E / the mobile recall button to pull the boomerang back; releasing stops it where it is; it doesn't pass through walls, takes the fastest valid route, and slides along a surface when the shape allows (otherwise it gets stuck and the player must reposition). Today pressing E fires `WeaponRecall` once (a one-shot recall), and `HudButtons` has a "Recall" entry.
+
+**Open questions (ask Sol first)**
+- Hold vs. tap: should a tap still start a full recall, or does recall only move while held?
+- Recall speed while held (same as auto-recall return speed?).
+- When stuck against a wall with no slide, does it stay stuck until the player moves, or eventually give up and drop?
+- Does manual recall still kill players it passes through on the way back?
+- Mobile: where exactly does the recall button go (the design sketch puts it above Stab, left of Throw)?
+
+**Done when**
+- [ ] Recall behaves as described in GAME_DESIGN.md §2c on PC, gamepad and mobile.
+- [ ] Server-authoritative: the server moves the boomerang; the client only sends hold start/stop.
+
+**Notes**
+
+---
+
+### T-036 · Design: how weapons and skins are equipped and used
+- **Priority:** P2
+- **Owner:** Sol
+- **Area:** Design
+- **Files:** `Shared/Referential/Items.luau`, `Shared/Constants/Tools.luau`, `Server/Core/ToolService.luau`
+
+**Problem / goal**
+Decide how owned weapons and cosmetic skins are equipped and used (loadout screen? per-round choice? one equipped weapon + one skin?), and how that's saved in the profile. `GlobalConfig.ForceEquippedTool` currently forces `ClassicBoomerang`. Once decided, split into implementation tasks.
+
+**Notes**
+
+---
+
+### T-037 · Player HUD buttons
+- **Priority:** P1
+- **Owner:** Sol → Agent
+- **Area:** GUI / Client
+- **Files:** `Client/UI/Gui/HudButtons/`
+
+**Problem / goal**
+The player needs a HUD with buttons. Known so far:
+- **Currency**: shows the player's Currency; clicking opens a Robux shop tab to buy more Currency.
+- **Shop**: opens the shop.
+- **Quests**: opens quests (feature: T-038).
+- **Achievements**: opens achievements (feature: T-039).
+**Sol:** decide the full button list and make the assets. **Agent:** wire each button (Currency display via `EconomyController.CurrencyChangedTasks`, opening GUIs via `UIController`). Buttons for features that don't exist yet stay hidden.
+
+**Open questions (ask Sol first)**
+- Full button list and layout (PC and mobile)?
+- Robux → Currency: which developer products/amounts? (Add placeholders in `MarketplaceItems` until they exist.)
+
+**Notes**
+
+---
+
+### T-038 · Design: Quests feature
+- **Priority:** P2
+- **Owner:** Sol
+- **Area:** Design
+- **Files:** -
+
+**Problem / goal**
+"Address the quests feature": decide what quests are (daily/weekly? objectives? rewards?), how they're saved, and the GUI. Split into tasks once designed.
+
+**Notes**
+
+---
+
+### T-039 · Design: Achievements
+- **Priority:** P2
+- **Owner:** Sol
+- **Area:** Design
+- **Files:** -
+
+**Problem / goal**
+"Figure out achievements": decide the list, rewards, whether they map to Roblox badges, how they're saved, and the GUI. Split into tasks once designed.
 
 **Notes**
 
