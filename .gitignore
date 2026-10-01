@@ -9,3 +9,6 @@ sourcemap.json
 
 # PlayerModule (all descendants)
 /src/PlayerModule/**
+
+# Local daily change log (never committed)
+/Commits.txt
