@@ -792,6 +792,26 @@ A leaderboard in the lobby shows the top players by total eliminations (`Profile
 - [ ] Server-authoritative: the server moves the boomerang; the client only sends hold start/stop.
 
 **Notes**
+**Agent analysis (2026-10-01): design doc vs. current code**
+
+| Design doc (§2b–2c, §5) | Current code | Gap |
+|---|---|---|
+| Auto-recall after slicing through a player | Passes through players and keeps going; the "recall on hit" code in `Boomerang.throw` is commented out | Differs (possibly on purpose) |
+| Auto-recall after one ricochet | After the first bounce, the distance check switches to `ThrowDistance`, which has usually been reached, so it recalls right away | Matches in practice |
+| 2+ surface hits: stops where it runs out of energy and waits for manual recall | When `energy` reaches 0 it calls `Boomerang.recall` (auto-returns). The "Exhausted" slow-down branch exists but only runs when recall transitions are off | Differs |
+| **Hold** E / button to recall; releasing stops it where it is | E (or the mobile Throw/Recall button) sends one `WeaponRecall` event; the server runs a full recall to the hand. Releasing does nothing | Differs (the main gap) |
+| Doesn't pass through walls; slides along a surface if it can, otherwise stuck until the player repositions | `Boomerang.recall` steers toward the player, slides along obstructions (tries both tangents), and holds still if both are blocked, resuming when the player moves | Matches |
+| Fastest valid route | Greedy steering + wall sliding (no pathfinding) | Close enough; true pathfinding not recommended |
+| Recall kills players on the way back | `damagedPlayer` runs during recall | Matches (doc doesn't say either way) |
+
+**Suggested implementation**
+1. **Hold-to-recall (server-authoritative):** `WeaponRecall` carries a boolean (`true` on press, `false` on release). Press: if the boomerang is out and not already returning, `Boomerang.recall(..., { Manual = true })`. Release: new `Boomerang.stopRecall(player, data)` disconnects the recall loop, sets a new `Resting` state (speed 0) and sends a snapshot. Pressing again resumes from there. Release only stops **manual** recalls, never auto-recalls.
+2. **Client sync:** `WeaponController.onSnapshot` already starts a local recall when the state changes to `Returning`; add the reverse (`Returning` → `Resting` calls `stopRecall` locally).
+3. **Exhaustion:** when `energy` hits 0, switch to `Exhausted` (let the existing slow-down run) and then `Resting`, instead of auto-recalling.
+4. **Inputs:** E: `InputBegan` → press, `InputEnded` → release. Mobile/gamepad: a dedicated recall button that uses press/release (`MouseButton1Down` / `MouseButton1Up` + `InputEnded`), placed above Stab as in the sketch. The Throw button's "Recall" mode either becomes hold-based too or goes away.
+5. Keep the T-027 speed multiplier and the existing kill-on-return behaviour.
+
+Order: (1)+(2) first (they're the core and can ship alone), then (3), then (4)'s mobile button once Sol confirms the layout.
 
 ---
 
