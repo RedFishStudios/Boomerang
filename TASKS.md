@@ -163,28 +163,6 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ---
 
-### T-027 · Explosive boomerang: lasts the whole effect and returns 50% faster
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Shared
-- **Files:** `Shared/Logics/PickupLogics/ExplosiveBoomerang.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`
-
-**Problem / goal**
-The explosive boomerang currently only explodes once. The effect should stay active after the first explosion (every throw explodes until the pickup effect ends), and while it's active the boomerang returns to the player's hand **50% faster** than now.
-- The module is still marked `-- STUD` / `-- TODO`; check what's implemented before changing it.
-
-**Done when**
-- [ ] Every throw explodes while the effect is active; the effect ends on its normal timer/conditions.
-- [ ] Return speed while the effect is active is 1.5x the normal return speed, set from a config value, not hard-coded.
-- [ ] The `-- STUD` / `-- TODO` header is removed if the pickup is now complete, and `Disabled` is removed if set.
-
-**Test in Studio**
-- `getpickup ExplosiveBoomerang` (chat) or the Cmdr equivalent: throw several times, each throw explodes; the boomerang comes back visibly faster.
-
-**Notes**
-
----
-
 ### T-028 · Water kills the player, with a splash
 - **Priority:** P1
 - **Owner:** Agent
@@ -314,6 +292,35 @@ The client said: "anything they have in their lobby, we want in our lobby". Rese
 ## In Progress
 
 ## Review
+
+### T-027 · Explosive boomerang: lasts the whole effect and returns 50% faster
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared
+- **Files:** `Shared/Logics/PickupLogics/ExplosiveBoomerang.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`
+
+**Problem / goal**
+The explosive boomerang currently only explodes once. The effect should stay active after the first explosion (every throw explodes until the pickup effect ends), and while it's active the boomerang returns to the player's hand **50% faster** than now.
+- The module is still marked `-- STUD` / `-- TODO`; check what's implemented before changing it.
+
+**Done when**
+- [x] Every throw explodes while the effect is active; the effect ends on its normal timer/conditions.
+- [x] Return speed while the effect is active is 1.5x the normal return speed, set from a config value, not hard-coded.
+- [x] The `-- STUD` / `-- TODO` header is removed if the pickup is now complete, and `Disabled` is removed if set.
+
+**Test in Studio**
+- `getpickup ExplosiveBoomerang` (chat) or the Cmdr equivalent: throw several times, each throw explodes; the boomerang comes back visibly faster.
+
+**Notes**
+- The effect no longer ends after the first explosion: every throw explodes (at the end of the throw, or on its first kill, once per throw) until the effect times out (`GlobalConfig.GenericEffectTimeout`, 15 s).
+- **"Returns 50% faster", two parts (please confirm this matches the client):**
+  - After an explosion the boomerang doesn't fly back: it's removed and the weapon is locked, then reappears in hand. That lock is now 3 s / 1.5 = **2 s** (was 3 s).
+  - A boomerang that does fly back while the effect is active (e.g. manually recalled before the end of the throw) returns at **1.5x** speed (`Boomerang.recall` checks `PickupLibrary.hasPickupEffectActive`, which is replicated, so client prediction matches).
+  - One config value drives both: `GlobalConfig.ExplosiveBoomerangReturnSpeedMultiplier = 1.5`.
+- Picking the pickup up again while it's active refreshes its subscriptions instead of doubling them. Removed the `-- STUD` / `-- TODO` header (no `Disabled` flag was set).
+- Syntax-checked with `luau-compile`; not play-tested.
+
+---
 
 ### T-026 · Menus can lock the screen in the over-the-shoulder camera
 - **Priority:** P1

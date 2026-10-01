@@ -24,6 +24,7 @@ local CombatLibrary = require(ReplicatedStorage.Shared.Library.CombatLibrary)
 local DynamicCollisionLibrary = require(ReplicatedStorage.Shared.Library.DynamicCollisionLibrary)
 local SharedTasks = require(ReplicatedStorage.Shared.Constants.SharedTasks)
 local HomingBoomerang = require(ReplicatedStorage.Shared.Logics.PickupLogics.HomingBoomerang)
+local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
 local ClashedWeapons = require(ReplicatedStorage.Shared.Referential.ClashedWeapons)
 local ClashedWeaponLogic = require(ReplicatedStorage.Shared.Logics.WeaponLogics.Clashed)
 local HttpService = game:GetService("HttpService")
@@ -965,6 +966,10 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
    end
 
    local maximumSpeed = toolData.Boomerang.Speed
+   -- // Explosive boomerang returns faster while its effect is active (effect state is replicated, so both sides agree)
+   if PickupLibrary.hasPickupEffectActive(player.UserId, "ExplosiveBoomerang") then
+      maximumSpeed *= GlobalConfig.ExplosiveBoomerangReturnSpeedMultiplier
+   end
    local speed = math.max((options and options.InitialSpeed) or 0, thrownWeaponData.Speed or 0)
    local slideSpeed = 0
    local hitboxRadius = toolData.Boomerang.HitboxRadius

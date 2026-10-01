@@ -20,6 +20,7 @@ local GlobalConfig = {
    BoomerangHitThrottle = .5,
    ForceOverwritePickup = nil,
    GenericEffectTimeout = 15,
+   ExplosiveBoomerangReturnSpeedMultiplier = 1.5, -- // While the effect is active: recall speed x this, and the post-explosion weapon lock / this
 
    MyBoomerangTrailColor = Color3.new(0.984314, 0.988235, 0.988235),
    EnemyBoomerangTrailColor = Color3.new(0.952941, 0.07451, 0.368627),
