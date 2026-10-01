@@ -1,6 +1,7 @@
 local DailyClaimsGui = {}
 DailyClaimsGui.Type = "HUD"
 DailyClaimsGui.Open = false
+DailyClaimsGui.RequiresMouse = true -- // Clickable menu: frees the mouse in the locked camera (MouseUnlockController)
 
 local player = game:GetService("Players").LocalPlayer
 

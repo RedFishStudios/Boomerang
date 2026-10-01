@@ -163,27 +163,6 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ---
 
-### T-026 · Menus can lock the screen in the over-the-shoulder camera
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Client / GUI
-- **Files:** `Client/UI/UIController.luau`, `Client/Core/CustomCameraController.luau`, `Client/UI/Gui/*`
-
-**Problem / goal**
-In the in-game over-the-shoulder camera the mouse is locked/hidden, so a clickable GUI that appears during a round (e.g. Shop, Daily Claims, Voting, ItemAcquired with buttons) can't be clicked or closed, and the player is stuck. Audit every GUI that can open during a round and make sure the mouse is freed while it's open (e.g. a `Modal` button or `UserInputService.MouseBehavior`/`MouseIconEnabled` handled centrally in `UIController` for menu-type GUIs), and restored when it closes.
-
-**Done when**
-- [ ] Opening any menu-type GUI while in the arena camera frees the mouse; closing the last one restores the camera's mouse lock.
-- [ ] GUIs that shouldn't open during a round are listed in Notes (ask Sol whether to block them).
-
-**Test in Studio**
-- During a round, open each menu (shop, daily claims, settings...) with keyboard/HUD buttons and close it with the mouse.
-- Repeat on gamepad and on a mobile emulator.
-
-**Notes**
-
----
-
 ### T-027 · Explosive boomerang: lasts the whole effect and returns 50% faster
 - **Priority:** P1
 - **Owner:** Agent
@@ -335,6 +314,32 @@ The client said: "anything they have in their lobby, we want in our lobby". Rese
 ## In Progress
 
 ## Review
+
+### T-026 · Menus can lock the screen in the over-the-shoulder camera
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Client / GUI
+- **Files:** `Client/UI/UIController.luau`, `Client/Core/CustomCameraController.luau`, `Client/UI/Gui/*`
+
+**Problem / goal**
+In the in-game over-the-shoulder camera the mouse is locked/hidden, so a clickable GUI that appears during a round (e.g. Shop, Daily Claims, Voting, ItemAcquired with buttons) can't be clicked or closed, and the player is stuck. Audit every GUI that can open during a round and make sure the mouse is freed while it's open (e.g. a `Modal` button or `UserInputService.MouseBehavior`/`MouseIconEnabled` handled centrally in `UIController` for menu-type GUIs), and restored when it closes.
+
+**Done when**
+- [x] Opening any menu-type GUI while in the arena camera frees the mouse; closing the last one restores the camera's mouse lock.
+- [x] GUIs that shouldn't open during a round are listed in Notes (ask Sol whether to block them).
+
+**Test in Studio**
+- During a round, open each menu (shop, daily claims, settings...) with keyboard/HUD buttons and close it with the mouse.
+- Repeat on gamepad and on a mobile emulator.
+
+**Notes**
+- New `Client/Core/MouseUnlockController`: every frame, if any open gui has `RequiresMouse = true` (`UIController.isMouseRequired()`), it shows an invisible `Modal` button (Roblox's standard way to free a locked mouse) and keeps the cursor visible. When the last one closes, it hides the button and re-hides the cursor if the camera is in the arena's Regular (over-the-shoulder) mode.
+- Flagged `RequiresMouse = true`: Shop, DailyClaims, Voting (the guis with clickable buttons that open as menus).
+- Not flagged: HudButtons and CustomTouchscreen (always on screen, so flagging them would never re-lock the mouse), and the notification-style HUDs (no buttons). If HudButtons should be clickable in the over-the-shoulder camera, that needs a separate decision (e.g. holding a key to free the mouse).
+- No gui is blocked from opening during a round; ask Sol if any should be.
+- Syntax-checked with `luau-compile`; not play-tested (Sol declined the Studio play-test).
+
+---
 
 ### T-023 · Assassin: let players join mid-round
 - **Priority:** P1

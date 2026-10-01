@@ -1,6 +1,7 @@
 local ShopGui = {}
 ShopGui.Type = "HUD"
 ShopGui.Open = false
+ShopGui.RequiresMouse = true -- // Clickable menu: frees the mouse in the locked camera (MouseUnlockController)
 
 local player = game:GetService("Players").LocalPlayer
 

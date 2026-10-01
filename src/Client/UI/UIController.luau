@@ -21,6 +21,7 @@ export type UiType =
 export type UIModule = {
 	Type: UiType,
 	Rendered: boolean?,
+	RequiresMouse: boolean?, -- // While Open, the mouse is freed even in a mouse-locked camera (see MouseUnlockController)
 	open: (any, any, any)->any,
 	close: (any)->any,
 	[any]: any
@@ -73,6 +74,16 @@ function UIController.inMenuOfType(types: {UiType})
 					return true
 				end
 			end
+		end
+	end
+	return false
+end
+
+-- // Returns true if any open gui has RequiresMouse set (it has buttons the player must be able to click)
+function UIController.isMouseRequired(): boolean
+	for _, m in pairs(UIModules) do
+		if m.Open and m.RequiresMouse then
+			return true
 		end
 	end
 	return false
