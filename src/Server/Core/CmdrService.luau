@@ -75,6 +75,7 @@ end
 
 function CmdrService.init()
 	Cmdr:RegisterDefaultCommands()
+	Cmdr:RegisterTypesIn(ServerStorage.Server.Cmdr.Types)
 	Cmdr:RegisterCommandsIn(ServerStorage.Server.Cmdr.Commands)
 
 	-- // Runs before every command, on the server. Returning a string blocks the command with that message.

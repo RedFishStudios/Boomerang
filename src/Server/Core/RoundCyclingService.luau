@@ -328,6 +328,37 @@ local function updateGameStateEveryFrame(_dt: number)
 end
 
 -------------------------------------------------------------------------------
+-- PUBLIC FUNCTIONS (developer commands, used by the Cmdr commands in Server/Cmdr/Commands)
+-------------------------------------------------------------------------------
+
+-- // Ends the active round right away, as if its timer ran out. Returns false if no round is active.
+function RoundCyclingService.forceEndRound(): boolean
+   if not RoundCyclingService.isInRound() then
+      return false
+   end
+   endActiveRound()
+   return true
+end
+
+-- // Forces the gamemode of the next round (case-insensitive). Returns the matching gamemode id, or nil if there is none.
+function RoundCyclingService.setNextGamemode(gamemodeId: string): string?
+   local matchedId = getGamemodeIdCaseInsensitive(gamemodeId)
+   if matchedId then
+      nextGamemode = matchedId
+   end
+   return matchedId
+end
+
+-- // Forces the map of the next round (case-insensitive). Returns the matching map name, or nil if there is none.
+function RoundCyclingService.setNextMap(mapName: string): string?
+   local matchedName = getMapNameCaseInsensitive(mapName)
+   if matchedName then
+      nextMap = matchedName
+   end
+   return matchedName
+end
+
+-------------------------------------------------------------------------------
 -- CORE FUNCTIONS
 -------------------------------------------------------------------------------
 
@@ -341,6 +372,8 @@ function RoundCyclingService.init()
    SimpleRemotes.getEvent("VoteUpdated")
    local gameStateData = GameStateLibrary.getGameStateData()
 
+   -- // T-016: these chat commands are disabled (CommandService.CHAT_COMMANDS_ENABLED = false) and kept only as a reference.
+   -- // Their replacements are the Cmdr commands printgamestate, endround, setnextgamemode and setnextmap (Server/Cmdr/Commands).
    CommandService.addCommand("PrintGameState", "/printgamestate", nil, function(player: Player, _args: {string})
       local snapshot = GameStateLibrary.getSnapshot()
       for k, v in pairs(snapshot) do

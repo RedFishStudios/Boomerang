@@ -194,6 +194,25 @@ local function updateTrailOrientation(thrownWeaponData: ThrownWeapons.Data)
 	thrownWeaponData.TrailObject.Attachment1.Position = perpendicular * width
 end
 
+-- // Leave the current trail where it is so it fades out over its Lifetime, and let addTrail start a fresh one
+-- // (used when the boomerang teleports, e.g. through a portal, so the trail doesn't stretch across the jump)
+local function retireTrail(thrownWeaponData: ThrownWeapons.Data)
+   local trailObject = thrownWeaponData.TrailObject
+   if not trailObject then
+      return
+   end
+   thrownWeaponData.TrailObject = nil
+   thrownWeaponData.LastMovementPositions = nil
+   if trailObject.Trail then
+      trailObject.Trail.Enabled = false
+   end
+   if trailObject.TrailHost then
+      Debris:AddItem(trailObject.TrailHost, GlobalConfig.ThrownWeaponTrailLifetime + 0.2)
+   end
+end
+
+Boomerang.retireTrail = retireTrail
+
 -- // Add trail
 local function addTrail(thrownWeaponData: ThrownWeapons.Data)
    if isServer then
@@ -739,6 +758,9 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          direction = portalExit.Direction
          thrownWeaponData.PortalExitAt = os.clock()
          thrownWeaponData.PortalExitPart = portalExit.ExitPart
+         if not isServer then
+            retireTrail(thrownWeaponData)
+         end
          setWeaponCFrame(thrownWeaponData, CFrame.new(portalExit.Position), deltaTime)
          distanceTraveled += rayDistance
          thrownWeaponData.Direction = direction

@@ -139,30 +139,6 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ---
 
-### T-016 · Move the chat commands to Cmdr (they have no permission check)
-- **Priority:** P0 *(before release: any player in a live server can currently end rounds and grant themselves pickups)*
-- **Owner:** Agent
-- **Area:** Server
-- **Files:** `src/Server/Core/CommandService.luau`, `src/Server/Core/RoundCyclingService.luau`, `src/Server/Core/PickupService.luau`, `src/Server/Cmdr/Commands/`
-
-**Problem / goal**
-`CommandService` creates TextChatCommands with no permission check: `/printgamestate`, `/endround`, `/setnextgamemode`, `/setnextmap` (RoundCyclingService) and `/getpickup` (PickupService) work for every player in live servers. Move them to Cmdr commands, which are permission-checked by `CmdrService` (T-015).
-
-**Open questions (ask Sol first)**
-- Remove the chat versions and `CommandService` entirely once the Cmdr versions exist, or keep them (restricted with `CmdrService.isAdmin`) because they're handy in chat?
-
-**Done when**
-- [ ] Each command exists in Cmdr with the same behaviour. Gamemode, map and pickup arguments use a custom Cmdr type or autocomplete list, so they can be tab-completed.
-- [ ] Logic that needs private state (e.g. `endActiveRound`, `nextGamemode`) is exposed through a small public function on the owning service, not duplicated.
-- [ ] No unrestricted chat command remains.
-
-**Test in Studio**
-- F2 → `endround`, `setnextgamemode HotPotato`, `setnextmap <map>`, `getpickup FireBoomerang`, `printgamestate`: each behaves as the chat command did.
-
-**Notes**
-
----
-
 ### T-028 · Water kills the player, with a splash
 - **Priority:** P1
 - **Owner:** Agent
@@ -262,6 +238,34 @@ Use `EconomyService`-style owner functions so other code doesn't write these fie
 ## In Progress
 
 ## Review
+
+### T-016 · Move the chat commands to Cmdr (they have no permission check)
+- **Priority:** P0 *(before release: any player in a live server can currently end rounds and grant themselves pickups)*
+- **Owner:** Agent
+- **Area:** Server
+- **Files:** `src/Server/Core/CommandService.luau`, `src/Server/Core/RoundCyclingService.luau`, `src/Server/Core/PickupService.luau`, `src/Server/Cmdr/Commands/`
+
+**Problem / goal**
+`CommandService` creates TextChatCommands with no permission check: `/printgamestate`, `/endround`, `/setnextgamemode`, `/setnextmap` (RoundCyclingService) and `/getpickup` (PickupService) work for every player in live servers. Move them to Cmdr commands, which are permission-checked by `CmdrService` (T-015).
+
+**Sol's decision:** all chat command functionality moves entirely into Cmdr, and the chat command system becomes obsolete (no chat commands are registered any more). **Don't delete the chat command code yet:** keep `CommandService` and the old `addCommand` blocks in place but disabled (e.g. commented out or behind a clearly named off switch), as a reference in case something goes wrong during the transfer.
+
+**Done when**
+- [x] Each command exists in Cmdr with the same behaviour. Gamemode, map and pickup arguments use a custom Cmdr type or autocomplete list, so they can be tab-completed.
+- [x] Logic that needs private state (e.g. `endActiveRound`, `nextGamemode`) is exposed through a small public function on the owning service, not duplicated.
+- [x] No chat command is registered any more; the old code is kept but disabled, with a comment pointing to the Cmdr replacements.
+
+**Test in Studio**
+- F2 → `endround`, `setnextgamemode HotPotato`, `setnextmap <map>`, `getpickup FireBoomerang`, `printgamestate`: each behaves as the chat command did.
+
+**Notes**
+- New Cmdr commands in `Server/Cmdr/Commands/`: `endround`, `setnextgamemode` (alias `nextgamemode`), `setnextmap` (`nextmap`), `getpickup` (`grantpickup`, gives the effect to the person running it), `printgamestate` (`gamestate`; shows the state in the Cmdr console instead of printing to the server output).
+- New Cmdr types in `Server/Cmdr/Types/` (registered by `CmdrService`): `gamemode` (from `Gamemodes`), `map` (from `MapData`, since the map models are server-only; the server still checks the name against the loaded maps) and `pickup` (module names in `PickupLogics`; disabled stubs are listed but the server refuses them).
+- New public functions: `RoundCyclingService.forceEndRound()`, `.setNextGamemode(id)`, `.setNextMap(name)`. `PickupService.grantPickupClassId` now returns `(success, message)` (it already existed with the same logic as `/getpickup`).
+- Chat commands disabled with `CHAT_COMMANDS_ENABLED = false` in `CommandService` (`addCommand` does nothing). The old `addCommand` blocks are untouched, with a comment pointing to the Cmdr replacements.
+- Not checked with Selene or the LSP (not available to the agent).
+
+---
 
 ### T-040 · Research Blade Ball's lobby
 - **Priority:** P1

@@ -66,6 +66,7 @@ local UNRELIABLE_CODES = RemoteCodes.Weapon.Unreliable
 local SOFT_CORRECTION_RATE = 14
 local HARD_SNAP_DISTANCE = 14
 local MAX_SNAPSHOT_CATCHUP = 0.35
+local PORTAL_SNAPSHOT_GRACE = 0.5 -- // Seconds after the local boomerang goes through a portal during which far-off snapshots are treated as stale
 
 local aimArrows: {
    [Player]: {
@@ -319,6 +320,13 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
    local catchup = math.clamp(workspace:GetServerTimeNow() - serverTime, 0, MAX_SNAPSHOT_CATCHUP)
    local authoritativePosition = position + direction * speed * catchup
 
+   -- // Just went through a portal locally: snapshots sent before the server's own crossing are stale (still on the
+   -- // entry side). Skip them briefly instead of snapping the boomerang back through the portal.
+   local recentlyCrossedPortal = thrownWeaponData.PortalExitAt ~= nil and os.clock() - thrownWeaponData.PortalExitAt < PORTAL_SNAPSHOT_GRACE
+   if recentlyCrossedPortal and previousState == state and (authoritativePosition - thrownWeaponData.Host:GetPivot().Position).Magnitude >= HARD_SNAP_DISTANCE then
+      return
+   end
+
    thrownWeaponData.ServerDirection = direction
    thrownWeaponData.ServerSpeed = speed
    thrownWeaponData.Direction = direction
@@ -353,6 +361,12 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
    if errorDistance >= HARD_SNAP_DISTANCE then
       local currentPivot = thrownWeaponData.Host:GetPivot()
       local snappedCFrame = (currentPivot - currentPivot.Position) + authoritativePosition
+      -- // A hard snap is a teleport: let the old trail fade where it is instead of stretching it across the jump
+      local snapToolData = Tools[thrownWeaponData.ToolId]
+      local snapLogic = snapToolData and getLogic(snapToolData.LogicClass)
+      if snapLogic and snapLogic.retireTrail then
+         snapLogic.retireTrail(thrownWeaponData)
+      end
       thrownWeaponData.CFrame = snappedCFrame
       thrownWeaponData.Host:PivotTo(snappedCFrame)
       thrownWeaponData.SyncTargetPosition = nil

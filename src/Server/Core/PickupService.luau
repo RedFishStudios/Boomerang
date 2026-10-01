@@ -242,20 +242,22 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
-function PickupService.grantPickupClassId(player: Player, pickupClassId: string)
-   pickupClassId = getClassIdCaseInsensitive(pickupClassId)
+-- // Gives the player a pickup's effect directly (case-insensitive class id).
+-- // Returns true on success, or false and a reason (used by the getpickup Cmdr command).
+function PickupService.grantPickupClassId(player: Player, insensitivePickupClassId: string): (boolean, string?)
+   local pickupClassId = getClassIdCaseInsensitive(insensitivePickupClassId)
    if not pickupClassId then
-      warn(`PickupService.grantPickupClassId: No logic found for pickup {pickupClassId}`)
-      return
+      warn(`PickupService.grantPickupClassId: No logic found for pickup {insensitivePickupClassId}`)
+      return false, `{insensitivePickupClassId} is not a recognized class. Recognizable class names are: {table.concat(availablePickupClasses, ", ")}`
    end
    local logic = getLogic(pickupClassId)
    if not logic then
       warn(`PickupService.grantPickupClassId: No logic found for pickup {pickupClassId}`)
-      return
+      return false, `{pickupClassId} is not a recognized class. Recognizable class names are: {table.concat(availablePickupClasses, ", ")}`
    end
    if logic.canActivate and not logic.canActivate(player) then
       warn(`PickupService.grantPickupClassId: Player {player.Name} cannot activate pickup {pickupClassId}`)
-      return
+      return false, `{player.Name} cannot activate pickup {pickupClassId}`
    end
 
    local fakeLivePickupId = HttpService:GenerateGUID(false)
@@ -267,6 +269,7 @@ function PickupService.grantPickupClassId(player: Player, pickupClassId: string)
    end
 
    pickupReplication:FireAllClients(fakeLivePickupId, pickupClassId, player.UserId, workspace:GetServerTimeNow())
+   return true, pickupClassId
 end
 
 function PickupService.hasPickupEffectActive(player: Player, pickupClassId: string)
@@ -494,6 +497,8 @@ function PickupService.init()
       end
    end)
 
+   -- // T-016: this chat command is disabled (CommandService.CHAT_COMMANDS_ENABLED = false) and kept only as a reference.
+   -- // Its replacement is the Cmdr command getpickup (Server/Cmdr/Commands), which uses PickupService.grantPickupClassId.
    CommandService.addCommand("GrantEffect", "/getPickup", "/getpickup", function(player: Player, args: {string})
       local pickupClassId = args[1]
       if not pickupClassId then
