@@ -22,7 +22,7 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
          Bounces = 2,
          HitboxRadius = 2,
          Speed = 60,
-         ThrowDistance = 30
+         ThrowDistance = 70
       }
    },
    Shuriken = {

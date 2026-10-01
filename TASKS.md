@@ -169,6 +169,8 @@ Stepping into water kills the player. A splash effect plays on the player and th
 
 **On hold (Sol, 2026-10-01): don't start this yet.**
 
+*Update 2026-10-01: at Sol's request, `ClassicBoomerang.ThrowDistance` was raised 30 → 45 (+50%). Speed and the other tools are unchanged.*
+
 **Problem / goal**
 The client says the boomerang needs to move "way faster" and go decently further: **twice the throw distance and about 50% more speed**. `ClassicBoomerang` is currently `Speed = 60`, `ThrowDistance = 30`.
 

@@ -15,7 +15,7 @@ local ArenaLibrary = require(ReplicatedStorage.Shared.Library.ArenaLibrary)
 local PROJECTILE_PORTAL_COOLDOWN = 0.25 -- // Seconds after exiting before a projectile can enter a portal again
 
 type PortalPair = { A: BasePart, B: BasePart, AttachmentA: Attachment, AttachmentB: Attachment }
-export type ProjectileExit = { Position: Vector3, Direction: Vector3, EntryPart: BasePart, ExitPart: BasePart }
+export type ProjectileExit = { Position: Vector3, Direction: Vector3, EntryPart: BasePart, ExitPart: BasePart, EntryDistance: number }
 
 local cachedArenaModel: Model? = nil
 local cachedPairs: {PortalPair} = {}
@@ -212,6 +212,7 @@ function Portal.getProjectileExit(origin: Vector3, direction: Vector3, distance:
       Direction = newDirection,
       EntryPart = nearestEntry,
       ExitPart = exitPart,
+      EntryDistance = nearestT, -- // How far along the step it flew before entering (the teleport itself isn't flight)
    }
 end
 

@@ -605,7 +605,9 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    
    local startCFrame = CFrame.new(startPosition)
    local throwServerTime = (options and options.ThrowServerTime) or workspace:GetServerTimeNow()
-   -- Path length, not displacement from the origin, so homing curvature can't extend the throw
+   -- // Distance flown: the boomerang's own accumulated flight path, and the only value that decides when it has flown far
+   -- // enough to return. Not measured from the player or the throw origin, and teleports (portals), being carried by
+   -- // moving objects, and server corrections don't count.
    local distanceTraveled = 0
    local bounced = false
    thrownWeaponData.LastPosition = startPosition
@@ -763,7 +765,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
             thrownWeaponData.SyncTargetPosition = nil -- // A pre-crossing smoothing target would drag it back toward the entry portal
          end
          setWeaponCFrame(thrownWeaponData, CFrame.new(portalExit.Position), deltaTime)
-         distanceTraveled += rayDistance
+         distanceTraveled += portalExit.EntryDistance -- // Only the part flown before entering; the jump isn't flight
          thrownWeaponData.Direction = direction
          thrownWeaponData.Speed = speed
          return true
