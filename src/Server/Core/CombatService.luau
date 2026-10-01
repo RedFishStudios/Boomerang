@@ -76,12 +76,7 @@ function CombatService.init()
          print(killer, victim)
          return
       end
-      local killerProfile = PlayerDataService.get(killer)
-      if not killerProfile then
-         print("NO KILLER PROFILE")
-         return
-      end
-      killerProfile.Elims += 1
+      -- // Elims/Defeats are counted by LifetimeStatsService
       
       -- Fire ElimMessage to all players
       local elimType = getElimType(weaponId)

@@ -11,9 +11,19 @@ local BufferUtil = require(ReplicatedStorage.Shared.Utils.BufferUtil)
 -------------------------------------------------------------------------------
 
 export type Template = {
-   Elims: number, -- Lifetime elimination stat
-   Wins: number, -- Lifetime wins stat
-   Losses: number, -- Lifetime losses stat
+   -- // Lifetime stats: written only by LifetimeStatsService
+   Elims: number, -- Lifetime eliminations of other players
+   Defeats: number, -- Times eliminated by another player
+   Wins: number, -- Rounds won (team wins count for every member; ties don't count)
+   Losses: number, -- Unused: never tracked, kept because the field has shipped
+   RoundsPlayed: number, -- Rounds the player was in from start to finish
+   TimePlayed: number, -- Seconds spent in the game
+   AbilityUses: {
+      [string]: number -- Ability id : times used
+   },
+   PickupsAcquired: {
+      [string]: number -- Pickup class id : times picked up
+   },
    Currency: number,
    DailyRewards: {
       Streak: number, -- Current daily reward streak
@@ -34,8 +44,13 @@ export type Template = {
 function ProfileTemplate.get()
 	local baseProfile = {
       Elims = 0,
+      Defeats = 0,
       Wins = 0,
       Losses = 0,
+      RoundsPlayed = 0,
+      TimePlayed = 0,
+      AbilityUses = {},
+      PickupsAcquired = {},
       Currency = 0,
       DailyRewards = {
          Streak = 0,

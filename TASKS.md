@@ -94,6 +94,10 @@ Spec: `docs/LOBBY_SPEC.md`. Every lobby station (pedestals, wheel, crates, group
 
 ---
 
+## In Progress
+
+## Review
+
 ### T-048 · Track more player stats
 - **Priority:** P1
 - **Owner:** Agent
@@ -110,10 +114,10 @@ Save these lifetime stats in the profile (only Eliminations exists today):
 - **defeats** (deaths). Never use the word "kill" in stat names or player-facing text (see CLAUDE.md).
 Use `EconomyService`-style owner functions so other code doesn't write these fields directly.
 
-**Open questions (ask Sol first)**
-- Should the existing `Losses` field stay (round losses), be renamed, or be dropped? (Never repurpose a shipped field.)
-- Does "rounds won" count team wins for every team member, and ties?
-- Are these shown anywhere yet (leaderboards T-032, a stats panel), or only saved for now?
+**Decisions (Sol, 2026-10-01)**
+- `Losses` is not tracked (stays in the profile, unused). Track **Defeats** instead: eliminated by another player.
+- Team wins count for every member of the winning team; ties count for nobody.
+- Saved only for now; T-032 (leaderboards) will display them.
 
 **Done when**
 - [ ] New fields in `ProfileTemplate` (type + `get()`), filled by `Reconcile` for existing profiles.
@@ -121,12 +125,16 @@ Use `EconomyService`-style owner functions so other code doesn't write these fie
 - [ ] A Cmdr command shows a player's stats (for testing).
 
 **Notes**
+- New `Server/Core/LifetimeStatsService.luau` owns all lifetime stats; nothing else writes them. The `Elims` increment moved there from `CombatService`.
+- New profile fields (filled by `Reconcile`): `Defeats`, `RoundsPlayed`, `TimePlayed` (seconds), `AbilityUses` and `PickupsAcquired` (id -> count). `Wins` existed but was never written; it's tracked now.
+- Elims/Defeats: from `CombatLibrary.PlayerKilledPlayerTasks`, so environment deaths with no attacker don't count as defeats.
+- Rounds played: players in the server when the round started and still there when it finishes. Late joiners (e.g. Assassin) don't get it, but can still get a win.
+- Pickups: only real pickups in the world, via a new `PickupService.PickupAcquiredTasks`. Cmdr/chat grants don't count. Abilities: every successful use (`SharedTasks.PlayerUsedAbility`).
+- Time played: added to the profile every 60 s, plus on leave through a new `PlayerDataService.ProfileRemovingTasks` that runs before the session ends (the existing `ProfileRemovedTasks` runs after, when writes are no longer saved).
+- Cmdr: `showstats <player>` (alias `stats`).
+- Test in Studio: play a few rounds (FFA and team), eliminate and get eliminated, dash/stab, grab pickups, then `showstats`. Rejoin and check the values survived, including time played.
 
 ---
-
-## In Progress
-
-## Review
 
 ### T-004 · Clean up the `PickupLogic` type in PickupLibrary
 - **Priority:** P2
@@ -819,6 +827,8 @@ New behaviour: when an electric boomerang kills a player, every other player wit
 - **Area:** Server / Client
 - **Files:** New: e.g. `Server/Core/LeaderboardService.luau`; `Shared/Data/ProfileTemplate.luau` (`Elims`)
 
+**First lobby feature (Sol, 2026-10-01).** Depends on T-048 (stats tracking, in Review): `Wins` is only tracked from T-048 on.
+
 **Problem / goal**
 Physical leaderboards in the lobby (see `docs/LOBBY_SPEC.md`): **Most Eliminations** (`Profile.Elims`; never title it "Kills") and **Most Wins** (`Profile.Wins`), top 30 each, with a podium where top players stand (as rigs/avatars). More boards may follow from T-048's stats.
 - **Sol:** build the board and podium in the lobby.
@@ -944,24 +954,6 @@ The player needs a HUD with buttons. Known so far:
 "Figure out achievements": decide the list, rewards, whether they map to Roblox badges, how they're saved, and the GUI. Split into tasks once designed.
 
 **Notes**
-
----
-
-### T-041 · Lobby hub layout blockout
-- **Priority:** P1
-- **Owner:** Sol
-- **Area:** Build (Studio)
-- **Files:** Studio: `workspace.Lobby`
-
-**Problem / goal**
-Spec: `docs/LOBBY_SPEC.md`. Block out a spacious central hub with walking lanes and zones: rewards (wheel, visible from spawn), crates (explosion + sword), social (group rewards), navigation (server portal with open space), competition (leaderboards + podium). Functional parity with the reference, not a copy of its art.
-
-**Open questions (ask Sol first)**
-- Functional parity (same kinds of stations) or close visual parity with the reference?
-- Art direction, floating vs. grounded lobby, which stations must be visible from spawn?
-
-**Notes**
-- 🗣️ **Talk with Sol before starting.** Place-only work; agents can help place tagged stations once T-047 exists.
 
 ---
 
@@ -1096,6 +1088,24 @@ Add a HUD button that opens the Daily Rewards (DailyClaims) GUI, ideally with an
 ---
 
 ## Done
+
+### T-041 · Lobby hub layout blockout
+- **Priority:** P1
+- **Owner:** Sol
+- **Area:** Build (Studio)
+- **Files:** Studio: `workspace.Lobby`
+
+**Problem / goal**
+Spec: `docs/LOBBY_SPEC.md`. Block out a spacious central hub with walking lanes and zones: rewards (wheel, visible from spawn), crates (explosion + sword), social (group rewards), navigation (server portal with open space), competition (leaderboards + podium). Functional parity with the reference, not a copy of its art.
+
+**Open questions (ask Sol first)**
+- Functional parity (same kinds of stations) or close visual parity with the reference?
+- Art direction, floating vs. grounded lobby, which stations must be visible from spawn?
+
+**Notes**
+- **Not needed (Sol, 2026-10-01):** the hub is already built in Studio (`workspace.Lobby.Model`). What remains is per-station decor (signs, ads, prompts), covered by each station's task.
+
+---
 
 ### T-033 · Boomerang throws faster and further
 - **Priority:** P1

@@ -91,6 +91,8 @@ instantiateReverseCompatibility()
 -------------------------------------------------------------------------------
 
 PickupService.PickupEffectEndedTasks = TasksList.new() :: TasksList.TasksList<(forUserId: number, livePickupId: string)->()>
+-- // A player picked up a live pickup in the world (not developer grants)
+PickupService.PickupAcquiredTasks = TasksList.new() :: TasksList.TasksList<(player: Player, pickupClassId: string)->()>
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -234,6 +236,7 @@ local function activatePickup(player: Player, livePickupId: LivePickupId, ...)
       endsAt = logic.onPickup(player, ...)
       PickupLibrary.setPickupEffectActive(player.UserId, livePickupId, pickupClassId, endsAt)
    end
+   PickupService.PickupAcquiredTasks:Execute("parallel", player, pickupClassId)
 
    pickupReplication:FireAllClients(livePickupId, pickupClassId, player.UserId, workspace:GetServerTimeNow())
 end

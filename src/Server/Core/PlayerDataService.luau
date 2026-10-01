@@ -66,6 +66,8 @@ local replicationSchedule: { [Player]: { { any } } } = {}
 PlayerDataService.UpdatedTasks = TasksList.new() :: TasksList.TasksList<UpdateTask>
 PlayerDataService.ProfileAddedTasks = TasksList.new() :: TasksList.TasksList<ProfileAddedTask>
 PlayerDataService.ProfileRemovedTasks = TasksList.new() :: TasksList.TasksList<ProfileRemovedTask>
+-- // Runs (serially) before the profile session ends, while writes are still saved
+PlayerDataService.ProfileRemovingTasks = TasksList.new() :: TasksList.TasksList<ProfileRemovedTask>
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -256,6 +258,7 @@ function PlayerDataService.init()
 	Players.PlayerRemoving:Connect(function(player)
 		local profile = profiles[player]
 		if profile then
+			PlayerDataService.ProfileRemovingTasks:Execute("serial", player, profile)
 			profile:EndSession()
 			PlayerDataService.ProfileRemovedTasks:Execute("parallel", player, profile)
 			profiles[player] = nil
