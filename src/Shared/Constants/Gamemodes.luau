@@ -70,7 +70,7 @@ local Gamemodes: {
       Id = "Assassin",
       Subheader = "Eliminate your target! Attacking anyone else is fatal.",
       CanRespawn = true,
-      LateJoinEnabled = false,
+      LateJoinEnabled = true,
       StormClose = false,
       PickupsDisabled = true,
       TimeLasts = FIVE_MINUTES

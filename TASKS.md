@@ -163,30 +163,6 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ---
 
-### T-023 · Assassin: let players join mid-round
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Shared / Server
-- **Files:** `Shared/Constants/Gamemodes.luau`, `Shared/Logics/GamemodeLogics/Assassin.luau`, `Server/Core/RoundCyclingService.luau`, `Server/Core/SpawnService.luau`
-
-**Problem / goal**
-New players should be able to join an Assassin round in progress. They're immediately given a target, and are added to the loop that fairly assigns assassins and targets for the rest of the round.
-- `Gamemodes.Assassin` currently has `LateJoinEnabled = false`.
-- `Assassin.luau` already subscribes `addMember` to `GameStateLibrary.PlayerAddedToArenaTasks`, which assigns the newcomer a target and fills in targetless members. Check that this path is complete once late join is on (and that it also works for players who rejoin).
-
-**Done when**
-- [ ] `LateJoinEnabled = true` for Assassin.
-- [ ] A player joining mid-round spawns into the arena, gets a target at once, and becomes someone's target as soon as fairly possible.
-- [ ] Nobody is left without a target or hunted by two assassins because of the join.
-
-**Test in Studio**
-- Start Assassin with 2 players, then join a 3rd mid-round (Studio local server, 3 players): the newcomer gets a target and the target arrows/GUI update for everyone.
-- Leave and rejoin mid-round: no errors, assignments stay consistent.
-
-**Notes**
-
----
-
 ### T-026 · Menus can lock the screen in the over-the-shoulder camera
 - **Priority:** P1
 - **Owner:** Agent
@@ -359,6 +335,33 @@ The client said: "anything they have in their lobby, we want in our lobby". Rese
 ## In Progress
 
 ## Review
+
+### T-023 · Assassin: let players join mid-round
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared / Server
+- **Files:** `Shared/Constants/Gamemodes.luau`, `Shared/Logics/GamemodeLogics/Assassin.luau`, `Server/Core/RoundCyclingService.luau`, `Server/Core/SpawnService.luau`
+
+**Problem / goal**
+New players should be able to join an Assassin round in progress. They're immediately given a target, and are added to the loop that fairly assigns assassins and targets for the rest of the round.
+- `Gamemodes.Assassin` currently has `LateJoinEnabled = false`.
+- `Assassin.luau` already subscribes `addMember` to `GameStateLibrary.PlayerAddedToArenaTasks`, which assigns the newcomer a target and fills in targetless members. Check that this path is complete once late join is on (and that it also works for players who rejoin).
+
+**Done when**
+- [x] `LateJoinEnabled = true` for Assassin.
+- [x] A player joining mid-round spawns into the arena, gets a target at once, and becomes someone's target as soon as fairly possible.
+- [x] Nobody is left without a target or hunted by two assassins because of the join.
+
+**Test in Studio**
+- Start Assassin with 2 players, then join a 3rd mid-round (Studio local server, 3 players): the newcomer gets a target and the target arrows/GUI update for everyone.
+- Leave and rejoin mid-round: no errors, assignments stay consistent.
+
+**Notes**
+- `Gamemodes.Assassin.LateJoinEnabled = true`. Late joiners already reach `Assassin.addMember` through the normal spawn path (`SpawnService` → `LivingPlayersInArena` → `PlayerAddedToArenaTasks`).
+- New `giveAssassin()` in `Assassin.luau`: a member nobody is hunting (a late joiner, or a respawning player) gets an assassin right away. A hunter whose target already has several assassins is redirected to them; otherwise they're spliced into the ring (a random hunter now hunts them, and they take over that hunter's old target).
+- Checked with a simulation harness running the real target functions (200 random runs of joins, deaths/respawns and leaves): with 2+ members, every member always had a target and an assassin. Not play-tested with real players (needs a multi-client Studio test).
+
+---
 
 ### T-009 · Daily rewards: grant item rewards and notify the player
 - **Priority:** P1

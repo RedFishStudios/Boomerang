@@ -143,6 +143,40 @@ local function assignTargetlessMembers(except: Player?)
    end
 end
 
+-- // Gives a member who nobody is hunting an assassin, without leaving anyone else unhunted:
+-- // 1. a hunter whose current target has several assassins is redirected to them, or
+-- // 2. they're spliced into the ring: a random hunter H now hunts them, and they take over H's old target.
+-- // Returns the target they inherited when spliced (nil otherwise).
+local function giveAssassin(player: Player): Player?
+   local redirectable = {}
+   local spliceable = {}
+   for hunter, target in pairs(Targets) do
+      if hunter == player or target == player or not Members[hunter] then
+         continue
+      end
+      if countAssassins(target) > 1 then
+         table.insert(redirectable, hunter)
+      else
+         table.insert(spliceable, hunter)
+      end
+   end
+
+   local redirected = pickRandom(redirectable)
+   if redirected then
+      setTarget(redirected, player)
+      return nil
+   end
+
+   local splicedHunter = pickRandom(spliceable)
+   if splicedHunter then
+      local inheritedTarget = Targets[splicedHunter]
+      setTarget(splicedHunter, player)
+      return inheritedTarget
+   end
+   return nil
+end
+
+-- // Called when a player enters the arena: at round start (via formInitialRing), on respawn, and when joining mid-round
 local function addMember(player: Player)
    if Members[player] then
       return
@@ -150,7 +184,8 @@ local function addMember(player: Player)
    Members[player] = true
    -- // Targetless members (e.g. a lone survivor) choose first so the newcomer can fill their slot
    assignTargetlessMembers(player)
-   assignTarget(player)
+   local inheritedTarget = if countAssassins(player) == 0 then giveAssassin(player) else nil
+   assignTarget(player, inheritedTarget)
 end
 
 local function removeMember(player: Player)
