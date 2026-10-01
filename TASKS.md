@@ -185,27 +185,6 @@ Stepping into water kills the player. A splash effect plays on the player and th
 
 ---
 
-### T-031 · Allow jumping in the lobby (instead of dash)
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Server / Client
-- **Files:** `Server/Core/CharacterService/init.luau`, `Shared/Logics/AbilityLogics/Dash.luau`, `Client/Core/AbilityController.luau`, `Server/Core/LobbyService.luau`, `Server/Core/SpawnService.luau`
-
-**Problem / goal**
-In the lobby, players can jump and can't dash. In the arena it's the reverse (current behaviour). `CharacterService` currently disables jumping for every character (`SetStateEnabled(Jumping, false)`, `JumpHeight = 0`).
-
-**Done when**
-- [ ] Jumping is enabled while the player is in the lobby and disabled when they're sent to the arena (and re-enabled when they return).
-- [ ] Dash can't be used in the lobby. The jump input (Space / mobile jump) jumps in the lobby and dashes in the arena.
-- [ ] Jump height comes from config.
-
-**Test in Studio**
-- In the lobby: Space jumps, no dash. Enter a round: Space dashes, no jump. Return to the lobby: jumping works again. Repeat on mobile.
-
-**Notes**
-
----
-
 ### T-033 · Boomerang throws faster and further
 - **Priority:** P1
 - **Owner:** Agent
@@ -271,6 +250,32 @@ The client said: "anything they have in their lobby, we want in our lobby". Rese
 ## In Progress
 
 ## Review
+
+### T-031 · Allow jumping in the lobby (instead of dash)
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Server / Client
+- **Files:** `Server/Core/CharacterService/init.luau`, `Shared/Logics/AbilityLogics/Dash.luau`, `Client/Core/AbilityController.luau`, `Server/Core/LobbyService.luau`, `Server/Core/SpawnService.luau`
+
+**Problem / goal**
+In the lobby, players can jump and can't dash. In the arena it's the reverse (current behaviour). `CharacterService` currently disables jumping for every character (`SetStateEnabled(Jumping, false)`, `JumpHeight = 0`).
+
+**Done when**
+- [x] Jumping is enabled while the player is in the lobby and disabled when they're sent to the arena (and re-enabled when they return).
+- [x] Dash can't be used in the lobby. The jump input (Space / mobile jump) jumps in the lobby and dashes in the arena.
+- [x] Jump height comes from config.
+
+**Test in Studio**
+- In the lobby: Space jumps, no dash. Enter a round: Space dashes, no jump. Return to the lobby: jumping works again. Repeat on mobile.
+
+**Notes**
+- New `Shared/Library/LobbyLibrary.isCharacterInLobby(character)` (the lobby-volume check `LobbyController` already used), so both sides can check.
+- Jumping: `LobbyController` sets the local humanoid's `JumpHeight` to `GlobalConfig.LobbyJumpHeight` (7.2) and enables the Jumping state while in the lobby, and sets them back to 0/disabled in the arena. This is done on the client because the client simulates its own character; the server still disables jumping at spawn (`CharacterService`).
+- Dash: `Dash.canActivate` returns false in the lobby (checked on the client and on the server).
+- Input: new `AbilityController.useMovementInput()`: jumps in the lobby, dashes in the arena. Space and the mobile Dash buttons (`CustomTouchscreen`, `HudButtons`) now call it.
+- Syntax-checked with `luau-compile`; not play-tested. Check that Roblox's default jump button/keys (if the default control scripts are active in the place) behave the same.
+
+---
 
 ### T-030 · Make the server-authoritative character invisible
 - **Priority:** P2

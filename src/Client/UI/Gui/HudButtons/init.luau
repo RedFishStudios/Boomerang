@@ -77,7 +77,7 @@ local function _init()
    end
 
    Gui.Frame.Dash.Activated:Connect(function()
-      AbilityController.activate("Dash")
+      AbilityController.useMovementInput()
    end)
    Gui.Frame.Stab.Activated:Connect(function()
       AbilityController.activate("Stab")

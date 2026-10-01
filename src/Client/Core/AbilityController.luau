@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local SharedTasks = require(ReplicatedStorage.Shared.Constants.SharedTasks)
+local LobbyController = require(ReplicatedStorage.Client.Core.LobbyController)
 
 local localPlayer = Players.LocalPlayer
 
@@ -88,6 +89,19 @@ end
 -- CORE FUNCTIONS
 -------------------------------------------------------------------------------
 
+-- // The jump/dash input (Space, mobile jump/dash button): jumps in the lobby, dashes in the arena
+function AbilityController.useMovementInput()
+   if LobbyController.isInLobby() then
+      local character = localPlayer.Character
+      local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+      if humanoid then
+         humanoid.Jump = true
+      end
+      return
+   end
+   AbilityController.activate("Dash")
+end
+
 function AbilityController.init()
    UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessed: boolean)
 		if gameProcessed then
@@ -95,7 +109,7 @@ function AbilityController.init()
 		end
 
       if input.KeyCode == Enum.KeyCode.Space then
-         AbilityController.activate("Dash")
+         AbilityController.useMovementInput()
 		end
 
       if input.UserInputType == Enum.UserInputType.MouseButton1 then

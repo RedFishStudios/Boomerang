@@ -117,7 +117,7 @@ local function setupFunctionality()
    setupDone = true
 
    Gui.Dash.Activated:Connect(function()
-      AbilityController.activate("Dash")
+      AbilityController.useMovementInput()
    end)
 
    Gui.Stab.Activated:Connect(function()

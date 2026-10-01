@@ -6,7 +6,8 @@ local RunService = game:GetService("RunService")
 
 local GameStateLibrary = require(game.ReplicatedStorage.Shared.Library.GameStateLibrary)
 
-local CollisionGroupConstants = require(game.ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
+local GlobalConfig = require(game.ReplicatedStorage.Shared.Constants.GlobalConfig)
+local LobbyLibrary = require(game.ReplicatedStorage.Shared.Library.LobbyLibrary)
 local CharacterRenderController = require(game.ReplicatedStorage.Client.Core.CharacterRenderController)
 local TasksList = require(game.ReplicatedStorage.Shared.Classes.TasksList)
 
@@ -26,6 +27,23 @@ LobbyController.ClientIsInLobbyChangedTasks = TasksList.new() :: TasksList.Tasks
 -- LOCAL FUNCTIONS
 -------------------------------------------------------------------------------
 
+-- // Jumping is enabled only in the lobby. Set locally because the client simulates its own character;
+-- // the server disables jumping when the character loads (CharacterService), and this re-enables it in the lobby.
+local function applyJumpState(character: Model)
+   local humanoid = character:FindFirstChildOfClass("Humanoid")
+   if not humanoid then
+      return
+   end
+   local jumpHeight = if isInLobby then GlobalConfig.LobbyJumpHeight else 0
+   if humanoid.UseJumpPower then
+      humanoid.UseJumpPower = false
+   end
+   if humanoid.JumpHeight ~= jumpHeight then
+      humanoid.JumpHeight = jumpHeight
+      humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, isInLobby)
+   end
+end
+
 local function updateIsInLobby()
    local character = player.Character
    if not character then
@@ -33,11 +51,7 @@ local function updateIsInLobby()
    end
 
    -- Check using volume check
-   local point = character:GetPivot()
-   local params = OverlapParams.new()
-   params.CollisionGroup = CollisionGroupConstants.LobbyVolume
-   local partsInVolume = workspace:GetPartBoundsInBox(point, Vector3.new(1, 1, 1), params)
-   if next(partsInVolume) then
+   if LobbyLibrary.isCharacterInLobby(character) then
       if not isInLobby then
          isInLobby = true
          LobbyController.ClientIsInLobbyChangedTasks:Execute("parallel", isInLobby)
@@ -48,6 +62,8 @@ local function updateIsInLobby()
          LobbyController.ClientIsInLobbyChangedTasks:Execute("parallel", isInLobby)
       end
    end
+
+   applyJumpState(character)
 end
 
 -------------------------------------------------------------------------------

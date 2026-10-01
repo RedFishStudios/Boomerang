@@ -18,6 +18,7 @@ local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local PlayerStatsLibrary = require(ReplicatedStorage.Shared.Library.PlayerStatsLibrary)
 local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
 local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
+local LobbyLibrary = require(ReplicatedStorage.Shared.Library.LobbyLibrary)
 
 local PlayDash = SimpleRemotes.getEvent("PlayDash")
 
@@ -125,6 +126,11 @@ function Dash.canActivate(player: Player)
    if not humanoidRootPart then
       warn(`Dash.activate: No HumanoidRootPart found for player {player.Name}`)
       return
+   end
+
+   -- // Jump replaces dash in the lobby (see LobbyController / AbilityController.useMovementInput)
+   if LobbyLibrary.isCharacterInLobby(character) then
+      return false
    end
 
    local rayOrigin = humanoidRootPart.Position
