@@ -27,17 +27,17 @@ local ValidPortals: {
 function Portal.validate(functionalChild: Instance): boolean
    local otherPart = functionalChild:FindFirstChildWhichIsA("Part")
    if not otherPart then
-      error(`portal not valid: missing part in functional child ${functionalChild:GetFullName()}`)
+      error(`portal not valid: missing part in functional child {functionalChild:GetFullName()}`)
       return false
    end
    local portalPosition = functionalChild:FindFirstChildWhichIsA("Attachment")
    if not portalPosition then
-      error(`portal not valid: missing attachment in functional child ${functionalChild:GetFullName()}`)
+      error(`portal not valid: missing attachment in functional child {functionalChild:GetFullName()}`)
       return false
    end
    portalPosition = otherPart:FindFirstChildWhichIsA("Attachment")
    if not portalPosition then
-      error(`portal not valid: missing attachment in other part ${otherPart:GetFullName()}`)
+      error(`portal not valid: missing attachment in other part {otherPart:GetFullName()}`)
       return false
    end
    ValidPortals[functionalChild] = otherPart
@@ -51,7 +51,7 @@ function Portal.onObjectAdded(functionalChild: Instance)
    local functionalAttachment = functionalChild:FindFirstChildWhichIsA("Attachment")
    local otherAttachment = otherPart:FindFirstChildWhichIsA("Attachment")
    if not functionalAttachment or not otherAttachment then
-      warn(`portal not valid: missing attachment in functional child ${functionalChild:GetFullName()} or other part ${otherPart:GetFullName()}`)
+      warn(`portal not valid: missing attachment in functional child {functionalChild:GetFullName()} or other part {otherPart:GetFullName()}`)
       return
    end
 

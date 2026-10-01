@@ -13,7 +13,7 @@ function GameTeamLibrary.areEnemies(player: Player, otherPlayer: Player): boolea
    local otherPlayerTeam = otherPlayer.Team
 
    if not playerTeam or not otherPlayerTeam then
-      warn(`One or both players do not have a team assigned: ${player.Name} (${tostring(playerTeam)}), ${otherPlayer.Name} (${tostring(otherPlayerTeam)})`)
+      warn(`One or both players do not have a team assigned: {player.Name} ({tostring(playerTeam)}), {otherPlayer.Name} ({tostring(otherPlayerTeam)})`)
       return false
    end
 

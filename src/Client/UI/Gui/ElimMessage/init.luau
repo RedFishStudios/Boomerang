@@ -233,7 +233,7 @@ local function showElimMessage(userIdA: number, userIdB: number, elimType: strin
    local playerA = game.Players:GetPlayerByUserId(userIdA)
    local playerB = game.Players:GetPlayerByUserId(userIdB)
    if not playerA or not playerB then
-      warn(`discarding elim message for userIdA=${userIdA} userIdB=${userIdB}`)
+      warn(`discarding elim message for userIdA={userIdA} userIdB={userIdB}`)
       return
    end
 
@@ -256,7 +256,7 @@ local function showElimMessage(userIdA: number, userIdB: number, elimType: strin
    if elimTypeData then
       elimTypeLabel.Text = elimTypeData.DisplayString
    else
-      warn(`Unknown ElimType: ${elimType}`)
+      warn(`Unknown ElimType: {elimType}`)
       elimTypeLabel.Text = elimType
    end
    

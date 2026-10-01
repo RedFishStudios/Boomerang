@@ -176,7 +176,7 @@ function ParticlesLibrary.play(particlePlayId: string, particleName: string, hos
    elseif typeof(host) == "Vector3" then
       particle.Position = host
    else
-      print(`Unrecognized host type: ${typeof(host)}`)
+      print(`Unrecognized host type: {typeof(host)}`)
       return
    end
    particle.Parent = ParticlesFolder

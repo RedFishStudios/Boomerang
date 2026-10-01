@@ -28,8 +28,8 @@ local GlobalConfig = {
    -- // comes back into range. Client wants false for now.
    DyingBoomerangCanRecoverInRange = false,
    -- // Manual recall of a dying/dead boomerang (held recall): slower, heavier, sluggish lift with a visual tilt
-   ManualRecallSpeedMultiplier = 0.7, -- // Max speed = this x the boomerang's normal max speed
-   ManualRecallMomentumMultiplier = 0.3, -- // How quickly it accelerates/turns toward the player (1 = normal recall)
+   ManualRecallSpeedMultiplier = 1, -- // Max speed = this x the boomerang's normal max speed
+   ManualRecallMomentumMultiplier = 0.15, -- // How quickly it accelerates/turns toward the player (1 = normal recall)
    ManualRecallLiftRate = 2.5, -- // How quickly it rises to hand height (normal from-ground lift is 8)
    ManualRecallMaxTiltDegrees = 35, -- // Visual tilt toward the player while it's being lifted
    ManualRecallHighlightFadeOutSeconds = 0.6, -- // The dead boomerang's highlight fades this slowly when a manual recall starts (normal fade: 0.1)

@@ -50,70 +50,6 @@ What's wrong, or what should exist.
 
 ## Ready
 
-### T-002 · Fix `${...}` in interpolated strings (prints a literal `$`)
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Server / Client / Shared
-- **Files:** `ProductService/init.luau`, `ProductLogics/Template.luau`, `UI/Gui/ElimMessage/init.luau`, `Library/GameTeamLibrary.luau`, `Library/MarketplaceLibrary.luau`, `Library/ParticlesLibrary.luau`, `Logics/Environment/MovingPlatform.luau`, `Logics/Environment/Portal.luau`
-
-**Problem / goal**
-Luau interpolation is `` `text {value}` ``. About 17 warn/error/print strings use JavaScript-style `${value}`, so every message shows a stray `$` (e.g. `Player with userId $123 not found`).
-
-**Done when**
-- [ ] No `` ` ``-string in `src/Server`, `src/Client` or `src/Shared` contains `${`.
-- [ ] Only the `$` is removed; the messages are otherwise unchanged.
-
-**Test in Studio**
-- None needed beyond a normal server start with no new errors.
-
-**Notes**
-
----
-
-### T-003 · Remove leftover debug output from boot and ProductService
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Server
-- **Files:** `src/Server.server.luau`, `src/Server/Core/ProductService/init.luau`
-
-**Problem / goal**
-- `Server.server.luau` prints `Requiring <Module>` for every module on every server start (and those two lines are space-indented in a tab-indented file).
-- `ProductService.init()` prints four `~~~~~` lines plus the module name and product ID for every product logic.
-
-**Done when**
-- [ ] The `Requiring` prints and the `~~~~~` / name / ID prints are removed. The warning for a product logic without an ID stays.
-- [ ] Nothing else in those files changes.
-
-**Test in Studio**
-- Start a server: the output shows the "Server loaded" line and no per-module spam.
-
-**Notes**
-
----
-
-### T-004 · Clean up the `PickupLogic` type in PickupLibrary
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Shared
-- **Files:** `src/Shared/Library/PickupLibrary.luau`
-
-**Problem / goal**
-`export type PickupLogic` declares `onPickup` twice with two different signatures (the second, `(userId, activationTime)`, is described as the replication/simulation callback) and has a stray `fart: string` field. With duplicate keys only one signature applies, so modules cast to `PickupLibrary.PickupLogic` aren't type-checked as intended.
-
-**Open questions (ask Sol first)**
-- What should the replication callback be called (e.g. `onReplicatedPickup`)? Check `PickupController` for what it actually calls before proposing a name.
-
-**Done when**
-- [ ] The type has one entry per callback, matching what `PickupService` / `PickupController` really call, with `Disabled: boolean?` included.
-- [ ] The stray field is removed. No runtime behaviour changes.
-
-**Test in Studio**
-- None needed beyond a normal server start; pick up any pickup to confirm nothing changed.
-
-**Notes**
-
----
-
 ### T-005 · Convert space-indented files to tabs
 - **Priority:** P2
 - **Owner:** Agent
@@ -134,33 +70,6 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 **Test in Studio**
 - Start a server and join: no new errors in the output. (Whitespace-only change; this is just a sanity check.)
-
-**Notes**
-
----
-
-### T-033 · Boomerang throws faster and further
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Shared
-- **Files:** `Shared/Constants/Tools.luau`
-
-**On hold (Sol, 2026-10-01): don't start this yet.**
-
-*Update 2026-10-01: at Sol's request, `ClassicBoomerang.ThrowDistance` was raised 30 → 45 (+50%). Speed and the other tools are unchanged.*
-
-**Problem / goal**
-The client says the boomerang needs to move "way faster" and go decently further: **twice the throw distance and about 50% more speed**. `ClassicBoomerang` is currently `Speed = 60`, `ThrowDistance = 30`.
-
-**Open questions (ask Sol first)**
-- Apply the same multipliers to the other throwables (`Shuriken` 80/40, the 50/20 one), or only to `ClassicBoomerang`?
-
-**Done when**
-- [ ] `ClassicBoomerang` is `Speed = 90`, `ThrowDistance = 60` (and the others as Sol decides).
-- [ ] Anything tuned to the old values (hitbox radius, aim arrow length, auto-recall timing) still looks right; list any you changed.
-
-**Test in Studio**
-- Throw on a few maps: the boomerang travels about twice as far and noticeably faster; hits, bounces and recall still work.
 
 **Notes**
 
@@ -219,6 +128,72 @@ Use `EconomyService`-style owner functions so other code doesn't write these fie
 
 ## Review
 
+### T-004 · Clean up the `PickupLogic` type in PickupLibrary
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared
+- **Files:** `src/Shared/Library/PickupLibrary.luau`
+
+**Problem / goal**
+`export type PickupLogic` declares `onPickup` twice with two different signatures (the second, `(userId, activationTime)`, is described as the replication/simulation callback) and has a stray `fart: string` field. With duplicate keys only one signature applies, so modules cast to `PickupLibrary.PickupLogic` aren't type-checked as intended.
+
+**Done when**
+- [ ] The type has one entry per callback, matching what `PickupService` / `PickupController` really call, with `Disabled: boolean?` included.
+- [ ] The stray field is removed. No runtime behaviour changes.
+
+**Test in Studio**
+- None needed beyond a normal server start; pick up any pickup to confirm nothing changed.
+
+**Notes**
+- Open question answered from the code: there is no separate replication callback. Both `PickupService` and `PickupController` (on replication, for every player) call `onPickup(player, timestamp)`, so the second `onPickup` entry was removed rather than renamed.
+- Type now: `onPickup`, `onEnd?`, `canActivate?` (both sides already call it; no pickup implements it yet) and `Disabled: boolean?`. Stray field removed. Type-only change.
+- Found, not changed: `PickupController.activate()` is never called, and it calls `onPickup` with a userId instead of a Player (what the old second entry described). Dead code; remove it in a later task if you agree.
+
+---
+
+### T-003 · Remove leftover debug output from boot and ProductService
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Server
+- **Files:** `src/Server.server.luau`, `src/Server/Core/ProductService/init.luau`
+
+**Problem / goal**
+- `Server.server.luau` prints `Requiring <Module>` for every module on every server start (and those two lines are space-indented in a tab-indented file).
+- `ProductService.init()` prints four `~~~~~` lines plus the module name and product ID for every product logic.
+
+**Done when**
+- [ ] The `Requiring` prints and the `~~~~~` / name / ID prints are removed. The warning for a product logic without an ID stays.
+- [ ] Nothing else in those files changes.
+
+**Test in Studio**
+- Start a server: the output shows the "Server loaded" line and no per-module spam.
+
+**Notes**
+- Removed the two `Requiring` prints from `Server.server.luau` and the `~~~~~` / name / ID prints from `ProductService.init()`. The missing-productId warning stays.
+
+---
+
+### T-002 · Fix `${...}` in interpolated strings (prints a literal `$`)
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Server / Client / Shared
+- **Files:** `ProductService/init.luau`, `ProductLogics/Template.luau`, `UI/Gui/ElimMessage/init.luau`, `Library/GameTeamLibrary.luau`, `Library/MarketplaceLibrary.luau`, `Library/ParticlesLibrary.luau`, `Logics/Environment/MovingPlatform.luau`, `Logics/Environment/Portal.luau`
+
+**Problem / goal**
+Luau interpolation is `` `text {value}` ``. About 17 warn/error/print strings use JavaScript-style `${value}`, so every message shows a stray `$` (e.g. `Player with userId $123 not found`).
+
+**Done when**
+- [ ] No `` ` ``-string in `src/Server`, `src/Client` or `src/Shared` contains `${`.
+- [ ] Only the `$` is removed; the messages are otherwise unchanged.
+
+**Test in Studio**
+- None needed beyond a normal server start with no new errors.
+
+**Notes**
+- Removed the `$` from all 17 `${...}` strings in the 8 listed files; nothing else changed. No `${` left in `src/Server`, `src/Client`, `src/Shared`.
+
+---
+
 ### T-051 · Touch controls follow the player's current input
 - **Priority:** P1
 - **Owner:** Agent
@@ -263,13 +238,13 @@ Stepping into water kills the player. A splash effect plays on the player and th
 - Walk into water in each map that has it: splash, sink, death screen, respawn where the gamemode allows.
 
 **Notes**
-- Server-side in `Water.luau`: on touching water, after the `PlayerEnteredWater` listeners run (so electrified water keeps its elim credit), the player is killed via `CombatLibrary.applyDamageToHumanoid` with cause label "Drowned". Only once per life (`Drowned` attribute on the character).
-- Sinking: new collision group `SinkingPlayers` (like `Players` but without `WaterParts`). The server puts the dead authoritative character in it; `CharacterRenderController`'s ragdoll uses it when the `Drowned` attribute is set, so the visible body falls through the water.
-- Splash: `ParticlesLibrary.emit` at the water's surface. **`TODO:RELEASE placeholder`:** `Shared/Assets/Particles/Splash.rbxmx` is a basic hand-written droplet burst; replace it with a real effect.
-- Also removed the two debug `print`s in `Water.onObjectAdded`.
-- Water kills in every phase, lobby included, if the lobby has water.
-- Water kills through the spawn ForceField: `TakeDamage` ignores damage while a ForceField is present, so drowning sets `Humanoid.Health = 0` directly and calls `CombatLibrary.notifyDeathReason` itself.
-- Check in Studio: the `Splash.rbxmx` import (hand-written XML), the drowned ragdoll sinking, and what the body lands on under the water (it still collides with the floor and walls).
+- Water parts are made non-collidable (`CanCollide = false` in `Water.onObjectAdded`), so players always fall through water. `Touched` / `GetTouchingParts` still work (the part has a Touched connection), so the fire/electric `PlayerEnteredWater` effects are unchanged.
+- Server-side in `Water.luau` (`Water.init` starts a Heartbeat check): a player drowns once the centre of their body (`HumanoidRootPart`) is inside a water part: within its footprint and below its top surface (down to `MAX_ROOT_DEPTH_BELOW_BOTTOM` = 10 studs under its bottom, to catch fast falls). Feet in the water or standing on the edge is safe.
+- Death through the normal path: `Humanoid.Health = 0` + `CombatLibrary.notifyDeathReason` with "Drowned" (setting Health directly also kills through the spawn ForceField). Once per life (`Drowned` attribute). A splash plays on the surface.
+- Removed from the previous iteration: the `SinkingPlayers` collision group, the ragdoll change in `CharacterRenderController` and `Dash.isDashing` (no longer needed now water never collides).
+- **`TODO:RELEASE placeholder`:** `Shared/Assets/Particles/Splash.rbxmx`, a basic hand-written droplet burst.
+- The footprint uses the part's box, so non-box water (MeshPart, wedge, cylinder) counts by its bounding box. Water kills in every phase, lobby included.
+- Check in Studio: walk off the edge into water (fall in, splash, death screen "Drowned"); stand with toes over the edge (safe); dash across a gap (safe if you land before your centre drops into the water); die with the spawn shield up.
 
 ---
 
@@ -1121,3 +1096,30 @@ Add a HUD button that opens the Daily Rewards (DailyClaims) GUI, ideally with an
 ---
 
 ## Done
+
+### T-033 · Boomerang throws faster and further
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared
+- **Files:** `Shared/Constants/Tools.luau`
+
+*Update 2026-10-01: at Sol's request, `ClassicBoomerang.ThrowDistance` was raised 30 → 45 (+50%). Speed and the other tools are unchanged.*
+
+**Problem / goal**
+The client says the boomerang needs to move "way faster" and go decently further: **twice the throw distance and about 50% more speed**. `ClassicBoomerang` is currently `Speed = 60`, `ThrowDistance = 30`.
+
+**Open questions (ask Sol first)**
+- Apply the same multipliers to the other throwables (`Shuriken` 80/40, the 50/20 one), or only to `ClassicBoomerang`?
+
+**Done when**
+- [ ] `ClassicBoomerang` is `Speed = 90`, `ThrowDistance = 60` (and the others as Sol decides).
+- [ ] Anything tuned to the old values (hitbox radius, aim arrow length, auto-recall timing) still looks right; list any you changed.
+
+**Test in Studio**
+- Throw on a few maps: the boomerang travels about twice as far and noticeably faster; hits, bounces and recall still work.
+
+**Notes**
+- Marked complete by Sol (2026-10-01), with the `ThrowDistance` 30 → 45 change above.
+
+---
+

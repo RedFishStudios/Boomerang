@@ -38,7 +38,7 @@ local function getLogic(productId: number): ProductLogic?
    if RegisteredProductLogics[productId] then
       return RegisteredProductLogics[productId]
    end
-   warn(`No logic found for productId: ${productId}`)
+   warn(`No logic found for productId: {productId}`)
    return nil
 end
 
@@ -54,7 +54,7 @@ local function processReceipt(receiptInfo: ReceiptInfo)
    local userId = receiptInfo.PlayerId
    local player = game:GetService("Players"):GetPlayerByUserId(userId)
    if not player then
-      warn(`Player with userId ${userId} not found`)
+      warn(`Player with userId {userId} not found`)
       return Enum.ProductPurchaseDecision.NotProcessedYet
    end
 
@@ -70,7 +70,7 @@ local function processReceipt(receiptInfo: ReceiptInfo)
 	if result and result == true then
 		return Enum.ProductPurchaseDecision.PurchaseGranted
 	else
-      warn(`Failed to grant product: ${receiptInfo.ProductId}, result: ${tostring(result)}`)
+      warn(`Failed to grant product: {receiptInfo.ProductId}, result: {tostring(result)}`)
    end
 
 	return Enum.ProductPurchaseDecision.NotProcessedYet
@@ -92,16 +92,10 @@ function ProductService.init()
          continue
       end
       local logic = require(logicModule)
-      print("~~~~~")
-      print("~~~~~")
-      print("~~~~~")
-      print("~~~~~")
-      print(logicModule.Name)
-      print(logic.ProductId)
       if not logic.NotActive and logic.ProductId then
          RegisteredProductLogics[logic.ProductId] = logic
       else
-         warn(`Logic module ${logicModule.Name} does not have a productId`)
+         warn(`Logic module {logicModule.Name} does not have a productId`)
       end
    end
 end

@@ -8,7 +8,7 @@ ProductLogicTemplate.ProductId = MarketplaceLibrary.getItemId("Placeholder")
 ProductLogicTemplate.NotActive = true
 
 function ProductLogicTemplate.grant(Player: Player): boolean
-   warn(`placeholder product purchased by ${Player.Name}`)
+   warn(`placeholder product purchased by {Player.Name}`)
    return true
 end
 

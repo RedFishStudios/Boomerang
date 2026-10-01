@@ -11,8 +11,10 @@ local isServer = game:GetService("RunService"):IsServer()
 local DROWN_CAUSE_LABEL = "Drowned"
 local SPLASH_PARTICLE = "Splash"
 local SPLASH_EMIT_COUNT = 30
--- // Set on the authoritative character when it drowns; CharacterRenderController reads it so the ragdoll sinks
+-- // Set on the authoritative character when it drowns, so it only drowns once per life
 local DROWNED_ATTRIBUTE = "Drowned"
+-- // How far below the water's bottom the root still counts as in the water (a fast fall can skip past a thin part in one frame)
+local MAX_ROOT_DEPTH_BELOW_BOTTOM = 10
 
 -- // Lazily required: CombatLibrary -> PickupLibrary -> pickup logics require this module (load-time circular require)
 local CombatLibrary = nil
@@ -23,8 +25,9 @@ local function getCombatLibrary()
    return CombatLibrary
 end
 
+local drownCheckConnection: RBXScriptConnection? = nil
+
 Water.PlayerEnteredWater = TasksList.new() :: TasksList.TasksList<(player: Player, waterPart: Instance) -> ()>
-Water.DROWNED_ATTRIBUTE = DROWNED_ATTRIBUTE
 
 -- // Point on the water's top surface above/below the given position
 local function getSurfacePoint(waterPart: BasePart, position: Vector3): Vector3
@@ -32,7 +35,17 @@ local function getSurfacePoint(waterPart: BasePart, position: Vector3): Vector3
    return waterPart.CFrame:PointToWorldSpace(Vector3.new(localPoint.X, waterPart.Size.Y / 2, localPoint.Z))
 end
 
--- // Server only: kill the player through the normal death path, splash, and let the character sink through the water
+-- // True when the position is inside the water (below its top surface, within its footprint)
+local function isPositionInWater(waterPart: BasePart, position: Vector3): boolean
+   local localPoint = waterPart.CFrame:PointToObjectSpace(position)
+   local halfSize = waterPart.Size / 2
+   return math.abs(localPoint.X) <= halfSize.X
+      and math.abs(localPoint.Z) <= halfSize.Z
+      and localPoint.Y <= halfSize.Y
+      and localPoint.Y >= -halfSize.Y - MAX_ROOT_DEPTH_BELOW_BOTTOM
+end
+
+-- // Server only: kill the player through the normal death path and splash (water is non-collidable, so the body keeps sinking)
 local function drownPlayer(player: Player, character: Model, waterPart: BasePart)
    if character:GetAttribute(DROWNED_ATTRIBUTE) then
       return
@@ -47,12 +60,6 @@ local function drownPlayer(player: Player, character: Model, waterPart: BasePart
    character:SetAttribute(DROWNED_ATTRIBUTE, true)
    humanoid.Health = 0
    getCombatLibrary().notifyDeathReason(player, nil, DROWN_CAUSE_LABEL)
-
-   for _, descendant in ipairs(character:GetDescendants()) do
-      if descendant:IsA("BasePart") then
-         descendant.CollisionGroup = CollisionGroupConstants.SinkingPlayers
-      end
-   end
 
    local root = character.PrimaryPart or character:FindFirstChild("HumanoidRootPart")
    local splashPosition = getSurfacePoint(waterPart, if root and root:IsA("BasePart") then root.Position else character:GetPivot().Position)
@@ -105,6 +112,8 @@ function Water.onObjectAdded(functionalChild: Instance)
       return
    end
    functionalChild.CollisionGroup = CollisionGroupConstants.WaterParts
+   -- // Players always fall through water. Touched / GetTouchingParts still work because the part has a Touched connection
+   functionalChild.CanCollide = false
 
    SessionConnections[functionalChild] = functionalChild.Touched:Connect(function(otherPart)
       if otherPart and otherPart.Parent then
@@ -117,12 +126,39 @@ function Water.onObjectAdded(functionalChild: Instance)
             return
          end
          Water.PlayerEnteredWater:Execute("serial", player, functionalChild)
-         -- // After the listeners, so an effect that kills on entry (e.g. electrified water) keeps its elim credit
-         if isServer and character == player.Character then
-            drownPlayer(player, character, functionalChild :: BasePart)
-         end
       end
    end)
+end
+
+-- // Server only: drown players once the centre of their body (root) is in the water.
+-- // Checked every frame rather than on Touched, so feet touching the water or the edge is safe.
+local function checkDrowning()
+   local waterParts = Water.getCurrentWaterParts()
+   if #waterParts == 0 then
+      return
+   end
+   for _, player in ipairs(game.Players:GetPlayers()) do
+      local character = player.Character
+      if not character or character:GetAttribute(DROWNED_ATTRIBUTE) then
+         continue
+      end
+      local root = character:FindFirstChild("HumanoidRootPart")
+      if not root or not root:IsA("BasePart") then
+         continue
+      end
+      for _, waterPart in ipairs(waterParts) do
+         if waterPart:IsA("BasePart") and isPositionInWater(waterPart, root.Position) then
+            drownPlayer(player, character, waterPart)
+            break
+         end
+      end
+   end
+end
+
+function Water.init()
+   if isServer and not drownCheckConnection then
+      drownCheckConnection = game:GetService("RunService").Heartbeat:Connect(checkDrowning)
+   end
 end
 
 function Water.cleanup()

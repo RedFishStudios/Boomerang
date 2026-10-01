@@ -56,8 +56,6 @@ local SetupData = {
    Camera = collisionGroupData("Camera", {"ArenaFloor", "ArenaWalls"}),
    WaterParts = collisionGroupData("WaterParts", {"Players", "WaterDetector"}),
    WaterDetector = collisionGroupData("WaterDetector", {"WaterParts"}),
-   -- // Drowned characters: like Players, minus WaterParts, so they sink through the water
-   SinkingPlayers = collisionGroupData("SinkingPlayers", {"ArenaWalls", "ArenaFloor", "Default"}),
    LobbyVolume = collisionGroupData("LobbyVolume", {"LobbyVolume"}),
 }
 
@@ -73,7 +71,6 @@ local CollisionGroups = {
    Camera = deepRegisterCollisionGroups(SetupData.Camera),
    WaterParts = deepRegisterCollisionGroups(SetupData.WaterParts),
    WaterDetector = deepRegisterCollisionGroups(SetupData.WaterDetector),
-   SinkingPlayers = deepRegisterCollisionGroups(SetupData.SinkingPlayers),
    Fire = deepRegisterCollisionGroups(SetupData.Fire),
    LobbyVolume = deepRegisterCollisionGroups(SetupData.LobbyVolume),
 }

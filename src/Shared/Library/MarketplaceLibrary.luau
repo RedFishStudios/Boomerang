@@ -258,7 +258,7 @@ end
 function MarketplaceLibrary.promptProductPurchase(player: Player, item: string | number, yieldForAnswer: boolean?): boolean?
 	local itemId = resolveItemIdentifier(item)
 	if not itemId then
-      warn(`Invalid item: ${item}`)
+      warn(`Invalid item: {item}`)
 		return nil
 	end
 
@@ -367,7 +367,7 @@ end
 function MarketplaceLibrary.promptGamepassPurchase(player: Player, gamepassId: number, yieldForAnswer: boolean?): boolean?
 	local itemId = gamepassId
 	if not itemId then
-      warn(`Invalid gamepassId: ${gamepassId}`)
+      warn(`Invalid gamepassId: {gamepassId}`)
 		return nil
 	end
 

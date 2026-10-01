@@ -282,13 +282,13 @@ end
 
 function MovingPlatform.onObjectAdded(platformFolder: Folder, _birth: number?)
    if platformFolder:GetAttribute("Invalid") then
-      warn(`skipping invalid moving platform folder: ${platformFolder.Name}`)
+      warn(`skipping invalid moving platform folder: {platformFolder.Name}`)
       return
    end
    local platform = platformFolder:FindFirstChild("Platform")
    for _, data in pairs(platforms) do
       if data.Part == platform then
-         warn(`Moving platform attempted duplicate registration: ${platform.Name}`)
+         warn(`Moving platform attempted duplicate registration: {platform.Name}`)
          return
       end
    end

@@ -48,12 +48,14 @@ export type PickupEffectStateChangedReplicationData = {
 
 export type PickupLogic = {
    -- Play on pickup. Returns [ends at timestamp if it is a generic long lasting effect]
+   -- Server: called by PickupService. Client: called by PickupController when the pickup replicates (for every player, with the server's timestamp)
    onPickup: (player: Player, startedAt: number?) -> (number?),
    -- Play on end of an automated long-lasting effect
-   onEnd: (player: Player) -> ()?,
-   -- Simulate activation for other players besides the local player who picked it up. This is played by clients receiving a replication event for an item pickup by another player.
-   onPickup: (userId: number, activationTime: number) -> (),
-   fart: string,
+   onEnd: ((player: Player) -> ())?,
+   -- Optional check before activating; returning false cancels the pickup
+   canActivate: ((player: Player, ...any) -> boolean)?,
+   -- Stub pickups (-- STUD) set this so they are skipped
+   Disabled: boolean?,
 }
 
 -------------------------------------------------------------------------------

@@ -13,7 +13,6 @@ local CharacterRenderLibrary = require(ReplicatedStorage.Shared.Library.Characte
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local MapData = require(ReplicatedStorage.Shared.Constants.MapData)
 local Disguise = require(ReplicatedStorage.Shared.Logics.PickupLogics.Disguise)
-local Water = require(ReplicatedStorage.Shared.Logics.Environment.Water)
 local CharacterMovementController = require(ReplicatedStorage.Client.Core.CharacterMovementController)
 
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
@@ -160,17 +159,11 @@ local function applyRagdoll(player: Player, model: Model)
    task.spawn(function()
       repeat
          RunService.Stepped:Wait()
-         -- // Drowned (set by the server on the authoritative character): ragdoll sinks through the water
-         local authorityCharacter = player.Character
-         local drowned = authorityCharacter ~= nil and authorityCharacter:GetAttribute(Water.DROWNED_ATTRIBUTE) == true
         	for index, descendant in pairs(model:GetDescendants()) do
             if descendant:IsA("AnimationConstraint") then
                descendant:Destroy()
             elseif descendant:IsA("BasePart") or descendant:IsA("MeshPart") then
                descendant.Anchored = false
-               if drowned then
-                  descendant.CollisionGroup = CollisionGroupConstants.SinkingPlayers
-               end
                if table.find(ragdollCollisionEnabledNames, descendant.Name) then
                   descendant.CanCollide = true
                else
