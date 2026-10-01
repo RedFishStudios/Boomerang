@@ -208,6 +208,10 @@ The client says the boomerang needs to move "way faster" and go decently further
 
 ---
 
+## In Progress
+
+## Review
+
 ### T-040 · Research Blade Ball's lobby
 - **Priority:** P1
 - **Owner:** Agent
@@ -218,17 +222,16 @@ The client says the boomerang needs to move "way faster" and go decently further
 The client said: "anything they have in their lobby, we want in our lobby". Research the current Blade Ball lobby (Roblox) and write a list of every lobby feature, with a short description, screenshots/links where possible, and how it might map to Boomerang (existing system, new system, or asset-only).
 
 **Done when**
-- [ ] `docs/research/BLADE_BALL_LOBBY.md` lists every lobby feature found (shops, pedestals, leaderboards, spin wheels, rewards, quests, social features, etc.), with sources.
-- [ ] Each feature is tagged: already in Boomerang / planned task (ID) / new.
-- [ ] No new tasks are created from it without Sol's approval; propose them in the doc instead.
+- [x] `docs/research/BLADE_BALL_LOBBY.md` lists every lobby feature found (shops, pedestals, leaderboards, spin wheels, rewards, quests, social features, etc.), with sources.
+- [x] Each feature is tagged: already in Boomerang / planned task (ID) / new.
+- [x] No new tasks are created from it without Sol's approval; propose them in the doc instead.
 
 **Notes**
+- Written: `docs/research/BLADE_BALL_LOBBY.md`. It covers 11 physical lobby features and 11 lobby UI/meta systems, each tagged existing / planned / new / needs a client decision, plus a suggested order and sources.
+- The Blade Ball fan wiki couldn't be read automatically; the doc lists its relevant pages to confirm in a browser. Lobby content changes with seasons, so a walkthrough of the live game is recommended before scoping.
+- No tasks were created from it (as the task requires); Sol decides.
 
 ---
-
-## In Progress
-
-## Review
 
 ### T-034 · Projectiles go through portals
 - **Priority:** P2
