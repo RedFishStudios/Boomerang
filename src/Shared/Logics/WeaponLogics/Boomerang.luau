@@ -25,6 +25,7 @@ local DynamicCollisionLibrary = require(ReplicatedStorage.Shared.Library.Dynamic
 local SharedTasks = require(ReplicatedStorage.Shared.Constants.SharedTasks)
 local HomingBoomerang = require(ReplicatedStorage.Shared.Logics.PickupLogics.HomingBoomerang)
 local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
+local Portal = require(ReplicatedStorage.Shared.Logics.Environment.Portal)
 local ClashedWeapons = require(ReplicatedStorage.Shared.Referential.ClashedWeapons)
 local ClashedWeaponLogic = require(ReplicatedStorage.Shared.Logics.WeaponLogics.Clashed)
 local HttpService = game:GetService("HttpService")
@@ -730,6 +731,19 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
             Boomerang.recall(player, boomerangId, toolData, thrownWeaponData)
             return true
          end
+      end
+
+      -- // Portals: the boomerang passes through and comes out of the paired portal (same on server and client)
+      local portalExit = Portal.getProjectileExit(rayOrigin, direction, rayDistance, hitboxRadius, thrownWeaponData.PortalExitAt, thrownWeaponData.PortalExitPart)
+      if portalExit then
+         direction = portalExit.Direction
+         thrownWeaponData.PortalExitAt = os.clock()
+         thrownWeaponData.PortalExitPart = portalExit.ExitPart
+         setWeaponCFrame(thrownWeaponData, CFrame.new(portalExit.Position), deltaTime)
+         distanceTraveled += rayDistance
+         thrownWeaponData.Direction = direction
+         thrownWeaponData.Speed = speed
+         return true
       end
 
       local victimModels = spherecastCharacterHitbox(rayOrigin, direction, rayDistance, hitboxRadius)

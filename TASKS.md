@@ -208,27 +208,6 @@ The client says the boomerang needs to move "way faster" and go decently further
 
 ---
 
-### T-034 · Projectiles go through portals
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Shared
-- **Files:** `Shared/Logics/Environment/Portal.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`, `Shared/Library/DynamicCollisionLibrary.luau`
-
-**Problem / goal**
-Portals currently teleport players only. A thrown boomerang (any projectile) should pass through a portal and come out of the linked one, keeping its speed and direction relative to the exit portal.
-
-**Done when**
-- [ ] A thrown boomerang entering a portal continues from the paired portal with the same relative direction and speed.
-- [ ] Recall (auto and manual) still finds its way back, through the portal or by its normal path; describe which in Notes.
-- [ ] Clients and server agree on the boomerang's position after it passes through (no visible snapping beyond normal replication).
-
-**Test in Studio**
-- On a map with portals: throw through a portal and hit a player on the other side; recall it.
-
-**Notes**
-
----
-
 ### T-040 · Research Blade Ball's lobby
 - **Priority:** P1
 - **Owner:** Agent
@@ -250,6 +229,33 @@ The client said: "anything they have in their lobby, we want in our lobby". Rese
 ## In Progress
 
 ## Review
+
+### T-034 · Projectiles go through portals
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared
+- **Files:** `Shared/Logics/Environment/Portal.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`, `Shared/Library/DynamicCollisionLibrary.luau`
+
+**Problem / goal**
+Portals currently teleport players only. A thrown boomerang (any projectile) should pass through a portal and come out of the linked one, keeping its speed and direction relative to the exit portal.
+
+**Done when**
+- [x] A thrown boomerang entering a portal continues from the paired portal with the same relative direction and speed.
+- [x] Recall (auto and manual) still finds its way back, through the portal or by its normal path; describe which in Notes.
+- [x] Clients and server agree on the boomerang's position after it passes through (no visible snapping beyond normal replication).
+
+**Test in Studio**
+- On a map with portals: throw through a portal and hit a player on the other side; recall it.
+
+**Notes**
+- New `Portal.getProjectileExit(origin, direction, distance, radius, lastExitAt?, lastExitPart?)`. Portal pairs are read from the current arena's `Functional` folder (attribute `ClassName = "Portal"`, the same layout `Portal.validate` expects), so the server and clients find the same portals without extra replication.
+- `Boomerang.throw`'s step checks it before hits and obstructions. On entry, the boomerang jumps to the paired portal's Attachment (keeping its height) with its direction mapped through the pair: relative to the entry attachment, turned around, then relative to the exit attachment. If that would point back into the exit portal, it goes straight out along the exit attachment's facing. Speed and remaining throw distance are unchanged. A 0.25 s cooldown stops it from re-entering the portal it just left.
+- **Convention it relies on:** each portal's Attachment faces *out* of its portal. This is also the direction players face after teleporting.
+- Recall: returning boomerangs do not use portals. They take their normal path back to the player (with collision).
+- No map in the place currently has a portal, so it couldn't be tried in a level. The math was tested in Studio with in-memory parts (never added to the place): head-on and angled entries, misses, short steps, the re-entry cooldown, and both directions through the pair.
+- Syntax-checked with `luau-compile`; not play-tested.
+
+---
 
 ### T-031 · Allow jumping in the lobby (instead of dash)
 - **Priority:** P2

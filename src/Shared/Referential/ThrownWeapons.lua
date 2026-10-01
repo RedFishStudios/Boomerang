@@ -31,6 +31,8 @@ export type Data = {
    ExistingHost: Model?,
    LastMovementPositions: {Vector3}?,
    HitPlayers: {[Player]: number}?,
+   PortalExitAt: number?, -- // os.clock() of the last portal exit (Environment/Portal)
+   PortalExitPart: BasePart?, -- // The portal it last came out of
    TrailObject: {
       TrailHost: Part,
       Trail: Trail,
