@@ -24,6 +24,11 @@ export type Template = {
    PickupsAcquired: {
       [string]: number -- Pickup class id : times picked up
    },
+   MonthlyStats: { -- // This month's Elims/Wins for the monthly leaderboards; reset when MonthKey changes
+      MonthKey: string, -- UTC month, e.g. "2026-10" ("" = never set)
+      Elims: number,
+      Wins: number,
+   },
    Currency: number,
    DailyRewards: {
       Streak: number, -- Current daily reward streak
@@ -51,6 +56,11 @@ function ProfileTemplate.get()
       TimePlayed = 0,
       AbilityUses = {},
       PickupsAcquired = {},
+      MonthlyStats = {
+         MonthKey = "",
+         Elims = 0,
+         Wins = 0,
+      },
       Currency = 0,
       DailyRewards = {
          Streak = 0,

@@ -3,7 +3,7 @@
 
 	Description:
 	Owns the lifetime stats saved in the player's profile: Elims, Defeats, Wins, RoundsPlayed,
-	TimePlayed, AbilityUses and PickupsAcquired. Other code shouldn't write these fields directly.
+	TimePlayed, AbilityUses, PickupsAcquired and MonthlyStats. Other code shouldn't write these fields directly.
 	(Live, per-life stats like health are in PlayerStatService.)
 ]]
 
@@ -18,6 +18,7 @@ local PickupService = require(ServerStorage.Server.Core.PickupService)
 local CombatLibrary = require(ReplicatedStorage.Shared.Library.CombatLibrary)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local SharedTasks = require(ReplicatedStorage.Shared.Constants.SharedTasks)
+local LeaderboardConstants = require(ReplicatedStorage.Shared.Constants.LeaderboardConstants)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -60,6 +61,18 @@ local function incrementCount(player: Player, field: "AbilityUses" | "PickupsAcq
 	end
 	local counts = data[field]
 	counts[id] = (counts[id] or 0) + 1
+end
+
+-- // Adds 1 to this month's Elims or Wins, starting a new month if it changed
+local function incrementMonthly(data: PlayerDataService.Data, field: "Elims" | "Wins")
+	local monthly = data.MonthlyStats
+	local monthKey = LeaderboardConstants.getMonthKey()
+	if monthly.MonthKey ~= monthKey then
+		monthly.MonthKey = monthKey
+		monthly.Elims = 0
+		monthly.Wins = 0
+	end
+	monthly[field] += 1
 end
 
 local function flushTimePlayed(player: Player)
@@ -109,6 +122,7 @@ function LifetimeStatsService.addWin(player: Player)
 	local data = PlayerDataService.get(player)
 	if data then
 		data.Wins += 1
+		incrementMonthly(data, "Wins")
 	end
 end
 
@@ -143,6 +157,7 @@ function LifetimeStatsService.init()
 		local killerData = PlayerDataService.get(killer)
 		if killerData then
 			killerData.Elims += 1
+			incrementMonthly(killerData, "Elims")
 		end
 		local victimData = PlayerDataService.get(victim)
 		if victimData then

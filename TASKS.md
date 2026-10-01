@@ -98,6 +98,39 @@ Spec: `docs/LOBBY_SPEC.md`. Every lobby station (pedestals, wheel, crates, group
 
 ## Review
 
+### T-032 · Lobby leaderboards (Eliminations + Wins, Monthly / All-Time)
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Server / Client
+- **Files:** `Server/Core/LeaderboardService.luau`, `Client/Core/LeaderboardController.luau`, `Shared/Constants/LeaderboardConstants.luau`, `Shared/Data/ProfileTemplate.luau`, `Server/Core/LifetimeStatsService.luau`, `Server/Cmdr/Commands/RefreshLeaderboards*.luau`
+
+**First lobby feature (Sol, 2026-10-01).** Depends on T-048 (stats tracking).
+
+**Problem / goal (Sol's spec)**
+- Two physical boards: `workspace.Lobby.Leaderboards.Elims` ("Eliminations", never "Kills") and `.Wins`. GUI on the large side facing the lobby floor.
+- Each board has two CanvasGroups, **Monthly** and **All-Time**, cross-fading every 10 s.
+- Top 30 per board; data refreshed every 10 minutes.
+- **No podium for now** (ask Sol later).
+
+**Done when**
+- [ ] Both boards show Monthly / All-Time, alternating every 10 s, top 30 with rank, headshot, display name and value.
+- [ ] Scores are saved and the boards reload every 10 minutes; monthly boards start fresh each UTC month.
+
+**Test in Studio**
+- Needs Studio API access for DataStores (Game Settings > Security). Get some eliminations/wins, then `refreshleaderboards` (Cmdr) instead of waiting 10 min. Check both boards, both periods, the fade, and the side they're drawn on.
+- Multi-player check: Team Test or a live test server.
+
+**Notes**
+- Stores: `OrderedDataStore`s named `{Dev|Live}_{Elims|Wins}_{AllTime|YYYY-MM}`, so Studio data never mixes with live (same idea as PlayerDataService's `Dev` key). Studio uses `Dev`.
+- Server cost: one background loop every 10 min (writes only changed scores > 0, then 4 `GetSortedAsync` + 1 batched display-name request). Scores are also written when a player leaves. Nothing per frame, no instances replicated: clients build the SurfaceGuis themselves (in PlayerGui, adorned to the board parts) and do the fading locally. `MaxDistance` 200 hides them far away; hidden CanvasGroups are set invisible.
+- Monthly scores: new profile field `MonthlyStats` (`MonthKey`, `Elims`, `Wins`), updated by `LifetimeStatsService` next to the all-time values. Only Elims/Wins earned from this change on count.
+- Faces (from Studio raycasts toward the lobby floor): Elims = `Right`, Wins = `Left`. Set in `LeaderboardConstants.Boards` if a board is moved.
+- Visuals are code-built placeholders (`-- TODO: placeholder visuals` in `LeaderboardController`); restyle or swap for a template later.
+- **Check in Studio:** both board parts are **unanchored with no joints**, so they'll fall when the game runs. Anchor them (place-only change; I didn't touch the place).
+- New Cmdr: `refreshleaderboards` (alias `refreshlb`).
+
+---
+
 ### T-048 · Track more player stats
 - **Priority:** P1
 - **Owner:** Agent
@@ -818,30 +851,6 @@ New behaviour: when an electric boomerang kills a player, every other player wit
 
 **Notes**
 - Depends on T-028 (water kills).
-
----
-
-### T-032 · Lobby leaderboard of top eliminations, with a top-3 podium
-- **Priority:** P2
-- **Owner:** Sol → Agent
-- **Area:** Server / Client
-- **Files:** New: e.g. `Server/Core/LeaderboardService.luau`; `Shared/Data/ProfileTemplate.luau` (`Elims`)
-
-**First lobby feature (Sol, 2026-10-01).** Depends on T-048 (stats tracking, in Review): `Wins` is only tracked from T-048 on.
-
-**Problem / goal**
-Physical leaderboards in the lobby (see `docs/LOBBY_SPEC.md`): **Most Eliminations** (`Profile.Elims`; never title it "Kills") and **Most Wins** (`Profile.Wins`), top 30 each, with a podium where top players stand (as rigs/avatars). More boards may follow from T-048's stats.
-- **Sol:** build the board and podium in the lobby.
-- **Agent:** keep an OrderedDataStore of lifetime elims (updated on save/leave and periodically), refresh the board on an interval, and load the top 3 players' avatars onto the podium.
-
-**Open questions (ask Sol first)**
-- How often should it refresh? (**Sol: show the top 30 players.**)
-- Global all-time only, or also weekly?
-- Podium: the spec shows a single #1 display; the earlier request was a top-3 podium. Which, and for which board (or rotating)?
-- **Sol:** the podium shows each player's currently equipped avatar, fetched once on server startup (no refresh needed).
-- Studio data uses the `Dev` key; should the Studio leaderboard use a separate store too?
-
-**Notes**
 
 ---
 
