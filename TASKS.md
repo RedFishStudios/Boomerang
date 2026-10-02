@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-057** *(shared by every task list, general and Epic)*
+**Next free ID: T-058** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -82,6 +82,30 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-057 · NotInvolved player state + Cmdr command
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Server / Rounds
+- **Files:** `Server/Core/PlayerSessionService.luau` (new), `Server/Core/SpawnService.luau`, `Server/Cmdr/Commands/NotInvolved.luau` + `NotInvolvedServer.luau` (new)
+
+**Problem / goal**
+Server-only, non-replicated per-session `NotInvolved` state: the player doesn't take part in rounds and isn't added when a round starts. Cmdr `notinvolved [bool]` toggles it on the sender (no value = true).
+
+**Done when**
+- [ ] `notinvolved` / `notinvolved true` keeps you out of the next round; `notinvolved false` lets you back in.
+
+**Test in Studio**
+- Two players (local server). Player A runs `notinvolved`; when the next round starts, A stays in the lobby and B plays.
+- Try a respawn / late-join gamemode: A still doesn't spawn in.
+- `notinvolved false`, then the next round includes A.
+
+**Notes**
+- New `PlayerSessionService` holds per-session server-only data (cleared on leave). Starts false on join. Fires `NotInvolvedChangedTasks`.
+- `SpawnService`: NotInvolved players are skipped when the round starts and `canSpawnIntoRound` returns false for them.
+- Turning it on mid-round doesn't remove the player now; they just can't respawn. Still counted in voting and `PlayersRequiredToStart` (open questions for Sol). Gamemode logic that loops `Players:GetPlayers()` (e.g. team setup) wasn't changed.
+
+---
 
 ### T-048 · Track more player stats
 - **Priority:** P1

@@ -19,6 +19,7 @@ local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibra
 local Gamemodes = require(ReplicatedStorage.Shared.Constants.Gamemodes)
 
 local LobbyService = require(ServerStorage.Server.Core.LobbyService)
+local PlayerSessionService = require(ServerStorage.Server.Core.PlayerSessionService)
 local GameplayPhases = require(ReplicatedStorage.Shared.Constants.Enums.GameplayPhases)
 
 -------------------------------------------------------------------------------
@@ -125,6 +126,9 @@ local function sendAllPlayersToArena()
    local playersAwaitingInitialSpawn = {} :: {[Player]: true}
    table.clear(roundParticipants)
    for _, player in ipairs(Players:GetPlayers()) do
+      if PlayerSessionService.isNotInvolved(player) then
+         continue
+      end
       roundParticipants[player] = true
       if SpawnService.isPlayerReadyForArena(player) then
          SpawnService.sendPlayerToArena(player)
@@ -140,8 +144,11 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
--- // True if the player may (re)spawn into the active round: respawning must be enabled, and late joiners are only allowed if the gamemode permits it
+-- // True if the player may (re)spawn into the active round: they must not be NotInvolved, respawning must be enabled, and late joiners are only allowed if the gamemode permits it
 function SpawnService.canSpawnIntoRound(player: Player): boolean
+   if PlayerSessionService.isNotInvolved(player) then
+      return false
+   end
    local currentRoundData = GameStateLibrary.getGameStateData().CurrentRoundData:Get()
    if currentRoundData == nil or not currentRoundData.CanRespawn then
       return false
