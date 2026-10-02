@@ -7,26 +7,6 @@ Take new IDs from the `Next free ID` line in [TASKS.md](../../../TASKS.md). Ever
 
 ## Ready
 
-### T-053 · Leaderboards fade between periods
-- **Priority:** P2
-- **Owner:** Agent
-- **Epic:** Lobby
-- **Area:** Client
-- **Files:** `Client/Core/LeaderboardController.luau`, `Shared/Constants/LeaderboardConstants.luau`
-
-**Problem / goal**
-The leaderboards switch abruptly between Monthly and All-Time. They should fade gradually, using a CanvasGroup for the fade. The controller already has a cross-fade (`fade()` tweens each period's CanvasGroup `GroupTransparency` over `FadeDuration` = 0.6 s), so find out why it doesn't show in game (e.g. CanvasGroups inside a SurfaceGui, `Visible` toggled too early, or the changes in commit `5158746` "Updated leaderboard visuals") and fix it.
-
-**Done when**
-- [ ] Each board fades smoothly from one period to the other, with no pop.
-
-**Test in Studio**
-- Stand by the boards for 10+ seconds (`DisplaySwapInterval`) and watch a swap on both boards.
-
-**Notes
-
----
-
 ### T-047 · Lobby station framework (labels, glowing pads, proximity prompts)
 - **Priority:** P1
 - **Owner:** Agent
@@ -50,6 +30,31 @@ Spec: `docs/LOBBY_SPEC.md`. Every lobby station (pedestals, wheel, crates, group
 ## In Progress
 
 ## Review
+
+### T-053 · Leaderboards fade between periods
+- **Priority:** P2
+- **Owner:** Agent
+- **Epic:** Lobby
+- **Area:** Client
+- **Files:** `Client/Core/LeaderboardController.luau`, `Shared/Constants/LeaderboardConstants.luau`
+
+**Problem / goal**
+The leaderboards switch abruptly between Monthly and All-Time. They should fade gradually, using a CanvasGroup for the fade. The controller already has a cross-fade (`fade()` tweens each period's CanvasGroup `GroupTransparency` over `FadeDuration` = 0.6 s), so find out why it doesn't show in game (e.g. CanvasGroups inside a SurfaceGui, `Visible` toggled too early, or the changes in commit `5158746` "Updated leaderboard visuals") and fix it.
+
+**Done when**
+- [ ] Each board fades smoothly from one period to the other, with no pop.
+
+**Test in Studio**
+- Stand by the boards and run `triggerleaderboardchange` (or wait 10 s): both boards fade to the other period.
+
+**Notes**
+- Likely cause: 4 full-board CanvasGroups (2 per board, at 100 pixels per stud) exceeded Roblox's CanvasGroup texture memory, so they were drawn as plain frames and `GroupTransparency` was ignored. Only the instant `Visible` toggle remained. (Not confirmed in Studio: the place wasn't open.)
+- Fix: each board now has a static background (frame, banner, panel) and **one** CanvasGroup (`Fader`) holding only each period's title and entries. A swap fades the Fader out, switches period and fades it back in. `FadeDuration` is now 1 s for the whole swap (0.5 s out, 0.5 s in).
+- If it still pops: check the Studio output for a CanvasGroup memory warning; lowering `PIXELS_PER_STUD` in the controller would shrink the CanvasGroup further.
+- Cmdr `triggerleaderboardchange` (alias `swaplb`) swaps every player's boards now; the 10 s timer restarts after any swap.
+- Uncommitted. Files: `Client/Core/LeaderboardController.luau`, `Shared/Constants/LeaderboardConstants.luau`, `Server/Core/LeaderboardService.luau`, `Server/Cmdr/Commands/TriggerLeaderboardChange*.luau`.
+
+---
 
 ### T-032 · Lobby leaderboards (Eliminations + Wins, Monthly / All-Time)
 - **Priority:** P2

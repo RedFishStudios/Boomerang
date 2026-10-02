@@ -41,6 +41,7 @@ type Entry = LeaderboardConstants.Entry
 
 local leaderboardsUpdated = SimpleRemotes.getEvent("LeaderboardsUpdated")
 local getLeaderboards = SimpleRemotes.getFunction("GetLeaderboards")
+local swapLeaderboardPeriods = SimpleRemotes.getEvent("SwapLeaderboardPeriods")
 
 local stores: { [string]: OrderedDataStore } = {}
 local currentData: LeaderboardData = {}
@@ -202,6 +203,11 @@ end
 -- // Yields. Saves scores and reloads the boards now (for testing: Cmdr "refreshleaderboards")
 function LeaderboardService.refreshNow()
 	refresh()
+end
+
+-- // Makes every client's boards fade to the next period now (for testing: Cmdr "triggerleaderboardchange")
+function LeaderboardService.swapPeriodsNow()
+	swapLeaderboardPeriods:FireAllClients()
 end
 
 -------------------------------------------------------------------------------

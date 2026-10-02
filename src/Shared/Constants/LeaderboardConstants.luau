@@ -6,7 +6,7 @@
 local LeaderboardConstants = {
 	RefreshInterval = 10 * 60, -- // Seconds between saving scores and reloading the top players
 	DisplaySwapInterval = 10, -- // Seconds each board shows Monthly / All-Time before fading to the other
-	FadeDuration = 0.6,
+	FadeDuration = 1, -- // Seconds for a full swap: half fading out, half fading back in (T-053)
 	EntriesShown = 30,
 
 	-- // One physical board per stat, in workspace.Lobby.Leaderboards. Face = the large side facing the lobby floor

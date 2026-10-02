@@ -78,7 +78,7 @@ Boomerang logic runs on both the server and the client, so a changed value must 
 **Test in Studio**
 - Local server with 2 players: change each value, throw/recall on both clients, and check the boomerang matches on both.
 
-**Notes
+**Notes**
 
 ---
 
@@ -251,7 +251,7 @@ For client review, `GlobalConfig.CmdrOpenToEveryone = true` lets **every player*
 **Test in Studio**
 - Published test place, non-admin account: F2 does nothing and Cmdr remotes refuse commands. Admin account: F2 works.
 
-**Notes
+**Notes**
 
 ---
 

@@ -3,8 +3,9 @@
 
 	Description:
 	Draws the lobby leaderboards (T-032) on the physical boards in workspace.Lobby.Leaderboards.
-	Each board has one SurfaceGui (in PlayerGui, adorned to the board part) with a CanvasGroup per
-	period (Monthly / All-Time); they cross-fade every LeaderboardConstants.DisplaySwapInterval.
+	Each board has one SurfaceGui (in PlayerGui, adorned to the board part): a static background, and one
+	CanvasGroup ("Fader") holding each period's title and entries (Monthly / All-Time). Every
+	LeaderboardConstants.DisplaySwapInterval the Fader fades out, swaps period and fades back in (T-053).
 	Entries come from LeaderboardService.
 ]]
 
@@ -44,6 +45,10 @@ local RANK_COLORS = { -- // Top 3 get outlined coloured text, like "SALE!"
 	[3] = Color3.fromRGB(240, 150, 70),
 }
 local FONT = Enum.Font.FredokaOne
+local BANNER_SIZE = UDim2.fromScale(0.94, HEADER_HEIGHT * 0.86)
+local BANNER_POSITION = UDim2.fromScale(0.03, HEADER_HEIGHT * 0.1)
+local PANEL_SIZE = UDim2.fromScale(0.96, 1 - HEADER_HEIGHT - 0.03)
+local PANEL_POSITION = UDim2.fromScale(0.02, HEADER_HEIGHT + 0.01)
 
 -------------------------------------------------------------------------------
 -- TYPES
@@ -51,7 +56,8 @@ local FONT = Enum.Font.FredokaOne
 
 type BoardGui = {
 	Gui: SurfaceGui,
-	Groups: { [string]: CanvasGroup },
+	Fader: CanvasGroup,
+	Groups: { [string]: Frame },
 	Lists: { [string]: Frame },
 }
 
@@ -63,6 +69,8 @@ local localPlayer = Players.LocalPlayer
 
 local boardGuis: { [string]: BoardGui } = {}
 local shownPeriodIndex = 1
+local swapCount = 0 -- // Lets a fade that was overtaken by a newer swap stop early
+local nextSwapTime = 0
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -158,45 +166,69 @@ local function createRow(entry: LeaderboardConstants.Entry): Frame
 	return row
 end
 
-local function createPeriodGroup(board: { Title: string }, period: string): (CanvasGroup, Frame)
-	local group = Instance.new("CanvasGroup")
-	group.Name = period
-	group.Size = UDim2.fromScale(1, 1)
-	group.BackgroundColor3 = FRAME_COLOR
-	group.BorderSizePixel = 0
-	addCorner(group, UDim.new(0.04, 0))
-
-	addBorder(group, FRAME_STROKE_COLOR, 8)
+-- // Static board background: wooden frame, banner and parchment panel (the same for every period)
+local function createBoardFrame(): Frame
+	local root = Instance.new("Frame")
+	root.Name = "Board"
+	root.Size = UDim2.fromScale(1, 1)
+	root.BackgroundColor3 = FRAME_COLOR
+	root.BorderSizePixel = 0
+	addCorner(root, UDim.new(0.04, 0))
+	addBorder(root, FRAME_STROKE_COLOR, 8)
 
 	local banner = Instance.new("Frame")
 	banner.Name = "Banner"
 	banner.BackgroundColor3 = BANNER_COLOR
 	banner.BorderSizePixel = 0
-	banner.Size = UDim2.fromScale(0.94, HEADER_HEIGHT * 0.86)
-	banner.Position = UDim2.fromScale(0.03, HEADER_HEIGHT * 0.1)
+	banner.Size = BANNER_SIZE
+	banner.Position = BANNER_POSITION
 	addCorner(banner, UDim.new(0.25, 0))
 	addBorder(banner, OUTLINE_COLOR, 4)
-	banner.Parent = group
-
-	local title = createLabel("Title", `{LeaderboardConstants.PeriodTitles[period]} {board.Title}`, UDim2.fromScale(0.9, 0.8), UDim2.fromScale(0.05, 0.1))
-	title.Parent = banner
+	banner.Parent = root
 
 	local panel = Instance.new("Frame")
 	panel.Name = "Panel"
 	panel.BackgroundColor3 = PANEL_COLOR
 	panel.BorderSizePixel = 0
-	panel.Size = UDim2.fromScale(0.96, 1 - HEADER_HEIGHT - 0.03)
-	panel.Position = UDim2.fromScale(0.02, HEADER_HEIGHT + 0.01)
+	panel.Size = PANEL_SIZE
+	panel.Position = PANEL_POSITION
 	addCorner(panel, UDim.new(0.03, 0))
 	addBorder(panel, OUTLINE_COLOR, 4)
-	panel.Parent = group
+	panel.Parent = root
+
+	return root
+end
+
+-- // One period's contents (title + entries), laid over the static banner and panel. Lives inside the board's Fader.
+local function createPeriodGroup(board: { Title: string }, period: string): (Frame, Frame)
+	local group = Instance.new("Frame")
+	group.Name = period
+	group.Size = UDim2.fromScale(1, 1)
+	group.BackgroundTransparency = 1
+
+	local titleArea = Instance.new("Frame")
+	titleArea.Name = "TitleArea"
+	titleArea.BackgroundTransparency = 1
+	titleArea.Size = BANNER_SIZE
+	titleArea.Position = BANNER_POSITION
+	titleArea.Parent = group
+
+	local title = createLabel("Title", `{LeaderboardConstants.PeriodTitles[period]} {board.Title}`, UDim2.fromScale(0.9, 0.8), UDim2.fromScale(0.05, 0.1))
+	title.Parent = titleArea
+
+	local listArea = Instance.new("Frame")
+	listArea.Name = "ListArea"
+	listArea.BackgroundTransparency = 1
+	listArea.Size = PANEL_SIZE
+	listArea.Position = PANEL_POSITION
+	listArea.Parent = group
 
 	local list = Instance.new("Frame")
 	list.Name = "List"
 	list.BackgroundTransparency = 1
 	list.Size = UDim2.fromScale(0.97, 0.96)
 	list.Position = UDim2.fromScale(0.015, 0.02)
-	list.Parent = panel
+	list.Parent = listArea
 
 	-- // Two columns of ROWS_PER_COLUMN, filled top to bottom
 	local grid = Instance.new("UIGridLayout")
@@ -224,13 +256,24 @@ local function createBoardGui(boardId: string, board: { Title: string, Face: Enu
 	gui.MaxDistance = MAX_DISTANCE
 	gui.ResetOnSpawn = false
 
-	local boardGui: BoardGui = { Gui = gui, Groups = {}, Lists = {} }
+	createBoardFrame().Parent = gui
+
+	-- // A single CanvasGroup per board, holding only what changes between periods. Fading it out, swapping the
+	-- // period and fading it back in halves CanvasGroup texture memory (was one per period): when that budget runs out, Roblox
+	-- // draws CanvasGroups as plain frames and GroupTransparency stops working (the swap then looks instant).
+	local fader = Instance.new("CanvasGroup")
+	fader.Name = "Fader"
+	fader.Size = UDim2.fromScale(1, 1)
+	fader.BackgroundTransparency = 1
+	fader.BorderSizePixel = 0
+	fader.ZIndex = 2
+	fader.Parent = gui
+
+	local boardGui: BoardGui = { Gui = gui, Fader = fader, Groups = {}, Lists = {} }
 	for i, period in LeaderboardConstants.Periods do
 		local group, list = createPeriodGroup(board, period)
-		local shown = i == shownPeriodIndex
-		group.GroupTransparency = if shown then 0 else 1
-		group.Visible = shown
-		group.Parent = gui
+		group.Visible = i == shownPeriodIndex
+		group.Parent = fader
 		boardGui.Groups[period] = group
 		boardGui.Lists[period] = list
 	end
@@ -262,29 +305,35 @@ local function applyData(data: LeaderboardConstants.LeaderboardData)
 	end
 end
 
-local function fade(group: CanvasGroup, show: boolean)
-	if show then
-		group.Visible = true
-	end
-	local tween = TweenService:Create(group, TweenInfo.new(LeaderboardConstants.FadeDuration), {
-		GroupTransparency = if show then 0 else 1,
+local function tweenFader(fader: CanvasGroup, transparency: number): Tween
+	local tween = TweenService:Create(fader, TweenInfo.new(LeaderboardConstants.FadeDuration / 2, Enum.EasingStyle.Sine), {
+		GroupTransparency = transparency,
 	})
-	tween.Completed:Once(function(state)
-		-- // Hidden groups don't need to be drawn
-		if not show and state == Enum.PlaybackState.Completed then
-			group.Visible = false
-		end
-	end)
 	tween:Play()
+	return tween
 end
 
+-- // Fade each board's contents out, show the next period, then fade back in
 local function swapPeriods()
 	local periods = LeaderboardConstants.Periods
 	shownPeriodIndex = shownPeriodIndex % #periods + 1
+	swapCount += 1
+	nextSwapTime = os.clock() + LeaderboardConstants.DisplaySwapInterval
+	local thisSwap = swapCount
 	for _, boardGui in boardGuis do
-		for i, period in periods do
-			fade(boardGui.Groups[period], i == shownPeriodIndex)
-		end
+		task.spawn(function()
+			local fadeOut = tweenFader(boardGui.Fader, 1)
+			if fadeOut.PlaybackState ~= Enum.PlaybackState.Completed then
+				fadeOut.Completed:Wait()
+			end
+			if thisSwap ~= swapCount then
+				return -- // A newer swap (e.g. from Cmdr) took over this board's fade
+			end
+			for i, period in periods do
+				boardGui.Groups[period].Visible = i == shownPeriodIndex
+			end
+			tweenFader(boardGui.Fader, 0)
+		end)
 	end
 end
 
@@ -312,6 +361,7 @@ function LeaderboardController.init()
 		boardGuis[boardId] = createBoardGui(boardId, board)
 	end
 	SimpleRemotes.getEvent("LeaderboardsUpdated").OnClientEvent:Connect(applyData)
+	SimpleRemotes.getEvent("SwapLeaderboardPeriods").OnClientEvent:Connect(swapPeriods)
 end
 
 function LeaderboardController.start()
@@ -320,9 +370,15 @@ function LeaderboardController.start()
 		applyData(SimpleRemotes.getFunction("GetLeaderboards"):InvokeServer())
 	end)
 	task.spawn(function()
+		-- // A swap (timed or from Cmdr) pushes nextSwapTime back, so each period always shows for the full interval
+		nextSwapTime = os.clock() + LeaderboardConstants.DisplaySwapInterval
 		while true do
-			task.wait(LeaderboardConstants.DisplaySwapInterval)
-			swapPeriods()
+			local remaining = nextSwapTime - os.clock()
+			if remaining > 0 then
+				task.wait(remaining)
+			else
+				swapPeriods()
+			end
 		end
 	end)
 end
