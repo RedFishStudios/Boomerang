@@ -23,6 +23,11 @@ Not started yet. Each one begins with **Discovery** when Sol picks it up. Format
 - **Discovery should cover:** the questions to work through first.
 ```
 
+### Weapons & Skins
+- **Priority:** P2
+- **Pitch:** Settle what separates an **alternate weapon** (e.g. Shuriken, Fan) from a **cosmetic skin** that keeps the same stats, then build how players equip them. Today `GlobalConfig.ForceEquippedTool` forces `ClassicBoomerang` for everyone. Replaces task T-036. Blocks the weapon crate station (T-044, Lobby).
+- **Discovery should cover:** the final rule for "alternate weapon" vs "skin" (do alternates change stats/behaviour, or are all of them skins?); whether skins can apply to any weapon or only one; how equipping works (loadout screen, per-round choice, one weapon + one skin?) and whether gamemodes can override it; how it's saved in the profile (`Inventory` + an equipped field); how it fits `Items.luau`, `Tools.luau` and `ToolService`; where it's sold or won (shop, crates, wheel) and the GUI it needs.
+
 ### Quests
 - **Priority:** P2
 - **Pitch:** Daily/weekly objectives that give players a reason to come back and play more rounds, with rewards. Replaces task T-038.

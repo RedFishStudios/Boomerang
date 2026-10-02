@@ -83,121 +83,6 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
-### T-056 · Electric + Explosive: explosion eliminations start electric chains
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Shared
-- **Files:** `Shared/Logics/PickupLogics/ElectricBoomerang.luau`, `Shared/Logics/PickupLogics/ExplosiveBoomerang.luau`
-
-**Problem / goal**
-Phase 3 of T-029 (Sol's decision, 2026-10-02): with both Electric and Explosive active, every player eliminated by the explosion also starts an electric chain from them, exactly like a thrown Electric boomerang elimination (credited to the thrower, thrower and teammates exempt, arcs and radius visual).
-- Explosion eliminations currently reach `PlayerKilledPlayerTasks` with weapon id `"ExplosiveBoomerang"`, which the chain listener ignores.
-
-**Done when**
-- [ ] Electric + Explosive explosion eliminations start chains; Explosive alone doesn't.
-- [ ] Explosions never eliminate the thrower's teammates.
-
-**Test in Studio**
-- `getpickup` Electric and Explosive, explode next to one player in a group: the explosion victims each chain to enemies within `GlobalConfig.ElectricChainRadius`.
-- TeamClassic/TeamElimination: an explosion next to a teammate doesn't eliminate them.
-
-**Notes**
-- Depends on T-029.
-- The chain listener in `ElectricBoomerang.luau` now also starts a chain when the weapon id is `"ExplosiveBoomerang"` and the killer has Electric active. Everything else (credit, exemptions, arcs, radius visual) is the same path as a thrown hit.
-- Sol: explosions now spare teammates too (`ExplosiveBoomerang` skips non-enemies via `GameTeamLibrary.areEnemies`), with or without Electric.
-- Not lint-checked.
-
----
-### T-054 · Cmdr commands for boomerang tuning
-- **Priority:** P2
-- **Owner:** Sol → Agent
-- **Area:** Server / Shared / Tooling
-- **Files:** `Server/Cmdr/Commands/` (new definition + `<Name>Server` pairs); values in `Shared/Constants/Tools.luau` (`Speed`, `ThrowDistance`) and `Shared/Constants/GlobalConfig.luau` (`ManualRecallSpeedMultiplier`, `ManualRecallMomentumMultiplier`); used by `Shared/Logics/WeaponLogics/Boomerang.luau`
-
-**Problem / goal**
-Let Sol tune boomerang feel live in a server, without editing code. Add Cmdr commands (group `DevTesting`, so they show under "Boomerang commands" in `help`) to set:
-- **Maximum throw speed** (`Speed` in Tools)
-- **Maximum throw distance** (`ThrowDistance` in Tools)
-- **Maximum manual recall speed** (currently `ManualRecallSpeedMultiplier` × max speed)
-- **Manual recall pickup speed**: how quickly a manually recalling boomerang reaches its max speed (currently `ManualRecallMomentumMultiplier`)
-
-Boomerang logic runs on both the server and the client, so a changed value must reach every client too (e.g. replicated attributes), or the client's prediction won't match the server. Changes last for the server session only (not saved). Running a command with no value should print the current value, and there should be a way to reset to the defaults.
-
-**Decisions**
-- Per tool: a command changes the weapon the caller is currently holding (Sol, 2026-10-02).
-- Units: ThrowSpeed, ThrowDistance and RecallSpeed are absolute (studs/s, studs, studs/s); RecallAcceleration stays a multiplier (1 = normal recall). RecallSpeed is its own per-tool value, `ManualRecallSpeed` in Tools (Sol, 2026-10-02), replacing `GlobalConfig.ManualRecallSpeedMultiplier`; defaults equal each tool's Speed, so nothing changes in play.
-
-**Done when**
-- [x] The four values can be set, shown and reset from Cmdr, and take effect on the next throw/recall for every player.
-
-**Test in Studio**
-- Local server with 2 players: change each value, throw/recall on both clients, and check the boomerang matches on both.
-
-**Notes**
-- New `Shared/Library/BoomerangTuningLibrary`: per-tool overrides stored as `ReplicatedStorage` attributes (`BoomerangTuning_<ToolId>_<Setting>`), so they replicate; falls back to Tools/GlobalConfig. `Boomerang.luau` reads it for throw speed/distance and manual recall speed/acceleration.
-- Cmdr: `tuneboomerang [setting] [value]` (alias `tune`; no args = show all, no value = show one) and `resetboomerang [setting]` (no setting = reset all). New type `boomerangsetting` (ThrowSpeed, ThrowDistance, RecallSpeed, RecallAcceleration). Values must be > 0.
-- Added `WeaponService.getEquippedToolId(player)`.
-- Live update (Sol's follow-up): values are re-read every frame, so a boomerang already in flight picks up changes. A changed ThrowSpeed eases toward the new value (same rate as the aim-bonus fade); ThrowDistance applies immediately; recall speed/acceleration apply mid-recall. Test: `tune ThrowSpeed 1`, throw, `tune ThrowSpeed 80` → it should speed back up to 80 (check on both clients).
-- Not lint-checked (no Selene/luau-analyze here). Test as below, plus `tune` with no weapon held.
-
----
-
-### T-055 · Topbar buttons (first one: Daily rewards)
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Client / GUI
-- **Files:** `Client/UI/Gui/Topbar/init.luau` (new), `Client/UI/Gui/DailyClaims/init.luau`
-
-**Problem / goal**
-Buttons in the top bar, lined up with Roblox's default topbar buttons (player list, chat). Each button is placed on the left or the right, has a short text and an optional icon, and is as wide as its text needs. Every button uses the same text size. First button: "Daily" with a gift emoji, which opens/closes the Daily Rewards menu.
-
-**Done when**
-- [x] A reusable `TopbarGui.addButton({ Id, Text, Icon?, Side, Order?, onActivated })` that any feature can call.
-- [x] The "Daily" button toggles the Daily Rewards menu.
-
-**Test in Studio**
-- PC and mobile emulator (a few screen sizes): the Daily button sits in the top bar next to Roblox's buttons, same height and vertical position, text fully visible, and it opens and closes Daily Rewards.
-- Open/close the chat and the player list: our button never overlaps Roblox's buttons.
-
-**Notes**
-- `Client/UI/Gui/Topbar` is code-built (no `.rbxmx`). Its ScreenGui uses `ScreenInsets = TopbarSafeInsets`, so Roblox keeps it inside the free part of the top bar: left buttons start after Roblox's left buttons, right buttons end before Roblox's right buttons. Buttons are 44 px tall, 12 px from the top (Roblox's own size), and shrink if the top bar is shorter.
-- Style: a dark, slightly see-through pill like Roblox's buttons, white FredokaOne text at size 20 for every button, width from `AutomaticSize`. All values are constants at the top of the module (swap in Sol's assets later if wanted).
-- `Icon` is an emoji/text glyph, or an image id (`rbxassetid://...`).
-- **Emoji:** used 🎁 (gift). There's no "gift basket" emoji; if you meant the basket (🧺), it's a one-character change in `DailyClaims/init.luau`.
-- DailyClaims registers its own button in `start()`. The Studio-only `Y` key toggle is still there.
-- Like HudButtons, the top bar isn't flagged `RequiresMouse`, so on PC it can't be clicked while the over-the-shoulder camera locks the mouse during a round (Roblox's own buttons behave the same). Fine in the lobby.
-- Replaces T-050 (closed by Sol, 2026-10-02).
-- Not syntax-checked: no Luau checker is installed on this machine.
-
----
-
-### T-026 · Menus can lock the screen in the over-the-shoulder camera
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Client / GUI
-- **Files:** `Client/UI/UIController.luau`, `Client/Core/CustomCameraController.luau`, `Client/UI/Gui/*`
-
-**Problem / goal**
-In the in-game over-the-shoulder camera the mouse is locked/hidden, so a clickable GUI that appears during a round (e.g. Shop, Daily Claims, Voting, ItemAcquired with buttons) can't be clicked or closed, and the player is stuck. Audit every GUI that can open during a round and make sure the mouse is freed while it's open (e.g. a `Modal` button or `UserInputService.MouseBehavior`/`MouseIconEnabled` handled centrally in `UIController` for menu-type GUIs), and restored when it closes.
-
-**Done when**
-- [x] Opening any menu-type GUI while in the arena camera frees the mouse; closing the last one restores the camera's mouse lock.
-- [x] GUIs that shouldn't open during a round are listed in Notes (ask Sol whether to block them).
-
-**Test in Studio**
-- During a round, open each menu (shop, daily claims, settings...) with keyboard/HUD buttons and close it with the mouse.
-- Repeat on gamepad and on a mobile emulator.
-
-**Notes**
-- New `Client/Core/MouseUnlockController`: every frame, if any open gui has `RequiresMouse = true` (`UIController.isMouseRequired()`), it shows an invisible `Modal` button (Roblox's standard way to free a locked mouse) and keeps the cursor visible. When the last one closes, it hides the button and re-hides the cursor if the camera is in the arena's Regular (over-the-shoulder) mode.
-- Flagged `RequiresMouse = true`: Shop, DailyClaims, Voting (the guis with clickable buttons that open as menus).
-- Not flagged: HudButtons and CustomTouchscreen (always on screen, so flagging them would never re-lock the mouse), and the notification-style HUDs (no buttons). If HudButtons should be clickable in the over-the-shoulder camera, that needs a separate decision (e.g. holding a key to free the mouse).
-- No gui is blocked from opening during a round; ask Sol if any should be.
-- Syntax-checked with `luau-compile`; not play-tested (Sol declined the Studio play-test).
-- PC (keyboard/mouse) passed Sol's Studio test (2026-10-02). Gamepad and mobile checks still to do (low priority).
-
----
-
 ### T-048 · Track more player stats
 - **Priority:** P1
 - **Owner:** Agent
@@ -233,33 +118,6 @@ Use `EconomyService`-style owner functions so other code doesn't write these fie
 - Time played: added to the profile every 60 s, plus on leave through a new `PlayerDataService.ProfileRemovingTasks` that runs before the session ends (the existing `ProfileRemovedTasks` runs after, when writes are no longer saved).
 - Cmdr: `showstats <player>` (alias `stats`).
 - Test in Studio: play a few rounds (FFA and team), eliminate and get eliminated, dash/stab, grab pickups, then `showstats`. Rejoin and check the values survived, including time played.
-
----
-
-### T-023 · Assassin: let players join mid-round
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Shared / Server
-- **Files:** `Shared/Constants/Gamemodes.luau`, `Shared/Logics/GamemodeLogics/Assassin.luau`, `Server/Core/RoundCyclingService.luau`, `Server/Core/SpawnService.luau`
-
-**Problem / goal**
-New players should be able to join an Assassin round in progress. They're immediately given a target, and are added to the loop that fairly assigns assassins and targets for the rest of the round.
-- `Gamemodes.Assassin` currently has `LateJoinEnabled = false`.
-- `Assassin.luau` already subscribes `addMember` to `GameStateLibrary.PlayerAddedToArenaTasks`, which assigns the newcomer a target and fills in targetless members. Check that this path is complete once late join is on (and that it also works for players who rejoin).
-
-**Done when**
-- [x] `LateJoinEnabled = true` for Assassin.
-- [x] A player joining mid-round spawns into the arena, gets a target at once, and becomes someone's target as soon as fairly possible.
-- [x] Nobody is left without a target or hunted by two assassins because of the join.
-
-**Test in Studio**
-- Start Assassin with 2 players, then join a 3rd mid-round (Studio local server, 3 players): the newcomer gets a target and the target arrows/GUI update for everyone.
-- Leave and rejoin mid-round: no errors, assignments stay consistent.
-
-**Notes**
-- `Gamemodes.Assassin.LateJoinEnabled = true`. Late joiners already reach `Assassin.addMember` through the normal spawn path (`SpawnService` → `LivingPlayersInArena` → `PlayerAddedToArenaTasks`).
-- New `giveAssassin()` in `Assassin.luau`: a member nobody is hunting (a late joiner, or a respawning player) gets an assassin right away. A hunter whose target already has several assassins is redirected to them; otherwise they're spliced into the ring (a random hunter now hunts them, and they take over that hunter's old target).
-- Checked with a simulation harness running the real target functions (200 random runs of joins, deaths/respawns and leaves): with 2+ members, every member always had a target and an assassin. Not play-tested with real players (needs a multi-client Studio test).
 
 ---
 
@@ -449,19 +307,6 @@ The shop GUI still has placeholder/progress visuals. Sol finishes the assets.
 ---
 
 
-### T-036 · Design: how weapons and skins are equipped and used
-- **Priority:** P2
-- **Owner:** Sol
-- **Area:** Design
-- **Files:** `Shared/Referential/Items.luau`, `Shared/Constants/Tools.luau`, `Server/Core/ToolService.luau`
-
-**Problem / goal**
-Decide how owned weapons and cosmetic skins are equipped and used (loadout screen? per-round choice? one equipped weapon + one skin?), and how that's saved in the profile. `GlobalConfig.ForceEquippedTool` currently forces `ClassicBoomerang`. Once decided, split into implementation tasks.
-
-**Notes**
-
----
-
 ### T-037 · Player HUD buttons
 - **Priority:** P1
 - **Owner:** Sol → Agent
@@ -507,6 +352,154 @@ Players enter a code to receive a reward. Server: validates the code (case-insen
 ---
 
 ## Done
+
+### T-056 · Electric + Explosive: explosion eliminations start electric chains
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared
+- **Files:** `Shared/Logics/PickupLogics/ElectricBoomerang.luau`, `Shared/Logics/PickupLogics/ExplosiveBoomerang.luau`
+
+**Problem / goal**
+Phase 3 of T-029 (Sol's decision, 2026-10-02): with both Electric and Explosive active, every player eliminated by the explosion also starts an electric chain from them, exactly like a thrown Electric boomerang elimination (credited to the thrower, thrower and teammates exempt, arcs and radius visual).
+- Explosion eliminations currently reach `PlayerKilledPlayerTasks` with weapon id `"ExplosiveBoomerang"`, which the chain listener ignores.
+
+**Done when**
+- [ ] Electric + Explosive explosion eliminations start chains; Explosive alone doesn't.
+- [ ] Explosions never eliminate the thrower's teammates.
+
+**Test in Studio**
+- `getpickup` Electric and Explosive, explode next to one player in a group: the explosion victims each chain to enemies within `GlobalConfig.ElectricChainRadius`.
+- TeamClassic/TeamElimination: an explosion next to a teammate doesn't eliminate them.
+
+**Notes**
+- Depends on T-029.
+- The chain listener in `ElectricBoomerang.luau` now also starts a chain when the weapon id is `"ExplosiveBoomerang"` and the killer has Electric active. Everything else (credit, exemptions, arcs, radius visual) is the same path as a thrown hit.
+- Sol: explosions now spare teammates too (`ExplosiveBoomerang` skips non-enemies via `GameTeamLibrary.areEnemies`), with or without Electric.
+- Not lint-checked.
+- Passed Sol's Studio test (2026-10-02).
+
+---
+
+### T-054 · Cmdr commands for boomerang tuning
+- **Priority:** P2
+- **Owner:** Sol → Agent
+- **Area:** Server / Shared / Tooling
+- **Files:** `Server/Cmdr/Commands/` (new definition + `<Name>Server` pairs); values in `Shared/Constants/Tools.luau` (`Speed`, `ThrowDistance`) and `Shared/Constants/GlobalConfig.luau` (`ManualRecallSpeedMultiplier`, `ManualRecallMomentumMultiplier`); used by `Shared/Logics/WeaponLogics/Boomerang.luau`
+
+**Problem / goal**
+Let Sol tune boomerang feel live in a server, without editing code. Add Cmdr commands (group `DevTesting`, so they show under "Boomerang commands" in `help`) to set:
+- **Maximum throw speed** (`Speed` in Tools)
+- **Maximum throw distance** (`ThrowDistance` in Tools)
+- **Maximum manual recall speed** (currently `ManualRecallSpeedMultiplier` × max speed)
+- **Manual recall pickup speed**: how quickly a manually recalling boomerang reaches its max speed (currently `ManualRecallMomentumMultiplier`)
+
+Boomerang logic runs on both the server and the client, so a changed value must reach every client too (e.g. replicated attributes), or the client's prediction won't match the server. Changes last for the server session only (not saved). Running a command with no value should print the current value, and there should be a way to reset to the defaults.
+
+**Decisions**
+- Per tool: a command changes the weapon the caller is currently holding (Sol, 2026-10-02).
+- Units: ThrowSpeed, ThrowDistance and RecallSpeed are absolute (studs/s, studs, studs/s); RecallAcceleration stays a multiplier (1 = normal recall). RecallSpeed is its own per-tool value, `ManualRecallSpeed` in Tools (Sol, 2026-10-02), replacing `GlobalConfig.ManualRecallSpeedMultiplier`; defaults equal each tool's Speed, so nothing changes in play.
+
+**Done when**
+- [x] The four values can be set, shown and reset from Cmdr, and take effect on the next throw/recall for every player.
+
+**Test in Studio**
+- Local server with 2 players: change each value, throw/recall on both clients, and check the boomerang matches on both.
+
+**Notes**
+- New `Shared/Library/BoomerangTuningLibrary`: per-tool overrides stored as `ReplicatedStorage` attributes (`BoomerangTuning_<ToolId>_<Setting>`), so they replicate; falls back to Tools/GlobalConfig. `Boomerang.luau` reads it for throw speed/distance and manual recall speed/acceleration.
+- Cmdr: `tuneboomerang [setting] [value]` (alias `tune`; no args = show all, no value = show one) and `resetboomerang [setting]` (no setting = reset all). New type `boomerangsetting` (ThrowSpeed, ThrowDistance, RecallSpeed, RecallAcceleration). Values must be > 0.
+- Added `WeaponService.getEquippedToolId(player)`.
+- Live update (Sol's follow-up): values are re-read every frame, so a boomerang already in flight picks up changes. A changed ThrowSpeed eases toward the new value (same rate as the aim-bonus fade); ThrowDistance applies immediately; recall speed/acceleration apply mid-recall. Test: `tune ThrowSpeed 1`, throw, `tune ThrowSpeed 80` → it should speed back up to 80 (check on both clients).
+- Not lint-checked (no Selene/luau-analyze here). Test as below, plus `tune` with no weapon held.
+- Passed Sol's Studio test (2026-10-02).
+
+---
+
+### T-055 · Topbar buttons (first one: Daily rewards)
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Client / GUI
+- **Files:** `Client/UI/Gui/Topbar/init.luau` (new), `Client/UI/Gui/DailyClaims/init.luau`
+
+**Problem / goal**
+Buttons in the top bar, lined up with Roblox's default topbar buttons (player list, chat). Each button is placed on the left or the right, has a short text and an optional icon, and is as wide as its text needs. Every button uses the same text size. First button: "Daily" with a gift emoji, which opens/closes the Daily Rewards menu.
+
+**Done when**
+- [x] A reusable `TopbarGui.addButton({ Id, Text, Icon?, Side, Order?, onActivated })` that any feature can call.
+- [x] The "Daily" button toggles the Daily Rewards menu.
+
+**Test in Studio**
+- PC and mobile emulator (a few screen sizes): the Daily button sits in the top bar next to Roblox's buttons, same height and vertical position, text fully visible, and it opens and closes Daily Rewards.
+- Open/close the chat and the player list: our button never overlaps Roblox's buttons.
+
+**Notes**
+- `Client/UI/Gui/Topbar` is code-built (no `.rbxmx`). Its ScreenGui uses `ScreenInsets = TopbarSafeInsets`, so Roblox keeps it inside the free part of the top bar: left buttons start after Roblox's left buttons, right buttons end before Roblox's right buttons. Buttons are 44 px tall, 12 px from the top (Roblox's own size), and shrink if the top bar is shorter.
+- Style: a dark, slightly see-through pill like Roblox's buttons, white FredokaOne text at size 20 for every button, width from `AutomaticSize`. All values are constants at the top of the module (swap in Sol's assets later if wanted).
+- `Icon` is an emoji/text glyph, or an image id (`rbxassetid://...`).
+- **Emoji:** used 🎁 (gift). There's no "gift basket" emoji; if you meant the basket (🧺), it's a one-character change in `DailyClaims/init.luau`.
+- DailyClaims registers its own button in `start()`. The Studio-only `Y` key toggle is still there.
+- Like HudButtons, the top bar isn't flagged `RequiresMouse`, so on PC it can't be clicked while the over-the-shoulder camera locks the mouse during a round (Roblox's own buttons behave the same). Fine in the lobby.
+- Replaces T-050 (closed by Sol, 2026-10-02).
+- Not syntax-checked: no Luau checker is installed on this machine.
+- Passed Sol's Studio test (2026-10-02).
+
+---
+
+### T-026 · Menus can lock the screen in the over-the-shoulder camera
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Client / GUI
+- **Files:** `Client/UI/UIController.luau`, `Client/Core/CustomCameraController.luau`, `Client/UI/Gui/*`
+
+**Problem / goal**
+In the in-game over-the-shoulder camera the mouse is locked/hidden, so a clickable GUI that appears during a round (e.g. Shop, Daily Claims, Voting, ItemAcquired with buttons) can't be clicked or closed, and the player is stuck. Audit every GUI that can open during a round and make sure the mouse is freed while it's open (e.g. a `Modal` button or `UserInputService.MouseBehavior`/`MouseIconEnabled` handled centrally in `UIController` for menu-type GUIs), and restored when it closes.
+
+**Done when**
+- [x] Opening any menu-type GUI while in the arena camera frees the mouse; closing the last one restores the camera's mouse lock.
+- [x] GUIs that shouldn't open during a round are listed in Notes (ask Sol whether to block them).
+
+**Test in Studio**
+- During a round, open each menu (shop, daily claims, settings...) with keyboard/HUD buttons and close it with the mouse.
+- Repeat on gamepad and on a mobile emulator.
+
+**Notes**
+- New `Client/Core/MouseUnlockController`: every frame, if any open gui has `RequiresMouse = true` (`UIController.isMouseRequired()`), it shows an invisible `Modal` button (Roblox's standard way to free a locked mouse) and keeps the cursor visible. When the last one closes, it hides the button and re-hides the cursor if the camera is in the arena's Regular (over-the-shoulder) mode.
+- Flagged `RequiresMouse = true`: Shop, DailyClaims, Voting (the guis with clickable buttons that open as menus).
+- Not flagged: HudButtons and CustomTouchscreen (always on screen, so flagging them would never re-lock the mouse), and the notification-style HUDs (no buttons). If HudButtons should be clickable in the over-the-shoulder camera, that needs a separate decision (e.g. holding a key to free the mouse).
+- No gui is blocked from opening during a round; ask Sol if any should be.
+- Syntax-checked with `luau-compile`; not play-tested (Sol declined the Studio play-test).
+- PC (keyboard/mouse) passed Sol's Studio test (2026-10-02). Gamepad and mobile checks still to do (low priority).
+- Passed Sol's Studio test (2026-10-02).
+
+---
+
+### T-023 · Assassin: let players join mid-round
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared / Server
+- **Files:** `Shared/Constants/Gamemodes.luau`, `Shared/Logics/GamemodeLogics/Assassin.luau`, `Server/Core/RoundCyclingService.luau`, `Server/Core/SpawnService.luau`
+
+**Problem / goal**
+New players should be able to join an Assassin round in progress. They're immediately given a target, and are added to the loop that fairly assigns assassins and targets for the rest of the round.
+- `Gamemodes.Assassin` currently has `LateJoinEnabled = false`.
+- `Assassin.luau` already subscribes `addMember` to `GameStateLibrary.PlayerAddedToArenaTasks`, which assigns the newcomer a target and fills in targetless members. Check that this path is complete once late join is on (and that it also works for players who rejoin).
+
+**Done when**
+- [x] `LateJoinEnabled = true` for Assassin.
+- [x] A player joining mid-round spawns into the arena, gets a target at once, and becomes someone's target as soon as fairly possible.
+- [x] Nobody is left without a target or hunted by two assassins because of the join.
+
+**Test in Studio**
+- Start Assassin with 2 players, then join a 3rd mid-round (Studio local server, 3 players): the newcomer gets a target and the target arrows/GUI update for everyone.
+- Leave and rejoin mid-round: no errors, assignments stay consistent.
+
+**Notes**
+- `Gamemodes.Assassin.LateJoinEnabled = true`. Late joiners already reach `Assassin.addMember` through the normal spawn path (`SpawnService` → `LivingPlayersInArena` → `PlayerAddedToArenaTasks`).
+- New `giveAssassin()` in `Assassin.luau`: a member nobody is hunting (a late joiner, or a respawning player) gets an assassin right away. A hunter whose target already has several assassins is redirected to them; otherwise they're spliced into the ring (a random hunter now hunts them, and they take over that hunter's old target).
+- Checked with a simulation harness running the real target functions (200 random runs of joins, deaths/respawns and leaves): with 2+ members, every member always had a target and an assassin. Not play-tested with real players (needs a multi-client Studio test).
+- Passed Sol's Studio test (2026-10-02).
+
+---
 
 ### T-029 · Electric boomerang rework: chain kills
 - **Priority:** P1

@@ -7,6 +7,10 @@ Take new IDs from the `Next free ID` line in [TASKS.md](../../../TASKS.md). Ever
 
 ## Ready
 
+## In Progress
+
+## Review
+
 ### T-047 · Lobby station framework (labels, glowing pads, proximity prompts)
 - **Priority:** P1
 - **Owner:** Agent
@@ -24,44 +28,10 @@ Spec: `docs/LOBBY_SPEC.md`. Every lobby station (pedestals, wheel, crates, group
 
 **Notes**
 - Ask Sol for the tag/attribute names if a convention already exists in the place.
-
----
-
-## In Progress
-
-## Review
-
-### T-032 · Lobby leaderboards (Eliminations + Wins, Monthly / All-Time)
-- **Priority:** P2
-- **Owner:** Agent
-- **Epic:** Lobby
-- **Area:** Server / Client
-- **Files:** `Server/Core/LeaderboardService.luau`, `Client/Core/LeaderboardController.luau`, `Shared/Constants/LeaderboardConstants.luau`, `Shared/Data/ProfileTemplate.luau`, `Server/Core/LifetimeStatsService.luau`, `Server/Cmdr/Commands/RefreshLeaderboards*.luau`
-
-**First lobby feature (Sol, 2026-10-01).** Depends on T-048 (stats tracking).
-
-**Problem / goal (Sol's spec)**
-- Two physical boards: `workspace.Lobby.Leaderboards.Elims` ("Eliminations", never "Kills") and `.Wins`. GUI on the large side facing the lobby floor.
-- Each board has two CanvasGroups, **Monthly** and **All-Time**, cross-fading every 10 s.
-- Top 30 per board; data refreshed every 10 minutes.
-- **No podium for now** (ask Sol later).
-
-**Done when**
-- [ ] Both boards show Monthly / All-Time, alternating every 10 s, top 30 with rank, headshot, display name and value.
-- [ ] Scores are saved and the boards reload every 10 minutes; monthly boards start fresh each UTC month.
-
-**Test in Studio**
-- Needs Studio API access for DataStores (Game Settings > Security). Get some eliminations/wins, then `refreshleaderboards` (Cmdr) instead of waiting 10 min. Check both boards, both periods, the fade, and the side they're drawn on.
-- Multi-player check: Team Test or a live test server.
-
-**Notes**
-- Stores: `OrderedDataStore`s named `{Dev|Live}_{Elims|Wins}_{AllTime|YYYY-MM}`, so Studio data never mixes with live (same idea as PlayerDataService's `Dev` key). Studio uses `Dev`.
-- Server cost: one background loop every 10 min (writes only changed scores > 0, then 4 `GetSortedAsync` + 1 batched display-name request). Scores are also written when a player leaves. Nothing per frame, no instances replicated: clients build the SurfaceGuis themselves (in PlayerGui, adorned to the board parts) and do the fading locally. `MaxDistance` 200 hides them far away; hidden CanvasGroups are set invisible.
-- Monthly scores: new profile field `MonthlyStats` (`MonthKey`, `Elims`, `Wins`), updated by `LifetimeStatsService` next to the all-time values. Only Elims/Wins earned from this change on count.
-- Faces (from Studio raycasts toward the lobby floor): Elims = `Right`, Wins = `Left`. Set in `LeaderboardConstants.Boards` if a board is moved.
-- Visuals are code-built and styled after the game's GUIs (FredokaOne with dark outlines, orange-yellow title gradient, mint values, teal banner and panel, wooden frame, purple highlight for your own row). Colours are constants at the top of `LeaderboardController`; swap for a template later if wanted.
-- **Check in Studio:** both board parts are **unanchored with no joints**, so they'll fall when the game runs. Anchor them (place-only change; I didn't touch the place).
-- New Cmdr: `refreshleaderboards` (alias `refreshlb`).
+- Tag convention (no existing one in the place could be checked, Studio had another place open): CollectionService tag `LobbyStation` + attributes `StationId` (required), `Title`, `ActionText`, `HoldDuration`, `MaxDistance`, `PromptPart`, `PadPart` (default a descendant named `Pad`), `TitleHeight`. Documented at the top of `LobbyStationLibrary`.
+- New: `Shared/Library/LobbyStationLibrary` (conventions, `StationState` type), `Server/Core/LobbyStationService` (creates prompts, `registerHandler(stationId, fn)`, `setPlayerState(player, stationId, state)`; triggers only count in the lobby, 0.5 s cooldown), `Client/Core/LobbyStationController` (title BillboardGui, pulsing PointLight on the pad that brightens while the prompt is shown and dims when `State` isn't `"Active"`, per-player prompt text/visibility; `ApproachedTasks` / `LeftTasks` / `StateChangedTasks` for station code such as the crate odds panel). Handles StreamingEnabled.
+- Cmdr: `setstationstate <players> <stationId> <state> [promptEnabled]` (`clear` resets).
+- **Test in Studio:** tag a lobby part/model `LobbyStation` with `StationId = "Test"`, `Title = "TEST"`, and a child part named `Pad`. Check the label, the pad glow (brighter near it), and the prompt (triggering warns "no handler registered" in Studio, that's expected). Then `setstationstate me Test Locked false`: prompt hides, glow dims; `setstationstate me Test clear` restores. Station visuals (font, label size, glow strength) are constants at the top of the controller, easy to tune.
 
 ---
 
@@ -142,7 +112,7 @@ Spec: `docs/LOBBY_SPEC.md`. A separate crate station for weapon cosmetics, visua
 
 **Open questions (ask Sol first)**
 - Is this a loot box, a fixed-item shop, or something else? Cost and contents.
-- Depends on how weapons/skins are equipped (T-036).
+- Depends on how weapons/skins are equipped (Weapons & Skins Epic, was T-036).
 
 **Notes**
 - 🗣️ **Talk with Sol before starting.** Reuses T-043's crate logic.
@@ -188,6 +158,41 @@ Spec: `docs/LOBBY_SPEC.md`. A large portal arch on a glowing ring with a sign, l
 ---
 
 ## Done
+
+### T-032 · Lobby leaderboards (Eliminations + Wins, Monthly / All-Time)
+- **Priority:** P2
+- **Owner:** Agent
+- **Epic:** Lobby
+- **Area:** Server / Client
+- **Files:** `Server/Core/LeaderboardService.luau`, `Client/Core/LeaderboardController.luau`, `Shared/Constants/LeaderboardConstants.luau`, `Shared/Data/ProfileTemplate.luau`, `Server/Core/LifetimeStatsService.luau`, `Server/Cmdr/Commands/RefreshLeaderboards*.luau`
+
+**First lobby feature (Sol, 2026-10-01).** Depends on T-048 (stats tracking).
+
+**Problem / goal (Sol's spec)**
+- Two physical boards: `workspace.Lobby.Leaderboards.Elims` ("Eliminations", never "Kills") and `.Wins`. GUI on the large side facing the lobby floor.
+- Each board has two CanvasGroups, **Monthly** and **All-Time**, cross-fading every 10 s.
+- Top 30 per board; data refreshed every 10 minutes.
+- **No podium for now** (ask Sol later).
+
+**Done when**
+- [ ] Both boards show Monthly / All-Time, alternating every 10 s, top 30 with rank, headshot, display name and value.
+- [ ] Scores are saved and the boards reload every 10 minutes; monthly boards start fresh each UTC month.
+
+**Test in Studio**
+- Needs Studio API access for DataStores (Game Settings > Security). Get some eliminations/wins, then `refreshleaderboards` (Cmdr) instead of waiting 10 min. Check both boards, both periods, the fade, and the side they're drawn on.
+- Multi-player check: Team Test or a live test server.
+
+**Notes**
+- Stores: `OrderedDataStore`s named `{Dev|Live}_{Elims|Wins}_{AllTime|YYYY-MM}`, so Studio data never mixes with live (same idea as PlayerDataService's `Dev` key). Studio uses `Dev`.
+- Server cost: one background loop every 10 min (writes only changed scores > 0, then 4 `GetSortedAsync` + 1 batched display-name request). Scores are also written when a player leaves. Nothing per frame, no instances replicated: clients build the SurfaceGuis themselves (in PlayerGui, adorned to the board parts) and do the fading locally. `MaxDistance` 200 hides them far away; hidden CanvasGroups are set invisible.
+- Monthly scores: new profile field `MonthlyStats` (`MonthKey`, `Elims`, `Wins`), updated by `LifetimeStatsService` next to the all-time values. Only Elims/Wins earned from this change on count.
+- Faces (from Studio raycasts toward the lobby floor): Elims = `Right`, Wins = `Left`. Set in `LeaderboardConstants.Boards` if a board is moved.
+- Visuals are code-built and styled after the game's GUIs (FredokaOne with dark outlines, orange-yellow title gradient, mint values, teal banner and panel, wooden frame, purple highlight for your own row). Colours are constants at the top of `LeaderboardController`; swap for a template later if wanted.
+- **Check in Studio:** both board parts are **unanchored with no joints**, so they'll fall when the game runs. Anchor them (place-only change; I didn't touch the place).
+- New Cmdr: `refreshleaderboards` (alias `refreshlb`).
+- Passed Sol's Studio test (2026-10-02).
+
+---
 
 ### T-053 · Leaderboards fade between periods
 - **Priority:** P2

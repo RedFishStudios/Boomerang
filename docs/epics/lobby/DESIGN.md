@@ -47,7 +47,7 @@ Shared station framework first (T-047), then each station registers its own hand
 ## 8. Order of work
 
 1. T-047 station framework.
-2. Stations as Sol approves them: T-024, T-042, T-043, T-044 (blocked by T-036), T-045, T-046 (needs destinations).
+2. Stations as Sol approves them: T-024, T-042, T-043, T-044 (blocked by the Weapons & Skins Epic, was T-036), T-045, T-046 (needs destinations).
 
 ## 9. Testing
 
