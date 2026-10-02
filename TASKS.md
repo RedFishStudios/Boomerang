@@ -122,6 +122,7 @@ New behaviour: when an electric boomerang kills a player, every other player wit
 - New elim type "Shocked" (`CombatService.getElimType`, `ElimMessage` GUI).
 - Electric + Explosive currently only plays the ElectricExplosion particle (no zap, no early end).
 - Phase 2: arcs drawn on each client (`ElectricChainArc` remote, fired only when a link actually eliminates): jagged beam segments in the electric blue (0,131,255) with a light core and the ElectrifiedObject glow texture (243660373), flickering 3 times over ~0.25s then fading over 0.2s; a burst of the ElectricExplosion particles at the target. Tuning constants (`ARC_*`) at the top of `ElectricBoomerang.luau`. Existing bolt textures are flipbook sheets, so they can't be used on beams.
+- Cmdr `zapchain [player]`: eliminates the player (default: you) as if by an Electric boomerang and starts a chain, with arcs and the radius visual. On someone else, you are the thrower (credited, exempt, teammates skipped); on yourself, nobody is credited and everyone in range is hit. Needs an active round; no pickup needed.
 - Not lint-checked (no Selene/luau-analyze here).
 
 ---

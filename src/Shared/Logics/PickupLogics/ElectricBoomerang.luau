@@ -70,9 +70,12 @@ local function isAlive(player: Player): boolean
 	return humanoid ~= nil and humanoid.Health > 0 and character.PrimaryPart ~= nil
 end
 
+local startChain: (thrower: Player?, victim: Player, origin: Vector3) -> ()
+
 -- // Eliminates every living enemy of the thrower within CHAIN_RADIUS of origin. Each elimination goes through
 -- // CombatLibrary.attackHitPlayer, which fires PlayerKilledPlayerTasks again and continues the chain from that player.
-local function chainFrom(thrower: Player, victim: Player, origin: Vector3)
+-- // With no thrower (the zapchain command on yourself), everyone in range is hit, nobody is credited, and the chain continues here.
+local function chainFrom(thrower: Player?, victim: Player, origin: Vector3)
 	task.delay(CHAIN_LINK_DELAY, function()
 		local gameStateData = GameStateLibrary.getGameStateData()
 		if gameStateData.GameplayPhase:Get() ~= GameplayPhaseEnums.RoundActive then
@@ -83,20 +86,31 @@ local function chainFrom(thrower: Player, victim: Player, origin: Vector3)
 			if player == thrower or player == victim or not isAlive(player) then
 				continue
 			end
-			if not GameTeamLibrary.areEnemies(thrower, player) then
+			if thrower and not GameTeamLibrary.areEnemies(thrower, player) then
 				continue
 			end
 			local targetPosition = player.Character.PrimaryPart.Position
 			if (targetPosition - origin).Magnitude > CHAIN_RADIUS then
 				continue
 			end
-			CombatLibrary.attackHitPlayer(thrower, CHAIN_WEAPON_ID, player, nil, 10000, true)
+			CombatLibrary.attackHitPlayer(thrower :: Player, CHAIN_WEAPON_ID, player, nil, 10000, true)
 			-- // Only draw the arc if the link actually eliminated them (a shield or immunity can block it)
 			if not isAlive(player) then
 				chainArcRemote:FireAllClients(origin, targetPosition)
+				if not thrower then
+					startChain(nil, player, targetPosition)
+				end
 			end
 		end
 	end)
+end
+
+-- // A chain origin: shows the debug radius (if enabled) and chains to everyone in range of the victim
+startChain = function(thrower: Player?, victim: Player, origin: Vector3)
+	if GlobalConfig.VisualizeElectricChainRadius then
+		visualizeChainRadiusRemote:FireAllClients(origin, CHAIN_RADIUS)
+	end
+	chainFrom(thrower, victim, origin)
 end
 
 -- // Debug: semi-transparent red cylinder showing the chain radius around a chain victim (client only)
@@ -217,6 +231,34 @@ function ElectricBoomerang.onPickup(player: Player, startedAt: number?): number
 	return (startedAt or workspace:GetServerTimeNow()) + EFFECT_DURATION_SECONDS
 end
 
+-- // Server, dev testing (zapchain command): eliminates victim as if by an Electric boomerang and starts a chain from them.
+-- // With a thrower, the eliminations are credited to them and their teammates are skipped; the thrower never needs the pickup.
+function ElectricBoomerang.triggerChain(victim: Player, thrower: Player?): (boolean, string)
+	if not isServer then
+		return false, "triggerChain is server-only."
+	end
+	if GameStateLibrary.getGameStateData().GameplayPhase:Get() ~= GameplayPhaseEnums.RoundActive then
+		return false, "A round must be active."
+	end
+	if not isAlive(victim) then
+		return false, `{victim.Name} is not alive.`
+	end
+	if thrower == victim then
+		thrower = nil
+	end
+
+	local origin = victim.Character.PrimaryPart.Position
+	-- // With a thrower, PlayerKilledPlayerTasks sees CHAIN_WEAPON_ID and starts the chain itself
+	CombatLibrary.attackHitPlayer(thrower :: Player, CHAIN_WEAPON_ID, victim, nil, 10000, true)
+	if isAlive(victim) then
+		return false, `{victim.Name} was not eliminated (shield or immunity?).`
+	end
+	if not thrower then
+		startChain(nil, victim, origin)
+	end
+	return true, `Started an electric chain on {victim.Name}.`
+end
+
 function ElectricBoomerang.onEnd(player: Player)
 	if not isServer then
 		ToolController.removeParticleFromTool(player, "ElectricBoomerang")
@@ -246,11 +288,7 @@ if isServer then
 		local character = victim.Character
 		local rootPart = character and character.PrimaryPart
 		if rootPart then
-			-- // Debug: show the chain radius around every chain origin (boomerang victim and chained victims)
-			if GlobalConfig.VisualizeElectricChainRadius then
-				visualizeChainRadiusRemote:FireAllClients(rootPart.Position, CHAIN_RADIUS)
-			end
-			chainFrom(killer, victim, rootPart.Position)
+			startChain(killer, victim, rootPart.Position)
 		end
 	end)
 
