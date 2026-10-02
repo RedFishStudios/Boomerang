@@ -230,6 +230,11 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
+-- // The tool the player is currently holding (nil when they have none, e.g. no character)
+function WeaponService.getEquippedToolId(player: Player): string?
+   return equippedToolIds[player]
+end
+
 function WeaponService.isAiming(player: Player): boolean
    return aiming[player] ~= nil
 end

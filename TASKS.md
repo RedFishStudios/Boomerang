@@ -53,34 +53,6 @@ What's wrong, or what should exist.
 
 ## Ready
 
-### T-054 · Cmdr commands for boomerang tuning
-- **Priority:** P2
-- **Owner:** Sol → Agent
-- **Area:** Server / Shared / Tooling
-- **Files:** `Server/Cmdr/Commands/` (new definition + `<Name>Server` pairs); values in `Shared/Constants/Tools.luau` (`Speed`, `ThrowDistance`) and `Shared/Constants/GlobalConfig.luau` (`ManualRecallSpeedMultiplier`, `ManualRecallMomentumMultiplier`); used by `Shared/Logics/WeaponLogics/Boomerang.luau`
-
-**Problem / goal**
-Let Sol tune boomerang feel live in a server, without editing code. Add Cmdr commands (group `DevTesting`, so they show under "Boomerang commands" in `help`) to set:
-- **Maximum throw speed** (`Speed` in Tools)
-- **Maximum throw distance** (`ThrowDistance` in Tools)
-- **Maximum manual recall speed** (currently `ManualRecallSpeedMultiplier` × max speed)
-- **Manual recall pickup speed**: how quickly a manually recalling boomerang reaches its max speed (currently `ManualRecallMomentumMultiplier`)
-
-Boomerang logic runs on both the server and the client, so a changed value must reach every client too (e.g. replicated attributes), or the client's prediction won't match the server. Changes last for the server session only (not saved). Running a command with no value should print the current value, and there should be a way to reset to the defaults.
-
-**Open questions (ask Sol first)**
-- Per boomerang tool (Tools has several entries) or one value for all boomerangs?
-- Absolute values (studs/s, studs) or multipliers of the defaults?
-
-**Done when**
-- [ ] The four values can be set, shown and reset from Cmdr, and take effect on the next throw/recall for every player.
-
-**Test in Studio**
-- Local server with 2 players: change each value, throw/recall on both clients, and check the boomerang matches on both.
-
-**Notes**
-
----
 
 ### T-005 · Convert space-indented files to tabs
 - **Priority:** P2
@@ -110,6 +82,39 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-054 · Cmdr commands for boomerang tuning
+- **Priority:** P2
+- **Owner:** Sol → Agent
+- **Area:** Server / Shared / Tooling
+- **Files:** `Server/Cmdr/Commands/` (new definition + `<Name>Server` pairs); values in `Shared/Constants/Tools.luau` (`Speed`, `ThrowDistance`) and `Shared/Constants/GlobalConfig.luau` (`ManualRecallSpeedMultiplier`, `ManualRecallMomentumMultiplier`); used by `Shared/Logics/WeaponLogics/Boomerang.luau`
+
+**Problem / goal**
+Let Sol tune boomerang feel live in a server, without editing code. Add Cmdr commands (group `DevTesting`, so they show under "Boomerang commands" in `help`) to set:
+- **Maximum throw speed** (`Speed` in Tools)
+- **Maximum throw distance** (`ThrowDistance` in Tools)
+- **Maximum manual recall speed** (currently `ManualRecallSpeedMultiplier` × max speed)
+- **Manual recall pickup speed**: how quickly a manually recalling boomerang reaches its max speed (currently `ManualRecallMomentumMultiplier`)
+
+Boomerang logic runs on both the server and the client, so a changed value must reach every client too (e.g. replicated attributes), or the client's prediction won't match the server. Changes last for the server session only (not saved). Running a command with no value should print the current value, and there should be a way to reset to the defaults.
+
+**Decisions**
+- Per tool: a command changes the weapon the caller is currently holding (Sol, 2026-10-02).
+- Units (agent's pick, change if wanted): ThrowSpeed/ThrowDistance absolute (studs/s, studs); RecallSpeed/RecallAcceleration stay multipliers, like their GlobalConfig defaults.
+
+**Done when**
+- [x] The four values can be set, shown and reset from Cmdr, and take effect on the next throw/recall for every player.
+
+**Test in Studio**
+- Local server with 2 players: change each value, throw/recall on both clients, and check the boomerang matches on both.
+
+**Notes**
+- New `Shared/Library/BoomerangTuningLibrary`: per-tool overrides stored as `ReplicatedStorage` attributes (`BoomerangTuning_<ToolId>_<Setting>`), so they replicate; falls back to Tools/GlobalConfig. `Boomerang.luau` reads it for throw speed/distance and manual recall speed/acceleration.
+- Cmdr: `tuneboomerang [setting] [value]` (alias `tune`; no args = show all, no value = show one) and `resetboomerang [setting]` (no setting = reset all). New type `boomerangsetting` (ThrowSpeed, ThrowDistance, RecallSpeed, RecallAcceleration). Values must be > 0.
+- Added `WeaponService.getEquippedToolId(player)`.
+- Not lint-checked (no Selene/luau-analyze here). Test as below, plus `tune` with no weapon held.
+
+---
 
 ### T-055 · Topbar buttons (first one: Daily rewards)
 - **Priority:** P1

@@ -11,6 +11,7 @@ local isServer = RunService:IsServer()
 local ReplicatedStorage = game.ReplicatedStorage
 local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
+local BoomerangTuningLibrary = require(ReplicatedStorage.Shared.Library.BoomerangTuningLibrary)
 local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 local BufferUtil = require(ReplicatedStorage.Shared.Utils.BufferUtil)
 local RaycastsUtility = require(ReplicatedStorage.Shared.Utils.RaycastsUtility)
@@ -591,14 +592,15 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    thrownWeaponData.InstanceId = boomerangInstanceId
 
    local direction = getHorizontalDirection((options and options.Direction) or character.PrimaryPart.CFrame.LookVector)
-   local defaultSpeed = toolData.Boomerang.Speed
+   local tuningToolId = thrownWeaponData.ToolId or boomerangId
+   local defaultSpeed = BoomerangTuningLibrary.get(tuningToolId, "ThrowSpeed") -- // Tools value unless changed with Cmdr (T-054)
    local speed = (options and options.Speed) or defaultSpeed
    local aimStrengthAlpha = math.clamp((options and options.AimStrengthAlpha) or 0, 0, 1)
    if aimStrengthAlpha > 0 and (not options or options.Speed == nil) then
       speed = defaultSpeed * (1 + aimStrengthAlpha * AIM_START_SPEED_BONUS_MULTIPLIER)
    end 
    local hitboxRadius = toolData.Boomerang.HitboxRadius
-   local bounceDistance = toolData.Boomerang.ThrowDistance
+   local bounceDistance = BoomerangTuningLibrary.get(tuningToolId, "ThrowDistance")
    local initThrowDistance = bounceDistance * (1 + aimStrengthAlpha)
    local energy = toolData.Boomerang.Bounces
 
@@ -1115,7 +1117,8 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       thrownWeaponData.MovementConnection = nil
    end
 
-   local maximumSpeed = toolData.Boomerang.Speed
+   local tuningToolId = thrownWeaponData.ToolId or boomerangId
+   local maximumSpeed = BoomerangTuningLibrary.get(tuningToolId, "ThrowSpeed") -- // Tools value unless changed with Cmdr (T-054)
    -- // Explosive boomerang returns faster while its effect is active (effect state is replicated, so both sides agree)
    if PickupLibrary.hasPickupEffectActive(player.UserId, "ExplosiveBoomerang") then
       maximumSpeed *= GlobalConfig.ExplosiveBoomerangReturnSpeedMultiplier
@@ -1125,8 +1128,8 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
    local momentumMultiplier = 1
    local liftRate = RECALL_FROM_DEAD_LIFT_RATE
    if isManualRecallFromDead then
-      maximumSpeed *= GlobalConfig.ManualRecallSpeedMultiplier
-      momentumMultiplier = GlobalConfig.ManualRecallMomentumMultiplier
+      maximumSpeed *= BoomerangTuningLibrary.get(tuningToolId, "RecallSpeed")
+      momentumMultiplier = BoomerangTuningLibrary.get(tuningToolId, "RecallAcceleration")
       liftRate = GlobalConfig.ManualRecallLiftRate
    end
    local speed = math.max((options and options.InitialSpeed) or 0, thrownWeaponData.Speed or 0)
