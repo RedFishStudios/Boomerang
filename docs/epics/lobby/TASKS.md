@@ -43,6 +43,9 @@ Spec: `docs/LOBBY_SPEC.md`. A large chest on a glowing pad with a "GROUP REWARDS
 - Cmdr: `resetgroupreward <players>` makes the chest claimable again.
 - **Studio setup (Sol):** tag the chest model `LobbyStation` with `StationId = "GroupRewards"`, `Title = "GROUP REWARDS"`, and a glowing child part named `Pad`.
 - **Test in Studio:** as a group member: claim (popup, +100 Currency, prompt disappears, pad dims), rejoin (still claimed), `resetgroupreward me` (claimable again). Join flow: needs an account **not** in the group, ideally in a live/team-test server. `PromptJoinAsync` has had reported Studio issues; if it errors in Studio, the warning "join prompt failed" shows and nothing breaks.
+- Review follow-up (Sol, 2026-10-02): membership moved out of the chest into its own `Server/Core/GroupMembershipService` + `Client/Core/GroupMembershipController` (`isMember`, `refreshMembership`, `promptJoin`, `MembershipChangedTasks`, per-server group id override, per-player simulation). `GroupRewardService` only uses that API; `GroupRewardController` now only shows the claim popup. Remotes renamed: `GroupMembershipPromptJoin`, `GroupMembershipJoinReport`.
+- New Cmdr: `simulategroupmember <players> member|nonmember|real`, `setgroupid [groupId]` (this server only, not saved).
+- **Testing the join flow as a member:** `simulategroupmember me nonmember` → chest shows "Join group" (dimmed) → trigger it: the join prompt opens (Roblox will say you're already a member; the simulation keeps you a non-member) → `simulategroupmember me real` → the pending claim goes through. Or `setgroupid <a group you're not in>` to test the real prompt and join.
 
 ---
 

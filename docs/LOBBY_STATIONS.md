@@ -28,7 +28,7 @@ Keep this table up to date when you add one. Look at these as working examples.
 
 | StationId | Server / client code | Task |
 |---|---|---|
-| `GroupRewards` | `GroupRewardService` / `GroupRewardController` (group join prompt, daily claim, Locked/Active/Claimed states) | T-045 |
+| `GroupRewards` | `GroupRewardService` / `GroupRewardController` (daily claim, Locked/Active/Claimed states; membership and join prompt via `GroupMembershipService`) | T-045 |
 
 ## The station in Studio (place-only content)
 
@@ -140,6 +140,8 @@ If a station needs its own remotes (e.g. to tell the client the wheel result for
 | Command | What it does |
 |---|---|
 | `resetgroupreward <players>` | Makes the Group Rewards chest claimable again (T-045). |
+| `simulategroupmember <players> member\|nonmember\|real` | Pretends players are/aren't in the group (this server only). |
+| `setgroupid [groupId]` | Uses another group for membership checks in this server only; no id resets to `GlobalConfig.GroupId`. |
 | `setstationstate <players> <stationId> <state> [promptEnabled]` | Sets a state for players. `state = clear` resets it. Example: `setstationstate me PrizeWheel Locked false` hides the prompt and dims the pad. `setstationstate me PrizeWheel clear` puts it back. |
 
 When a station's behaviour is hard to reach by playing (cooldowns, group membership, purchases), add a Cmdr command for it (e.g. reset that station's cooldown) and say which one to use in the task Notes. See "Developer commands" in CLAUDE.md.

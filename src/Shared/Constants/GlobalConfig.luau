@@ -43,7 +43,8 @@ local GlobalConfig = {
    LobbyJumpHeight = 7.2, -- // Jumping is only enabled in the lobby (dash replaces it in the arena)
    AimingWalkSpeed = (16 * .3),
 
-   -- // Roblox group (community) for the lobby Group Rewards chest (T-045): members can claim GroupRewardCurrency once every 24 h
+   -- // The game's Roblox group (community), checked by GroupMembershipService (Cmdr `setgroupid` overrides it per server).
+   -- // Members can claim GroupRewardCurrency from the lobby Group Rewards chest once every 24 h (T-045).
    GroupId = 293180599,
    GroupRewardCurrency = 100, -- TODO:RELEASE placeholder (the real reward isn't decided yet)
 

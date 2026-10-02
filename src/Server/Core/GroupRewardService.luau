@@ -1,11 +1,9 @@
 --[[
 	Group Rewards chest in the lobby (T-045). A lobby station (docs/LOBBY_STATIONS.md) with StationId "GroupRewards".
 
-	- Members of GlobalConfig.GroupId can claim GlobalConfig.GroupRewardCurrency once every 24 h
+	- Group members (GroupMembershipService) can claim GlobalConfig.GroupRewardCurrency once every 24 h
 	  (same rolling 24 h window as DailyRewardsService).
-	- Non-members who trigger the chest get Roblox's join prompt (GroupRewardController). If they join,
-	  the client asks again and the server re-checks membership with the uncached GroupService:GetGroupsAsync
-	  (Player:IsInGroup is cached on the server for about a minute) before granting.
+	- Non-members who trigger the chest get the join prompt; if their join is verified, the claim goes through.
 
 	Author:
 	@Soulsplosion
@@ -13,7 +11,6 @@
 
 local GroupRewardService = {}
 
-local GroupService = game:GetService("GroupService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
@@ -21,6 +18,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local EconomyService = require(ServerStorage.Server.Core.EconomyService)
+local GroupMembershipService = require(ServerStorage.Server.Core.GroupMembershipService)
 local LobbyStationService = require(ServerStorage.Server.Core.LobbyStationService)
 local PlayerDataService = require(ServerStorage.Server.Core.PlayerDataService)
 
@@ -30,20 +28,16 @@ local PlayerDataService = require(ServerStorage.Server.Core.PlayerDataService)
 
 local STATION_ID = "GroupRewards"
 local SECONDS_IN_DAY = 86400 -- // Same as DailyRewardsService
-local JOINED_RETRY_COOLDOWN = 3 -- // Seconds between two "I joined" checks from the same player (each one is a web call)
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
 -------------------------------------------------------------------------------
 
-local promptJoinEvent = SimpleRemotes.getEvent("GroupRewardPromptJoin")
-local joinedEvent = SimpleRemotes.getEvent("GroupRewardJoined")
 local claimedEvent = SimpleRemotes.getEvent("GroupRewardClaimed")
 
--- // Membership confirmed this session (a player who joins mid-session stays confirmed)
-local confirmedMembers: { [Player]: boolean } = {}
 local refreshThreads: { [Player]: thread } = {}
-local lastJoinedChecks: { [Player]: number } = {}
+-- // Players who used the chest as non-members and were shown the join prompt: claim as soon as they're members
+local pendingClaims: { [Player]: boolean } = {}
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -54,27 +48,7 @@ local function isClaimable(data: PlayerDataService.Data): boolean
 	return lastClaim == 0 or (os.time() - lastClaim >= SECONDS_IN_DAY)
 end
 
--- // Cached by Roblox on the server (about a minute): fine for the first check
-local function isMemberCached(player: Player): boolean
-	local ok, isMember = pcall(player.IsInGroup, player, GlobalConfig.GroupId)
-	return ok and isMember
-end
-
--- // Uncached web call: used after the player says they joined
-local function isMemberFresh(player: Player): boolean
-	local ok, groups = pcall(GroupService.GetGroupsAsync, GroupService, player.UserId)
-	if not ok then
-		warn(`GroupRewardService: GetGroupsAsync failed for {player.Name}: {groups}`)
-		return false
-	end
-	for _, group in groups do
-		if group.Id == GlobalConfig.GroupId then
-			return true
-		end
-	end
-	return false
-end
-
+-- // May yield (membership check)
 local function refreshState(player: Player)
 	local data = PlayerDataService.get(player)
 	if not data or not player.Parent then
@@ -92,7 +66,7 @@ local function refreshState(player: Player)
 		-- // Unlock again when the 24 h are up, if the player is still here
 		local remaining = SECONDS_IN_DAY - (os.time() - data.GroupRewardLastClaim)
 		refreshThreads[player] = task.delay(remaining + 1, refreshState, player)
-	elseif confirmedMembers[player] then
+	elseif GroupMembershipService.isMember(player) then
 		LobbyStationService.setPlayerState(player, STATION_ID, { State = "Active", ActionText = "Claim" })
 	else
 		LobbyStationService.setPlayerState(player, STATION_ID, { State = "Locked", ActionText = "Join group" })
@@ -100,6 +74,7 @@ local function refreshState(player: Player)
 end
 
 local function claim(player: Player)
+	pendingClaims[player] = nil
 	local data = PlayerDataService.get(player)
 	if not data or not isClaimable(data) then
 		return
@@ -122,29 +97,19 @@ local function onTriggered(player: Player)
 		return
 	end
 
-	if confirmedMembers[player] or isMemberCached(player) then
-		confirmedMembers[player] = true
+	if GroupMembershipService.isMember(player) then
 		claim(player)
 	else
-		promptJoinEvent:FireClient(player)
+		pendingClaims[player] = true
+		GroupMembershipService.promptJoin(player)
 	end
 end
 
-local function onJoined(player: Player)
-	local now = os.clock()
-	if now - (lastJoinedChecks[player] or 0) < JOINED_RETRY_COOLDOWN then
-		return
-	end
-	lastJoinedChecks[player] = now
-
-	local data = PlayerDataService.get(player)
-	if not data or not isClaimable(data) then
-		return
-	end
-
-	if confirmedMembers[player] or isMemberFresh(player) then
-		confirmedMembers[player] = true
+local function onMembershipChanged(player: Player, isMember: boolean)
+	if isMember and pendingClaims[player] then
 		claim(player)
+	else
+		refreshState(player)
 	end
 end
 
@@ -159,7 +124,7 @@ function GroupRewardService.resetClaim(player: Player): boolean
 		return false
 	end
 	data.GroupRewardLastClaim = 0
-	refreshState(player)
+	task.spawn(refreshState, player)
 	return true
 end
 
@@ -169,11 +134,10 @@ end
 
 function GroupRewardService.init()
 	PlayerDataService.ProfileAddedTasks:Add(function(player: Player)
-		task.spawn(function()
-			confirmedMembers[player] = isMemberCached(player) or nil
-			refreshState(player)
-		end)
+		task.spawn(refreshState, player)
 	end)
+
+	GroupMembershipService.MembershipChangedTasks:Add(onMembershipChanged)
 
 	Players.PlayerRemoving:Connect(function(player)
 		local thread = refreshThreads[player]
@@ -181,11 +145,8 @@ function GroupRewardService.init()
 			task.cancel(thread)
 		end
 		refreshThreads[player] = nil
-		confirmedMembers[player] = nil
-		lastJoinedChecks[player] = nil
+		pendingClaims[player] = nil
 	end)
-
-	joinedEvent.OnServerEvent:Connect(onJoined)
 end
 
 function GroupRewardService.start()
