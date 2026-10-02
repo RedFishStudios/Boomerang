@@ -34,6 +34,7 @@ export type Template = {
       Streak: number, -- Current daily reward streak
       LastClaim: number, -- Timestamp of the last claimed daily reward
    },
+   GroupRewardLastClaim: number, -- Timestamp of the last Group Rewards chest claim (T-045), 0 = never
    Inventory: {
       [string]: number -- Shop item id : amount owned
    },
@@ -66,6 +67,7 @@ function ProfileTemplate.get()
          Streak = 0,
          LastClaim = 0
       },
+      GroupRewardLastClaim = 0,
       Inventory = {},
       GiftedPasses = {},
    }

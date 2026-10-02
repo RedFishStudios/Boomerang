@@ -11,27 +11,38 @@ Take new IDs from the `Next free ID` line in [TASKS.md](../../../TASKS.md). Ever
 
 ## Review
 
-### T-047 · Lobby station framework (labels, glowing pads, proximity prompts)
-- **Priority:** P1
-- **Owner:** Agent
+### T-045 · Group Rewards chest
+- **Priority:** P2
+- **Owner:** Sol → Agent
 - **Epic:** Lobby
-- **Area:** Client / Server / Shared
-- **Files:** New: e.g. `Shared/Library/LobbyStationLibrary.luau` (+ client/server parts); used by T-024, T-042–T-045
+- **Area:** Server / Client / Build
+- **Files:** New: group rewards station (T-047); profile field for claimed state
 
 **Problem / goal**
-Spec: `docs/LOBBY_SPEC.md`. Every lobby station (pedestals, wheel, crates, group chest, portal) shares the same conventions: a world-space title above it, a glowing activation pad, a proximity prompt or info panel when approached, and locked/unlocked or active visual states. Build this once as a reusable, tag-driven framework (e.g. CollectionService tag `LobbyStation` plus attributes such as `StationId`, `Title`, `ActionText`) so each station only registers its callback. Sol provides the models and art; this task is the behaviour.
+Spec: `docs/LOBBY_SPEC.md`. A large chest on a glowing pad with a "GROUP REWARDS" title. Players in the client's Roblox group can claim a reward; the chest shows locked/unlocked/claimed states.
 
-**Done when**
-- [ ] A tagged part/model in the lobby gets a title label, prompt and pad highlight automatically.
-- [ ] Stations register server-side handlers by `StationId`; prompts fire them; per-player visual state (e.g. claimed/locked) can be set from the server.
-- [ ] Works with T-024 pedestals; no station-specific code in the framework.
+**Decisions (Sol, 2026-10-02)**
+- Group ID **293180599**, stored in `GlobalConfig` (e.g. `GlobalConfig.GroupId`) so it's easy to find and change.
+- Membership is required. A non-member who triggers the chest is prompted to join the group in-game.
+- Claimable **once per day**.
+- Reward: a placeholder for now. "Once per day" = 24 h since the last claim, exactly like Daily Rewards.
+
+**Research: detecting a join during the session (2026-10-02)**
+- `GroupService:PromptJoinAsync(groupId)` is client-only and shows Roblox's native join prompt. It returns an `Enum.GroupMembershipStatus`: `Joined`, `AlreadyMember`, `JoinRequestPending` (manual-approval groups) or `None` (cancelled/ineligible). Wrap it in `pcall`.
+- `Player:IsInGroup` is cached (about 60 s). The prompt clears the *client's* cache only, so the server can still see the old answer right after a join.
+- Plan: chest handler on the server checks membership; if not a member, tells the client to call `PromptJoinAsync`. On `Joined`, the client asks the server to retry, and the server verifies with the uncached `GroupService:GetGroupsAsync(userId)` before granting (never trust the client's result alone).
+
+**Open questions (ask Sol first)**
+- The group ID, and is membership required?
+- What's the reward, and is it one-time or on a cooldown?
 
 **Notes**
-- Ask Sol for the tag/attribute names if a convention already exists in the place.
-- Tag convention (no existing one in the place could be checked, Studio had another place open): CollectionService tag `LobbyStation` + attributes `StationId` (required), `Title`, `ActionText`, `HoldDuration`, `MaxDistance`, `PromptPart`, `PadPart` (default a descendant named `Pad`), `TitleHeight`. Documented at the top of `LobbyStationLibrary`.
-- New: `Shared/Library/LobbyStationLibrary` (conventions, `StationState` type), `Server/Core/LobbyStationService` (creates prompts, `registerHandler(stationId, fn)`, `setPlayerState(player, stationId, state)`; triggers only count in the lobby, 0.5 s cooldown), `Client/Core/LobbyStationController` (title BillboardGui, pulsing PointLight on the pad that brightens while the prompt is shown and dims when `State` isn't `"Active"`, per-player prompt text/visibility; `ApproachedTasks` / `LeftTasks` / `StateChangedTasks` for station code such as the crate odds panel). Handles StreamingEnabled.
-- Cmdr: `setstationstate <players> <stationId> <state> [promptEnabled]` (`clear` resets).
-- **Test in Studio:** tag a lobby part/model `LobbyStation` with `StationId = "Test"`, `Title = "TEST"`, and a child part named `Pad`. Check the label, the pad glow (brighter near it), and the prompt (triggering warns "no handler registered" in Studio, that's expected). Then `setstationstate me Test Locked false`: prompt hides, glow dims; `setstationstate me Test clear` restores. Station visuals (font, label size, glow strength) are constants at the top of the controller, easy to tune.
+- 🗣️ **Talk with Sol before starting.**
+- Done (2026-10-02). `GlobalConfig.GroupId = 293180599` and `GlobalConfig.GroupRewardCurrency = 100` (**`TODO:RELEASE placeholder`** reward, Currency). New profile field `GroupRewardLastClaim` (0 = never; filled in by Reconcile).
+- New `Server/Core/GroupRewardService` (station `StationId = "GroupRewards"`): members claim once per rolling 24 h; non-members get the join prompt; after `Joined`/`AlreadyMember` the client fires `GroupRewardJoined` and the server re-checks with uncached `GetGroupsAsync` (3 s cooldown) before granting. Per-player station state: `Active` ("Claim"), `Locked` ("Join group"), `Claimed` (prompt hidden, unlocks itself when the 24 h are up). New `Client/Core/GroupRewardController`: join prompt + "Group reward claimed! +100 Currency" popup (ItemAcquired).
+- Cmdr: `resetgroupreward <players>` makes the chest claimable again.
+- **Studio setup (Sol):** tag the chest model `LobbyStation` with `StationId = "GroupRewards"`, `Title = "GROUP REWARDS"`, and a glowing child part named `Pad`.
+- **Test in Studio:** as a group member: claim (popup, +100 Currency, prompt disappears, pad dims), rejoin (still claimed), `resetgroupreward me` (claimable again). Join flow: needs an account **not** in the group, ideally in a live/team-test server. `PromptJoinAsync` has had reported Studio issues; if it errors in Studio, the warning "join prompt failed" shows and nothing breaks.
 
 ---
 
@@ -49,6 +60,11 @@ Lobby pedestals show a floating, slowly spinning model of the current sale item.
 - **Sol:** build the pedestal model(s) in the lobby (Studio) and tag/name them.
 - **Agent:** spawn and spin the current deal's model over each pedestal (client-side is fine), add a ProximityPrompt, and buy through the existing purchase flow.
 - **Sol: focus on Robux** (`MarketplaceLibrary.promptDeveloperProduct` with the item's `ProductId`), **but keep it scalable** so a Currency purchase option can be added later (e.g. a per-pedestal/per-item payment method, not Robux hard-coded into the prompt logic).
+
+**Decisions (Sol, 2026-10-02)**
+- `ShopItems.CurrentDeal` will be removed. There can be several pedestals, **each with its own item**, rotated **manually**.
+- Pedestals are lobby stations (T-047, `docs/LOBBY_STATIONS.md`).
+- 🗣️ Before starting: discuss how to make live-updatable config values (so pedestal items can change without a new place version). This may become a separate "flag handler" task that comes first.
 
 **Open questions (ask Sol first)**
 - Is `ShopItems.CurrentDeal` the item to show, and does it rotate (daily/weekly)?
@@ -119,25 +135,6 @@ Spec: `docs/LOBBY_SPEC.md`. A separate crate station for weapon cosmetics, visua
 
 ---
 
-### T-045 · Group Rewards chest
-- **Priority:** P2
-- **Owner:** Sol → Agent
-- **Epic:** Lobby
-- **Area:** Server / Client / Build
-- **Files:** New: group rewards station (T-047); profile field for claimed state
-
-**Problem / goal**
-Spec: `docs/LOBBY_SPEC.md`. A large chest on a glowing pad with a "GROUP REWARDS" title. Players in the client's Roblox group can claim a reward; the chest shows locked/unlocked/claimed states.
-
-**Open questions (ask Sol first)**
-- The group ID, and is membership required?
-- What's the reward, and is it one-time or on a cooldown?
-
-**Notes**
-- 🗣️ **Talk with Sol before starting.**
-
----
-
 ### T-046 · Server Selection portal
 - **Priority:** P2 *(later: needs destinations first)*
 - **Owner:** Sol
@@ -158,6 +155,31 @@ Spec: `docs/LOBBY_SPEC.md`. A large portal arch on a glowing ring with a sign, l
 ---
 
 ## Done
+
+### T-047 · Lobby station framework (labels, glowing pads, proximity prompts)
+- **Priority:** P1
+- **Owner:** Agent
+- **Epic:** Lobby
+- **Area:** Client / Server / Shared
+- **Files:** New: e.g. `Shared/Library/LobbyStationLibrary.luau` (+ client/server parts); used by T-024, T-042–T-045
+
+**Problem / goal**
+Spec: `docs/LOBBY_SPEC.md`. Every lobby station (pedestals, wheel, crates, group chest, portal) shares the same conventions: a world-space title above it, a glowing activation pad, a proximity prompt or info panel when approached, and locked/unlocked or active visual states. Build this once as a reusable, tag-driven framework (e.g. CollectionService tag `LobbyStation` plus attributes such as `StationId`, `Title`, `ActionText`) so each station only registers its callback. Sol provides the models and art; this task is the behaviour.
+
+**Done when**
+- [ ] A tagged part/model in the lobby gets a title label, prompt and pad highlight automatically.
+- [ ] Stations register server-side handlers by `StationId`; prompts fire them; per-player visual state (e.g. claimed/locked) can be set from the server.
+- [ ] Works with T-024 pedestals; no station-specific code in the framework.
+
+**Notes**
+- Ask Sol for the tag/attribute names if a convention already exists in the place.
+- Tag convention (no existing one in the place could be checked, Studio had another place open): CollectionService tag `LobbyStation` + attributes `StationId` (required), `Title`, `ActionText`, `HoldDuration`, `MaxDistance`, `PromptPart`, `PadPart` (default a descendant named `Pad`), `TitleHeight`. Documented at the top of `LobbyStationLibrary`.
+- New: `Shared/Library/LobbyStationLibrary` (conventions, `StationState` type), `Server/Core/LobbyStationService` (creates prompts, `registerHandler(stationId, fn)`, `setPlayerState(player, stationId, state)`; triggers only count in the lobby, 0.5 s cooldown), `Client/Core/LobbyStationController` (title BillboardGui, pulsing PointLight on the pad that brightens while the prompt is shown and dims when `State` isn't `"Active"`, per-player prompt text/visibility; `ApproachedTasks` / `LeftTasks` / `StateChangedTasks` for station code such as the crate odds panel). Handles StreamingEnabled.
+- Cmdr: `setstationstate <players> <stationId> <state> [promptEnabled]` (`clear` resets).
+- **Test in Studio:** tag a lobby part/model `LobbyStation` with `StationId = "Test"`, `Title = "TEST"`, and a child part named `Pad`. Check the label, the pad glow (brighter near it), and the prompt (triggering warns "no handler registered" in Studio, that's expected). Then `setstationstate me Test Locked false`: prompt hides, glow dims; `setstationstate me Test clear` restores. Station visuals (font, label size, glow strength) are constants at the top of the controller, easy to tune.
+- Passed Sol's Studio test (2026-10-02). Guide: `docs/LOBBY_STATIONS.md`.
+
+---
 
 ### T-032 · Lobby leaderboards (Eliminations + Wins, Monthly / All-Time)
 - **Priority:** P2

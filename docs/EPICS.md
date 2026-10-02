@@ -38,6 +38,25 @@ Not started yet. Each one begins with **Discovery** when Sol picks it up. Format
 - **Pitch:** Long-term milestones (e.g. lifetime eliminations, wins, gamemodes mastered) with rewards. Replaces task T-039.
 - **Discovery should cover:** the achievement list; rewards; whether they map to Roblox badges; save data (most can read the T-048 lifetime stats); the GUI; overlap with Quests (one shared system or two?).
 
+### Progress Review
+- **Priority:** P2
+- **Pitch:** A health check of the whole project so far: performance, memory leaks, unused code, how ready the current setup is for the planned features, and the agent docs. It produces findings, not features: each finding becomes a proposed task (or a note on an existing task/Epic) only after Sol approves it. Run it **in parts, one area per prompt** (e.g. agent docs & logs, then server, client, shared), writing findings into the Epic folder as it goes, to keep each prompt's credit use small. Sections 5–6 of the design template (Economy, Revenue) will mostly be "n/a".
+- **Discovery should cover:** the order of the parts and how big each one is; the format of the findings file (area, file, severity, suggested fix); which areas to skip because a task or Epic already covers them. The review itself covers:
+  1. **Optimisation candidates:**
+     - places with many async requests (DataStore/ProfileStore, MarketplaceService, HTTP, `WaitForChild`/yielding chains);
+     - places with heavy client↔server traffic or large payloads (remote call frequency, payload size, replicated `ReactiveValue`s / data proxies);
+     - places with heavy computation on the client or server (per-frame loops, raycasts, projectile/collision work, per-player polling);
+     - data stored or managed in large volumes that could be reduced, and that no task or Epic already plans to assess.
+  2. **Scalability:** compare what isn't done yet (GAME_DESIGN.md, LOBBY_SPEC.md, every Epic's DESIGN/TASKS, the general board) with what exists, and say whether the current setup can absorb those features or will need rework first.
+  3. **Agent setup:** improvements to the organisation and content of the agent markdown files (CLAUDE.md, TASKS.md, EPICS.md, docs/); and any agent-managed log that will keep growing (`TASKS.md` Done section, `Commits.txt`, `AgentLog.md`, ...) and needs a recurring culling/archiving rule.
+  4. **Memory leaks:** go through every system and check it eventually cleans up what it creates (connections, instances, table entries keyed by player/character/object, threads, `TasksList` subscribers). Rate each cleanup by how **guaranteed** it is to run: code that looks like it cleans up but can be skipped (an error or yield before it, an early return, an event that never fires, cleanup tied to a path that doesn't always happen) counts as a likely leak.
+  5. **Unused code:** the repo grew from an old template, and not all of it was kept. Find code that's never required or loaded (remember the boot name filters). **Ask Sol before deleting any file.** Files kept only as backups/references that the game doesn't use should move to a folder Rojo doesn't sync, so they stay in the GitHub repo but not in the published game (this includes the "Leftover and reference modules" in CLAUDE.md; update that list and its paths when they move).
+
+### Finalize Conversion to Server Authority
+- **Priority:** P1
+- **Pitch:** The game uses Roblox's Server Authority, but how it's used has problems. Finish the transition to it.
+- **Discovery should cover:** the list of problems Sol has seen (Sol to describe); which systems are already converted and which aren't (characters and movement, `CharacterRenderController`'s hidden authoritative character plus client-rendered model, abilities such as Dash, weapons and boomerang prediction, animation sync); what "finalized" means; how it relates to the `chickynoid-migration` branch, if at all; performance cost on busy servers.
+
 ## Shipped
 
 One line per shipped Epic. Its folder was deleted when it shipped; the commit below still has it (`git show <commit>~1:docs/epics/<epic>/DESIGN.md`).
