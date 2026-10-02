@@ -17,6 +17,7 @@ local PolicyLibrary = require(SharedMods.Library.PolicyLibrary)
 local TweenService = game:GetService("TweenService")
 local UIController = require(ClientMods.UI.UIController)
 local ShopController = require(ClientMods.Core.ShopController)
+local TopbarGui = require(ClientMods.UI.Gui.Topbar)
 
 local ShopScreenGui: ScreenGui? = script:WaitForChild("Shop")
 local TabButtons: Frame?
@@ -286,6 +287,14 @@ function ShopGui.close()
    end)
 end
 
+function ShopGui.toggle()
+   if ShopGui.Open then
+      ShopGui.close()
+   else
+      ShopGui.open()
+   end
+end
+
 function ShopGui.toggleSaleIndicator(itemId: string, show: boolean)
    if not Content then return end
 
@@ -326,6 +335,15 @@ local function _init()
 end
 
 function ShopGui.start()
+   TopbarGui.addButton({
+      Id = "Shop",
+      Text = "Shop",
+      Icon = "🛒",
+      Side = "Left",
+      Order = 2, -- // After Daily
+      onActivated = ShopGui.toggle,
+   })
+
    game:GetService("ContextActionService"):BindAction("testacquireitemnotif", function(_, inputState)
       if inputState == Enum.UserInputState.Begin then
           ShopGui.open()
