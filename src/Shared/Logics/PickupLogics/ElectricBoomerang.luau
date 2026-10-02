@@ -23,19 +23,37 @@ local isServer = RunService:IsServer()
 local EFFECT_DURATION_SECONDS = GlobalConfig.GenericEffectTimeout
 local EXPLOSION_LIFETIME = 1
 
--- // Chain eliminations. TODO: move these to GlobalConfig with the visuals pass (T-029)
-local CHAIN_RADIUS = 15
-local CHAIN_LINK_DELAY = 0.05
+-- // Chain eliminations (tuned in GlobalConfig)
+local CHAIN_RADIUS = GlobalConfig.ElectricChainRadius
+local CHAIN_LINK_DELAY = GlobalConfig.ElectricChainLinkDelay
 -- // Weapon id passed to the kill path for chained eliminations (elim message: "Shocked")
 local CHAIN_WEAPON_ID = "ElectricChain"
 local CHAIN_RADIUS_VISUAL_LIFETIME = 5
 local CHAIN_RADIUS_VISUAL_HEIGHT = 0.5
 
+-- // Arc visual (client only), matching the game's electric effects (blue, full light emission)
+local ARC_COLOR = Color3.fromRGB(0, 131, 255)
+local ARC_CORE_COLOR = Color3.fromRGB(190, 225, 255)
+local ARC_GLOW_TEXTURE = "rbxassetid://243660373" -- // Same glow as the ElectrifiedObject particle
+local ARC_SEGMENT_LENGTH = 2.5
+local ARC_MAX_SEGMENTS = 24
+local ARC_JITTER = 1.2
+local ARC_CORE_WIDTH = 0.25
+local ARC_GLOW_WIDTH = 1.4
+local ARC_GLOW_TRANSPARENCY = 0.3
+local ARC_FLICKERS = 3
+local ARC_FLICKER_INTERVAL = 0.08
+local ARC_FADE_TIME = 0.2
+local ARC_HIT_EMIT_COUNT = 3
+
 local visualizeChainRadiusRemote = SimpleRemotes.getEvent("VisualizeElectricChainRadius")
+local chainArcRemote = SimpleRemotes.getEvent("ElectricChainArc")
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
 -------------------------------------------------------------------------------
+
+local nextArcId = 0
 
 local ToolController
 if not isServer then
@@ -68,10 +86,15 @@ local function chainFrom(thrower: Player, victim: Player, origin: Vector3)
 			if not GameTeamLibrary.areEnemies(thrower, player) then
 				continue
 			end
-			if (player.Character.PrimaryPart.Position - origin).Magnitude > CHAIN_RADIUS then
+			local targetPosition = player.Character.PrimaryPart.Position
+			if (targetPosition - origin).Magnitude > CHAIN_RADIUS then
 				continue
 			end
 			CombatLibrary.attackHitPlayer(thrower, CHAIN_WEAPON_ID, player, nil, 10000, true)
+			-- // Only draw the arc if the link actually eliminated them (a shield or immunity can block it)
+			if not isAlive(player) then
+				chainArcRemote:FireAllClients(origin, targetPosition)
+			end
 		end
 	end)
 end
@@ -93,6 +116,93 @@ local function showChainRadius(position: Vector3, radius: number)
 	cylinder.CastShadow = false
 	cylinder.Parent = workspace
 	Debris:AddItem(cylinder, CHAIN_RADIUS_VISUAL_LIFETIME)
+end
+
+-- // Jagged, flickering electric arc between two points, then a burst of the ElectricExplosion particles on the target (client only)
+local function drawChainArc(from: Vector3, to: Vector3)
+	local segmentCount = math.clamp(math.floor((to - from).Magnitude / ARC_SEGMENT_LENGTH), 2, ARC_MAX_SEGMENTS)
+	local basis = CFrame.lookAt(from, to)
+
+	local holder = Instance.new("Part")
+	holder.Name = "ElectricChainArc"
+	holder.Size = Vector3.new(0.1, 0.1, 0.1)
+	holder.CFrame = CFrame.new(from)
+	holder.Transparency = 1
+	holder.Anchored = true
+	holder.CanCollide = false
+	holder.CanQuery = false
+	holder.CanTouch = false
+	holder.CastShadow = false
+
+	local attachments: { Attachment } = {}
+	for i = 1, segmentCount + 1 do
+		local attachment = Instance.new("Attachment")
+		attachment.Parent = holder
+		attachments[i] = attachment
+	end
+
+	local beams: { { Beam: Beam, BaseTransparency: number } } = {}
+	local function addBeam(attachment0: Attachment, attachment1: Attachment, color: Color3, width: number, transparency: number, texture: string?)
+		local beam = Instance.new("Beam")
+		beam.Attachment0 = attachment0
+		beam.Attachment1 = attachment1
+		beam.Color = ColorSequence.new(color)
+		beam.Width0 = width
+		beam.Width1 = width
+		beam.Transparency = NumberSequence.new(transparency)
+		beam.LightEmission = 1
+		beam.Brightness = 5
+		beam.FaceCamera = true
+		beam.Segments = 1
+		if texture then
+			beam.Texture = texture
+			beam.TextureMode = Enum.TextureMode.Stretch
+		end
+		beam.Parent = holder
+		table.insert(beams, { Beam = beam, BaseTransparency = transparency })
+	end
+	for i = 1, segmentCount do
+		addBeam(attachments[i], attachments[i + 1], ARC_COLOR, ARC_GLOW_WIDTH, ARC_GLOW_TRANSPARENCY, ARC_GLOW_TEXTURE)
+		addBeam(attachments[i], attachments[i + 1], ARC_CORE_COLOR, ARC_CORE_WIDTH, 0, nil)
+	end
+
+	local function reshape()
+		for i, attachment in ipairs(attachments) do
+			local position = from:Lerp(to, (i - 1) / segmentCount)
+			if i > 1 and i < #attachments then
+				position += basis.RightVector * (math.random() * 2 - 1) * ARC_JITTER
+				position += basis.UpVector * (math.random() * 2 - 1) * ARC_JITTER
+			end
+			attachment.WorldPosition = position
+		end
+	end
+
+	reshape()
+	holder.Parent = workspace
+
+	nextArcId += 1
+	ParticlesLibrary.emit(`ElectricChainHit_{nextArcId}`, "ElectricExplosion", to, ARC_HIT_EMIT_COUNT)
+
+	task.spawn(function()
+		for _ = 2, ARC_FLICKERS do
+			task.wait(ARC_FLICKER_INTERVAL)
+			reshape()
+		end
+		task.wait(ARC_FLICKER_INTERVAL)
+
+		local fadeStart = os.clock()
+		while holder.Parent do
+			local alpha = math.min((os.clock() - fadeStart) / ARC_FADE_TIME, 1)
+			for _, entry in ipairs(beams) do
+				entry.Beam.Transparency = NumberSequence.new(entry.BaseTransparency + (1 - entry.BaseTransparency) * alpha)
+			end
+			if alpha >= 1 then
+				break
+			end
+			RunService.RenderStepped:Wait()
+		end
+		holder:Destroy()
+	end)
 end
 
 -------------------------------------------------------------------------------
@@ -154,6 +264,8 @@ if isServer then
 		ParticlesLibrary.play(particleId, "ElectricExplosion", explosionCFrame.Position, nil, EXPLOSION_LIFETIME, true)
 	end)
 else
+	chainArcRemote.OnClientEvent:Connect(drawChainArc)
+
 	visualizeChainRadiusRemote.OnClientEvent:Connect(function(position: Vector3, radius: number)
 		if GlobalConfig.VisualizeElectricChainRadius then
 			showChainRadius(position, radius)

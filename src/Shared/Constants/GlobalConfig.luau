@@ -20,6 +20,8 @@ local GlobalConfig = {
    BoomerangHitThrottle = .5,
    ForceOverwritePickup = nil,
    GenericEffectTimeout = 15,
+   ElectricChainRadius = 15, -- // Studs: an Electric boomerang elimination chains to every enemy within this distance of the victim
+   ElectricChainLinkDelay = 0.05, -- // Seconds between each link of an Electric chain
    -- // Recall range: when a thrown boomerang would start returning on its own (end of its flight, or out of bounces),
    -- // it only does so if it's within this many studs (horizontally) of its player. Otherwise it loses momentum and
    -- // drops into the dead state, like after a clash, and must be manually recalled or picked up.
@@ -46,7 +48,7 @@ local GlobalConfig = {
    RaycastVisualizersEnabled = false,
    ProjectileHitboxVisualizerEnabled = false,
    ParryVisualizersEnabled = false,
-   VisualizeElectricChainRadius = true, -- // Client-only red cylinder showing the chain radius around each electric chain victim
+   VisualizeElectricChainRadius = true, -- // Client-only red cylinder showing the chain radius around every Electric boomerang elimination
    SyncAbilitiesToEveryPlayer = false,
    -- // Cmdr developer console (F2): true = every player can use it in live servers (for client review builds).
    CmdrOpenToEveryone = true, -- TODO:RELEASE (T-052) RELEASE BLOCKER: must be false before public release, or every player can use admin commands (then only admins, see CmdrService)

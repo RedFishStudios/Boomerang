@@ -105,8 +105,8 @@ New behaviour: when an electric boomerang kills a player, every other player wit
 **Done when**
 - [x] The old electric/water/zap code and remotes are gone; nothing else references them.
 - [ ] Chain kills work as specified. *(phase 1, in Review)*
-- [ ] Values (radius, delay) in config. *(phase 2)*
-- [ ] Arcs show on all clients. *(phase 2)*
+- [x] Values (radius, delay) in config. *(phase 2)*
+- [ ] Arcs show on all clients. *(phase 2, in Review)*
 - [ ] Electric + Explosive explosion eliminations start chains. *(phase 3)*
 
 **Test in Studio**
@@ -116,11 +116,12 @@ New behaviour: when an electric boomerang kills a player, every other player wit
 
 **Notes**
 - Depends on T-028 (water kills).
-- Phase 1: `ElectricBoomerang.luau` rewritten. It listens to `CombatLibrary.PlayerKilledPlayerTasks`: a kill by a thrown boomerang (Tools `LogicClass == "Boomerang"`) with the pickup active starts a chain; each link calls `CombatLibrary.attackHitPlayer(thrower, "ElectricChain", ...)`, so shields/immunity/scoring apply and the chain recurses. Radius 15 and link delay 0.05s are module constants for now.
+- Phase 1: `ElectricBoomerang.luau` rewritten. It listens to `CombatLibrary.PlayerKilledPlayerTasks`: a kill by a thrown boomerang (Tools `LogicClass == "Boomerang"`) with the pickup active starts a chain; each link calls `CombatLibrary.attackHitPlayer(thrower, "ElectricChain", ...)`, so shields/immunity/scoring apply and the chain recurses. Radius 15 and link delay 0.05s are in GlobalConfig (`ElectricChainRadius`, `ElectricChainLinkDelay`).
 - Debug: `GlobalConfig.VisualizeElectricChainRadius` (currently true) shows a client-only red cylinder (chain radius) for 5s on every electric elimination (boomerang victim and chained victims), via the `VisualizeElectricChainRadius` remote.
 - Removed Zapped checks from `CharacterController`, `WeaponLibrary`, `Dash`, `Stab`, and `"Zapped"` from AnimationController's core tracks. Kept `Animations.Zapped`, `Sounds.Zapped`, `AcquirableThingData.Zapped` and the ElectricPlayer/ElectrifiedObject particles.
 - New elim type "Shocked" (`CombatService.getElimType`, `ElimMessage` GUI).
 - Electric + Explosive currently only plays the ElectricExplosion particle (no zap, no early end).
+- Phase 2: arcs drawn on each client (`ElectricChainArc` remote, fired only when a link actually eliminates): jagged beam segments in the electric blue (0,131,255) with a light core and the ElectrifiedObject glow texture (243660373), flickering 3 times over ~0.25s then fading over 0.2s; a burst of the ElectricExplosion particles at the target. Tuning constants (`ARC_*`) at the top of `ElectricBoomerang.luau`. Existing bolt textures are flipbook sheets, so they can't be used on beams.
 - Not lint-checked (no Selene/luau-analyze here).
 
 ---
