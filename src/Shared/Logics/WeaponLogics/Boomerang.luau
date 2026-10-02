@@ -602,6 +602,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    local hitboxRadius = toolData.Boomerang.HitboxRadius
    local bounceDistance = BoomerangTuningLibrary.get(tuningToolId, "ThrowDistance")
    local initThrowDistance = bounceDistance * (1 + aimStrengthAlpha)
+   local isRetuning = false -- // True after a live Cmdr change of ThrowSpeed, until the speed has reached the new value (T-054)
    local energy = toolData.Boomerang.Bounces
 
    local startPosition = (options and options.StartPosition) or (character.PrimaryPart.Position + character.PrimaryPart.CFrame.LookVector * 3)
@@ -732,9 +733,25 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          updateOwnWeaponHighlight(player, thrownWeaponData, pivot.Position)
       end
 
-      if energy > 0 and speed > defaultSpeed then
+      -- // Live tuning (T-054): pick up Cmdr changes while the boomerang is in flight
+      local tunedSpeed = BoomerangTuningLibrary.get(tuningToolId, "ThrowSpeed")
+      if tunedSpeed ~= defaultSpeed then
+         defaultSpeed = tunedSpeed
+         isRetuning = true
+      end
+      local tunedDistance = BoomerangTuningLibrary.get(tuningToolId, "ThrowDistance")
+      if tunedDistance ~= bounceDistance then
+         bounceDistance = tunedDistance
+         initThrowDistance = bounceDistance * (1 + aimStrengthAlpha)
+      end
+
+      if energy > 0 and (speed > defaultSpeed or isRetuning) then
          local fadeAlpha = math.clamp(deltaTime * AIM_SPEED_FADE_RATE, 0, 1)
          speed = speed + (defaultSpeed - speed) * fadeAlpha
+         if isRetuning and math.abs(defaultSpeed - speed) < 0.5 then
+            speed = defaultSpeed
+            isRetuning = false
+         end
       end
 
       -- Exhaustion
@@ -1118,20 +1135,22 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
    end
 
    local tuningToolId = thrownWeaponData.ToolId or boomerangId
-   local maximumSpeed = BoomerangTuningLibrary.get(tuningToolId, "ThrowSpeed") -- // Tools value unless changed with Cmdr (T-054)
    -- // Explosive boomerang returns faster while its effect is active (effect state is replicated, so both sides agree)
-   if PickupLibrary.hasPickupEffectActive(player.UserId, "ExplosiveBoomerang") then
-      maximumSpeed *= GlobalConfig.ExplosiveBoomerangReturnSpeedMultiplier
-   end
+   local returnSpeedMultiplier = if PickupLibrary.hasPickupEffectActive(player.UserId, "ExplosiveBoomerang") then GlobalConfig.ExplosiveBoomerangReturnSpeedMultiplier else 1
    -- // Held manual recall of a dying/dead boomerang: capped speed and heavy momentum
    local isManualRecallFromDead = thrownWeaponData.RecallFromDead == true
-   local momentumMultiplier = 1
-   local liftRate = RECALL_FROM_DEAD_LIFT_RATE
-   if isManualRecallFromDead then
-      maximumSpeed *= BoomerangTuningLibrary.get(tuningToolId, "RecallSpeed")
-      momentumMultiplier = BoomerangTuningLibrary.get(tuningToolId, "RecallAcceleration")
-      liftRate = GlobalConfig.ManualRecallLiftRate
+   local liftRate = if isManualRecallFromDead then GlobalConfig.ManualRecallLiftRate else RECALL_FROM_DEAD_LIFT_RATE
+   local maximumSpeed, momentumMultiplier = 0, 1
+   -- // Tools/GlobalConfig values unless changed with Cmdr; re-read every frame so live changes apply mid-recall (T-054)
+   local function updateRecallTuning()
+      maximumSpeed = BoomerangTuningLibrary.get(tuningToolId, "ThrowSpeed") * returnSpeedMultiplier
+      momentumMultiplier = 1
+      if isManualRecallFromDead then
+         maximumSpeed *= BoomerangTuningLibrary.get(tuningToolId, "RecallSpeed")
+         momentumMultiplier = BoomerangTuningLibrary.get(tuningToolId, "RecallAcceleration")
+      end
    end
+   updateRecallTuning()
    local speed = math.max((options and options.InitialSpeed) or 0, thrownWeaponData.Speed or 0)
    local slideSpeed = 0
    local hitboxRadius = toolData.Boomerang.HitboxRadius
@@ -1171,6 +1190,8 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          end
          return
       end
+
+      updateRecallTuning()
 
       -- // Prioritize movement towards the player
       local hostPivot = getWeaponCFrame(thrownWeaponData)

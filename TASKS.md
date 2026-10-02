@@ -112,6 +112,7 @@ Boomerang logic runs on both the server and the client, so a changed value must 
 - New `Shared/Library/BoomerangTuningLibrary`: per-tool overrides stored as `ReplicatedStorage` attributes (`BoomerangTuning_<ToolId>_<Setting>`), so they replicate; falls back to Tools/GlobalConfig. `Boomerang.luau` reads it for throw speed/distance and manual recall speed/acceleration.
 - Cmdr: `tuneboomerang [setting] [value]` (alias `tune`; no args = show all, no value = show one) and `resetboomerang [setting]` (no setting = reset all). New type `boomerangsetting` (ThrowSpeed, ThrowDistance, RecallSpeed, RecallAcceleration). Values must be > 0.
 - Added `WeaponService.getEquippedToolId(player)`.
+- Live update (Sol's follow-up): values are re-read every frame, so a boomerang already in flight picks up changes. A changed ThrowSpeed eases toward the new value (same rate as the aim-bonus fade); ThrowDistance applies immediately; recall speed/acceleration apply mid-recall. Test: `tune ThrowSpeed 1`, throw, `tune ThrowSpeed 80` → it should speed back up to 80 (check on both clients).
 - Not lint-checked (no Selene/luau-analyze here). Test as below, plus `tune` with no weapon held.
 
 ---
