@@ -17,9 +17,9 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - Move the task to `In Progress` when you start, and to `Review` when you're done.
   - Fill in **Notes** with what changed, what still needs testing in Studio, and any `TODO:RELEASE placeholder` values you added.
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
-  - Never move a task to `Done`; Sol does that after testing in Studio.
+  - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-052** *(shared by every task list, general and Epic)*
+**Next free ID: T-055** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -53,6 +53,35 @@ What's wrong, or what should exist.
 
 ## Ready
 
+### T-054 · Cmdr commands for boomerang tuning
+- **Priority:** P2
+- **Owner:** Sol → Agent
+- **Area:** Server / Shared / Tooling
+- **Files:** `Server/Cmdr/Commands/` (new definition + `<Name>Server` pairs); values in `Shared/Constants/Tools.luau` (`Speed`, `ThrowDistance`) and `Shared/Constants/GlobalConfig.luau` (`ManualRecallSpeedMultiplier`, `ManualRecallMomentumMultiplier`); used by `Shared/Logics/WeaponLogics/Boomerang.luau`
+
+**Problem / goal**
+Let Sol tune boomerang feel live in a server, without editing code. Add Cmdr commands (group `DevTesting`, so they show under "Boomerang commands" in `help`) to set:
+- **Maximum throw speed** (`Speed` in Tools)
+- **Maximum throw distance** (`ThrowDistance` in Tools)
+- **Maximum manual recall speed** (currently `ManualRecallSpeedMultiplier` × max speed)
+- **Manual recall pickup speed**: how quickly a manually recalling boomerang reaches its max speed (currently `ManualRecallMomentumMultiplier`)
+
+Boomerang logic runs on both the server and the client, so a changed value must reach every client too (e.g. replicated attributes), or the client's prediction won't match the server. Changes last for the server session only (not saved). Running a command with no value should print the current value, and there should be a way to reset to the defaults.
+
+**Open questions (ask Sol first)**
+- Per boomerang tool (Tools has several entries) or one value for all boomerangs?
+- Absolute values (studs/s, studs) or multipliers of the defaults?
+
+**Done when**
+- [ ] The four values can be set, shown and reset from Cmdr, and take effect on the next throw/recall for every player.
+
+**Test in Studio**
+- Local server with 2 players: change each value, throw/recall on both clients, and check the boomerang matches on both.
+
+**Notes
+
+---
+
 ### T-005 · Convert space-indented files to tabs
 - **Priority:** P2
 - **Owner:** Agent
@@ -81,6 +110,33 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-026 · Menus can lock the screen in the over-the-shoulder camera
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Client / GUI
+- **Files:** `Client/UI/UIController.luau`, `Client/Core/CustomCameraController.luau`, `Client/UI/Gui/*`
+
+**Problem / goal**
+In the in-game over-the-shoulder camera the mouse is locked/hidden, so a clickable GUI that appears during a round (e.g. Shop, Daily Claims, Voting, ItemAcquired with buttons) can't be clicked or closed, and the player is stuck. Audit every GUI that can open during a round and make sure the mouse is freed while it's open (e.g. a `Modal` button or `UserInputService.MouseBehavior`/`MouseIconEnabled` handled centrally in `UIController` for menu-type GUIs), and restored when it closes.
+
+**Done when**
+- [x] Opening any menu-type GUI while in the arena camera frees the mouse; closing the last one restores the camera's mouse lock.
+- [x] GUIs that shouldn't open during a round are listed in Notes (ask Sol whether to block them).
+
+**Test in Studio**
+- During a round, open each menu (shop, daily claims, settings...) with keyboard/HUD buttons and close it with the mouse.
+- Repeat on gamepad and on a mobile emulator.
+
+**Notes**
+- New `Client/Core/MouseUnlockController`: every frame, if any open gui has `RequiresMouse = true` (`UIController.isMouseRequired()`), it shows an invisible `Modal` button (Roblox's standard way to free a locked mouse) and keeps the cursor visible. When the last one closes, it hides the button and re-hides the cursor if the camera is in the arena's Regular (over-the-shoulder) mode.
+- Flagged `RequiresMouse = true`: Shop, DailyClaims, Voting (the guis with clickable buttons that open as menus).
+- Not flagged: HudButtons and CustomTouchscreen (always on screen, so flagging them would never re-lock the mouse), and the notification-style HUDs (no buttons). If HudButtons should be clickable in the over-the-shoulder camera, that needs a separate decision (e.g. holding a key to free the mouse).
+- No gui is blocked from opening during a round; ask Sol if any should be.
+- Syntax-checked with `luau-compile`; not play-tested (Sol declined the Studio play-test).
+- PC (keyboard/mouse) passed Sol's Studio test (2026-10-02). Gamepad and mobile checks still to do (low priority).
+
+---
 
 ### T-048 · Track more player stats
 - **Priority:** P1
@@ -117,258 +173,6 @@ Use `EconomyService`-style owner functions so other code doesn't write these fie
 - Time played: added to the profile every 60 s, plus on leave through a new `PlayerDataService.ProfileRemovingTasks` that runs before the session ends (the existing `ProfileRemovedTasks` runs after, when writes are no longer saved).
 - Cmdr: `showstats <player>` (alias `stats`).
 - Test in Studio: play a few rounds (FFA and team), eliminate and get eliminated, dash/stab, grab pickups, then `showstats`. Rejoin and check the values survived, including time played.
-
----
-
-### T-004 · Clean up the `PickupLogic` type in PickupLibrary
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Shared
-- **Files:** `src/Shared/Library/PickupLibrary.luau`
-
-**Problem / goal**
-`export type PickupLogic` declares `onPickup` twice with two different signatures (the second, `(userId, activationTime)`, is described as the replication/simulation callback) and has a stray `fart: string` field. With duplicate keys only one signature applies, so modules cast to `PickupLibrary.PickupLogic` aren't type-checked as intended.
-
-**Done when**
-- [ ] The type has one entry per callback, matching what `PickupService` / `PickupController` really call, with `Disabled: boolean?` included.
-- [ ] The stray field is removed. No runtime behaviour changes.
-
-**Test in Studio**
-- None needed beyond a normal server start; pick up any pickup to confirm nothing changed.
-
-**Notes**
-- Open question answered from the code: there is no separate replication callback. Both `PickupService` and `PickupController` (on replication, for every player) call `onPickup(player, timestamp)`, so the second `onPickup` entry was removed rather than renamed.
-- Type now: `onPickup`, `onEnd?`, `canActivate?` (both sides already call it; no pickup implements it yet) and `Disabled: boolean?`. Stray field removed. Type-only change.
-- Found, not changed: `PickupController.activate()` is never called, and it calls `onPickup` with a userId instead of a Player (what the old second entry described). Dead code; remove it in a later task if you agree.
-
----
-
-### T-003 · Remove leftover debug output from boot and ProductService
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Server
-- **Files:** `src/Server.server.luau`, `src/Server/Core/ProductService/init.luau`
-
-**Problem / goal**
-- `Server.server.luau` prints `Requiring <Module>` for every module on every server start (and those two lines are space-indented in a tab-indented file).
-- `ProductService.init()` prints four `~~~~~` lines plus the module name and product ID for every product logic.
-
-**Done when**
-- [ ] The `Requiring` prints and the `~~~~~` / name / ID prints are removed. The warning for a product logic without an ID stays.
-- [ ] Nothing else in those files changes.
-
-**Test in Studio**
-- Start a server: the output shows the "Server loaded" line and no per-module spam.
-
-**Notes**
-- Removed the two `Requiring` prints from `Server.server.luau` and the `~~~~~` / name / ID prints from `ProductService.init()`. The missing-productId warning stays.
-
----
-
-### T-002 · Fix `${...}` in interpolated strings (prints a literal `$`)
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Server / Client / Shared
-- **Files:** `ProductService/init.luau`, `ProductLogics/Template.luau`, `UI/Gui/ElimMessage/init.luau`, `Library/GameTeamLibrary.luau`, `Library/MarketplaceLibrary.luau`, `Library/ParticlesLibrary.luau`, `Logics/Environment/MovingPlatform.luau`, `Logics/Environment/Portal.luau`
-
-**Problem / goal**
-Luau interpolation is `` `text {value}` ``. About 17 warn/error/print strings use JavaScript-style `${value}`, so every message shows a stray `$` (e.g. `Player with userId $123 not found`).
-
-**Done when**
-- [ ] No `` ` ``-string in `src/Server`, `src/Client` or `src/Shared` contains `${`.
-- [ ] Only the `$` is removed; the messages are otherwise unchanged.
-
-**Test in Studio**
-- None needed beyond a normal server start with no new errors.
-
-**Notes**
-- Removed the `$` from all 17 `${...}` strings in the 8 listed files; nothing else changed. No `${` left in `src/Server`, `src/Client`, `src/Shared`.
-
----
-
-### T-051 · Touch controls follow the player's current input
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Client
-- **Files:** `Client/Core/PlatformController.luau`, `Client/UI/Screens/InputScreen.luau`
-
-**Problem / goal**
-Players can switch input mid-game. Touching the screen while on keyboard/mouse shows the touchscreen GUI; using keyboard/mouse while on touch hides it.
-
-**Done when**
-- [ ] Keyboard/mouse → touch: touchscreen GUI (CustomTouchscreen + mobile buttons) appears.
-- [ ] Touch → keyboard/mouse: it disappears.
-
-**Test in Studio**
-- Touch-screen laptop (or a phone/tablet with a keyboard/mouse): start on mouse, tap the screen, then move the mouse / press a key. Repeat starting on touch.
-- On mobile, typing in chat with the on-screen keyboard must not hide the touch controls.
-- Studio's device emulator may not reproduce mixed input well; a real device is the reliable test.
-
-**Notes**
-- `PlatformController` is now the single source of truth: `InputScreen` used `PreferredInput` (via `DeviceUtil`) while `CustomTouchscreen` used `PlatformController`, so they could disagree. `InputScreen` now listens to `DominantControlSchemeChanged`. `DeviceUtil` is untouched (now unused).
-- Fixes in `PlatformController`: unmapped input types (Focus, TextInput...) no longer flip the scheme to PC (this could hide touch controls on mobile when the window regained focus); mouse buttons/wheel and gamepads 5–8 are now recognised; keyboard input while typing in a TextBox is ignored; the starting scheme uses the last input / `PreferredInput` instead of assuming touch on any touch-capable device (touch laptops started in touch mode).
-- Roblox's own thumbstick/jump button (`TouchGui`) is switched by the PlayerModule, not by this code.
-
----
-
-### T-028 · Water kills the player, with a splash
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Shared
-- **Files:** `Shared/Logics/Environment/Water.luau`, `Shared/Library/CombatLibrary.luau`, `Shared/Library/ParticlesLibrary.luau`, `Shared/Assets/Particles/`
-
-**Problem / goal**
-Stepping into water kills the player. A splash effect plays on the player and they fall through the water, so it reads as falling in and dying.
-- Use the normal death path (`CombatLibrary` / death reason) so death screens, elim messages and gamemode scoring behave like other environmental deaths (see `DeadlyPart`).
-- If there's no splash particle yet, add a placeholder entry and mark it `-- TODO:RELEASE placeholder`.
-
-**Done when**
-- [ ] Touching water kills the player once, with a splash effect and the character sinking through the water.
-- [ ] The death counts the same way as other environment deaths (death screen shows a non-player cause).
-
-**Test in Studio**
-- Walk into water in each map that has it: splash, sink, death screen, respawn where the gamemode allows.
-
-**Notes**
-- Water parts are made non-collidable (`CanCollide = false` in `Water.onObjectAdded`), so players always fall through water. `Touched` / `GetTouchingParts` still work (the part has a Touched connection), so the fire/electric `PlayerEnteredWater` effects are unchanged.
-- Server-side in `Water.luau` (`Water.init` starts a Heartbeat check): a player drowns once the centre of their body (`HumanoidRootPart`) is inside a water part: within its footprint and below its top surface (down to `MAX_ROOT_DEPTH_BELOW_BOTTOM` = 10 studs under its bottom, to catch fast falls). Feet in the water or standing on the edge is safe.
-- Death through the normal path: `Humanoid.Health = 0` + `CombatLibrary.notifyDeathReason` with "Drowned" (setting Health directly also kills through the spawn ForceField). Once per life (`Drowned` attribute). A splash plays on the surface.
-- Removed from the previous iteration: the `SinkingPlayers` collision group, the ragdoll change in `CharacterRenderController` and `Dash.isDashing` (no longer needed now water never collides).
-- **`TODO:RELEASE placeholder`:** `Shared/Assets/Particles/Splash.rbxmx`, a basic hand-written droplet burst.
-- The footprint uses the part's box, so non-box water (MeshPart, wedge, cylinder) counts by its bounding box. Water kills in every phase, lobby included.
-- Check in Studio: walk off the edge into water (fall in, splash, death screen "Drowned"); stand with toes over the edge (safe); dash across a gap (safe if you land before your centre drops into the water); die with the spawn shield up.
-
----
-
-### T-034 · Projectiles go through portals
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Shared
-- **Files:** `Shared/Logics/Environment/Portal.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`, `Shared/Library/DynamicCollisionLibrary.luau`
-
-**Problem / goal**
-Portals currently teleport players only. A thrown boomerang (any projectile) should pass through a portal and come out of the linked one, keeping its speed and direction relative to the exit portal.
-
-**Done when**
-- [x] A thrown boomerang entering a portal continues from the paired portal with the same relative direction and speed.
-- [x] Recall (auto and manual) still finds its way back, through the portal or by its normal path; describe which in Notes.
-- [x] Clients and server agree on the boomerang's position after it passes through (no visible snapping beyond normal replication).
-
-**Test in Studio**
-- On a map with portals: throw through a portal and hit a player on the other side; recall it.
-
-**Notes**
-- New `Portal.getProjectileExit(origin, direction, distance, radius, lastExitAt?, lastExitPart?)`. Portal pairs are read from the current arena's `Functional` folder (attribute `ClassName = "Portal"`, the same layout `Portal.validate` expects), so the server and clients find the same portals without extra replication.
-- `Boomerang.throw`'s step checks it before hits and obstructions. On entry, the boomerang jumps to the paired portal's Attachment (keeping its height) with its direction mapped through the pair: relative to the entry attachment, turned around, then relative to the exit attachment. If that would point back into the exit portal, it goes straight out along the exit attachment's facing. Speed and remaining throw distance are unchanged. A 0.25 s cooldown stops it from re-entering the portal it just left.
-- **Convention it relies on:** each portal's Attachment faces *out* of its portal. This is also the direction players face after teleporting.
-- Recall: returning boomerangs do not use portals. They take their normal path back to the player (with collision).
-- No map in the place currently has a portal, so it couldn't be tried in a level. The math was tested in Studio with in-memory parts (never added to the place): head-on and angled entries, misses, short steps, the re-entry cooldown, and both directions through the pair.
-- Syntax-checked with `luau-compile`; not play-tested.
-
----
-
-### T-031 · Allow jumping in the lobby (instead of dash)
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Server / Client
-- **Files:** `Server/Core/CharacterService/init.luau`, `Shared/Logics/AbilityLogics/Dash.luau`, `Client/Core/AbilityController.luau`, `Server/Core/LobbyService.luau`, `Server/Core/SpawnService.luau`
-
-**Problem / goal**
-In the lobby, players can jump and can't dash. In the arena it's the reverse (current behaviour). `CharacterService` currently disables jumping for every character (`SetStateEnabled(Jumping, false)`, `JumpHeight = 0`).
-
-**Done when**
-- [x] Jumping is enabled while the player is in the lobby and disabled when they're sent to the arena (and re-enabled when they return).
-- [x] Dash can't be used in the lobby. The jump input (Space / mobile jump) jumps in the lobby and dashes in the arena.
-- [x] Jump height comes from config.
-
-**Test in Studio**
-- In the lobby: Space jumps, no dash. Enter a round: Space dashes, no jump. Return to the lobby: jumping works again. Repeat on mobile.
-
-**Notes**
-- New `Shared/Library/LobbyLibrary.isCharacterInLobby(character)` (the lobby-volume check `LobbyController` already used), so both sides can check.
-- Jumping: `LobbyController` sets the local humanoid's `JumpHeight` to `GlobalConfig.LobbyJumpHeight` (7.2) and enables the Jumping state while in the lobby, and sets them back to 0/disabled in the arena. This is done on the client because the client simulates its own character; the server still disables jumping at spawn (`CharacterService`).
-- Dash: `Dash.canActivate` returns false in the lobby (checked on the client and on the server).
-- Input: new `AbilityController.useMovementInput()`: jumps in the lobby, dashes in the arena. Space and the mobile Dash buttons (`CustomTouchscreen`, `HudButtons`) now call it.
-- Syntax-checked with `luau-compile`; not play-tested. Check that Roblox's default jump button/keys (if the default control scripts are active in the place) behave the same.
-
----
-
-### T-030 · Make the server-authoritative character invisible
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Client
-- **Files:** `Client/Core/CharacterRenderController.luau`
-
-**Problem / goal**
-Each player has a server-authoritative character (physics/hits) and a client-rendered model. The authoritative character should never be visible. `everyFrame` currently sets it to transparency `0.5` when no rendered model exists (and `1` only during a disguise).
-
-**Done when**
-- [ ] The authoritative character is fully invisible (transparency 1) for every player at all times, including before the rendered model loads.
-- [x] Hitbox parts keep their current behaviour (they're already skipped).
-
-**Test in Studio**
-- Join with 2 players: only the rendered models are visible, including right after spawning and respawning.
-
-**Notes**
-- `CharacterRenderController.everyFrame` now keeps the authoritative character fully invisible (transparency 1, including the face decal) while the rendered model exists or is still loading. It was 0.5 before. Hitbox parts are still skipped.
-- `GlobalConfig.AuthoritativeCharacterDebugVisible` (default `false`) brings back the 0.5 view for debugging.
-- **Fallback (deviation from "invisible at all times", please confirm):** if a player's rendered model **failed to load**, the authoritative character is shown (transparency 0), so the player doesn't become invisible. Controlled by `GlobalConfig.ShowAuthoritativeCharacterOnRenderFailure` (default `true`). This matters right now: the Studio output log is flooded with `recently failed to load replicated model for Soulsplosion`, i.e. rendered models are failing to load in Studio play-tests. That's worth its own investigation.
-- Syntax-checked with `luau-compile`; not play-tested.
-
----
-
-### T-027 · Explosive boomerang: lasts the whole effect and returns 50% faster
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Shared
-- **Files:** `Shared/Logics/PickupLogics/ExplosiveBoomerang.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`
-
-**Problem / goal**
-The explosive boomerang currently only explodes once. The effect should stay active after the first explosion (every throw explodes until the pickup effect ends), and while it's active the boomerang returns to the player's hand **50% faster** than now.
-- The module is still marked `-- STUD` / `-- TODO`; check what's implemented before changing it.
-
-**Done when**
-- [x] Every throw explodes while the effect is active; the effect ends on its normal timer/conditions.
-- [x] Return speed while the effect is active is 1.5x the normal return speed, set from a config value, not hard-coded.
-- [x] The `-- STUD` / `-- TODO` header is removed if the pickup is now complete, and `Disabled` is removed if set.
-
-**Test in Studio**
-- `getpickup ExplosiveBoomerang` (chat) or the Cmdr equivalent: throw several times, each throw explodes; the boomerang comes back visibly faster.
-
-**Notes**
-- The effect no longer ends after the first explosion: every throw explodes (at the end of the throw, or on its first kill, once per throw) until the effect times out (`GlobalConfig.GenericEffectTimeout`, 15 s).
-- **"Returns 50% faster", two parts (please confirm this matches the client):**
-  - After an explosion the boomerang doesn't fly back: it's removed and the weapon is locked, then reappears in hand. That lock is now 3 s / 1.5 = **2 s** (was 3 s).
-  - A boomerang that does fly back while the effect is active (e.g. manually recalled before the end of the throw) returns at **1.5x** speed (`Boomerang.recall` checks `PickupLibrary.hasPickupEffectActive`, which is replicated, so client prediction matches).
-  - One config value drives both: `GlobalConfig.ExplosiveBoomerangReturnSpeedMultiplier = 1.5`.
-- Picking the pickup up again while it's active refreshes its subscriptions instead of doubling them. Removed the `-- STUD` / `-- TODO` header (no `Disabled` flag was set).
-- Syntax-checked with `luau-compile`; not play-tested.
-
----
-
-### T-026 · Menus can lock the screen in the over-the-shoulder camera
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Client / GUI
-- **Files:** `Client/UI/UIController.luau`, `Client/Core/CustomCameraController.luau`, `Client/UI/Gui/*`
-
-**Problem / goal**
-In the in-game over-the-shoulder camera the mouse is locked/hidden, so a clickable GUI that appears during a round (e.g. Shop, Daily Claims, Voting, ItemAcquired with buttons) can't be clicked or closed, and the player is stuck. Audit every GUI that can open during a round and make sure the mouse is freed while it's open (e.g. a `Modal` button or `UserInputService.MouseBehavior`/`MouseIconEnabled` handled centrally in `UIController` for menu-type GUIs), and restored when it closes.
-
-**Done when**
-- [x] Opening any menu-type GUI while in the arena camera frees the mouse; closing the last one restores the camera's mouse lock.
-- [x] GUIs that shouldn't open during a round are listed in Notes (ask Sol whether to block them).
-
-**Test in Studio**
-- During a round, open each menu (shop, daily claims, settings...) with keyboard/HUD buttons and close it with the mouse.
-- Repeat on gamepad and on a mobile emulator.
-
-**Notes**
-- New `Client/Core/MouseUnlockController`: every frame, if any open gui has `RequiresMouse = true` (`UIController.isMouseRequired()`), it shows an invisible `Modal` button (Roblox's standard way to free a locked mouse) and keeps the cursor visible. When the last one closes, it hides the button and re-hides the cursor if the camera is in the arena's Regular (over-the-shoulder) mode.
-- Flagged `RequiresMouse = true`: Shop, DailyClaims, Voting (the guis with clickable buttons that open as menus).
-- Not flagged: HudButtons and CustomTouchscreen (always on screen, so flagging them would never re-lock the mouse), and the notification-style HUDs (no buttons). If HudButtons should be clickable in the over-the-shoulder camera, that needs a separate decision (e.g. holding a key to free the mouse).
-- No gui is blocked from opening during a round; ask Sol if any should be.
-- Syntax-checked with `luau-compile`; not play-tested (Sol declined the Studio play-test).
 
 ---
 
@@ -426,155 +230,30 @@ Claiming a login reward must grant it and tell the player.
 
 ---
 
-### T-006 · Port the template-era economy/item modules to the current save format
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Server / Client / Data
-- **Files:** `Server/Core/EconomyService.luau`, `Server/Core/ItemService.luau`, `Client/Core/EconomyController.luau`, `Client/Core/ItemController.luau`, `Shared/Constants/ItemConstants.luau`, `Shared/Constants/EquipmentConstants.luau`, `Shared/Constants/EconomyConstants.luau`, `Shared/Utils/EconomyUtil.luau`
-
-**Problem / goal**
-These came from the game template and use profile fields that don't exist in `ProfileTemplate` (`Currencies`, `ItemInventory`). They're auto-loaded: `ItemService` writes an `ItemInventory` field into every profile on load, and `EconomyService.transact` would error if called. **Sol's decisions:**
-- Update them to the current save format (`Currency`, `Inventory` in `ProfileTemplate`; item data in `Shared/Referential/Items.luau` / `ShopItems.luau`).
-- **There is only one currency: `Profile.Currency`, a number.** Remove every multi-currency mention (`Currencies`, `Cash`, `Gems`, `liquidCurrencies`, `{ [Currency]: number }` types...). Prices are a plain number (as in `Items`).
-
-**Done when**
-- [x] No auto-loaded module reads or writes profile fields that aren't in `ProfileTemplate`.
-- [x] No code mentions more than one currency.
-- [x] `ItemConstants` either reads from `Items` or is no longer used, so there's one item list.
-- [ ] Existing shop purchases still work.
-
-**Test in Studio**
-- Join, buy a shop item with currency: the balance and inventory update and replicate to the client.
-- Rejoin: the purchase was saved. No errors from Economy/Item modules on load.
-
-**Notes**
-- Committed in 33a8428 ("Normalized handling of saved player currency values...").
-- `EconomyService`: `getBalance`, `canAfford`, `addCurrency`, `spendCurrency`, `CurrencyChangedTasks`. `EconomyController`: `getBalance`, `canAfford`, `CurrencyChangedTasks`. `EconomyUtil.getPriceDisplayString(price: number)`.
-- `ItemService`: `getAmount`, `hasItem`, `grantItem`, `consumeItem`, `purchaseItem` (returns a ResponseCode), `getInventory`, all on `Profile.Inventory` with item data from `Items`. `ItemController` reads `Inventory` from `PlayerDataController` and fires `ItemGrantedTasks` / `ItemConsumedTasks`.
-- Removed: `EconomyConstants`, `ItemConstants`, `EquipmentConstants`, `RemoteCodes.Item` and the `"Item"` remotes (nothing else used them). `PlayerDataService` no longer lists the stale `BanData` field.
-- `ProductLogicsUtil.grantGenericItemToPlayer`, `DailyRewardsService` (currency rewards) and the Cmdr `givecurrency` command now go through `ItemService` / `EconomyService`. `grantGenericItemToPlayer` now refuses item ids that aren't in `Items`.
-- Decisions made without asking (say if you want them changed): `ShopService.purchaseItem` was left as is so the tested shop flow doesn't change. It duplicates `ItemService.purchaseItem`; making it delegate is a one-line follow-up. Old `ItemInventory` data already saved in some profiles is left alone (it's ignored, never read).
-- Syntax-checked with `luau-compile`; not run in Studio.
-
----
-
-### T-001 · ShopService never loads (file name casing), so the shop can hang the client
-- **Priority:** P0 *(if confirmed: the client waits forever for a remote the server never creates)*
-- **Owner:** Agent
-- **Area:** Server / Client
-- **Files:** `src/Server/Core/Shopservice.luau`
-
-**Problem / goal**
-The server boot script only loads modules whose name contains `Service` (case-sensitive). The file is named `Shopservice`, so `ShopService.init()` never runs and the `RequestPurchase` RemoteFunction is never created. `ShopController` calls `SimpleRemotes.getFunction("RequestPurchase")` at the top of the module, which on the client is a `WaitForChild` with no timeout. That would block `ShopController`, and the `Shop` GUI that requires it, forever.
-
-**Done when**
-- [x] The file is renamed to `ShopService.luau` (nothing else requires it by path; re-check before renaming).
-- [x] Notes tell Sol that this is a case-only rename on Windows (`core.ignorecase = true`), so it must be committed with `git mv` (e.g. via a temporary name).
-
-**Test in Studio**
-- After Rojo syncs, check that `ServerStorage.Server.Core.ShopService` exists and the old `Shopservice` ModuleScript is gone.
-- Open the shop and buy an item with in-game currency: currency goes down, the item is added, and the "item acquired" popup shows.
-
-**Notes**
-- Confirmed by Sol: the client showed `Infinite yield possible on 'ReplicatedStorage.__SIMPLEREMOTES.Functions:WaitForChild("RequestPurchase")'`, which blocked the client boot (UIController requires the Shop GUI, which requires ShopController).
-- Renamed with `git mv -f`, so git records it as a rename (already staged). Commit it as is.
-- Checked every other remote the client waits for: all are created by a server module that loads. (The shared Logics modules create theirs on the server when their services load them.)
-
----
-
-### T-015 · Set up Cmdr as the developer console
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Server / Client / Tooling
-- **Files:** `src/Server/Core/CmdrService.luau`, `src/Client/Core/CmdrController.luau`, `src/Server/Cmdr/Commands/GiveCurrency.luau`, `src/Server/Cmdr/Commands/GiveCurrencyServer.luau`
-
-**Problem / goal**
-Sol wants Cmdr (installed through Wally, previously unused) as the in-game command console for developer testing.
-
-**Done when**
-- [x] `CmdrService` registers Cmdr's built-in commands and the project's commands in `Server/Cmdr/Commands`.
-- [x] A server `BeforeRun` hook only lets admins run commands: everyone in Studio; in live servers the players in `ADMIN_USER_IDS`, the owner of a user-owned game, or group members at or above `MIN_ADMIN_GROUP_RANK`. A matching client hook exists, because Cmdr blocks all commands in live games without one.
-- [x] `CmdrController` only loads the console (F2) for players with the server-set `CmdrAdmin` attribute.
-- [x] Example command `givecurrency <players> <amount>` (useful for testing the shop).
-- [x] CLAUDE.md explains how to add commands.
-
-**Test in Studio**
-- Press F2: the console opens. Run `help`, then `givecurrency me 100`, and check the currency updates in the shop.
-- Run `kill me` to check a built-in command works.
-- After publishing, join a live server with a non-admin account: F2 does nothing.
-
-**Notes**
-- Syntax-checked with `luau-compile`; not run in Studio.
-- `TODO:RELEASE placeholder` values in `CmdrService`: `ADMIN_USER_IDS` (empty: add the developers' UserIds) and `MIN_ADMIN_GROUP_RANK = 255` (group owner only).
-- Cmdr's built-in admin commands (`kick`, `teleport`, `announce`...) are all registered. If some shouldn't be available, `RegisterDefaultCommands` can take a list of groups.
-
----
-
-### T-013 · Stop Rojo from overwriting the map package
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Tooling
-- **Files:** `default.project.json`, `src/Server/Assets/Maps/PackageLink.gltf` (deleted)
-
-**Problem / goal**
-The maps moved from Rojo-synced `.rbxmx` files to a Studio package (commit 9fd09d6), but `src/Server/Assets/Maps/` stayed on disk holding only `PackageLink.gltf`, a file type Rojo ignores. Rojo therefore saw `Maps` as an empty folder it owns, and because nodes under a `$path` don't keep unknown instances, it deleted the package contents in Studio on every sync.
-
-**Done when**
-- [x] `src/Server/Assets/` is removed from disk.
-- [x] `default.project.json` declares `ServerStorage.Server.Assets` as a `Folder` with `$ignoreUnknownInstances: true`, so Rojo creates the folder if missing but never touches its contents.
-- [x] CLAUDE.md tells agents never to add files under `src/Server/Assets/`.
-
-**Test in Studio**
-- Restore the maps package to the correct version once more, then connect Rojo (or restart `rojo serve`): `ServerStorage.Server.Assets.Maps` and its maps stay unchanged.
-- Start a round: `ArenaService` finds the maps as before.
-
-**Notes**
-- Checked with Rojo 7.7.0 (`rojo build` on a copy of the project tree): the project file is valid and `Assets` is created as an empty Folder.
-- Sol: commit the deleted `PackageLink.gltf` along with `default.project.json`.
-
----
-
-### T-007 · Record the leftover / reference modules
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Tooling
-- **Files:** `CLAUDE.md`
-
-**Problem / goal**
-Several files are backups or references. Sol's decision: keep them all as references, and list them so agents don't touch them.
-
-**Done when**
-- [x] CLAUDE.md has a "Leftover and reference modules: don't touch" list: `ReferencePlayerModule/`, `src/Animate/`, `Server/Core/Animate.luau`, `Shared/Networking/Animate.luau`, `CharacterService/Old.luau`, `CharacterController/old.luau`, `ItemAcquired/OldTemplate.rbxmx`.
-
-**Notes**
-- `Server/Assets/Maps/PackageLink.gltf` was not kept: it was removed as part of T-013.
-- `Server/Core/Animate.luau` and `Shared/Networking/Animate.luau` aren't required by any file in the repo. If something in Studio uses them, it isn't visible here.
-
----
-
-### T-012 · Agentic setup: design doc, toolchain, package metadata
-- **Priority:** P2
-- **Owner:** Sol → Agent
-- **Area:** Tooling
-- **Files:** `docs/GAME_DESIGN.md`, `aftman.toml`, `wally.toml`
-
-**Problem / goal**
-Follow-ups to make agents more useful:
-- [x] `docs/GAME_DESIGN.md`: transcribed from the client's "Boomerang! Technical Document" PDF (MVP spec), with a table of where the code differs (see T-014). The UI scope-of-work PDF only has a cover page so far.
-- [ ] `aftman.toml` only pins Rojo. Add StyLua / Selene / Wally / wally-package-types? Mutatory moved to Rokit; should Boomerang too?
-- [ ] `wally.toml` still names the package `larsb/roblox-game-template`.
-- [x] Roblox Studio MCP: added to the Claude desktop config (`Roblox_Studio`, via `%LOCALAPPDATA%\Roblox\mcp.bat`); confirmed on 2026-10-01 that an agent can list Studio instances and read the place. Usage rules are in CLAUDE.md.
-- [x] Jecs removed (`wally.toml`, `wally.lock`, `Packages/`). Cmdr kept and set up (T-015).
-
-**Done when**
-- [ ] Each point is decided, done or dropped, and CLAUDE.md is updated.
-
-**Notes**
-- The remaining points need Sol's answers; the task stays in Review until then.
-
----
-
 ## Backlog
+
+### T-052 · Close Cmdr before public release
+- **Priority:** P2 now · **RELEASE BLOCKER:** must be done before the game's public release
+- **Owner:** Sol → Agent
+- **Area:** Server / Shared
+- **Files:** `Shared/Constants/GlobalConfig.luau` (`CmdrOpenToEveryone`), `Server/Core/CmdrService.luau` (admin list, group rank)
+
+**Problem / goal**
+For client review, `GlobalConfig.CmdrOpenToEveryone = true` lets **every player** in a live server use the F2 console (end rounds, grant currency and pickups). Not urgent while the game is in review, but it **must** be switched off before the public release, or any player can cheat.
+
+**Open questions (ask Sol first)**
+- Which developers' UserIds go in the admin list, and which group/rank (if any) counts as admin?
+
+**Done when**
+- [ ] `CmdrOpenToEveryone = false`.
+- [ ] The admin UserIds and group rank in `CmdrService` are filled in (no `TODO:RELEASE placeholder` left there).
+
+**Test in Studio**
+- Published test place, non-admin account: F2 does nothing and Cmdr remotes refuse commands. Admin account: F2 works.
+
+**Notes
+
+---
 
 ### T-014 · Spec vs. code differences: decide which to change
 - **Priority:** P1
@@ -736,57 +415,6 @@ New behaviour: when an electric boomerang kills a player, every other player wit
 
 ---
 
-### T-035 · Manual recall to match the design doc
-- **Priority:** P1
-- **Owner:** Sol → Agent
-- **Area:** Client / Server / Shared
-- **Files:** `Client/Core/WeaponController.luau`, `Server/Core/WeaponService.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`, `Client/UI/Gui/HudButtons/`, `Client/UI/Gui/CustomTouchscreen/`
-
-**Client spec (2026-10-01, supersedes the design-doc analysis below):**
-- Recall range around the player: `GlobalConfig.BoomerangRecallRange` (30).
-- Out of range when it would start returning: no auto-return. It loses momentum and drops into the dead state (as after a clash). Back in range by then: returns as normal (it can leave range, bounce back and still return).
-- Once it starts losing momentum it can't resume auto-return, even back in range (`GlobalConfig.DyingBoomerangCanRecoverInRange`, default false).
-- Manual recall works on a dying or dead boomerang: it moves toward the player only **while held**; releasing puts it back into the dead state. Tapping on a live boomerang just recalls it. Rapid press/release must be safe.
-- **Pass 1 (done, in Review):** out-of-range death via `Boomerang.autoRecallOrDie` (server decides; the client follows the server's Clashed snapshot). **Pass 2 (done, in Review):** recall press/release goes to the server (`WeaponRecall` true/false). Dying/dead boomerang: `Boomerang.recallFromClashed` (returns while held, rises to hand height) and `Boomerang.stopRecallFromDead` on release; clients follow the server's snapshots. HUD Throw/Recall button is press-and-hold in recall mode. `DyingBoomerangCanRecoverInRange` is wired (hook from Boomerang into Clashed). Dead state now waits until the boomerang has landed.
-
-**Problem / goal**
-`docs/GAME_DESIGN.md` §2c: **hold** E / the mobile recall button to pull the boomerang back; releasing stops it where it is; it doesn't pass through walls, takes the fastest valid route, and slides along a surface when the shape allows (otherwise it gets stuck and the player must reposition). Today pressing E fires `WeaponRecall` once (a one-shot recall), and `HudButtons` has a "Recall" entry.
-
-**Open questions (ask Sol first)**
-- Hold vs. tap: should a tap still start a full recall, or does recall only move while held?
-- Recall speed while held (same as auto-recall return speed?).
-- When stuck against a wall with no slide, does it stay stuck until the player moves, or eventually give up and drop?
-- Does manual recall still kill players it passes through on the way back?
-- Mobile: where exactly does the recall button go (the design sketch puts it above Stab, left of Throw)?
-
-**Done when**
-- [ ] Recall behaves as described in GAME_DESIGN.md §2c on PC, gamepad and mobile.
-- [ ] Server-authoritative: the server moves the boomerang; the client only sends hold start/stop.
-
-**Notes**
-**Agent analysis (2026-10-01): design doc vs. current code**
-
-| Design doc (§2b–2c, §5) | Current code | Gap |
-|---|---|---|
-| Auto-recall after slicing through a player | Passes through players and keeps going; the "recall on hit" code in `Boomerang.throw` is commented out | **Intentional (Sol): keep it off** |
-| Auto-recall after one ricochet | After the first bounce, the distance check switches to `ThrowDistance`, which has usually been reached, so it recalls right away | Matches in practice |
-| 2+ surface hits: stops where it runs out of energy and waits for manual recall | When `energy` reaches 0 it calls `Boomerang.recall` (auto-returns). The "Exhausted" slow-down branch exists but only runs when recall transitions are off | Differs |
-| **Hold** E / button to recall; releasing stops it where it is | E (or the mobile Throw/Recall button) sends one `WeaponRecall` event; the server runs a full recall to the hand. Releasing does nothing | Differs (the main gap) |
-| Doesn't pass through walls; slides along a surface if it can, otherwise stuck until the player repositions | `Boomerang.recall` steers toward the player, slides along obstructions (tries both tangents), and holds still if both are blocked, resuming when the player moves | Matches |
-| Fastest valid route | Greedy steering + wall sliding (no pathfinding) | Close enough; true pathfinding not recommended |
-| Recall kills players on the way back | `damagedPlayer` runs during recall | Matches (doc doesn't say either way) |
-
-**Suggested implementation**
-1. **Hold-to-recall (server-authoritative):** `WeaponRecall` carries a boolean (`true` on press, `false` on release). Press: if the boomerang is out and not already returning, `Boomerang.recall(..., { Manual = true })`. Release: new `Boomerang.stopRecall(player, data)` disconnects the recall loop, sets a new `Resting` state (speed 0) and sends a snapshot. Pressing again resumes from there. Release only stops **manual** recalls, never auto-recalls.
-2. **Client sync:** `WeaponController.onSnapshot` already starts a local recall when the state changes to `Returning`; add the reverse (`Returning` → `Resting` calls `stopRecall` locally).
-3. **Exhaustion:** when `energy` hits 0, switch to `Exhausted` (let the existing slow-down run) and then `Resting`, instead of auto-recalling.
-4. **Inputs:** E: `InputBegan` → press, `InputEnded` → release. Mobile/gamepad: a dedicated recall button that uses press/release (`MouseButton1Down` / `MouseButton1Up` + `InputEnded`). Its placement is Sol's call (ignore the game design doc's sketch). The Throw button's "Recall" mode either becomes hold-based too or goes away.
-5. Keep the T-027 speed multiplier and the existing kill-on-return behaviour.
-
-Order: (1)+(2) first (they're the core and can ship alone), then (3), then (4)'s mobile button once Sol decides the layout. Add a Cmdr command to put the boomerang in each state for testing (e.g. out of energy / resting).
-
----
-
 ### T-036 · Design: how weapons and skins are equipped and used
 - **Priority:** P2
 - **Owner:** Sol
@@ -859,6 +487,447 @@ Add a HUD button that opens the Daily Rewards (DailyClaims) GUI, ideally with an
 ---
 
 ## Done
+
+### T-015 · Set up Cmdr as the developer console
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Server / Client / Tooling
+- **Files:** `src/Server/Core/CmdrService.luau`, `src/Client/Core/CmdrController.luau`, `src/Server/Cmdr/Commands/GiveCurrency.luau`, `src/Server/Cmdr/Commands/GiveCurrencyServer.luau`
+
+**Problem / goal**
+Sol wants Cmdr (installed through Wally, previously unused) as the in-game command console for developer testing.
+
+**Done when**
+- [x] `CmdrService` registers Cmdr's built-in commands and the project's commands in `Server/Cmdr/Commands`.
+- [x] A server `BeforeRun` hook only lets admins run commands: everyone in Studio; in live servers the players in `ADMIN_USER_IDS`, the owner of a user-owned game, or group members at or above `MIN_ADMIN_GROUP_RANK`. A matching client hook exists, because Cmdr blocks all commands in live games without one.
+- [x] `CmdrController` only loads the console (F2) for players with the server-set `CmdrAdmin` attribute.
+- [x] Example command `givecurrency <players> <amount>` (useful for testing the shop).
+- [x] CLAUDE.md explains how to add commands.
+
+**Test in Studio**
+- Press F2: the console opens. Run `help`, then `givecurrency me 100`, and check the currency updates in the shop.
+- Run `kill me` to check a built-in command works.
+- After publishing, join a live server with a non-admin account: F2 does nothing.
+
+**Notes**
+- Syntax-checked with `luau-compile`; not run in Studio.
+- `TODO:RELEASE placeholder` values in `CmdrService`: `ADMIN_USER_IDS` (empty: add the developers' UserIds) and `MIN_ADMIN_GROUP_RANK = 255` (group owner only).
+- Cmdr's built-in admin commands (`kick`, `teleport`, `announce`...) are all registered. If some shouldn't be available, `RegisterDefaultCommands` can take a list of groups.
+- Passed Sol's Studio test (2026-10-02). The "live server, non-admin: F2 does nothing" step no longer applies: Cmdr is open to everyone for client review until T-052.
+
+---
+
+### T-012 · Agentic setup: design doc, toolchain, package metadata
+- **Priority:** P2
+- **Owner:** Sol → Agent
+- **Area:** Tooling
+- **Files:** `docs/GAME_DESIGN.md`, `aftman.toml`, `wally.toml`
+
+**Problem / goal**
+Follow-ups to make agents more useful:
+- [x] `docs/GAME_DESIGN.md`: transcribed from the client's "Boomerang! Technical Document" PDF (MVP spec), with a table of where the code differs (see T-014). The UI scope-of-work PDF only has a cover page so far.
+- [ ] `aftman.toml` only pins Rojo. Add StyLua / Selene / Wally / wally-package-types? Mutatory moved to Rokit; should Boomerang too?
+- [ ] `wally.toml` still names the package `larsb/roblox-game-template`.
+- [x] Roblox Studio MCP: added to the Claude desktop config (`Roblox_Studio`, via `%LOCALAPPDATA%\Roblox\mcp.bat`); confirmed on 2026-10-01 that an agent can list Studio instances and read the place. Usage rules are in CLAUDE.md.
+- [x] Jecs removed (`wally.toml`, `wally.lock`, `Packages/`). Cmdr kept and set up (T-015).
+
+**Done when**
+- [ ] Each point is decided, done or dropped, and CLAUDE.md is updated.
+
+**Notes**
+- The remaining points need Sol's answers; the task stays in Review until then.
+- Accepted by Sol (2026-10-02).
+
+---
+
+### T-007 · Record the leftover / reference modules
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Tooling
+- **Files:** `CLAUDE.md`
+
+**Problem / goal**
+Several files are backups or references. Sol's decision: keep them all as references, and list them so agents don't touch them.
+
+**Done when**
+- [x] CLAUDE.md has a "Leftover and reference modules: don't touch" list: `ReferencePlayerModule/`, `src/Animate/`, `Server/Core/Animate.luau`, `Shared/Networking/Animate.luau`, `CharacterService/Old.luau`, `CharacterController/old.luau`, `ItemAcquired/OldTemplate.rbxmx`.
+
+**Notes**
+- `Server/Assets/Maps/PackageLink.gltf` was not kept: it was removed as part of T-013.
+- `Server/Core/Animate.luau` and `Shared/Networking/Animate.luau` aren't required by any file in the repo. If something in Studio uses them, it isn't visible here.
+- Accepted by Sol (2026-10-02).
+
+---
+
+### T-013 · Stop Rojo from overwriting the map package
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Tooling
+- **Files:** `default.project.json`, `src/Server/Assets/Maps/PackageLink.gltf` (deleted)
+
+**Problem / goal**
+The maps moved from Rojo-synced `.rbxmx` files to a Studio package (commit 9fd09d6), but `src/Server/Assets/Maps/` stayed on disk holding only `PackageLink.gltf`, a file type Rojo ignores. Rojo therefore saw `Maps` as an empty folder it owns, and because nodes under a `$path` don't keep unknown instances, it deleted the package contents in Studio on every sync.
+
+**Done when**
+- [x] `src/Server/Assets/` is removed from disk.
+- [x] `default.project.json` declares `ServerStorage.Server.Assets` as a `Folder` with `$ignoreUnknownInstances: true`, so Rojo creates the folder if missing but never touches its contents.
+- [x] CLAUDE.md tells agents never to add files under `src/Server/Assets/`.
+
+**Test in Studio**
+- Restore the maps package to the correct version once more, then connect Rojo (or restart `rojo serve`): `ServerStorage.Server.Assets.Maps` and its maps stay unchanged.
+- Start a round: `ArenaService` finds the maps as before.
+
+**Notes**
+- Checked with Rojo 7.7.0 (`rojo build` on a copy of the project tree): the project file is valid and `Assets` is created as an empty Folder.
+- Sol: commit the deleted `PackageLink.gltf` along with `default.project.json`.
+- Passed Sol's Studio test (2026-10-02).
+
+---
+
+### T-051 · Touch controls follow the player's current input
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Client
+- **Files:** `Client/Core/PlatformController.luau`, `Client/UI/Screens/InputScreen.luau`
+
+**Problem / goal**
+Players can switch input mid-game. Touching the screen while on keyboard/mouse shows the touchscreen GUI; using keyboard/mouse while on touch hides it.
+
+**Done when**
+- [ ] Keyboard/mouse → touch: touchscreen GUI (CustomTouchscreen + mobile buttons) appears.
+- [ ] Touch → keyboard/mouse: it disappears.
+
+**Test in Studio**
+- Touch-screen laptop (or a phone/tablet with a keyboard/mouse): start on mouse, tap the screen, then move the mouse / press a key. Repeat starting on touch.
+- On mobile, typing in chat with the on-screen keyboard must not hide the touch controls.
+- Studio's device emulator may not reproduce mixed input well; a real device is the reliable test.
+
+**Notes**
+- `PlatformController` is now the single source of truth: `InputScreen` used `PreferredInput` (via `DeviceUtil`) while `CustomTouchscreen` used `PlatformController`, so they could disagree. `InputScreen` now listens to `DominantControlSchemeChanged`. `DeviceUtil` is untouched (now unused).
+- Fixes in `PlatformController`: unmapped input types (Focus, TextInput...) no longer flip the scheme to PC (this could hide touch controls on mobile when the window regained focus); mouse buttons/wheel and gamepads 5–8 are now recognised; keyboard input while typing in a TextBox is ignored; the starting scheme uses the last input / `PreferredInput` instead of assuming touch on any touch-capable device (touch laptops started in touch mode).
+- Roblox's own thumbstick/jump button (`TouchGui`) is switched by the PlayerModule, not by this code.
+- Passed Sol's Studio test (2026-10-02).
+
+---
+
+### T-030 · Make the server-authoritative character invisible
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client
+- **Files:** `Client/Core/CharacterRenderController.luau`
+
+**Problem / goal**
+Each player has a server-authoritative character (physics/hits) and a client-rendered model. The authoritative character should never be visible. `everyFrame` currently sets it to transparency `0.5` when no rendered model exists (and `1` only during a disguise).
+
+**Done when**
+- [ ] The authoritative character is fully invisible (transparency 1) for every player at all times, including before the rendered model loads.
+- [x] Hitbox parts keep their current behaviour (they're already skipped).
+
+**Test in Studio**
+- Join with 2 players: only the rendered models are visible, including right after spawning and respawning.
+
+**Notes**
+- `CharacterRenderController.everyFrame` now keeps the authoritative character fully invisible (transparency 1, including the face decal) while the rendered model exists or is still loading. It was 0.5 before. Hitbox parts are still skipped.
+- `GlobalConfig.AuthoritativeCharacterDebugVisible` (default `false`) brings back the 0.5 view for debugging.
+- **Fallback (deviation from "invisible at all times", please confirm):** if a player's rendered model **failed to load**, the authoritative character is shown (transparency 0), so the player doesn't become invisible. Controlled by `GlobalConfig.ShowAuthoritativeCharacterOnRenderFailure` (default `true`). This matters right now: the Studio output log is flooded with `recently failed to load replicated model for Soulsplosion`, i.e. rendered models are failing to load in Studio play-tests. That's worth its own investigation.
+- Syntax-checked with `luau-compile`; not play-tested.
+- Passed Sol's Studio test (2026-10-02).
+
+---
+
+### T-035 · Manual recall to match the design doc
+- **Priority:** P1
+- **Owner:** Sol → Agent
+- **Area:** Client / Server / Shared
+- **Files:** `Client/Core/WeaponController.luau`, `Server/Core/WeaponService.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`, `Client/UI/Gui/HudButtons/`, `Client/UI/Gui/CustomTouchscreen/`
+
+**Client spec (2026-10-01, supersedes the design-doc analysis below):**
+- Recall range around the player: `GlobalConfig.BoomerangRecallRange` (30).
+- Out of range when it would start returning: no auto-return. It loses momentum and drops into the dead state (as after a clash). Back in range by then: returns as normal (it can leave range, bounce back and still return).
+- Once it starts losing momentum it can't resume auto-return, even back in range (`GlobalConfig.DyingBoomerangCanRecoverInRange`, default false).
+- Manual recall works on a dying or dead boomerang: it moves toward the player only **while held**; releasing puts it back into the dead state. Tapping on a live boomerang just recalls it. Rapid press/release must be safe.
+- **Pass 1 (done, in Review):** out-of-range death via `Boomerang.autoRecallOrDie` (server decides; the client follows the server's Clashed snapshot). **Pass 2 (done, in Review):** recall press/release goes to the server (`WeaponRecall` true/false). Dying/dead boomerang: `Boomerang.recallFromClashed` (returns while held, rises to hand height) and `Boomerang.stopRecallFromDead` on release; clients follow the server's snapshots. HUD Throw/Recall button is press-and-hold in recall mode. `DyingBoomerangCanRecoverInRange` is wired (hook from Boomerang into Clashed). Dead state now waits until the boomerang has landed.
+
+**Problem / goal**
+`docs/GAME_DESIGN.md` §2c: **hold** E / the mobile recall button to pull the boomerang back; releasing stops it where it is; it doesn't pass through walls, takes the fastest valid route, and slides along a surface when the shape allows (otherwise it gets stuck and the player must reposition). Today pressing E fires `WeaponRecall` once (a one-shot recall), and `HudButtons` has a "Recall" entry.
+
+**Open questions (ask Sol first)**
+- Hold vs. tap: should a tap still start a full recall, or does recall only move while held?
+- Recall speed while held (same as auto-recall return speed?).
+- When stuck against a wall with no slide, does it stay stuck until the player moves, or eventually give up and drop?
+- Does manual recall still kill players it passes through on the way back?
+- Mobile: where exactly does the recall button go (the design sketch puts it above Stab, left of Throw)?
+
+**Done when**
+- [ ] Recall behaves as described in GAME_DESIGN.md §2c on PC, gamepad and mobile.
+- [ ] Server-authoritative: the server moves the boomerang; the client only sends hold start/stop.
+
+**Notes**
+**Agent analysis (2026-10-01): design doc vs. current code**
+
+| Design doc (§2b–2c, §5) | Current code | Gap |
+|---|---|---|
+| Auto-recall after slicing through a player | Passes through players and keeps going; the "recall on hit" code in `Boomerang.throw` is commented out | **Intentional (Sol): keep it off** |
+| Auto-recall after one ricochet | After the first bounce, the distance check switches to `ThrowDistance`, which has usually been reached, so it recalls right away | Matches in practice |
+| 2+ surface hits: stops where it runs out of energy and waits for manual recall | When `energy` reaches 0 it calls `Boomerang.recall` (auto-returns). The "Exhausted" slow-down branch exists but only runs when recall transitions are off | Differs |
+| **Hold** E / button to recall; releasing stops it where it is | E (or the mobile Throw/Recall button) sends one `WeaponRecall` event; the server runs a full recall to the hand. Releasing does nothing | Differs (the main gap) |
+| Doesn't pass through walls; slides along a surface if it can, otherwise stuck until the player repositions | `Boomerang.recall` steers toward the player, slides along obstructions (tries both tangents), and holds still if both are blocked, resuming when the player moves | Matches |
+| Fastest valid route | Greedy steering + wall sliding (no pathfinding) | Close enough; true pathfinding not recommended |
+| Recall kills players on the way back | `damagedPlayer` runs during recall | Matches (doc doesn't say either way) |
+
+**Suggested implementation**
+1. **Hold-to-recall (server-authoritative):** `WeaponRecall` carries a boolean (`true` on press, `false` on release). Press: if the boomerang is out and not already returning, `Boomerang.recall(..., { Manual = true })`. Release: new `Boomerang.stopRecall(player, data)` disconnects the recall loop, sets a new `Resting` state (speed 0) and sends a snapshot. Pressing again resumes from there. Release only stops **manual** recalls, never auto-recalls.
+2. **Client sync:** `WeaponController.onSnapshot` already starts a local recall when the state changes to `Returning`; add the reverse (`Returning` → `Resting` calls `stopRecall` locally).
+3. **Exhaustion:** when `energy` hits 0, switch to `Exhausted` (let the existing slow-down run) and then `Resting`, instead of auto-recalling.
+4. **Inputs:** E: `InputBegan` → press, `InputEnded` → release. Mobile/gamepad: a dedicated recall button that uses press/release (`MouseButton1Down` / `MouseButton1Up` + `InputEnded`). Its placement is Sol's call (ignore the game design doc's sketch). The Throw button's "Recall" mode either becomes hold-based too or goes away.
+5. Keep the T-027 speed multiplier and the existing kill-on-return behaviour.
+
+Order: (1)+(2) first (they're the core and can ship alone), then (3), then (4)'s mobile button once Sol decides the layout. Add a Cmdr command to put the boomerang in each state for testing (e.g. out of energy / resting).
+- Reviewed and accepted by Sol (2026-10-02).
+
+---
+
+### T-034 · Projectiles go through portals
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared
+- **Files:** `Shared/Logics/Environment/Portal.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`, `Shared/Library/DynamicCollisionLibrary.luau`
+
+**Problem / goal**
+Portals currently teleport players only. A thrown boomerang (any projectile) should pass through a portal and come out of the linked one, keeping its speed and direction relative to the exit portal.
+
+**Done when**
+- [x] A thrown boomerang entering a portal continues from the paired portal with the same relative direction and speed.
+- [x] Recall (auto and manual) still finds its way back, through the portal or by its normal path; describe which in Notes.
+- [x] Clients and server agree on the boomerang's position after it passes through (no visible snapping beyond normal replication).
+
+**Test in Studio**
+- On a map with portals: throw through a portal and hit a player on the other side; recall it.
+
+**Notes**
+- New `Portal.getProjectileExit(origin, direction, distance, radius, lastExitAt?, lastExitPart?)`. Portal pairs are read from the current arena's `Functional` folder (attribute `ClassName = "Portal"`, the same layout `Portal.validate` expects), so the server and clients find the same portals without extra replication.
+- `Boomerang.throw`'s step checks it before hits and obstructions. On entry, the boomerang jumps to the paired portal's Attachment (keeping its height) with its direction mapped through the pair: relative to the entry attachment, turned around, then relative to the exit attachment. If that would point back into the exit portal, it goes straight out along the exit attachment's facing. Speed and remaining throw distance are unchanged. A 0.25 s cooldown stops it from re-entering the portal it just left.
+- **Convention it relies on:** each portal's Attachment faces *out* of its portal. This is also the direction players face after teleporting.
+- Recall: returning boomerangs do not use portals. They take their normal path back to the player (with collision).
+- No map in the place currently has a portal, so it couldn't be tried in a level. The math was tested in Studio with in-memory parts (never added to the place): head-on and angled entries, misses, short steps, the re-entry cooldown, and both directions through the pair.
+- Syntax-checked with `luau-compile`; not play-tested.
+- Passed Sol's Studio test (2026-10-02).
+
+---
+
+### T-028 · Water kills the player, with a splash
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared
+- **Files:** `Shared/Logics/Environment/Water.luau`, `Shared/Library/CombatLibrary.luau`, `Shared/Library/ParticlesLibrary.luau`, `Shared/Assets/Particles/`
+
+**Problem / goal**
+Stepping into water kills the player. A splash effect plays on the player and they fall through the water, so it reads as falling in and dying.
+- Use the normal death path (`CombatLibrary` / death reason) so death screens, elim messages and gamemode scoring behave like other environmental deaths (see `DeadlyPart`).
+- If there's no splash particle yet, add a placeholder entry and mark it `-- TODO:RELEASE placeholder`.
+
+**Done when**
+- [ ] Touching water kills the player once, with a splash effect and the character sinking through the water.
+- [ ] The death counts the same way as other environment deaths (death screen shows a non-player cause).
+
+**Test in Studio**
+- Walk into water in each map that has it: splash, sink, death screen, respawn where the gamemode allows.
+
+**Notes**
+- Water parts are made non-collidable (`CanCollide = false` in `Water.onObjectAdded`), so players always fall through water. `Touched` / `GetTouchingParts` still work (the part has a Touched connection), so the fire/electric `PlayerEnteredWater` effects are unchanged.
+- Server-side in `Water.luau` (`Water.init` starts a Heartbeat check): a player drowns once the centre of their body (`HumanoidRootPart`) is inside a water part: within its footprint and below its top surface (down to `MAX_ROOT_DEPTH_BELOW_BOTTOM` = 10 studs under its bottom, to catch fast falls). Feet in the water or standing on the edge is safe.
+- Death through the normal path: `Humanoid.Health = 0` + `CombatLibrary.notifyDeathReason` with "Drowned" (setting Health directly also kills through the spawn ForceField). Once per life (`Drowned` attribute). A splash plays on the surface.
+- Removed from the previous iteration: the `SinkingPlayers` collision group, the ragdoll change in `CharacterRenderController` and `Dash.isDashing` (no longer needed now water never collides).
+- **`TODO:RELEASE placeholder`:** `Shared/Assets/Particles/Splash.rbxmx`, a basic hand-written droplet burst.
+- The footprint uses the part's box, so non-box water (MeshPart, wedge, cylinder) counts by its bounding box. Water kills in every phase, lobby included.
+- Check in Studio: walk off the edge into water (fall in, splash, death screen "Drowned"); stand with toes over the edge (safe); dash across a gap (safe if you land before your centre drops into the water); die with the spawn shield up.
+- Passed Sol's Studio test (2026-10-02).
+
+---
+
+### T-027 · Explosive boomerang: lasts the whole effect and returns 50% faster
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared
+- **Files:** `Shared/Logics/PickupLogics/ExplosiveBoomerang.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`
+
+**Problem / goal**
+The explosive boomerang currently only explodes once. The effect should stay active after the first explosion (every throw explodes until the pickup effect ends), and while it's active the boomerang returns to the player's hand **50% faster** than now.
+- The module is still marked `-- STUD` / `-- TODO`; check what's implemented before changing it.
+
+**Done when**
+- [x] Every throw explodes while the effect is active; the effect ends on its normal timer/conditions.
+- [x] Return speed while the effect is active is 1.5x the normal return speed, set from a config value, not hard-coded.
+- [x] The `-- STUD` / `-- TODO` header is removed if the pickup is now complete, and `Disabled` is removed if set.
+
+**Test in Studio**
+- `getpickup ExplosiveBoomerang` (chat) or the Cmdr equivalent: throw several times, each throw explodes; the boomerang comes back visibly faster.
+
+**Notes**
+- The effect no longer ends after the first explosion: every throw explodes (at the end of the throw, or on its first kill, once per throw) until the effect times out (`GlobalConfig.GenericEffectTimeout`, 15 s).
+- **"Returns 50% faster", two parts (please confirm this matches the client):**
+  - After an explosion the boomerang doesn't fly back: it's removed and the weapon is locked, then reappears in hand. That lock is now 3 s / 1.5 = **2 s** (was 3 s).
+  - A boomerang that does fly back while the effect is active (e.g. manually recalled before the end of the throw) returns at **1.5x** speed (`Boomerang.recall` checks `PickupLibrary.hasPickupEffectActive`, which is replicated, so client prediction matches).
+  - One config value drives both: `GlobalConfig.ExplosiveBoomerangReturnSpeedMultiplier = 1.5`.
+- Picking the pickup up again while it's active refreshes its subscriptions instead of doubling them. Removed the `-- STUD` / `-- TODO` header (no `Disabled` flag was set).
+- Syntax-checked with `luau-compile`; not play-tested.
+- Passed Sol's Studio test (2026-10-02).
+
+---
+
+### T-031 · Allow jumping in the lobby (instead of dash)
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Server / Client
+- **Files:** `Server/Core/CharacterService/init.luau`, `Shared/Logics/AbilityLogics/Dash.luau`, `Client/Core/AbilityController.luau`, `Server/Core/LobbyService.luau`, `Server/Core/SpawnService.luau`
+
+**Problem / goal**
+In the lobby, players can jump and can't dash. In the arena it's the reverse (current behaviour). `CharacterService` currently disables jumping for every character (`SetStateEnabled(Jumping, false)`, `JumpHeight = 0`).
+
+**Done when**
+- [x] Jumping is enabled while the player is in the lobby and disabled when they're sent to the arena (and re-enabled when they return).
+- [x] Dash can't be used in the lobby. The jump input (Space / mobile jump) jumps in the lobby and dashes in the arena.
+- [x] Jump height comes from config.
+
+**Test in Studio**
+- In the lobby: Space jumps, no dash. Enter a round: Space dashes, no jump. Return to the lobby: jumping works again. Repeat on mobile.
+
+**Notes**
+- New `Shared/Library/LobbyLibrary.isCharacterInLobby(character)` (the lobby-volume check `LobbyController` already used), so both sides can check.
+- Jumping: `LobbyController` sets the local humanoid's `JumpHeight` to `GlobalConfig.LobbyJumpHeight` (7.2) and enables the Jumping state while in the lobby, and sets them back to 0/disabled in the arena. This is done on the client because the client simulates its own character; the server still disables jumping at spawn (`CharacterService`).
+- Dash: `Dash.canActivate` returns false in the lobby (checked on the client and on the server).
+- Input: new `AbilityController.useMovementInput()`: jumps in the lobby, dashes in the arena. Space and the mobile Dash buttons (`CustomTouchscreen`, `HudButtons`) now call it.
+- Syntax-checked with `luau-compile`; not play-tested. Check that Roblox's default jump button/keys (if the default control scripts are active in the place) behave the same.
+- Passed Sol's Studio test (2026-10-02).
+
+---
+
+### T-006 · Port the template-era economy/item modules to the current save format
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Server / Client / Data
+- **Files:** `Server/Core/EconomyService.luau`, `Server/Core/ItemService.luau`, `Client/Core/EconomyController.luau`, `Client/Core/ItemController.luau`, `Shared/Constants/ItemConstants.luau`, `Shared/Constants/EquipmentConstants.luau`, `Shared/Constants/EconomyConstants.luau`, `Shared/Utils/EconomyUtil.luau`
+
+**Problem / goal**
+These came from the game template and use profile fields that don't exist in `ProfileTemplate` (`Currencies`, `ItemInventory`). They're auto-loaded: `ItemService` writes an `ItemInventory` field into every profile on load, and `EconomyService.transact` would error if called. **Sol's decisions:**
+- Update them to the current save format (`Currency`, `Inventory` in `ProfileTemplate`; item data in `Shared/Referential/Items.luau` / `ShopItems.luau`).
+- **There is only one currency: `Profile.Currency`, a number.** Remove every multi-currency mention (`Currencies`, `Cash`, `Gems`, `liquidCurrencies`, `{ [Currency]: number }` types...). Prices are a plain number (as in `Items`).
+
+**Done when**
+- [x] No auto-loaded module reads or writes profile fields that aren't in `ProfileTemplate`.
+- [x] No code mentions more than one currency.
+- [x] `ItemConstants` either reads from `Items` or is no longer used, so there's one item list.
+- [ ] Existing shop purchases still work.
+
+**Test in Studio**
+- Join, buy a shop item with currency: the balance and inventory update and replicate to the client.
+- Rejoin: the purchase was saved. No errors from Economy/Item modules on load.
+
+**Notes**
+- Committed in 33a8428 ("Normalized handling of saved player currency values...").
+- `EconomyService`: `getBalance`, `canAfford`, `addCurrency`, `spendCurrency`, `CurrencyChangedTasks`. `EconomyController`: `getBalance`, `canAfford`, `CurrencyChangedTasks`. `EconomyUtil.getPriceDisplayString(price: number)`.
+- `ItemService`: `getAmount`, `hasItem`, `grantItem`, `consumeItem`, `purchaseItem` (returns a ResponseCode), `getInventory`, all on `Profile.Inventory` with item data from `Items`. `ItemController` reads `Inventory` from `PlayerDataController` and fires `ItemGrantedTasks` / `ItemConsumedTasks`.
+- Removed: `EconomyConstants`, `ItemConstants`, `EquipmentConstants`, `RemoteCodes.Item` and the `"Item"` remotes (nothing else used them). `PlayerDataService` no longer lists the stale `BanData` field.
+- `ProductLogicsUtil.grantGenericItemToPlayer`, `DailyRewardsService` (currency rewards) and the Cmdr `givecurrency` command now go through `ItemService` / `EconomyService`. `grantGenericItemToPlayer` now refuses item ids that aren't in `Items`.
+- Decisions made without asking (say if you want them changed): `ShopService.purchaseItem` was left as is so the tested shop flow doesn't change. It duplicates `ItemService.purchaseItem`; making it delegate is a one-line follow-up. Old `ItemInventory` data already saved in some profiles is left alone (it's ignored, never read).
+- Syntax-checked with `luau-compile`; not run in Studio.
+- Passed Sol's Studio test (2026-10-02).
+
+---
+
+### T-001 · ShopService never loads (file name casing), so the shop can hang the client
+- **Priority:** P0 *(if confirmed: the client waits forever for a remote the server never creates)*
+- **Owner:** Agent
+- **Area:** Server / Client
+- **Files:** `src/Server/Core/Shopservice.luau`
+
+**Problem / goal**
+The server boot script only loads modules whose name contains `Service` (case-sensitive). The file is named `Shopservice`, so `ShopService.init()` never runs and the `RequestPurchase` RemoteFunction is never created. `ShopController` calls `SimpleRemotes.getFunction("RequestPurchase")` at the top of the module, which on the client is a `WaitForChild` with no timeout. That would block `ShopController`, and the `Shop` GUI that requires it, forever.
+
+**Done when**
+- [x] The file is renamed to `ShopService.luau` (nothing else requires it by path; re-check before renaming).
+- [x] Notes tell Sol that this is a case-only rename on Windows (`core.ignorecase = true`), so it must be committed with `git mv` (e.g. via a temporary name).
+
+**Test in Studio**
+- After Rojo syncs, check that `ServerStorage.Server.Core.ShopService` exists and the old `Shopservice` ModuleScript is gone.
+- Open the shop and buy an item with in-game currency: currency goes down, the item is added, and the "item acquired" popup shows.
+
+**Notes**
+- Confirmed by Sol: the client showed `Infinite yield possible on 'ReplicatedStorage.__SIMPLEREMOTES.Functions:WaitForChild("RequestPurchase")'`, which blocked the client boot (UIController requires the Shop GUI, which requires ShopController).
+- Renamed with `git mv -f`, so git records it as a rename (already staged). Commit it as is.
+- Checked every other remote the client waits for: all are created by a server module that loads. (The shared Logics modules create theirs on the server when their services load them.)
+- Passed Sol's Studio test (2026-10-02).
+
+---
+
+### T-004 · Clean up the `PickupLogic` type in PickupLibrary
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared
+- **Files:** `src/Shared/Library/PickupLibrary.luau`
+
+**Problem / goal**
+`export type PickupLogic` declares `onPickup` twice with two different signatures (the second, `(userId, activationTime)`, is described as the replication/simulation callback) and has a stray `fart: string` field. With duplicate keys only one signature applies, so modules cast to `PickupLibrary.PickupLogic` aren't type-checked as intended.
+
+**Done when**
+- [ ] The type has one entry per callback, matching what `PickupService` / `PickupController` really call, with `Disabled: boolean?` included.
+- [ ] The stray field is removed. No runtime behaviour changes.
+
+**Test in Studio**
+- None needed beyond a normal server start; pick up any pickup to confirm nothing changed.
+
+**Notes**
+- Open question answered from the code: there is no separate replication callback. Both `PickupService` and `PickupController` (on replication, for every player) call `onPickup(player, timestamp)`, so the second `onPickup` entry was removed rather than renamed.
+- Type now: `onPickup`, `onEnd?`, `canActivate?` (both sides already call it; no pickup implements it yet) and `Disabled: boolean?`. Stray field removed. Type-only change.
+- Found, not changed: `PickupController.activate()` is never called, and it calls `onPickup` with a userId instead of a Player (what the old second entry described). Dead code; remove it in a later task if you agree.
+- Passed Sol's Studio test (2026-10-02).
+
+---
+
+### T-003 · Remove leftover debug output from boot and ProductService
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Server
+- **Files:** `src/Server.server.luau`, `src/Server/Core/ProductService/init.luau`
+
+**Problem / goal**
+- `Server.server.luau` prints `Requiring <Module>` for every module on every server start (and those two lines are space-indented in a tab-indented file).
+- `ProductService.init()` prints four `~~~~~` lines plus the module name and product ID for every product logic.
+
+**Done when**
+- [ ] The `Requiring` prints and the `~~~~~` / name / ID prints are removed. The warning for a product logic without an ID stays.
+- [ ] Nothing else in those files changes.
+
+**Test in Studio**
+- Start a server: the output shows the "Server loaded" line and no per-module spam.
+
+**Notes**
+- Removed the two `Requiring` prints from `Server.server.luau` and the `~~~~~` / name / ID prints from `ProductService.init()`. The missing-productId warning stays.
+- Passed Sol's Studio test (2026-10-02).
+
+---
+
+### T-002 · Fix `${...}` in interpolated strings (prints a literal `$`)
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Server / Client / Shared
+- **Files:** `ProductService/init.luau`, `ProductLogics/Template.luau`, `UI/Gui/ElimMessage/init.luau`, `Library/GameTeamLibrary.luau`, `Library/MarketplaceLibrary.luau`, `Library/ParticlesLibrary.luau`, `Logics/Environment/MovingPlatform.luau`, `Logics/Environment/Portal.luau`
+
+**Problem / goal**
+Luau interpolation is `` `text {value}` ``. About 17 warn/error/print strings use JavaScript-style `${value}`, so every message shows a stray `$` (e.g. `Player with userId $123 not found`).
+
+**Done when**
+- [ ] No `` ` ``-string in `src/Server`, `src/Client` or `src/Shared` contains `${`.
+- [ ] Only the `$` is removed; the messages are otherwise unchanged.
+
+**Test in Studio**
+- None needed beyond a normal server start with no new errors.
+
+**Notes**
+- Removed the `$` from all 17 `${...}` strings in the 8 listed files; nothing else changed. No `${` left in `src/Server`, `src/Client`, `src/Shared`.
+- Passed Sol's Studio test (2026-10-02).
+
+---
 
 ### T-016 · Move the chat commands to Cmdr (they have no permission check)
 - **Priority:** P0 *(before release: any player in a live server can currently end rounds and grant themselves pickups)*

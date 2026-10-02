@@ -32,11 +32,11 @@ local IS_STUDIO = RunService:IsStudio()
 
 -- // UserIds allowed to use Cmdr in live servers
 local ADMIN_USER_IDS: { number } = {
-	-- TODO:RELEASE placeholder (add the developers' Roblox UserIds)
+	-- TODO:RELEASE placeholder (T-052: add the developers' Roblox UserIds)
 }
 
 -- // For group-owned games: minimum rank in the owning group to use Cmdr in live servers (255 = group owner)
-local MIN_ADMIN_GROUP_RANK = 255 -- TODO:RELEASE placeholder
+local MIN_ADMIN_GROUP_RANK = 255 -- TODO:RELEASE placeholder (T-052)
 
 local ADMIN_ATTRIBUTE = "CmdrAdmin"
 

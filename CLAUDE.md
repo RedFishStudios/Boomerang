@@ -227,7 +227,7 @@ If a prompt mentions a larger *back-end feature* that doesn't exist yet, that ma
 - **Never push to GitHub.** Pushing is disabled for safety and isn't part of the agentic workflow. Commit only when a prompt asks; Sol pushes.
 - **Player-facing wording:** avoid the word "kill" in stat names, UI text and leaderboard titles (Roblox audience/monetisation safety). Use "eliminations" for kills and "defeats" for deaths.
 
-- **Tasks:** general tasks are in [TASKS.md](TASKS.md); each Epic's tasks are in `docs/epics/<epic>/TASKS.md`. Follow the "How to use this board" rules in TASKS.md for all of them: only pick up `Ready` tasks, never mark a task `Done`, and take new IDs from `Next free ID` in TASKS.md (IDs are global).
+- **Tasks:** general tasks are in [TASKS.md](TASKS.md); each Epic's tasks are in `docs/epics/<epic>/TASKS.md`. Follow the "How to use this board" rules in TASKS.md for all of them: only pick up `Ready` tasks; when Sol reports a task passed testing, **you** move it to `Done` (Sol doesn't), but never before Sol has tested it; and take new IDs from `Next free ID` in TASKS.md (IDs are global).
 - **Epics** (large features): follow [docs/EPICS.md](docs/EPICS.md).
   - A new Epic starts with **Discovery**: copy `docs/epics/_TEMPLATE/` and work through `DESIGN.md` with Sol, one section at a time. The first question is always "full Epic, or general tasks?".
   - Present options and trade-offs; Sol decides. Record decisions in DESIGN.md as they're made.

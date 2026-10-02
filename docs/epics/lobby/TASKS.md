@@ -7,6 +7,26 @@ Take new IDs from the `Next free ID` line in [TASKS.md](../../../TASKS.md). Ever
 
 ## Ready
 
+### T-053 · Leaderboards fade between periods
+- **Priority:** P2
+- **Owner:** Agent
+- **Epic:** Lobby
+- **Area:** Client
+- **Files:** `Client/Core/LeaderboardController.luau`, `Shared/Constants/LeaderboardConstants.luau`
+
+**Problem / goal**
+The leaderboards switch abruptly between Monthly and All-Time. They should fade gradually, using a CanvasGroup for the fade. The controller already has a cross-fade (`fade()` tweens each period's CanvasGroup `GroupTransparency` over `FadeDuration` = 0.6 s), so find out why it doesn't show in game (e.g. CanvasGroups inside a SurfaceGui, `Visible` toggled too early, or the changes in commit `5158746` "Updated leaderboard visuals") and fix it.
+
+**Done when**
+- [ ] Each board fades smoothly from one period to the other, with no pop.
+
+**Test in Studio**
+- Stand by the boards for 10+ seconds (`DisplaySwapInterval`) and watch a swap on both boards.
+
+**Notes
+
+---
+
 ### T-047 · Lobby station framework (labels, glowing pads, proximity prompts)
 - **Priority:** P1
 - **Owner:** Agent
@@ -62,28 +82,6 @@ Spec: `docs/LOBBY_SPEC.md`. Every lobby station (pedestals, wheel, crates, group
 - Visuals are code-built and styled after the game's GUIs (FredokaOne with dark outlines, orange-yellow title gradient, mint values, teal banner and panel, wooden frame, purple highlight for your own row). Colours are constants at the top of `LeaderboardController`; swap for a template later if wanted.
 - **Check in Studio:** both board parts are **unanchored with no joints**, so they'll fall when the game runs. Anchor them (place-only change; I didn't touch the place).
 - New Cmdr: `refreshleaderboards` (alias `refreshlb`).
-
----
-
-### T-040 · Research Blade Ball's lobby
-- **Priority:** P1
-- **Owner:** Agent
-- **Epic:** Lobby
-- **Area:** Design (research)
-- **Files:** `docs/research/BLADE_BALL_LOBBY.md` (new)
-
-**Problem / goal**
-The client said: "anything they have in their lobby, we want in our lobby". Research the current Blade Ball lobby (Roblox) and write a list of every lobby feature, with a short description, screenshots/links where possible, and how it might map to Boomerang (existing system, new system, or asset-only).
-
-**Done when**
-- [x] `docs/research/BLADE_BALL_LOBBY.md` lists every lobby feature found (shops, pedestals, leaderboards, spin wheels, rewards, quests, social features, etc.), with sources.
-- [x] Each feature is tagged: already in Boomerang / planned task (ID) / new.
-- [x] No new tasks are created from it without Sol's approval; propose them in the doc instead.
-
-**Notes**
-- Written: `docs/research/BLADE_BALL_LOBBY.md`. It covers 11 physical lobby features and 11 lobby UI/meta systems, each tagged existing / planned / new / needs a client decision, plus a suggested order and sources.
-- The Blade Ball fan wiki couldn't be read automatically; the doc lists its relevant pages to confirm in a browser. Lobby content changes with seasons, so a walkthrough of the live game is recommended before scoping.
-- No tasks were created from it (as the task requires); Sol decides.
 
 ---
 
@@ -210,6 +208,29 @@ Spec: `docs/LOBBY_SPEC.md`. A large portal arch on a glowing ring with a sign, l
 ---
 
 ## Done
+
+### T-040 · Research Blade Ball's lobby
+- **Priority:** P1
+- **Owner:** Agent
+- **Epic:** Lobby
+- **Area:** Design (research)
+- **Files:** `docs/research/BLADE_BALL_LOBBY.md` (new)
+
+**Problem / goal**
+The client said: "anything they have in their lobby, we want in our lobby". Research the current Blade Ball lobby (Roblox) and write a list of every lobby feature, with a short description, screenshots/links where possible, and how it might map to Boomerang (existing system, new system, or asset-only).
+
+**Done when**
+- [x] `docs/research/BLADE_BALL_LOBBY.md` lists every lobby feature found (shops, pedestals, leaderboards, spin wheels, rewards, quests, social features, etc.), with sources.
+- [x] Each feature is tagged: already in Boomerang / planned task (ID) / new.
+- [x] No new tasks are created from it without Sol's approval; propose them in the doc instead.
+
+**Notes**
+- Written: `docs/research/BLADE_BALL_LOBBY.md`. It covers 11 physical lobby features and 11 lobby UI/meta systems, each tagged existing / planned / new / needs a client decision, plus a suggested order and sources.
+- The Blade Ball fan wiki couldn't be read automatically; the doc lists its relevant pages to confirm in a browser. Lobby content changes with seasons, so a walkthrough of the live game is recommended before scoping.
+- No tasks were created from it (as the task requires); Sol decides.
+- Accepted by Sol (2026-10-02).
+
+---
 
 ### T-041 · Lobby hub layout blockout
 - **Priority:** P1
