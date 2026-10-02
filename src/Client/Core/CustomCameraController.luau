@@ -60,6 +60,8 @@ local smoothedCameraDistance: number? = nil
 local parryShakeStart: number? = nil
 local parryShakeEnd: number? = nil
 
+-- // The mode the player wants in the arena (top-down by default; C toggles it). The lobby always forces Regular
+-- // (over-the-shoulder) on top of this, and leaving the lobby restores it.
 local lastModeSet: CameraMode = "Overhead"
 
 -------------------------------------------------------------------------------
@@ -424,7 +426,8 @@ local function startOverheadMode()
          character = localPlayer.Character
       until character
    end
-   if overheadCameraConnection then
+   -- // The mode may have changed while waiting for the character (e.g. the lobby forced Regular): don't turn top-down back on
+   if overheadCameraConnection or CustomCameraController.Mode ~= "Overhead" then
       return
    end
 
@@ -471,14 +474,32 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
-function CustomCameraController.setMode(mode: "Overhead" | "Regular")
-   lastModeSet = mode
+local function applyMode(mode: CameraMode)
    CustomCameraController.Mode = mode
    if mode == "Overhead" then
       startOverheadMode()
    elseif mode == "Regular" then
       stopOverheadMode()
    end
+end
+
+-- // In the lobby: always over-the-shoulder, with a free mouse
+local function applyLobbyMode()
+   applyMode("Regular")
+   UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+   UserInputService.MouseIconEnabled = true
+end
+
+-- // Sets the player's arena camera mode. In the lobby it's only remembered (applied when they leave); the lobby stays Regular.
+function CustomCameraController.setMode(mode: "Overhead" | "Regular")
+   lastModeSet = mode
+   if LobbyController.isInLobby() then
+      if CustomCameraController.Mode ~= "Regular" then
+         applyLobbyMode()
+      end
+      return
+   end
+   applyMode(mode)
 end
 
 function CustomCameraController.getMode()
@@ -500,21 +521,20 @@ end
 -------------------------------------------------------------------------------
 
 function CustomCameraController.init()
-   if LobbyController.isInLobby() then
-      CustomCameraController.setMode("Regular")
-   else
-      CustomCameraController.setMode("Overhead")
-   end
-   lastModeSet = CustomCameraController.Mode
+   CustomCameraController.setMode("Overhead")
 
    LobbyController.ClientIsInLobbyChangedTasks:Add(function(isInLobby)
       if isInLobby then
-         lastModeSet = CustomCameraController.Mode
-         CustomCameraController.setMode("Regular")
-         UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-         UserInputService.MouseIconEnabled = true
+         applyLobbyMode() -- // lastModeSet (the arena preference) is kept for when they leave
       else
-         CustomCameraController.setMode(lastModeSet)
+         applyMode(lastModeSet)
+      end
+   end)
+
+   -- // Safety net: whatever order joining/spawning/lobby detection happen in, the lobby is never top-down
+   RunService.Heartbeat:Connect(function()
+      if LobbyController.isInLobby() and CustomCameraController.Mode ~= "Regular" then
+         applyLobbyMode()
       end
    end)
 end
