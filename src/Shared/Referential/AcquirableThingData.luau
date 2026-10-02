@@ -34,7 +34,7 @@ local AcquirableNotifData: {
       Id = "ElectricBoomerang",
       Title = "Electric",
       Subtitle = "Electricity shocks players in range",
-      Img = 4
+      Img = 125994532756468
    },
    ExplosiveBoomerang = {
       Id = "ExplosiveBoomerang",
