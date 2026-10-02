@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-058** *(shared by every task list, general and Epic)*
+**Next free ID: T-062** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,26 +83,51 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
-### T-057 · NotInvolved player state + Cmdr command
+### T-058 · Put the Group Rewards chest in the lobby
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Build (Studio)
+- **Files:** Studio: `workspace.Lobby` (place-only, not in the repo)
+
+**Problem / goal**
+The Group Rewards back-end is done (T-045: `GroupRewardService` + `GroupMembershipService`), but there's no chest in the lobby, so players can't use it. Place a physical Group Rewards chest in the lobby as a lobby station (see `docs/LOBBY_STATIONS.md`): a chest model on a glowing pad with a "GROUP REWARDS" title, per `docs/LOBBY_SPEC.md` (social/reward zone, visually prominent).
+
+**Done when**
+- [ ] A chest Model under `workspace.Lobby`, tagged `LobbyStation`, with `StationId = "GroupRewards"`, `Title = "GROUP REWARDS"`, and a child part named `Pad` (glowing ring) under it.
+- [ ] Prompt, title and pad sit sensibly on the model (set `PromptPart` / `TitleHeight` / `MaxDistance` attributes if the defaults don't fit).
+- [ ] `workspace.Lobby.TestLobbyStation` (T-047 test object) is removed if it's still there.
+
+**Test in Studio**
+- Walk up to the chest: title, glowing pad, "Claim" prompt (or "Join group" with `simulategroupmember me nonmember`).
+- Claim: popup, Currency added, prompt hides, pad dims. `resetgroupreward me` makes it claimable again.
+
+**Notes**
+- Agents: only edit the place through the Studio MCP when asked; never save or publish it (Sol does).
+- Sol (2026-10-02): use a placeholder model; the real model is T-061.
+- Done in "Boomerang [Development]" via the Studio MCP (not saved; **Sol saves the place**): `workspace.Lobby.GroupRewardsChest`, a placeholder wooden chest (Base, Lid, gold bands, Lock) on a purple neon `Pad` ring, facing the spawn, where the T-047 test station was (about 30 studs from spawn). Attributes: `StationId = "GroupRewards"`, `Title = "GROUP REWARDS"`, `MaxDistance = 12`. `TestLobbyStation` removed. Move it if you'd like it elsewhere: the station follows the model.
+
+---
+
+### T-057 · OptOut player state + Cmdr command
 - **Priority:** P2
 - **Owner:** Agent
 - **Area:** Server / Rounds
-- **Files:** `Server/Core/PlayerSessionService.luau` (new), `Server/Core/SpawnService.luau`, `Server/Cmdr/Commands/NotInvolved.luau` + `NotInvolvedServer.luau` (new)
+- **Files:** `Server/Core/PlayerSessionService.luau` (new), `Server/Core/SpawnService.luau`, `Server/Cmdr/Commands/OptOut.luau` + `OptOutServer.luau` (new)
 
 **Problem / goal**
-Server-only, non-replicated per-session `NotInvolved` state: the player doesn't take part in rounds and isn't added when a round starts. Cmdr `notinvolved [bool]` toggles it on the sender (no value = true).
+Server-only, non-replicated per-session `OptOut` state: the player doesn't take part in rounds and isn't added when a round starts. Cmdr `optout [bool]` toggles it on the sender (no value = true).
 
 **Done when**
-- [ ] `notinvolved` / `notinvolved true` keeps you out of the next round; `notinvolved false` lets you back in.
+- [ ] `optout` / `optout true` keeps you out of the next round; `optout false` lets you back in.
 
 **Test in Studio**
-- Two players (local server). Player A runs `notinvolved`; when the next round starts, A stays in the lobby and B plays.
+- Two players (local server). Player A runs `optout`; when the next round starts, A stays in the lobby and B plays.
 - Try a respawn / late-join gamemode: A still doesn't spawn in.
-- `notinvolved false`, then the next round includes A.
+- `optout false`, then the next round includes A.
 
 **Notes**
-- New `PlayerSessionService` holds per-session server-only data (cleared on leave). Starts false on join. Fires `NotInvolvedChangedTasks`.
-- `SpawnService`: NotInvolved players are skipped when the round starts and `canSpawnIntoRound` returns false for them.
+- New `PlayerSessionService` holds per-session server-only data (cleared on leave). Starts false on join. Fires `OptOutChangedTasks`.
+- `SpawnService`: opted-out players are skipped when the round starts and `canSpawnIntoRound` returns false for them.
 - Turning it on mid-round doesn't remove the player now; they just can't respawn. Still counted in voting and `PlayersRequiredToStart` (open questions for Sol). Gamemode logic that loops `Players:GetPlayers()` (e.g. team setup) wasn't changed.
 
 ---
@@ -175,6 +200,78 @@ Claiming a login reward must grant it and tell the player.
 ---
 
 ## Backlog
+
+### T-061 · Replace the placeholder Group Rewards chest with the real model
+- **Priority:** P2
+- **Owner:** Sol → Agent
+- **Area:** Build (Studio)
+- **Files:** Studio: `workspace.Lobby.GroupRewardsChest` (place-only)
+
+**Problem / goal**
+T-058 put a placeholder chest in the lobby (simple parts). Replace it with the final chest model and art (LOBBY_SPEC: a large locked treasure chest on a glowing activation pad, prominent "GROUP REWARDS" label), keeping it a lobby station.
+
+**Open questions (ask Sol first)**
+- The final model (Sol provides it), and whether it should look different when claimed/locked (an open lid, a lock): that would be a small `GroupRewardController` addition reading the station state.
+
+**Done when**
+- [ ] The final model replaces the placeholder, with the `LobbyStation` tag and the same attributes (`StationId = "GroupRewards"`, `Title = "GROUP REWARDS"`, `MaxDistance`) and a glowing part named `Pad` (or `PadPart` set).
+- [ ] Title and prompt sit well on the new model (`PromptPart` / `TitleHeight` if needed).
+
+**Test in Studio**
+- Same as T-058: walk up, claim, `resetgroupreward me`, `simulategroupmember me nonmember`.
+
+**Notes**
+
+---
+
+### T-059 · Review arena enter/exit and round start/end for race conditions
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Server / Rounds
+- **Files:** `Server/Core/RoundCyclingService.luau`, `SpawnService.luau`, `ArenaService.luau`, `GameTeamService.luau`, `Shared/Library/GameStateLibrary`, `Shared/Utils/PlayersUtil`, `Shared/Logics/GamemodeLogics/*`
+
+**Problem / goal**
+Sol occasionally hits race conditions when players enter or leave the arena and when a round starts or ends. Review how these transitions are managed and propose improvements (or confirm the rest is an acceptable byproduct). Propose before changing code.
+
+Starting points from a quick read (2026-10-02, not verified):
+- `ArenaService.sendToArena` → `getSpawnPoint` can yield up to ~6s waiting for the character/PrimaryPart, then teleports and adds the player to `LivingPlayersInArena` without re-checking that the same round is still active (only a partial round-id check after the waits).
+- `LivingPlayersInArena` is read-cloned-written from several places (`sendToArena`, `setArena`, CharacterDied, PlayerRemoving, round end). Fine while nothing yields in between, fragile otherwise.
+- "Who is in the round" lives in three places: `LivingPlayersInArena`, `SpawnService.roundParticipants` and player teams.
+- Order at round start: `RoundActive` phase is applied (subscribers fire) **before** `ArenaService.setArena` clones the map and before `RoundStartingTasks` / gamemode `setup()`. `MapChangedTasks` and `RoundStartingTasks` run `"parallel"`; `PlayersUtil` events run `"deferred"`, so subscriber order isn't guaranteed.
+- Round end has two paths: timer (`endActiveRound` → `teardown()`) and the gamemode firing `RoundFinishedTasks`. Check one can't run twice or overlap the other.
+- `PlayerStatsLibrary` resets every player's stats on `LobbyVoting`, which can overlap with in-flight state.
+
+Possible directions: a round id / token checked after every yield; one owner for "round participants"; a fixed, documented order of steps at round start/end instead of parallel subscribers.
+
+**Done when**
+- [ ] Short write-up in Notes: each race found, how likely it is, proposed fix (or "acceptable").
+- [ ] Sol picks which fixes to make (follow-up tasks).
+
+**Open questions**
+- Any specific repro Sol remembers (gamemode, number of players, what went wrong)?
+
+**Notes**
+
+---
+
+### T-060 · Bug: aim arrow stays visible while not aiming
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Client / Weapons
+- **Files:** `Client/Core/WeaponController.luau` (aim arrow), `Shared/Library/PlayerStatsLibrary.luau` (`CurrentMovementState` "Aiming"), `Server/Core/WeaponService.luau`
+
+**Problem / goal**
+Sometimes the aim arrow stays visible while the player isn't otherwise aiming: they walk at normal speed instead of the slow aiming speed. Often happens after throwing a boomerang. Likely the arrow's visibility and the aiming movement state are cleared by different paths (e.g. throw, release, recall, weapon lock, death, the stats reset on `LobbyVoting`) and one of them misses the other. Find the cause and make both follow one source of truth.
+
+**Done when**
+- [ ] The arrow is only visible while the player is in the aiming state, including after throws, recalls, deaths and round changes.
+
+**Test in Studio**
+- Throw repeatedly (fast taps, hold-and-release, throw right as the boomerang returns, throw during weapon lock): the arrow never stays without the slow aiming walk.
+
+**Notes**
+
+---
 
 ### T-052 · Close Cmdr before public release
 - **Priority:** P2 now · **RELEASE BLOCKER:** must be done before the game's public release

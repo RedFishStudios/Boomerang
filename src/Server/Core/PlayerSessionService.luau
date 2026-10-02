@@ -3,8 +3,8 @@
 	saved or replicated to clients. For saved data, use PlayerDataService; for live replicated stats, use
 	PlayerStatsLibrary.
 
-	- NotInvolved: the player doesn't take part in rounds. They aren't added to a round when it starts and
-	  can't (re)spawn into one. Cmdr: `notinvolved`.
+	- OptOut: the player doesn't take part in rounds. They aren't added to a round when it starts and
+	  can't (re)spawn into one. Cmdr: `optout`.
 ]]
 
 local PlayerSessionService = {}
@@ -19,7 +19,7 @@ local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 -------------------------------------------------------------------------------
 
 export type SessionData = {
-	NotInvolved: boolean,
+	OptOut: boolean,
 }
 
 -------------------------------------------------------------------------------
@@ -32,7 +32,7 @@ local sessions: { [Player]: SessionData } = {}
 -- PUBLIC VARIABLES
 -------------------------------------------------------------------------------
 
-PlayerSessionService.NotInvolvedChangedTasks = TasksList.new() :: TasksList.TasksList<(player: Player, notInvolved: boolean) -> ()>
+PlayerSessionService.OptOutChangedTasks = TasksList.new() :: TasksList.TasksList<(player: Player, optOut: boolean) -> ()>
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -40,7 +40,7 @@ PlayerSessionService.NotInvolvedChangedTasks = TasksList.new() :: TasksList.Task
 
 local function newSessionData(): SessionData
 	return {
-		NotInvolved = false,
+		OptOut = false,
 	}
 end
 
@@ -63,18 +63,18 @@ end
 -------------------------------------------------------------------------------
 
 -- // True if the player has opted out of rounds
-function PlayerSessionService.isNotInvolved(player: Player): boolean
+function PlayerSessionService.isOptedOut(player: Player): boolean
 	local session = sessions[player]
-	return session ~= nil and session.NotInvolved
+	return session ~= nil and session.OptOut
 end
 
-function PlayerSessionService.setNotInvolved(player: Player, notInvolved: boolean)
+function PlayerSessionService.setOptOut(player: Player, optOut: boolean)
 	local session = getSession(player)
-	if not session or session.NotInvolved == notInvolved then
+	if not session or session.OptOut == optOut then
 		return
 	end
-	session.NotInvolved = notInvolved
-	PlayerSessionService.NotInvolvedChangedTasks:Execute("parallel", player, notInvolved)
+	session.OptOut = optOut
+	PlayerSessionService.OptOutChangedTasks:Execute("parallel", player, optOut)
 end
 
 -------------------------------------------------------------------------------

@@ -126,7 +126,7 @@ local function sendAllPlayersToArena()
    local playersAwaitingInitialSpawn = {} :: {[Player]: true}
    table.clear(roundParticipants)
    for _, player in ipairs(Players:GetPlayers()) do
-      if PlayerSessionService.isNotInvolved(player) then
+      if PlayerSessionService.isOptedOut(player) then
          continue
       end
       roundParticipants[player] = true
@@ -144,9 +144,9 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
--- // True if the player may (re)spawn into the active round: they must not be NotInvolved, respawning must be enabled, and late joiners are only allowed if the gamemode permits it
+-- // True if the player may (re)spawn into the active round: they must not have opted out, respawning must be enabled, and late joiners are only allowed if the gamemode permits it
 function SpawnService.canSpawnIntoRound(player: Player): boolean
-   if PlayerSessionService.isNotInvolved(player) then
+   if PlayerSessionService.isOptedOut(player) then
       return false
    end
    local currentRoundData = GameStateLibrary.getGameStateData().CurrentRoundData:Get()
