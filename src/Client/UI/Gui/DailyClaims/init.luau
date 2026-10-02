@@ -13,6 +13,7 @@ local Items = require(SharedMods.Referential.Items)
 local DailyRewards = require(SharedMods.Referential.DailyRewards)
 local PlayerDataController = require(ClientMods.Core.PlayerDataController)
 local ItemAcquiredGui = require(ClientMods.UI.Gui.ItemAcquired)
+local TopbarGui = require(ClientMods.UI.Gui.Topbar)
 
 local SECONDS_IN_DAY = 86400
 
@@ -210,6 +211,15 @@ function DailyClaimsGui.start()
    wireDayFrame(container:WaitForChild("Day" .. DailyRewards.MaxStreakDays), DailyRewards.MaxStreakDays)
 
    container:WaitForChild("Exit").MouseButton1Click:Connect(DailyClaimsGui.close)
+
+   TopbarGui.addButton({
+      Id = "DailyRewards",
+      Text = "Daily",
+      Icon = "🎁",
+      Side = "Left",
+      Order = 1,
+      onActivated = DailyClaimsGui.toggle,
+   })
 
    if game:GetService("RunService"):IsStudio() then
       game:GetService("ContextActionService"):BindAction("testopendailyclaimsmenu", function(_, inputState)

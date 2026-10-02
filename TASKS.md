@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-055** *(shared by every task list, general and Epic)*
+**Next free ID: T-056** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -110,6 +110,35 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-055 · Topbar buttons (first one: Daily rewards)
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Client / GUI
+- **Files:** `Client/UI/Gui/Topbar/init.luau` (new), `Client/UI/Gui/DailyClaims/init.luau`
+
+**Problem / goal**
+Buttons in the top bar, lined up with Roblox's default topbar buttons (player list, chat). Each button is placed on the left or the right, has a short text and an optional icon, and is as wide as its text needs. Every button uses the same text size. First button: "Daily" with a gift emoji, which opens/closes the Daily Rewards menu.
+
+**Done when**
+- [x] A reusable `TopbarGui.addButton({ Id, Text, Icon?, Side, Order?, onActivated })` that any feature can call.
+- [x] The "Daily" button toggles the Daily Rewards menu.
+
+**Test in Studio**
+- PC and mobile emulator (a few screen sizes): the Daily button sits in the top bar next to Roblox's buttons, same height and vertical position, text fully visible, and it opens and closes Daily Rewards.
+- Open/close the chat and the player list: our button never overlaps Roblox's buttons.
+
+**Notes**
+- `Client/UI/Gui/Topbar` is code-built (no `.rbxmx`). Its ScreenGui uses `ScreenInsets = TopbarSafeInsets`, so Roblox keeps it inside the free part of the top bar: left buttons start after Roblox's left buttons, right buttons end before Roblox's right buttons. Buttons are 44 px tall, 12 px from the top (Roblox's own size), and shrink if the top bar is shorter.
+- Style: a dark, slightly see-through pill like Roblox's buttons, white FredokaOne text at size 20 for every button, width from `AutomaticSize`. All values are constants at the top of the module (swap in Sol's assets later if wanted).
+- `Icon` is an emoji/text glyph, or an image id (`rbxassetid://...`).
+- **Emoji:** used 🎁 (gift). There's no "gift basket" emoji; if you meant the basket (🧺), it's a one-character change in `DailyClaims/init.luau`.
+- DailyClaims registers its own button in `start()`. The Studio-only `Y` key toggle is still there.
+- Like HudButtons, the top bar isn't flagged `RequiresMouse`, so on PC it can't be clicked while the over-the-shoulder camera locks the mouse during a round (Roblox's own buttons behave the same). Fine in the lobby.
+- Replaces T-050 (closed by Sol, 2026-10-02).
+- Not syntax-checked: no Luau checker is installed on this machine.
+
+---
 
 ### T-026 · Menus can lock the screen in the over-the-shoulder camera
 - **Priority:** P1
@@ -474,6 +503,8 @@ Players enter a code to receive a reward. Server: validates the code (case-insen
 
 ---
 
+## Done
+
 ### T-050 · HUD button for Daily Rewards
 - **Priority:** P2
 - **Owner:** Sol → Agent
@@ -485,10 +516,9 @@ Add a HUD button that opens the Daily Rewards (DailyClaims) GUI, ideally with an
 
 **Notes**
 - Part of the HUD button set in T-037.
+- Closed by Sol (2026-10-02): replaced by the topbar "Daily" button (T-055). The "reward ready" indicator was dropped.
 
 ---
-
-## Done
 
 ### T-015 · Set up Cmdr as the developer console
 - **Priority:** P1
