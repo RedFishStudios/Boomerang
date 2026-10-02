@@ -28,6 +28,8 @@ local CHAIN_RADIUS = GlobalConfig.ElectricChainRadius
 local CHAIN_LINK_DELAY = GlobalConfig.ElectricChainLinkDelay
 -- // Weapon id passed to the kill path for chained eliminations (elim message: "Shocked")
 local CHAIN_WEAPON_ID = "ElectricChain"
+-- // Weapon id ExplosiveBoomerang passes to the kill path for explosion eliminations (T-056: these start chains too)
+local EXPLOSION_WEAPON_ID = "ExplosiveBoomerang"
 local CHAIN_RADIUS_VISUAL_LIFETIME = 5
 local CHAIN_RADIUS_VISUAL_HEIGHT = 0.5
 
@@ -275,13 +277,13 @@ if isServer then
 			return
 		end
 
-		-- // A chain starts from a thrown-boomerang elimination while the pickup is active; once started, it runs to the end
+		-- // A chain starts from a thrown-boomerang or Explosive explosion elimination while the pickup is active;
+		-- // once started, it runs to the end
 		local isChainLink = weaponId == CHAIN_WEAPON_ID
 		local tool = Tools[weaponId]
-		local isElectricThrow = tool ~= nil
-			and tool.LogicClass == "Boomerang"
+		local isElectricHit = (weaponId == EXPLOSION_WEAPON_ID or (tool ~= nil and tool.LogicClass == "Boomerang"))
 			and PickupLibrary.hasPickupEffectActive(killer.UserId, script.Name)
-		if not isChainLink and not isElectricThrow then
+		if not isChainLink and not isElectricHit then
 			return
 		end
 
@@ -292,7 +294,6 @@ if isServer then
 		end
 	end)
 
-	-- TODO: T-029 follow-up: eliminations from an Electric + Explosive explosion should also start chains
 	ExplosiveBoomerang.ExplosionOccurred:Add(function(player: Player, explosionCFrame: CFrame)
 		if not PickupLibrary.hasPickupEffectActive(player.UserId, script.Name) then
 			return

@@ -15,6 +15,7 @@ local GlobalConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChi
 local TasksList = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Classes"):WaitForChild("TasksList"))
 local CollisionGroupConstants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"):WaitForChild("CollisionGroupConstants"))
 local SharedTasks = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"):WaitForChild("SharedTasks"))
+local GameTeamLibrary = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Library"):WaitForChild("GameTeamLibrary"))
 
 local EFFECT_DURATION_SECONDS = GlobalConfig.GenericEffectTimeout
 local BASE_EXPLOSION_WEAPON_LOCK_SECONDS = 3
@@ -72,7 +73,8 @@ local function applyExplosion(player: Player, position: Vector3)
    local gameStateData = GameStateLibrary.getGameStateData()
    local playersInArena = gameStateData.LivingPlayersInArena:Get()
    for _, p in pairs(playersInArena) do
-      if p == player then
+      -- // The thrower and their teammates are spared
+      if p == player or not GameTeamLibrary.areEnemies(player, p) then
          continue
       end
       local character = p.Character
