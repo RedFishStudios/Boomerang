@@ -47,6 +47,30 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
+-- // Testing helper (Cmdr `resetdaily`): makes the next daily reward claimable now, as if a day had passed.
+-- // With resetStreak, the streak goes back to 0 so the next claim is day 1.
+function DailyRewardsService.makeClaimable(player: Player, resetStreak: boolean?): boolean
+	local profileData = PlayerDataService.get(player)
+	if not profileData then
+		return false
+	end
+
+	if resetStreak then
+		profileData.DailyRewards.Streak = 0
+		profileData.DailyRewards.LastClaim = 0
+	else
+		profileData.DailyRewards.LastClaim = os.time() - SECONDS_IN_DAY
+	end
+
+	return true
+end
+
+-- // The day (1 to MaxStreakDays) the player's next claim will grant.
+function DailyRewardsService.getNextDay(player: Player): number?
+	local profileData = PlayerDataService.get(player)
+	return if profileData then (profileData.DailyRewards.Streak % DailyRewards.MaxStreakDays) + 1 else nil
+end
+
 -------------------------------------------------------------------------------
 -- LOGIC
 -------------------------------------------------------------------------------

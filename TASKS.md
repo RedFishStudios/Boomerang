@@ -227,6 +227,8 @@ Claiming a login reward must grant it and tell the player.
 - Client: item rewards show the ItemAcquired popup through ShopController's existing Inventory listener; currency rewards show "Daily reward claimed! +N Currency" from `DailyClaims`.
 - `TODO:RELEASE placeholder` added to the 4 `ExampleItem`/`ExampleWeapon` rewards in `DailyRewards.luau`.
 - Play-tested in Studio: day-1 claim granted ExampleItem1 once and returned day 1; a second claim the same day was refused; the popup GUI was enabled; no client/server errors from these modules. The day-2 currency claim wasn't exercised (needs a day to pass or a reset of `LastClaim`).
+- Cmdr `resetdaily <players> [resetStreak]` (alias `resetdailyclaim`): makes the next claim available now, as if a day had passed (streak kept). `resetdaily me true` also resets the streak to day 1. Backed by `DailyRewardsService.makeClaimable` / `getNextDay`. Reopen the Daily Claims GUI after running it to see the change.
+- Test in Studio: claim (day 1 item) → `resetdaily me` → claim again (day 2 currency popup) → rejoin and check both saved.
 
 ---
 
