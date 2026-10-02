@@ -21,21 +21,29 @@ local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
--- TODO: placeholder visuals; Sol to restyle (colours, fonts, layout)
+-- // Visuals match the Shop GUI: wooden frame, parchment panel, tan cards with brown outlines,
+-- // dark brown FredokaOne text, lime-green chips with outlined white text, purple accent
 local PIXELS_PER_STUD = 100
 local MAX_DISTANCE = 200 -- // The boards aren't drawn beyond this many studs
 local ROWS_PER_COLUMN = 15
 local HEADER_HEIGHT = 0.16 -- // Fraction of the board height
-local BACKGROUND_COLOR = Color3.fromRGB(20, 22, 35)
-local ROW_COLOR = Color3.fromRGB(40, 44, 66)
-local LOCAL_ROW_COLOR = Color3.fromRGB(60, 90, 160)
-local TEXT_COLOR = Color3.fromRGB(255, 255, 255)
-local RANK_COLORS = {
-	[1] = Color3.fromRGB(255, 205, 60),
-	[2] = Color3.fromRGB(200, 210, 225),
-	[3] = Color3.fromRGB(215, 140, 80),
+local FRAME_COLOR = Color3.fromRGB(110, 60, 30) -- // Wooden frame
+local FRAME_STROKE_COLOR = Color3.fromRGB(62, 32, 14)
+local BANNER_COLOR = Color3.fromRGB(233, 185, 127) -- // Like the shop's Weapons / Skins tabs
+local PANEL_COLOR = Color3.fromRGB(220, 168, 110) -- // Parchment
+local OUTLINE_COLOR = Color3.fromRGB(110, 66, 34) -- // Card / panel outlines
+local ROW_COLOR = Color3.fromRGB(240, 200, 150) -- // Item cards
+local LOCAL_ROW_COLOR = Color3.fromRGB(190, 150, 235) -- // Purple corner-bracket accent
+local TEXT_COLOR = Color3.fromRGB(64, 38, 20) -- // Dark brown, as the item names
+local CHIP_STROKE_COLOR = Color3.fromRGB(66, 92, 14)
+local CHIP_GRADIENT = ColorSequence.new(Color3.fromRGB(122, 168, 30), Color3.fromRGB(170, 212, 50)) -- // Price buttons
+local OUTLINED_TEXT_STROKE_COLOR = Color3.fromRGB(40, 24, 12)
+local RANK_COLORS = { -- // Top 3 get outlined coloured text, like "SALE!"
+	[1] = Color3.fromRGB(255, 230, 40),
+	[2] = Color3.fromRGB(235, 235, 245),
+	[3] = Color3.fromRGB(240, 150, 70),
 }
-local FONT = Enum.Font.GothamBold
+local FONT = Enum.Font.FredokaOne
 
 -------------------------------------------------------------------------------
 -- TYPES
@@ -60,6 +68,13 @@ local shownPeriodIndex = 1
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
 
+local function addOutline(label: TextLabel, color: Color3, thickness: number)
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = color
+	stroke.Thickness = thickness
+	stroke.Parent = label
+end
+
 local function createLabel(name: string, text: string, size: UDim2, position: UDim2, alignment: Enum.TextXAlignment?): TextLabel
 	local label = Instance.new("TextLabel")
 	label.Name = name
@@ -74,19 +89,42 @@ local function createLabel(name: string, text: string, size: UDim2, position: UD
 	return label
 end
 
+local function addCorner(parent: GuiObject, radius: UDim)
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = radius
+	corner.Parent = parent
+end
+
+local function addBorder(parent: GuiObject, color: Color3, thickness: number)
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = color
+	stroke.Thickness = thickness
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	stroke.Parent = parent
+end
+
+local function addGradient(parent: GuiObject, color: ColorSequence)
+	local gradient = Instance.new("UIGradient")
+	gradient.Color = color
+	gradient.Rotation = -90 -- // First colour at the bottom
+	gradient.Parent = parent
+end
+
 local function createRow(entry: LeaderboardConstants.Entry): Frame
 	local row = Instance.new("Frame")
 	row.Name = `Rank{entry.Rank}`
 	row.LayoutOrder = entry.Rank
 	row.BackgroundColor3 = if entry.UserId == localPlayer.UserId then LOCAL_ROW_COLOR else ROW_COLOR
 	row.BorderSizePixel = 0
-
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0.2, 0)
-	corner.Parent = row
+	addCorner(row, UDim.new(0.25, 0))
+	addBorder(row, OUTLINE_COLOR, 2)
 
 	local rank = createLabel("Rank", `#{entry.Rank}`, UDim2.fromScale(0.14, 0.8), UDim2.fromScale(0.01, 0.1))
-	rank.TextColor3 = RANK_COLORS[entry.Rank] or TEXT_COLOR
+	local rankColor = RANK_COLORS[entry.Rank]
+	if rankColor then
+		rank.TextColor3 = rankColor
+		addOutline(rank, OUTLINED_TEXT_STROKE_COLOR, 2)
+	end
 	rank.Parent = row
 
 	local headshot = Instance.new("ImageLabel")
@@ -98,8 +136,24 @@ local function createRow(entry: LeaderboardConstants.Entry): Frame
 	headshot.Image = `rbxthumb://type=AvatarHeadShot&id={entry.UserId}&w=48&h=48`
 	headshot.Parent = row
 
-	createLabel("PlayerName", entry.DisplayName, UDim2.fromScale(0.48, 0.7), UDim2.fromScale(0.27, 0.15), Enum.TextXAlignment.Left).Parent = row
-	createLabel("Value", tostring(entry.Value), UDim2.fromScale(0.22, 0.7), UDim2.fromScale(0.76, 0.15), Enum.TextXAlignment.Right).Parent = row
+	createLabel("PlayerName", entry.DisplayName, UDim2.fromScale(0.46, 0.7), UDim2.fromScale(0.27, 0.15), Enum.TextXAlignment.Left).Parent = row
+
+	-- // Value in a lime-green chip, like the shop's price buttons
+	local chip = Instance.new("Frame")
+	chip.Name = "ValueChip"
+	chip.BackgroundColor3 = Color3.new(1, 1, 1)
+	chip.BorderSizePixel = 0
+	chip.Size = UDim2.fromScale(0.24, 0.78)
+	chip.Position = UDim2.fromScale(0.74, 0.11)
+	addCorner(chip, UDim.new(0.3, 0))
+	addBorder(chip, CHIP_STROKE_COLOR, 2)
+	addGradient(chip, CHIP_GRADIENT)
+	chip.Parent = row
+
+	local value = createLabel("Value", tostring(entry.Value), UDim2.fromScale(0.86, 0.8), UDim2.fromScale(0.07, 0.1))
+	value.TextColor3 = Color3.new(1, 1, 1)
+	addOutline(value, CHIP_STROKE_COLOR, 2)
+	value.Parent = chip
 
 	return row
 end
@@ -108,18 +162,41 @@ local function createPeriodGroup(board: { Title: string }, period: string): (Can
 	local group = Instance.new("CanvasGroup")
 	group.Name = period
 	group.Size = UDim2.fromScale(1, 1)
-	group.BackgroundColor3 = BACKGROUND_COLOR
+	group.BackgroundColor3 = FRAME_COLOR
 	group.BorderSizePixel = 0
+	addCorner(group, UDim.new(0.04, 0))
 
-	local title = createLabel("Title", `{LeaderboardConstants.PeriodTitles[period]} {board.Title}`, UDim2.fromScale(0.9, HEADER_HEIGHT * 0.8), UDim2.fromScale(0.05, HEADER_HEIGHT * 0.1))
-	title.Parent = group
+	addBorder(group, FRAME_STROKE_COLOR, 8)
+
+	local banner = Instance.new("Frame")
+	banner.Name = "Banner"
+	banner.BackgroundColor3 = BANNER_COLOR
+	banner.BorderSizePixel = 0
+	banner.Size = UDim2.fromScale(0.94, HEADER_HEIGHT * 0.86)
+	banner.Position = UDim2.fromScale(0.03, HEADER_HEIGHT * 0.1)
+	addCorner(banner, UDim.new(0.25, 0))
+	addBorder(banner, OUTLINE_COLOR, 4)
+	banner.Parent = group
+
+	local title = createLabel("Title", `{LeaderboardConstants.PeriodTitles[period]} {board.Title}`, UDim2.fromScale(0.9, 0.8), UDim2.fromScale(0.05, 0.1))
+	title.Parent = banner
+
+	local panel = Instance.new("Frame")
+	panel.Name = "Panel"
+	panel.BackgroundColor3 = PANEL_COLOR
+	panel.BorderSizePixel = 0
+	panel.Size = UDim2.fromScale(0.96, 1 - HEADER_HEIGHT - 0.03)
+	panel.Position = UDim2.fromScale(0.02, HEADER_HEIGHT + 0.01)
+	addCorner(panel, UDim.new(0.03, 0))
+	addBorder(panel, OUTLINE_COLOR, 4)
+	panel.Parent = group
 
 	local list = Instance.new("Frame")
 	list.Name = "List"
 	list.BackgroundTransparency = 1
-	list.Size = UDim2.fromScale(0.96, 1 - HEADER_HEIGHT - 0.02)
-	list.Position = UDim2.fromScale(0.02, HEADER_HEIGHT)
-	list.Parent = group
+	list.Size = UDim2.fromScale(0.97, 0.96)
+	list.Position = UDim2.fromScale(0.015, 0.02)
+	list.Parent = panel
 
 	-- // Two columns of ROWS_PER_COLUMN, filled top to bottom
 	local grid = Instance.new("UIGridLayout")

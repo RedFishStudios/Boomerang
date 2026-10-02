@@ -125,7 +125,7 @@ Spec: `docs/LOBBY_SPEC.md`. Every lobby station (pedestals, wheel, crates, group
 - Server cost: one background loop every 10 min (writes only changed scores > 0, then 4 `GetSortedAsync` + 1 batched display-name request). Scores are also written when a player leaves. Nothing per frame, no instances replicated: clients build the SurfaceGuis themselves (in PlayerGui, adorned to the board parts) and do the fading locally. `MaxDistance` 200 hides them far away; hidden CanvasGroups are set invisible.
 - Monthly scores: new profile field `MonthlyStats` (`MonthKey`, `Elims`, `Wins`), updated by `LifetimeStatsService` next to the all-time values. Only Elims/Wins earned from this change on count.
 - Faces (from Studio raycasts toward the lobby floor): Elims = `Right`, Wins = `Left`. Set in `LeaderboardConstants.Boards` if a board is moved.
-- Visuals are code-built placeholders (`-- TODO: placeholder visuals` in `LeaderboardController`); restyle or swap for a template later.
+- Visuals are code-built and styled after the game's GUIs (FredokaOne with dark outlines, orange-yellow title gradient, mint values, teal banner and panel, wooden frame, purple highlight for your own row). Colours are constants at the top of `LeaderboardController`; swap for a template later if wanted.
 - **Check in Studio:** both board parts are **unanchored with no joints**, so they'll fall when the game runs. Anchor them (place-only change; I didn't touch the place).
 - New Cmdr: `refreshleaderboards` (alias `refreshlb`).
 
