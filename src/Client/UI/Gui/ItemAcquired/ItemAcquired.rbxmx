@@ -1,0 +1,19 @@
+<roblox xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4">
+	<Meta name="ExplicitAutoJoints">true</Meta>
+	<External>null</External>
+	<External>nil</External>
+	<Item class="ScreenGui" referent="RBXITEMACQUIREDGUI000000000000000001">
+		<Properties>
+			<bool name="ClipToDeviceSafeArea">true</bool>
+			<int name="DisplayOrder">20</int>
+			<token name="ScreenInsets">1</token>
+			<bool name="Enabled">true</bool>
+			<bool name="ResetOnSpawn">false</bool>
+			<token name="ZIndexBehavior">1</token>
+			<bool name="AutoLocalize">true</bool>
+			<Ref name="RootLocalizationTable">null</Ref>
+			<string name="Name">ItemAcquired</string>
+			<int64 name="SourceAssetId">-1</int64>
+		</Properties>
+	</Item>
+</roblox>

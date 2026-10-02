@@ -1,0 +1,42 @@
+<roblox xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4">
+	<!-- TODO:RELEASE placeholder: basic splash burst, replace with a proper effect -->
+	<Item class="Part" referent="RBXSPLASHPART0000000000000000001">
+		<Properties>
+			<string name="Name">Splash</string>
+			<bool name="Anchored">true</bool>
+			<bool name="CanCollide">false</bool>
+			<bool name="CanQuery">false</bool>
+			<bool name="CanTouch">false</bool>
+			<bool name="CastShadow">false</bool>
+			<float name="Transparency">1</float>
+			<Vector3 name="size">
+				<X>2</X>
+				<Y>0.2</Y>
+				<Z>2</Z>
+			</Vector3>
+		</Properties>
+		<Item class="ParticleEmitter" referent="RBXSPLASHEMIT0000000000000000001">
+			<Properties>
+				<string name="Name">Droplets</string>
+				<bool name="Enabled">false</bool>
+				<float name="Rate">0</float>
+				<token name="EmissionDirection">1</token>
+				<NumberRange name="Lifetime">0.6 1 </NumberRange>
+				<NumberRange name="Speed">14 24 </NumberRange>
+				<Vector2 name="SpreadAngle">
+					<X>30</X>
+					<Y>30</Y>
+				</Vector2>
+				<Vector3 name="Acceleration">
+					<X>0</X>
+					<Y>-45</Y>
+					<Z>0</Z>
+				</Vector3>
+				<ColorSequence name="Color">0 0.55 0.8 1 0 1 0.85 0.95 1 0 </ColorSequence>
+				<NumberSequence name="Size">0 0.6 0 1 0.2 0 </NumberSequence>
+				<NumberSequence name="Transparency">0 0.1 0 1 1 0 </NumberSequence>
+				<float name="LightEmission">0.2</float>
+			</Properties>
+		</Item>
+	</Item>
+</roblox>

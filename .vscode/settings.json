@@ -4,6 +4,7 @@
     "editor.formatOnSave": true,
     "editor.detectIndentation": false,
     "editor.tabSize": 3,
+    "editor.insertSpaces": false,
     "typescript.updateImportsOnFileMove.enabled": "always",
     "luau-lsp.completion.autocompleteEnd": true,
     "luau-lsp.fflags.enableNewSolver": true,

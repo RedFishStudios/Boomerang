@@ -8,6 +8,7 @@ local StarterGui = game:GetService("StarterGui")
 -------------------------------------------------------------------------------
 
 local SERVER = ServerStorage.Server
+local SHARED = ReplicatedStorage.Shared
 
 -------------------------------------------------------------------------------
 -- LOGIC
@@ -43,6 +44,18 @@ do
 			end
 			table.insert(modules, { Name = module.Name, Module = require(module) })
 		end
+	end
+
+	for _, module in next, SHARED.Library:GetChildren() do
+		if not module:IsA("ModuleScript") then
+			continue
+		end
+
+		if not module.Name:find("Library$") then
+			continue
+		end
+
+		table.insert(modules, { Name = module.Name, Module = require(module) })
 	end
 
 	-- Run .init

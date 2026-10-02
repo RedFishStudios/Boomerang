@@ -1,0 +1,437 @@
+-- // Contains referential information on the current game state
+--    Automatically manages replication between the server and client on data changes
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
+local ReactiveValue = require(ReplicatedStorage.Shared.Utils.ReactiveValue)
+local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
+local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
+local GameplayPhases = require(ReplicatedStorage.Shared.Constants.Enums.GameplayPhases)
+
+-------------------------------------------------------------------------------
+-- PRIVATE VARIABLES
+-------------------------------------------------------------------------------
+
+type RoundFinishedTask = (winner: Player?, winningTeam: Team?, isTie: boolean?) -> ()
+type SnapshotLoadedReason = "ServerApplied" | "ServerReplicated" | "InitialReplication"
+type CurrentRoundData = {
+   CurrentRoundId: number,
+   Gamemode: string,
+   CurrentMapName: string,
+   CanRespawn: boolean,
+}
+-- // Minimal winner payload: clients resolve UserId -> Player locally instead of the server sending a pre-built display string
+type WinnerInfo = {
+   Type: "Player" | "Team" | "Tie",
+   UserId: number?,
+   TeamName: string?,
+}
+type IntermissionData = {
+   WinnerInfo: WinnerInfo?,
+   VoteOptions: {string},
+   VoteCount: {number},
+   ChosenGamemode: string?,
+}
+type ReplicatedFieldName =
+   "CurrentRoundData"
+   | "GameplayPhase"
+   | "CurrentTimerEndsAt"
+   | "IntermissionData"
+   | "LivingPlayersInArena"
+
+type GameStateSnapshot = {
+   CurrentRoundData: CurrentRoundData?,
+   GameplayPhase: number,
+   CurrentTimerEndsAt: number?,
+   IntermissionData: IntermissionData?,
+   LivingPlayersInArena: {Player},
+}
+
+type ReplicatedNil = typeof(GlobalConfig.NilDataType)
+type GameStatePatch = {
+   CurrentRoundData: (CurrentRoundData | ReplicatedNil)?,
+   GameplayPhase: number?,
+   CurrentTimerEndsAt: (number | ReplicatedNil)?,
+   IntermissionData: (IntermissionData | ReplicatedNil)?,
+   LivingPlayersInArena: {Player}?,
+}
+
+type SnapshotLoadedTask = (snapshot: GameStateSnapshot, reason: SnapshotLoadedReason) -> ()
+
+type CurrentGameStateDataType = {
+   CurrentRoundData: ReactiveValue.ReactiveValue<CurrentRoundData?>,
+   GameplayPhase: ReactiveValue.ReactiveValue<number>,
+   CurrentTimerEndsAt: ReactiveValue.ReactiveValue<number?>,
+   IntermissionData: ReactiveValue.ReactiveValue<IntermissionData?>,
+   LivingPlayersInArena: ReactiveValue.ReactiveValue<{Player}>,
+}
+
+local isServer = RunService:IsServer()
+local gameStateSyncEvent = SimpleRemotes.getEvent("GameStateSync")
+
+-------------------------------------------------------------------------------
+-- PUBLIC VARIABLES
+-------------------------------------------------------------------------------
+
+local GameStateLibrary = {}
+GameStateLibrary.Ready = false
+GameStateLibrary.HasSyncedState = isServer -- Server data is authoritative immediately; client data isn't trustworthy until the initial snapshot arrives
+
+local CurrentGameStateData: CurrentGameStateDataType = {
+   CurrentRoundData = ReactiveValue.new(nil :: CurrentRoundData?),
+   GameplayPhase = ReactiveValue.new(GameplayPhases.PendingPlayers),
+   CurrentTimerEndsAt = ReactiveValue.new(nil :: number?),
+   IntermissionData = ReactiveValue.new(nil :: IntermissionData?),
+
+   LivingPlayersInArena = ReactiveValue.new({}),
+}
+
+GameStateLibrary.RoundStartingTasks = TasksList.new()
+GameStateLibrary.RoundFinishedTasks = TasksList.new() :: TasksList.TasksList<RoundFinishedTask>
+GameStateLibrary.LobbyIntermissionStartedTasks = TasksList.new()
+GameStateLibrary.GameStateSnapshotLoadedTasks = TasksList.new() :: TasksList.TasksList<SnapshotLoadedTask>
+GameStateLibrary.PlayerAddedToArenaTasks = TasksList.new() :: TasksList.TasksList<(player: Player) -> ()>
+GameStateLibrary.PlayerRemovedFromArenaTasks = TasksList.new() :: TasksList.TasksList<(player: Player) -> ()>
+
+local replicatedFieldNames = table.freeze({
+   CurrentRoundData = true,
+   GameplayPhase = true,
+   CurrentTimerEndsAt = true,
+   IntermissionData = true,
+   LivingPlayersInArena = true,
+}) :: { [ReplicatedFieldName]: boolean }
+
+-------------------------------------------------------------------------------
+-- PRIVATE FUNCTIONS
+-------------------------------------------------------------------------------
+
+local function clonePlayers(source: {Player}): {Player}
+   local cloned = table.create(#source)
+   for index, player in ipairs(source) do
+      cloned[index] = player
+   end
+   return cloned
+end
+
+local function cloneCurrentRoundData(source: CurrentRoundData?): CurrentRoundData?
+   return if source then table.clone(source) else nil
+end
+
+local function currentRoundDataMatches(first: CurrentRoundData?, second: CurrentRoundData?): boolean
+   if first == nil or second == nil then
+      return first == second
+   end
+   return first.CurrentRoundId == second.CurrentRoundId
+      and first.Gamemode == second.Gamemode
+      and first.CurrentMapName == second.CurrentMapName
+      and first.CanRespawn == second.CanRespawn
+end
+
+local function arraysMatch<T>(first: {T}, second: {T}): boolean
+   if #first ~= #second then
+      return false
+   end
+   for index, value in ipairs(first) do
+      if value ~= second[index] then
+         return false
+      end
+   end
+   return true
+end
+
+local function winnerInfoMatches(first: WinnerInfo?, second: WinnerInfo?): boolean
+   if first == nil or second == nil then
+      return first == second
+   end
+   return first.Type == second.Type and first.UserId == second.UserId and first.TeamName == second.TeamName
+end
+
+local function cloneIntermissionData(source: IntermissionData?): IntermissionData?
+   if source == nil then
+      return nil
+   end
+   return {
+      WinnerInfo = if source.WinnerInfo then table.clone(source.WinnerInfo) else nil,
+      VoteOptions = table.clone(source.VoteOptions),
+      VoteCount = table.clone(source.VoteCount),
+      ChosenGamemode = source.ChosenGamemode,
+   }
+end
+
+local function intermissionDataMatches(first: IntermissionData?, second: IntermissionData?): boolean
+   if first == nil or second == nil then
+      return first == second
+   end
+   return winnerInfoMatches(first.WinnerInfo, second.WinnerInfo)
+      and first.ChosenGamemode == second.ChosenGamemode
+      and arraysMatch(first.VoteOptions, second.VoteOptions)
+      and arraysMatch(first.VoteCount, second.VoteCount)
+end
+
+local function getSnapshot()
+   return {
+      CurrentRoundData = cloneCurrentRoundData(CurrentGameStateData.CurrentRoundData:Get()),
+      GameplayPhase = CurrentGameStateData.GameplayPhase:Get(),
+      CurrentTimerEndsAt = CurrentGameStateData.CurrentTimerEndsAt:Get(),
+      IntermissionData = cloneIntermissionData(CurrentGameStateData.IntermissionData:Get()),
+      LivingPlayersInArena = clonePlayers(CurrentGameStateData.LivingPlayersInArena:Get()),
+   } :: GameStateSnapshot
+end
+
+local function encodeReplicatedValue(value: any): any
+   if value == nil then
+      return GlobalConfig.NilDataType
+   end
+   return value
+end
+
+local function decodeReplicatedValue(value: any): any
+   if value == GlobalConfig.NilDataType then
+      return nil
+   end
+   return value
+end
+
+local function cloneReplicatedFieldValue(fieldName: ReplicatedFieldName, value: any): any
+   if fieldName == "CurrentRoundData" then
+      return cloneCurrentRoundData(value)
+   elseif fieldName == "IntermissionData" then
+      return cloneIntermissionData(value)
+   elseif fieldName == "LivingPlayersInArena" and value ~= nil then
+      return clonePlayers(value)
+   end
+   return value
+end
+
+local function encodeReplicatedFieldValue(fieldName: ReplicatedFieldName, value: any): any
+   return encodeReplicatedValue(cloneReplicatedFieldValue(fieldName, value))
+end
+
+local function getReplicatedSnapshotPayload(): {[string]: any}
+   local snapshot = getSnapshot()
+   local payload = {}
+   for fieldName, _ in pairs(replicatedFieldNames) do
+      payload[fieldName] = encodeReplicatedFieldValue(fieldName, snapshot[fieldName])
+   end
+   return payload
+end
+
+local function applySnapshotLocal(snapshot: GameStateSnapshot)
+   local currentRoundData = decodeReplicatedValue(snapshot.CurrentRoundData)
+   if not currentRoundDataMatches(currentRoundData, CurrentGameStateData.CurrentRoundData:Get()) then
+      CurrentGameStateData.CurrentRoundData:Set(cloneCurrentRoundData(currentRoundData))
+   end
+   CurrentGameStateData.GameplayPhase:Set(snapshot.GameplayPhase)
+   CurrentGameStateData.CurrentTimerEndsAt:Set(decodeReplicatedValue(snapshot.CurrentTimerEndsAt))
+   local intermissionData = decodeReplicatedValue(snapshot.IntermissionData)
+   if not intermissionDataMatches(intermissionData, CurrentGameStateData.IntermissionData:Get()) then
+      CurrentGameStateData.IntermissionData:Set(cloneIntermissionData(intermissionData))
+   end
+   CurrentGameStateData.LivingPlayersInArena:Set(clonePlayers(snapshot.LivingPlayersInArena))
+end
+
+local function applyPartialLocal(payload: {[string]: any})
+   for fieldName, _ in pairs(replicatedFieldNames) do
+      local encodedValue = payload[fieldName]
+      if encodedValue ~= nil then
+         local value = decodeReplicatedValue(encodedValue)
+         if fieldName == "CurrentRoundData" then
+            CurrentGameStateData.CurrentRoundData:Set(cloneCurrentRoundData(value))
+         elseif fieldName == "IntermissionData" then
+            CurrentGameStateData.IntermissionData:Set(cloneIntermissionData(value))
+         elseif fieldName == "LivingPlayersInArena" then
+            if value ~= nil then
+               CurrentGameStateData[fieldName]:Set(clonePlayers(value))
+            end
+         else
+            CurrentGameStateData[fieldName]:Set(value)
+         end
+      end
+   end
+end
+
+local function fireSnapshotLoaded(snapshot: GameStateSnapshot, reason: SnapshotLoadedReason)
+   GameStateLibrary.GameStateSnapshotLoadedTasks:Execute("parallel", snapshot, reason)
+end
+
+local function onLivingPlayersInArenaChanged(newPlayers: {Player}, oldPlayers: {Player})
+   for _, player in ipairs(newPlayers) do
+      if not table.find(oldPlayers, player) then
+         GameStateLibrary.PlayerAddedToArenaTasks:Execute("parallel", player)
+      end
+   end
+   for _, player in ipairs(oldPlayers) do
+      if not table.find(newPlayers, player) then
+         GameStateLibrary.PlayerRemovedFromArenaTasks:Execute("parallel", player)
+      end
+   end
+end
+
+local function sendInitialSnapshot(player: Player)
+   gameStateSyncEvent:FireClient(player, "InitialSnapshot", getReplicatedSnapshotPayload())
+end
+
+local lastLivingPlayersInArena = clonePlayers(CurrentGameStateData.LivingPlayersInArena:Get())
+CurrentGameStateData.LivingPlayersInArena:Subscribe(function(newPlayers: {Player})
+   local oldPlayers = lastLivingPlayersInArena
+   lastLivingPlayersInArena = clonePlayers(newPlayers)
+   onLivingPlayersInArenaChanged(newPlayers, oldPlayers)
+end)
+
+-------------------------------------------------------------------------------
+-- PUBLIC FUNCTIONS
+-------------------------------------------------------------------------------
+
+function GameStateLibrary.getSnapshot() 
+   return getSnapshot()
+end
+
+function GameStateLibrary.getGameStateData(): CurrentGameStateDataType
+   return CurrentGameStateData
+end
+
+function GameStateLibrary.applySnapshot(snapshot: GameStateSnapshot, replicateToClients: boolean?)
+   local requiredReplicatedFields = {} :: {[ReplicatedFieldName]: boolean}
+   if snapshot.CurrentRoundData ~= nil then
+      snapshot.GameplayPhase = GameplayPhases.RoundActive
+   else
+      snapshot.LivingPlayersInArena = {}
+      requiredReplicatedFields.LivingPlayersInArena = true
+   end
+
+   local valuesChangedPayload = {}
+   for fieldName, _ in pairs(replicatedFieldNames) do
+      local value = snapshot[fieldName]
+      local originalValue = CurrentGameStateData[fieldName]:Get()
+      local hasChanged = requiredReplicatedFields[fieldName] == true
+
+      if not hasChanged then
+         if fieldName == "CurrentRoundData" then
+            hasChanged = not currentRoundDataMatches(value, originalValue)
+         elseif fieldName == "IntermissionData" then
+            hasChanged = not intermissionDataMatches(value, originalValue)
+         elseif type(value) == "table" and type(originalValue) == "table" then
+            if #value ~= #originalValue then
+               hasChanged = true
+            else
+               for i = 1, #value do
+                  if value[i] ~= originalValue[i] then
+                     hasChanged = true
+                     break
+                  end
+               end
+            end
+         else
+            hasChanged = originalValue ~= value
+         end
+      end
+
+      if hasChanged then
+         valuesChangedPayload[fieldName] = encodeReplicatedFieldValue(fieldName, value)
+      end
+   end
+
+   applySnapshotLocal(snapshot)
+
+   if isServer and replicateToClients ~= false and next(valuesChangedPayload) ~= nil then
+      gameStateSyncEvent:FireAllClients("SnapshotApplied", valuesChangedPayload)
+   end
+
+   fireSnapshotLoaded(getSnapshot(), if isServer then "ServerApplied" else "ServerReplicated")
+end
+
+function GameStateLibrary.applyValues(patch: GameStatePatch, replicateToClients: boolean?)
+   local requiredReplicatedFields = {} :: {[ReplicatedFieldName]: boolean}
+   if patch.CurrentRoundData ~= nil then
+      if decodeReplicatedValue(patch.CurrentRoundData) ~= nil then
+         patch.GameplayPhase = GameplayPhases.RoundActive
+      else
+         patch.LivingPlayersInArena = {}
+         requiredReplicatedFields.LivingPlayersInArena = true
+      end
+   elseif CurrentGameStateData.CurrentRoundData:Get() == nil and patch.LivingPlayersInArena ~= nil then
+      patch.LivingPlayersInArena = {}
+      requiredReplicatedFields.LivingPlayersInArena = true
+   end
+
+   local changedValuesPayload = {}
+
+   for fieldName, _ in pairs(replicatedFieldNames) do
+      local value = patch[fieldName]
+      if value ~= nil then
+         local decodedValue = decodeReplicatedValue(value)
+         local oldValue = CurrentGameStateData[fieldName]:Get()
+         local hasChanged = requiredReplicatedFields[fieldName] == true
+
+         if not hasChanged then
+            if fieldName == "IntermissionData" then
+               hasChanged = not intermissionDataMatches(decodedValue, oldValue)
+            elseif type(decodedValue) == "table" and type(oldValue) == "table" then
+               -- Table patches are treated as changed to avoid in-place mutation edge cases.
+               hasChanged = true
+            else
+               hasChanged = oldValue ~= decodedValue
+            end
+         end
+
+         if hasChanged then
+            changedValuesPayload[fieldName] = encodeReplicatedFieldValue(fieldName, decodedValue)
+         end
+      end
+   end
+
+   if next(changedValuesPayload) == nil then
+      return
+   end
+
+   applyPartialLocal(changedValuesPayload)
+
+   if isServer and replicateToClients ~= false then
+      gameStateSyncEvent:FireAllClients("SnapshotApplied", changedValuesPayload)
+   end
+
+   fireSnapshotLoaded(getSnapshot(), if isServer then "ServerApplied" else "ServerReplicated")
+end
+
+-------------------------------------------------------------------------------
+-- CORE FUNCTIONS
+-------------------------------------------------------------------------------
+
+function GameStateLibrary.init()
+   if isServer then
+      -- // SERVER CONTEXT
+      gameStateSyncEvent.OnServerEvent:Connect(function(player: Player, action: string)
+         if action ~= "RequestSnapshot" then
+            return
+         end
+         sendInitialSnapshot(player)
+      end)
+   else
+      -- // CLIENT CONTEXT
+      gameStateSyncEvent.OnClientEvent:Connect(function(action: string, payload: any)
+         if action == "InitialSnapshot" then
+            applySnapshotLocal(payload)
+            GameStateLibrary.HasSyncedState = true
+            fireSnapshotLoaded(getSnapshot(), "InitialReplication")
+            return
+         end
+         if action == "SnapshotApplied" then
+            applyPartialLocal(payload)
+            fireSnapshotLoaded(getSnapshot(), "ServerReplicated")
+            return
+         end
+      end)
+
+      gameStateSyncEvent:FireServer("RequestSnapshot")
+   end
+
+   GameStateLibrary.Ready = true
+end
+
+function GameStateLibrary.start()
+   
+end
+
+return GameStateLibrary

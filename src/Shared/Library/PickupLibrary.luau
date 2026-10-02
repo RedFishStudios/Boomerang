@@ -1,0 +1,276 @@
+local PickupLibrary = {}
+
+local initiated = false
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local isServer = RunService:IsServer()
+
+local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
+local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
+local pickupEffectStateChanged = SimpleRemotes.getEvent("PickupEffectStateChanged")
+local PickupLogics = ReplicatedStorage.Shared.Logics.PickupLogics
+
+-------------------------------------------------------------------------------
+-- TYPES
+-------------------------------------------------------------------------------
+
+export type LivePickupData = {
+   ClassId: string?, -- Server-only
+   DespawnsAt: number,
+   Position: Vector3
+}
+
+export type PickupEffectData = {
+   ClassId: string,
+   EndsAt: number?
+}
+
+export type LivePickupId = string -- UUID
+export type PickupClassId = string -- Name of the pickup logic module
+
+export type LivePickupReplicationData = {
+   ClearAll: true?,
+   Spawned: { [LivePickupId]: LivePickupData }?,
+   Despawned: {LivePickupId}?
+}
+
+export type PickupEffectStateChangedReplicationData = {
+   ClearAll: true?,
+   userId: number?,
+   livePickupId: LivePickupId?,
+   classId: PickupClassId?,
+   cancelCode: number?,
+   endsAt: number?,
+   active: boolean?
+}
+
+export type PickupLogic = {
+   -- Play on pickup. Returns [ends at timestamp if it is a generic long lasting effect]
+   -- Server: called by PickupService. Client: called by PickupController when the pickup replicates (for every player, with the server's timestamp)
+   onPickup: (player: Player, startedAt: number?) -> (number?),
+   -- Play on end of an automated long-lasting effect
+   onEnd: ((player: Player) -> ())?,
+   -- Optional check before activating; returning false cancels the pickup
+   canActivate: ((player: Player, ...any) -> boolean)?,
+   -- Stub pickups (-- STUD) set this so they are skipped
+   Disabled: boolean?,
+}
+
+-------------------------------------------------------------------------------
+-- PRIVATE VARIABLES
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+-- PUBLIC VARIABLES
+-------------------------------------------------------------------------------
+
+PickupLibrary.PICKUP_DISTANCE = 1.3
+-- // endsAt is a workspace:GetServerTimeNow() timestamp, or nil if the effect lasts until removed by other means
+PickupLibrary.PickupEffectAddedTasks = TasksList.new() :: TasksList.TasksList<(userId: number, livePickupId: LivePickupId, pickupClassId: PickupClassId, endsAt: number?) -> ()>
+PickupLibrary.PickupEffectRemovedTasks = TasksList.new() :: TasksList.TasksList<(userId: number, livePickupId: LivePickupId, pickupClassId: PickupClassId) -> ()>
+PickupLibrary.LivePickups = {} :: { [LivePickupId]: LivePickupData }
+PickupLibrary.UserPickupEffectsActive = {} :: {
+   [number]: {
+      [LivePickupId]: PickupEffectData
+   }
+}
+
+local DATA_ONLY_EFFECTS: {[PickupClassId]: boolean} = {
+   OnFire = true,
+   HotPotato = true,
+}
+
+-------------------------------------------------------------------------------
+-- PRIVATE FUNCTIONS
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+-- PUBLIC FUNCTIONS
+-------------------------------------------------------------------------------
+
+function PickupLibrary.isDataOnlyEffect(pickupClassId: PickupClassId): boolean
+   return DATA_ONLY_EFFECTS[pickupClassId] == true
+end
+
+function PickupLibrary.setPickupEffectActive(userId: number, livePickupId: LivePickupId, pickupClassId: PickupClassId, endsAt: number?)
+   local userEffects = PickupLibrary.UserPickupEffectsActive[userId]
+   if not userEffects then
+      userEffects = {}
+      PickupLibrary.UserPickupEffectsActive[userId] = userEffects
+   end
+
+   for livePickupIdToRemove, activePickupData in pairs(userEffects) do
+      if livePickupIdToRemove ~= livePickupId and activePickupData.ClassId == pickupClassId then
+         PickupLibrary.removePickupEffectActive(userId, livePickupIdToRemove, true)
+      end
+   end
+
+   -- removePickupEffectActive nils out the per-user table once it's emptied, so it must be re-linked
+   userEffects = PickupLibrary.UserPickupEffectsActive[userId]
+   if not userEffects then
+      userEffects = {}
+      PickupLibrary.UserPickupEffectsActive[userId] = userEffects
+   end
+
+   local effectData = {
+      ClassId = pickupClassId,
+      EndsAt = endsAt,
+   }
+   userEffects[livePickupId] = effectData
+   PickupLibrary.PickupEffectAddedTasks:Execute("parallel", userId, livePickupId, pickupClassId, endsAt)
+
+   if isServer then
+      pickupEffectStateChanged:FireAllClients({
+         userId = userId,
+         livePickupId = livePickupId,
+         classId = pickupClassId,
+         endsAt = endsAt,
+         active = true,
+      })
+   end
+end
+
+function PickupLibrary.removePickupEffectActive(userId: number, livePickupId: LivePickupId, cancelCode: number?, doNotReplicate: boolean)
+   local userEffects = PickupLibrary.UserPickupEffectsActive[userId]
+   if not userEffects then
+      return
+   end
+
+   local pickupData = userEffects[livePickupId]
+
+   if livePickupId then
+      userEffects[livePickupId] = nil
+      if next(userEffects) == nil then
+         PickupLibrary.UserPickupEffectsActive[userId] = nil
+      end
+      if pickupData then
+         PickupLibrary.PickupEffectRemovedTasks:Execute("parallel", userId, livePickupId, pickupData.ClassId)
+      end
+   else
+      PickupLibrary.UserPickupEffectsActive[userId] = nil
+      for removedLivePickupId, removedPickupData in pairs(userEffects) do
+         PickupLibrary.PickupEffectRemovedTasks:Execute("parallel", userId, removedLivePickupId, removedPickupData.ClassId)
+      end
+   end
+
+   if isServer and not doNotReplicate then
+      pickupEffectStateChanged:FireAllClients({
+         userId = userId,
+         classId = pickupData and pickupData.ClassId,
+         livePickupId = livePickupId,
+         cancelCode = cancelCode,
+         active = false,
+      })
+   end
+end
+
+function PickupLibrary.removePickupEffectActiveByClassId(userId: number, pickupClassId: PickupClassId, cancelCode: number?, doNotReplicate: boolean)
+   local userEffects = PickupLibrary.UserPickupEffectsActive[userId]
+   if not userEffects then
+      return
+   end
+
+   for livePickupId, activePickupData in pairs(userEffects) do
+      if activePickupData.ClassId == pickupClassId then
+         PickupLibrary.removePickupEffectActive(userId, livePickupId, cancelCode, doNotReplicate)
+         return
+      end
+   end
+end
+
+function PickupLibrary.clearAllPickupEffectsActive()
+   local activeEffects = PickupLibrary.UserPickupEffectsActive
+   PickupLibrary.UserPickupEffectsActive = {}
+
+   for userId, userEffects in pairs(activeEffects) do
+      for livePickupId, activePickupData in pairs(userEffects) do
+         PickupLibrary.PickupEffectRemovedTasks:Execute("parallel", userId, livePickupId, activePickupData.ClassId)
+      end
+
+      local player = Players:GetPlayerByUserId(userId)
+      if not player then
+         continue
+      end
+
+      for _, activePickupData in pairs(userEffects) do
+         if PickupLibrary.isDataOnlyEffect(activePickupData.ClassId) then
+            continue
+         end
+
+         local logicModule = PickupLogics:FindFirstChild(activePickupData.ClassId, true)
+         if logicModule and logicModule:IsA("ModuleScript") then
+            local loaded, logic = pcall(require, logicModule)
+            if not loaded then
+               warn(`PickupLibrary: Failed to load {activePickupData.ClassId} while clearing effects: {logic}`)
+               continue
+            end
+
+            if logic.onEnd then
+               local ended, endError = pcall(logic.onEnd, player)
+               if not ended then
+                  warn(`PickupLibrary: Failed to end {activePickupData.ClassId} for {player.Name}: {endError}`)
+               end
+            end
+         end
+      end
+   end
+
+   if isServer then
+      pickupEffectStateChanged:FireAllClients({
+         ClearAll = true,
+      })
+   end
+end
+
+function PickupLibrary.hasPickupEffectActive(userId: number, pickupClassId: PickupClassId): boolean
+   local userEffects = PickupLibrary.UserPickupEffectsActive[userId]
+   if not userEffects then
+      return false
+   end
+
+   for _, activePickupData in pairs(userEffects) do
+      if activePickupData.ClassId == pickupClassId then
+         return true
+      end
+   end
+
+   return false
+end
+
+function PickupLibrary.getLivePickupCount(_now: number?)
+   local count = 0
+   local now = _now or workspace:GetServerTimeNow()
+   for _, live in pairs(PickupLibrary.LivePickups) do
+      --if now - live.DespawnsAt < 0 then
+         count += 1
+      --end
+   end
+   return count
+end
+
+function PickupLibrary.getLivePickup(livePickupId: LivePickupId)
+   local live = PickupLibrary.LivePickups[livePickupId]
+   --if live then
+      --local now = workspace:GetServerTimeNow()
+      --if live.DespawnsAt > now then
+         return live
+     -- end
+   --end
+   --PickupLibrary.LivePickups[livePickupId] = nil
+   --return nil
+end
+
+-------------------------------------------------------------------------------
+-- CORE
+-------------------------------------------------------------------------------
+
+function PickupLibrary.init()
+   if initiated then
+      return
+   end
+   initiated = true
+end
+
+return PickupLibrary 

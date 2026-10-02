@@ -1,52 +1,33 @@
 --[[
-  ItemController
+	ItemController
 
-  Description:
-  Handles client item updates
+	Description:
+	Client-side view of the local player's `Inventory` (item id -> amount owned), kept up to date by PlayerDataController.
+	Item data comes from Shared/Referential/Items.
 
-  Author:
-  @SixthAtom
-
-  Date:
-  12-03-2026
+	Author:
+	@SixthAtom
 ]]
 
 local ItemController = {}
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local PlayerDataController = require(ReplicatedStorage.Client.Core.PlayerDataController)
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
-local ItemConstants = require(ReplicatedStorage.Shared.Constants.ItemConstants)
-local CRC32C = require(ReplicatedStorage.Shared.Hashing.CRC32C)
-local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
-local ResponseCodes = require(ReplicatedStorage.Shared.Networking.ResponseCodes)
-local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
-local SimpleRemotesUtil = require(ReplicatedStorage.Shared.Networking.SimpleRemotesUtil)
-local BufferUtil = require(ReplicatedStorage.Shared.Utils.BufferUtil)
-
--------------------------------------------------------------------------------
--- CONSTANTS
--------------------------------------------------------------------------------
-
-local OWNERSHIP_MODES = ItemConstants.OwnershipModes
-local EVENT_CODES = RemoteCodes.Item.Events
-local FUNCTION_CODES = RemoteCodes.Item.Functions
 
 -------------------------------------------------------------------------------
 -- TYPES
 -------------------------------------------------------------------------------
 
-type ItemEventTask = (itemName: string, deltaAmount: number) -> ()
-type ItemAcquiredTask = (itemName: string) -> ()
+type ItemEventTask = (itemId: string, deltaAmount: number) -> ()
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
 -------------------------------------------------------------------------------
 
-local itemRemoteEvent = SimpleRemotes.getEvent("Item")
-local itemRemoteFunction = SimpleRemotes.getFunction("Item")
-
-local itemInventory: { [string]: number | true } = {}
+-- // Last known amounts, since UpdatedTasks only provides the new value
+local knownAmounts: { [string]: number } = {}
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -54,125 +35,22 @@ local itemInventory: { [string]: number | true } = {}
 
 ItemController.ItemGrantedTasks = TasksList.new() :: TasksList.TasksList<ItemEventTask>
 ItemController.ItemConsumedTasks = TasksList.new() :: TasksList.TasksList<ItemEventTask>
-ItemController.ItemAcquiredTasks = TasksList.new() :: TasksList.TasksList<ItemAcquiredTask>
-
--------------------------------------------------------------------------------
--- PRIVATE FUNCTIONS
--------------------------------------------------------------------------------
-
-local function getItemAmount(itemName: string): number
-	local item = ItemConstants.getItem(itemName)
-	if not item then
-		return 0 -- RETURN: Unknown item
-	end
-
-	local value = itemInventory[itemName]
-	if item.OwnershipMode == OWNERSHIP_MODES.Permanent then
-		return if value == true then 1 else 0
-	end
-
-	return if type(value) == "number" then math.max(0, value) else 0
-end
-
-local function loadItemRemote()
-	SimpleRemotesUtil.bindRemoteEventActions(itemRemoteEvent, {
-		[EVENT_CODES.Granted] = function(b: buffer)
-			local hash, delta
-			local offset = 0
-
-			hash, offset = BufferUtil.readu32(b, offset)
-			delta, offset = BufferUtil.readu32(b, offset)
-
-			local item = ItemConstants.getItemFromHash(hash)
-			if not item then
-				return -- RETURN: Unknown item
-			end
-
-			local itemName = item.Name
-			if item.OwnershipMode == OWNERSHIP_MODES.Permanent then
-				itemInventory[itemName] = true
-			else
-				local current = ItemController.getAmount(itemName)
-				itemInventory[itemName] = current + delta
-			end
-
-			ItemController.ItemGrantedTasks:Execute("parallel", itemName, delta)
-		end,
-
-		[EVENT_CODES.Consumed] = function(b: buffer)
-			local hash, delta
-			local offset = 0
-
-			hash, offset = BufferUtil.readu32(b, offset)
-			delta, offset = BufferUtil.readu32(b, offset)
-
-			local item = ItemConstants.getItemFromHash(hash)
-			if not item then
-				return -- RETURN: Unknown item
-			end
-
-			local itemName = item.Name
-			if item.OwnershipMode == OWNERSHIP_MODES.Consumable then
-				local current = ItemController.getAmount(itemName)
-				local nextAmount = math.max(0, current - delta)
-				itemInventory[itemName] = if nextAmount > 0 then nextAmount else nil
-			end
-
-			ItemController.ItemConsumedTasks:Execute("parallel", itemName, delta)
-		end,
-
-		[EVENT_CODES.Acquired] = function(b: buffer)
-			local hash
-			local offset = 0
-
-			hash, offset = BufferUtil.readu32(b, offset)
-
-			local item = ItemConstants.getItemFromHash(hash)
-			if not item then
-				return -- RETURN: Unknown item
-			end
-
-			itemInventory[item.Name] = true
-			ItemController.ItemAcquiredTasks:Execute("parallel", item.Name)
-		end,
-	}, SimpleRemotesUtil.DecodeActionBuffer)
-end
-
-local function loadInventorySnapshot()
-	local b = buffer.create(1)
-	BufferUtil.writeu8(b, 0, FUNCTION_CODES.Get)
-
-	local snapshot = itemRemoteFunction:InvokeServer(b)
-	itemInventory = if type(snapshot) == "table" then snapshot else {}
-end
 
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
-function ItemController.requestPurchase(itemName: string): number
-	local item = ItemConstants.getItem(itemName)
-	if not item then
-		return ResponseCodes.NotFound -- RETURN: Unknown item
-	end
-
-	local b = buffer.create(1 + 4)
-	local offset = BufferUtil.writeu8(b, 0, FUNCTION_CODES.Purchase)
-	BufferUtil.writeu32(b, offset, CRC32C(buffer.fromstring(item.Name)))
-
-	return itemRemoteFunction:InvokeServer(b)
+function ItemController.getInventory(): { [string]: number }
+	local data = PlayerDataController.get()
+	return if data then data.Inventory else {}
 end
 
-function ItemController.hasItem(itemName: string): boolean
-	return getItemAmount(itemName) > 0
+function ItemController.getAmount(itemId: string): number
+	return ItemController.getInventory()[itemId] or 0
 end
 
-function ItemController.getAmount(itemName: string): number
-	return getItemAmount(itemName)
-end
-
-function ItemController.getInventory()
-	return itemInventory
+function ItemController.hasItem(itemId: string): boolean
+	return ItemController.getAmount(itemId) > 0
 end
 
 -------------------------------------------------------------------------------
@@ -180,13 +58,27 @@ end
 -------------------------------------------------------------------------------
 
 function ItemController.init()
-	loadItemRemote()
-end
+	PlayerDataController.getAsync(function(data)
+		for itemId, amount in data.Inventory do
+			knownAmounts[itemId] = amount
+		end
+	end)
 
-function ItemController.start()
-	loadInventorySnapshot()
-end
+	PlayerDataController.UpdatedTasks:Add(function(index, value, path)
+		if path[1] ~= "Inventory" or #path ~= 1 or type(index) ~= "string" then
+			return
+		end
 
-function ItemController.test() end
+		local previous = knownAmounts[index] or 0
+		local current = if type(value) == "number" then value else 0
+		knownAmounts[index] = if current > 0 then current else nil
+
+		if current > previous then
+			ItemController.ItemGrantedTasks:Execute("parallel", index, current - previous)
+		elseif current < previous then
+			ItemController.ItemConsumedTasks:Execute("parallel", index, previous - current)
+		end
+	end)
+end
 
 return ItemController

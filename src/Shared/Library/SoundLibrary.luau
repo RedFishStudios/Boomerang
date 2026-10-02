@@ -1,0 +1,259 @@
+--[[
+]]
+
+local SoundLibrary = {}
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
+local TweenService = game:GetService("TweenService")
+local SoundService = game:GetService("SoundService")
+
+local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
+
+local isServer = game:GetService("RunService"):IsServer()
+
+local Sounds = require(ReplicatedStorage.Shared.Constants.Sounds)
+
+-------------------------------------------------------------------------------
+-- CONSTANTS
+-------------------------------------------------------------------------------
+
+local DEFAULT_HOST = SoundService
+local SOUND_REMOTE = SimpleRemotes.getEvent("SoundLibrary")
+local ACTION_PLAY = "Play"
+local ACTION_STOP = "Stop"
+
+-------------------------------------------------------------------------------
+-- TYPES
+-------------------------------------------------------------------------------
+
+type AudioChannelId = string
+type SoundHost = Instance | Vector3 | CFrame
+
+type AudioChannelData = {
+   Instance: Sound,
+   SoundName: string,
+   CurrentTween: Tween?,
+   StateOwnerKey: string,
+   TemporaryHost: BasePart?,
+}
+
+-------------------------------------------------------------------------------
+-- PRIVATE VARIABLES
+-------------------------------------------------------------------------------
+
+local lastPlayedAt: {
+   [string]: number
+} = {}
+
+local activeAudios: {
+   [AudioChannelId]: AudioChannelData
+} = {}
+
+local didInitclient = false
+
+-------------------------------------------------------------------------------
+-- PUBLIC VARIABLES
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+-- PRIVATE FUNCTIONS
+-------------------------------------------------------------------------------
+
+local function generateAudioId(): string
+   return HttpService:GenerateGUID(false)
+end
+
+local function generateStateKey(): string
+   return HttpService:GenerateGUID(false)
+end
+
+-- // Fades out and destroys this current audio channel
+local function destroy(audioChannelId: string, audioChannel: AudioChannelData, seconds: number?, createStateId: boolean?)
+   activeAudios[audioChannelId] = nil
+   local sound = audioChannel.Instance
+   local temporaryHost = audioChannel.TemporaryHost
+   local Tween = TweenService:Create(sound, TweenInfo.new(seconds or .25), {Volume = 0})
+   Tween:Play()
+   Tween.Completed:Once(function()
+      sound:Destroy()
+      if temporaryHost then
+         temporaryHost:Destroy()
+      end
+      Tween:Destroy()
+      Tween = nil
+   end)
+end
+
+local function playLocal(audioChannelId: AudioChannelId?, soundName: string, host: SoundHost?, fadeSeconds: number?, bypassLimits: boolean?): (AudioChannelId?, Sound?)
+   local thisSoundData = Sounds.Data[soundName]
+   if not thisSoundData then
+      warn(`Sound data for {soundName} not found`)
+      return nil, nil
+   end
+
+   if thisSoundData.NoDuplicates and not bypassLimits then
+      for _, soundInstanceData in pairs(activeAudios) do
+         if soundInstanceData.SoundName == soundName then
+            warn(`Sound {soundName} is already playing and noDuplicates is set`)
+            return nil, nil
+         end
+      end
+   end
+
+   local currentTime = os.clock()
+
+   if thisSoundData.Throttle and not bypassLimits then
+      if lastPlayedAt[soundName] and currentTime - lastPlayedAt[soundName] < thisSoundData.Throttle then
+         warn(`Sound {soundName} is being throttled`)
+         return nil, nil
+      end
+      lastPlayedAt[soundName] = currentTime
+   end
+
+   local thisStateKey = generateStateKey()
+
+   local oldChannel = activeAudios[audioChannelId]
+   if oldChannel then
+      if oldChannel.SoundName == soundName then
+         -- This sound is already playing on this channel
+         --print("sound already playing on channel")
+         return audioChannelId, oldChannel.Instance
+      end
+      destroy(audioChannelId, oldChannel, fadeSeconds)
+   end
+
+   local temporaryHost: BasePart? = nil
+   if typeof(host) == "Vector3" or typeof(host) == "CFrame" then
+      temporaryHost = Instance.new("Part")
+      temporaryHost.Name = "SoundHost"
+      temporaryHost.Anchored = true
+      temporaryHost.CanCollide = false
+      temporaryHost.CanQuery = false
+      temporaryHost.CanTouch = false
+      temporaryHost.Transparency = 1
+      temporaryHost.CFrame = if typeof(host) == "Vector3" then CFrame.new(host) else host
+      temporaryHost.Parent = workspace
+      host = temporaryHost
+   elseif host and host:IsA("Player") then
+      host = host.Character
+   end
+
+   if host and host:IsA("Model") and host.PrimaryPart and host.PrimaryPart:IsDescendantOf(workspace) then
+      host = host.PrimaryPart
+   end
+
+   audioChannelId = audioChannelId or generateAudioId()
+   local soundInstance = Instance.new("Sound")
+   soundInstance.RollOffMode = thisSoundData.RollOffMode or Sounds.Defaults.RollOffMode
+   soundInstance.RollOffMinDistance = thisSoundData.RollOffMinDistance or Sounds.Defaults.RollOffMinDistance
+   soundInstance.RollOffMaxDistance = thisSoundData.RollOffMaxDistance or Sounds.Defaults.RollOffMaxDistance
+   soundInstance.SoundId = `rbxassetid://{thisSoundData.Id}`
+   soundInstance.Looped = thisSoundData.Looping or Sounds.Defaults.Looping
+   activeAudios[audioChannelId] = {
+      Instance = soundInstance,
+      CurrentTween = nil,
+      StateOwnerKey = thisStateKey,
+      SoundName = soundName,
+      TemporaryHost = temporaryHost,
+   }
+   soundInstance.Parent = host or DEFAULT_HOST
+
+   if fadeSeconds then
+      soundInstance.Volume = 0
+      local Tween = TweenService:Create(soundInstance, TweenInfo.new(fadeSeconds), {Volume = thisSoundData.Volume or 1})
+      activeAudios[audioChannelId].CurrentTween = Tween
+      Tween:Play()
+   else
+      soundInstance.Volume = thisSoundData.Volume or 1
+   end
+   soundInstance:Play()
+   soundInstance.Ended:Once(function()
+      if activeAudios[audioChannelId] and activeAudios[audioChannelId].StateOwnerKey == thisStateKey then
+         local Tween = activeAudios[audioChannelId].CurrentTween
+         if Tween then
+            Tween:Destroy()
+            activeAudios[audioChannelId].CurrentTween = nil
+         end
+         activeAudios[audioChannelId].Instance:Destroy()
+         local temporaryHost = activeAudios[audioChannelId].TemporaryHost
+         if temporaryHost then
+            temporaryHost:Destroy()
+         end
+         activeAudios[audioChannelId] = nil
+      end
+   end)
+
+   return audioChannelId, soundInstance
+end
+
+local function stopLocal(audioChannelId: AudioChannelId)
+   local audioChannel = activeAudios[audioChannelId]
+   if audioChannel and audioChannel.Instance then
+      destroy(audioChannelId, audioChannel, nil)
+   end
+end
+
+-------------------------------------------------------------------------------
+-- PUBLIC FUNCTIONS
+-------------------------------------------------------------------------------
+
+-- // Play a sound
+function SoundLibrary.play(audioChannelId: AudioChannelId?, soundName: string, host: SoundHost?, fadeSeconds: number?, bypassLimits: boolean?): (AudioChannelId?, Sound?)
+   if isServer then
+      SOUND_REMOTE:FireAllClients(ACTION_PLAY, audioChannelId, soundName, host, fadeSeconds, bypassLimits)
+      return audioChannelId, nil
+   end
+   return playLocal(audioChannelId, soundName, host, fadeSeconds, bypassLimits)
+end
+
+function SoundLibrary.stop(audioChannelId: AudioChannelId)
+   if isServer then
+      SOUND_REMOTE:FireAllClients(ACTION_STOP, audioChannelId)
+      return
+   end
+   stopLocal(audioChannelId)
+end
+
+-------------------------------------------------------------------------------
+-- CORE FUNCTIONS
+-------------------------------------------------------------------------------
+
+function SoundLibrary.init()
+   if isServer or didInitclient then
+      return
+   end
+
+   didInitclient = true
+
+   -- // Roblox memory clears sounds that are not currently loaded onto any sound instance
+   -- This would create lag as the player would have to re-load a sound every time it is played
+   local preloadedSounds = {}
+   for _, soundData in pairs(Sounds.Data) do
+      if soundData.DoNotPreload then
+         continue
+      end
+      local soundInstance = Instance.new("Sound")
+      soundInstance.SoundId = `rbxassetid://{soundData.Id}`
+      soundInstance.Looped = soundData.Looping or Sounds.Defaults.Looping
+      soundInstance.Volume = soundData.Volume or Sounds.Defaults.Volume
+      soundInstance.Parent = DEFAULT_HOST
+      preloadedSounds[soundData.Name] = soundInstance
+   end
+
+   SOUND_REMOTE.OnClientEvent:Connect(function(action: string, ...)
+      if action == ACTION_PLAY then
+         SoundLibrary.play(...)
+         return
+      end
+      if action == ACTION_STOP then
+         SoundLibrary.stop(...)
+      end
+   end)
+end
+
+-- function SoundLibrary.start() end
+
+-- function SoundLibrary.test() end
+
+return SoundLibrary

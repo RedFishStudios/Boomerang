@@ -28,7 +28,7 @@ local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
-local NON_WIPABLE_INDEXES = { "BanData" }
+local NON_WIPABLE_INDEXES: { string } = {} -- // Profile fields kept when a profile is wiped
 
 local DATA_KEY = RunService:IsStudio() and "Dev" or "Live"
 
@@ -66,6 +66,8 @@ local replicationSchedule: { [Player]: { { any } } } = {}
 PlayerDataService.UpdatedTasks = TasksList.new() :: TasksList.TasksList<UpdateTask>
 PlayerDataService.ProfileAddedTasks = TasksList.new() :: TasksList.TasksList<ProfileAddedTask>
 PlayerDataService.ProfileRemovedTasks = TasksList.new() :: TasksList.TasksList<ProfileRemovedTask>
+-- // Runs (serially) before the profile session ends, while writes are still saved
+PlayerDataService.ProfileRemovingTasks = TasksList.new() :: TasksList.TasksList<ProfileRemovedTask>
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -214,7 +216,7 @@ end
 
 function PlayerDataService.start()
 	-- On start, so this is absolute last.
-	PlayersUtil.onPlayerAdded(function(player: Player)
+	PlayersUtil.PlayerAdded:Add(function(player: Player)
 		local profile = store:StartSessionAsync(`{player.UserId}`, {
 			Cancel = function()
 				return not Players:IsAncestorOf(player)
@@ -224,6 +226,11 @@ function PlayerDataService.start()
 		if profile then
 			profile:AddUserId(player.UserId)
 			profile:Reconcile()
+
+			-- TEMP TESTING Studio players start with at least 1000 currency
+			if (profile.Data.Currency or 0) < 1000 then
+				profile.Data.Currency = 1000
+			end
 
 			profile.OnSessionEnd:Connect(function()
 				profiles[player] = nil
@@ -237,7 +244,7 @@ function PlayerDataService.start()
 				player:SetAttribute("DataInitialized", true)
 				PlayerDataService.ProfileAddedTasks:Execute("parallel", player, profile.DataProxy, profile)
 
-				warn(`Loaded profile for {player.Name}: `, profile)
+				--warn(`Loaded profile for {player.Name}: `, profile)
 			else
 				profile:EndSession()
 			end
@@ -248,17 +255,16 @@ function PlayerDataService.start()
 end
 
 function PlayerDataService.init()
-	-- Removing profiles
 	Players.PlayerRemoving:Connect(function(player)
 		local profile = profiles[player]
 		if profile then
+			PlayerDataService.ProfileRemovingTasks:Execute("serial", player, profile)
 			profile:EndSession()
 			PlayerDataService.ProfileRemovedTasks:Execute("parallel", player, profile)
 			profiles[player] = nil
 		end
 	end)
 
-	-- Pushing schedules
 	RunService.PostSimulation:Connect(function()
 		task.defer(task.defer, function()
 			for player, schedule in replicationSchedule do
@@ -268,7 +274,6 @@ function PlayerDataService.init()
 		end)
 	end)
 
-	-- Remotes
 	getDataRemote.OnServerInvoke = function(player: Player)
 		if not player:GetAttribute("DataInitialized") then
 			player:GetAttributeChangedSignal("DataInitialized"):Wait()

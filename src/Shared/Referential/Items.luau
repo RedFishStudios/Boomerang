@@ -1,0 +1,54 @@
+local MarketplaceItems = require(script.Parent.MarketplaceItems)
+
+export type ItemClassId = string
+
+export type ItemType = "Skin" | "Weapon"
+
+export type ItemClass = {
+   Name: string,
+   Price: number,
+   OffSale: boolean?,
+   ProductId: number?,
+   IsPaidRandomItem: true?,
+   Type: ItemType
+}
+
+return {
+   ExampleItem1 = {
+      Name = "Example Item",
+      Price = 10,
+      OffSale = nil,
+      ProductId = MarketplaceItems.ByName.Placeholder.Id,
+      Type = "Skin"
+   },
+   ExampleItem2 = {
+      Name = "Example Item",
+      Price = 10,
+      OffSale = nil,
+      ProductId = MarketplaceItems.ByName.Placeholder.Id,
+      Type = "Skin"
+   },
+   ExampleWeapon1 = {
+      Name = "Example Weapon",
+      Price = 20,
+      OffSale = nil,
+      ProductId = MarketplaceItems.ByName.Placeholder.Id,
+      Type = "Weapon"
+   },
+   ExampleWeapon2 = {
+      Name = "Example Weapon",
+      Price = 20,
+      OffSale = nil,
+      ProductId = MarketplaceItems.ByName.Placeholder.Id,
+      Type = "Weapon"
+   },
+   ExampleWeapon3 = {
+      Name = "Example Weapon",
+      Price = 20,
+      OffSale = nil,
+      ProductId = MarketplaceItems.ByName.Placeholder.Id,
+      Type = "Weapon"
+   }
+} :: {
+   [ItemClassId]: ItemClass
+}

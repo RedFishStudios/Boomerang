@@ -1,171 +1,163 @@
---[[
-  UIController
+-- NOTE: THIS IS NOW FUNCTIONAL AND ITS USE SHOULD BE UNIVERSALIZED
 
-  Description:
-  Handles client UI state and screens
-
-  Author:
-  @SixthAtom
-
-  Date:
-  13-03-2026
-]]
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 
 local UIController = {}
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UIModules = {}
 
-local UIConstants = require(ReplicatedStorage.Client.UI.UIConstants)
-local Stack = require(ReplicatedStorage.Shared.Classes.Stack)
+-- // Opt-in notification for gui modules that explicitly fire it from their own open()/close(); NOT automatically fired for every gui
+UIController.GuiToggledTasks = TasksList.new() :: TasksList.TasksList<(guiName: string, isOpen: boolean) -> ()>
 
--------------------------------------------------------------------------------
--- CONSTANTS
--------------------------------------------------------------------------------
+export type UiType =
+	  "Primary"   -- Full screen
+	| "Secondary" -- Full screen but only accessible from within other full-screen UIs
+	| "Hover"     -- Internal UI which hovers over other UI, such as small secondary internal menus
+   | "Popup"     -- Small-scale UI which appears over other UI; similar to Hover but doesn't typically conflict with Hover-type UIs
+	| "HUD"       -- UI which is almost constantly visible on the screen
+	| "Dynamic"   -- Exempt from expected module values/functions; manages UI functionality in some other way
 
-local BASE_STATE = UIConstants.BaseState
+export type UIModule = {
+	Type: UiType,
+	Rendered: boolean?,
+	RequiresMouse: boolean?, -- // While Open, the mouse is freed even in a mouse-locked camera (see MouseUnlockController)
+	open: (any, any, any)->any,
+	close: (any)->any,
+	[any]: any
+}
 
--------------------------------------------------------------------------------
--- TYPES
--------------------------------------------------------------------------------
+local GuiModules = script.Parent.Gui
 
-type UICallback = ((...any) -> ())?
+--------------------------------------------------------------------------------------------------------------------------------------------------
+-- Private functions
 
-type UIStateCallbacks = { Open: UICallback, Close: UICallback, Minimize: UICallback, Maximize: UICallback }
-
--------------------------------------------------------------------------------
--- PRIVATE VARIABLES
--------------------------------------------------------------------------------
-
-local uiStack: Stack.Stack<string> = Stack.new()
-local registeredCallbacks: { [string]: UIStateCallbacks } = {}
-
--------------------------------------------------------------------------------
--- PUBLIC VARIABLES
--------------------------------------------------------------------------------
-
--------------------------------------------------------------------------------
--- PRIVATE FUNCTIONS
--------------------------------------------------------------------------------
-
-local function maximizeCurrent(...)
-	local current = uiStack:Peek()
-	if not current then
-		return
-	end
-
-	local callbacks = registeredCallbacks[current]
-	if callbacks and callbacks.Maximize then
-		callbacks.Maximize(...)
+-- // Begin and start a UI module
+local function start(n, m)
+	if m.start then
+		m.start()
 	end
 end
 
-local function closeInternal(name: string, shouldMaximize: boolean, ...)
-	if name == BASE_STATE then
-		return
-	end
+--------------------------------------------------------------------------------------------------------------------------------------------------
+-- Public functions
 
-	local current = UIController.getCurrent()
-	local removedIndex = uiStack:Find(name)
-	if not removedIndex then
-		return
+function UIController.get(moduleName: string): UIModule
+	if not UIModules[moduleName] then
+		repeat
+			print("[👨‍💻] : UIController : Awaiting " .. moduleName, UIModules)
+			if GuiModules:FindFirstChild(moduleName) and not UIModules[moduleName] then
+				warn(`Module {moduleName} was being waited for despite existing`)
+				UIModules[moduleName] = require(GuiModules:FindFirstChild(moduleName))
+			end
+			task.wait(.01)
+		until UIModules[moduleName]
 	end
-
-	local wasCurrent = current == name
-	uiStack:Remove(name)
-
-	local callbacks = registeredCallbacks[name]
-	if callbacks and callbacks.Close then
-		callbacks.Close(...)
-	end
-
-	if shouldMaximize and wasCurrent then
-		maximizeCurrent(...)
-	end
+	return UIModules[moduleName]
 end
 
--------------------------------------------------------------------------------
--- PUBLIC FUNCTIONS
--------------------------------------------------------------------------------
-
-function UIController.registerCallbacks(name: string, callbacks: UIStateCallbacks)
-	assert(registeredCallbacks[name] == nil, `Already callbacks registered with name {name}`)
-	registeredCallbacks[name] = callbacks
-end
-
-function UIController.getCurrent(): string?
-	return uiStack:Peek()
-end
-
-function UIController.isOpen(name: string)
-	return uiStack:Find(name) ~= nil
-end
-
-function UIController.open(name: string, ...)
-	local current = UIController.getCurrent()
-
-	if current == name then
-		return
-	end
-
-	assert(name ~= BASE_STATE, `{BASE_STATE} cannot be opened through UIController.open`)
-
-	local existingIndex = uiStack:Find(name)
-
-	if current then
-		local currentCallbacks = registeredCallbacks[current]
-		if currentCallbacks and currentCallbacks.Minimize then
-			currentCallbacks.Minimize()
+-- Close all UIs of a Type
+function UIController.closeAll(uiType: UiType, Instant: boolean?)
+	for i, m in pairs(UIModules) do
+		if m.Open and m.Type == uiType then
+			m.close(Instant)
 		end
 	end
+end
 
-	if existingIndex then
-		-- Re-insert into stack
-		uiStack:Remove(name)
-		uiStack:Push(name)
-
-		local callbacks = registeredCallbacks[name]
-		if callbacks and callbacks.Maximize then
-			callbacks.Maximize(...)
+-- // Returns true if any menu of the specified types are open
+function UIController.inMenuOfType(types: {UiType})
+	for i, m in pairs(UIModules) do
+		if m.Open then
+			for i, uiType in pairs(types) do
+				if m.Type == uiType then
+					return true
+				end
+			end
 		end
-
-		return
 	end
-
-	uiStack:Push(name)
-
-	local callbacks = registeredCallbacks[name]
-	if callbacks and callbacks.Open then
-		callbacks.Open(...)
-	end
+	return false
 end
 
-function UIController.close(name: string, ...)
-	closeInternal(name, true, ...)
-end
-
-function UIController.closeTo(name: string, ...)
-	while uiStack:Peek() and uiStack:Peek() ~= name do
-		local current = uiStack:Peek()
-		if not current or current == BASE_STATE then
-			break
+-- // Returns true if any open gui has RequiresMouse set (it has buttons the player must be able to click)
+function UIController.isMouseRequired(): boolean
+	for _, m in pairs(UIModules) do
+		if m.Open and m.RequiresMouse then
+			return true
 		end
-
-		closeInternal(current, false, ...)
 	end
+	return false
+end
 
-	if uiStack:Peek() == name then
-		maximizeCurrent(...)
+-- // Easy UI toggle access
+function UIController.toggleUI(uiName: string, toggle: boolean, ...)
+	if toggle then
+		UIModules[uiName].open(...)
+	else
+		UIModules[uiName].close(...)
 	end
 end
 
--------------------------------------------------------------------------------
--- CORE FUNCTIONS
--------------------------------------------------------------------------------
+-- // The superceding gui forces the superceded gui to close while the superceding gui is open
+function UIController.supercede(supercedingGuiName: string, supercededGuiName: string)
+   local Superceded = UIModules[supercededGuiName]
+	if UIModules[supercedingGuiName] and UIModules[supercededGuiName] then
+      if not Superceded.SupercededBy then
+         Superceded.SupercededBy = {}
+      end
+		if not table.find(Superceded.SupercededBy, supercedingGuiName) then
+			table.insert(Superceded.SupercededBy, supercedingGuiName)
+		end
+		Superceded.supercede()
+	else
+      warn(`UiController.supercede: One of these guis not found: {supercedingGuiName}, {supercededGuiName}`)
+   end
+end
 
-function UIController.init() end
+-- // A superceding gui is closed, no longer obscuring the superceded gui
+function UIController.unSupercede(supercedingGuiName: string, supercededGuiName: string)
+   local Superceded = UIModules[supercededGuiName]
+   if Superceded then
+      if Superceded.SupercededBy then
+         for i = #Superceded.SupercededBy, 1, -1 do
+            if Superceded.SupercededBy[i] == supercedingGuiName then
+               table.remove(Superceded.SupercededBy, i)
+            end
+         end
+         if Superceded.Open and #Superceded.SupercededBy == 0 then
+            Superceded.open()
+         end
+      end
+   end
+end
 
-function UIController.start() end
+--------------------------------------------------------------------------------------------------------------------------------------------------
 
-function UIController.test() end
+function UIController.init()
+	for _, c in pairs(GuiModules:GetChildren()) do
+		if c:IsA("ModuleScript") then
+			UIModules[c.Name] = require(c)
+		elseif c:IsA("Folder") then
+			for _, cc in pairs(c:GetChildren()) do
+				if cc:IsA("ModuleScript") then
+					UIModules[c.Name] = require(cc)
+				end
+			end
+		end
+	end
+	
+	GuiModules.ChildAdded:Connect(function(c)
+		if c:IsA("ModuleScript") then
+			UIModules[c.Name] = require(c)
+			start(c.Name, UIModules[c.Name])
+		end	
+	end)
+end
+
+function UIController.start()
+	for n, m in pairs(UIModules) do
+		start(n, m)
+	end
+end
 
 return UIController

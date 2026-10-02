@@ -1,14 +1,11 @@
 --[[
-  EconomyController
+	EconomyController
 
-  Description:
-  Handles the economy on the client
+	Description:
+	Handles the economy on the client. The game has a single currency: the profile's `Currency` number.
 
-  Author:
-  @SixthAtom
-
-  Date:
-  16-04-2026
+	Author:
+	@SixthAtom
 ]]
 
 local EconomyController = {}
@@ -17,50 +14,30 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local PlayerDataController = require(ReplicatedStorage.Client.Core.PlayerDataController)
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
-local EconomyConstants = require(ReplicatedStorage.Shared.Constants.EconomyConstants)
-
--------------------------------------------------------------------------------
--- CONSTANTS
--------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
 -- TYPES
 -------------------------------------------------------------------------------
 
-type CurrencyChangedTask = (currency: EconomyConstants.Currency, newAmount: number) -> ()
-
--------------------------------------------------------------------------------
--- PRIVATE VARIABLES
--------------------------------------------------------------------------------
-
-local function getPlayerCurrencies()
-	return PlayerDataController.get().Currencies
-end
-
-local function getPlayerBalance(currency: EconomyConstants.Currency)
-	return getPlayerCurrencies()[currency]
-end
+type CurrencyChangedTask = (newBalance: number) -> ()
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
 -------------------------------------------------------------------------------
 
-EconomyController.CurrencyChangedTasks = TasksList.new() :: TasksList.Id<CurrencyChangedTask>
-
--------------------------------------------------------------------------------
--- PRIVATE FUNCTIONS
--------------------------------------------------------------------------------
+EconomyController.CurrencyChangedTasks = TasksList.new() :: TasksList.TasksList<CurrencyChangedTask>
 
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
-function EconomyController.canAfford(price: EconomyConstants.Price)
-	if not EconomyConstants.isLiquid(price.Currency) then
-		return true
-	end
+function EconomyController.getBalance(): number
+	local data = PlayerDataController.get()
+	return if data then data.Currency or 0 else 0
+end
 
-	return getPlayerBalance(price.Currency) >= price.Amount
+function EconomyController.canAfford(amount: number): boolean
+	return EconomyController.getBalance() >= amount
 end
 
 -------------------------------------------------------------------------------
@@ -69,14 +46,10 @@ end
 
 function EconomyController.init()
 	PlayerDataController.UpdatedTasks:Add(function(index: number | string, value, path: { number | string })
-		if path[1] == "Currencies" then
-			EconomyController.CurrencyChangedTasks:Execute("parallel", index, value)
+		if #path == 0 and index == "Currency" then
+			EconomyController.CurrencyChangedTasks:Execute("parallel", value)
 		end
 	end)
 end
-
-function EconomyController.start() end
-
-function EconomyController.test() end
 
 return EconomyController

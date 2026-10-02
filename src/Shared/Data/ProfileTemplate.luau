@@ -3,8 +3,6 @@ local ProfileTemplate = {}
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
-local EconomyConstants = require(ReplicatedStorage.Shared.Constants.EconomyConstants)
-local EquipmentConstants = require(ReplicatedStorage.Shared.Constants.EquipmentConstants)
 local CRC32C = require(ReplicatedStorage.Shared.Hashing.CRC32C)
 local BufferUtil = require(ReplicatedStorage.Shared.Utils.BufferUtil)
 
@@ -12,52 +10,69 @@ local BufferUtil = require(ReplicatedStorage.Shared.Utils.BufferUtil)
 -- TYPES
 -------------------------------------------------------------------------------
 
-export type Template = typeof(ProfileTemplate.get())
+export type Template = {
+   -- // Lifetime stats: written only by LifetimeStatsService
+   Elims: number, -- Lifetime eliminations of other players
+   Defeats: number, -- Times eliminated by another player
+   Wins: number, -- Rounds won (team wins count for every member; ties don't count)
+   Losses: number, -- Unused: never tracked, kept because the field has shipped
+   RoundsPlayed: number, -- Rounds the player was in from start to finish
+   TimePlayed: number, -- Seconds spent in the game
+   AbilityUses: {
+      [string]: number -- Ability id : times used
+   },
+   PickupsAcquired: {
+      [string]: number -- Pickup class id : times picked up
+   },
+   MonthlyStats: { -- // This month's Elims/Wins for the monthly leaderboards; reset when MonthKey changes
+      MonthKey: string, -- UTC month, e.g. "2026-10" ("" = never set)
+      Elims: number,
+      Wins: number,
+   },
+   Currency: number,
+   DailyRewards: {
+      Streak: number, -- Current daily reward streak
+      LastClaim: number, -- Timestamp of the last claimed daily reward
+   },
+   GroupRewardLastClaim: number, -- Timestamp of the last Group Rewards chest claim (T-045), 0 = never
+   Inventory: {
+      [string]: number -- Shop item id : amount owned
+   },
+   GiftedPasses: {
+      number -- Gamepass id
+   }
+}
 
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
 function ProfileTemplate.get()
-	local profile = {}
+	local baseProfile = {
+      Elims = 0,
+      Defeats = 0,
+      Wins = 0,
+      Losses = 0,
+      RoundsPlayed = 0,
+      TimePlayed = 0,
+      AbilityUses = {},
+      PickupsAcquired = {},
+      MonthlyStats = {
+         MonthKey = "",
+         Elims = 0,
+         Wins = 0,
+      },
+      Currency = 0,
+      DailyRewards = {
+         Streak = 0,
+         LastClaim = 0
+      },
+      GroupRewardLastClaim = 0,
+      Inventory = {},
+      GiftedPasses = {},
+   }
 
-	-------------------------------------------------------------------------------
-	-- PRIVATE VARIABLES
-	-------------------------------------------------------------------------------
-
-	local currencies: { [EconomyConstants.Currency]: number } = { Cash = 0, Gems = 0 }
-
-	local banData: { BanAmount: number, Pending: {
-		ExecuteAt: number,
-		Duration: number,
-		PrivateReason: string,
-		PublicReason: string,
-	}? } = { BanAmount = 0 }
-
-	-------------------------------------------------------------------------------
-	-- PUBLIC VARIABLES
-	-------------------------------------------------------------------------------
-
-	profile.DailyRewards = {
-		LastClaim = 0,
-		Streak = 0,
-	}
-
-	-- Core
-	profile.Currencies = currencies
-	profile.ItemInventory = buffer.create(0)
-	profile.EquippedItems = {} :: { [EquipmentConstants.Slot]: string? }
-	profile.BanData = banData
-
-	-- Services
-
-	-------------------------------------------------------------------------------
-	-- LOGIC
-	-------------------------------------------------------------------------------
-
-	return profile
+	return baseProfile
 end
-
-warn("Profile Template:", ProfileTemplate.get())
 
 return ProfileTemplate

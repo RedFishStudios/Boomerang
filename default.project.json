@@ -19,7 +19,11 @@
          "$className": "ServerStorage",
          "$ignoreUnknownInstances": true,
          "Server": {
-            "$path": "src/Server"
+            "$path": "src/Server",
+            "Assets": {
+               "$className": "Folder",
+               "$ignoreUnknownInstances": true
+            }
          },
          "Packages": {
             "$path": "ServerPackages"

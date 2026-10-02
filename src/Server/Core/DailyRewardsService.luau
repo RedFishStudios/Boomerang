@@ -16,15 +16,17 @@ local DailyRewardsService = {}
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
-local DailyRewardsConstants = require(ReplicatedStorage.Shared.Constants.DailyRewardsConstants)
+local DailyRewards = require(ReplicatedStorage.Shared.Referential.DailyRewards) 
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local PlayerDataService = require(ServerStorage.Server.Core.PlayerDataService)
+local EconomyService = require(ServerStorage.Server.Core.EconomyService)
+local ItemService = require(ServerStorage.Server.Core.ItemService)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
-local SECONDS_IN_DAY = 86_400
+local SECONDS_IN_DAY = 86400
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
@@ -36,13 +38,8 @@ local claimRemoteFunction = SimpleRemotes.getFunction("ClaimDailyReward")
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
 
-local function isClaimable(player: Player)
-	local data = PlayerDataService.get(player)
-	if not data then
-		return false
-	end
-
-	local lastClaim = data.DailyRewards.LastClaim
+local function isClaimable(player: Player, profileData)
+	local lastClaim = profileData.DailyRewards.LastClaim
 	return lastClaim == 0 or (os.time() - lastClaim >= SECONDS_IN_DAY)
 end
 
@@ -50,21 +47,28 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
-function DailyRewardsService.claim(player: Player)
-	if not isClaimable(player) then
+-- // Testing helper (Cmdr `resetdaily`): makes the next daily reward claimable now, as if a day had passed.
+-- // With resetStreak, the streak goes back to 0 so the next claim is day 1.
+function DailyRewardsService.makeClaimable(player: Player, resetStreak: boolean?): boolean
+	local profileData = PlayerDataService.get(player)
+	if not profileData then
 		return false
 	end
 
-	local data = PlayerDataService.get(player)
-	if not data then
-		return false
+	if resetStreak then
+		profileData.DailyRewards.Streak = 0
+		profileData.DailyRewards.LastClaim = 0
+	else
+		profileData.DailyRewards.LastClaim = os.time() - SECONDS_IN_DAY
 	end
-
-	data.DailyRewards.Streak = (data.DailyRewards.Streak % DailyRewardsConstants.MaxStreakDays) + 1
-	data.DailyRewards.LastClaim = os.time()
-	warn(`{player.Name} claimed!`)
 
 	return true
+end
+
+-- // The day (1 to MaxStreakDays) the player's next claim will grant.
+function DailyRewardsService.getNextDay(player: Player): number?
+	local profileData = PlayerDataService.get(player)
+	return if profileData then (profileData.DailyRewards.Streak % DailyRewards.MaxStreakDays) + 1 else nil
 end
 
 -------------------------------------------------------------------------------
@@ -73,11 +77,11 @@ end
 
 function DailyRewardsService.init()
 	PlayerDataService.ProfileAddedTasks:Add(function(player, data)
-		-- RETURN: Daily reward isn't claimed yet
 		if data.DailyRewards.LastClaim == 0 then
-			return
+			return -- User has never claimed a daily reward
 		end
 
+      -- Test claim streak lost
 		local timeSinceClaim = os.time() - data.DailyRewards.LastClaim
 		if timeSinceClaim >= SECONDS_IN_DAY * 2 then
 			data.DailyRewards.Streak = 0
@@ -86,7 +90,37 @@ function DailyRewardsService.init()
 	end)
 
 	claimRemoteFunction.OnServerInvoke = function(player: Player)
-		return DailyRewardsService.claim(player)
+		local profileData = PlayerDataService.get(player)
+      if not profileData then
+         return false
+      end
+
+      if not isClaimable(player, profileData) then
+         return false
+      end
+
+      local newStreak = (profileData.DailyRewards.Streak % DailyRewards.MaxStreakDays) + 1
+      local reward = DailyRewards.Rewards[newStreak]
+
+      -- // Grant first, so a misconfigured reward doesn't use up the player's claim
+      -- // The client is notified through data replication: ItemAcquired for items (ShopController's Inventory listener),
+      -- // and DailyClaims shows the currency popup using the day returned below.
+      local granted = false
+      if reward and reward.Type == "Currency" then
+         granted = EconomyService.addCurrency(player, reward.Value)
+      elseif reward and reward.Type == "Item" then
+         granted = ItemService.grantItem(player, reward.Value, 1)
+      end
+
+      if not granted then
+         warn(`DailyRewardsService: failed to grant day {newStreak} reward to {player.Name}`, reward)
+         return false
+      end
+
+      profileData.DailyRewards.Streak = newStreak
+      profileData.DailyRewards.LastClaim = os.time()
+
+      return true, newStreak
 	end
 end
 
