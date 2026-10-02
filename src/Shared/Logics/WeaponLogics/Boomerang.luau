@@ -1143,11 +1143,12 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
    local maximumSpeed, momentumMultiplier = 0, 1
    -- // Tools/GlobalConfig values unless changed with Cmdr; re-read every frame so live changes apply mid-recall (T-054)
    local function updateRecallTuning()
-      maximumSpeed = BoomerangTuningLibrary.get(tuningToolId, "ThrowSpeed") * returnSpeedMultiplier
-      momentumMultiplier = 1
       if isManualRecallFromDead then
-         maximumSpeed *= BoomerangTuningLibrary.get(tuningToolId, "RecallSpeed")
+         maximumSpeed = BoomerangTuningLibrary.get(tuningToolId, "RecallSpeed") * returnSpeedMultiplier
          momentumMultiplier = BoomerangTuningLibrary.get(tuningToolId, "RecallAcceleration")
+      else
+         maximumSpeed = BoomerangTuningLibrary.get(tuningToolId, "ThrowSpeed") * returnSpeedMultiplier
+         momentumMultiplier = 1
       end
    end
    updateRecallTuning()

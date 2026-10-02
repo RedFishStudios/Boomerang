@@ -54,9 +54,9 @@ BoomerangTuningLibrary.SETTINGS = {
 		end,
 	},
 	RecallSpeed = {
-		Description = "maximum manual recall speed (x ThrowSpeed)",
-		getDefault = function(_toolData)
-			return GlobalConfig.ManualRecallSpeedMultiplier
+		Description = "maximum manual recall speed (studs/s)",
+		getDefault = function(toolData)
+			return toolData.Boomerang.ManualRecallSpeed
 		end,
 	},
 	RecallAcceleration = {

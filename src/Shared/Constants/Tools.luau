@@ -9,7 +9,8 @@ export type Tool = {
       Bounces: number, -- How many times the boomerang can bounce off objects before exhaustion
       HitboxRadius: number,
       Speed: number,
-      ThrowDistance: number
+      ThrowDistance: number,
+      ManualRecallSpeed: number -- Max speed (studs/s) of a held manual recall of a dying/dead boomerang
    }?
 }
 
@@ -22,7 +23,8 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
          Bounces = 2,
          HitboxRadius = 2,
          Speed = 80,
-         ThrowDistance = 70
+         ThrowDistance = 70,
+         ManualRecallSpeed = 80
       }
    },
    Shuriken = {
@@ -32,7 +34,8 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
          Bounces = 3,
          HitboxRadius = 1,
          Speed = 80,
-         ThrowDistance = 70
+         ThrowDistance = 70,
+         ManualRecallSpeed = 80
       }
    },
    Fan = {
@@ -42,7 +45,8 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
          Bounces = 1,
          HitboxRadius = 3,
          Speed = 50,
-         ThrowDistance = 70
+         ThrowDistance = 70,
+         ManualRecallSpeed = 50
       }
    },
 

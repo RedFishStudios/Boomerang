@@ -100,7 +100,7 @@ Boomerang logic runs on both the server and the client, so a changed value must 
 
 **Decisions**
 - Per tool: a command changes the weapon the caller is currently holding (Sol, 2026-10-02).
-- Units (agent's pick, change if wanted): ThrowSpeed/ThrowDistance absolute (studs/s, studs); RecallSpeed/RecallAcceleration stay multipliers, like their GlobalConfig defaults.
+- Units: ThrowSpeed, ThrowDistance and RecallSpeed are absolute (studs/s, studs, studs/s); RecallAcceleration stays a multiplier (1 = normal recall). RecallSpeed is its own per-tool value, `ManualRecallSpeed` in Tools (Sol, 2026-10-02), replacing `GlobalConfig.ManualRecallSpeedMultiplier`; defaults equal each tool's Speed, so nothing changes in play.
 
 **Done when**
 - [x] The four values can be set, shown and reset from Cmdr, and take effect on the next throw/recall for every player.
