@@ -21,6 +21,7 @@ local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 
 local Cmdr = require(ReplicatedStorage.Shared.Packages.Cmdr)
+local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 
 -------------------------------------------------------------------------------
@@ -44,7 +45,7 @@ local ADMIN_ATTRIBUTE = "CmdrAdmin"
 -------------------------------------------------------------------------------
 
 local function computeIsAdmin(player: Player): boolean
-	if IS_STUDIO then
+	if IS_STUDIO or GlobalConfig.CmdrOpenToEveryone then
 		return true
 	end
 
@@ -74,7 +75,10 @@ end
 -------------------------------------------------------------------------------
 
 function CmdrService.init()
-	Cmdr:RegisterDefaultCommands()
+	-- // Cmdr's own "help" is replaced by Server/Cmdr/Commands/Help (it also lists the old chat commands)
+	Cmdr:RegisterDefaultCommands(function(command)
+		return command.Name ~= "help"
+	end)
 	Cmdr:RegisterTypesIn(ServerStorage.Server.Cmdr.Types)
 	Cmdr:RegisterCommandsIn(ServerStorage.Server.Cmdr.Commands)
 

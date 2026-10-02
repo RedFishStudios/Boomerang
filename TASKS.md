@@ -1,9 +1,11 @@
 # Boomerang: Task Board
 
-The gameplay, code and tooling task board. See [CLAUDE.md](CLAUDE.md) for how the project works.
+The general task board: fixes, tooling, cleanup and small features. See [CLAUDE.md](CLAUDE.md) for how the project works.
+Large features are **Epics**, each with its own task list under `docs/epics/<epic>/TASKS.md`: see [docs/EPICS.md](docs/EPICS.md). Active: [Lobby](docs/epics/lobby/TASKS.md).
 
 ## How to use this board
 
+- **These rules apply to every task list**, general and Epic. A task keeps its ID when it moves between lists (general ↔ Epic): move the whole block, don't copy it. Epic tasks have an `Epic:` line.
 - **Status is the section a task sits in.** To change it, move the whole task block to another section.
   `Ready` → `In Progress` → `Review` → `Done`. `Backlog` holds ideas that aren't ready to start.
 - **Adding a task:** copy the template below into `Backlog` or `Ready`, and give it the next free ID (`T-###`).
@@ -17,7 +19,7 @@ The gameplay, code and tooling task board. See [CLAUDE.md](CLAUDE.md) for how th
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - Never move a task to `Done`; Sol does that after testing in Studio.
 
-**Next free ID: T-052**
+**Next free ID: T-052** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -26,6 +28,7 @@ The gameplay, code and tooling task board. See [CLAUDE.md](CLAUDE.md) for how th
 ### T-### · Short title
 - **Priority:** P0 / P1 / P2
 - **Owner:** Agent / Sol / Sol → Agent
+- **Epic:** <Epic name>   ← only in Epic task lists; omit here
 - **Area:** Server / Client / Shared / GUI / Data / Tooling
 - **Files:** `path/to/file.luau`
 
@@ -75,61 +78,9 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ---
 
-### T-047 · Lobby station framework (labels, glowing pads, proximity prompts)
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Client / Server / Shared
-- **Files:** New: e.g. `Shared/Library/LobbyStationLibrary.luau` (+ client/server parts); used by T-024, T-042–T-045
-
-**Problem / goal**
-Spec: `docs/LOBBY_SPEC.md`. Every lobby station (pedestals, wheel, crates, group chest, portal) shares the same conventions: a world-space title above it, a glowing activation pad, a proximity prompt or info panel when approached, and locked/unlocked or active visual states. Build this once as a reusable, tag-driven framework (e.g. CollectionService tag `LobbyStation` plus attributes such as `StationId`, `Title`, `ActionText`) so each station only registers its callback. Sol provides the models and art; this task is the behaviour.
-
-**Done when**
-- [ ] A tagged part/model in the lobby gets a title label, prompt and pad highlight automatically.
-- [ ] Stations register server-side handlers by `StationId`; prompts fire them; per-player visual state (e.g. claimed/locked) can be set from the server.
-- [ ] Works with T-024 pedestals; no station-specific code in the framework.
-
-**Notes**
-- Ask Sol for the tag/attribute names if a convention already exists in the place.
-
----
-
 ## In Progress
 
 ## Review
-
-### T-032 · Lobby leaderboards (Eliminations + Wins, Monthly / All-Time)
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Server / Client
-- **Files:** `Server/Core/LeaderboardService.luau`, `Client/Core/LeaderboardController.luau`, `Shared/Constants/LeaderboardConstants.luau`, `Shared/Data/ProfileTemplate.luau`, `Server/Core/LifetimeStatsService.luau`, `Server/Cmdr/Commands/RefreshLeaderboards*.luau`
-
-**First lobby feature (Sol, 2026-10-01).** Depends on T-048 (stats tracking).
-
-**Problem / goal (Sol's spec)**
-- Two physical boards: `workspace.Lobby.Leaderboards.Elims` ("Eliminations", never "Kills") and `.Wins`. GUI on the large side facing the lobby floor.
-- Each board has two CanvasGroups, **Monthly** and **All-Time**, cross-fading every 10 s.
-- Top 30 per board; data refreshed every 10 minutes.
-- **No podium for now** (ask Sol later).
-
-**Done when**
-- [ ] Both boards show Monthly / All-Time, alternating every 10 s, top 30 with rank, headshot, display name and value.
-- [ ] Scores are saved and the boards reload every 10 minutes; monthly boards start fresh each UTC month.
-
-**Test in Studio**
-- Needs Studio API access for DataStores (Game Settings > Security). Get some eliminations/wins, then `refreshleaderboards` (Cmdr) instead of waiting 10 min. Check both boards, both periods, the fade, and the side they're drawn on.
-- Multi-player check: Team Test or a live test server.
-
-**Notes**
-- Stores: `OrderedDataStore`s named `{Dev|Live}_{Elims|Wins}_{AllTime|YYYY-MM}`, so Studio data never mixes with live (same idea as PlayerDataService's `Dev` key). Studio uses `Dev`.
-- Server cost: one background loop every 10 min (writes only changed scores > 0, then 4 `GetSortedAsync` + 1 batched display-name request). Scores are also written when a player leaves. Nothing per frame, no instances replicated: clients build the SurfaceGuis themselves (in PlayerGui, adorned to the board parts) and do the fading locally. `MaxDistance` 200 hides them far away; hidden CanvasGroups are set invisible.
-- Monthly scores: new profile field `MonthlyStats` (`MonthKey`, `Elims`, `Wins`), updated by `LifetimeStatsService` next to the all-time values. Only Elims/Wins earned from this change on count.
-- Faces (from Studio raycasts toward the lobby floor): Elims = `Right`, Wins = `Left`. Set in `LeaderboardConstants.Boards` if a board is moved.
-- Visuals are code-built and styled after the game's GUIs (FredokaOne with dark outlines, orange-yellow title gradient, mint values, teal banner and panel, wooden frame, purple highlight for your own row). Colours are constants at the top of `LeaderboardController`; swap for a template later if wanted.
-- **Check in Studio:** both board parts are **unanchored with no joints**, so they'll fall when the game runs. Anchor them (place-only change; I didn't touch the place).
-- New Cmdr: `refreshleaderboards` (alias `refreshlb`).
-
----
 
 ### T-048 · Track more player stats
 - **Priority:** P1
@@ -286,55 +237,6 @@ Stepping into water kills the player. A splash effect plays on the player and th
 - **`TODO:RELEASE placeholder`:** `Shared/Assets/Particles/Splash.rbxmx`, a basic hand-written droplet burst.
 - The footprint uses the part's box, so non-box water (MeshPart, wedge, cylinder) counts by its bounding box. Water kills in every phase, lobby included.
 - Check in Studio: walk off the edge into water (fall in, splash, death screen "Drowned"); stand with toes over the edge (safe); dash across a gap (safe if you land before your centre drops into the water); die with the spawn shield up.
-
----
-
-### T-016 · Move the chat commands to Cmdr (they have no permission check)
-- **Priority:** P0 *(before release: any player in a live server can currently end rounds and grant themselves pickups)*
-- **Owner:** Agent
-- **Area:** Server
-- **Files:** `src/Server/Core/CommandService.luau`, `src/Server/Core/RoundCyclingService.luau`, `src/Server/Core/PickupService.luau`, `src/Server/Cmdr/Commands/`
-
-**Problem / goal**
-`CommandService` creates TextChatCommands with no permission check: `/printgamestate`, `/endround`, `/setnextgamemode`, `/setnextmap` (RoundCyclingService) and `/getpickup` (PickupService) work for every player in live servers. Move them to Cmdr commands, which are permission-checked by `CmdrService` (T-015).
-
-**Sol's decision:** all chat command functionality moves entirely into Cmdr, and the chat command system becomes obsolete (no chat commands are registered any more). **Don't delete the chat command code yet:** keep `CommandService` and the old `addCommand` blocks in place but disabled (e.g. commented out or behind a clearly named off switch), as a reference in case something goes wrong during the transfer.
-
-**Done when**
-- [x] Each command exists in Cmdr with the same behaviour. Gamemode, map and pickup arguments use a custom Cmdr type or autocomplete list, so they can be tab-completed.
-- [x] Logic that needs private state (e.g. `endActiveRound`, `nextGamemode`) is exposed through a small public function on the owning service, not duplicated.
-- [x] No chat command is registered any more; the old code is kept but disabled, with a comment pointing to the Cmdr replacements.
-
-**Test in Studio**
-- F2 → `endround`, `setnextgamemode HotPotato`, `setnextmap <map>`, `getpickup FireBoomerang`, `printgamestate`: each behaves as the chat command did.
-
-**Notes**
-- New Cmdr commands in `Server/Cmdr/Commands/`: `endround`, `setnextgamemode` (alias `nextgamemode`), `setnextmap` (`nextmap`), `getpickup` (`grantpickup`, gives the effect to the person running it), `printgamestate` (`gamestate`; shows the state in the Cmdr console instead of printing to the server output).
-- New Cmdr types in `Server/Cmdr/Types/` (registered by `CmdrService`): `gamemode` (from `Gamemodes`), `map` (from `MapData`, since the map models are server-only; the server still checks the name against the loaded maps) and `pickup` (module names in `PickupLogics`; disabled stubs are listed but the server refuses them).
-- New public functions: `RoundCyclingService.forceEndRound()`, `.setNextGamemode(id)`, `.setNextMap(name)`. `PickupService.grantPickupClassId` now returns `(success, message)` (it already existed with the same logic as `/getpickup`).
-- Chat commands disabled with `CHAT_COMMANDS_ENABLED = false` in `CommandService` (`addCommand` does nothing). The old `addCommand` blocks are untouched, with a comment pointing to the Cmdr replacements.
-- Not checked with Selene or the LSP (not available to the agent).
-
----
-
-### T-040 · Research Blade Ball's lobby
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Design (research)
-- **Files:** `docs/research/BLADE_BALL_LOBBY.md` (new)
-
-**Problem / goal**
-The client said: "anything they have in their lobby, we want in our lobby". Research the current Blade Ball lobby (Roblox) and write a list of every lobby feature, with a short description, screenshots/links where possible, and how it might map to Boomerang (existing system, new system, or asset-only).
-
-**Done when**
-- [x] `docs/research/BLADE_BALL_LOBBY.md` lists every lobby feature found (shops, pedestals, leaderboards, spin wheels, rewards, quests, social features, etc.), with sources.
-- [x] Each feature is tagged: already in Boomerang / planned task (ID) / new.
-- [x] No new tasks are created from it without Sol's approval; propose them in the doc instead.
-
-**Notes**
-- Written: `docs/research/BLADE_BALL_LOBBY.md`. It covers 11 physical lobby features and 11 lobby UI/meta systems, each tagged existing / planned / new / needs a client decision, plus a suggested order and sources.
-- The Blade Ball fan wiki couldn't be read automatically; the doc lists its relevant pages to confirm in a browser. Lobby content changes with seasons, so a walkthrough of the live game is recommended before scoping.
-- No tasks were created from it (as the task requires); Sol decides.
 
 ---
 
@@ -805,26 +707,6 @@ The shop GUI still has placeholder/progress visuals. Sol finishes the assets.
 
 ---
 
-### T-024 · Shop pedestals in the lobby
-- **Priority:** P2
-- **Owner:** Sol → Agent
-- **Area:** Server / Client
-- **Files:** New: lobby pedestal logic (e.g. an Environment logic or a `LobbyShopService`); `Shared/Referential/ShopItems.luau` (`CurrentDeal`)
-
-**Problem / goal**
-Lobby pedestals show a floating, slowly spinning model of the current sale item. Walking up to one shows a prompt to buy it.
-- **Sol:** build the pedestal model(s) in the lobby (Studio) and tag/name them.
-- **Agent:** spawn and spin the current deal's model over each pedestal (client-side is fine), add a ProximityPrompt, and buy through the existing purchase flow.
-- **Sol: focus on Robux** (`MarketplaceLibrary.promptDeveloperProduct` with the item's `ProductId`), **but keep it scalable** so a Currency purchase option can be added later (e.g. a per-pedestal/per-item payment method, not Robux hard-coded into the prompt logic).
-
-**Open questions (ask Sol first)**
-- Is `ShopItems.CurrentDeal` the item to show, and does it rotate (daily/weekly)?
-- How should pedestals be marked in the place (tag name / folder)?
-
-**Notes**
-
----
-
 ### T-029 · Electric boomerang rework: chain kills
 - **Priority:** P1
 - **Owner:** Sol → Agent
@@ -940,126 +822,6 @@ The player needs a HUD with buttons. Known so far:
 
 ---
 
-### T-038 · Design: Quests feature
-- **Priority:** P2
-- **Owner:** Sol
-- **Area:** Design
-- **Files:** -
-
-**Problem / goal**
-"Address the quests feature": decide what quests are (daily/weekly? objectives? rewards?), how they're saved, and the GUI. Split into tasks once designed.
-
-**Notes**
-
----
-
-### T-039 · Design: Achievements
-- **Priority:** P2
-- **Owner:** Sol
-- **Area:** Design
-- **Files:** -
-
-**Problem / goal**
-"Figure out achievements": decide the list, rewards, whether they map to Roblox badges, how they're saved, and the GUI. Split into tasks once designed.
-
-**Notes**
-
----
-
-### T-042 · Prize wheel
-- **Priority:** P2
-- **Owner:** Sol → Agent
-- **Area:** Server / Client / Build
-- **Files:** New: wheel station (uses T-047); `MarketplaceLibrary`, `PolicyLibrary`
-
-**Problem / goal**
-Spec: `docs/LOBBY_SPEC.md`. A freestanding prize wheel on a pedestal with segmented rewards and a spin animation, used through a station prompt.
-
-**Open questions (ask Sol first)**
-- Rewards and their weights; is it cosmetic-only or can it affect gameplay?
-- How spins are earned/bought: free per day, Currency, Robux (Robux-first like T-024?), codes (T-049), playtime?
-- Spin animation length; is an "instant spin" Robux option wanted?
-
-**Notes**
-- 🗣️ **Talk with Sol before starting.**
-- A paid random reward: must respect `PolicyLibrary.arePaidRandomItemsRestricted` and Roblox's rules on disclosing odds.
-
----
-
-### T-043 · Explosion crates (normal + premium) with odds panel
-- **Priority:** P2
-- **Owner:** Sol → Agent
-- **Area:** Server / Client / Build
-- **Files:** `Server/Core/LootBoxService.luau` and `Shared/Referential/LootBoxRates.luau` (currently empty stubs); crate stations (T-047)
-
-**Problem / goal**
-Spec: `docs/LOBBY_SPEC.md`. Two crate stations side by side (a normal and a more elaborate premium crate), each with a world-space name and, when approached, a panel showing rarity odds (e.g. Rare / Legendary / a very rare tier). Build the crate logic generically in `LootBoxService` so T-044 reuses it.
-
-**Open questions (ask Sol first)**
-- Crate names, prices and currency (Robux-first like T-024? Currency?), reward tables and odds.
-- What do "explosion" crates contain in Boomerang (elimination effects?)
-- Do crates open in the lobby (animation) or just act as purchase points with the reward shown in the ItemAcquired popup?
-
-**Notes**
-- 🗣️ **Talk with Sol before starting.**
-- Paid random items: `PolicyLibrary.arePaidRandomItemsRestricted` + odds disclosure required.
-
----
-
-### T-044 · Sword (boomerang) crate station
-- **Priority:** P2
-- **Owner:** Sol → Agent
-- **Area:** Server / Client / Build
-- **Files:** Crate station (T-047), `LootBoxService` (T-043)
-
-**Problem / goal**
-Spec: `docs/LOBBY_SPEC.md`. A separate crate station for weapon cosmetics, visually distinct from the explosion crates. In Boomerang this is presumably a **boomerang skin** crate.
-
-**Open questions (ask Sol first)**
-- Is this a loot box, a fixed-item shop, or something else? Cost and contents.
-- Depends on how weapons/skins are equipped (T-036).
-
-**Notes**
-- 🗣️ **Talk with Sol before starting.** Reuses T-043's crate logic.
-
----
-
-### T-045 · Group Rewards chest
-- **Priority:** P2
-- **Owner:** Sol → Agent
-- **Area:** Server / Client / Build
-- **Files:** New: group rewards station (T-047); profile field for claimed state
-
-**Problem / goal**
-Spec: `docs/LOBBY_SPEC.md`. A large chest on a glowing pad with a "GROUP REWARDS" title. Players in the client's Roblox group can claim a reward; the chest shows locked/unlocked/claimed states.
-
-**Open questions (ask Sol first)**
-- The group ID, and is membership required?
-- What's the reward, and is it one-time or on a cooldown?
-
-**Notes**
-- 🗣️ **Talk with Sol before starting.**
-
----
-
-### T-046 · Server Selection portal
-- **Priority:** P2 *(later: needs destinations first)*
-- **Owner:** Sol
-- **Area:** Design / Build
-- **Files:** -
-
-**Problem / goal**
-Spec: `docs/LOBBY_SPEC.md`. A large portal arch on a glowing ring with a sign, leading to other servers/modes/worlds.
-
-**Open questions (ask Sol first)**
-- What does it lead to in Boomerang? (Today there's a single server type; this needs other places or modes first, e.g. duels/ranked from `docs/research/BLADE_BALL_LOBBY.md`.)
-- Physical selection (several portals) or a follow-up UI?
-
-**Notes**
-- 🗣️ **Talk with Sol before starting.** Probably later; nothing to build until destinations exist.
-
----
-
 ### T-049 · Redeem codes system
 - **Priority:** P2
 - **Owner:** Sol → Agent
@@ -1098,21 +860,32 @@ Add a HUD button that opens the Daily Rewards (DailyClaims) GUI, ideally with an
 
 ## Done
 
-### T-041 · Lobby hub layout blockout
-- **Priority:** P1
-- **Owner:** Sol
-- **Area:** Build (Studio)
-- **Files:** Studio: `workspace.Lobby`
+### T-016 · Move the chat commands to Cmdr (they have no permission check)
+- **Priority:** P0 *(before release: any player in a live server can currently end rounds and grant themselves pickups)*
+- **Owner:** Agent
+- **Area:** Server
+- **Files:** `src/Server/Core/CommandService.luau`, `src/Server/Core/RoundCyclingService.luau`, `src/Server/Core/PickupService.luau`, `src/Server/Cmdr/Commands/`
 
 **Problem / goal**
-Spec: `docs/LOBBY_SPEC.md`. Block out a spacious central hub with walking lanes and zones: rewards (wheel, visible from spawn), crates (explosion + sword), social (group rewards), navigation (server portal with open space), competition (leaderboards + podium). Functional parity with the reference, not a copy of its art.
+`CommandService` creates TextChatCommands with no permission check: `/printgamestate`, `/endround`, `/setnextgamemode`, `/setnextmap` (RoundCyclingService) and `/getpickup` (PickupService) work for every player in live servers. Move them to Cmdr commands, which are permission-checked by `CmdrService` (T-015).
 
-**Open questions (ask Sol first)**
-- Functional parity (same kinds of stations) or close visual parity with the reference?
-- Art direction, floating vs. grounded lobby, which stations must be visible from spawn?
+**Sol's decision:** all chat command functionality moves entirely into Cmdr, and the chat command system becomes obsolete (no chat commands are registered any more). **Don't delete the chat command code yet:** keep `CommandService` and the old `addCommand` blocks in place but disabled (e.g. commented out or behind a clearly named off switch), as a reference in case something goes wrong during the transfer.
+
+**Done when**
+- [x] Each command exists in Cmdr with the same behaviour. Gamemode, map and pickup arguments use a custom Cmdr type or autocomplete list, so they can be tab-completed.
+- [x] Logic that needs private state (e.g. `endActiveRound`, `nextGamemode`) is exposed through a small public function on the owning service, not duplicated.
+- [x] No chat command is registered any more; the old code is kept but disabled, with a comment pointing to the Cmdr replacements.
+
+**Test in Studio**
+- F2 → `endround`, `setnextgamemode HotPotato`, `setnextmap <map>`, `getpickup FireBoomerang`, `printgamestate`: each behaves as the chat command did.
 
 **Notes**
-- **Not needed (Sol, 2026-10-01):** the hub is already built in Studio (`workspace.Lobby.Model`). What remains is per-station decor (signs, ads, prompts), covered by each station's task.
+- Done (Sol, 2026-10-02): all chat commands are Cmdr commands (`EndRound`, `SetNextGamemode`, `SetNextMap`, `GetPickup`, `PrintGameState`); the chat command system is obsolete, its code kept for reference.
+- New Cmdr commands in `Server/Cmdr/Commands/`: `endround`, `setnextgamemode` (alias `nextgamemode`), `setnextmap` (`nextmap`), `getpickup` (`grantpickup`, gives the effect to the person running it), `printgamestate` (`gamestate`; shows the state in the Cmdr console instead of printing to the server output).
+- New Cmdr types in `Server/Cmdr/Types/` (registered by `CmdrService`): `gamemode` (from `Gamemodes`), `map` (from `MapData`, since the map models are server-only; the server still checks the name against the loaded maps) and `pickup` (module names in `PickupLogics`; disabled stubs are listed but the server refuses them).
+- New public functions: `RoundCyclingService.forceEndRound()`, `.setNextGamemode(id)`, `.setNextMap(name)`. `PickupService.grantPickupClassId` now returns `(success, message)` (it already existed with the same logic as `/getpickup`).
+- Chat commands disabled with `CHAT_COMMANDS_ENABLED = false` in `CommandService` (`addCommand` does nothing). The old `addCommand` blocks are untouched, with a comment pointing to the Cmdr replacements.
+- Not checked with Selene or the LSP (not available to the agent).
 
 ---
 

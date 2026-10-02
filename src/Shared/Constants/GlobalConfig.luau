@@ -48,6 +48,8 @@ local GlobalConfig = {
    ProjectileHitboxVisualizerEnabled = false,
    ParryVisualizersEnabled = false,
    SyncAbilitiesToEveryPlayer = false,
+   -- // Cmdr developer console (F2): true = every player can use it in live servers (for client review builds).
+   CmdrOpenToEveryone = true, -- TODO:RELEASE must be false before public release (then only admins, see CmdrService)
    AuthoritativeCharacterDebugVisible = false, -- // Shows the server-authoritative character half-transparent (normally fully invisible)
    ShowAuthoritativeCharacterOnRenderFailure = true, -- // If a player's rendered model failed to load, show the authoritative character so they aren't invisible
 }

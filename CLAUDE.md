@@ -10,7 +10,8 @@ Roblox game written in Luau, synced into Studio with Rojo. A fast-paced, round-b
 
 | Doc | Read it when |
 |---|---|
-| [TASKS.md](TASKS.md) | Always. The task board: what to work on, and its rules. |
+| [TASKS.md](TASKS.md) | Always. The general task board, its rules (for every task list), and the `Next free ID`. |
+| [docs/EPICS.md](docs/EPICS.md) | Always. Large features (Epics): which are active, and their lifecycle. Before working on an Epic, read its `docs/epics/<epic>/DESIGN.md` and `TASKS.md`. |
 | [docs/LOBBY_SPEC.md](docs/LOBBY_SPEC.md) | Before any lobby work. Physical lobby stations (wheel, crates, group chest, server portal, leaderboards) from the client's reference screenshots. |
 | [docs/GAME_DESIGN.md](docs/GAME_DESIGN.md) | Before any gameplay work. The client's MVP spec (round flow, controls, Classic, parry/clash, camera) and where the code differs from it. See "How authoritative the docs are" below. |
 | [Gamemodes design doc](https://docs.google.com/document/d/15GWFwrjrhytRjPqBhBg-Zhc5YLX9CeWJlt8Q_rMttss/edit?tab=t.d4ujxm3y7eay) | Linked from `Shared/Constants/Gamemodes.luau`. Agents probably can't open it. If you need design intent that isn't in GAME_DESIGN.md, ask Sol. |
@@ -187,13 +188,14 @@ The server is authoritative. The client may predict (e.g. boomerang throws, dash
 
 Cmdr is the in-game developer console for testing. Press **F2** to open it.
 - `Server/Core/CmdrService` registers Cmdr's built-in commands plus every command in `src/Server/Cmdr/Commands/`, and owns the permission check (a `BeforeRun` hook).
-- **Who can use it:** everyone in Studio. In live servers, only the players in `CmdrService`'s `ADMIN_USER_IDS`, the game's owner, or (for group games) members at or above `MIN_ADMIN_GROUP_RANK`. The server marks allowed players with the `CmdrAdmin` attribute, and `Client/Core/CmdrController` only loads the console for them.
+- **Who can use it:** while `GlobalConfig.CmdrOpenToEveryone` is true (client review builds), **every player in every server**. That's a `TODO:RELEASE`: set it to false before public release. Otherwise: everyone in Studio. In live servers, only the players in `CmdrService`'s `ADMIN_USER_IDS`, the game's owner, or (for group games) members at or above `MIN_ADMIN_GROUP_RANK`. The server marks allowed players with the `CmdrAdmin` attribute, and `Client/Core/CmdrController` only loads the console for them.
 - **Adding a command:** two ModuleScripts in `src/Server/Cmdr/Commands/`:
   - `<Name>.luau`: the definition (`Name`, `Aliases`, `Description`, `Group`, `Args`). It's replicated to clients, so it must not require server modules.
   - `<Name>Server.luau`: `return function(context, ...args) ... return "result message" end`, runs on the server. It can require server services.
   - Use `Group = "DevTesting"`. See `GiveCurrency` as the example, and Cmdr's built-in types (`players`, `integer`, `string`, ...) for `Args`.
+  - `help` is our own (`Server/Cmdr/Commands/Help.luau`, replacing Cmdr's): it lists every registered command automatically, Boomerang (`DevTesting`) commands first.
 - **Never** make a command skip the permission hook, and don't require Cmdr from a module that runs on the client.
-- The older chat commands in `CommandService` (`/endround`, `/getpickup`...) have **no permission check**: T-016 moves them to Cmdr.
+- The old chat commands (`CommandService`) have all moved to Cmdr and the chat command system is **obsolete**. Its code is deliberately kept, disabled, as a reference: don't delete it, and don't add new chat commands.
 
 ## Missing game items and values (important)
 
@@ -225,7 +227,12 @@ If a prompt mentions a larger *back-end feature* that doesn't exist yet, that ma
 - **Never push to GitHub.** Pushing is disabled for safety and isn't part of the agentic workflow. Commit only when a prompt asks; Sol pushes.
 - **Player-facing wording:** avoid the word "kill" in stat names, UI text and leaderboard titles (Roblox audience/monetisation safety). Use "eliminations" for kills and "defeats" for deaths.
 
-- Tasks live in [TASKS.md](TASKS.md). Follow its "How to use this board" rules: only pick up `Ready` tasks, and never mark a task `Done`.
+- **Tasks:** general tasks are in [TASKS.md](TASKS.md); each Epic's tasks are in `docs/epics/<epic>/TASKS.md`. Follow the "How to use this board" rules in TASKS.md for all of them: only pick up `Ready` tasks, never mark a task `Done`, and take new IDs from `Next free ID` in TASKS.md (IDs are global).
+- **Epics** (large features): follow [docs/EPICS.md](docs/EPICS.md).
+  - A new Epic starts with **Discovery**: copy `docs/epics/_TEMPLATE/` and work through `DESIGN.md` with Sol, one section at a time. The first question is always "full Epic, or general tasks?".
+  - Present options and trade-offs; Sol decides. Record decisions in DESIGN.md as they're made.
+  - **Never write an Epic's tasks before Sol approves its DESIGN.md**, and never mark an Epic Shipped.
+- **When Sol says they're logging off:** summarize the session (focus on Epic progress if that was most of the work), then recommend what Sol can do next.
 - **Git: don't commit or push**, and don't switch branches. Leave your changes uncommitted, move the task to `Review`, and fill in its Notes. Sol tests in Studio, then commits and pushes.
 - **Renaming a file** whose name only changes in case (e.g. `Shopservice` → `ShopService`): the repo is on Windows with `core.ignorecase = true`, so git may not notice. Do the rename and flag it in the Notes so Sol can run `git mv` properly.
 - Before you finish, list anything that needs checking in Studio. This includes all `.rbxmx` changes, which are XML and hard to review as text.
