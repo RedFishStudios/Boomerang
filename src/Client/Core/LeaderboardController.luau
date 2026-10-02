@@ -255,6 +255,8 @@ local function createBoardGui(boardId: string, board: { Title: string, Face: Enu
 	gui.LightInfluence = 0
 	gui.MaxDistance = MAX_DISTANCE
 	gui.ResetOnSpawn = false
+	-- // Required for the CanvasGroup fade: Instance.new defaults to Global, where CanvasGroups don't apply GroupTransparency (T-053)
+	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 	createBoardFrame().Parent = gui
 
