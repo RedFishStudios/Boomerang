@@ -136,7 +136,8 @@ if isServer then
 		local character = victim.Character
 		local rootPart = character and character.PrimaryPart
 		if rootPart then
-			if isChainLink and GlobalConfig.VisualizeElectricChainRadius then
+			-- // Debug: show the chain radius around every chain origin (boomerang victim and chained victims)
+			if GlobalConfig.VisualizeElectricChainRadius then
 				visualizeChainRadiusRemote:FireAllClients(rootPart.Position, CHAIN_RADIUS)
 			end
 			chainFrom(killer, victim, rootPart.Position)

@@ -110,14 +110,14 @@ New behaviour: when an electric boomerang kills a player, every other player wit
 - [ ] Electric + Explosive explosion eliminations start chains. *(phase 3)*
 
 **Test in Studio**
-- `getpickup` the Electric pickup, group 3–4 test players within 15 studs and eliminate one with a thrown boomerang: the others die in a chain; the thrower and teammates never die; players 16+ studs away survive; a red radius cylinder appears on each chained victim for 5s.
+- `getpickup` the Electric pickup, group 3–4 test players within 15 studs and eliminate one with a thrown boomerang: the others die in a chain; the thrower and teammates never die; players 16+ studs away survive; a red radius cylinder appears on every electric-eliminated player for 5s.
 - Elim feed shows "Shocked" for chained eliminations; they count for the thrower's score.
 - Stab eliminations with Electric active should **not** chain (only thrown boomerangs).
 
 **Notes**
 - Depends on T-028 (water kills).
 - Phase 1: `ElectricBoomerang.luau` rewritten. It listens to `CombatLibrary.PlayerKilledPlayerTasks`: a kill by a thrown boomerang (Tools `LogicClass == "Boomerang"`) with the pickup active starts a chain; each link calls `CombatLibrary.attackHitPlayer(thrower, "ElectricChain", ...)`, so shields/immunity/scoring apply and the chain recurses. Radius 15 and link delay 0.05s are module constants for now.
-- Debug: `GlobalConfig.VisualizeElectricChainRadius` (currently true) shows a client-only red cylinder (chain radius) on each chain victim for 5s, via the `VisualizeElectricChainRadius` remote.
+- Debug: `GlobalConfig.VisualizeElectricChainRadius` (currently true) shows a client-only red cylinder (chain radius) for 5s on every electric elimination (boomerang victim and chained victims), via the `VisualizeElectricChainRadius` remote.
 - Removed Zapped checks from `CharacterController`, `WeaponLibrary`, `Dash`, `Stab`, and `"Zapped"` from AnimationController's core tracks. Kept `Animations.Zapped`, `Sounds.Zapped`, `AcquirableThingData.Zapped` and the ElectricPlayer/ElectrifiedObject particles.
 - New elim type "Shocked" (`CombatService.getElimType`, `ElimMessage` GUI).
 - Electric + Explosive currently only plays the ElectricExplosion particle (no zap, no early end).
