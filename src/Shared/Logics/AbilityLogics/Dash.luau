@@ -100,11 +100,6 @@ function Dash.canActivate(player: Player)
       return false
    end
 
-   if PickupLibrary.hasPickupEffectActive(player.UserId, "Zapped") then
-      print("cannot dash: is zapped")
-      return false
-   end
-
    local gameStateData = GameStateLibrary.getGameStateData()
    local currentRoundData = gameStateData.CurrentRoundData:Get()
    local currentGameMode = if currentRoundData then currentRoundData.Gamemode else nil

@@ -1,334 +1,163 @@
 local ElectricBoomerang = {}
 
+-------------------------------------------------------------------------------
+-- CONSTANTS
+-------------------------------------------------------------------------------
+
 local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Debris = game:GetService("Debris")
 
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
-local SharedTasks = require(ReplicatedStorage.Shared.Constants.SharedTasks)
-local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
+local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
+local GameplayPhaseEnums = require(ReplicatedStorage.Shared.Constants.Enums.GameplayPhases)
 local ParticlesLibrary = require(ReplicatedStorage.Shared.Library.ParticlesLibrary)
 local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
-local SoundLibrary = require(ReplicatedStorage.Shared.Library.SoundLibrary)
-local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
-local Sounds = require(ReplicatedStorage.Shared.Constants.Sounds)
-local ExplosiveBoomerang = require(ReplicatedStorage.Shared.Logics.PickupLogics.ExplosiveBoomerang)
-local WaterEnvironmentLogic = require(ReplicatedStorage.Shared.Logics.Environment.Water)
+local CombatLibrary = require(ReplicatedStorage.Shared.Library.CombatLibrary)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
-local GameplayPhaseEnums = require(ReplicatedStorage.Shared.Constants.Enums.GameplayPhases)
+local GameTeamLibrary = require(ReplicatedStorage.Shared.Library.GameTeamLibrary)
+local ExplosiveBoomerang = require(ReplicatedStorage.Shared.Logics.PickupLogics.ExplosiveBoomerang)
+local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 
 local isServer = RunService:IsServer()
 local EFFECT_DURATION_SECONDS = GlobalConfig.GenericEffectTimeout
 local EXPLOSION_LIFETIME = 1
-local ELECTRIFIED_LENGTH = 4
-local ZAP_LENGTH = 0
-local WATER_RAYCAST_DISTANCE = 9
-local ELECTRIC_EXPLOSION_RADIUS = 15
 
-local ZAPPED_EFFECT_ID = "Zapped"
+-- // Chain eliminations. TODO: move these to GlobalConfig with the visuals pass (T-029)
+local CHAIN_RADIUS = 15
+local CHAIN_LINK_DELAY = 0.05
+-- // Weapon id passed to the kill path for chained eliminations (elim message: "Shocked")
+local CHAIN_WEAPON_ID = "ElectricChain"
+local CHAIN_RADIUS_VISUAL_LIFETIME = 5
+local CHAIN_RADIUS_VISUAL_HEIGHT = 0.5
 
-local playZappedAnimation = SimpleRemotes.getEvent("PlayZappedAnimation")
+local visualizeChainRadiusRemote = SimpleRemotes.getEvent("VisualizeElectricChainRadius")
 
-type ZappedState = {
-   Character: Model,
-   Humanoid: Humanoid,
-   OriginalWalkSpeed: number,
-   EndsAt: number,
-   SourceWaters: {[Instance]: true},
-}
+-------------------------------------------------------------------------------
+-- PRIVATE VARIABLES
+-------------------------------------------------------------------------------
 
-type ElectrifiedWaterState = {
-   ExpiresAt: number,
-}
-
-local electrifiedWaters: {[Instance]: ElectrifiedWaterState} = {}
-local zappedPlayers: {[Player]: ZappedState} = {}
-local nextElectrificationId = 0
-
-local PickupService
 local ToolController
-local AnimationController
-local UIController
-if isServer then
-   PickupService = require(game:GetService("ServerStorage").Server.Core.PickupService)
-else
-   ToolController = require(ReplicatedStorage.Client.Core.ToolController)
-   AnimationController = require(ReplicatedStorage.Client.Core.AnimationController)
-   UIController = require(ReplicatedStorage.Client.UI.UIController)
+if not isServer then
+	ToolController = require(ReplicatedStorage.Client.Core.ToolController)
 end
 
--- // A zap sourced from electrified water lasts until that water stops being electrified
-local function getProjectedZapEnd(state: ZappedState): number
-   local endsAt = state.EndsAt
-   for water in pairs(state.SourceWaters) do
-      local waterState = electrifiedWaters[water]
-      if waterState then
-         endsAt = math.max(endsAt, waterState.ExpiresAt + ZAP_LENGTH)
-      end
-   end
-   return endsAt
+-------------------------------------------------------------------------------
+-- PRIVATE FUNCTIONS
+-------------------------------------------------------------------------------
+
+local function isAlive(player: Player): boolean
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	return humanoid ~= nil and humanoid.Health > 0 and character.PrimaryPart ~= nil
 end
 
-local function clearZapped(player: Player)
-   local state = zappedPlayers[player]
-   if not state then
-      return
-   end
-   zappedPlayers[player] = nil
+-- // Eliminates every living enemy of the thrower within CHAIN_RADIUS of origin. Each elimination goes through
+-- // CombatLibrary.attackHitPlayer, which fires PlayerKilledPlayerTasks again and continues the chain from that player.
+local function chainFrom(thrower: Player, victim: Player, origin: Vector3)
+	task.delay(CHAIN_LINK_DELAY, function()
+		local gameStateData = GameStateLibrary.getGameStateData()
+		if gameStateData.GameplayPhase:Get() ~= GameplayPhaseEnums.RoundActive then
+			return
+		end
 
-   PickupLibrary.removePickupEffectActiveByClassId(player.UserId, ZAPPED_EFFECT_ID)
-
-   if player.Character == state.Character then
-      state.Character.PrimaryPart.Anchored = false
-   end
-   playZappedAnimation:FireAllClients(player, false)
+		for _, player in ipairs(gameStateData.LivingPlayersInArena:Get()) do
+			if player == thrower or player == victim or not isAlive(player) then
+				continue
+			end
+			if not GameTeamLibrary.areEnemies(thrower, player) then
+				continue
+			end
+			if (player.Character.PrimaryPart.Position - origin).Magnitude > CHAIN_RADIUS then
+				continue
+			end
+			CombatLibrary.attackHitPlayer(thrower, CHAIN_WEAPON_ID, player, nil, 10000, true)
+		end
+	end)
 end
 
-local function applyZapped(player: Player, sourceWater: Instance?)
-   if not isServer then
-      return
-   end
-
-   local currentPhase = GameStateLibrary.getGameStateData().GameplayPhase:Get()
-   if currentPhase ~= GameplayPhaseEnums.RoundActive then
-      return
-   end
-
-   local now = workspace:GetServerTimeNow()
-   local existingState = zappedPlayers[player]
-   if existingState then
-      existingState.EndsAt = math.max(existingState.EndsAt, now + ZAP_LENGTH)
-      if sourceWater and electrifiedWaters[sourceWater] then
-         existingState.SourceWaters[sourceWater] = true
-      end
-      PickupLibrary.setPickupEffectActive(player.UserId, ZAPPED_EFFECT_ID, ZAPPED_EFFECT_ID, getProjectedZapEnd(existingState))
-      return
-   end
-
-   local character = player.Character
-   local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-   local rootPart = character and character.PrimaryPart
-   if not character or not humanoid or not rootPart or humanoid.Health <= 0 then
-      return
-   end
-
-   local state: ZappedState = {
-      Character = character,
-      OriginalWalkSpeed = humanoid.WalkSpeed,
-      EndsAt = now + ZAP_LENGTH,
-      SourceWaters = {},
-   }
-   if sourceWater and electrifiedWaters[sourceWater] then
-      state.SourceWaters[sourceWater] = true
-      state.EndsAt = electrifiedWaters[sourceWater].ExpiresAt + ZAP_LENGTH
-   end
-   
-   zappedPlayers[player] = state
-   rootPart.Anchored = true
-
-   local velocity = rootPart.AssemblyLinearVelocity
-   rootPart.AssemblyLinearVelocity = Vector3.new(0, velocity.Y, 0)
-
-   local particleId = `ElectricPlayer_{player.UserId}_{workspace:GetServerTimeNow()}`
-   ParticlesLibrary.play(particleId, "ElectricPlayer", rootPart, nil, state.EndsAt - now)
-   SoundLibrary.play(particleId, Sounds.Data.Zapped.Name, rootPart)
-   PickupLibrary.setPickupEffectActive(player.UserId, ZAPPED_EFFECT_ID, ZAPPED_EFFECT_ID, getProjectedZapEnd(state))
-   playZappedAnimation:FireAllClients(player, true)
+-- // Debug: semi-transparent red cylinder showing the chain radius around a chain victim (client only)
+local function showChainRadius(position: Vector3, radius: number)
+	local cylinder = Instance.new("Part")
+	cylinder.Name = "ElectricChainRadius"
+	cylinder.Shape = Enum.PartType.Cylinder
+	cylinder.Size = Vector3.new(CHAIN_RADIUS_VISUAL_HEIGHT, radius * 2, radius * 2)
+	cylinder.CFrame = CFrame.new(position) * CFrame.Angles(0, 0, math.rad(90))
+	cylinder.Color = Color3.fromRGB(255, 0, 0)
+	cylinder.Material = Enum.Material.SmoothPlastic
+	cylinder.Transparency = 0.6
+	cylinder.Anchored = true
+	cylinder.CanCollide = false
+	cylinder.CanQuery = false
+	cylinder.CanTouch = false
+	cylinder.CastShadow = false
+	cylinder.Parent = workspace
+	Debris:AddItem(cylinder, CHAIN_RADIUS_VISUAL_LIFETIME)
 end
 
-local function electrifyWater(water: Instance)
-   if electrifiedWaters[water] then
-      return
-   end
-   electrifiedWaters[water] = {
-      ExpiresAt = workspace:GetServerTimeNow() + ELECTRIFIED_LENGTH,
-   }
-
-   nextElectrificationId += 1
-   local particleId = `ElectrifiedObject_{nextElectrificationId}`
-   ParticlesLibrary.playToObjectSize(
-      particleId,
-      "ElectrifiedObject",
-      water,
-      nil,
-      ELECTRIFIED_LENGTH
-   )
-
-   for _, player in ipairs(Players:GetPlayers()) do
-      if table.find(WaterEnvironmentLogic.getTouchingWaters(player), water) then
-         applyZapped(player, water)
-      end
-   end
-end
-
-local function updateTimedStates()
-   local now = workspace:GetServerTimeNow()
-
-   for water, state in pairs(electrifiedWaters) do
-      if not water.Parent or now >= state.ExpiresAt then
-         electrifiedWaters[water] = nil
-      end
-   end
-
-   for player, state in pairs(zappedPlayers) do
-      if player.Character ~= state.Character or not state.Character.PrimaryPart or state.Character:FindFirstChildOfClass("Humanoid").Health <= 0 then
-         clearZapped(player)
-         continue
-      end
-
-      local hasElectrifiedSource = false
-      for water in pairs(state.SourceWaters) do
-         if electrifiedWaters[water] then
-            hasElectrifiedSource = true
-         else
-            state.SourceWaters[water] = nil
-         end
-      end
-
-      if hasElectrifiedSource then
-         state.EndsAt = now + ZAP_LENGTH
-      elseif now >= state.EndsAt then
-         clearZapped(player)
-      end
-   end
-end
-
-local function detectWaterBelow(position: Vector3)
-   local waterParts = WaterEnvironmentLogic.getCurrentWaterParts()
-   if #waterParts == 0 then
-      return
-   end
-
-   local raycastParams = RaycastParams.new()
-   raycastParams.CollisionGroup = CollisionGroupConstants.WaterDetector
-   raycastParams.FilterType = Enum.RaycastFilterType.Include
-   raycastParams.FilterDescendantsInstances = waterParts
-
-   local result = workspace:Raycast(
-      position,
-      -Vector3.yAxis * WATER_RAYCAST_DISTANCE,
-      raycastParams
-   )
-   if result then
-      electrifyWater(result.Instance)
-   end
-end
-
-local function applyElectricExplosion(position: Vector3)
-   for _, player in ipairs(Players:GetPlayers()) do
-      local character = player.Character
-      local rootPart = character and character.PrimaryPart
-      if rootPart and (rootPart.Position - position).Magnitude <= ELECTRIC_EXPLOSION_RADIUS then
-         applyZapped(player)
-      end
-   end
-
-   local waterParts = WaterEnvironmentLogic.getCurrentWaterParts()
-   if #waterParts == 0 then
-      return
-   end
-
-   local overlapParams = OverlapParams.new()
-   overlapParams.CollisionGroup = CollisionGroupConstants.WaterDetector
-   overlapParams.FilterType = Enum.RaycastFilterType.Include
-   overlapParams.FilterDescendantsInstances = waterParts
-
-   for _, water in ipairs(workspace:GetPartBoundsInRadius(position, ELECTRIC_EXPLOSION_RADIUS, overlapParams)) do
-      electrifyWater(water)
-   end
-end
+-------------------------------------------------------------------------------
+-- PUBLIC FUNCTIONS
+-------------------------------------------------------------------------------
 
 function ElectricBoomerang.onPickup(player: Player, startedAt: number?): number
-   if not isServer then
-      ToolController.addParticleToTool(player, "ElectricBoomerang")
-   end
+	if not isServer then
+		ToolController.addParticleToTool(player, "ElectricBoomerang")
+	end
 
-   return (startedAt or workspace:GetServerTimeNow()) + EFFECT_DURATION_SECONDS
+	return (startedAt or workspace:GetServerTimeNow()) + EFFECT_DURATION_SECONDS
 end
 
 function ElectricBoomerang.onEnd(player: Player)
-   if isServer then
-   else
-      ToolController.removeParticleFromTool(player, "ElectricBoomerang")
-   end
+	if not isServer then
+		ToolController.removeParticleFromTool(player, "ElectricBoomerang")
+	end
 end
 
+-------------------------------------------------------------------------------
+-- CORE FUNCTIONS
+-------------------------------------------------------------------------------
+
 if isServer then
-   SharedTasks.ThrownWeaponMoved:Add(function(
-      player: Player,
-      _toolId: string,
-      newPosition: Vector3,
-      _isRecalling: boolean
-   )
-      if PickupLibrary.hasPickupEffectActive(player.UserId, script.Name) then
-         detectWaterBelow(newPosition)
-      end
-   end)
+	CombatLibrary.PlayerKilledPlayerTasks:Add(function(killer: Player, victim: Player, weaponId: string)
+		if not killer or not victim or killer == victim then
+			return
+		end
 
-   WaterEnvironmentLogic.PlayerEnteredWater:Add(function(player: Player, water: Instance)
-      if electrifiedWaters[water] then
-         applyZapped(player, water)
-      end
-   end)
+		-- // A chain starts from a thrown-boomerang elimination while the pickup is active; once started, it runs to the end
+		local isChainLink = weaponId == CHAIN_WEAPON_ID
+		local tool = Tools[weaponId]
+		local isElectricThrow = tool ~= nil
+			and tool.LogicClass == "Boomerang"
+			and PickupLibrary.hasPickupEffectActive(killer.UserId, script.Name)
+		if not isChainLink and not isElectricThrow then
+			return
+		end
 
-   RunService.Heartbeat:Connect(updateTimedStates)
+		local character = victim.Character
+		local rootPart = character and character.PrimaryPart
+		if rootPart then
+			if isChainLink and GlobalConfig.VisualizeElectricChainRadius then
+				visualizeChainRadiusRemote:FireAllClients(rootPart.Position, CHAIN_RADIUS)
+			end
+			chainFrom(killer, victim, rootPart.Position)
+		end
+	end)
 
-   ExplosiveBoomerang.ExplosionOccurred:Add(function(player: Player, explosionCFrame: CFrame)
-      if not PickupLibrary.hasPickupEffectActive(player.UserId, script.Name) then
-         return
-      end
+	-- TODO: T-029 follow-up: eliminations from an Electric + Explosive explosion should also start chains
+	ExplosiveBoomerang.ExplosionOccurred:Add(function(player: Player, explosionCFrame: CFrame)
+		if not PickupLibrary.hasPickupEffectActive(player.UserId, script.Name) then
+			return
+		end
 
-      local particleId = `ElectricExplosion_{player.UserId}_{workspace:GetServerTimeNow()}`
-      ParticlesLibrary.play(
-         particleId,
-         "ElectricExplosion",
-         explosionCFrame.Position,
-         nil,
-         EXPLOSION_LIFETIME,
-         true
-      )
-      applyElectricExplosion(explosionCFrame.Position)
-      PickupService.triggerEnd(player, script.Name)
-   end)
-
-   local gameStateData = GameStateLibrary.getGameStateData()
-   gameStateData.GameplayPhase:Subscribe(function(newPhase)
-      if newPhase ~= GameplayPhaseEnums.RoundActive then
-         for player, _ in pairs(zappedPlayers) do
-            clearZapped(player)
-         end
-         table.clear(electrifiedWaters)
-      end
-   end)
+		local particleId = `ElectricExplosion_{player.UserId}_{workspace:GetServerTimeNow()}`
+		ParticlesLibrary.play(particleId, "ElectricExplosion", explosionCFrame.Position, nil, EXPLOSION_LIFETIME, true)
+	end)
 else
-   -- // Re-zaps re-send the same effect to extend it, so only notify on a fresh zap
-   local localPlayerZapped = false
-   PickupLibrary.PickupEffectAddedTasks:Add(function(userId: number, _livePickupId: string, pickupClassId: string)
-      if pickupClassId ~= ZAPPED_EFFECT_ID or userId ~= Players.LocalPlayer.UserId or localPlayerZapped then
-         return
-      end
-      localPlayerZapped = true
-      UIController.get("ItemAcquired").acquiredItem(ZAPPED_EFFECT_ID)
-   end)
-   PickupLibrary.PickupEffectRemovedTasks:Add(function(userId: number, _livePickupId: string, pickupClassId: string)
-      if pickupClassId == ZAPPED_EFFECT_ID and userId == Players.LocalPlayer.UserId then
-         localPlayerZapped = false
-      end
-   end)
-
-   local zappedAnimationGeneration = 0
-   playZappedAnimation.OnClientEvent:Connect(function(player: Player, isZapped: boolean)
-      zappedAnimationGeneration += 1
-      local generation = zappedAnimationGeneration
-      if isZapped then
-         AnimationController.playCoreAnimation(player, "Zapped")
-         if generation ~= zappedAnimationGeneration then
-            AnimationController.stopCoreAnimation(player, "Zapped")
-         end
-      else
-         AnimationController.stopCoreAnimation(player, "Zapped")
-      end
-   end)
+	visualizeChainRadiusRemote.OnClientEvent:Connect(function(position: Vector3, radius: number)
+		if GlobalConfig.VisualizeElectricChainRadius then
+			showChainRadius(position, radius)
+		end
+	end)
 end
 
 return ElectricBoomerang

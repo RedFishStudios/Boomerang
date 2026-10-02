@@ -83,6 +83,48 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
+### T-029 · Electric boomerang rework: chain kills
+- **Priority:** P1
+- **Owner:** Sol → Agent
+- **Area:** Shared
+- **Files:** `Shared/Logics/PickupLogics/ElectricBoomerang.luau`, `Shared/Library/CombatLibrary.luau`, `Shared/Assets/Particles/Electric*`
+
+**Problem / goal**
+Water now kills (T-028), so electrifying water and "zapping" players no longer make sense. **Remove those concepts entirely** (electrified water state, zapped animation/effect, `PlayZappedAnimation`, the dependency on `Water`).
+New behaviour: when an electric boomerang kills a player, every other player within **5 studs** (configurable) of the victim is also killed, with an **electric arc** drawn between the two. The chain continues from each newly killed player to anyone within 5 studs of them. The thrower can never be affected.
+- Chain kills should be credited to the thrower and go through the normal kill path (elim messages, scoring).
+- **Sol: the chain skips the thrower's teammates** (use `GameTeamLibrary.areEnemies`).
+
+**Sol's decisions (2026-10-02)**
+- The chain is guaranteed for every enemy in range (thrower and teammates exempt). No max length; an extremely small delay between links.
+- The effect stays active for the pickup's whole duration (no longer ends on use).
+- Pickup subtitle: "Electricity shocks players in range".
+- Keep the Zapped animation, sound and pickup display entry for later.
+- **Phased:** (1) core chain logic, (2) config + arc visuals, (3) Electric + Explosive: eliminations from the explosion also start chains. Phases 2 and 3 wait until phase 1 passes testing.
+
+**Done when**
+- [x] The old electric/water/zap code and remotes are gone; nothing else references them.
+- [ ] Chain kills work as specified. *(phase 1, in Review)*
+- [ ] Values (radius, delay) in config. *(phase 2)*
+- [ ] Arcs show on all clients. *(phase 2)*
+- [ ] Electric + Explosive explosion eliminations start chains. *(phase 3)*
+
+**Test in Studio**
+- `getpickup` the Electric pickup, group 3–4 test players within 15 studs and eliminate one with a thrown boomerang: the others die in a chain; the thrower and teammates never die; players 16+ studs away survive; a red radius cylinder appears on each chained victim for 5s.
+- Elim feed shows "Shocked" for chained eliminations; they count for the thrower's score.
+- Stab eliminations with Electric active should **not** chain (only thrown boomerangs).
+
+**Notes**
+- Depends on T-028 (water kills).
+- Phase 1: `ElectricBoomerang.luau` rewritten. It listens to `CombatLibrary.PlayerKilledPlayerTasks`: a kill by a thrown boomerang (Tools `LogicClass == "Boomerang"`) with the pickup active starts a chain; each link calls `CombatLibrary.attackHitPlayer(thrower, "ElectricChain", ...)`, so shields/immunity/scoring apply and the chain recurses. Radius 15 and link delay 0.05s are module constants for now.
+- Debug: `GlobalConfig.VisualizeElectricChainRadius` (currently true) shows a client-only red cylinder (chain radius) on each chain victim for 5s, via the `VisualizeElectricChainRadius` remote.
+- Removed Zapped checks from `CharacterController`, `WeaponLibrary`, `Dash`, `Stab`, and `"Zapped"` from AnimationController's core tracks. Kept `Animations.Zapped`, `Sounds.Zapped`, `AcquirableThingData.Zapped` and the ElectricPlayer/ElectrifiedObject particles.
+- New elim type "Shocked" (`CombatService.getElimType`, `ElimMessage` GUI).
+- Electric + Explosive currently only plays the ElectricExplosion particle (no zap, no early end).
+- Not lint-checked (no Selene/luau-analyze here).
+
+---
+
 ### T-054 · Cmdr commands for boomerang tuning
 - **Priority:** P2
 - **Owner:** Sol → Agent
@@ -423,34 +465,6 @@ The shop GUI still has placeholder/progress visuals. Sol finishes the assets.
 
 ---
 
-### T-029 · Electric boomerang rework: chain kills
-- **Priority:** P1
-- **Owner:** Sol → Agent
-- **Area:** Shared
-- **Files:** `Shared/Logics/PickupLogics/ElectricBoomerang.luau`, `Shared/Library/CombatLibrary.luau`, `Shared/Assets/Particles/Electric*`
-
-**Problem / goal**
-Water now kills (T-028), so electrifying water and "zapping" players no longer make sense. **Remove those concepts entirely** (electrified water state, zapped animation/effect, `PlayZappedAnimation`, the dependency on `Water`).
-New behaviour: when an electric boomerang kills a player, every other player within **5 studs** (configurable) of the victim is also killed, with an **electric arc** drawn between the two. The chain continues from each newly killed player to anyone within 5 studs of them. The thrower can never be affected.
-- Chain kills should be credited to the thrower and go through the normal kill path (elim messages, scoring).
-- **Sol: the chain skips the thrower's teammates** (use `GameTeamLibrary.areEnemies`).
-
-**Open questions (ask Sol first)**
-- "Has a chance to chain-kill": is the chain guaranteed for everyone in range, or is there a probability per link? If a chance, what value?
-- Should there be a max chain length or a short delay between links (for the arcs to read well)?
-
-**Done when**
-- [ ] The old electric/water/zap code and remotes are gone; nothing else references them.
-- [ ] Chain kills work as specified, with values (radius, chance, delay, max length) in config.
-- [ ] Arcs show on all clients.
-
-**Test in Studio**
-- Group 3–4 test players within a few studs and kill one with an electric boomerang: the others die in a chain with arcs; the thrower never dies; players 6+ studs away survive.
-
-**Notes**
-- Depends on T-028 (water kills).
-
----
 
 ### T-036 · Design: how weapons and skins are equipped and used
 - **Priority:** P2

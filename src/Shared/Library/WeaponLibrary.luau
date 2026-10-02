@@ -39,11 +39,6 @@ function WeaponLibrary.canThrow(player: Player, toolId: string): boolean
       return false
    end
 
-   if PickupLibrary.hasPickupEffectActive(player.UserId, "Zapped") then
-      print("player is zapped")
-      return false
-   end
-
    local toolData = Tools[toolId]
    if not toolData then
       warn(`WeaponLibrary.canThrow: Tool data not found for toolId {toolId}`)

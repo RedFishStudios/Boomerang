@@ -140,9 +140,6 @@ local function onPreSimulation(dT: number)
    if not PlayersUtil.isAlive(player) then
       return
    end
-   if PickupLibrary.hasPickupEffectActive(player.UserId, "Zapped") then
-      return
-   end
 
 	local localYaw = latestLocalYaw or 0
 	local localOriginPosition: Vector3? = nil

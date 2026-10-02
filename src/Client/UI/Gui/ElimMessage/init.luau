@@ -55,6 +55,10 @@ local ElimTypes: {
    Burned = {
       DisplayString = "Burned",
       Img = 0
+   },
+   Shocked = {
+      DisplayString = "Shocked",
+      Img = 0
    }
 }
 

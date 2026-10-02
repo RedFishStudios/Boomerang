@@ -66,6 +66,8 @@ function CombatService.init()
          return "Stab"
       elseif weaponId == "FireEffect" then
          return "Burned"
+      elseif weaponId == "ElectricChain" then
+         return "Shocked"
       end
       return nil
    end

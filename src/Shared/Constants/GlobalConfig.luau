@@ -46,6 +46,7 @@ local GlobalConfig = {
    RaycastVisualizersEnabled = false,
    ProjectileHitboxVisualizerEnabled = false,
    ParryVisualizersEnabled = false,
+   VisualizeElectricChainRadius = true, -- // Client-only red cylinder showing the chain radius around each electric chain victim
    SyncAbilitiesToEveryPlayer = false,
    -- // Cmdr developer console (F2): true = every player can use it in live servers (for client review builds).
    CmdrOpenToEveryone = true, -- TODO:RELEASE (T-052) RELEASE BLOCKER: must be false before public release, or every player can use admin commands (then only admins, see CmdrService)

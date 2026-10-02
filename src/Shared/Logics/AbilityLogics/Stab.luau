@@ -457,10 +457,6 @@ function Stab.canActivate(player: Player): boolean
       return false
    end
 
-   if PickupLibrary.hasPickupEffectActive(player.UserId, "Zapped") then
-      return false
-   end
-
    if WeaponLibrary.playerIsWeaponLocked(player) then
       return false
    end

@@ -28,7 +28,7 @@ local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 -- TYPES
 -------------------------------------------------------------------------------
 
-export type CoreTrackNames = "Charging" | "Throw" | "Catch" | "Stab" | "Dash" | "Zapped"
+export type CoreTrackNames = "Charging" | "Throw" | "Catch" | "Stab" | "Dash"
 
 type TrackEntry = {
    Track: AnimationTrack,
@@ -56,7 +56,7 @@ local playerTrackData: {
    [Player]: PlayerTrackData
 } = {}
 
-local DefaultCoreTrackNames: { CoreTrackNames } = { "Charging", "Throw", "Catch", "Stab", "Dash", "Zapped" }
+local DefaultCoreTrackNames: { CoreTrackNames } = { "Charging", "Throw", "Catch", "Stab", "Dash" }
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
