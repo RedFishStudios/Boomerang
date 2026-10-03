@@ -11,6 +11,7 @@ Task format, IDs and board rules: the "How to use this board" section of [TASKS.
 | Epic | Priority | Status | Folder |
 |---|---|---|---|
 | Lobby | P1 | In Progress | [epics/lobby/](epics/lobby/) |
+| Finalize Conversion to Server Authority | P1 | Discovery | [epics/server-authority/](epics/server-authority/) |
 
 ## Proposed
 
@@ -51,11 +52,6 @@ Not started yet. Each one begins with **Discovery** when Sol picks it up. Format
   3. **Agent setup:** improvements to the organisation and content of the agent markdown files (CLAUDE.md, TASKS.md, EPICS.md, docs/); and any agent-managed log that will keep growing (`TASKS.md` Done section, `Commits.txt`, `AgentLog.md`, ...) and needs a recurring culling/archiving rule.
   4. **Memory leaks:** go through every system and check it eventually cleans up what it creates (connections, instances, table entries keyed by player/character/object, threads, `TasksList` subscribers). Rate each cleanup by how **guaranteed** it is to run: code that looks like it cleans up but can be skipped (an error or yield before it, an early return, an event that never fires, cleanup tied to a path that doesn't always happen) counts as a likely leak.
   5. **Unused code:** the repo grew from an old template, and not all of it was kept. Find code that's never required or loaded (remember the boot name filters). **Ask Sol before deleting any file.** Files kept only as backups/references that the game doesn't use should move to a folder Rojo doesn't sync, so they stay in the GitHub repo but not in the published game (this includes the "Leftover and reference modules" in CLAUDE.md; update that list and its paths when they move).
-
-### Finalize Conversion to Server Authority
-- **Priority:** P1
-- **Pitch:** The game uses Roblox's Server Authority, but how it's used has problems. Finish the transition to it.
-- **Discovery should cover:** the list of problems Sol has seen (Sol to describe); which systems are already converted and which aren't (characters and movement, `CharacterRenderController`'s hidden authoritative character plus client-rendered model, abilities such as Dash, weapons and boomerang prediction, animation sync); what "finalized" means; how it relates to the `chickynoid-migration` branch, if at all; performance cost on busy servers.
 
 ## Shipped
 
