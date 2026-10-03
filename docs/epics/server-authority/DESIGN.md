@@ -44,7 +44,11 @@ Problems Sol has seen with `AuthorityMode = Server`, plus the agent's diagnosis.
 
 Reported by Sol (2026-10-03). Sol's guess, confirmed in code: the jump was only enabled on the client (`LobbyController`); the server disables it on spawn (`CharacterService`), so the server refused jumps the client predicted. Fix: task **T-070** (server applies the same lobby jump state).
 
-### P4+. TODO (human review)
+### P4. Throw direction doesn't match the aim in Server mode
+
+Reported by Sol (2026-10-03): the aim shows correctly on the player's own screen, but the boomerang isn't thrown that way. Task **T-071**.
+
+### P5+. TODO (human review)
 
 Sol to list the other problems seen.
 

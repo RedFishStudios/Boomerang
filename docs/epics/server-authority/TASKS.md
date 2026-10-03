@@ -9,7 +9,30 @@ Take new IDs from the `Next free ID` line in [TASKS.md](../../../TASKS.md), rese
 
 ## In Progress
 
+### T-071 · Throw direction wrong under Server authority
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Client, Server
+- **Epic:** Finalize Conversion to Server Authority
+- **Files:** TBD (`Client/Core/WeaponController.luau`, `Server/Core/WeaponService.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`, `Client/Core/CharacterController`)
+- **Approved early** by Sol (2026-10-03). DESIGN.md "Known problems: P4".
+
+**Problem / goal**
+In Server mode the aim direction shows correctly on the player's own screen, but the thrown boomerang doesn't go where they aimed.
+
+**Done when**
+- [ ] In Server mode, the boomerang flies exactly where the player aimed (mouse, locked mouse, touch thumbstick), on their screen and on other players' screens.
+- [ ] Automatic mode unchanged.
+
+**Notes**
+- Branch `agent/T-071-sa-throw-direction`, lane `Github/Boomerang-lanes/docs-server-authority`.
+- Code read so far: the client computes the direction (mouse ray to `ArenaFloorDetector`, or the rendered model's LookVector for touch/locked mouse) and sends it with `throwFunction:InvokeServer`; `WeaponService.throwForPlayer` and `Boomerang.throw` use that client direction (horizontal). No obvious Server-mode-only break found yet; needs a play-test observation.
+
 ## Review
+
+## Backlog
+
+## Done
 
 ### T-070 · Lobby jumping is buggy under Server authority
 - **Priority:** P1
@@ -23,9 +46,9 @@ Take new IDs from the `Next free ID` line in [TASKS.md](../../../TASKS.md), rese
 In Server mode, jumping in the lobby is buggy. Cause (Sol's guess, confirmed in code): jumping was only enabled on the client. `CharacterService.onCharacterLoaded` disables it on the server (`JumpHeight = 0`, Jumping state off) and only `LobbyController` re-enabled it, locally. In Server mode the server simulates the character, so the client predicted a jump the server refused, and the server corrected it.
 
 **Done when**
-- [ ] In Server mode, jumping in the lobby is smooth (no snapping back or stutter), with the normal lobby jump height.
-- [ ] Jumping is still disabled in the arena (Space still dashes there).
-- [ ] Automatic mode still works.
+- [x] In Server mode, jumping in the lobby is smooth (no snapping back or stutter), with the normal lobby jump height.
+- [x] Jumping is still disabled in the arena (Space still dashes there).
+- [x] Automatic mode still works.
 
 **Test in Studio**
 - Server mode: jump around the lobby, including while walking; walk out of the lobby into a round and back, and jump right after coming back.
@@ -38,6 +61,7 @@ In Server mode, jumping in the lobby is buggy. Cause (Sol's guess, confirmed in 
 - **Check:** right at the lobby edge the server may switch up to 0.1 s after the client; a jump at that exact moment could still snap once.
 - **Check (mobile):** in the lobby, the jump/dash button sets `humanoid.Jump = true` on the client (`AbilityController.useMovementInput`). Space also goes through Roblox's default controls, which send input to the server in Server mode, but a client-only `Jump = true` may not reach the server. If the mobile button still stutters, that's the next fix.
 - Compiled with `luau-compile`; not play-tested (Studio runs the home repo's code).
+- Passed Sol's Studio test (2026-10-03).
 
 ### T-069 · Walk/run animations far too fast under Server authority
 - **Priority:** P1
@@ -51,8 +75,8 @@ In Server mode, jumping in the lobby is buggy. Cause (Sol's guess, confirmed in 
 After T-068, rendered models animate in Server mode, but walking/running plays far too fast. Cause: T-068's walk/run blend fed the speed in studs/s straight into the Animate's blend formula. The Animate first divides by `WALK_SPEED_SCALE` (16 for R15), so at WalkSpeed 16 the tracks played about 16x too fast. Idle was fine (speed 1, checked in Studio).
 
 **Done when**
-- [ ] Walking and running play at a natural speed in Server mode, for your own and other players' models.
-- [ ] Idle, jump and fall are unchanged.
+- [x] Walking and running play at a natural speed in Server mode, for your own and other players' models.
+- [x] Idle, jump and fall are unchanged.
 
 **Test in Studio**
 - Server mode, 2 players: walk and run (including any sprint or speed boosts) and watch both models' feet against the ground.
@@ -61,10 +85,7 @@ After T-068, rendered models animate in Server mode, but walking/running plays f
 - Branch `agent/T-069-sa-walk-anim-speed`, lane `Github/Boomerang-lanes/docs-server-authority`.
 - `syncPoseAnimations` now divides the horizontal speed by `R15_WALK_SPEED_SCALE` (16) before the blend, matching the Animate's `onRunning`.
 - Not play-tested in motion: the agent's `Humanoid:Move` didn't move the character (the game's own movement controller likely overrides it), so the fix comes from the formula. Compiled with `luau-compile`.
-
-## Backlog
-
-## Done
+- Passed Sol's Studio test (2026-10-03).
 
 ### T-068 · Rendered character animations under Server authority
 - **Priority:** P1
