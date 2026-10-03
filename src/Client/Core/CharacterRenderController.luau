@@ -74,6 +74,7 @@ local POSE_TRANSITION_TIME = 0.2
 local NORMALIZED_WALK_SPEED = 0.5
 local NORMALIZED_RUN_SPEED = 1
 local HUMANOID_HIP_HEIGHT = 2
+local R15_WALK_SPEED_SCALE = 16
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -379,7 +380,8 @@ local function syncPoseAnimations(player: Player, authorityCharacter: Model, aut
    if pose == "Running" then
       local velocity = authorityRoot.AssemblyLinearVelocity
       local horizontalSpeed = Vector3.new(velocity.X, 0, velocity.Z).Magnitude
-      local runSpeed = horizontalSpeed * 1.25 / getRenderedHeightScale(data)
+      -- // The Animate first normalizes studs/s by WALK_SPEED_SCALE (16 for R15), then applies root motion compensation (T-069)
+      local runSpeed = (horizontalSpeed / R15_WALK_SPEED_SCALE) * 1.25 / getRenderedHeightScale(data)
       local walkWeight, runWeight, timeWarp = 0.0001, 0.0001, 1
       if runSpeed <= NORMALIZED_WALK_SPEED then
          walkWeight = 1
