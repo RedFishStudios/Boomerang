@@ -60,6 +60,7 @@ type WeaponReachedEventPointTask = (player: Player, toolId: string, position: Ve
 
 local aimEvent = SimpleRemotes.getEvent("WeaponAim")
 local aimStateEvent = SimpleRemotes.getEvent("WeaponAimState")
+local aimCancelEvent = SimpleRemotes.getEvent("WeaponAimCancel") -- // Client left aiming without throwing (T-060)
 local throwFunction = SimpleRemotes.getFunction("Weapon")
 local recallEvent = SimpleRemotes.getEvent("WeaponRecall")
 local weaponEquipStateEvent = SimpleRemotes.getEvent("WeaponEquipState")
@@ -259,7 +260,31 @@ function WeaponService.playerIsWeaponLocked(player: Player): boolean
    return WeaponLibrary.playerIsWeaponLocked(player)
 end
 
+-- // Ends a player's aim without a throw: back to free motion and normal walk speed, and every client hides the aim
+-- // arrow (T-060). Used when the weapon gets locked and when the client cancels its aim.
+local function cancelAiming(player: Player)
+   if aiming[player] == nil then
+      return
+   end
+   aiming[player] = nil
+   PlayerStatsLibrary.setStat(player, "CurrentMovementState", "FreeMotion", nil, nil)
+   local character = player.Character
+   local humanoid = character and character:FindFirstChildWhichIsA("Humanoid")
+   if humanoid then
+      task.spawn(
+         tweenWalkSpeedInverse,
+         player,
+         humanoid,
+         PlayerStatsLibrary.getStat(player, "RunSpeed") or GlobalConfig.DefaultWalkSpeed,
+         AIM_WALK_SPEED_RETURN_TWEEN_DURATION,
+         AIM_WALK_SPEED_RETURN_TWEEN_EXPONENT
+      )
+   end
+   aimStateEvent:FireAllClients(player.UserId, false)
+end
+
 function WeaponService.applyLockOnWeapon(player: Player, forTime: number)
+   cancelAiming(player) -- // T-060: a locked weapon can't stay aimed (the client drops its aim too)
    PlayerStatsLibrary.setStat(player, "WeaponLockedUntilTimestamp", game.Workspace:GetServerTimeNow() + forTime)
 
    local thrownWeaponData = ThrownWeapons.Data[player]
@@ -359,6 +384,10 @@ function WeaponService.init()
       aimStateEvent:FireAllClients(player.UserId, true)
 
       -- Client-only animation replication will handle this later.
+   end)
+
+   aimCancelEvent.OnServerEvent:Connect(function(player: Player)
+      cancelAiming(player)
    end)
 
    -- // Throw boomerang

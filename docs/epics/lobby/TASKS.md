@@ -11,44 +11,6 @@ Take new IDs from the `Next free ID` line in [TASKS.md](../../../TASKS.md). Ever
 
 ## Review
 
-### T-045 · Group Rewards chest
-- **Priority:** P2
-- **Owner:** Sol → Agent
-- **Epic:** Lobby
-- **Area:** Server / Client / Build
-- **Files:** New: group rewards station (T-047); profile field for claimed state
-
-**Problem / goal**
-Spec: `docs/LOBBY_SPEC.md`. A large chest on a glowing pad with a "GROUP REWARDS" title. Players in the client's Roblox group can claim a reward; the chest shows locked/unlocked/claimed states.
-
-**Decisions (Sol, 2026-10-02)**
-- Group ID **293180599**, stored in `GlobalConfig` (e.g. `GlobalConfig.GroupId`) so it's easy to find and change.
-- Membership is required. A non-member who triggers the chest is prompted to join the group in-game.
-- Claimable **once per day**.
-- Reward: a placeholder for now. "Once per day" = 24 h since the last claim, exactly like Daily Rewards.
-
-**Research: detecting a join during the session (2026-10-02)**
-- `GroupService:PromptJoinAsync(groupId)` is client-only and shows Roblox's native join prompt. It returns an `Enum.GroupMembershipStatus`: `Joined`, `AlreadyMember`, `JoinRequestPending` (manual-approval groups) or `None` (cancelled/ineligible). Wrap it in `pcall`.
-- `Player:IsInGroup` is cached (about 60 s). The prompt clears the *client's* cache only, so the server can still see the old answer right after a join.
-- Plan: chest handler on the server checks membership; if not a member, tells the client to call `PromptJoinAsync`. On `Joined`, the client asks the server to retry, and the server verifies with the uncached `GroupService:GetGroupsAsync(userId)` before granting (never trust the client's result alone).
-
-**Open questions (ask Sol first)**
-- The group ID, and is membership required?
-- What's the reward, and is it one-time or on a cooldown?
-
-**Notes**
-- 🗣️ **Talk with Sol before starting.**
-- Done (2026-10-02). `GlobalConfig.GroupId = 293180599` and `GlobalConfig.GroupRewardCurrency = 100` (**`TODO:RELEASE placeholder`** reward, Currency). New profile field `GroupRewardLastClaim` (0 = never; filled in by Reconcile).
-- New `Server/Core/GroupRewardService` (station `StationId = "GroupRewards"`): members claim once per rolling 24 h; non-members get the join prompt; after `Joined`/`AlreadyMember` the client fires `GroupRewardJoined` and the server re-checks with uncached `GetGroupsAsync` (3 s cooldown) before granting. Per-player station state: `Active` ("Claim"), `Locked` ("Join group"), `Claimed` (prompt hidden, unlocks itself when the 24 h are up). New `Client/Core/GroupRewardController`: join prompt + "Group reward claimed! +100 Currency" popup (ItemAcquired).
-- Cmdr: `resetgroupreward <players>` makes the chest claimable again.
-- **Studio setup (Sol):** tag the chest model `LobbyStation` with `StationId = "GroupRewards"`, `Title = "GROUP REWARDS"`, and a glowing child part named `Pad`.
-- **Test in Studio:** as a group member: claim (popup, +100 Currency, prompt disappears, pad dims), rejoin (still claimed), `resetgroupreward me` (claimable again). Join flow: needs an account **not** in the group, ideally in a live/team-test server. `PromptJoinAsync` has had reported Studio issues; if it errors in Studio, the warning "join prompt failed" shows and nothing breaks.
-- Review follow-up (Sol, 2026-10-02): membership moved out of the chest into its own `Server/Core/GroupMembershipService` + `Client/Core/GroupMembershipController` (`isMember`, `refreshMembership`, `promptJoin`, `MembershipChangedTasks`, per-server group id override, per-player simulation). `GroupRewardService` only uses that API; `GroupRewardController` now only shows the claim popup. Remotes renamed: `GroupMembershipPromptJoin`, `GroupMembershipJoinReport`.
-- New Cmdr: `simulategroupmember <players> member|nonmember|real`, `setgroupid [groupId]` (this server only, not saved).
-- **Testing the join flow as a member:** `simulategroupmember me nonmember` → chest shows "Join group" (dimmed) → trigger it: the join prompt opens (Roblox will say you're already a member; the simulation keeps you a non-member) → `simulategroupmember me real` → the pending claim goes through. Or `setgroupid <a group you're not in>` to test the real prompt and join.
-
----
-
 ## Backlog
 
 ### T-024 · Shop pedestals in the lobby
@@ -158,6 +120,45 @@ Spec: `docs/LOBBY_SPEC.md`. A large portal arch on a glowing ring with a sign, l
 ---
 
 ## Done
+
+### T-045 · Group Rewards chest
+- **Priority:** P2
+- **Owner:** Sol → Agent
+- **Epic:** Lobby
+- **Area:** Server / Client / Build
+- **Files:** New: group rewards station (T-047); profile field for claimed state
+
+**Problem / goal**
+Spec: `docs/LOBBY_SPEC.md`. A large chest on a glowing pad with a "GROUP REWARDS" title. Players in the client's Roblox group can claim a reward; the chest shows locked/unlocked/claimed states.
+
+**Decisions (Sol, 2026-10-02)**
+- Group ID **293180599**, stored in `GlobalConfig` (e.g. `GlobalConfig.GroupId`) so it's easy to find and change.
+- Membership is required. A non-member who triggers the chest is prompted to join the group in-game.
+- Claimable **once per day**.
+- Reward: a placeholder for now. "Once per day" = 24 h since the last claim, exactly like Daily Rewards.
+
+**Research: detecting a join during the session (2026-10-02)**
+- `GroupService:PromptJoinAsync(groupId)` is client-only and shows Roblox's native join prompt. It returns an `Enum.GroupMembershipStatus`: `Joined`, `AlreadyMember`, `JoinRequestPending` (manual-approval groups) or `None` (cancelled/ineligible). Wrap it in `pcall`.
+- `Player:IsInGroup` is cached (about 60 s). The prompt clears the *client's* cache only, so the server can still see the old answer right after a join.
+- Plan: chest handler on the server checks membership; if not a member, tells the client to call `PromptJoinAsync`. On `Joined`, the client asks the server to retry, and the server verifies with the uncached `GroupService:GetGroupsAsync(userId)` before granting (never trust the client's result alone).
+
+**Open questions (ask Sol first)**
+- The group ID, and is membership required?
+- What's the reward, and is it one-time or on a cooldown?
+
+**Notes**
+- 🗣️ **Talk with Sol before starting.**
+- Done (2026-10-02). `GlobalConfig.GroupId = 293180599` and `GlobalConfig.GroupRewardCurrency = 100` (**`TODO:RELEASE placeholder`** reward, Currency). New profile field `GroupRewardLastClaim` (0 = never; filled in by Reconcile).
+- New `Server/Core/GroupRewardService` (station `StationId = "GroupRewards"`): members claim once per rolling 24 h; non-members get the join prompt; after `Joined`/`AlreadyMember` the client fires `GroupRewardJoined` and the server re-checks with uncached `GetGroupsAsync` (3 s cooldown) before granting. Per-player station state: `Active` ("Claim"), `Locked` ("Join group"), `Claimed` (prompt hidden, unlocks itself when the 24 h are up). New `Client/Core/GroupRewardController`: join prompt + "Group reward claimed! +100 Currency" popup (ItemAcquired).
+- Cmdr: `resetgroupreward <players>` makes the chest claimable again.
+- **Studio setup (Sol):** tag the chest model `LobbyStation` with `StationId = "GroupRewards"`, `Title = "GROUP REWARDS"`, and a glowing child part named `Pad`.
+- **Test in Studio:** as a group member: claim (popup, +100 Currency, prompt disappears, pad dims), rejoin (still claimed), `resetgroupreward me` (claimable again). Join flow: needs an account **not** in the group, ideally in a live/team-test server. `PromptJoinAsync` has had reported Studio issues; if it errors in Studio, the warning "join prompt failed" shows and nothing breaks.
+- Review follow-up (Sol, 2026-10-02): membership moved out of the chest into its own `Server/Core/GroupMembershipService` + `Client/Core/GroupMembershipController` (`isMember`, `refreshMembership`, `promptJoin`, `MembershipChangedTasks`, per-server group id override, per-player simulation). `GroupRewardService` only uses that API; `GroupRewardController` now only shows the claim popup. Remotes renamed: `GroupMembershipPromptJoin`, `GroupMembershipJoinReport`.
+- New Cmdr: `simulategroupmember <players> member|nonmember|real`, `setgroupid [groupId]` (this server only, not saved).
+- **Testing the join flow as a member:** `simulategroupmember me nonmember` → chest shows "Join group" (dimmed) → trigger it: the join prompt opens (Roblox will say you're already a member; the simulation keeps you a non-member) → `simulategroupmember me real` → the pending claim goes through. Or `setgroupid <a group you're not in>` to test the real prompt and join.
+- Passed Sol's Studio test (2026-10-03).
+
+---
 
 ### T-047 · Lobby station framework (labels, glowing pads, proximity prompts)
 - **Priority:** P1

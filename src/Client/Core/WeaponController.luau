@@ -54,6 +54,7 @@ WeaponController.WeaponStateChanged = TasksList.new() :: TasksList.TasksList<num
 
 local aimEvent = SimpleRemotes.getEvent("WeaponAim")
 local aimStateEvent = SimpleRemotes.getEvent("WeaponAimState")
+local aimCancelEvent = SimpleRemotes.getEvent("WeaponAimCancel") -- // T-060
 local throwFunction = SimpleRemotes.getFunction("Weapon")
 local recallEvent = SimpleRemotes.getEvent("WeaponRecall")
 local weaponEquipStateEvent = SimpleRemotes.getEvent("WeaponEquipState")
@@ -81,6 +82,10 @@ local pendingLocalThrow: {
    Host: Model,
 }? = nil
 local isAiming = false
+-- // For code where a local variable named isAiming shadows this one (e.g. the aim state event handler)
+local function isLocalAimingNow(): boolean
+   return isAiming
+end
 local currentWeaponState = WeaponController.CurrentWeaponState.InHand
 local isWeaponVisuallyLocked = false
 local weaponLockHeartbeatConnection: RBXScriptConnection? = nil
@@ -140,7 +145,12 @@ local function syncWeaponStateChanged()
    WeaponController.WeaponStateChanged:Execute("serial", newWeaponState)
 end
 
-local function setLocalAimState(nextState: boolean)
+local stopAiming -- // Defined below (removes a player's aim arrow)
+
+-- // The local player's aim. The aim arrow follows it (T-060): it's removed whenever this goes false, and only created
+-- // (on the server's confirmation) while it's true. notifyServer: we're leaving aim without a throw, so the server must
+-- // end its aim too (otherwise it keeps the player aiming and shows the arrow to everyone).
+local function setLocalAimState(nextState: boolean, notifyServer: boolean?)
    if isAiming == nextState then
       return
    end
@@ -151,6 +161,10 @@ local function setLocalAimState(nextState: boolean)
    if not nextState then
       CharacterController.setTouchAimAngle(nil)
       AnimationController.stopCoreAnimation(Players.LocalPlayer, "Charging")
+      stopAiming(Players.LocalPlayer)
+      if notifyServer then
+         aimCancelEvent:FireServer()
+      end
    end
 
    syncWeaponStateChanged()
@@ -214,13 +228,13 @@ local function throwEquippedTool(forcedDirection: Vector3?): boolean
    end
 
    if WeaponController.playerIsWeaponLocked() then
-      setLocalAimState(false)
+      setLocalAimState(false, true)
       return false
    end
 
    local equippedToolId = GlobalConfig.ForceEquippedTool
    if equippedToolId == nil then
-      setLocalAimState(false)
+      setLocalAimState(false, true)
       return false
    end
 
@@ -433,7 +447,7 @@ local function updateSmoothing(deltaTime: number)
    end
 end
 
-local function stopAiming(player: Player)
+function stopAiming(player: Player)
    AnimationController.stopCoreAnimation(player, "Charging")
    local aimArrow = aimArrows[player]
    if aimArrow then
@@ -456,7 +470,7 @@ local function setLocalWeaponLocked(isLocked: boolean)
    isWeaponVisuallyLocked = isLocked
 
    if isLocked then
-      setLocalAimState(false)
+      setLocalAimState(false, true)
       stopAiming(localPlayer)
       ToolController.setAimState(localPlayer, false)
       ToolController.setWeaponLocked(localPlayer, true)
@@ -721,14 +735,23 @@ function WeaponController.init()
 
       if forPlayer == localPlayer and WeaponController.playerIsWeaponLocked() then
          setLocalWeaponLocked(true)
+         stopAiming(forPlayer) -- // T-060: a "stop aiming" must never be dropped, or the arrow stays
          return
       end
 
-      ToolController.setAimState(forPlayer, isAiming)
-
       if forPlayer == Players.LocalPlayer then
-         setLocalAimState(isAiming)
+         if isAiming and not isLocalAimingNow() then
+            -- // T-060: a late confirmation of an aim the player already left (released, locked, round change):
+            -- // no arrow, and the server ends its aim too
+            aimCancelEvent:FireServer()
+            return
+         end
+         if not isAiming then
+            setLocalAimState(false)
+         end
       end
+
+      ToolController.setAimState(forPlayer, isAiming)
 
       if isAiming then
          beginAiming(forPlayer)
@@ -832,7 +855,7 @@ function WeaponController.init()
    local gameStateData = GameStateLibrary.getGameStateData()
    gameStateData.GameplayPhase:Subscribe(function(gameplayPhase)
       if gameplayPhase == GameplayPhaseEnum.LobbyVoting then
-         setLocalAimState(false)
+         setLocalAimState(false, true)
          pendingLocalThrow = nil
          AnimationController.stopAllCoreAnimations(Players.LocalPlayer)
       end
