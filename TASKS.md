@@ -95,24 +95,6 @@ If the boomerang bounces more than 3 times, it doesn't auto-recall, even though 
 
 ---
 
-### T-065 · `tune RecallAcceleration 5` errors
-- **Priority:** P0 (urgent, do today: Sol 2026-10-03)
-- **Owner:** Agent
-- **Area:** Server / Shared / Tooling
-- **Files:** `Server/Cmdr/Commands/` (`tuneboomerang`), `Shared/Library/BoomerangTuningLibrary`, `Shared/Logics/WeaponLogics/Boomerang.luau` (follow-up to T-054)
-
-**Problem / goal**
-Running `tune RecallAcceleration 5` throws an error. Find and fix it.
-
-**Done when**
-- [ ] `tune RecallAcceleration 5` sets the value without errors and it takes effect on the next/current recall.
-
-**Test in Studio**
-- `tune RecallAcceleration 5`, throw and recall (manual and auto): no errors on server or client output.
-
-**Notes**
-
----
 
 
 
@@ -145,6 +127,29 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-065 · `tune RecallAcceleration 5` errors
+- **Priority:** P0 (urgent, do today: Sol 2026-10-03)
+- **Owner:** Agent
+- **Area:** Server / Shared / Tooling
+- **Files:** `Server/Cmdr/Commands/` (`tuneboomerang`), `Shared/Library/BoomerangTuningLibrary`, `Shared/Logics/WeaponLogics/Boomerang.luau` (follow-up to T-054)
+
+**Problem / goal**
+Running `tune RecallAcceleration 5` throws an error. Find and fix it.
+
+**Done when**
+- [ ] `tune RecallAcceleration 5` sets the value without errors and it takes effect on the next/current recall.
+
+**Test in Studio**
+- `tune RecallAcceleration 5`, throw and recall (manual and auto): no errors on server or client output.
+
+**Notes**
+- Branch `agent/T-065-tune-attribute-name` (stacked on `agent/T-066-T-067-tune-charge-aimwalk`), lane `Github/Boomerang-lanes/maintenance`.
+- Cause (client's server console): `Attribute name exceeds 50 character limit ("BoomerangTuning_ClassicBoomerang_RecallAcceleration")`, 51 characters. Every setting on every tool was fine except that one (Shuriken/Fan names are shorter).
+- Fix: attribute prefix shortened to `BT` (`BT_ClassicBoomerang_RecallAcceleration`, 38), plus an assert with a clear message if a future name goes over 50.
+- Not lint-checked.
+
+---
 
 ### T-066 · Cmdr command: tune how fast a charge reaches max power
 - **Priority:** P0 (urgent, do today: Sol 2026-10-03)

@@ -20,7 +20,9 @@ local BoomerangTuningLibrary = {}
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
-local ATTRIBUTE_PREFIX = "BoomerangTuning"
+-- // Kept short: Roblox attribute names are limited to 50 characters, and "BoomerangTuning_ClassicBoomerang_RecallAcceleration"
+-- // was 51 (T-065). Names look like "BT_ClassicBoomerang_RecallAcceleration".
+local ATTRIBUTE_PREFIX = "BT"
 
 -------------------------------------------------------------------------------
 -- TYPES
@@ -86,7 +88,9 @@ BoomerangTuningLibrary.SETTINGS = {
 -------------------------------------------------------------------------------
 
 local function getAttributeName(toolId: string, setting: Setting): string
-	return `{ATTRIBUTE_PREFIX}_{toolId}_{setting}`
+	local name = `{ATTRIBUTE_PREFIX}_{toolId}_{setting}`
+	assert(#name <= 50, `BoomerangTuningLibrary: attribute name too long ({name}); shorten the tool id or setting name`)
+	return name
 end
 
 -------------------------------------------------------------------------------
