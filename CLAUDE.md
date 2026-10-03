@@ -270,7 +270,7 @@ If a prompt mentions a larger *back-end feature* that doesn't exist yet, that ma
   - **Never write an Epic's tasks before Sol approves its DESIGN.md**, and never mark an Epic Shipped.
 - **When Sol says they're logging off:** summarize the session (focus on Epic progress if that was most of the work), then recommend what Sol can do next.
 - **Git: one lane per chat, never edit the home repo directly.** Several chats can work at once, each in its own clone (a **lane**) in `Github/Boomerang-lanes/`. The home repo (`Github/Boomerang`) stays on `main` for Sol, GitHub Desktop and testing. Follow [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) for every step.
-  - One branch per task, in its own lane: `agent/T-###-short-name` (docs-only work: `agent/docs-short-name`).
+  - One lane per chat, one branch per task: each task gets its own branch, `agent/T-###-short-name` (docs-only work: `agent/docs-short-name`), made inside this chat's lane. Never create a second lane for a new task in the same chat.
   - Commit with Sol's normal git identity, passed per commit (don't change git config): `git -c user.name="SoulsplosionSide" -c user.email="116596822+LaurKnill@users.noreply.github.com" commit …`.
   - When you're done, push the branch into the home repo (`git push home agent/<lane>`), move the task to `Review`, and put the branch and lane folder in its Notes. Sol tests in Studio.
   - The only commits allowed on `main` without a ship lane are task-ID reservations (they change only the `Next free ID` line).

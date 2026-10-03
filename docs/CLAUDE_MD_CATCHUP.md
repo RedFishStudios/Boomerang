@@ -19,3 +19,9 @@ Boomerang's record of going through the shared changelog (`C:\MY FILES\SharedDoc
 | Entry | Decision | What changed in Boomerang |
 |---|---|---|
 | CM-008 "Ship merge" renamed "ship lane" | Adopted | Renamed in CLAUDE.md (rule, trigger words, examples, reservation exception, lane deletion, AgentLog, "Start here" row) and `docs/GIT_WORKFLOW.md` (`## 5. Ship lane`, link `#5-ship-lane`). "ship merge" added first to "Nothing else is permission". TASKS.md had no mention. Historical notes left as they are. |
+
+## 2026-10-03 · CM-009 (source)
+
+| Entry | Decision | What changed in Boomerang |
+|---|---|---|
+| CM-009 One lane per chat, one branch per task | Source | CLAUDE.md git bullet now "One lane per chat, one branch per task"; `docs/GIT_WORKFLOW.md` folders table: one lane per chat, later tasks get new branches in the same lane. |

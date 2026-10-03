@@ -9,7 +9,7 @@ The rules (what's allowed, and what "ship lane" means) are in [CLAUDE.md - Workf
 | Folder | What it is | Who changes it |
 |---|---|---|
 | `C:\MY FILES\Github\Boomerang` | The **home repo**. Stays on `main`, clean. GitHub Desktop pushes and pulls here; Sol tests from here. | Sol. Agents only run the git steps below in it (reserve an ID, receive a branch, ship lane, cull) and append to the git-ignored `Commits.txt` / `AgentLog.md`. Never edit its tracked files by hand, switch its branch, or leave it dirty. |
-| `C:\MY FILES\Github\Boomerang-lanes\<lane>` | One **lane** per task. `<lane>` is the branch name without `agent/` (e.g. `T-123-short-name`, `docs-short-name`). | Only the chat that created it. Never touch another chat's lane. |
+| `C:\MY FILES\Github\Boomerang-lanes\<lane>` | One **lane** per chat. `<lane>` is the chat's first branch name without `agent/` (e.g. `T-123-short-name`, `docs-short-name`). Later tasks in the same chat get new branches in the same lane: `git fetch home && git switch -c agent/<branch> home/main`. | Only the chat that created it. Never touch another chat's lane. |
 
 In `device_bash`, always reach both through the `Github` mount (`$HOME/mnt/Github/Boomerang`, `$HOME/mnt/Github/Boomerang-lanes/<lane>`), not the separate `Boomerang` mount, so the relative path between them works. **Run every git command from the lane's root folder**: the lane's remote, `home`, is the relative path `../../Boomerang`.
 
