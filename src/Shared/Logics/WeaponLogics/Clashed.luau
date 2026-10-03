@@ -507,8 +507,17 @@ function ClashedWeaponLogic.applyClash(player: Player, clashedWeaponData: Clashe
 			local character = player.Character
 			local rootPart = character and character.PrimaryPart
 			if rootPart and getHorizontalDistance(currentPivot.Position, rootPart.Position) <= GlobalConfig.BoomerangRecallRange then
-				ClashedWeaponLogic.onDyingInRange(player, clashedWeaponData)
-				return
+				-- // Line of sight too, the same rule as auto-return (T-063): nothing solid between it and the player
+				local toPlayer = rootPart.Position - currentPivot.Position
+				local sightFilter: { Instance } = { Characters, character }
+				if clashedWeaponData.Host then
+					table.insert(sightFilter, clashedWeaponData.Host)
+				end
+				local sightParams = RaycastsUtility.getProjectileObstructionParams(sightFilter)
+				if RaycastsUtility.raycastProjectileObstruction(currentPivot.Position, toPlayer, toPlayer.Magnitude, sightParams) == nil then
+					ClashedWeaponLogic.onDyingInRange(player, clashedWeaponData)
+					return
+				end
 			end
 		end
 

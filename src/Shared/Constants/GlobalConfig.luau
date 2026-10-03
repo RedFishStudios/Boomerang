@@ -28,8 +28,8 @@ local GlobalConfig = {
    -- // drops into the dead state, like after a clash, and must be manually recalled or picked up.
    BoomerangRecallRange = 30,
    -- // If true, a boomerang that is losing momentum because it was out of range resumes returning automatically when it
-   -- // comes back into range. Client wants false for now.
-   DyingBoomerangCanRecoverInRange = false,
+   -- // comes back into range and can see its player (line of sight, as for auto-return). On since 2026-10-03 (Sol, T-063).
+   DyingBoomerangCanRecoverInRange = true,
    -- // A dying boomerang that keeps sliding away instead of landing returns to its player on its own (automatic recall,
    -- // no manual recall needed) once either limit is hit (T-062). Previously it snapped straight back at 100 studs.
    DyingBoomerangNoGroundRecallSeconds = 0.75, -- // Seconds of sliding with nothing below to land on

@@ -110,7 +110,7 @@ If the boomerang has no direct line of sight to the player when it would start r
 - Sol (2026-10-03): the rule is range **and** line of sight: auto-return only if within `BoomerangRecallRange` and nothing solid is between the boomerang and the player; otherwise it dies (drops). Blockers: anything the boomerang collides with; characters ignored.
 - Branch `agent/T-063-recall-line-of-sight` (stacked on `agent/T-065-tune-attribute-name`), lane `Github/Boomerang-lanes/maintenance`.
 - `Boomerang.autoRecallOrDie` now also needs `hasLineOfSightToPlayer` (a ray from the boomerang to the player's root using the projectile obstruction rules). Server and client both check; the server still decides death.
-- The optional `DyingBoomerangCanRecoverInRange` rule (off) still checks range only.
+- Sol (2026-10-03): `DyingBoomerangCanRecoverInRange` turned **on**, and it now needs line of sight too (`Clashed.luau`, same ray rule). A dying boomerang that comes back within range and in view of its player (including one that dropped because a wall blocked the view) flies back on its own. Test: throw so it drops behind a wall within range, then step into view while it's still sliding: it should return. Once fully dead (stopped), it stays dead.
 - Not lint-checked.
 - Likely related to T-064 and T-062: check them together.
 
