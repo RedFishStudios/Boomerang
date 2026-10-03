@@ -23,7 +23,8 @@ local GlobalConfig = {
    ElectricChainRadius = 15, -- // Studs: an Electric boomerang elimination chains to every enemy within this distance of the victim
    ElectricChainLinkDelay = 0.05, -- // Seconds between each link of an Electric chain
    -- // Recall range: when a thrown boomerang would start returning on its own (end of its flight, or out of bounces),
-   -- // it only does so if it's within this many studs (horizontally) of its player. Otherwise it loses momentum and
+   -- // it only does so if it's within this many studs (horizontally) of its player and can see them (nothing solid in
+   -- // between, T-063). Otherwise it loses momentum and
    -- // drops into the dead state, like after a clash, and must be manually recalled or picked up.
    BoomerangRecallRange = 30,
    -- // If true, a boomerang that is losing momentum because it was out of range resumes returning automatically when it

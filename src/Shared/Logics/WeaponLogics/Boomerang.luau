@@ -309,6 +309,23 @@ local function isWithinRecallRange(player: Player, position: Vector3): boolean
    return getHorizontalDistance(position, rootPart.Position) <= GlobalConfig.BoomerangRecallRange
 end
 
+-- // True if nothing solid is between the position and the player (the same obstructions the boomerang collides with;
+-- // characters are ignored) (T-063)
+local function hasLineOfSightToPlayer(player: Player, position: Vector3, thrownWeaponData: ThrownWeapons.Data): boolean
+   local character = player.Character
+   local rootPart = character and character.PrimaryPart
+   if not rootPart then
+      return false
+   end
+   local toPlayer = rootPart.Position - position
+   local filter: {Instance} = {Characters, character}
+   if thrownWeaponData.Host then
+      table.insert(filter, thrownWeaponData.Host)
+   end
+   local raycastParams = RaycastsUtility.getProjectileObstructionParams(filter)
+   return RaycastsUtility.raycastProjectileObstruction(position, toPlayer, toPlayer.Magnitude, raycastParams) == nil
+end
+
 -- // CFrame for a flat, horizontal blockcast oriented towards the travel direction
 local function getObstructionBlockcastCFrame(rayOrigin: Vector3, direction: Vector3): CFrame
    return CFrame.lookAt(rayOrigin, rayOrigin + direction, UP_VECTOR)
@@ -970,13 +987,13 @@ function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapo
    end
 end
 
--- // Where a thrown boomerang would start returning on its own: returns if it's within the player's recall range,
--- // otherwise loses momentum and drops into the dead state (the clash path).
+-- // Where a thrown boomerang would start returning on its own: returns if it's within the player's recall range AND has
+-- // a clear line of sight to the player (T-063), otherwise loses momentum and drops into the dead state (the clash path).
 -- // Only the server decides death: out of range on the client, nothing happens (returns false) and the boomerang keeps
 -- // flying until the server's Clashed snapshot arrives (WeaponController.onSnapshot then calls clash), so a disagreement
 -- // at the range edge can't leave the client showing a dead boomerang the server is recalling.
 function Boomerang.autoRecallOrDie(player: Player, boomerangId: string, toolData: Tools.Tool, thrownWeaponData: ThrownWeapons.Data, position: Vector3, direction: Vector3, speed: number): boolean
-   if isWithinRecallRange(player, position) then
+   if isWithinRecallRange(player, position) and hasLineOfSightToPlayer(player, position, thrownWeaponData) then
       Boomerang.recall(player, boomerangId, toolData, thrownWeaponData)
       return true
    end

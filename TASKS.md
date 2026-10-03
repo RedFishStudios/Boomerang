@@ -56,44 +56,7 @@ What's wrong, or what should exist.
 > **Urgent: instructed by Sol to do today (2026-10-03).** T-062 to T-067 come before everything else in Ready.
 
 
-### T-063 · Boomerang doesn't auto-recall without a direct line of sight (it dies)
-- **Priority:** P0 (urgent, do today: Sol 2026-10-03)
-- **Owner:** Agent
-- **Area:** Shared / Server
-- **Files:** `Shared/Logics/WeaponLogics/Boomerang.luau` (`autoRecallOrDie`)
 
-**Problem / goal**
-If the boomerang has no direct line of sight to the player when it would start returning, it dies instead of auto-recalling. Line of sight shouldn't decide this: it should auto-recall (the recall already slides along obstructions).
-
-**Done when**
-- [ ] Within recall range but behind a wall/obstacle, the boomerang still auto-recalls.
-
-**Test in Studio**
-- Throw so it ends up around a corner or behind a pillar within range: it returns instead of dying.
-
-**Notes**
-- Likely related to T-064 and T-062: check them together.
-
----
-
-### T-064 · After more than 3 bounces it won't auto-recall, even with line of sight and in range
-- **Priority:** P0 (urgent, do today: Sol 2026-10-03)
-- **Owner:** Agent
-- **Area:** Shared / Server
-- **Files:** `Shared/Logics/WeaponLogics/Boomerang.luau` (bounce count / `energy`, `autoRecallOrDie`)
-
-**Problem / goal**
-If the boomerang bounces more than 3 times, it doesn't auto-recall, even though it has a direct line of sight and is within the recall radius. It should auto-recall.
-
-**Done when**
-- [ ] A boomerang that has bounced 4+ times auto-recalls when in range with line of sight.
-
-**Test in Studio**
-- Throw in a small enclosed space so it bounces 4+ times near you: it returns.
-
-**Notes**
-
----
 
 
 
@@ -127,6 +90,31 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-063 · Boomerang doesn't auto-recall without a direct line of sight (it dies)
+- **Priority:** P0 (urgent, do today: Sol 2026-10-03)
+- **Owner:** Agent
+- **Area:** Shared / Server
+- **Files:** `Shared/Logics/WeaponLogics/Boomerang.luau` (`autoRecallOrDie`)
+
+**Problem / goal**
+If the boomerang has no direct line of sight to the player when it would start returning, it dies instead of auto-recalling. Line of sight shouldn't decide this: it should auto-recall (the recall already slides along obstructions).
+
+**Done when**
+- [ ] Within recall range but behind a wall/obstacle, the boomerang still auto-recalls.
+
+**Test in Studio**
+- Throw so it ends up around a corner or behind a pillar within range: it returns instead of dying.
+
+**Notes**
+- Sol (2026-10-03): the rule is range **and** line of sight: auto-return only if within `BoomerangRecallRange` and nothing solid is between the boomerang and the player; otherwise it dies (drops). Blockers: anything the boomerang collides with; characters ignored.
+- Branch `agent/T-063-recall-line-of-sight` (stacked on `agent/T-065-tune-attribute-name`), lane `Github/Boomerang-lanes/maintenance`.
+- `Boomerang.autoRecallOrDie` now also needs `hasLineOfSightToPlayer` (a ray from the boomerang to the player's root using the projectile obstruction rules). Server and client both check; the server still decides death.
+- The optional `DyingBoomerangCanRecoverInRange` rule (off) still checks range only.
+- Not lint-checked.
+- Likely related to T-064 and T-062: check them together.
+
+---
 
 ### T-065 · `tune RecallAcceleration 5` errors
 - **Priority:** P0 (urgent, do today: Sol 2026-10-03)
@@ -618,6 +606,26 @@ Players enter a code to receive a reward. Server: validates the code (case-insen
 ---
 
 ## Done
+
+### T-064 · After more than 3 bounces it won't auto-recall, even with line of sight and in range
+- **Priority:** P0 (urgent, do today: Sol 2026-10-03)
+- **Owner:** Agent
+- **Area:** Shared / Server
+- **Files:** `Shared/Logics/WeaponLogics/Boomerang.luau` (bounce count / `energy`, `autoRecallOrDie`)
+
+**Problem / goal**
+If the boomerang bounces more than 3 times, it doesn't auto-recall, even though it has a direct line of sight and is within the recall radius. It should auto-recall.
+
+**Done when**
+- [ ] A boomerang that has bounced 4+ times auto-recalls when in range with line of sight.
+
+**Test in Studio**
+- Throw in a small enclosed space so it bounces 4+ times near you: it returns.
+
+**Notes**
+- Dismissed by Sol (2026-10-03): the last bounce already starts the return (max 3 bounces per tool), so this works as intended.
+
+---
 
 ### T-056 · Electric + Explosive: explosion eliminations start electric chains
 - **Priority:** P1
