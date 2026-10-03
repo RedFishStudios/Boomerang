@@ -217,7 +217,7 @@ Right now the boomerang snaps back when it flies too far away. Instead, flying t
 
 **Notes**
 - Branch `agent/T-062-far-boomerang-returns`, lane `Github/Boomerang-lanes/maintenance`.
-- Cause: in the dying (Clashed) state, with nothing below to land on, the boomerang keeps its momentum and slides on; at 100 studs from where it started dying, `Clashed.luau` called `removeFromField` (an instant catch = the snap back). Landing inside a collidable part also snaps back (unchanged; tell Sol if that should return too).
+- Cause: in the dying (Clashed) state, with nothing below to land on, the boomerang keeps its momentum and slides on; at 100 studs from where it started dying, `Clashed.luau` called `removeFromField` (an instant catch = the snap back). Landing inside a collidable part also snaps back (unchanged). Sol (2026-10-03): to discuss later; flying back from inside a part would collide with it, so collision handling needs deciding first.
 - Fix: the server now starts an automatic recall (`Boomerang.recallFromClashed`, no hold needed) via a new `ClashedWeaponLogic.onSlidingAway` hook when either: it has slid with nothing to land on for `GlobalConfig.DyingBoomerangNoGroundRecallSeconds` (0.75 s), or it's more than `GlobalConfig.DyingBoomerangMaxSlideDistance` (100 studs) from where it started dying. Clients follow the server's Returning snapshot (same path as `DyingBoomerangCanRecoverInRange`).
 - Not lint-checked (no Selene/luau-analyze here). Tune the two GlobalConfig values if it gives up too early or too late.
 
