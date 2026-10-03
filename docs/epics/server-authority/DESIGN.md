@@ -40,7 +40,7 @@ Sol to list the other problems seen.
 
 ## 0. Epic or General tasks?
 
-TODO (human review). Does this need a full Epic, or can it be 1–3 General tasks? If General: add the tasks to [TASKS.md](../../../TASKS.md), delete this folder, and stop here.
+**Full Epic** (Sol, 2026-10-03).
 
 ## 1. Player experience
 
@@ -84,7 +84,6 @@ TODO (human review).
 
 ## 11. Open questions
 
-- `OPEN:` Full Epic or general tasks? (section 0)
 - `OPEN:` What other Server-authority problems has Sol seen?
 - `OPEN:` Which Animate is live in the place (built-in Server-authority Animate, or one of the repo forks pasted in)?
 - `OPEN:` P1 direction: attribute-driven rendered-model animation, or keep mirroring tracks and fix it?
