@@ -13,3 +13,9 @@ Boomerang's record of going through the shared changelog (`C:\MY FILES\SharedDoc
 | CM-005 Lanes deleted only on explicit ask | Adapted | In ship merge, cull branches and GIT_WORKFLOW "Deleting lanes". Cull also spares `dev-soul` and other non-agent branches. |
 | CM-006 Never delete large things | Adapted | ⛔ section before "Start here". Limits: 155 files / 1 MB (`main` measured at ~465 files / 3.1 MB). |
 | CM-007 Always confirm large deletes | Adopted | Folded into the CM-006 section. |
+
+## 2026-10-03 · CM-008
+
+| Entry | Decision | What changed in Boomerang |
+|---|---|---|
+| CM-008 "Ship merge" renamed "ship lane" | Adopted | Renamed in CLAUDE.md (rule, trigger words, examples, reservation exception, lane deletion, AgentLog, "Start here" row) and `docs/GIT_WORKFLOW.md` (`## 5. Ship lane`, link `#5-ship-lane`). "ship merge" added first to "Nothing else is permission". TASKS.md had no mention. Historical notes left as they are. |
