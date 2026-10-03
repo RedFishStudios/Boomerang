@@ -11,6 +11,29 @@ Take new IDs from the `Next free ID` line in [TASKS.md](../../../TASKS.md), rese
 
 ## Review
 
+### T-069 · Walk/run animations far too fast under Server authority
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Client
+- **Epic:** Finalize Conversion to Server Authority
+- **Files:** `Client/Core/CharacterRenderController.luau`
+- **Follow-up to T-068**, approved by Sol (2026-10-03).
+
+**Problem / goal**
+After T-068, rendered models animate in Server mode, but walking/running plays far too fast. Cause: T-068's walk/run blend fed the speed in studs/s straight into the Animate's blend formula. The Animate first divides by `WALK_SPEED_SCALE` (16 for R15), so at WalkSpeed 16 the tracks played about 16x too fast. Idle was fine (speed 1, checked in Studio).
+
+**Done when**
+- [ ] Walking and running play at a natural speed in Server mode, for your own and other players' models.
+- [ ] Idle, jump and fall are unchanged.
+
+**Test in Studio**
+- Server mode, 2 players: walk and run (including any sprint or speed boosts) and watch both models' feet against the ground.
+
+**Notes**
+- Branch `agent/T-069-sa-walk-anim-speed`, lane `Github/Boomerang-lanes/docs-server-authority`.
+- `syncPoseAnimations` now divides the horizontal speed by `R15_WALK_SPEED_SCALE` (16) before the blend, matching the Animate's `onRunning`.
+- Not play-tested in motion: the agent's `Humanoid:Move` didn't move the character (the game's own movement controller likely overrides it), so the fix comes from the formula. Compiled with `luau-compile`.
+
 ## Backlog
 
 ## Done

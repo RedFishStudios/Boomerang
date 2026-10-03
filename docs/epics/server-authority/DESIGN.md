@@ -32,11 +32,19 @@ Problems Sol has seen with `AuthorityMode = Server`, plus the agent's diagnosis.
 
 **Decision (Sol, 2026-10-03):** drive the rendered model from the `pose` attribute. Task **T-068** (approved early, before the rest of the design). Removing the `AnimateReplication` remote and the duplicate Animate forks is a later follow-up.
 
-**Also seen (not fixed yet):** `ReplicatedStorage.Client.Core.CharacterController:197: attempt to perform arithmetic (add) on nil and Vector3` in `onPreSimulation`, every frame in Server mode. Candidate for P2.
+**Follow-up:** walk/run played far too fast after T-068 (speed not normalized by `WALK_SPEED_SCALE`); fixed in T-069.
 
 **To confirm in Studio:** play in Server mode; check the output for the two warnings above, and the class of `Animate` under the character. Check both your own character and another player's (they may break differently).
 
-### P2+. TODO (human review)
+### P2. `CharacterController:197` error every frame in Server mode
+
+`ReplicatedStorage.Client.Core.CharacterController:197: attempt to perform arithmetic (add) on nil and Vector3` in `onPreSimulation`, every frame (seen 2026-10-03). Not investigated yet.
+
+### P3. Jumping in the lobby is buggy in Server mode
+
+Reported by Sol (2026-10-03). Sol's guess: the jump is only enabled on the client, not the server, so the server (authoritative) and the client's prediction disagree. Not investigated yet.
+
+### P4+. TODO (human review)
 
 Sol to list the other problems seen.
 
