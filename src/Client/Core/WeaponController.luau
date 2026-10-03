@@ -19,6 +19,7 @@ local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
 local WeaponLibrary = require(ReplicatedStorage.Shared.Library.WeaponLibrary)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
+local BoomerangTuningLibrary = require(ReplicatedStorage.Shared.Library.BoomerangTuningLibrary)
 local RaycastsUtility = require(ReplicatedStorage.Shared.Utils.RaycastsUtility)
 local CharacterController = require(ReplicatedStorage.Client.Core.CharacterController)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
@@ -201,7 +202,7 @@ local function beginEquippedToolAim(): boolean
    local localCharacter = CharacterRenderController.getCharacterModel(localPlayer, true)
    if localCharacter and localCharacter:FindFirstChildOfClass("Humanoid") then
       AnimationController.playCoreAnimation(Players.LocalPlayer, "Charging")
-      localCharacter.Humanoid.WalkSpeed = GlobalConfig.AimingWalkSpeed
+      localCharacter.Humanoid.WalkSpeed = BoomerangTuningLibrary.getForAnyTool(equippedToolId, "AimWalkSpeed") -- // T-067
    end
 
    return true
@@ -564,7 +565,7 @@ local function renderAimArrows()
          local fullSize = aimArrowTemplate.PrimaryPart.Size
          local startSize = fullSize * .7
          local timeSinceAimStart = os.clock() - arrows.AimStart
-         local aimStrengthAlpha = math.clamp(timeSinceAimStart / GlobalConfig.AimFullStrength, 0, 1)
+         local aimStrengthAlpha = math.clamp(timeSinceAimStart / BoomerangTuningLibrary.getForAnyTool(GlobalConfig.ForceEquippedTool, "ChargeTime"), 0, 1) -- // T-066
          local currentSize = startSize:Lerp(fullSize, aimStrengthAlpha)
          arrows.Instance.PrimaryPart.Size = currentSize
          arrows.Instance.PrimaryPart.SurfaceGui.CanvasGroup.GroupTransparency = (1 - aimStrengthAlpha)

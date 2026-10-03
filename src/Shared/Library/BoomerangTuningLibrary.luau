@@ -26,11 +26,11 @@ local ATTRIBUTE_PREFIX = "BoomerangTuning"
 -- TYPES
 -------------------------------------------------------------------------------
 
-export type Setting = "ThrowSpeed" | "ThrowDistance" | "RecallSpeed" | "RecallAcceleration"
+export type Setting = "ThrowSpeed" | "ThrowDistance" | "RecallSpeed" | "RecallAcceleration" | "ChargeTime" | "AimWalkSpeed"
 
 type SettingInfo = {
 	Description: string,
-	getDefault: (toolData: Tools.Tool) -> number,
+	getDefault: (toolData: Tools.Tool?) -> number,
 }
 
 -------------------------------------------------------------------------------
@@ -38,7 +38,7 @@ type SettingInfo = {
 -------------------------------------------------------------------------------
 
 -- // Every tunable value, in display order. The names are what Cmdr shows (and autocompletes).
-BoomerangTuningLibrary.SETTING_ORDER = { "ThrowSpeed", "ThrowDistance", "RecallSpeed", "RecallAcceleration" } :: { Setting }
+BoomerangTuningLibrary.SETTING_ORDER = { "ThrowSpeed", "ThrowDistance", "RecallSpeed", "RecallAcceleration", "ChargeTime", "AimWalkSpeed" } :: { Setting }
 
 BoomerangTuningLibrary.SETTINGS = {
 	ThrowSpeed = {
@@ -63,6 +63,20 @@ BoomerangTuningLibrary.SETTINGS = {
 		Description = "how quickly a manual recall reaches its max speed (1 = normal recall)",
 		getDefault = function(_toolData)
 			return GlobalConfig.ManualRecallMomentumMultiplier
+		end,
+	},
+	-- // T-066: seconds of holding aim until the throw is at max power (also the aim arrow's fill time)
+	ChargeTime = {
+		Description = "seconds of charging until the throw is at max power",
+		getDefault = function(_toolData)
+			return GlobalConfig.AimFullStrength
+		end,
+	},
+	-- // T-067: the player's walk speed while aiming/charging a throw
+	AimWalkSpeed = {
+		Description = "player walk speed while aiming/charging (studs/s)",
+		getDefault = function(_toolData)
+			return GlobalConfig.AimingWalkSpeed
 		end,
 	},
 } :: { [Setting]: SettingInfo }
@@ -91,6 +105,15 @@ function BoomerangTuningLibrary.get(toolId: string, setting: Setting): number
 		return override
 	end
 	return BoomerangTuningLibrary.getDefault(toolId, setting)
+end
+
+-- // Like get, but safe for a tool id from the client or with no tool: falls back to the default for an unknown tool.
+-- // Only for settings whose default doesn't depend on the tool (ChargeTime, AimWalkSpeed).
+function BoomerangTuningLibrary.getForAnyTool(toolId: string?, setting: Setting): number
+	if toolId and Tools[toolId] and Tools[toolId].Boomerang then
+		return BoomerangTuningLibrary.get(toolId, setting)
+	end
+	return BoomerangTuningLibrary.SETTINGS[setting].getDefault(nil)
 end
 
 function BoomerangTuningLibrary.isOverridden(toolId: string, setting: Setting): boolean

@@ -114,49 +114,7 @@ Running `tune RecallAcceleration 5` throws an error. Find and fix it.
 
 ---
 
-### T-066 · Cmdr command: tune how fast a charge reaches max power
-- **Priority:** P0 (urgent, do today: Sol 2026-10-03)
-- **Owner:** Agent
-- **Area:** Server / Shared / Tooling
-- **Files:** `Server/Cmdr/Commands/`, `Shared/Library/BoomerangTuningLibrary`, `Shared/Constants/GlobalConfig.luau` (`AimFullStrength`?), `Client/Core/WeaponController.luau`
 
-**Problem / goal**
-Add a tuning command for the speed at which a throw charge becomes max powered. Follow the T-054 pattern (a new `boomerangsetting` value for `tune` / `resetboomerang`, replicated, session-only).
-
-**Open questions (ask Sol first)**
-- Per tool (like the other `tune` settings) or global?
-
-**Done when**
-- [ ] The charge-up time can be set, shown and reset from Cmdr and takes effect for every player.
-
-**Test in Studio**
-- Change the value, hold to charge on two clients: max power is reached faster/slower as set.
-
-**Notes**
-
----
-
-### T-067 · Cmdr command: tune the player's move speed while "standing still"
-- **Priority:** P0 (urgent, do today: Sol 2026-10-03)
-- **Owner:** Agent
-- **Area:** Server / Shared / Tooling
-- **Files:** `Server/Cmdr/Commands/`, `Shared/Constants/GlobalConfig.luau` (`AimingWalkSpeed`?), `Client/Core/WeaponController.luau`, `Server/Core/WeaponService.luau`
-
-**Problem / goal**
-Add a tuning command for the speed the player moves when they are "standing still" (Sol's wording). Same pattern as T-054: session-only, replicated, show/reset.
-
-**Open questions (ask Sol first)**
-- Does "standing still" mean the slowed walk while aiming/charging (`GlobalConfig.AimingWalkSpeed`, currently 30% of 16)? Or something else?
-
-**Done when**
-- [ ] The value can be set, shown and reset from Cmdr and takes effect for every player.
-
-**Test in Studio**
-- Change the value and aim/charge while moving: the player moves at the new speed.
-
-**Notes**
-
----
 
 
 ### T-005 · Convert space-indented files to tabs
@@ -187,6 +145,57 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-066 · Cmdr command: tune how fast a charge reaches max power
+- **Priority:** P0 (urgent, do today: Sol 2026-10-03)
+- **Owner:** Agent
+- **Area:** Server / Shared / Tooling
+- **Files:** `Server/Cmdr/Commands/`, `Shared/Library/BoomerangTuningLibrary`, `Shared/Constants/GlobalConfig.luau` (`AimFullStrength`?), `Client/Core/WeaponController.luau`
+
+**Problem / goal**
+Add a tuning command for the speed at which a throw charge becomes max powered. Follow the T-054 pattern (a new `boomerangsetting` value for `tune` / `resetboomerang`, replicated, session-only).
+
+**Decisions**
+- Per tool, like the other `tune` settings; value in seconds to full charge (Sol, 2026-10-03).
+
+**Done when**
+- [ ] The charge-up time can be set, shown and reset from Cmdr and takes effect for every player.
+
+**Test in Studio**
+- Change the value, hold to charge on two clients: max power is reached faster/slower as set.
+
+**Notes**
+- Branch `agent/T-066-T-067-tune-charge-aimwalk`, lane `Github/Boomerang-lanes/maintenance`.
+- New `tune` setting `ChargeTime` (default `GlobalConfig.AimFullStrength`, 2 s). The server uses it for the throw's power (`WeaponService` throw handler, per the thrown tool); the client uses it for the aim arrow's fill/shake. The arrow's length is unchanged. `resetboomerang ChargeTime` resets it.
+- Other players' aim arrows use `GlobalConfig.ForceEquippedTool`'s value (the client doesn't know their tool); fine while everyone uses the forced tool.
+- Not lint-checked.
+
+---
+
+### T-067 · Cmdr command: tune the player's move speed while "standing still"
+- **Priority:** P0 (urgent, do today: Sol 2026-10-03)
+- **Owner:** Agent
+- **Area:** Server / Shared / Tooling
+- **Files:** `Server/Cmdr/Commands/`, `Shared/Constants/GlobalConfig.luau` (`AimingWalkSpeed`?), `Client/Core/WeaponController.luau`, `Server/Core/WeaponService.luau`
+
+**Problem / goal**
+Add a tuning command for the speed the player moves when they are "standing still" (Sol's wording). Same pattern as T-054: session-only, replicated, show/reset.
+
+**Decisions**
+- "Standing still" = the slowed walk while aiming/charging (`GlobalConfig.AimingWalkSpeed`) (Sol, 2026-10-03).
+
+**Done when**
+- [ ] The value can be set, shown and reset from Cmdr and takes effect for every player.
+
+**Test in Studio**
+- Change the value and aim/charge while moving: the player moves at the new speed.
+
+**Notes**
+- Branch `agent/T-066-T-067-tune-charge-aimwalk`, lane `Github/Boomerang-lanes/maintenance`.
+- New `tune` setting `AimWalkSpeed` (studs/s, default `GlobalConfig.AimingWalkSpeed` = 4.8). Per held weapon like the other `tune` settings (say if it should be one value for all weapons). Used by the server's walk-speed tween on aim start and by the client's local walk speed. Applies from the next aim.
+- Not lint-checked.
+
+---
 
 ### T-062 · Boomerang snaps back when it flies too far; it should auto-return instead
 - **Priority:** P0 (urgent, do today: Sol 2026-10-03)

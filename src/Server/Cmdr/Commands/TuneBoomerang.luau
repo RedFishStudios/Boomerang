@@ -9,7 +9,7 @@ return {
 		{
 			Type = "boomerangsetting",
 			Name = "setting",
-			Description = "ThrowSpeed (studs/s), ThrowDistance (studs), RecallSpeed (studs/s, manual recall), RecallAcceleration (1 = normal recall).",
+			Description = "ThrowSpeed (studs/s), ThrowDistance (studs), RecallSpeed (studs/s, manual recall), RecallAcceleration (1 = normal recall), ChargeTime (seconds to max power), AimWalkSpeed (studs/s while aiming).",
 			Optional = true,
 		},
 		{

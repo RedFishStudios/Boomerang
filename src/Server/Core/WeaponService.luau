@@ -26,6 +26,7 @@ local GameStateLibrary= require(ReplicatedStorage.Shared.Library.GameStateLibrar
 local WeaponLibrary = require(ReplicatedStorage.Shared.Library.WeaponLibrary)
 local _ArenaService = require(ServerStorage.Server.Core.ArenaService)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
+local BoomerangTuningLibrary = require(ReplicatedStorage.Shared.Library.BoomerangTuningLibrary)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local _AnimationService = require(ServerStorage.Server.Core.AnimationService)
 local CharacterService = require(ServerStorage.Server.Core.CharacterService)
@@ -346,7 +347,7 @@ function WeaponService.init()
          tweenWalkSpeed(
             player,
             humanoid,
-            GlobalConfig.AimingWalkSpeed,
+            BoomerangTuningLibrary.getForAnyTool(if type(toolId) == "string" then toolId else nil, "AimWalkSpeed"), -- // T-067
             AIM_WALK_SPEED_TWEEN_DURATION,
             AIM_WALK_SPEED_TWEEN_EXPONENT,
             function()
@@ -363,8 +364,9 @@ function WeaponService.init()
    -- // Throw boomerang
    throwFunction.OnServerInvoke = function(player: Player, toolId: string, clientDirection: Vector3?, clientStartPosition: Vector3?)
       local timeSinceAiming = os.clock() - (aiming[player] or os.clock())
-      timeSinceAiming = math.clamp(timeSinceAiming, 0, GlobalConfig.AimFullStrength)
-      local aimStrengthAlpha = timeSinceAiming / GlobalConfig.AimFullStrength
+      local chargeTime = BoomerangTuningLibrary.getForAnyTool(if type(toolId) == "string" then toolId else nil, "ChargeTime") -- // T-066
+      timeSinceAiming = math.clamp(timeSinceAiming, 0, chargeTime)
+      local aimStrengthAlpha = timeSinceAiming / chargeTime
 
       aiming[player] = nil
       PlayerStatsLibrary.setStat(player, "CurrentMovementState", "FreeMotion", nil, nil)
