@@ -53,6 +53,132 @@ What's wrong, or what should exist.
 
 ## Ready
 
+> **Urgent: instructed by Sol to do today (2026-10-03).** T-062 to T-067 come before everything else in Ready.
+
+### T-062 · Boomerang snaps back when it flies too far; it should auto-return instead
+- **Priority:** P0 (urgent, do today: Sol 2026-10-03)
+- **Owner:** Agent
+- **Area:** Shared / Server / Client
+- **Files:** `Shared/Logics/WeaponLogics/Boomerang.luau` (`autoRecallOrDie`, recall/dead state), `Shared/Constants/GlobalConfig.luau` (`BoomerangRecallRange`)
+
+**Problem / goal**
+Right now the boomerang snaps back when it flies too far away. Instead, flying too far should **trigger a return**, not a snap.
+- Presumably it enters the dead state because of distance (out of range, per T-035).
+- If the dead state's "look for a place to land" makes it keep sliding further and further away, it should switch to an **automatic recall state** and fly back to the player on its own (no manual recall needed).
+
+**Done when**
+- [ ] No snap/teleport back at long range: the boomerang visibly flies back.
+- [ ] A dead/dying boomerang that keeps sliding away while looking for a landing spot auto-recalls to the player.
+
+**Test in Studio**
+- Throw at max distance in open space and toward slopes/edges where it would slide away: it never snaps back, and a sliding dead boomerang returns on its own.
+
+**Notes**
+
+---
+
+### T-063 · Boomerang doesn't auto-recall without a direct line of sight (it dies)
+- **Priority:** P0 (urgent, do today: Sol 2026-10-03)
+- **Owner:** Agent
+- **Area:** Shared / Server
+- **Files:** `Shared/Logics/WeaponLogics/Boomerang.luau` (`autoRecallOrDie`)
+
+**Problem / goal**
+If the boomerang has no direct line of sight to the player when it would start returning, it dies instead of auto-recalling. Line of sight shouldn't decide this: it should auto-recall (the recall already slides along obstructions).
+
+**Done when**
+- [ ] Within recall range but behind a wall/obstacle, the boomerang still auto-recalls.
+
+**Test in Studio**
+- Throw so it ends up around a corner or behind a pillar within range: it returns instead of dying.
+
+**Notes**
+- Likely related to T-064 and T-062: check them together.
+
+---
+
+### T-064 · After more than 3 bounces it won't auto-recall, even with line of sight and in range
+- **Priority:** P0 (urgent, do today: Sol 2026-10-03)
+- **Owner:** Agent
+- **Area:** Shared / Server
+- **Files:** `Shared/Logics/WeaponLogics/Boomerang.luau` (bounce count / `energy`, `autoRecallOrDie`)
+
+**Problem / goal**
+If the boomerang bounces more than 3 times, it doesn't auto-recall, even though it has a direct line of sight and is within the recall radius. It should auto-recall.
+
+**Done when**
+- [ ] A boomerang that has bounced 4+ times auto-recalls when in range with line of sight.
+
+**Test in Studio**
+- Throw in a small enclosed space so it bounces 4+ times near you: it returns.
+
+**Notes**
+
+---
+
+### T-065 · `tune RecallAcceleration 5` errors
+- **Priority:** P0 (urgent, do today: Sol 2026-10-03)
+- **Owner:** Agent
+- **Area:** Server / Shared / Tooling
+- **Files:** `Server/Cmdr/Commands/` (`tuneboomerang`), `Shared/Library/BoomerangTuningLibrary`, `Shared/Logics/WeaponLogics/Boomerang.luau` (follow-up to T-054)
+
+**Problem / goal**
+Running `tune RecallAcceleration 5` throws an error. Find and fix it.
+
+**Done when**
+- [ ] `tune RecallAcceleration 5` sets the value without errors and it takes effect on the next/current recall.
+
+**Test in Studio**
+- `tune RecallAcceleration 5`, throw and recall (manual and auto): no errors on server or client output.
+
+**Notes**
+
+---
+
+### T-066 · Cmdr command: tune how fast a charge reaches max power
+- **Priority:** P0 (urgent, do today: Sol 2026-10-03)
+- **Owner:** Agent
+- **Area:** Server / Shared / Tooling
+- **Files:** `Server/Cmdr/Commands/`, `Shared/Library/BoomerangTuningLibrary`, `Shared/Constants/GlobalConfig.luau` (`AimFullStrength`?), `Client/Core/WeaponController.luau`
+
+**Problem / goal**
+Add a tuning command for the speed at which a throw charge becomes max powered. Follow the T-054 pattern (a new `boomerangsetting` value for `tune` / `resetboomerang`, replicated, session-only).
+
+**Open questions (ask Sol first)**
+- Per tool (like the other `tune` settings) or global?
+
+**Done when**
+- [ ] The charge-up time can be set, shown and reset from Cmdr and takes effect for every player.
+
+**Test in Studio**
+- Change the value, hold to charge on two clients: max power is reached faster/slower as set.
+
+**Notes**
+
+---
+
+### T-067 · Cmdr command: tune the player's move speed while "standing still"
+- **Priority:** P0 (urgent, do today: Sol 2026-10-03)
+- **Owner:** Agent
+- **Area:** Server / Shared / Tooling
+- **Files:** `Server/Cmdr/Commands/`, `Shared/Constants/GlobalConfig.luau` (`AimingWalkSpeed`?), `Client/Core/WeaponController.luau`, `Server/Core/WeaponService.luau`
+
+**Problem / goal**
+Add a tuning command for the speed the player moves when they are "standing still" (Sol's wording). Same pattern as T-054: session-only, replicated, show/reset.
+
+**Open questions (ask Sol first)**
+- Does "standing still" mean the slowed walk while aiming/charging (`GlobalConfig.AimingWalkSpeed`, currently 30% of 16)? Or something else?
+
+**Done when**
+- [ ] The value can be set, shown and reset from Cmdr and takes effect for every player.
+
+**Test in Studio**
+- Change the value and aim/charge while moving: the player moves at the new speed.
+
+**Notes**
+
+---
+
 
 ### T-005 · Convert space-indented files to tabs
 - **Priority:** P2
