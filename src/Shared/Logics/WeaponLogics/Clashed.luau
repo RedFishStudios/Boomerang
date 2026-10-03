@@ -40,7 +40,6 @@ local CLASH_GROUND_RAY_DISTANCE = 10
 local CLASH_GROUND_MAX_IGNORE_ITERATIONS = 16
 local CLASH_GROUND_EPSILON = 0.02
 local CLASH_OBSTRUCTION_RADIUS = 2
-local CLASH_MAX_HORIZONTAL_DISTANCE = 100
 local DEAD_PICKUP_DISTANCE = 3
 local DEAD_OVERLAP_CHECK_SIZE = Vector3.new(0.01, 0.01, 0.01)
 local SNAPSHOT_PACKET_SIZE = 1 + 8 + 12 + 12 + 4 + 1 + 8
@@ -458,6 +457,7 @@ function ClashedWeaponLogic.applyClash(player: Player, clashedWeaponData: Clashe
 	local nextReplicationAt = 0
 	local fallSpeed = 0
 	local isGrounded = false
+	local noGroundSlideTime = 0 -- // How long it has kept sliding with nothing to land on (T-062)
 	local groundRaycastParams = RaycastParams.new()
 	groundRaycastParams.FilterType = Enum.RaycastFilterType.Exclude
 	groundRaycastParams.FilterDescendantsInstances = {clashedWeaponData.Host, Characters}
@@ -525,10 +525,12 @@ function ClashedWeaponLogic.applyClash(player: Player, clashedWeaponData: Clashe
 
 		if isGrounded or restingY or isBlocked then
 			speed = nextSpeed
+			noGroundSlideTime = 0
 		else
 			-- Nothing to land on: keep the frame's momentum instead of decelerating or falling
 			nextPosition, nextDirection =
 				resolveHorizontalMovement(currentPivot.Position, direction, speed * deltaTime, obstructionRaycastParams)
+			noGroundSlideTime += deltaTime
 		end
 
 		direction = nextDirection
@@ -554,11 +556,21 @@ function ClashedWeaponLogic.applyClash(player: Player, clashedWeaponData: Clashe
 			end
 		end
 
-		if clashedWeaponData.ClashOrigin and getHorizontalDistance(clashedWeaponData.ClashOrigin, nextPosition) > CLASH_MAX_HORIZONTAL_DISTANCE then
+		-- // T-062: it keeps sliding away looking for somewhere to land (or has slid too far): instead of snapping back to the
+		-- // player, it flies back on its own (automatic recall). Server decides; clients follow its Returning snapshot.
+		local slidTooFar = clashedWeaponData.ClashOrigin ~= nil
+			and getHorizontalDistance(clashedWeaponData.ClashOrigin, nextPosition) > GlobalConfig.DyingBoomerangMaxSlideDistance
+		if slidTooFar or noGroundSlideTime >= GlobalConfig.DyingBoomerangNoGroundRecallSeconds then
 			if isServer then
-				ClashedWeaponLogic.removeFromField(player, clashedWeaponData)
+				if ClashedWeaponLogic.onSlidingAway then
+					ClashedWeaponLogic.onSlidingAway(player, clashedWeaponData)
+				else
+					ClashedWeaponLogic.removeFromField(player, clashedWeaponData)
+				end
+				return
+			elseif slidTooFar then
+				return -- // Client: hold here until the server's Returning snapshot arrives
 			end
-			return
 		end
 
 		setWeaponCFrame(clashedWeaponData, (currentPivot - currentPivot.Position) + nextPosition, deltaTime)

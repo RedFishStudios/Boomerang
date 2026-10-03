@@ -55,27 +55,6 @@ What's wrong, or what should exist.
 
 > **Urgent: instructed by Sol to do today (2026-10-03).** T-062 to T-067 come before everything else in Ready.
 
-### T-062 · Boomerang snaps back when it flies too far; it should auto-return instead
-- **Priority:** P0 (urgent, do today: Sol 2026-10-03)
-- **Owner:** Agent
-- **Area:** Shared / Server / Client
-- **Files:** `Shared/Logics/WeaponLogics/Boomerang.luau` (`autoRecallOrDie`, recall/dead state), `Shared/Constants/GlobalConfig.luau` (`BoomerangRecallRange`)
-
-**Problem / goal**
-Right now the boomerang snaps back when it flies too far away. Instead, flying too far should **trigger a return**, not a snap.
-- Presumably it enters the dead state because of distance (out of range, per T-035).
-- If the dead state's "look for a place to land" makes it keep sliding further and further away, it should switch to an **automatic recall state** and fly back to the player on its own (no manual recall needed).
-
-**Done when**
-- [ ] No snap/teleport back at long range: the boomerang visibly flies back.
-- [ ] A dead/dying boomerang that keeps sliding away while looking for a landing spot auto-recalls to the player.
-
-**Test in Studio**
-- Throw at max distance in open space and toward slopes/edges where it would slide away: it never snaps back, and a sliding dead boomerang returns on its own.
-
-**Notes**
-
----
 
 ### T-063 · Boomerang doesn't auto-recall without a direct line of sight (it dies)
 - **Priority:** P0 (urgent, do today: Sol 2026-10-03)
@@ -206,6 +185,32 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ---
 
 ## In Progress
+
+### T-062 · Boomerang snaps back when it flies too far; it should auto-return instead
+- **Priority:** P0 (urgent, do today: Sol 2026-10-03)
+- **Owner:** Agent
+- **Area:** Shared / Server / Client
+- **Files:** `Shared/Logics/WeaponLogics/Boomerang.luau` (`autoRecallOrDie`, recall/dead state), `Shared/Constants/GlobalConfig.luau` (`BoomerangRecallRange`)
+
+**Problem / goal**
+Right now the boomerang snaps back when it flies too far away. Instead, flying too far should **trigger a return**, not a snap.
+- Presumably it enters the dead state because of distance (out of range, per T-035).
+- If the dead state's "look for a place to land" makes it keep sliding further and further away, it should switch to an **automatic recall state** and fly back to the player on its own (no manual recall needed).
+
+**Done when**
+- [ ] No snap/teleport back at long range: the boomerang visibly flies back.
+- [ ] A dead/dying boomerang that keeps sliding away while looking for a landing spot auto-recalls to the player.
+
+**Test in Studio**
+- Throw at max distance in open space and toward slopes/edges where it would slide away: it never snaps back, and a sliding dead boomerang returns on its own.
+
+**Notes**
+- Branch `agent/T-062-far-boomerang-returns`, lane `Github/Boomerang-lanes/maintenance`.
+- Cause: in the dying (Clashed) state, with nothing below to land on, the boomerang keeps its momentum and slides on; at 100 studs from where it started dying, `Clashed.luau` called `removeFromField` (an instant catch = the snap back). Landing inside a collidable part also snaps back (unchanged; tell Sol if that should return too).
+- Fix: the server now starts an automatic recall (`Boomerang.recallFromClashed`, no hold needed) via a new `ClashedWeaponLogic.onSlidingAway` hook when either: it has slid with nothing to land on for `GlobalConfig.DyingBoomerangNoGroundRecallSeconds` (0.75 s), or it's more than `GlobalConfig.DyingBoomerangMaxSlideDistance` (100 studs) from where it started dying. Clients follow the server's Returning snapshot (same path as `DyingBoomerangCanRecoverInRange`).
+- Not lint-checked (no Selene/luau-analyze here). Tune the two GlobalConfig values if it gives up too early or too late.
+
+---
 
 ## Review
 

@@ -1400,4 +1400,9 @@ ClashedWeaponLogic.onDyingInRange = function(player: Player, clashedWeaponData: 
    Boomerang.recallFromClashed(player, clashedWeaponData, false)
 end
 
+-- // Hook: a dying boomerang that keeps sliding away (nothing to land on, or slid too far) returns on its own (T-062)
+ClashedWeaponLogic.onSlidingAway = function(player: Player, clashedWeaponData: ClashedWeapons.Data)
+   Boomerang.recallFromClashed(player, clashedWeaponData, false)
+end
+
 return Boomerang

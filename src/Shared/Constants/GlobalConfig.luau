@@ -29,6 +29,10 @@ local GlobalConfig = {
    -- // If true, a boomerang that is losing momentum because it was out of range resumes returning automatically when it
    -- // comes back into range. Client wants false for now.
    DyingBoomerangCanRecoverInRange = false,
+   -- // A dying boomerang that keeps sliding away instead of landing returns to its player on its own (automatic recall,
+   -- // no manual recall needed) once either limit is hit (T-062). Previously it snapped straight back at 100 studs.
+   DyingBoomerangNoGroundRecallSeconds = 0.75, -- // Seconds of sliding with nothing below to land on
+   DyingBoomerangMaxSlideDistance = 100, -- // Studs (horizontal) from where it started dying
    -- // Manual recall of a dying/dead boomerang (held recall): slower, heavier, sluggish lift with a visual tilt
    ManualRecallMomentumMultiplier = 0.15, -- // How quickly it accelerates/turns toward the player (1 = normal recall)
    ManualRecallLiftRate = 2.5, -- // How quickly it rises to hand height (normal from-ground lift is 8)
