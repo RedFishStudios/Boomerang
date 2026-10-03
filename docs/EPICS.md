@@ -2,7 +2,7 @@
 
 An **Epic** is a large feature (e.g. the lobby or a quest system) that needs a lot of back-and-forth with Sol before and during implementation. Each Epic gets a folder with its design doc and its own task list. Everything smaller goes in the general task board, [TASKS.md](../TASKS.md).
 
-Task format, IDs and board rules: the "How to use this board" section of [TASKS.md](../TASKS.md). IDs are global: Epic tasks take their IDs from the same `Next free ID` line.
+Task format, IDs and board rules: the "How to use this board" section of [TASKS.md](../TASKS.md). IDs are global: Epic tasks take their IDs from the same `Next free ID` line, reserved on `main` first ([GIT_WORKFLOW.md](GIT_WORKFLOW.md#2-reserve-a-task-id-before-adding-any-new-task)).
 
 ---
 

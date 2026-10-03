@@ -8,7 +8,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
 - **These rules apply to every task list**, general and Epic. A task keeps its ID when it moves between lists (general ↔ Epic): move the whole block, don't copy it. Epic tasks have an `Epic:` line.
 - **Status is the section a task sits in.** To change it, move the whole task block to another section.
   `Ready` → `In Progress` → `Review` → `Done`. `Backlog` holds ideas that aren't ready to start.
-- **Adding a task:** copy the template below into `Backlog` or `Ready`, and give it the next free ID (`T-###`).
+- **Adding a task:** first **reserve** the next free ID (`T-###`) on `main` in the home repo ([docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md#2-reserve-a-task-id-before-adding-any-new-task)), then copy the template below into `Backlog` or `Ready` in your lane with that ID.
 - **Priority:** `P0` breaks the game or blocks the current milestone · `P1` needed for the current milestone · `P2` nice to have.
 - **Owner:** `Agent` (an agent can do it), `Sol` (design decisions or assets only Sol can provide), or `Sol → Agent` (Sol decides first, then an agent implements).
 - **Agents:**
