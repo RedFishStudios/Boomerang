@@ -55,13 +55,6 @@ What's wrong, or what should exist.
 
 > **Urgent: instructed by Sol to do today (2026-10-03).** T-062 to T-067 come before everything else in Ready.
 
-
-
-
-
-
-
-
 ### T-005 · Convert space-indented files to tabs
 - **Priority:** P2
 - **Owner:** Agent
@@ -91,244 +84,30 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
-### T-063 · Boomerang doesn't auto-recall without a direct line of sight (it dies)
-- **Priority:** P0 (urgent, do today: Sol 2026-10-03)
-- **Owner:** Agent
-- **Area:** Shared / Server
-- **Files:** `Shared/Logics/WeaponLogics/Boomerang.luau` (`autoRecallOrDie`)
-
-**Problem / goal**
-If the boomerang has no direct line of sight to the player when it would start returning, it dies instead of auto-recalling. Line of sight shouldn't decide this: it should auto-recall (the recall already slides along obstructions).
-
-**Done when**
-- [ ] Within recall range but behind a wall/obstacle, the boomerang still auto-recalls.
-
-**Test in Studio**
-- Throw so it ends up around a corner or behind a pillar within range: it returns instead of dying.
-
-**Notes**
-- Sol (2026-10-03): the rule is range **and** line of sight: auto-return only if within `BoomerangRecallRange` and nothing solid is between the boomerang and the player; otherwise it dies (drops). Blockers: anything the boomerang collides with; characters ignored.
-- Branch `agent/T-063-recall-line-of-sight` (stacked on `agent/T-065-tune-attribute-name`), lane `Github/Boomerang-lanes/maintenance`.
-- `Boomerang.autoRecallOrDie` now also needs `hasLineOfSightToPlayer` (a ray from the boomerang to the player's root using the projectile obstruction rules). Server and client both check; the server still decides death.
-- Sol (2026-10-03): `DyingBoomerangCanRecoverInRange` turned **on**, and it now needs line of sight too (`Clashed.luau`, same ray rule). A dying boomerang that comes back within range and in view of its player (including one that dropped because a wall blocked the view) flies back on its own. Test: throw so it drops behind a wall within range, then step into view while it's still sliding: it should return. Once fully dead (stopped), it stays dead.
-- Not lint-checked.
-- Likely related to T-064 and T-062: check them together.
-
----
-
-### T-065 · `tune RecallAcceleration 5` errors
-- **Priority:** P0 (urgent, do today: Sol 2026-10-03)
-- **Owner:** Agent
-- **Area:** Server / Shared / Tooling
-- **Files:** `Server/Cmdr/Commands/` (`tuneboomerang`), `Shared/Library/BoomerangTuningLibrary`, `Shared/Logics/WeaponLogics/Boomerang.luau` (follow-up to T-054)
-
-**Problem / goal**
-Running `tune RecallAcceleration 5` throws an error. Find and fix it.
-
-**Done when**
-- [ ] `tune RecallAcceleration 5` sets the value without errors and it takes effect on the next/current recall.
-
-**Test in Studio**
-- `tune RecallAcceleration 5`, throw and recall (manual and auto): no errors on server or client output.
-
-**Notes**
-- Branch `agent/T-065-tune-attribute-name` (stacked on `agent/T-066-T-067-tune-charge-aimwalk`), lane `Github/Boomerang-lanes/maintenance`.
-- Cause (client's server console): `Attribute name exceeds 50 character limit ("BoomerangTuning_ClassicBoomerang_RecallAcceleration")`, 51 characters. Every setting on every tool was fine except that one (Shuriken/Fan names are shorter).
-- Fix: attribute prefix shortened to `BT` (`BT_ClassicBoomerang_RecallAcceleration`, 38), plus an assert with a clear message if a future name goes over 50.
-- Not lint-checked.
-
----
-
-### T-066 · Cmdr command: tune how fast a charge reaches max power
-- **Priority:** P0 (urgent, do today: Sol 2026-10-03)
-- **Owner:** Agent
-- **Area:** Server / Shared / Tooling
-- **Files:** `Server/Cmdr/Commands/`, `Shared/Library/BoomerangTuningLibrary`, `Shared/Constants/GlobalConfig.luau` (`AimFullStrength`?), `Client/Core/WeaponController.luau`
-
-**Problem / goal**
-Add a tuning command for the speed at which a throw charge becomes max powered. Follow the T-054 pattern (a new `boomerangsetting` value for `tune` / `resetboomerang`, replicated, session-only).
-
-**Decisions**
-- Per tool, like the other `tune` settings; value in seconds to full charge (Sol, 2026-10-03).
-
-**Done when**
-- [ ] The charge-up time can be set, shown and reset from Cmdr and takes effect for every player.
-
-**Test in Studio**
-- Change the value, hold to charge on two clients: max power is reached faster/slower as set.
-
-**Notes**
-- Branch `agent/T-066-T-067-tune-charge-aimwalk`, lane `Github/Boomerang-lanes/maintenance`.
-- New `tune` setting `ChargeTime` (default `GlobalConfig.AimFullStrength`, 2 s). The server uses it for the throw's power (`WeaponService` throw handler, per the thrown tool); the client uses it for the aim arrow's fill/shake. The arrow's length is unchanged. `resetboomerang ChargeTime` resets it.
-- Other players' aim arrows use `GlobalConfig.ForceEquippedTool`'s value (the client doesn't know their tool); fine while everyone uses the forced tool.
-- Not lint-checked.
-
----
-
-### T-067 · Cmdr command: tune the player's move speed while "standing still"
-- **Priority:** P0 (urgent, do today: Sol 2026-10-03)
-- **Owner:** Agent
-- **Area:** Server / Shared / Tooling
-- **Files:** `Server/Cmdr/Commands/`, `Shared/Constants/GlobalConfig.luau` (`AimingWalkSpeed`?), `Client/Core/WeaponController.luau`, `Server/Core/WeaponService.luau`
-
-**Problem / goal**
-Add a tuning command for the speed the player moves when they are "standing still" (Sol's wording). Same pattern as T-054: session-only, replicated, show/reset.
-
-**Decisions**
-- "Standing still" = the slowed walk while aiming/charging (`GlobalConfig.AimingWalkSpeed`) (Sol, 2026-10-03).
-
-**Done when**
-- [ ] The value can be set, shown and reset from Cmdr and takes effect for every player.
-
-**Test in Studio**
-- Change the value and aim/charge while moving: the player moves at the new speed.
-
-**Notes**
-- Branch `agent/T-066-T-067-tune-charge-aimwalk`, lane `Github/Boomerang-lanes/maintenance`.
-- New `tune` setting `AimWalkSpeed` (studs/s, default `GlobalConfig.AimingWalkSpeed` = 4.8). Per held weapon like the other `tune` settings (say if it should be one value for all weapons). Used by the server's walk-speed tween on aim start and by the client's local walk speed. Applies from the next aim.
-- Not lint-checked.
-
----
-
-### T-062 · Boomerang snaps back when it flies too far; it should auto-return instead
-- **Priority:** P0 (urgent, do today: Sol 2026-10-03)
-- **Owner:** Agent
-- **Area:** Shared / Server / Client
-- **Files:** `Shared/Logics/WeaponLogics/Boomerang.luau` (`autoRecallOrDie`, recall/dead state), `Shared/Constants/GlobalConfig.luau` (`BoomerangRecallRange`)
-
-**Problem / goal**
-Right now the boomerang snaps back when it flies too far away. Instead, flying too far should **trigger a return**, not a snap.
-- Presumably it enters the dead state because of distance (out of range, per T-035).
-- If the dead state's "look for a place to land" makes it keep sliding further and further away, it should switch to an **automatic recall state** and fly back to the player on its own (no manual recall needed).
-
-**Done when**
-- [ ] No snap/teleport back at long range: the boomerang visibly flies back.
-- [ ] A dead/dying boomerang that keeps sliding away while looking for a landing spot auto-recalls to the player.
-
-**Test in Studio**
-- Throw at max distance in open space and toward slopes/edges where it would slide away: it never snaps back, and a sliding dead boomerang returns on its own.
-
-**Notes**
-- Branch `agent/T-062-far-boomerang-returns`, lane `Github/Boomerang-lanes/maintenance`.
-- Cause: in the dying (Clashed) state, with nothing below to land on, the boomerang keeps its momentum and slides on; at 100 studs from where it started dying, `Clashed.luau` called `removeFromField` (an instant catch = the snap back). Landing inside a collidable part also snaps back (unchanged). Sol (2026-10-03): to discuss later; flying back from inside a part would collide with it, so collision handling needs deciding first.
-- Fix: the server now starts an automatic recall (`Boomerang.recallFromClashed`, no hold needed) via a new `ClashedWeaponLogic.onSlidingAway` hook when either: it has slid with nothing to land on for `GlobalConfig.DyingBoomerangNoGroundRecallSeconds` (0.75 s), or it's more than `GlobalConfig.DyingBoomerangMaxSlideDistance` (100 studs) from where it started dying. Clients follow the server's Returning snapshot (same path as `DyingBoomerangCanRecoverInRange`).
-- Not lint-checked (no Selene/luau-analyze here). Tune the two GlobalConfig values if it gives up too early or too late.
-
----
-
-### T-058 · Put the Group Rewards chest in the lobby
+### T-060 · Bug: aim arrow stays visible while not aiming
 - **Priority:** P1
 - **Owner:** Agent
-- **Area:** Build (Studio)
-- **Files:** Studio: `workspace.Lobby` (place-only, not in the repo)
+- **Area:** Client / Weapons
+- **Files:** `Client/Core/WeaponController.luau` (aim arrow), `Shared/Library/PlayerStatsLibrary.luau` (`CurrentMovementState` "Aiming"), `Server/Core/WeaponService.luau`
 
 **Problem / goal**
-The Group Rewards back-end is done (T-045: `GroupRewardService` + `GroupMembershipService`), but there's no chest in the lobby, so players can't use it. Place a physical Group Rewards chest in the lobby as a lobby station (see `docs/LOBBY_STATIONS.md`): a chest model on a glowing pad with a "GROUP REWARDS" title, per `docs/LOBBY_SPEC.md` (social/reward zone, visually prominent).
+Sometimes the aim arrow stays visible while the player isn't otherwise aiming: they walk at normal speed instead of the slow aiming speed. Often happens after throwing a boomerang. Likely the arrow's visibility and the aiming movement state are cleared by different paths (e.g. throw, release, recall, weapon lock, death, the stats reset on `LobbyVoting`) and one of them misses the other. Find the cause and make both follow one source of truth.
 
 **Done when**
-- [ ] A chest Model under `workspace.Lobby`, tagged `LobbyStation`, with `StationId = "GroupRewards"`, `Title = "GROUP REWARDS"`, and a child part named `Pad` (glowing ring) under it.
-- [ ] Prompt, title and pad sit sensibly on the model (set `PromptPart` / `TitleHeight` / `MaxDistance` attributes if the defaults don't fit).
-- [ ] `workspace.Lobby.TestLobbyStation` (T-047 test object) is removed if it's still there.
+- [ ] The arrow is only visible while the player is in the aiming state, including after throws, recalls, deaths and round changes.
 
 **Test in Studio**
-- Walk up to the chest: title, glowing pad, "Claim" prompt (or "Join group" with `simulategroupmember me nonmember`).
-- Claim: popup, Currency added, prompt hides, pad dims. `resetgroupreward me` makes it claimable again.
+- Throw repeatedly (fast taps, hold-and-release, throw right as the boomerang returns, throw during weapon lock): the arrow never stays without the slow aiming walk.
 
 **Notes**
-- Agents: only edit the place through the Studio MCP when asked; never save or publish it (Sol does).
-- Sol (2026-10-02): use a placeholder model; the real model is T-061.
-- Done in "Boomerang [Development]" via the Studio MCP (not saved; **Sol saves the place**): `workspace.Lobby.GroupRewardsChest`, a placeholder wooden chest (Base, Lid, gold bands, Lock) on a purple neon `Pad` ring, facing the spawn, where the T-047 test station was (about 30 studs from spawn). Attributes: `StationId = "GroupRewards"`, `Title = "GROUP REWARDS"`, `MaxDistance = 12`. `TestLobbyStation` removed. Move it if you'd like it elsewhere: the station follows the model.
-
----
-
-### T-057 · OptOut player state + Cmdr command
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Server / Rounds
-- **Files:** `Server/Core/PlayerSessionService.luau` (new), `Server/Core/SpawnService.luau`, `Server/Cmdr/Commands/OptOut.luau` + `OptOutServer.luau` (new)
-
-**Problem / goal**
-Server-only, non-replicated per-session `OptOut` state: the player doesn't take part in rounds and isn't added when a round starts. Cmdr `optout [bool]` toggles it on the sender (no value = true).
-
-**Done when**
-- [ ] `optout` / `optout true` keeps you out of the next round; `optout false` lets you back in.
-
-**Test in Studio**
-- Two players (local server). Player A runs `optout`; when the next round starts, A stays in the lobby and B plays.
-- Try a respawn / late-join gamemode: A still doesn't spawn in.
-- `optout false`, then the next round includes A.
-
-**Notes**
-- New `PlayerSessionService` holds per-session server-only data (cleared on leave). Starts false on join. Fires `OptOutChangedTasks`.
-- `SpawnService`: opted-out players are skipped when the round starts and `canSpawnIntoRound` returns false for them.
-- Turning it on mid-round doesn't remove the player now; they just can't respawn. Still counted in voting and `PlayersRequiredToStart` (open questions for Sol). Gamemode logic that loops `Players:GetPlayers()` (e.g. team setup) wasn't changed.
-
----
-
-### T-048 · Track more player stats
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Server / Data
-- **Files:** `Shared/Data/ProfileTemplate.luau`, `Server/Core/PlayerStatService.luau` (or a new `StatsService`), `CombatLibrary`, `AbilityService`, `PickupService`, `RoundCyclingService`
-
-**Problem / goal**
-Save these lifetime stats in the profile (only Eliminations exists today):
-- times each ability was used (e.g. Stab, Dash) and each pickup was acquired (e.g. FireBoomerang): per id
-- time played
-- rounds played (only rounds the player was in from start to finish)
-- rounds won
-- eliminations (already tracked as `Elims`)
-- **defeats** (deaths). Never use the word "kill" in stat names or player-facing text (see CLAUDE.md).
-Use `EconomyService`-style owner functions so other code doesn't write these fields directly.
-
-**Decisions (Sol, 2026-10-01)**
-- `Losses` is not tracked (stays in the profile, unused). Track **Defeats** instead: eliminated by another player.
-- Team wins count for every member of the winning team; ties count for nobody.
-- Saved only for now; T-032 (leaderboards) will display them.
-
-**Done when**
-- [ ] New fields in `ProfileTemplate` (type + `get()`), filled by `Reconcile` for existing profiles.
-- [ ] Each stat increments in exactly one place; time played is saved on leave/autosave.
-- [ ] A Cmdr command shows a player's stats (for testing).
-
-**Notes**
-- New `Server/Core/LifetimeStatsService.luau` owns all lifetime stats; nothing else writes them. The `Elims` increment moved there from `CombatService`.
-- New profile fields (filled by `Reconcile`): `Defeats`, `RoundsPlayed`, `TimePlayed` (seconds), `AbilityUses` and `PickupsAcquired` (id -> count). `Wins` existed but was never written; it's tracked now.
-- Elims/Defeats: from `CombatLibrary.PlayerKilledPlayerTasks`, so environment deaths with no attacker don't count as defeats.
-- Rounds played: players in the server when the round started and still there when it finishes. Late joiners (e.g. Assassin) don't get it, but can still get a win.
-- Pickups: only real pickups in the world, via a new `PickupService.PickupAcquiredTasks`. Cmdr/chat grants don't count. Abilities: every successful use (`SharedTasks.PlayerUsedAbility`).
-- Time played: added to the profile every 60 s, plus on leave through a new `PlayerDataService.ProfileRemovingTasks` that runs before the session ends (the existing `ProfileRemovedTasks` runs after, when writes are no longer saved).
-- Cmdr: `showstats <player>` (alias `stats`).
-- Test in Studio: play a few rounds (FFA and team), eliminate and get eliminated, dash/stab, grab pickups, then `showstats`. Rejoin and check the values survived, including time played.
-
----
-
-### T-009 · Daily rewards: grant item rewards and notify the player
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Server / Client / GUI
-- **Files:** `Server/Core/DailyRewardsService.luau`, `Shared/Referential/DailyRewards.luau`, `Client/UI/Gui/DailyClaims/`, `Client/UI/Gui/ItemAcquired/`
-
-**Problem / goal**
-Claiming a login reward must grant it and tell the player.
-- Item rewards: `DailyRewardsService` still has `-- TODO: grant player the item`. Grant them with `ItemService.grantItem` (T-006).
-- Notification: show the reward on the client with the ItemAcquired popup (items) and a currency popup/message (currency). Use the existing ItemAcquired GUI; final visuals are Sol's (T-021).
-- `DailyRewards` points at the `ExampleItem` placeholders; keep them and mark them `-- TODO:RELEASE placeholder` if they aren't already.
-
-**Done when**
-- [x] Item rewards are added to the Inventory; currency rewards keep working.
-- [x] The player sees a notification for every claimed reward (item and currency).
-
-**Test in Studio**
-- Claim on day 1 (item) and day 2 (currency) (use Cmdr or reset `LastClaim` in Studio data): each grant shows a popup and is saved.
-
-**Notes**
-- Server: `DailyRewardsService` grants the reward first (`ItemService.grantItem` / `EconomyService.addCurrency`) and only then advances the streak, so a misconfigured reward doesn't use up the claim. The remote now returns `true, claimedDay`.
-- Client: item rewards show the ItemAcquired popup through ShopController's existing Inventory listener; currency rewards show "Daily reward claimed! +N Currency" from `DailyClaims`.
-- `TODO:RELEASE placeholder` added to the 4 `ExampleItem`/`ExampleWeapon` rewards in `DailyRewards.luau`.
-- Play-tested in Studio: day-1 claim granted ExampleItem1 once and returned day 1; a second claim the same day was refused; the popup GUI was enabled; no client/server errors from these modules. The day-2 currency claim wasn't exercised (needs a day to pass or a reset of `LastClaim`).
-- Cmdr `resetdaily <players> [resetStreak]` (alias `resetdailyclaim`): makes the next claim available now, as if a day had passed (streak kept). `resetdaily me true` also resets the streak to day 1. Backed by `DailyRewardsService.makeClaimable` / `getNextDay`. Reopen the Daily Claims GUI after running it to see the change.
-- Test in Studio: claim (day 1 item) → `resetdaily me` → claim again (day 2 currency popup) → rejoin and check both saved.
+- Branch `agent/T-060-aim-arrow-visibility`, lane `Github/Boomerang-lanes/maintenance`.
+- Causes found (client and server aim could disagree, and the arrow only listened to the server):
+  - When the client dropped its aim without throwing (weapon locked mid-aim, throw refused while locked, round change to LobbyVoting), the server was never told, so it kept the player "aiming".
+  - A "stop aiming" from the server was dropped while the weapon was locked, so the arrow stayed.
+  - LobbyVoting cleared the local aim but not the arrow.
+  - A late "aiming" confirmation from the server could re-create the arrow after the player had already released.
+- Fix: the local arrow now follows the local aim (`setLocalAimState(false)` always removes it). A new `WeaponAimCancel` remote tells the server when the client leaves aim without a throw; the server's new `cancelAiming` (also called by `applyLockOnWeapon`) clears its aim, restores walk speed and tells every client to hide the arrow. A late aim confirmation for an aim the player already left is answered with a cancel instead of an arrow.
+- Not lint-checked.
 
 ---
 
@@ -387,24 +166,6 @@ Possible directions: a round id / token checked after every yield; one owner for
 
 ---
 
-### T-060 · Bug: aim arrow stays visible while not aiming
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Client / Weapons
-- **Files:** `Client/Core/WeaponController.luau` (aim arrow), `Shared/Library/PlayerStatsLibrary.luau` (`CurrentMovementState` "Aiming"), `Server/Core/WeaponService.luau`
-
-**Problem / goal**
-Sometimes the aim arrow stays visible while the player isn't otherwise aiming: they walk at normal speed instead of the slow aiming speed. Often happens after throwing a boomerang. Likely the arrow's visibility and the aiming movement state are cleared by different paths (e.g. throw, release, recall, weapon lock, death, the stats reset on `LobbyVoting`) and one of them misses the other. Find the cause and make both follow one source of truth.
-
-**Done when**
-- [ ] The arrow is only visible while the player is in the aiming state, including after throws, recalls, deaths and round changes.
-
-**Test in Studio**
-- Throw repeatedly (fast taps, hold-and-release, throw right as the boomerang returns, throw during weapon lock): the arrow never stays without the slow aiming walk.
-
-**Notes**
-
----
 
 ### T-052 · Close Cmdr before public release
 - **Priority:** P2 now · **RELEASE BLOCKER:** must be done before the game's public release
@@ -560,7 +321,6 @@ The shop GUI still has placeholder/progress visuals. Sol finishes the assets.
 
 ---
 
-
 ### T-037 · Player HUD buttons
 - **Priority:** P1
 - **Owner:** Sol → Agent
@@ -606,6 +366,256 @@ Players enter a code to receive a reward. Server: validates the code (case-insen
 ---
 
 ## Done
+
+### T-062 · Boomerang snaps back when it flies too far; it should auto-return instead
+- **Priority:** P0 (urgent, do today: Sol 2026-10-03)
+- **Owner:** Agent
+- **Area:** Shared / Server / Client
+- **Files:** `Shared/Logics/WeaponLogics/Boomerang.luau` (`autoRecallOrDie`, recall/dead state), `Shared/Constants/GlobalConfig.luau` (`BoomerangRecallRange`)
+
+**Problem / goal**
+Right now the boomerang snaps back when it flies too far away. Instead, flying too far should **trigger a return**, not a snap.
+- Presumably it enters the dead state because of distance (out of range, per T-035).
+- If the dead state's "look for a place to land" makes it keep sliding further and further away, it should switch to an **automatic recall state** and fly back to the player on its own (no manual recall needed).
+
+**Done when**
+- [ ] No snap/teleport back at long range: the boomerang visibly flies back.
+- [ ] A dead/dying boomerang that keeps sliding away while looking for a landing spot auto-recalls to the player.
+
+**Test in Studio**
+- Throw at max distance in open space and toward slopes/edges where it would slide away: it never snaps back, and a sliding dead boomerang returns on its own.
+
+**Notes**
+- Branch `agent/T-062-far-boomerang-returns`, lane `Github/Boomerang-lanes/maintenance`.
+- Cause: in the dying (Clashed) state, with nothing below to land on, the boomerang keeps its momentum and slides on; at 100 studs from where it started dying, `Clashed.luau` called `removeFromField` (an instant catch = the snap back). Landing inside a collidable part also snaps back (unchanged). Sol (2026-10-03): to discuss later; flying back from inside a part would collide with it, so collision handling needs deciding first.
+- Fix: the server now starts an automatic recall (`Boomerang.recallFromClashed`, no hold needed) via a new `ClashedWeaponLogic.onSlidingAway` hook when either: it has slid with nothing to land on for `GlobalConfig.DyingBoomerangNoGroundRecallSeconds` (0.75 s), or it's more than `GlobalConfig.DyingBoomerangMaxSlideDistance` (100 studs) from where it started dying. Clients follow the server's Returning snapshot (same path as `DyingBoomerangCanRecoverInRange`).
+- Not lint-checked (no Selene/luau-analyze here). Tune the two GlobalConfig values if it gives up too early or too late.
+- Passed Sol's Studio test (2026-10-03).
+
+---
+
+### T-063 · Boomerang doesn't auto-recall without a direct line of sight (it dies)
+- **Priority:** P0 (urgent, do today: Sol 2026-10-03)
+- **Owner:** Agent
+- **Area:** Shared / Server
+- **Files:** `Shared/Logics/WeaponLogics/Boomerang.luau` (`autoRecallOrDie`)
+
+**Problem / goal**
+If the boomerang has no direct line of sight to the player when it would start returning, it dies instead of auto-recalling. Line of sight shouldn't decide this: it should auto-recall (the recall already slides along obstructions).
+
+**Done when**
+- [ ] Within recall range but behind a wall/obstacle, the boomerang still auto-recalls.
+
+**Test in Studio**
+- Throw so it ends up around a corner or behind a pillar within range: it returns instead of dying.
+
+**Notes**
+- Sol (2026-10-03): the rule is range **and** line of sight: auto-return only if within `BoomerangRecallRange` and nothing solid is between the boomerang and the player; otherwise it dies (drops). Blockers: anything the boomerang collides with; characters ignored.
+- Branch `agent/T-063-recall-line-of-sight` (stacked on `agent/T-065-tune-attribute-name`), lane `Github/Boomerang-lanes/maintenance`.
+- `Boomerang.autoRecallOrDie` now also needs `hasLineOfSightToPlayer` (a ray from the boomerang to the player's root using the projectile obstruction rules). Server and client both check; the server still decides death.
+- Sol (2026-10-03): `DyingBoomerangCanRecoverInRange` turned **on**, and it now needs line of sight too (`Clashed.luau`, same ray rule). A dying boomerang that comes back within range and in view of its player (including one that dropped because a wall blocked the view) flies back on its own. Test: throw so it drops behind a wall within range, then step into view while it's still sliding: it should return. Once fully dead (stopped), it stays dead.
+- Not lint-checked.
+- Likely related to T-064 and T-062: check them together.
+- Passed Sol's Studio test (2026-10-03).
+
+---
+
+### T-065 · `tune RecallAcceleration 5` errors
+- **Priority:** P0 (urgent, do today: Sol 2026-10-03)
+- **Owner:** Agent
+- **Area:** Server / Shared / Tooling
+- **Files:** `Server/Cmdr/Commands/` (`tuneboomerang`), `Shared/Library/BoomerangTuningLibrary`, `Shared/Logics/WeaponLogics/Boomerang.luau` (follow-up to T-054)
+
+**Problem / goal**
+Running `tune RecallAcceleration 5` throws an error. Find and fix it.
+
+**Done when**
+- [ ] `tune RecallAcceleration 5` sets the value without errors and it takes effect on the next/current recall.
+
+**Test in Studio**
+- `tune RecallAcceleration 5`, throw and recall (manual and auto): no errors on server or client output.
+
+**Notes**
+- Branch `agent/T-065-tune-attribute-name` (stacked on `agent/T-066-T-067-tune-charge-aimwalk`), lane `Github/Boomerang-lanes/maintenance`.
+- Cause (client's server console): `Attribute name exceeds 50 character limit ("BoomerangTuning_ClassicBoomerang_RecallAcceleration")`, 51 characters. Every setting on every tool was fine except that one (Shuriken/Fan names are shorter).
+- Fix: attribute prefix shortened to `BT` (`BT_ClassicBoomerang_RecallAcceleration`, 38), plus an assert with a clear message if a future name goes over 50.
+- Not lint-checked.
+- Passed Sol's Studio test (2026-10-03).
+
+---
+
+### T-066 · Cmdr command: tune how fast a charge reaches max power
+- **Priority:** P0 (urgent, do today: Sol 2026-10-03)
+- **Owner:** Agent
+- **Area:** Server / Shared / Tooling
+- **Files:** `Server/Cmdr/Commands/`, `Shared/Library/BoomerangTuningLibrary`, `Shared/Constants/GlobalConfig.luau` (`AimFullStrength`?), `Client/Core/WeaponController.luau`
+
+**Problem / goal**
+Add a tuning command for the speed at which a throw charge becomes max powered. Follow the T-054 pattern (a new `boomerangsetting` value for `tune` / `resetboomerang`, replicated, session-only).
+
+**Decisions**
+- Per tool, like the other `tune` settings; value in seconds to full charge (Sol, 2026-10-03).
+
+**Done when**
+- [ ] The charge-up time can be set, shown and reset from Cmdr and takes effect for every player.
+
+**Test in Studio**
+- Change the value, hold to charge on two clients: max power is reached faster/slower as set.
+
+**Notes**
+- Branch `agent/T-066-T-067-tune-charge-aimwalk`, lane `Github/Boomerang-lanes/maintenance`.
+- New `tune` setting `ChargeTime` (default `GlobalConfig.AimFullStrength`, 2 s). The server uses it for the throw's power (`WeaponService` throw handler, per the thrown tool); the client uses it for the aim arrow's fill/shake. The arrow's length is unchanged. `resetboomerang ChargeTime` resets it.
+- Other players' aim arrows use `GlobalConfig.ForceEquippedTool`'s value (the client doesn't know their tool); fine while everyone uses the forced tool.
+- Not lint-checked.
+- Passed Sol's Studio test (2026-10-03).
+
+---
+
+### T-067 · Cmdr command: tune the player's move speed while "standing still"
+- **Priority:** P0 (urgent, do today: Sol 2026-10-03)
+- **Owner:** Agent
+- **Area:** Server / Shared / Tooling
+- **Files:** `Server/Cmdr/Commands/`, `Shared/Constants/GlobalConfig.luau` (`AimingWalkSpeed`?), `Client/Core/WeaponController.luau`, `Server/Core/WeaponService.luau`
+
+**Problem / goal**
+Add a tuning command for the speed the player moves when they are "standing still" (Sol's wording). Same pattern as T-054: session-only, replicated, show/reset.
+
+**Decisions**
+- "Standing still" = the slowed walk while aiming/charging (`GlobalConfig.AimingWalkSpeed`) (Sol, 2026-10-03).
+
+**Done when**
+- [ ] The value can be set, shown and reset from Cmdr and takes effect for every player.
+
+**Test in Studio**
+- Change the value and aim/charge while moving: the player moves at the new speed.
+
+**Notes**
+- Branch `agent/T-066-T-067-tune-charge-aimwalk`, lane `Github/Boomerang-lanes/maintenance`.
+- New `tune` setting `AimWalkSpeed` (studs/s, default `GlobalConfig.AimingWalkSpeed` = 4.8). Per held weapon like the other `tune` settings (say if it should be one value for all weapons). Used by the server's walk-speed tween on aim start and by the client's local walk speed. Applies from the next aim.
+- Not lint-checked.
+- Passed Sol's Studio test (2026-10-03).
+
+---
+
+### T-058 · Put the Group Rewards chest in the lobby
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Build (Studio)
+- **Files:** Studio: `workspace.Lobby` (place-only, not in the repo)
+
+**Problem / goal**
+The Group Rewards back-end is done (T-045: `GroupRewardService` + `GroupMembershipService`), but there's no chest in the lobby, so players can't use it. Place a physical Group Rewards chest in the lobby as a lobby station (see `docs/LOBBY_STATIONS.md`): a chest model on a glowing pad with a "GROUP REWARDS" title, per `docs/LOBBY_SPEC.md` (social/reward zone, visually prominent).
+
+**Done when**
+- [ ] A chest Model under `workspace.Lobby`, tagged `LobbyStation`, with `StationId = "GroupRewards"`, `Title = "GROUP REWARDS"`, and a child part named `Pad` (glowing ring) under it.
+- [ ] Prompt, title and pad sit sensibly on the model (set `PromptPart` / `TitleHeight` / `MaxDistance` attributes if the defaults don't fit).
+- [ ] `workspace.Lobby.TestLobbyStation` (T-047 test object) is removed if it's still there.
+
+**Test in Studio**
+- Walk up to the chest: title, glowing pad, "Claim" prompt (or "Join group" with `simulategroupmember me nonmember`).
+- Claim: popup, Currency added, prompt hides, pad dims. `resetgroupreward me` makes it claimable again.
+
+**Notes**
+- Agents: only edit the place through the Studio MCP when asked; never save or publish it (Sol does).
+- Sol (2026-10-02): use a placeholder model; the real model is T-061.
+- Done in "Boomerang [Development]" via the Studio MCP (not saved; **Sol saves the place**): `workspace.Lobby.GroupRewardsChest`, a placeholder wooden chest (Base, Lid, gold bands, Lock) on a purple neon `Pad` ring, facing the spawn, where the T-047 test station was (about 30 studs from spawn). Attributes: `StationId = "GroupRewards"`, `Title = "GROUP REWARDS"`, `MaxDistance = 12`. `TestLobbyStation` removed. Move it if you'd like it elsewhere: the station follows the model.
+- Passed Sol's Studio test (2026-10-03).
+
+---
+
+### T-057 · OptOut player state + Cmdr command
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Server / Rounds
+- **Files:** `Server/Core/PlayerSessionService.luau` (new), `Server/Core/SpawnService.luau`, `Server/Cmdr/Commands/OptOut.luau` + `OptOutServer.luau` (new)
+
+**Problem / goal**
+Server-only, non-replicated per-session `OptOut` state: the player doesn't take part in rounds and isn't added when a round starts. Cmdr `optout [bool]` toggles it on the sender (no value = true).
+
+**Done when**
+- [ ] `optout` / `optout true` keeps you out of the next round; `optout false` lets you back in.
+
+**Test in Studio**
+- Two players (local server). Player A runs `optout`; when the next round starts, A stays in the lobby and B plays.
+- Try a respawn / late-join gamemode: A still doesn't spawn in.
+- `optout false`, then the next round includes A.
+
+**Notes**
+- New `PlayerSessionService` holds per-session server-only data (cleared on leave). Starts false on join. Fires `OptOutChangedTasks`.
+- `SpawnService`: opted-out players are skipped when the round starts and `canSpawnIntoRound` returns false for them.
+- Turning it on mid-round doesn't remove the player now; they just can't respawn. Still counted in voting and `PlayersRequiredToStart` (open questions for Sol). Gamemode logic that loops `Players:GetPlayers()` (e.g. team setup) wasn't changed.
+- Passed Sol's Studio test (2026-10-03).
+
+---
+
+### T-048 · Track more player stats
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Server / Data
+- **Files:** `Shared/Data/ProfileTemplate.luau`, `Server/Core/PlayerStatService.luau` (or a new `StatsService`), `CombatLibrary`, `AbilityService`, `PickupService`, `RoundCyclingService`
+
+**Problem / goal**
+Save these lifetime stats in the profile (only Eliminations exists today):
+- times each ability was used (e.g. Stab, Dash) and each pickup was acquired (e.g. FireBoomerang): per id
+- time played
+- rounds played (only rounds the player was in from start to finish)
+- rounds won
+- eliminations (already tracked as `Elims`)
+- **defeats** (deaths). Never use the word "kill" in stat names or player-facing text (see CLAUDE.md).
+Use `EconomyService`-style owner functions so other code doesn't write these fields directly.
+
+**Decisions (Sol, 2026-10-01)**
+- `Losses` is not tracked (stays in the profile, unused). Track **Defeats** instead: eliminated by another player.
+- Team wins count for every member of the winning team; ties count for nobody.
+- Saved only for now; T-032 (leaderboards) will display them.
+
+**Done when**
+- [ ] New fields in `ProfileTemplate` (type + `get()`), filled by `Reconcile` for existing profiles.
+- [ ] Each stat increments in exactly one place; time played is saved on leave/autosave.
+- [ ] A Cmdr command shows a player's stats (for testing).
+
+**Notes**
+- New `Server/Core/LifetimeStatsService.luau` owns all lifetime stats; nothing else writes them. The `Elims` increment moved there from `CombatService`.
+- New profile fields (filled by `Reconcile`): `Defeats`, `RoundsPlayed`, `TimePlayed` (seconds), `AbilityUses` and `PickupsAcquired` (id -> count). `Wins` existed but was never written; it's tracked now.
+- Elims/Defeats: from `CombatLibrary.PlayerKilledPlayerTasks`, so environment deaths with no attacker don't count as defeats.
+- Rounds played: players in the server when the round started and still there when it finishes. Late joiners (e.g. Assassin) don't get it, but can still get a win.
+- Pickups: only real pickups in the world, via a new `PickupService.PickupAcquiredTasks`. Cmdr/chat grants don't count. Abilities: every successful use (`SharedTasks.PlayerUsedAbility`).
+- Time played: added to the profile every 60 s, plus on leave through a new `PlayerDataService.ProfileRemovingTasks` that runs before the session ends (the existing `ProfileRemovedTasks` runs after, when writes are no longer saved).
+- Cmdr: `showstats <player>` (alias `stats`).
+- Test in Studio: play a few rounds (FFA and team), eliminate and get eliminated, dash/stab, grab pickups, then `showstats`. Rejoin and check the values survived, including time played.
+- Passed Sol's Studio test (2026-10-03).
+
+---
+
+### T-009 · Daily rewards: grant item rewards and notify the player
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Server / Client / GUI
+- **Files:** `Server/Core/DailyRewardsService.luau`, `Shared/Referential/DailyRewards.luau`, `Client/UI/Gui/DailyClaims/`, `Client/UI/Gui/ItemAcquired/`
+
+**Problem / goal**
+Claiming a login reward must grant it and tell the player.
+- Item rewards: `DailyRewardsService` still has `-- TODO: grant player the item`. Grant them with `ItemService.grantItem` (T-006).
+- Notification: show the reward on the client with the ItemAcquired popup (items) and a currency popup/message (currency). Use the existing ItemAcquired GUI; final visuals are Sol's (T-021).
+- `DailyRewards` points at the `ExampleItem` placeholders; keep them and mark them `-- TODO:RELEASE placeholder` if they aren't already.
+
+**Done when**
+- [x] Item rewards are added to the Inventory; currency rewards keep working.
+- [x] The player sees a notification for every claimed reward (item and currency).
+
+**Test in Studio**
+- Claim on day 1 (item) and day 2 (currency) (use Cmdr or reset `LastClaim` in Studio data): each grant shows a popup and is saved.
+
+**Notes**
+- Server: `DailyRewardsService` grants the reward first (`ItemService.grantItem` / `EconomyService.addCurrency`) and only then advances the streak, so a misconfigured reward doesn't use up the claim. The remote now returns `true, claimedDay`.
+- Client: item rewards show the ItemAcquired popup through ShopController's existing Inventory listener; currency rewards show "Daily reward claimed! +N Currency" from `DailyClaims`.
+- `TODO:RELEASE placeholder` added to the 4 `ExampleItem`/`ExampleWeapon` rewards in `DailyRewards.luau`.
+- Play-tested in Studio: day-1 claim granted ExampleItem1 once and returned day 1; a second claim the same day was refused; the popup GUI was enabled; no client/server errors from these modules. The day-2 currency claim wasn't exercised (needs a day to pass or a reset of `LastClaim`).
+- Cmdr `resetdaily <players> [resetStreak]` (alias `resetdailyclaim`): makes the next claim available now, as if a day had passed (streak kept). `resetdaily me true` also resets the streak to day 1. Backed by `DailyRewardsService.makeClaimable` / `getNextDay`. Reopen the Daily Claims GUI after running it to see the change.
+- Test in Studio: claim (day 1 item) → `resetdaily me` → claim again (day 2 currency popup) → rejoin and check both saved.
+- Passed Sol's Studio test (2026-10-03).
+
+---
 
 ### T-064 · After more than 3 bounces it won't auto-recall, even with line of sight and in range
 - **Priority:** P0 (urgent, do today: Sol 2026-10-03)
