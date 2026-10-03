@@ -186,6 +186,8 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## In Progress
 
+## Review
+
 ### T-062 · Boomerang snaps back when it flies too far; it should auto-return instead
 - **Priority:** P0 (urgent, do today: Sol 2026-10-03)
 - **Owner:** Agent
@@ -211,8 +213,6 @@ Right now the boomerang snaps back when it flies too far away. Instead, flying t
 - Not lint-checked (no Selene/luau-analyze here). Tune the two GlobalConfig values if it gives up too early or too late.
 
 ---
-
-## Review
 
 ### T-058 · Put the Group Rewards chest in the lobby
 - **Priority:** P1
