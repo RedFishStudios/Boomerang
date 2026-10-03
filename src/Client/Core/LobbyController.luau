@@ -6,7 +6,6 @@ local RunService = game:GetService("RunService")
 
 local GameStateLibrary = require(game.ReplicatedStorage.Shared.Library.GameStateLibrary)
 
-local GlobalConfig = require(game.ReplicatedStorage.Shared.Constants.GlobalConfig)
 local LobbyLibrary = require(game.ReplicatedStorage.Shared.Library.LobbyLibrary)
 local CharacterRenderController = require(game.ReplicatedStorage.Client.Core.CharacterRenderController)
 local TasksList = require(game.ReplicatedStorage.Shared.Classes.TasksList)
@@ -27,21 +26,14 @@ LobbyController.ClientIsInLobbyChangedTasks = TasksList.new() :: TasksList.Tasks
 -- LOCAL FUNCTIONS
 -------------------------------------------------------------------------------
 
--- // Jumping is enabled only in the lobby. Set locally because the client simulates its own character;
--- // the server disables jumping when the character loads (CharacterService), and this re-enables it in the lobby.
+-- // Jumping is enabled only in the lobby. The client sets it for its own prediction; the server sets the same
+-- // state for the authoritative character (CharacterService, T-070). Both use LobbyLibrary.applyJumpState.
 local function applyJumpState(character: Model)
    local humanoid = character:FindFirstChildOfClass("Humanoid")
    if not humanoid then
       return
    end
-   local jumpHeight = if isInLobby then GlobalConfig.LobbyJumpHeight else 0
-   if humanoid.UseJumpPower then
-      humanoid.UseJumpPower = false
-   end
-   if humanoid.JumpHeight ~= jumpHeight then
-      humanoid.JumpHeight = jumpHeight
-      humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, isInLobby)
-   end
+   LobbyLibrary.applyJumpState(humanoid, isInLobby)
 end
 
 local function updateIsInLobby()

@@ -42,7 +42,7 @@ Problems Sol has seen with `AuthorityMode = Server`, plus the agent's diagnosis.
 
 ### P3. Jumping in the lobby is buggy in Server mode
 
-Reported by Sol (2026-10-03). Sol's guess: the jump is only enabled on the client, not the server, so the server (authoritative) and the client's prediction disagree. Not investigated yet.
+Reported by Sol (2026-10-03). Sol's guess, confirmed in code: the jump was only enabled on the client (`LobbyController`); the server disables it on spawn (`CharacterService`), so the server refused jumps the client predicted. Fix: task **T-070** (server applies the same lobby jump state).
 
 ### P4+. TODO (human review)
 

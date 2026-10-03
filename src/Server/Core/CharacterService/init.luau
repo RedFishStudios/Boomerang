@@ -26,6 +26,7 @@ local SimpleRemotesUtil = require(ReplicatedStorage.Shared.Networking.SimpleRemo
 local BufferUtil = require(ReplicatedStorage.Shared.Utils.BufferUtil)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
+local LobbyLibrary = require(ReplicatedStorage.Shared.Library.LobbyLibrary)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -34,6 +35,8 @@ local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local UNRELIABLE_CODES = RemoteCodes.Character.Unreliable
 local _COLLISION_GROUP = CollisionGroupConstants.Players
 local REPLICATION_FLUSH_RATE = 1 / 12
+-- // How often the server re-checks who is in the lobby to enable/disable jumping (T-070)
+local LOBBY_JUMP_CHECK_RATE = 1 / 10
 
 -------------------------------------------------------------------------------
 -- TYPES
@@ -54,6 +57,7 @@ type SolverAngles = {
 local playersSolverTarget: { [Player]: SolverAngles } = {}
 local pendingSolverReplication: { [Player]: SolverAngles } = {}
 local nextReplicationFlushAt = 0
+local nextLobbyJumpCheckAt = 0
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -112,11 +116,27 @@ local function dispatchSchedule()
 	end)
 end
 
+-- // Server side of the lobby-only jump (the client does the same every frame in LobbyController).
+-- // Needed with AuthorityMode = Server: the server simulates the character, so it must allow the jump too.
+local function updateLobbyJumpStates()
+	for _, player in Players:GetPlayers() do
+		local character = player.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		if humanoid and humanoid.Health > 0 then
+			LobbyLibrary.applyJumpState(humanoid, LobbyLibrary.isCharacterInLobby(character))
+		end
+	end
+end
+
 local function onPostSimulation(_deltaTime: number)
 	local now = os.clock()
 	if now >= nextReplicationFlushAt then
 		nextReplicationFlushAt = now + REPLICATION_FLUSH_RATE
 		dispatchSchedule()
+	end
+	if now >= nextLobbyJumpCheckAt then
+		nextLobbyJumpCheckAt = now + LOBBY_JUMP_CHECK_RATE
+		updateLobbyJumpStates()
 	end
 end
 

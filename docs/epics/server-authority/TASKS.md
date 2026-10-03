@@ -11,6 +11,34 @@ Take new IDs from the `Next free ID` line in [TASKS.md](../../../TASKS.md), rese
 
 ## Review
 
+### T-070 · Lobby jumping is buggy under Server authority
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Server, Client, Shared
+- **Epic:** Finalize Conversion to Server Authority
+- **Files:** `Shared/Library/LobbyLibrary.luau`, `Client/Core/LobbyController.luau`, `Server/Core/CharacterService/init.luau`
+- **Approved early** by Sol (2026-10-03). DESIGN.md "Known problems: P3".
+
+**Problem / goal**
+In Server mode, jumping in the lobby is buggy. Cause (Sol's guess, confirmed in code): jumping was only enabled on the client. `CharacterService.onCharacterLoaded` disables it on the server (`JumpHeight = 0`, Jumping state off) and only `LobbyController` re-enabled it, locally. In Server mode the server simulates the character, so the client predicted a jump the server refused, and the server corrected it.
+
+**Done when**
+- [ ] In Server mode, jumping in the lobby is smooth (no snapping back or stutter), with the normal lobby jump height.
+- [ ] Jumping is still disabled in the arena (Space still dashes there).
+- [ ] Automatic mode still works.
+
+**Test in Studio**
+- Server mode: jump around the lobby, including while walking; walk out of the lobby into a round and back, and jump right after coming back.
+- Mobile emulator: the jump/dash button in the lobby.
+
+**Notes**
+- Branch `agent/T-070-sa-lobby-jump`, lane `Github/Boomerang-lanes/docs-server-authority`.
+- New `LobbyLibrary.applyJumpState(humanoid, isInLobby)`, used by both sides. The client still applies it every frame for its own character; the server now applies it to every living character 10 times a second (`CharacterService`, in the existing `PostSimulation` handler; one small box query per player per check).
+- The helper now also re-enables the Jumping state when it doesn't match, not only when `JumpHeight` changes.
+- **Check:** right at the lobby edge the server may switch up to 0.1 s after the client; a jump at that exact moment could still snap once.
+- **Check (mobile):** in the lobby, the jump/dash button sets `humanoid.Jump = true` on the client (`AbilityController.useMovementInput`). Space also goes through Roblox's default controls, which send input to the server in Server mode, but a client-only `Jump = true` may not reach the server. If the mobile button still stutters, that's the next fix.
+- Compiled with `luau-compile`; not play-tested (Studio runs the home repo's code).
+
 ### T-069 · Walk/run animations far too fast under Server authority
 - **Priority:** P1
 - **Owner:** Agent
