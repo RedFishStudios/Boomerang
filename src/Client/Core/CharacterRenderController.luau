@@ -45,6 +45,36 @@ local syncedAnimationTracks: {
    }
 } = {}
 
+-- // Server authority (Workspace.AuthorityMode = Server): Roblox's Animate is a ModuleScript that keeps its state in
+--    HumanoidRootPart attributes ("pose", "currentAnimId", ...). Those attributes replicate to every client, so the rendered
+--    model is animated from the authoritative character's "pose" attribute instead of mirroring its tracks (T-068).
+--    When the attribute is missing (AuthorityMode = Automatic, classic Animate LocalScript), the old track mirroring is used.
+type PoseAnimationData = {
+   Animate: Instance, -- // the rendered model's Animate (LocalScript or ModuleScript); holds the animation folders
+   Animator: Animator,
+   Tracks: {[string]: AnimationTrack}, -- // [animation folder name, e.g. "walk"]: track on the rendered model
+   Active: {[string]: true}, -- // folder names wanted last frame
+}
+local poseAnimationData: {[Player]: PoseAnimationData} = {}
+
+-- // Same mapping as the Server-authority Animate's POSE_TO_ANIM_NAME
+local POSE_TO_ANIMATION_NAME = {
+   Standing = "idle",
+   Running = "walk",
+   Jumping = "jump",
+   FreeFall = "fall",
+   Climbing = "climb",
+   Seated = "sit",
+   Swimming = "swim",
+   SwimIdle = "swimidle",
+}
+local LOOPED_POSE_ANIMATIONS = {idle = true, walk = true, run = true, fall = true, climb = true, sit = true, swim = true, swimidle = true, toolnone = true}
+local POSE_TRANSITION_TIME = 0.2
+-- // R15 walk/run blend, matching the Animate's getRunWalkBlendWeights
+local NORMALIZED_WALK_SPEED = 0.5
+local NORMALIZED_RUN_SPEED = 1
+local HUMANOID_HIP_HEIGHT = 2
+
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
 -------------------------------------------------------------------------------
@@ -54,6 +84,20 @@ CharacterRenderController.CustomCharacterLoaded = TasksList.new() :: TasksList.T
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
+
+local function destroyPoseAnimationData(player: Player)
+   local data = poseAnimationData[player]
+   poseAnimationData[player] = nil
+   if not data then
+      return
+   end
+   for _, track in pairs(data.Tracks) do
+      track:Stop()
+      track:Destroy()
+   end
+   table.clear(data.Tracks)
+   table.clear(data.Active)
+end
 
 local function clear(player: Player)
    ragdollApplied[player] = nil
@@ -82,6 +126,7 @@ local function clear(player: Player)
       table.clear(syncedAnimationTracks[player])
    end
    syncedAnimationTracks[player] = nil
+   destroyPoseAnimationData(player)
    if characterDeathConnections[player] then
       characterDeathConnections[player]:Disconnect()
    end
@@ -180,7 +225,8 @@ local function extractAnimations(player: Player, customCharacter: Model)
    local elapsed = 0
    repeat
       for _, c in pairs(customCharacter:GetChildren()) do
-         if c:IsA("LocalScript") and c.Name == "Animate" then
+         -- // LocalScript with AuthorityMode = Automatic, ModuleScript with AuthorityMode = Server
+         if c.Name == "Animate" and (c:IsA("LocalScript") or c:IsA("ModuleScript")) then
             animateScript = c
             break
          end
@@ -225,6 +271,14 @@ local function extractAnimations(player: Player, customCharacter: Model)
       return nil
    end
 
+   destroyPoseAnimationData(player)
+   poseAnimationData[player] = {
+      Animate = animateScript,
+      Animator = customAnimator,
+      Tracks = {},
+      Active = {},
+   }
+
    syncedAnimationTracks[player] = {}
 
    for _, c in pairs(animateScript:GetDescendants()) do
@@ -241,6 +295,116 @@ local function extractAnimations(player: Player, customCharacter: Model)
          end
       end
    end
+end
+
+-- // Loads (once) the rendered model's track for an Animate folder such as "walk"; picks the variant with the highest Weight
+local function getPoseTrack(data: PoseAnimationData, animationName: string): AnimationTrack?
+   local track = data.Tracks[animationName]
+   if track then
+      return track
+   end
+   local folder = data.Animate:FindFirstChild(animationName)
+   if not folder then
+      return nil
+   end
+   local bestAnimation: Animation? = nil
+   local bestWeight = -math.huge
+   for _, child in pairs(folder:GetChildren()) do
+      if child:IsA("Animation") then
+         local weightValue = child:FindFirstChild("Weight")
+         local weight = if weightValue and weightValue:IsA("NumberValue") then weightValue.Value else 1
+         if weight > bestWeight then
+            bestAnimation = child
+            bestWeight = weight
+         end
+      end
+   end
+   if not bestAnimation then
+      return nil
+   end
+   track = data.Animator:LoadAnimation(bestAnimation)
+   track.Looped = LOOPED_POSE_ANIMATIONS[animationName] == true
+   track.Priority = if animationName == "toolnone" then Enum.AnimationPriority.Idle else Enum.AnimationPriority.Core
+   data.Tracks[animationName] = track
+   return track
+end
+
+local function getRenderedHeightScale(data: PoseAnimationData): number
+   local humanoid = data.Animator.Parent
+   if not humanoid or not humanoid:IsA("Humanoid") then
+      return 1
+   end
+   local hipHeight = humanoid.HipHeight
+   local dampening = data.Animate:FindFirstChild("ScaleDampeningPercent")
+   if dampening and dampening:IsA("NumberValue") then
+      return 1 + (hipHeight - HUMANOID_HIP_HEIGHT) * dampening.Value / HUMANOID_HIP_HEIGHT
+   end
+   return hipHeight / HUMANOID_HIP_HEIGHT
+end
+
+-- // Drives the rendered model from the authoritative character's replicated "pose" attribute (Server authority)
+local function syncPoseAnimations(player: Player, authorityCharacter: Model, authorityRoot: BasePart, pose: string)
+   local data = poseAnimationData[player]
+   if not data then
+      return
+   end
+
+   local wanted: {[string]: true} = {}
+   local animationName = if pose:sub(1, 6) == "EMOTE_" then pose:sub(7) else POSE_TO_ANIMATION_NAME[pose]
+   if animationName then
+      wanted[animationName] = true
+   end
+   if pose == "Running" then
+      wanted.run = true
+   end
+   if animationName and authorityCharacter:FindFirstChildOfClass("Tool") then
+      wanted.toolnone = true
+   end
+
+   -- // Stop what's no longer wanted ("Dead", "PlatformStanding", etc. stop everything)
+   for name, track in pairs(data.Tracks) do
+      if not wanted[name] and track.IsPlaying then
+         track:Stop(POSE_TRANSITION_TIME)
+      end
+   end
+
+   -- // Start what's newly wanted; restart looped tracks that were stopped by something else
+   for name in pairs(wanted) do
+      local track = getPoseTrack(data, name)
+      if track and not track.IsPlaying and (not data.Active[name] or track.Looped) then
+         track:Play(POSE_TRANSITION_TIME)
+      end
+   end
+
+   if pose == "Running" then
+      local velocity = authorityRoot.AssemblyLinearVelocity
+      local horizontalSpeed = Vector3.new(velocity.X, 0, velocity.Z).Magnitude
+      local runSpeed = horizontalSpeed * 1.25 / getRenderedHeightScale(data)
+      local walkWeight, runWeight, timeWarp = 0.0001, 0.0001, 1
+      if runSpeed <= NORMALIZED_WALK_SPEED then
+         walkWeight = 1
+         timeWarp = runSpeed / NORMALIZED_WALK_SPEED
+      elseif runSpeed < NORMALIZED_RUN_SPEED then
+         local fadeInRun = (runSpeed - NORMALIZED_WALK_SPEED) / (NORMALIZED_RUN_SPEED - NORMALIZED_WALK_SPEED)
+         walkWeight = 1 - fadeInRun
+         runWeight = fadeInRun
+      else
+         timeWarp = runSpeed / NORMALIZED_RUN_SPEED
+         runWeight = 1
+      end
+      local walkTrack = data.Tracks.walk
+      local runTrack = data.Tracks.run
+      if walkTrack then
+         walkTrack:AdjustWeight(walkWeight)
+         walkTrack:AdjustSpeed(timeWarp)
+      end
+      if runTrack then
+         runTrack:AdjustWeight(runWeight)
+         runTrack:AdjustSpeed(timeWarp)
+      end
+   end
+
+   data.Active = wanted
 end
 
 local function setAuthoritativeCharacterTransparency(player: Player, transparency: number)
@@ -341,7 +505,16 @@ local function createCharacterModel(player: Player, canYield: boolean?)
 
    local authorityHumanoid = player.Character:FindFirstChild("Humanoid")
 
+   local authorityCharacter = player.Character
+   local authorityRoot = authorityCharacter and authorityCharacter:FindFirstChild("HumanoidRootPart")
+
    local function sync()
+      local pose = authorityRoot and authorityRoot:GetAttribute("pose")
+      if typeof(pose) == "string" then
+         syncPoseAnimations(player, authorityCharacter :: Model, authorityRoot :: BasePart, pose)
+         return
+      end
+
       local playingTracks = authorityHumanoid:GetPlayingAnimationTracks()
          local syncedTracks = syncedAnimationTracks[player]
          if not syncedTracks then
@@ -406,6 +579,7 @@ local function createCharacterModel(player: Player, canYield: boolean?)
          end
          table.clear(syncedAnimationTracks[player])
       end
+      destroyPoseAnimationData(player)
    end)
 
 	return model

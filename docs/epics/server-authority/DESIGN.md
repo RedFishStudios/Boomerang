@@ -28,7 +28,11 @@ Problems Sol has seen with `AuthorityMode = Server`, plus the agent's diagnosis.
 - Three unsynced forks of the Server-authority Animate exist: `src/Animate/` (not in `default.project.json`), `src/Shared/Networking/Animate.luau` and `src/Server/Core/Animate.luau` (synced, but nothing `require`s them). The live Animate is in the place, not Rojo; agents can't see which one runs.
 - `Humanoid:GetPlayingAnimationTracks()` is deprecated; `Animator:GetPlayingAnimationTracks()` is the replacement.
 
-**Possible direction** (`OPEN:` Sol decides): drive the rendered model from the Animate's replicated HumanoidRootPart attributes (`pose` / `currentAnimId`) instead of mirroring tracks; then remove the `AnimateReplication` remote and the duplicate Animate forks.
+**Confirmed in Studio (2026-10-03, Server mode):** the authoritative `Animate` is a ModuleScript (`RunAnimate.Client` / `RunAnimate.Server` children); the HumanoidRootPart has the `pose` / `currentAnimId` attributes on both server and client; the output repeats `No synced animation tracks for player …`. In Automatic mode the classic `Animate` LocalScript runs and nothing is wrong.
+
+**Decision (Sol, 2026-10-03):** drive the rendered model from the `pose` attribute. Task **T-068** (approved early, before the rest of the design). Removing the `AnimateReplication` remote and the duplicate Animate forks is a later follow-up.
+
+**Also seen (not fixed yet):** `ReplicatedStorage.Client.Core.CharacterController:197: attempt to perform arithmetic (add) on nil and Vector3` in `onPreSimulation`, every frame in Server mode. Candidate for P2.
 
 **To confirm in Studio:** play in Server mode; check the output for the two warnings above, and the class of `Animate` under the character. Check both your own character and another player's (they may break differently).
 
@@ -85,6 +89,4 @@ TODO (human review).
 ## 11. Open questions
 
 - `OPEN:` What other Server-authority problems has Sol seen?
-- `OPEN:` Which Animate is live in the place (built-in Server-authority Animate, or one of the repo forks pasted in)?
-- `OPEN:` P1 direction: attribute-driven rendered-model animation, or keep mirroring tracks and fix it?
 - `OPEN:` Does this relate to the `chickynoid-migration` branch?
