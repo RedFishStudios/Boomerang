@@ -20,18 +20,15 @@ local WeaponLibrary = require(ReplicatedStorage.Shared.Library.WeaponLibrary)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local BoomerangTuningLibrary = require(ReplicatedStorage.Shared.Library.BoomerangTuningLibrary)
-local RaycastsUtility = require(ReplicatedStorage.Shared.Utils.RaycastsUtility)
 local CharacterController = require(ReplicatedStorage.Client.Core.CharacterController)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local AnimationController = require(ReplicatedStorage.Client.Core.AnimationController)
 local ToolController = require(ReplicatedStorage.Client.Core.ToolController)
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
-local PlatformController = require(ReplicatedStorage.Client.Core.PlatformController)
 local CharacterRenderController = require(ReplicatedStorage.Client.Core.CharacterRenderController)
 local PlayerStatsLibrary = require(ReplicatedStorage.Shared.Library.PlayerStatsLibrary)
 local GameplayPhaseEnum = require(ReplicatedStorage.Shared.Constants.Enums.GameplayPhases)
 local LobbyController = require(ReplicatedStorage.Client.Core.LobbyController)
-local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 
 local ToolLogics = ReplicatedStorage.Shared.Logics.WeaponLogics
 local ToolLogicModules = {}
@@ -254,24 +251,11 @@ local function throwEquippedTool(forcedDirection: Vector3?): boolean
       local direction
       if forcedDirection and forcedDirection.Magnitude > 1e-5 then
          direction = getHorizontalDirection(forcedDirection)
-      elseif PlatformController.getDominantControlScheme() == "Touch" or (UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter or UserInputService.MouseBehavior == Enum.MouseBehavior.LockCurrentPosition) then
-      direction = getHorizontalDirection(localCharacter.PrimaryPart.CFrame.LookVector)
-    else
-      local lastInWorld = PlatformController.getLastMousePositionInWorld()
-      if lastInWorld then
-         lastInWorld += Vector3.new(0, -60, 0)
-      end
-      local params = RaycastParams.new()
-      params.CollisionGroup = CollisionGroupConstants.ArenaFloorDetector
-      local mouseWorldPosition = RaycastsUtility.getMouseWorldPosition(2048, params, if lastInWorld then Vector2.new(lastInWorld.X, lastInWorld.Y) else nil)
-      if throwOrigin and mouseWorldPosition then
-         direction = getHorizontalDirection(mouseWorldPosition - throwOrigin)
-      elseif localCharacter and localCharacter.PrimaryPart then
-         direction = getHorizontalDirection(localCharacter.PrimaryPart.CFrame.LookVector)
       else
-         direction = Vector3.new(0, 0, -1)
+         -- // T-071: throw exactly where the aim arrow points (the client's facing from CharacterController), so the
+         -- // throw never depends on the rendered model's physics rotation or the mouse behaviour at release.
+         direction = getHorizontalDirection(CharacterController.LastCFrame.LookVector)
       end
-    end
 
 	 if not releasePosition and throwOrigin then
 		releasePosition = throwOrigin + direction * 3

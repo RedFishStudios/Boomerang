@@ -16,7 +16,7 @@ Take new IDs from the `Next free ID` line in [TASKS.md](../../../TASKS.md), rese
 - **Owner:** Agent
 - **Area:** Client, Server
 - **Epic:** Finalize Conversion to Server Authority
-- **Files:** `Client/Core/WeaponController.luau`, `Client/Core/CharacterController/init.luau`
+- **Files:** `Client/Core/WeaponController.luau`, `Client/Core/CharacterController/init.luau`, `Client/Core/CharacterRenderController.luau`
 - **Approved early** by Sol (2026-10-03). DESIGN.md "Known problems: P4".
 
 **Problem / goal**
@@ -31,6 +31,8 @@ In Server mode the aim direction shows correctly on the player's own screen, but
 - Cause (confirmed in Studio by logging what the server receives): the client measured the mouse aim from the held tool's pivot, which under Server authority reported a stale spot ~40 studs from the character, so every throw went roughly the same way. The server already uses the client's direction as-is.
 - Fix: `WeaponController.throwEquippedTool` aims from the rendered character's root (same origin as the aim arrow), and ignores the tool pivot as release position when it's more than 6 studs from the character.
 - Also guarded the per-frame `CharacterController:197` nil error (DESIGN.md P2) in the same file area.
+- Round 2 (Sol, 2026-10-05: still wrong, plus the character's facing jumps while aiming). Logged in Studio: while charging, the rendered model's facing alternated every frame between the aim and a drift toward +Z, and every throw reached the server at ~180°. Cause: the rendered model is unanchored with Humanoid AutoRotate on, so its physics (animation constraints) turned it while `CharacterController` re-pivoted it each frame; the throw read that rotation.
+- Fix 2: the rendered model's HumanoidRootPart is anchored and its AutoRotate is off (ragdoll still unanchors it); throws use `CharacterController.LastCFrame` (exactly what the aim arrow shows) unless a touch direction is given. Removed the now-unused requires in WeaponController.
 - Not lint-checked.
 
 ---

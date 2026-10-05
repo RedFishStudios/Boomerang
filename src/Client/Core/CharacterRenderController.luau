@@ -482,6 +482,17 @@ local function createCharacterModel(player: Player, canYield: boolean?)
    local model = sourceModel:Clone()
    model.Name = `{player.UserId}_LocalModel`
 
+   -- // T-071: the rendered model is visual only and is placed with PivotTo every frame. Unanchored, its physics
+   -- // (animation constraints, Humanoid AutoRotate) turned it away from the aim while charging. Ragdoll unanchors it.
+   local renderedRoot = model:FindFirstChild("HumanoidRootPart")
+   if renderedRoot and renderedRoot:IsA("BasePart") then
+      renderedRoot.Anchored = true
+   end
+   local renderedHumanoid = model:FindFirstChildOfClass("Humanoid")
+   if renderedHumanoid then
+      renderedHumanoid.AutoRotate = false
+   end
+
    task.spawn(function()
       local authorityHumanoid = player.Character:WaitForChild("Humanoid")
       repeat
