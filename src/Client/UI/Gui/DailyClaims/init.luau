@@ -11,6 +11,7 @@ local SharedMods = ReplicatedStorage.Shared
 local ClientMods = ReplicatedStorage.Client
 local Items = require(SharedMods.Referential.Items)
 local DailyRewards = require(SharedMods.Referential.DailyRewards)
+local Skins = require(SharedMods.Referential.Skins)
 local PlayerDataController = require(ClientMods.Core.PlayerDataController)
 local ItemAcquiredGui = require(ClientMods.UI.Gui.ItemAcquired)
 
@@ -79,20 +80,23 @@ local function updateDayIndicators()
    end
 end
 
--- // Item rewards are announced by ShopController's Inventory listener (ItemAcquired), so only currency is shown here
-local function notifyReward(claimedDay: number)
+-- // Item and skin rewards are announced by ShopController / SkinController (ItemAcquired), so only currency is shown here.
+-- // A skin the player already owned was converted to its FallbackCurrency.
+local function notifyReward(claimedDay: number, convertedToCurrency: boolean)
    local reward = DailyRewards.Rewards[claimedDay]
    if reward and reward.Type == "Currency" then
       ItemAcquiredGui.acquiredCustomItem(nil, "Daily reward claimed!", `+{reward.Value} Currency`)
+   elseif reward and reward.Type == "Skin" and convertedToCurrency then
+      ItemAcquiredGui.acquiredCustomItem(nil, "Daily reward claimed!", `+{reward.FallbackCurrency} Currency (skin already owned)`)
    end
 end
 
 local function claim(day: number)
-   local success, claimedDay = claimRemoteFunction:InvokeServer()
+   local success, claimedDay, convertedToCurrency = claimRemoteFunction:InvokeServer()
    if success then
       updateDayIndicators()
       if typeof(claimedDay) == "number" then
-         notifyReward(claimedDay)
+         notifyReward(claimedDay, convertedToCurrency == true)
       end
    end
 end
@@ -158,6 +162,9 @@ function DailyClaimsGui.start()
             else
                itemLabel.Text = reward.Value
             end
+         elseif reward.Type == "Skin" then
+            local skin = Skins[reward.Value]
+            itemLabel.Text = if skin then `{skin.Name} Skin` else reward.Value
          end
       end
 

@@ -38,6 +38,10 @@ export type Template = {
    Inventory: {
       [string]: number -- Shop item id : amount owned
    },
+   OwnedSkins: {
+      [string]: boolean -- Skin id (Shared/Referential/Skins) : true. Default skins are owned without an entry
+   },
+   EquippedSkin: string, -- Skin id the player holds and throws
    GiftedPasses: {
       number -- Gamepass id
    }
@@ -69,6 +73,8 @@ function ProfileTemplate.get()
       },
       GroupRewardLastClaim = 0,
       Inventory = {},
+      OwnedSkins = {},
+      EquippedSkin = "ClassicBoomerang",
       GiftedPasses = {},
    }
 

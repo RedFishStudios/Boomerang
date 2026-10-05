@@ -84,6 +84,34 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
+### T-072 · Boomerang skins (equip, shop, daily rewards)
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Server / Client / Shared / GUI / Data
+- **Files:** `Shared/Referential/Skins.luau`, `Shared/Library/SkinLibrary.luau`, `Server/Core/SkinService.luau`, `Client/Core/SkinController.luau`, `Client/UI/Gui/Skins/`, `Client/UI/Gui/MenuButtons/init.luau`, `ShopItems.luau`, `DailyRewards.luau`, `Items.luau`, `ProfileTemplate.luau`, `WeaponService`, `ToolService`, `WeaponController`, `WeaponLogics/Boomerang.luau`, Shop + DailyClaims GUIs, `Server/Cmdr/Commands/GrantSkin*.luau`, `Server/Cmdr/Types/SkinType.luau`
+
+**Problem / goal**
+Equippable boomerang skins with identical stats (every skin uses the `ClassicBoomerang` weapon class for now; the weapon-class concept stays). Skins button in the left lobby menu, Skins GUI, owned/equipped skins saved, granted via Shop, Daily Rewards and Cmdr. Starting skins: Shuriken, Fan (Classic is the default, always owned).
+
+**Done when**
+- [ ] A skin can be obtained from the shop, daily rewards and `grantskin`
+- [ ] Skins menu opens from the lobby menu, equips owned skins, and the held + thrown boomerang use the skin's model
+- [ ] Owned and equipped skins persist across rejoins
+
+**Test in Studio**
+- F2 → `grantskin me Shuriken` → "New skin acquired!" popup. Open Skins (left menu) → Shuriken shows Equip, Fan shows Locked → Equip → held model swaps; throw it: the thrown model is the Shuriken too (check from a second client as well).
+- Rejoin: Shuriken still owned and equipped.
+- Shop → Skins tab lists Shuriken/Fan; `givecurrency me 2000`, buy Fan → shows Owned, appears in Skins.
+- `resetdaily me true` and claim up to day 3 (`resetdaily me` between claims): day 3 grants Shuriken, or +250 Currency if already owned. Day 7 = Fan.
+- Check `Skins.rbxmx` / `SkinListingTemplate.rbxmx` in Studio (copied from the Shop panel/card; ViewportFrame preview angle may need tuning).
+
+**Notes**
+- Branch `agent/T-072-skins`, lane `Github/Boomerang-lanes/T-072-skins`.
+- Profile: new `OwnedSkins` (default skins aren't stored) and `EquippedSkin`. The server sets an `EquippedSkin` Player attribute; the server now decides the throw/aim weapon class instead of trusting the client.
+- Shop: `ShopTab.Items` became `Listings` (`{Type = "Item" | "Skin", Id}`); Example items and the Weapons tab removed; `CurrentDeal` is nil. `ProductLogics/Placeholder.luau` kept with `NotActive = true` (Sol's choice).
+- `TODO:RELEASE placeholder`: Shuriken/Fan prices (500/1000) and `WeaponClass`, all daily currency amounts and skin `FallbackCurrency` (250/500).
+- Skins GUI uses the Shop panel/card assets; no title label yet. Sol may want to restyle.
+
 ### T-037 · Player HUD buttons
 - **Priority:** P1
 - **Owner:** Sol → Agent

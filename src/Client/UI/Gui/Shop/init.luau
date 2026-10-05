@@ -12,11 +12,13 @@ local SharedMods = ReplicatedStorage.Shared
 local ClientMods = ReplicatedStorage.Client
 local ShopItems = require(SharedMods.Referential.ShopItems)
 local Items = require(SharedMods.Referential.Items)
+local Skins = require(SharedMods.Referential.Skins)
 local MarketplaceLibrary = require(SharedMods.Library.MarketplaceLibrary)
 local PolicyLibrary = require(SharedMods.Library.PolicyLibrary)
 local TweenService = game:GetService("TweenService")
 local UIController = require(ClientMods.UI.UIController)
 local ShopController = require(ClientMods.Core.ShopController)
+local SkinController = require(ClientMods.Core.SkinController)
 local TopbarGui = require(ClientMods.UI.Gui.Topbar)
 
 local ShopScreenGui: ScreenGui? = script:WaitForChild("Shop")
@@ -31,6 +33,18 @@ local itemTypeToDisplay: {
 } = {
    Skin = "Weapon Skin",
    Weapon = "New Weapon"
+}
+
+local SKIN_TYPE_DISPLAY = "Boomerang Skin"
+local OWNED_TEXT = "Owned"
+
+type ListingDisplay = {
+   Name: string,
+   TypeText: string,
+   Price: number,
+   ProductId: number?,
+   IsPaidRandomItem: true?,
+   Owned: boolean,
 }
 
 local lastTabChangeId: string? = nil
@@ -102,15 +116,46 @@ local function setupActionButtonHover(button: GuiButton)
    end)
 end
 
+-- // What a listing shows, from Items or Skins; nil when it doesn't exist or is off sale
+local function getListingDisplay(listing: ShopItems.ShopListing): ListingDisplay?
+   if listing.Type == "Skin" then
+      local skin = Skins[listing.Id]
+      if not skin or skin.OffSale then
+         return nil
+      end
+      return {
+         Name = skin.Name,
+         TypeText = SKIN_TYPE_DISPLAY,
+         Price = skin.Price,
+         ProductId = skin.ProductId,
+         Owned = SkinController.ownsSkin(listing.Id),
+      }
+   end
+
+   local itemData = Items[listing.Id]
+   if not itemData or itemData.OffSale then
+      return nil
+   end
+   return {
+      Name = itemData.Name,
+      TypeText = itemTypeToDisplay[itemData.Type] or "type error",
+      Price = itemData.Price,
+      ProductId = itemData.ProductId,
+      IsPaidRandomItem = itemData.IsPaidRandomItem,
+      Owned = false,
+   }
+end
+
 local function loadTab(tab: ShopItems.ShopTab)
    CurrentTab = tab
    clearItemListings()
    lastTabChangeId = HttpService:GenerateGUID(false)
    local thisTabChangeId = lastTabChangeId
    
-   for _, itemId in ipairs(tab.Items) do
-      local itemData = Items[itemId]
-      if itemData and not itemData.OffSale then
+   for _, shopListing in ipairs(tab.Listings) do
+      local itemId = shopListing.Id
+      local itemData = getListingDisplay(shopListing)
+      if itemData then
          -- Check regional law restrictions
          if itemData.IsPaidRandomItem then
             local canAcquire = not PolicyLibrary.arePaidRandomItemsRestricted(game.Players.LocalPlayer)
@@ -129,7 +174,7 @@ local function loadTab(tab: ShopItems.ShopTab)
          listing.Name = itemId
          
          listing.ItemName.Text = itemData.Name
-         listing.ItemType.Text = itemTypeToDisplay[itemData.Type] or "type error"
+         listing.ItemType.Text = itemData.TypeText
 
          -- Toggle gifting based on regional law restrictions
          listing.Robux.Gift.Visible = false
@@ -141,7 +186,7 @@ local function loadTab(tab: ShopItems.ShopTab)
          
          -- Display robux price based on availability and regional law restrictions
          local productId = itemData.ProductId
-         if productId then
+         if productId and not itemData.Owned then
             listing.Robux.Visible = true
             listing.Robux.PriceText.Text = "..."
             task.spawn(function()
@@ -157,9 +202,15 @@ local function loadTab(tab: ShopItems.ShopTab)
             listing.Robux.Visible = false
          end
 
-         listing.Currency.PriceText.Text = itemData.Price
+         listing.Currency.PriceText.Text = if itemData.Owned then OWNED_TEXT else tostring(itemData.Price)
          listing.Currency.MouseButton1Click:Connect(function()
-            ShopController.requestPurchaseItem(itemId)
+            if itemData.Owned then
+               return
+            end
+            local purchased = ShopController.requestPurchaseItem(itemId, shopListing.Type)
+            if purchased and shopListing.Type == "Skin" and ShopGui.Open and CurrentTab == tab then
+               loadTab(tab) -- // Show it as owned
+            end
          end)
          listing.Robux.MouseButton1Click:Connect(function()
             ShopController.requestRobuxPurchaseItem(itemId)

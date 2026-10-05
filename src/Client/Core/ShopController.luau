@@ -45,8 +45,9 @@ end
 -------------------------------------------------------------------------------
 
 -- // The ItemAcquired gui is shown by the Inventory replication listener in init()
-function ShopController.requestPurchaseItem(itemId: string): boolean
-   return requestPurchaseRemoteFunction:InvokeServer(itemId)
+-- // listingType is the ShopItems listing Type ("Item" by default, or "Skin")
+function ShopController.requestPurchaseItem(itemId: string, listingType: string?): boolean
+   return requestPurchaseRemoteFunction:InvokeServer(itemId, listingType or "Item")
 end
 
 function ShopController.requestRobuxPurchaseItem(itemId: string)

@@ -8,38 +8,47 @@ export type CurrencyReward = {
    Value: number
 }
 
-export type DailyReward = ItemReward | CurrencyReward
+-- // A boomerang skin (Shared/Referential/Skins). If the player already owns it, they get FallbackCurrency instead.
+export type SkinReward = {
+   Type: "Skin",
+   Value: string,
+   FallbackCurrency: number
+}
+
+export type DailyReward = ItemReward | CurrencyReward | SkinReward
 
 return {
    MaxStreakDays = 7,
    Rewards = {
       [1] = {
-         Type = "Item",
-         Value = "ExampleItem1" -- TODO:RELEASE placeholder
+         Type = "Currency",
+         Value = 50 -- TODO:RELEASE placeholder
       },
       [2] = {
          Type = "Currency",
-         Value = 100
+         Value = 100 -- TODO:RELEASE placeholder
       },
       [3] = {
-         Type = "Item",
-         Value = "ExampleItem2" -- TODO:RELEASE placeholder
+         Type = "Skin",
+         Value = "Shuriken",
+         FallbackCurrency = 250 -- TODO:RELEASE placeholder
       },
       [4] = {
          Type = "Currency",
-         Value = 200
+         Value = 200 -- TODO:RELEASE placeholder
       },
       [5] = {
-         Type = "Item",
-         Value = "ExampleWeapon1" -- TODO:RELEASE placeholder
+         Type = "Currency",
+         Value = 250 -- TODO:RELEASE placeholder
       },
       [6] = {
          Type = "Currency",
-         Value = 300
+         Value = 300 -- TODO:RELEASE placeholder
       },
       [7] = {
-         Type = "Item",
-         Value = "ExampleWeapon2" -- TODO:RELEASE placeholder
+         Type = "Skin",
+         Value = "Fan",
+         FallbackCurrency = 500 -- TODO:RELEASE placeholder
       },
    }
 }

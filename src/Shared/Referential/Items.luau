@@ -13,42 +13,8 @@ export type ItemClass = {
    Type: ItemType
 }
 
+-- // No items yet: boomerang skins live in Shared/Referential/Skins (the Example placeholders were removed for skins)
 return {
-   ExampleItem1 = {
-      Name = "Example Item",
-      Price = 10,
-      OffSale = nil,
-      ProductId = MarketplaceItems.ByName.Placeholder.Id,
-      Type = "Skin"
-   },
-   ExampleItem2 = {
-      Name = "Example Item",
-      Price = 10,
-      OffSale = nil,
-      ProductId = MarketplaceItems.ByName.Placeholder.Id,
-      Type = "Skin"
-   },
-   ExampleWeapon1 = {
-      Name = "Example Weapon",
-      Price = 20,
-      OffSale = nil,
-      ProductId = MarketplaceItems.ByName.Placeholder.Id,
-      Type = "Weapon"
-   },
-   ExampleWeapon2 = {
-      Name = "Example Weapon",
-      Price = 20,
-      OffSale = nil,
-      ProductId = MarketplaceItems.ByName.Placeholder.Id,
-      Type = "Weapon"
-   },
-   ExampleWeapon3 = {
-      Name = "Example Weapon",
-      Price = 20,
-      OffSale = nil,
-      ProductId = MarketplaceItems.ByName.Placeholder.Id,
-      Type = "Weapon"
-   }
 } :: {
    [ItemClassId]: ItemClass
 }

@@ -19,6 +19,7 @@ local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
 local WeaponLibrary = require(ReplicatedStorage.Shared.Library.WeaponLibrary)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
+local SkinLibrary = require(ReplicatedStorage.Shared.Library.SkinLibrary)
 local BoomerangTuningLibrary = require(ReplicatedStorage.Shared.Library.BoomerangTuningLibrary)
 local CharacterController = require(ReplicatedStorage.Client.Core.CharacterController)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
@@ -200,7 +201,7 @@ local function beginEquippedToolAim(): boolean
       return false
    end
 
-   local equippedToolId = GlobalConfig.ForceEquippedTool
+   local equippedToolId = SkinLibrary.getWeaponClass(Players.LocalPlayer)
    if equippedToolId == nil then
       return false
    end
@@ -231,7 +232,7 @@ local function throwEquippedTool(forcedDirection: Vector3?): boolean
       return false
    end
 
-   local equippedToolId = GlobalConfig.ForceEquippedTool
+   local equippedToolId = SkinLibrary.getWeaponClass(Players.LocalPlayer)
    if equippedToolId == nil then
       setLocalAimState(false, true)
       return false
@@ -568,7 +569,7 @@ local function renderAimArrows()
          local fullSize = aimArrowTemplate.PrimaryPart.Size
          local startSize = fullSize * .7
          local timeSinceAimStart = os.clock() - arrows.AimStart
-         local aimStrengthAlpha = math.clamp(timeSinceAimStart / BoomerangTuningLibrary.getForAnyTool(GlobalConfig.ForceEquippedTool, "ChargeTime"), 0, 1) -- // T-066
+         local aimStrengthAlpha = math.clamp(timeSinceAimStart / BoomerangTuningLibrary.getForAnyTool(SkinLibrary.getWeaponClass(Players.LocalPlayer), "ChargeTime"), 0, 1) -- // T-066
          local currentSize = startSize:Lerp(fullSize, aimStrengthAlpha)
          arrows.Instance.PrimaryPart.Size = currentSize
          arrows.Instance.PrimaryPart.SurfaceGui.CanvasGroup.GroupTransparency = (1 - aimStrengthAlpha)

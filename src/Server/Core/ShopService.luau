@@ -13,6 +13,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local Items = require(ReplicatedStorage.Shared.Referential.Items)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local PlayerDataService = require(ServerStorage.Server.Core.PlayerDataService)
+local SkinService = require(ServerStorage.Server.Core.SkinService)
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
@@ -52,9 +53,13 @@ end
 -------------------------------------------------------------------------------
 
 function ShopService.init()
-   requestPurchaseRemoteFunction.OnServerInvoke = function(player: Player, itemId: unknown)
+   -- // listingType is a ShopItems listing Type: "Item" (default) or "Skin"
+   requestPurchaseRemoteFunction.OnServerInvoke = function(player: Player, itemId: unknown, listingType: unknown)
       if type(itemId) ~= "string" then
          return false
+      end
+      if listingType == "Skin" then
+         return SkinService.purchaseSkin(player, itemId)
       end
       return ShopService.purchaseItem(player, itemId)
    end

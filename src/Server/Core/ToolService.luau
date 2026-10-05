@@ -22,6 +22,7 @@ local WeaponLibrary = require(ReplicatedStorage.Shared.Library.WeaponLibrary)
 local ArenaService = require(ServerStorage.Server.Core.ArenaService)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
+local SkinLibrary = require(ReplicatedStorage.Shared.Library.SkinLibrary)
 local AnimationService = require(ServerStorage.Server.Core.AnimationService)
 local CharacterService = require(ServerStorage.Server.Core.CharacterService)
 local HitboxService = require(ServerStorage.Server.Core.HitboxService)
@@ -58,12 +59,10 @@ SimpleRemotes.getEvent("SetEquippedTool")
 -------------------------------------------------------------------------------
 
 function ToolService.init()
-   SimpleRemotes.getFunction("GetEquippedTool").OnServerInvoke = function(player: Player)
-      if GlobalConfig.ForceEquippedTool ~= nil then
-         return GlobalConfig.ForceEquippedTool
-      end
-
-      return nil
+   -- // Returns the model name of the tool `forPlayer` holds (from their equipped skin)
+   SimpleRemotes.getFunction("GetEquippedTool").OnServerInvoke = function(player: Player, forPlayer: unknown)
+      local targetPlayer = if typeof(forPlayer) == "Instance" and forPlayer:IsA("Player") then forPlayer else player
+      return SkinLibrary.getModelName(targetPlayer)
    end
 end
 

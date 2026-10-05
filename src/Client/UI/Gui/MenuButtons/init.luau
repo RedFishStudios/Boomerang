@@ -4,7 +4,8 @@
 	The player's menu buttons on the left side of the screen, laid out like Sol's mockup:
 		[      Currency      ]   <- as wide as two buttons: boomerang icon + balance; click = Currency shop (later)
 		[ Shop ] [ Daily ]
-		[Quests] [Achievements]
+		[ Skins] [Quests]
+		[Achievements]
 	Buttons sit in a 2-column grid; hidden buttons are skipped, so the grid closes up.
 	Quests and Achievements stay hidden until their features exist; the feature turns its button on with
 		MenuButtonsGui.setButtonEnabled("Quests", true, QuestsGui.toggle)
@@ -59,6 +60,7 @@ local STROKE_THICKNESS = 3
 local BUTTONS = {
 	{ Id = "Shop", Text = "Shop", Icon = "🛒", Color = Color3.fromRGB(196, 72, 58), Enabled = true },
 	{ Id = "Daily", Text = "Daily", Icon = "🎁", Color = Color3.fromRGB(150, 92, 190), Enabled = true },
+	{ Id = "Skins", Text = "Skins", Icon = "🪃", Color = Color3.fromRGB(58, 132, 196), Enabled = true }, -- // T-072
 	{ Id = "Quests", Text = "Quests", Icon = "📜", Color = Color3.fromRGB(222, 170, 60), Enabled = false }, -- // T-038
 	{ Id = "Achievements", Text = "Achievements", Icon = "🏆", Color = Color3.fromRGB(92, 160, 74), Enabled = false }, -- // T-039
 }
@@ -306,6 +308,9 @@ function MenuButtonsGui.start()
 	end
 	buttonCallbacks.Daily = buttonCallbacks.Daily or function()
 		toggleGui("DailyClaims")
+	end
+	buttonCallbacks.Skins = buttonCallbacks.Skins or function()
+		toggleGui("Skins")
 	end
 
 	currencyLabel.Text = formatNumber(EconomyController.getBalance())

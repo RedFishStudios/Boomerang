@@ -21,6 +21,7 @@ local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local PlayerDataService = require(ServerStorage.Server.Core.PlayerDataService)
 local EconomyService = require(ServerStorage.Server.Core.EconomyService)
 local ItemService = require(ServerStorage.Server.Core.ItemService)
+local SkinService = require(ServerStorage.Server.Core.SkinService)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -105,11 +106,20 @@ function DailyRewardsService.init()
       -- // Grant first, so a misconfigured reward doesn't use up the player's claim
       -- // The client is notified through data replication: ItemAcquired for items (ShopController's Inventory listener),
       -- // and DailyClaims shows the currency popup using the day returned below.
+      -- // A skin the player already owns becomes FallbackCurrency (convertedToCurrency tells DailyClaims to show it)
       local granted = false
+      local convertedToCurrency = false
       if reward and reward.Type == "Currency" then
          granted = EconomyService.addCurrency(player, reward.Value)
       elseif reward and reward.Type == "Item" then
          granted = ItemService.grantItem(player, reward.Value, 1)
+      elseif reward and reward.Type == "Skin" then
+         if SkinService.ownsSkin(player, reward.Value) then
+            granted = EconomyService.addCurrency(player, reward.FallbackCurrency)
+            convertedToCurrency = true
+         else
+            granted = SkinService.grantSkin(player, reward.Value)
+         end
       end
 
       if not granted then
@@ -120,7 +130,7 @@ function DailyRewardsService.init()
       profileData.DailyRewards.Streak = newStreak
       profileData.DailyRewards.LastClaim = os.time()
 
-      return true, newStreak
+      return true, newStreak, convertedToCurrency
 	end
 end
 

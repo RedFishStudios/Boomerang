@@ -33,6 +33,8 @@ local CharacterService = require(ServerStorage.Server.Core.CharacterService)
 local _HitboxService = require(ServerStorage.Server.Core.HitboxService)
 local PlayerStatsLibrary = require(ReplicatedStorage.Shared.Library.PlayerStatsLibrary)
 local SharedTasks = require(ReplicatedStorage.Shared.Constants.SharedTasks)
+local SkinLibrary = require(ReplicatedStorage.Shared.Library.SkinLibrary)
+local SkinService = require(ServerStorage.Server.Core.SkinService)
 
 local ToolLogics = ReplicatedStorage.Shared.Logics.WeaponLogics
 local ToolLogicModules = {}
@@ -349,6 +351,7 @@ function WeaponService.init()
       if WeaponService.playerIsWeaponLocked(player) then
          return
       end
+      toolId = equippedToolIds[player] or toolId -- // The server decides the weapon class (from the equipped skin)
 
       local canAim = WeaponLibrary.canThrow(player, toolId)
       if not canAim then
@@ -392,6 +395,7 @@ function WeaponService.init()
 
    -- // Throw boomerang
    throwFunction.OnServerInvoke = function(player: Player, toolId: string, clientDirection: Vector3?, clientStartPosition: Vector3?)
+      toolId = equippedToolIds[player] or toolId -- // The server decides the weapon class (from the equipped skin)
       local timeSinceAiming = os.clock() - (aiming[player] or os.clock())
       local chargeTime = BoomerangTuningLibrary.getForAnyTool(if type(toolId) == "string" then toolId else nil, "ChargeTime") -- // T-066
       timeSinceAiming = math.clamp(timeSinceAiming, 0, chargeTime)
@@ -501,15 +505,28 @@ function WeaponService.init()
    end)
 
    PlayersUtil.CharacterLoaded:Add(function(player: Player, character: Model, humanoid: Humanoid, rootPart: BasePart)
-         local equippedToolId = GlobalConfig.ForceEquippedTool
+         -- // Stats come from the equipped skin's weapon class; clients get the skin's model name
+         local equippedToolId = SkinLibrary.getWeaponClass(player)
          if equippedToolId ~= nil then
             equippedToolIds[player] = equippedToolId
             equippedToolVisible[player] = true
-            weaponEquipStateEvent:FireAllClients(player.UserId, "Equip", equippedToolId)
+            weaponEquipStateEvent:FireAllClients(player.UserId, "Equip", SkinLibrary.getModelName(player))
          else
             equippedToolIds[player] = nil
             equippedToolVisible[player] = nil
          end
+   end)
+
+   -- // Skin changed (equipped in the Skins menu, or applied when the profile loads): swap the held model
+   SkinService.SkinEquippedTasks:Add(function(player: Player, _skinId: string)
+      if not equippedToolIds[player] then
+         return
+      end
+      equippedToolIds[player] = SkinLibrary.getWeaponClass(player) or equippedToolIds[player]
+      weaponEquipStateEvent:FireAllClients(player.UserId, "Equip", SkinLibrary.getModelName(player))
+      if equippedToolVisible[player] == false then
+         weaponEquipStateEvent:FireAllClients(player.UserId, "SetVisible", false)
+      end
    end)
 
    PlayersUtil.CharacterDestroying:Add(function(player: Player, character: Model)
@@ -540,7 +557,7 @@ function WeaponService.init()
    PlayersUtil.PlayerAdded:Add(function(joiningPlayer: Player)
       for player, equippedToolId in pairs(equippedToolIds) do
          if player.Character and player.Character.Parent then
-            weaponEquipStateEvent:FireClient(joiningPlayer, player.UserId, "Equip", equippedToolId)
+            weaponEquipStateEvent:FireClient(joiningPlayer, player.UserId, "Equip", SkinLibrary.getModelName(player) or equippedToolId)
             if equippedToolVisible[player] == false and (ThrownWeapons.Data[player] or ClashedWeapons.Data[player]) then
                weaponEquipStateEvent:FireClient(joiningPlayer, player.UserId, "SetVisible", false)
             end

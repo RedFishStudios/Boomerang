@@ -15,7 +15,7 @@ local GlobalConfig = {
    SpawnShieldDuration = 2,
    NilDataType = "nil_",
    AimFullStrength = 2.0,
-   ForceEquippedTool = "ClassicBoomerang",
+   ForceEquippedTool = "ClassicBoomerang", -- // nil = players hold no weapon. Otherwise the held/thrown model and weapon class come from the equipped skin (SkinLibrary)
    ThrownWeaponTrailLifetime = .3,
    BoomerangHitThrottle = .5,
    ForceOverwritePickup = nil,

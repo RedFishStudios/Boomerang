@@ -217,7 +217,8 @@ The server is authoritative. The client may predict (e.g. boomerang throws, dash
 ### Currency and items
 
 - `EconomyService` (server) / `EconomyController` (client) own `Currency`: use `addCurrency` / `spendCurrency`, not direct writes.
-- `ItemService` (server) / `ItemController` (client) own `Inventory` (item id -> amount). Item data is in `Shared/Referential/Items.luau`; shop layout in `ShopItems.luau`.
+- `ItemService` (server) / `ItemController` (client) own `Inventory` (item id -> amount). Item data is in `Shared/Referential/Items.luau`; shop layout in `ShopItems.luau` (listings point at an item or a skin).
+- **Skins:** `SkinService` (server) / `SkinController` (client) / `SkinLibrary` (shared) own `OwnedSkins` and `EquippedSkin`. Skin data is in `Shared/Referential/Skins.luau`: each skin has a `Model` (in `Shared/Assets/Tools`) and a `WeaponClass` (stats id in `Tools.luau`). Never read `GlobalConfig.ForceEquippedTool` as the tool id: use `SkinLibrary.getWeaponClass` / `getModelName`. Cmdr: `grantskin`.
 
 ## Developer commands (Cmdr)
 

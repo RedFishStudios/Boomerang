@@ -11,6 +11,7 @@ local isServer = RunService:IsServer()
 local ReplicatedStorage = game.ReplicatedStorage
 local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
+local SkinLibrary = require(ReplicatedStorage.Shared.Library.SkinLibrary)
 local BoomerangTuningLibrary = require(ReplicatedStorage.Shared.Library.BoomerangTuningLibrary)
 local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 local BufferUtil = require(ReplicatedStorage.Shared.Utils.BufferUtil)
@@ -683,14 +684,14 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          thrownWeaponData.ReuseEquippedHost = true
          boomerangModel.Name = `Boomerang_{player.Name}`
       else
-		 local equippedToolId = GlobalConfig.ForceEquippedTool
-		 if equippedToolId == nil then
+		 local modelName = SkinLibrary.getModelName(player) -- // The thrower's equipped skin
+		 if modelName == nil then
 			warn("Boomerang: GlobalConfig.ForceEquippedTool is nil; cannot clone thrown weapon model")
 			return
 		 end
 
          -- Client creates and monitors the actual 3D model of the projectile
-         boomerangModel = ReplicatedStorage.Shared.Assets.Tools[equippedToolId]:Clone()
+         boomerangModel = ReplicatedStorage.Shared.Assets.Tools[modelName]:Clone()
          boomerangModel.Name = `Boomerang_{player.Name}`
       end
       SoundLibrary.play(boomerangInstanceId, Sounds.Data.Throw.Name, boomerangModel.PrimaryPart, nil, true)

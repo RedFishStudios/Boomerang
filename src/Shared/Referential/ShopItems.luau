@@ -1,10 +1,17 @@
 local Items = require(script.Parent.Items)
+local Skins = require(script.Parent.Skins)
+
+-- // A shop listing points at an item (Shared/Referential/Items) or a skin (Shared/Referential/Skins)
+export type ShopListing = {
+   Type: "Item" | "Skin",
+   Id: Items.ItemClassId | Skins.SkinId
+}
 
 export type ShopTab = {
    Name: string,
    Order: number,
    AutoSelect: boolean?, -- Whether this tab is the first that is selected when the gui is opened
-   Items: { Items.ItemClassId }
+   Listings: { ShopListing }
 }
 
 local ShopItems: {
@@ -14,27 +21,17 @@ local ShopItems: {
    CurrentDeal: Items.ItemClassId?
 } = {
    Tabs = {
-      ExampleTab1 = {
+      Skins = {
          Order = 1,
          AutoSelect = true,
-         Name = "Weapons",
-         Items = {
-            "ExampleItem1",
-            "ExampleItem2"
+         Name = "Skins",
+         Listings = {
+            { Type = "Skin", Id = "Shuriken" },
+            { Type = "Skin", Id = "Fan" },
          }
       },
-      ExampleTab2 = {
-         Order = 2,
-         AutoSelect = nil,
-         Name = "Skins",
-         Items = {
-            "ExampleWeapon1",
-            "ExampleWeapon2",
-            "ExampleWeapon3"
-         }
-      }
    },
-   CurrentDeal = "ExampleItem1"
+   CurrentDeal = nil
 }
 
 return ShopItems
