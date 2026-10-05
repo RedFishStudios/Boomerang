@@ -111,6 +111,7 @@ Equippable boomerang skins with identical stats (every skin uses the `ClassicBoo
 - Shop: `ShopTab.Items` became `Listings` (`{Type = "Item" | "Skin", Id}`); Example items and the Weapons tab removed; `CurrentDeal` is nil. `ProductLogics/Placeholder.luau` kept with `NotActive = true` (Sol's choice).
 - `TODO:RELEASE placeholder`: Shuriken/Fan prices (500/1000) and `WeaponClass`, all daily currency amounts and skin `FallbackCurrency` (250/500).
 - Skins GUI uses the Shop panel/card assets; no title label yet. Sol may want to restyle.
+- Follow-up (Sol's feedback): skin cards are shorter to fit their content (bigger preview, cell height 0.25 → 0.205); the Fan's `MotorC0` attribute was moved so it's held by its handle in the hand instead of up the arm (rotation unchanged).
 
 ### T-037 · Player HUD buttons
 - **Priority:** P1

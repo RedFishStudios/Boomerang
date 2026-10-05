@@ -46,8 +46,7 @@
 					<R22>-1.34342823e-23</R22>
 				</CFrame>
 			</OptionalCoordinateFrame>
-			<BinaryString name="AttributesSerialize"><![CDATA[AQAAAAcAAABNb3RvckMwFM3MTD4AAAAAAAAAAAA/PnA+17NdP3ER4j5xEWK/zckls0I+8D6F
-DtA+////vt/HQz8=]]></BinaryString>
+			<BinaryString name="AttributesSerialize"><![CDATA[AQAAAAcAAABNb3RvckMwFCI7ZD4sKn2/ZafFPgA/PnA+17NdP3ER4j5xEWK/zckls0I+8D6FDtA+////vt/HQz8=]]></BinaryString>
 			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
 			<bool name="DefinesCapabilities">false</bool>
 			<string name="Name">Fan</string>
