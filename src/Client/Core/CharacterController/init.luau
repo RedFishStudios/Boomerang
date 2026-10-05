@@ -194,7 +194,9 @@ local function onPreSimulation(dT: number)
          f.Size = UDim2.fromOffset(5, 5)
          f.Parent = testGui
          f.Position = UDim2.fromOffset(lastInWorld.X, lastInWorld.Y)]]
-         lastInWorld += Vector3.new(0, -60, 0)
+         if lastInWorld then -- // nil until the mouse first moves (Server Authority Epic P2)
+            lastInWorld += Vector3.new(0, -60, 0)
+         end
 
          local raycastParams = RaycastParams.new()
          raycastParams.CollisionGroup = CollisionGroupConstants.ArenaFloorDetector

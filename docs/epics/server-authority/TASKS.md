@@ -9,12 +9,14 @@ Take new IDs from the `Next free ID` line in [TASKS.md](../../../TASKS.md), rese
 
 ## In Progress
 
+## Review
+
 ### T-071 · Throw direction wrong under Server authority
 - **Priority:** P1
 - **Owner:** Agent
 - **Area:** Client, Server
 - **Epic:** Finalize Conversion to Server Authority
-- **Files:** TBD (`Client/Core/WeaponController.luau`, `Server/Core/WeaponService.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`, `Client/Core/CharacterController`)
+- **Files:** `Client/Core/WeaponController.luau`, `Client/Core/CharacterController/init.luau`
 - **Approved early** by Sol (2026-10-03). DESIGN.md "Known problems: P4".
 
 **Problem / goal**
@@ -26,9 +28,12 @@ In Server mode the aim direction shows correctly on the player's own screen, but
 
 **Notes**
 - Branch `agent/T-071-sa-throw-direction`, lane `Github/Boomerang-lanes/docs-server-authority`.
-- Code read so far: the client computes the direction (mouse ray to `ArenaFloorDetector`, or the rendered model's LookVector for touch/locked mouse) and sends it with `throwFunction:InvokeServer`; `WeaponService.throwForPlayer` and `Boomerang.throw` use that client direction (horizontal). No obvious Server-mode-only break found yet; needs a play-test observation.
+- Cause (confirmed in Studio by logging what the server receives): the client measured the mouse aim from the held tool's pivot, which under Server authority reported a stale spot ~40 studs from the character, so every throw went roughly the same way. The server already uses the client's direction as-is.
+- Fix: `WeaponController.throwEquippedTool` aims from the rendered character's root (same origin as the aim arrow), and ignores the tool pivot as release position when it's more than 6 studs from the character.
+- Also guarded the per-frame `CharacterController:197` nil error (DESIGN.md P2) in the same file area.
+- Not lint-checked.
 
-## Review
+---
 
 ## Backlog
 

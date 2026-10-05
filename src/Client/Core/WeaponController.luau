@@ -102,6 +102,8 @@ local function getLogic(toolId: string)
 	return ToolLogicModules[toolId]
 end
 
+local MAX_RELEASE_DISTANCE_FROM_CHARACTER = 6 -- // T-071: a farther tool pivot is stale; release from the character instead
+
 local function getHorizontalDirection(direction: Vector3): Vector3
    local horizontal = Vector3.new(direction.X, 0, direction.Z)
    if horizontal.Magnitude <= 1e-5 then
@@ -241,9 +243,12 @@ local function throwEquippedTool(forcedDirection: Vector3?): boolean
 	local localCharacter = CharacterRenderController.getCharacterModel(localPlayer, true)
 	local pendingHost, releasePosition = ToolController.prepareToolForThrow(Players.LocalPlayer)
 
-	 local throwOrigin = releasePosition
-	 if not throwOrigin and localCharacter and localCharacter.PrimaryPart then
-		throwOrigin = localCharacter.PrimaryPart.Position
+	 -- // T-071: aim from the character (like the aim arrow does), not from the tool model. Under Server authority the
+	 -- // tool's pivot can be stale (it reported a spot ~40 studs away), which sent every throw the same way.
+	 local characterRoot = localCharacter and localCharacter.PrimaryPart
+	 local throwOrigin = if characterRoot then characterRoot.Position else releasePosition
+	 if releasePosition and characterRoot and (releasePosition - characterRoot.Position).Magnitude > MAX_RELEASE_DISTANCE_FROM_CHARACTER then
+		releasePosition = nil
 	 end
 
       local direction

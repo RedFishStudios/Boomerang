@@ -46,7 +46,7 @@ Reported by Sol (2026-10-03). Sol's guess, confirmed in code: the jump was only 
 
 ### P4. Throw direction doesn't match the aim in Server mode
 
-Reported by Sol (2026-10-03): the aim shows correctly on the player's own screen, but the boomerang isn't thrown that way. Task **T-071**.
+Reported by Sol (2026-10-03): the aim shows correctly on the player's own screen, but the boomerang isn't thrown that way. Task **T-071**. Cause: the client aimed from the held tool's stale pivot instead of the character.
 
 ### P5+. TODO (human review)
 
