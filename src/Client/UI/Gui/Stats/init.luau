@@ -24,6 +24,7 @@ local TweenService = game:GetService("TweenService")
 
 local UIController = require(ReplicatedStorage.Client.UI.UIController)
 local PlayerDataController = require(ReplicatedStorage.Client.Core.PlayerDataController)
+local AcquirableThingData = require(ReplicatedStorage.Shared.Referential.AcquirableThingData)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -93,8 +94,13 @@ local function formatTimePlayed(seconds: number): string
 	return `{formatNumber(hours)} {if hours == 1 then "Hour" else "Hours"}`
 end
 
--- // "FireBoomerang" -> "Fire Boomerang"
+-- // The title the item-acquired notification uses (AcquirableThingData); ids without an entry
+-- // (e.g. abilities) fall back to the spaced-out id: "FireBoomerang" -> "Fire Boomerang"
 local function toDisplayName(id: string): string
+	local data = AcquirableThingData[id]
+	if data and data.Title then
+		return data.Title
+	end
 	return (id:gsub("(%l)(%u)", "%1 %2"))
 end
 

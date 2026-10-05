@@ -110,7 +110,8 @@ A Stats button in the left lobby menu opens a Stats menu showing the player's li
 **Notes**
 - Branch `agent/T-074-stats-gui`, lane `Github/Boomerang-lanes/T-074-stats-gui`.
 - Card icons and row icons are the Roblox placeholder image; the rows are plain code-colored frames (placeholders for Sol's art). Menu button uses placeholder emoji art like the others.
-- Pickup rows skip stub pickups (`Disabled = true`). Names come from the ids ("FireBoomerang" -> "Fire Boomerang"). Each group is sorted most-used first.
+- Pickup rows skip stub pickups (`Disabled = true`). Row names use the item-acquired notification titles (`AcquirableThingData`); ids without an entry (Dash, Stab) are spaced out from the id. Each group is sorted most-used first.
+- The `.rbxmx` files are Sol's Studio saves (Rojo hadn't synced the hand-written ones); card number/label moved closer, list text slimmer (Sol, 2026-10-05).
 - `Throws` counts through `SharedTasks.WeaponThrownTasks` (fired once per accepted throw). With the debug switch `SyncAbilitiesToEveryPlayer` on, the copied throws count for every player.
 
 ---
