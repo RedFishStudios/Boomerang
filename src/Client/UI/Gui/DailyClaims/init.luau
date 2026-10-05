@@ -13,7 +13,6 @@ local Items = require(SharedMods.Referential.Items)
 local DailyRewards = require(SharedMods.Referential.DailyRewards)
 local PlayerDataController = require(ClientMods.Core.PlayerDataController)
 local ItemAcquiredGui = require(ClientMods.UI.Gui.ItemAcquired)
-local TopbarGui = require(ClientMods.UI.Gui.Topbar)
 
 local SECONDS_IN_DAY = 86400
 
@@ -212,14 +211,7 @@ function DailyClaimsGui.start()
 
    container:WaitForChild("Exit").MouseButton1Click:Connect(DailyClaimsGui.close)
 
-   TopbarGui.addButton({
-      Id = "DailyRewards",
-      Text = "Daily",
-      Icon = "🎁",
-      Side = "Left",
-      Order = 1,
-      onActivated = DailyClaimsGui.toggle,
-   })
+   -- // Opened from the Daily button in MenuButtons (T-037; was a Topbar button, T-055)
 
    if game:GetService("RunService"):IsStudio() then
       game:GetService("ContextActionService"):BindAction("testopendailyclaimsmenu", function(_, inputState)

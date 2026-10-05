@@ -40,7 +40,7 @@ Task IDs are reserved **on `main` in the home repo** so two chats can't claim th
 
 1. In the home repo, check it's on `main` and clean: `git branch --show-current` prints `main` and `git status --porcelain` prints nothing. If not, **stop and ask Sol**; don't stash, switch or commit their changes.
 2. Re-read `Next free ID` in `TASKS.md` right before editing. Bump it by the number of IDs you need (with a one-line `sed -i` or python edit of that line only).
-3. Commit only that file: `git add TASKS.md && git commit -m "docs: reserve T-123 (Short title)"` (several IDs: `reserve T-123 to T-125`). If git reports a lock (another chat is committing), wait a few seconds and start again from step 2.
+3. Commit only that file: `git add TASKS.md && git commit -m "Reserved task numbers"` (no IDs in the message; see CLAUDE.md's commit message rules). If git reports a lock (another chat is committing), wait a few seconds and start again from step 2.
 4. Bring it into your lane: in the lane, `git fetch home && git merge home/main`.
 5. Add the task to its list (`TASKS.md` or `docs/epics/<epic>/TASKS.md`) in your lane, using the reserved ID.
 
