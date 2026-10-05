@@ -84,6 +84,38 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
+### T-037 · Player HUD buttons
+- **Priority:** P1
+- **Owner:** Sol → Agent
+- **Area:** GUI / Client
+- **Files:** `Client/UI/Gui/MenuButtons/init.luau` (new), `Client/UI/Gui/DailyClaims/init.luau`
+
+**Problem / goal**
+The player needs a HUD with buttons. Known so far:
+- **Currency**: shows the player's Currency; clicking opens a Robux shop tab to buy more Currency.
+- **Shop**: opens the shop.
+- **Quests**: opens quests (feature: T-038).
+- **Achievements**: opens achievements (feature: T-039).
+**Sol:** decide the full button list and make the assets. **Agent:** wire each button (Currency display via `EconomyController.CurrencyChangedTasks`, opening GUIs via `UIController`). Buttons for features that don't exist yet stay hidden.
+
+
+**Decisions (Sol, 2026-10-03)**
+- Buttons: Currency, Shop, Quests, Achievements, Daily (Daily moves off the top bar). Quests/Achievements hidden until T-038/T-039 exist.
+- Layout from Sol's mockup (sizes/layout only, not its buttons): left side, vertical; Currency on top, two buttons wide, with room for a boomerang icon; below it a 2-column grid of square-ish buttons with a name plate.
+- Placeholder art for now (Sol's assets later). Clicking Currency will open a Robux shop for buying Currency; that shop comes later, so the click is a stub for now.
+
+**Notes**
+- Branch `agent/T-037-hud-menu-buttons`, lane `Github/Boomerang-lanes/maintenance`.
+- New code-built `MenuButtons` gui (no `.rbxmx`): placeholder colored tiles with emoji icons (🪃 currency, 🛒 Shop, 🎁 Daily, 📜 Quests, 🏆 Achievements) and FredokaOne labels. Sizes, colors, icons and position are constants at the top of the module; it scales with screen height (UIScale) and sits at 42% height so it stays clear of the mobile thumbstick.
+- Currency shows `EconomyController` balance with thousands separators and updates live. Click: `openCurrencyShop()` stub (prints in Studio only).
+- Shop toggles the Shop gui; Daily toggles Daily Rewards. The top bar's Daily button was removed (DailyClaims no longer registers it; the Topbar module stays for future buttons).
+- Quests/Achievements: `MenuButtonsGui.setButtonEnabled("Quests", true, QuestsGui.toggle)` turns one on when its feature exists; hidden buttons don't leave gaps.
+- Hidden while you're alive in the arena (lobby menu); say if it should show during rounds too.
+- Didn't use `HudButtons/Hud.rbxmx` (that's the in-round Throw/Dash/Stab buttons).
+- Not lint-checked.
+
+---
+
 ### T-060 · Bug: aim arrow stays visible while not aiming
 - **Priority:** P1
 - **Owner:** Agent
@@ -321,27 +353,6 @@ The shop GUI still has placeholder/progress visuals. Sol finishes the assets.
 
 ---
 
-### T-037 · Player HUD buttons
-- **Priority:** P1
-- **Owner:** Sol → Agent
-- **Area:** GUI / Client
-- **Files:** `Client/UI/Gui/HudButtons/`
-
-**Problem / goal**
-The player needs a HUD with buttons. Known so far:
-- **Currency**: shows the player's Currency; clicking opens a Robux shop tab to buy more Currency.
-- **Shop**: opens the shop.
-- **Quests**: opens quests (feature: T-038).
-- **Achievements**: opens achievements (feature: T-039).
-**Sol:** decide the full button list and make the assets. **Agent:** wire each button (Currency display via `EconomyController.CurrencyChangedTasks`, opening GUIs via `UIController`). Buttons for features that don't exist yet stay hidden.
-
-**Open questions (ask Sol first)**
-- Full button list and layout (PC and mobile)?
-- Robux → Currency: which developer products/amounts? (Add placeholders in `MarketplaceItems` until they exist.)
-
-**Notes**
-
----
 
 ### T-049 · Redeem codes system
 - **Priority:** P2
