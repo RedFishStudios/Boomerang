@@ -1,0 +1,512 @@
+<roblox xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4">
+	<Item class="ScreenGui" referent="RBXD380F4B7561C4591A06622CAE7C17DB8">
+		<Properties>
+			<string name="Name">Stats</string>
+			<bool name="ResetOnSpawn">false</bool>
+			<token name="ZIndexBehavior">1</token>
+			<bool name="Enabled">false</bool>
+		</Properties>
+		<Item class="ImageLabel" referent="RBX3A97AB153058460694C9C93E04DABAA4">
+			<Properties>
+				<string name="Name">Container</string>
+				<Content name="Image"><url>rbxassetid://127382807461790</url></Content>
+				<token name="ScaleType">3</token>
+				<Vector2 name="AnchorPoint"><X>0.5</X><Y>0.5</Y></Vector2>
+				<float name="BackgroundTransparency">1.0</float>
+				<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.5</YS><YO>0</YO></UDim2>
+				<UDim2 name="Size"><XS>0.6</XS><XO>0</XO><YS>0.85</YS><YO>0</YO></UDim2>
+				<int name="ZIndex">1</int>
+			</Properties>
+			<Item class="UIAspectRatioConstraint" referent="RBX664A722EEE914CBE9A4A33031939499C">
+				<Properties>
+					<string name="Name">UIAspectRatioConstraint</string>
+					<float name="AspectRatio">1.46190941</float>
+				</Properties>
+			</Item>
+			<Item class="TextLabel" referent="RBX0AC67702053043348A09DBD365076EE7">
+				<Properties>
+					<string name="Name">Title</string>
+					<Font name="FontFace"><Family><url>rbxasset://fonts/families/FredokaOne.json</url></Family><Weight>400</Weight><Style>Normal</Style></Font>
+					<string name="Text">STATS</string>
+					<Color3 name="TextColor3"><R>1.0</R><G>1.0</G><B>1.0</B></Color3>
+					<bool name="TextScaled">true</bool>
+					<bool name="TextWrapped">true</bool>
+					<token name="TextXAlignment">2</token>
+					<Vector2 name="AnchorPoint"><X>0.5</X><Y>0</Y></Vector2>
+					<float name="BackgroundTransparency">1.0</float>
+					<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.053</YS><YO>0</YO></UDim2>
+					<UDim2 name="Size"><XS>0.44</XS><XO>0</XO><YS>0.085</YS><YO>0</YO></UDim2>
+					<int name="ZIndex">2</int>
+				</Properties>
+				<Item class="UIStroke" referent="RBX9AD9B198BC6945BD9B836DE80E9069A2">
+					<Properties>
+						<string name="Name">UIStroke</string>
+						<Color3 name="Color"><R>0.3607843137254902</R><G>0.20392156862745098</G><B>0.0784313725490196</B></Color3>
+						<float name="Thickness">3</float>
+					</Properties>
+				</Item>
+			</Item>
+			<Item class="ImageButton" referent="RBX18D10B23AAD5475693C2E3F5A71952E3">
+				<Properties>
+					<string name="Name">Exit</string>
+					<Content name="Image"><url>rbxassetid://83841981001141</url></Content>
+					<token name="ScaleType">0</token>
+					<Vector2 name="AnchorPoint"><X>0.5</X><Y>0.5</Y></Vector2>
+					<float name="BackgroundTransparency">1.0</float>
+					<UDim2 name="Position"><XS>0.955</XS><XO>0</XO><YS>0.1</YS><YO>0</YO></UDim2>
+					<UDim2 name="Size"><XS>0.085</XS><XO>0</XO><YS>0.085</YS><YO>0</YO></UDim2>
+					<int name="ZIndex">3</int>
+				</Properties>
+				<Item class="UIAspectRatioConstraint" referent="RBX1E8D05292AFB4F9F8443E0D175127D43">
+					<Properties>
+						<string name="Name">UIAspectRatioConstraint</string>
+						<float name="AspectRatio">1.0</float>
+					</Properties>
+				</Item>
+			</Item>
+			<Item class="Frame" referent="RBX7AE46062AE9743C9B8E91BFAABCC955E">
+				<Properties>
+					<string name="Name">Content</string>
+					<float name="BackgroundTransparency">1.0</float>
+					<UDim2 name="Position"><XS>0.105</XS><XO>0</XO><YS>0.2</YS><YO>0</YO></UDim2>
+					<UDim2 name="Size"><XS>0.79</XS><XO>0</XO><YS>0.61</YS><YO>0</YO></UDim2>
+				</Properties>
+				<Item class="Frame" referent="RBXD93D00EE646741CFAE9892491DC83F8D">
+					<Properties>
+						<string name="Name">Cards</string>
+						<float name="BackgroundTransparency">1.0</float>
+						<UDim2 name="Position"><XS>0</XS><XO>0</XO><YS>0</YS><YO>0</YO></UDim2>
+						<UDim2 name="Size"><XS>0.55</XS><XO>0</XO><YS>1</YS><YO>0</YO></UDim2>
+					</Properties>
+					<Item class="UIGridLayout" referent="RBXF775E87FCAB94A6FA59B54B9E6494B17">
+						<Properties>
+							<string name="Name">UIGridLayout</string>
+							<UDim2 name="CellPadding"><XS>0.03</XS><XO>0</XO><YS>0.03</YS><YO>0</YO></UDim2>
+							<UDim2 name="CellSize"><XS>0.31</XS><XO>0</XO><YS>0.485</YS><YO>0</YO></UDim2>
+							<token name="FillDirection">0</token>
+							<token name="HorizontalAlignment">0</token>
+							<token name="VerticalAlignment">0</token>
+							<token name="SortOrder">2</token>
+						</Properties>
+						<Item class="UIAspectRatioConstraint" referent="RBXA7A955AC152F4CA18CFA2F2A2DC217C3">
+							<Properties>
+								<string name="Name">UIAspectRatioConstraint</string>
+								<float name="AspectRatio">0.687573969</float>
+							</Properties>
+						</Item>
+					</Item>
+					<Item class="ImageLabel" referent="RBXF087E996A48C49B09F6726FBB255E5C9">
+						<Properties>
+							<string name="Name">TimePlayed</string>
+							<Content name="Image"><url>rbxassetid://105517889005779</url></Content>
+							<token name="ScaleType">0</token>
+							<Vector2 name="AnchorPoint"><X>0</X><Y>0</Y></Vector2>
+							<float name="BackgroundTransparency">1.0</float>
+							<UDim2 name="Position"><XS>0</XS><XO>0</XO><YS>0</YS><YO>0</YO></UDim2>
+							<UDim2 name="Size"><XS>0</XS><XO>0</XO><YS>0</YS><YO>0</YO></UDim2>
+							<int name="ZIndex">1</int>
+							<int name="LayoutOrder">1</int>
+						</Properties>
+						<Item class="ImageLabel" referent="RBX1EA35D56AB9047B8823183D244176E33">
+							<Properties>
+								<string name="Name">Icon</string>
+								<Content name="Image"><url>rbxasset://textures/ui/GuiImagePlaceholder.png</url></Content>
+								<token name="ScaleType">0</token>
+								<Vector2 name="AnchorPoint"><X>0.5</X><Y>0.5</Y></Vector2>
+								<float name="BackgroundTransparency">1.0</float>
+								<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.3</YS><YO>0</YO></UDim2>
+								<UDim2 name="Size"><XS>0.6</XS><XO>0</XO><YS>0.34</YS><YO>0</YO></UDim2>
+								<int name="ZIndex">1</int>
+							</Properties>
+							<Item class="UIAspectRatioConstraint" referent="RBXA0BDEAAD4BA644D98DAC899D05CE44E7">
+								<Properties>
+									<string name="Name">UIAspectRatioConstraint</string>
+									<float name="AspectRatio">1.0</float>
+								</Properties>
+							</Item>
+						</Item>
+						<Item class="TextLabel" referent="RBX181EF5C74C8549CDB7EEC8275E1DCA32">
+							<Properties>
+								<string name="Name">Value</string>
+								<Font name="FontFace"><Family><url>rbxasset://fonts/families/FredokaOne.json</url></Family><Weight>400</Weight><Style>Normal</Style></Font>
+								<string name="Text">0 Min</string>
+								<Color3 name="TextColor3"><R>0.3607843137254902</R><G>0.20392156862745098</G><B>0.0784313725490196</B></Color3>
+								<bool name="TextScaled">true</bool>
+								<bool name="TextWrapped">true</bool>
+								<token name="TextXAlignment">2</token>
+								<Vector2 name="AnchorPoint"><X>0.5</X><Y>0</Y></Vector2>
+								<float name="BackgroundTransparency">1.0</float>
+								<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.53</YS><YO>0</YO></UDim2>
+								<UDim2 name="Size"><XS>0.85</XS><XO>0</XO><YS>0.13</YS><YO>0</YO></UDim2>
+								<int name="ZIndex">1</int>
+							</Properties>
+						</Item>
+						<Item class="TextLabel" referent="RBX6E21079BEB69443F8286C721DCD9B635">
+							<Properties>
+								<string name="Name">StatName</string>
+								<Font name="FontFace"><Family><url>rbxasset://fonts/families/FredokaOne.json</url></Family><Weight>400</Weight><Style>Normal</Style></Font>
+								<string name="Text">Time Played</string>
+								<Color3 name="TextColor3"><R>0.3607843137254902</R><G>0.20392156862745098</G><B>0.0784313725490196</B></Color3>
+								<bool name="TextScaled">true</bool>
+								<bool name="TextWrapped">true</bool>
+								<token name="TextXAlignment">2</token>
+								<Vector2 name="AnchorPoint"><X>0.5</X><Y>0</Y></Vector2>
+								<float name="BackgroundTransparency">1.0</float>
+								<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.78</YS><YO>0</YO></UDim2>
+								<UDim2 name="Size"><XS>0.85</XS><XO>0</XO><YS>0.11</YS><YO>0</YO></UDim2>
+								<int name="ZIndex">1</int>
+							</Properties>
+						</Item>
+					</Item>
+					<Item class="ImageLabel" referent="RBX1E674F3AB12341509624BC840DBDAE4C">
+						<Properties>
+							<string name="Name">Elims</string>
+							<Content name="Image"><url>rbxassetid://105517889005779</url></Content>
+							<token name="ScaleType">0</token>
+							<Vector2 name="AnchorPoint"><X>0</X><Y>0</Y></Vector2>
+							<float name="BackgroundTransparency">1.0</float>
+							<UDim2 name="Position"><XS>0</XS><XO>0</XO><YS>0</YS><YO>0</YO></UDim2>
+							<UDim2 name="Size"><XS>0</XS><XO>0</XO><YS>0</YS><YO>0</YO></UDim2>
+							<int name="ZIndex">1</int>
+							<int name="LayoutOrder">2</int>
+						</Properties>
+						<Item class="ImageLabel" referent="RBXD188A99A8E7549F1871FFB45F6A619F6">
+							<Properties>
+								<string name="Name">Icon</string>
+								<Content name="Image"><url>rbxasset://textures/ui/GuiImagePlaceholder.png</url></Content>
+								<token name="ScaleType">0</token>
+								<Vector2 name="AnchorPoint"><X>0.5</X><Y>0.5</Y></Vector2>
+								<float name="BackgroundTransparency">1.0</float>
+								<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.3</YS><YO>0</YO></UDim2>
+								<UDim2 name="Size"><XS>0.6</XS><XO>0</XO><YS>0.34</YS><YO>0</YO></UDim2>
+								<int name="ZIndex">1</int>
+							</Properties>
+							<Item class="UIAspectRatioConstraint" referent="RBX97B64CAB8F52452EB5AD4BC5579C4CA7">
+								<Properties>
+									<string name="Name">UIAspectRatioConstraint</string>
+									<float name="AspectRatio">1.0</float>
+								</Properties>
+							</Item>
+						</Item>
+						<Item class="TextLabel" referent="RBX9F41E038102149C38B0443C69C549DF9">
+							<Properties>
+								<string name="Name">Value</string>
+								<Font name="FontFace"><Family><url>rbxasset://fonts/families/FredokaOne.json</url></Family><Weight>400</Weight><Style>Normal</Style></Font>
+								<string name="Text">0</string>
+								<Color3 name="TextColor3"><R>0.3607843137254902</R><G>0.20392156862745098</G><B>0.0784313725490196</B></Color3>
+								<bool name="TextScaled">true</bool>
+								<bool name="TextWrapped">true</bool>
+								<token name="TextXAlignment">2</token>
+								<Vector2 name="AnchorPoint"><X>0.5</X><Y>0</Y></Vector2>
+								<float name="BackgroundTransparency">1.0</float>
+								<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.53</YS><YO>0</YO></UDim2>
+								<UDim2 name="Size"><XS>0.85</XS><XO>0</XO><YS>0.13</YS><YO>0</YO></UDim2>
+								<int name="ZIndex">1</int>
+							</Properties>
+						</Item>
+						<Item class="TextLabel" referent="RBXD81C0D8549E4439F95DBD8C32FECFF8E">
+							<Properties>
+								<string name="Name">StatName</string>
+								<Font name="FontFace"><Family><url>rbxasset://fonts/families/FredokaOne.json</url></Family><Weight>400</Weight><Style>Normal</Style></Font>
+								<string name="Text">Eliminations</string>
+								<Color3 name="TextColor3"><R>0.3607843137254902</R><G>0.20392156862745098</G><B>0.0784313725490196</B></Color3>
+								<bool name="TextScaled">true</bool>
+								<bool name="TextWrapped">true</bool>
+								<token name="TextXAlignment">2</token>
+								<Vector2 name="AnchorPoint"><X>0.5</X><Y>0</Y></Vector2>
+								<float name="BackgroundTransparency">1.0</float>
+								<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.78</YS><YO>0</YO></UDim2>
+								<UDim2 name="Size"><XS>0.85</XS><XO>0</XO><YS>0.11</YS><YO>0</YO></UDim2>
+								<int name="ZIndex">1</int>
+							</Properties>
+						</Item>
+					</Item>
+					<Item class="ImageLabel" referent="RBX955D6F4E6360412BA8F360B482E6D557">
+						<Properties>
+							<string name="Name">Defeats</string>
+							<Content name="Image"><url>rbxassetid://105517889005779</url></Content>
+							<token name="ScaleType">0</token>
+							<Vector2 name="AnchorPoint"><X>0</X><Y>0</Y></Vector2>
+							<float name="BackgroundTransparency">1.0</float>
+							<UDim2 name="Position"><XS>0</XS><XO>0</XO><YS>0</YS><YO>0</YO></UDim2>
+							<UDim2 name="Size"><XS>0</XS><XO>0</XO><YS>0</YS><YO>0</YO></UDim2>
+							<int name="ZIndex">1</int>
+							<int name="LayoutOrder">3</int>
+						</Properties>
+						<Item class="ImageLabel" referent="RBXE943BA5FC2F8474BB6864A959F9340DB">
+							<Properties>
+								<string name="Name">Icon</string>
+								<Content name="Image"><url>rbxasset://textures/ui/GuiImagePlaceholder.png</url></Content>
+								<token name="ScaleType">0</token>
+								<Vector2 name="AnchorPoint"><X>0.5</X><Y>0.5</Y></Vector2>
+								<float name="BackgroundTransparency">1.0</float>
+								<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.3</YS><YO>0</YO></UDim2>
+								<UDim2 name="Size"><XS>0.6</XS><XO>0</XO><YS>0.34</YS><YO>0</YO></UDim2>
+								<int name="ZIndex">1</int>
+							</Properties>
+							<Item class="UIAspectRatioConstraint" referent="RBX3883FA23C7E44D3DA210F1A6F6070454">
+								<Properties>
+									<string name="Name">UIAspectRatioConstraint</string>
+									<float name="AspectRatio">1.0</float>
+								</Properties>
+							</Item>
+						</Item>
+						<Item class="TextLabel" referent="RBX00A641B3BA0445818430C9FC71E2DCD5">
+							<Properties>
+								<string name="Name">Value</string>
+								<Font name="FontFace"><Family><url>rbxasset://fonts/families/FredokaOne.json</url></Family><Weight>400</Weight><Style>Normal</Style></Font>
+								<string name="Text">0</string>
+								<Color3 name="TextColor3"><R>0.3607843137254902</R><G>0.20392156862745098</G><B>0.0784313725490196</B></Color3>
+								<bool name="TextScaled">true</bool>
+								<bool name="TextWrapped">true</bool>
+								<token name="TextXAlignment">2</token>
+								<Vector2 name="AnchorPoint"><X>0.5</X><Y>0</Y></Vector2>
+								<float name="BackgroundTransparency">1.0</float>
+								<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.53</YS><YO>0</YO></UDim2>
+								<UDim2 name="Size"><XS>0.85</XS><XO>0</XO><YS>0.13</YS><YO>0</YO></UDim2>
+								<int name="ZIndex">1</int>
+							</Properties>
+						</Item>
+						<Item class="TextLabel" referent="RBXDD43AC3B2941456B9A6BFC14A0104117">
+							<Properties>
+								<string name="Name">StatName</string>
+								<Font name="FontFace"><Family><url>rbxasset://fonts/families/FredokaOne.json</url></Family><Weight>400</Weight><Style>Normal</Style></Font>
+								<string name="Text">Defeats</string>
+								<Color3 name="TextColor3"><R>0.3607843137254902</R><G>0.20392156862745098</G><B>0.0784313725490196</B></Color3>
+								<bool name="TextScaled">true</bool>
+								<bool name="TextWrapped">true</bool>
+								<token name="TextXAlignment">2</token>
+								<Vector2 name="AnchorPoint"><X>0.5</X><Y>0</Y></Vector2>
+								<float name="BackgroundTransparency">1.0</float>
+								<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.78</YS><YO>0</YO></UDim2>
+								<UDim2 name="Size"><XS>0.85</XS><XO>0</XO><YS>0.11</YS><YO>0</YO></UDim2>
+								<int name="ZIndex">1</int>
+							</Properties>
+						</Item>
+					</Item>
+					<Item class="ImageLabel" referent="RBXB3E87B6C0B2E4FB1BC3DB6A1480F379E">
+						<Properties>
+							<string name="Name">RoundsPlayed</string>
+							<Content name="Image"><url>rbxassetid://105517889005779</url></Content>
+							<token name="ScaleType">0</token>
+							<Vector2 name="AnchorPoint"><X>0</X><Y>0</Y></Vector2>
+							<float name="BackgroundTransparency">1.0</float>
+							<UDim2 name="Position"><XS>0</XS><XO>0</XO><YS>0</YS><YO>0</YO></UDim2>
+							<UDim2 name="Size"><XS>0</XS><XO>0</XO><YS>0</YS><YO>0</YO></UDim2>
+							<int name="ZIndex">1</int>
+							<int name="LayoutOrder">4</int>
+						</Properties>
+						<Item class="ImageLabel" referent="RBXC8B7920CFFE94E85A38D3603DEC0CA44">
+							<Properties>
+								<string name="Name">Icon</string>
+								<Content name="Image"><url>rbxasset://textures/ui/GuiImagePlaceholder.png</url></Content>
+								<token name="ScaleType">0</token>
+								<Vector2 name="AnchorPoint"><X>0.5</X><Y>0.5</Y></Vector2>
+								<float name="BackgroundTransparency">1.0</float>
+								<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.3</YS><YO>0</YO></UDim2>
+								<UDim2 name="Size"><XS>0.6</XS><XO>0</XO><YS>0.34</YS><YO>0</YO></UDim2>
+								<int name="ZIndex">1</int>
+							</Properties>
+							<Item class="UIAspectRatioConstraint" referent="RBX3ED3B64D6C944988800DE0532EB70883">
+								<Properties>
+									<string name="Name">UIAspectRatioConstraint</string>
+									<float name="AspectRatio">1.0</float>
+								</Properties>
+							</Item>
+						</Item>
+						<Item class="TextLabel" referent="RBX87ADCE301BBA481D94B18051FFF03306">
+							<Properties>
+								<string name="Name">Value</string>
+								<Font name="FontFace"><Family><url>rbxasset://fonts/families/FredokaOne.json</url></Family><Weight>400</Weight><Style>Normal</Style></Font>
+								<string name="Text">0</string>
+								<Color3 name="TextColor3"><R>0.3607843137254902</R><G>0.20392156862745098</G><B>0.0784313725490196</B></Color3>
+								<bool name="TextScaled">true</bool>
+								<bool name="TextWrapped">true</bool>
+								<token name="TextXAlignment">2</token>
+								<Vector2 name="AnchorPoint"><X>0.5</X><Y>0</Y></Vector2>
+								<float name="BackgroundTransparency">1.0</float>
+								<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.53</YS><YO>0</YO></UDim2>
+								<UDim2 name="Size"><XS>0.85</XS><XO>0</XO><YS>0.13</YS><YO>0</YO></UDim2>
+								<int name="ZIndex">1</int>
+							</Properties>
+						</Item>
+						<Item class="TextLabel" referent="RBX190CF5F57441460B8250515AB7CDC583">
+							<Properties>
+								<string name="Name">StatName</string>
+								<Font name="FontFace"><Family><url>rbxasset://fonts/families/FredokaOne.json</url></Family><Weight>400</Weight><Style>Normal</Style></Font>
+								<string name="Text">Games Played</string>
+								<Color3 name="TextColor3"><R>0.3607843137254902</R><G>0.20392156862745098</G><B>0.0784313725490196</B></Color3>
+								<bool name="TextScaled">true</bool>
+								<bool name="TextWrapped">true</bool>
+								<token name="TextXAlignment">2</token>
+								<Vector2 name="AnchorPoint"><X>0.5</X><Y>0</Y></Vector2>
+								<float name="BackgroundTransparency">1.0</float>
+								<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.78</YS><YO>0</YO></UDim2>
+								<UDim2 name="Size"><XS>0.85</XS><XO>0</XO><YS>0.11</YS><YO>0</YO></UDim2>
+								<int name="ZIndex">1</int>
+							</Properties>
+						</Item>
+					</Item>
+					<Item class="ImageLabel" referent="RBXEED324DFB5F74815A186341A5F84B958">
+						<Properties>
+							<string name="Name">Wins</string>
+							<Content name="Image"><url>rbxassetid://105517889005779</url></Content>
+							<token name="ScaleType">0</token>
+							<Vector2 name="AnchorPoint"><X>0</X><Y>0</Y></Vector2>
+							<float name="BackgroundTransparency">1.0</float>
+							<UDim2 name="Position"><XS>0</XS><XO>0</XO><YS>0</YS><YO>0</YO></UDim2>
+							<UDim2 name="Size"><XS>0</XS><XO>0</XO><YS>0</YS><YO>0</YO></UDim2>
+							<int name="ZIndex">1</int>
+							<int name="LayoutOrder">5</int>
+						</Properties>
+						<Item class="ImageLabel" referent="RBX79494DF2CAC0446B827B189D5876BCBB">
+							<Properties>
+								<string name="Name">Icon</string>
+								<Content name="Image"><url>rbxasset://textures/ui/GuiImagePlaceholder.png</url></Content>
+								<token name="ScaleType">0</token>
+								<Vector2 name="AnchorPoint"><X>0.5</X><Y>0.5</Y></Vector2>
+								<float name="BackgroundTransparency">1.0</float>
+								<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.3</YS><YO>0</YO></UDim2>
+								<UDim2 name="Size"><XS>0.6</XS><XO>0</XO><YS>0.34</YS><YO>0</YO></UDim2>
+								<int name="ZIndex">1</int>
+							</Properties>
+							<Item class="UIAspectRatioConstraint" referent="RBX99BDF0B3683945A59B0649AA35206D67">
+								<Properties>
+									<string name="Name">UIAspectRatioConstraint</string>
+									<float name="AspectRatio">1.0</float>
+								</Properties>
+							</Item>
+						</Item>
+						<Item class="TextLabel" referent="RBX460B435BC3A34A5AAE9B28F1B290DD94">
+							<Properties>
+								<string name="Name">Value</string>
+								<Font name="FontFace"><Family><url>rbxasset://fonts/families/FredokaOne.json</url></Family><Weight>400</Weight><Style>Normal</Style></Font>
+								<string name="Text">0</string>
+								<Color3 name="TextColor3"><R>0.3607843137254902</R><G>0.20392156862745098</G><B>0.0784313725490196</B></Color3>
+								<bool name="TextScaled">true</bool>
+								<bool name="TextWrapped">true</bool>
+								<token name="TextXAlignment">2</token>
+								<Vector2 name="AnchorPoint"><X>0.5</X><Y>0</Y></Vector2>
+								<float name="BackgroundTransparency">1.0</float>
+								<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.53</YS><YO>0</YO></UDim2>
+								<UDim2 name="Size"><XS>0.85</XS><XO>0</XO><YS>0.13</YS><YO>0</YO></UDim2>
+								<int name="ZIndex">1</int>
+							</Properties>
+						</Item>
+						<Item class="TextLabel" referent="RBXAD42F8C3865445E1A946DB28989119F8">
+							<Properties>
+								<string name="Name">StatName</string>
+								<Font name="FontFace"><Family><url>rbxasset://fonts/families/FredokaOne.json</url></Family><Weight>400</Weight><Style>Normal</Style></Font>
+								<string name="Text">Games Won</string>
+								<Color3 name="TextColor3"><R>0.3607843137254902</R><G>0.20392156862745098</G><B>0.0784313725490196</B></Color3>
+								<bool name="TextScaled">true</bool>
+								<bool name="TextWrapped">true</bool>
+								<token name="TextXAlignment">2</token>
+								<Vector2 name="AnchorPoint"><X>0.5</X><Y>0</Y></Vector2>
+								<float name="BackgroundTransparency">1.0</float>
+								<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.78</YS><YO>0</YO></UDim2>
+								<UDim2 name="Size"><XS>0.85</XS><XO>0</XO><YS>0.11</YS><YO>0</YO></UDim2>
+								<int name="ZIndex">1</int>
+							</Properties>
+						</Item>
+					</Item>
+					<Item class="ImageLabel" referent="RBXE1DF487E158341DCBB5AE70DA20F1AC8">
+						<Properties>
+							<string name="Name">Throws</string>
+							<Content name="Image"><url>rbxassetid://105517889005779</url></Content>
+							<token name="ScaleType">0</token>
+							<Vector2 name="AnchorPoint"><X>0</X><Y>0</Y></Vector2>
+							<float name="BackgroundTransparency">1.0</float>
+							<UDim2 name="Position"><XS>0</XS><XO>0</XO><YS>0</YS><YO>0</YO></UDim2>
+							<UDim2 name="Size"><XS>0</XS><XO>0</XO><YS>0</YS><YO>0</YO></UDim2>
+							<int name="ZIndex">1</int>
+							<int name="LayoutOrder">6</int>
+						</Properties>
+						<Item class="ImageLabel" referent="RBX0172AA18B4D54762BEDAE6CCF47A69E2">
+							<Properties>
+								<string name="Name">Icon</string>
+								<Content name="Image"><url>rbxasset://textures/ui/GuiImagePlaceholder.png</url></Content>
+								<token name="ScaleType">0</token>
+								<Vector2 name="AnchorPoint"><X>0.5</X><Y>0.5</Y></Vector2>
+								<float name="BackgroundTransparency">1.0</float>
+								<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.3</YS><YO>0</YO></UDim2>
+								<UDim2 name="Size"><XS>0.6</XS><XO>0</XO><YS>0.34</YS><YO>0</YO></UDim2>
+								<int name="ZIndex">1</int>
+							</Properties>
+							<Item class="UIAspectRatioConstraint" referent="RBXE202F370CE2B4D469ECE7B6F8DB0199C">
+								<Properties>
+									<string name="Name">UIAspectRatioConstraint</string>
+									<float name="AspectRatio">1.0</float>
+								</Properties>
+							</Item>
+						</Item>
+						<Item class="TextLabel" referent="RBX68B012612C4A45FE92EDB97AA01ED649">
+							<Properties>
+								<string name="Name">Value</string>
+								<Font name="FontFace"><Family><url>rbxasset://fonts/families/FredokaOne.json</url></Family><Weight>400</Weight><Style>Normal</Style></Font>
+								<string name="Text">0</string>
+								<Color3 name="TextColor3"><R>0.3607843137254902</R><G>0.20392156862745098</G><B>0.0784313725490196</B></Color3>
+								<bool name="TextScaled">true</bool>
+								<bool name="TextWrapped">true</bool>
+								<token name="TextXAlignment">2</token>
+								<Vector2 name="AnchorPoint"><X>0.5</X><Y>0</Y></Vector2>
+								<float name="BackgroundTransparency">1.0</float>
+								<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.53</YS><YO>0</YO></UDim2>
+								<UDim2 name="Size"><XS>0.85</XS><XO>0</XO><YS>0.13</YS><YO>0</YO></UDim2>
+								<int name="ZIndex">1</int>
+							</Properties>
+						</Item>
+						<Item class="TextLabel" referent="RBX0A88AD8BB4E342849F0AD1A0790B9661">
+							<Properties>
+								<string name="Name">StatName</string>
+								<Font name="FontFace"><Family><url>rbxasset://fonts/families/FredokaOne.json</url></Family><Weight>400</Weight><Style>Normal</Style></Font>
+								<string name="Text">Throws</string>
+								<Color3 name="TextColor3"><R>0.3607843137254902</R><G>0.20392156862745098</G><B>0.0784313725490196</B></Color3>
+								<bool name="TextScaled">true</bool>
+								<bool name="TextWrapped">true</bool>
+								<token name="TextXAlignment">2</token>
+								<Vector2 name="AnchorPoint"><X>0.5</X><Y>0</Y></Vector2>
+								<float name="BackgroundTransparency">1.0</float>
+								<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.78</YS><YO>0</YO></UDim2>
+								<UDim2 name="Size"><XS>0.85</XS><XO>0</XO><YS>0.11</YS><YO>0</YO></UDim2>
+								<int name="ZIndex">1</int>
+							</Properties>
+						</Item>
+					</Item>
+				</Item>
+				<Item class="ScrollingFrame" referent="RBX8532CE1FF35F487290AC0C90529076CD">
+					<Properties>
+						<string name="Name">Listings</string>
+						<Vector2 name="AnchorPoint"><X>1</X><Y>0</Y></Vector2>
+						<float name="BackgroundTransparency">1.0</float>
+						<int name="BorderSizePixel">0</int>
+						<UDim2 name="Position"><XS>1</XS><XO>0</XO><YS>0</YS><YO>0</YO></UDim2>
+						<UDim2 name="Size"><XS>0.42</XS><XO>0</XO><YS>1</YS><YO>0</YO></UDim2>
+						<UDim2 name="CanvasSize"><XS>0</XS><XO>0</XO><YS>0</YS><YO>0</YO></UDim2>
+						<token name="AutomaticCanvasSize">2</token>
+						<token name="ScrollingDirection">2</token>
+						<int name="ScrollBarThickness">6</int>
+						<Color3 name="ScrollBarImageColor3"><R>0.3607843137254902</R><G>0.20392156862745098</G><B>0.0784313725490196</B></Color3>
+					</Properties>
+					<Item class="UIListLayout" referent="RBX63D72E3AE4124686AFDE6357B4A7B878">
+						<Properties>
+							<string name="Name">UIListLayout</string>
+							<UDim name="Padding"><S>0</S><O>6</O></UDim>
+							<token name="SortOrder">2</token>
+							<token name="HorizontalAlignment">0</token>
+						</Properties>
+					</Item>
+					<Item class="UIPadding" referent="RBXC24446D16263485A92158483C0E4357B">
+						<Properties>
+							<string name="Name">UIPadding</string>
+							<UDim name="PaddingTop"><S>0</S><O>3</O></UDim>
+							<UDim name="PaddingBottom"><S>0</S><O>3</O></UDim>
+							<UDim name="PaddingLeft"><S>0</S><O>3</O></UDim>
+							<UDim name="PaddingRight"><S>0</S><O>12</O></UDim>
+						</Properties>
+					</Item>
+				</Item>
+			</Item>
+		</Item>
+	</Item>
+</roblox>

@@ -84,6 +84,37 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
+### T-074 · Stats menu
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Client / GUI / Server / Data
+- **Files:** `Client/UI/Gui/Stats/`, `Client/UI/Gui/MenuButtons/init.luau`, `Server/Core/LifetimeStatsService.luau`, `Shared/Data/ProfileTemplate.luau`, `Server/Cmdr/Commands/ShowStatsServer.luau`
+
+**Problem / goal**
+A Stats button in the left lobby menu opens a Stats menu showing the player's lifetime stats. Left: six cards, in order Time Played, Eliminations, Defeats, Games Played, Games Won, Throws. Right: the smaller stats (times each ability was used, times each pickup was collected) as placeholder rows with a count, no fill bar. Layout sized after Sol's reference screenshot, without its "Personal Stats" / "Ability Usage Comparison" labels. Uses the DailyClaims base frame (title centered, no streak number), its X button and its card frame for now.
+
+**Decisions (Sol, 2026-10-05)**
+- 5th card is Games Won (the request listed Eliminations twice).
+- The right list has abilities and pickups.
+- New saved stat `Throws`: every successful weapon throw.
+
+**Done when**
+- [ ] The Stats button opens/closes the menu; the X closes it.
+- [ ] The six cards and the list show the player's saved values, and Throws counts up.
+
+**Test in Studio**
+- Open Stats from the left menu. New profile: cards show 0 Min / 0, and the list shows Dash, Stab and the enabled pickups with 0.
+- Throw a few times, dash/stab, grab a pickup, then reopen: Throws and the counts went up (F2 `showstats me` shows the same values, incl. Throws). Time played shows minutes under an hour, hours after (saved every minute).
+- Check `Stats.rbxmx` / `StatListingTemplate.rbxmx` in Studio: card sizes, text positions, row height (rows scale to the list's width, 7:1), and the list scrolls when rows overflow.
+
+**Notes**
+- Branch `agent/T-074-stats-gui`, lane `Github/Boomerang-lanes/T-074-stats-gui`.
+- Card icons and row icons are the Roblox placeholder image; the rows are plain code-colored frames (placeholders for Sol's art). Menu button uses placeholder emoji art like the others.
+- Pickup rows skip stub pickups (`Disabled = true`). Names come from the ids ("FireBoomerang" -> "Fire Boomerang"). Each group is sorted most-used first.
+- `Throws` counts through `SharedTasks.WeaponThrownTasks` (fired once per accepted throw). With the debug switch `SyncAbilitiesToEveryPlayer` on, the copied throws count for every player.
+
+---
+
 ### T-073 · Returning boomerang circles the player instead of reaching them
 - **Priority:** P1
 - **Owner:** Agent

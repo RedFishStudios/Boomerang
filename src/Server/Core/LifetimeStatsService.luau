@@ -3,7 +3,7 @@
 
 	Description:
 	Owns the lifetime stats saved in the player's profile: Elims, Defeats, Wins, RoundsPlayed,
-	TimePlayed, AbilityUses, PickupsAcquired and MonthlyStats. Other code shouldn't write these fields directly.
+	TimePlayed, Throws, AbilityUses, PickupsAcquired and MonthlyStats. Other code shouldn't write these fields directly.
 	(Live, per-life stats like health are in PlayerStatService.)
 ]]
 
@@ -36,6 +36,7 @@ export type Stats = {
 	Wins: number,
 	RoundsPlayed: number,
 	TimePlayed: number,
+	Throws: number,
 	AbilityUses: { [string]: number },
 	PickupsAcquired: { [string]: number },
 }
@@ -139,6 +140,7 @@ function LifetimeStatsService.getStats(player: Player): Stats?
 		Wins = data.Wins,
 		RoundsPlayed = data.RoundsPlayed,
 		TimePlayed = data.TimePlayed,
+		Throws = data.Throws,
 		AbilityUses = table.clone((data.AbilityUses :: any)()),
 		PickupsAcquired = table.clone((data.PickupsAcquired :: any)()),
 	}
@@ -162,6 +164,14 @@ function LifetimeStatsService.init()
 		local victimData = PlayerDataService.get(victim)
 		if victimData then
 			victimData.Defeats += 1
+		end
+	end)
+
+	-- // Every successful throw (fired by WeaponService after the throw is accepted)
+	SharedTasks.WeaponThrownTasks:Add(function(player: Player, _toolId: string)
+		local data = PlayerDataService.get(player)
+		if data then
+			data.Throws += 1
 		end
 	end)
 

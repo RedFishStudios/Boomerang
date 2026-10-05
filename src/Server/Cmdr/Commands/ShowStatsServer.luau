@@ -22,6 +22,7 @@ return function(_context, player: Player)
 		`Eliminations: {stats.Elims}, Defeats: {stats.Defeats}`,
 		`Wins: {stats.Wins}, Rounds played: {stats.RoundsPlayed}`,
 		`Time played: {math.floor(stats.TimePlayed / 60)} min ({stats.TimePlayed} s)`,
+		`Throws: {stats.Throws}`,
 		`Abilities used: {formatCounts(stats.AbilityUses)}`,
 		`Pickups acquired: {formatCounts(stats.PickupsAcquired)}`,
 	}, "\n")

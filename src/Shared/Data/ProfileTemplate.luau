@@ -18,6 +18,7 @@ export type Template = {
    Losses: number, -- Unused: never tracked, kept because the field has shipped
    RoundsPlayed: number, -- Rounds the player was in from start to finish
    TimePlayed: number, -- Seconds spent in the game
+   Throws: number, -- Times the player threw a weapon
    AbilityUses: {
       [string]: number -- Ability id : times used
    },
@@ -59,6 +60,7 @@ function ProfileTemplate.get()
       Losses = 0,
       RoundsPlayed = 0,
       TimePlayed = 0,
+      Throws = 0,
       AbilityUses = {},
       PickupsAcquired = {},
       MonthlyStats = {
