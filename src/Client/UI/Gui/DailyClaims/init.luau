@@ -20,13 +20,14 @@ local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local claimRemoteFunction = SimpleRemotes.getFunction("ClaimDailyReward")
 
 local Gui: ScreenGui? = script:WaitForChild("DailyClaims")
-local DayFrames: {Frame} = {}
+local DayFrames: {GuiObject} = {}
 
 local SessionConnections: {RBXScriptConnection} = {}
 
 local container = Gui:WaitForChild("Container")
-local mainContainer = container:WaitForChild("Main")
-local gridLayout = mainContainer:WaitForChild("UIGridLayout")
+local content = container:WaitForChild("Content")
+local mainContainer = content:WaitForChild("Main")
+local streakNumber: TextLabel = container:WaitForChild("StreakNumber")
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -52,6 +53,9 @@ local function updateDayIndicators()
    if not playerData then return end
 
    local visualStreak, nextVisualDay, isClaimable = getStreakState(playerData)
+
+   -- // The day the player is on: the claimable day, or the day already claimed today
+   streakNumber.Text = tostring(if isClaimable then nextVisualDay else math.max(visualStreak, 1))
 
    for dayNum = 1, DailyRewards.MaxStreakDays do
       local dayFrame = DayFrames[dayNum]
@@ -93,34 +97,12 @@ local function claim(day: number)
    end
 end
 
-local function setSizings()
-   -- For 3 columns and 2 rows with equal padding
-   local containerWidth = mainContainer.AbsoluteSize.X
-   local containerHeight = mainContainer.AbsoluteSize.Y
-   
-   -- Number of items in grid
-   local numCols = 3
-   local numRows = 2
-   local padding = 5 -- pixels
-   
-   -- Calculate cell dimensions (converting to UDim2)
-   -- We use scale values for responsive sizing
-   local cellWidthScale = (1 - (padding * numCols / containerWidth)) / numCols
-   local cellHeightScale = (1 - (padding * numRows / containerHeight)) / numRows
-   
-   gridLayout.CellSize = UDim2.new(cellWidthScale, 0, cellHeightScale, 0)
-   gridLayout.CellPadding = UDim2.new(0, padding, 0, padding)
-end
-
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
 function DailyClaimsGui.open()
-   setSizings()
    updateDayIndicators()
-
-   table.insert(SessionConnections, workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(setSizings))
 
    Gui.Enabled = true
    DailyClaimsGui.Open = true
@@ -191,25 +173,30 @@ function DailyClaimsGui.start()
       end
    end
 
-   -- Create or update all 7 day frames
+   -- // Days 1-6 are laid out in the .rbxmx; a missing day is cloned from Day1
    for dayNum = 1, DailyRewards.MaxStreakDays-1 do
-      local dayFrame
-      
-      if dayNum == 1 then
-         dayFrame = day1Frame
-      else
-         -- Duplicate Day1 frame
+      local dayFrame = mainContainer:FindFirstChild(`Day{dayNum}`)
+
+      if not dayFrame then
          dayFrame = day1Frame:Clone()
          dayFrame.Name = `Day{dayNum}`
+         dayFrame.LayoutOrder = dayNum
          dayFrame.Parent = mainContainer
       end
-      
+
       wireDayFrame(dayFrame, dayNum)
    end
 
-   wireDayFrame(container:WaitForChild("Day" .. DailyRewards.MaxStreakDays), DailyRewards.MaxStreakDays)
+   wireDayFrame(content:WaitForChild("Day" .. DailyRewards.MaxStreakDays), DailyRewards.MaxStreakDays)
 
    container:WaitForChild("Exit").MouseButton1Click:Connect(DailyClaimsGui.close)
+
+   -- // The claim's new Streak/LastClaim replicate after the remote returns, so refresh when they arrive
+   PlayerDataController.UpdatedTasks:Add(function(_, _, path)
+      if path[1] == "DailyRewards" and DailyClaimsGui.Open then
+         updateDayIndicators()
+      end
+   end)
 
    -- // Opened from the Daily button in MenuButtons (T-037; was a Topbar button, T-055)
 
