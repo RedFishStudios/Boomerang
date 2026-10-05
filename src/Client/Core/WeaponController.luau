@@ -437,7 +437,12 @@ local function updateSmoothing(deltaTime: number)
    end
 end
 
+-- // T-060: bumped on every stop/begin, so a beginAiming that yielded (waiting for the character model) can tell it
+-- // was overtaken by a stop and must not create a leftover arrow
+local aimArrowGeneration: { [Player]: number } = {}
+
 function stopAiming(player: Player)
+   aimArrowGeneration[player] = (aimArrowGeneration[player] or 0) + 1
    AnimationController.stopCoreAnimation(player, "Charging")
    local aimArrow = aimArrows[player]
    if aimArrow then
@@ -554,6 +559,11 @@ local function renderAimArrows()
          return
       end
       for p, arrows in pairs(aimArrows) do
+         if p == Players.LocalPlayer and not isAiming then
+            stopAiming(p) -- // T-060: the local arrow never outlives the local aim, whatever path created it
+            continue
+         end
+
          local character = CharacterRenderController.getCharacterModel(p, false)
          if not character then
             stopAiming(p)
@@ -609,8 +619,14 @@ local function renderAimArrows()
 end
 
 local function beginAiming(player: Player)
-   local character = CharacterRenderController.getCharacterModel(player, true)
+   local generation = (aimArrowGeneration[player] or 0) + 1
+   aimArrowGeneration[player] = generation
+   local character = CharacterRenderController.getCharacterModel(player, true) -- // Can yield (model being built)
    if not character then
+      return
+   end
+   -- // T-060: while we waited, the aim may have ended (throw/cancel) or a newer begin may have started
+   if aimArrowGeneration[player] ~= generation or (player == Players.LocalPlayer and not isAiming) then
       return
    end
 

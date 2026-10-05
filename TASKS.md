@@ -180,7 +180,10 @@ Sometimes the aim arrow stays visible while the player isn't otherwise aiming: t
 - Throw repeatedly (fast taps, hold-and-release, throw right as the boomerang returns, throw during weapon lock): the arrow never stays without the slow aiming walk.
 
 **Notes**
-- Branch `agent/T-060-aim-arrow-visibility`, lane `Github/Boomerang-lanes/maintenance`.
+- Branch `agent/T-060-aim-arrow-race`, lane `Github/Boomerang-lanes/T-060-aim-arrow-race` (first fix: `agent/T-060-aim-arrow-visibility`, shipped).
+- **Review 2 (2026-10-05): failed** - Sol: the arrow alone still sometimes stays (walk speed and the rest are fine), rare race.
+  - Cause: `beginAiming` waits for the character model (`getCharacterModel(player, true)` can yield up to 5 s while the model is being built, e.g. right after a respawn or a ragdoll rebuild). If the throw/cancel happened during that wait, `stopAiming` found no arrow to remove, then `beginAiming` resumed and created one that nothing ever removed. Affected other players' arrows too.
+  - Fix: a per-player arrow generation counter (bumped by every begin/stop); a `beginAiming` that was overtaken while waiting no longer creates the arrow. Backstop: the render loop removes the local arrow on any frame where the local player isn't aiming.
 - Causes found (client and server aim could disagree, and the arrow only listened to the server):
   - When the client dropped its aim without throwing (weapon locked mid-aim, throw refused while locked, round change to LobbyVoting), the server was never told, so it kept the player "aiming".
   - A "stop aiming" from the server was dropped while the weapon was locked, so the arrow stayed.
