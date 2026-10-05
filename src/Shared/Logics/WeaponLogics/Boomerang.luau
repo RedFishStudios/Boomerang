@@ -58,6 +58,7 @@ local REPLICATION_RATE = 1 / 20
 local AIM_START_SPEED_BONUS_MULTIPLIER = 1.0
 local AIM_SPEED_FADE_RATE = 2.0
 local RECALL_CATCH_RADIUS_MIN = 1.5
+local RETURN_STEER_TIGHTNESS = 3 -- // How sharply a returning boomerang turns into the player up close (1 = circles them; higher = more direct)
 local CLASH_SPEED_SCALE = 0.5
 local CLASH_MINIMUM_SPEED = 12
 local OBSTRUCTION_BLOCKCAST_HEIGHT = 1
@@ -1264,9 +1265,19 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
 
       local alignment = travelVelocity.Unit:Dot(targetDirection)
       local transitionRate = (if alignment < -0.25 then 11 elseif alignment < 0.5 then 8 else 5) * momentumMultiplier
-      local targetVelocity = targetDirection * maximumSpeed
       local transitionAlpha = 1 - math.exp(-transitionRate * deltaTime)
-      travelVelocity = travelVelocity:Lerp(targetVelocity, transitionAlpha)
+
+      -- // Split the velocity into the part heading at the player and the sideways part. The forward part builds up at
+      -- // the normal (momentum-scaled) rate. The sideways part is what makes it circle the player, so it's removed at
+      -- // least fast enough to close in: a turn rate of speed/distance is exactly a circle around the player, so
+      -- // RETURN_STEER_TIGHTNESS times that always spirals inward, even if the player runs in circles (T-073).
+      -- // Far away this changes nothing (the normal rate is already higher); it only tightens the turn up close.
+      local forwardSpeed = travelVelocity:Dot(targetDirection)
+      local sidewaysVelocity = travelVelocity - targetDirection * forwardSpeed
+      forwardSpeed += (maximumSpeed - forwardSpeed) * transitionAlpha
+      local steerRate = math.max(transitionRate, RETURN_STEER_TIGHTNESS * travelVelocity.Magnitude / math.max(horizontalDistance, catchRadius))
+      sidewaysVelocity *= math.exp(-steerRate * deltaTime)
+      travelVelocity = targetDirection * forwardSpeed + sidewaysVelocity
 
       local velocityMagnitude = travelVelocity.Magnitude
       speed = math.clamp(velocityMagnitude, 0, maximumSpeed)

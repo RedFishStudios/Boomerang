@@ -84,6 +84,25 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
+### T-073 · Returning boomerang circles the player instead of reaching them
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared
+- **Files:** `Shared/Logics/WeaponLogics/Boomerang.luau`
+
+**Problem / goal**
+A returning boomerang (mostly the held manual recall of a dead boomerang, sometimes a normal return) can miss the player and keep curving around them; moving in circles keeps it orbiting. It should turn into the player more directly.
+
+**Done when**
+- [ ] A manual recall of a dead boomerang reaches the player instead of orbiting, even while they run in circles
+- [ ] Normal returns still feel the same from a distance and no longer curve around the player up close
+
+**Notes**
+- Branch `agent/T-073-return-accuracy`, lane `Github/Boomerang-lanes/T-073-return-accuracy`.
+- Cause: in `Boomerang.recall` the whole velocity eased toward the player at `5 × RecallAcceleration` per second. Manual recall uses `ManualRecallMomentumMultiplier = 0.15`, so it turned at ~0.75/s; at 80 studs/s that's a turning circle of roughly 100 studs, wider than the distance to the player.
+- Fix: the velocity is split into the part heading at the player and the sideways part. The forward part still builds up at the old (heavy) rate. The sideways part is removed at least `RETURN_STEER_TIGHTNESS × speed / distance` per second (constant at the top of the file, default 3; 1 would be a perfect circle). Far away nothing changes; up close it turns in hard enough to always spiral inward.
+- Test in Studio: manual recall a dead boomerang from various angles and run circles around it; normal throws from max range while strafing. If it now looks too snappy up close, lower `RETURN_STEER_TIGHTNESS` (try 2); if it still curves, raise it.
+
 ### T-072 · Boomerang skins (equip, shop, daily rewards)
 - **Priority:** P1
 - **Owner:** Agent
