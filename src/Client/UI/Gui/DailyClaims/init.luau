@@ -191,6 +191,13 @@ function DailyClaimsGui.start()
 
    container:WaitForChild("Exit").MouseButton1Click:Connect(DailyClaimsGui.close)
 
+   -- // The claim's new Streak/LastClaim replicate after the remote returns, so refresh when they arrive
+   PlayerDataController.UpdatedTasks:Add(function(_, _, path)
+      if path[1] == "DailyRewards" and DailyClaimsGui.Open then
+         updateDayIndicators()
+      end
+   end)
+
    -- // Opened from the Daily button in MenuButtons (T-037; was a Topbar button, T-055)
 
    if game:GetService("RunService"):IsStudio() then
