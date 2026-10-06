@@ -5,10 +5,11 @@
 	The Inventory menu, opened from the Skins button in the left lobby menu (MenuButtons).
 	The tab column on the left (TABS) picks what the listing grid shows. A tab's content comes from the module
 	with the same name in Tabs/ (shape: InventoryTab below); a tab without a module is shown but does nothing yet.
-	Each listing is a button: clicking an owned item selects it (tabs may list only owned items, like Skins) (e.g. equips the skin). The equipped item's listing
-	is green and the item is shown in the Detail panel on the right.
+	Each listing is a button: clicking an owned item selects it and shows it in the Detail panel on the right
+	(the equipped item is selected when the menu opens). The Detail panel shows "Equipped", or an Equip button.
+	The equipped item's listing is green. Models are shown with ItemViewport (Client/UI/ItemViewport).
 	Built from Inventory.rbxmx, InventoryListingTemplate.rbxmx and InventoryTabTemplate.rbxmx.
-	The ICON image labels are empty placeholders until icon art exists.
+	The tabs' ICON image labels are empty placeholders until icon art exists.
 ]]
 
 local InventoryGui = {}
@@ -21,6 +22,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local UIController = require(ReplicatedStorage.Client.UI.UIController)
+local ItemViewport = require(ReplicatedStorage.Client.UI.ItemViewport)
 
 -------------------------------------------------------------------------------
 -- TYPES
@@ -30,7 +32,7 @@ export type InventoryItem = {
 	Id: string,
 	Name: string,
 	Rarity: string?, -- // Shown under the name in the Detail panel
-	Icon: string?, -- // Image for the ICON labels (nil = empty placeholder)
+	ModelName: string?, -- // Model in Shared/Assets/Tools shown in the viewports (posed by its Tools entry)
 	Owned: boolean,
 	Equipped: boolean,
 }
@@ -38,7 +40,7 @@ export type InventoryItem = {
 export type InventoryTab = {
 	Title: string, -- // Title on the plank while the tab is open
 	getItems: () -> { InventoryItem }, -- // In display order
-	selectItem: (itemId: string) -> (), -- // An owned listing was clicked (may yield)
+	equipItem: (itemId: string) -> (), -- // The Equip button was clicked for an owned item (may yield)
 	subscribe: (onChanged: () -> ()) -> (), -- // Called once; onChanged runs whenever the items change
 }
 
@@ -59,6 +61,7 @@ local INACTIVE_TAB_DARKEN = 0.25 -- // How much darker the tabs that aren't open
 -- // Listing colors (the listing frame art, listing.Art, is grayscale and tinted with ImageColor3)
 local COLOR_OWNED = Color3.fromRGB(225, 170, 110)
 local COLOR_EQUIPPED = Color3.fromRGB(130, 215, 80)
+local COLOR_SELECTED = Color3.fromRGB(255, 225, 165) -- // Selected but not equipped
 local COLOR_LOCKED = Color3.fromRGB(140, 140, 140)
 local LOCKED_TEXT_TRANSPARENCY = 0.35
 
@@ -89,8 +92,11 @@ local activeTween: Tween?
 local tabModules: { [string]: InventoryTab } = {}
 local tabButtons: { [string]: ImageButton } = {}
 local currentTabId: string? = nil
-local listings: { GuiObject } = {}
-local selectRequestPending = false
+local listings: { [string]: GuiObject } = {}
+local currentItems: { InventoryItem } = {}
+local selectedItemId: string? = nil
+local detailItemId: string? = nil -- // Item whose model the Detail viewport shows
+local equipRequestPending = false
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -118,29 +124,87 @@ local function setupButtonHover(button: GuiButton)
 	end)
 end
 
-local function setIcon(iconLabel: ImageLabel, icon: string?)
-	iconLabel.Image = icon or ""
+local function findItem(itemId: string?): InventoryItem?
+	for _, item in currentItems do
+		if item.Id == itemId then
+			return item
+		end
+	end
+	return nil
 end
 
-local function updateDetail(item: InventoryItem?)
+local function getEquippedItem(): InventoryItem?
+	for _, item in currentItems do
+		if item.Equipped then
+			return item
+		end
+	end
+	return nil
+end
+
+local function showModel(viewport: ViewportFrame, modelName: string?)
+	if modelName then
+		ItemViewport.renderTool(viewport, modelName)
+	else
+		ItemViewport.clear(viewport)
+	end
+end
+
+local function updateDetail()
+	local item = findItem(selectedItemId)
 	DetailPanel.ItemName.Text = if item then item.Name else ""
 	DetailPanel.Rarity.Text = if item then item.Rarity or "" else ""
-	DetailPanel.Status.Visible = item ~= nil
-	setIcon(DetailPanel.ICON, if item then item.Icon else nil)
+	DetailPanel.Status.Visible = item ~= nil and item.Equipped
+	DetailPanel.Equip.Visible = item ~= nil and item.Owned and not item.Equipped
+
+	local itemId = item and item.Id
+	if itemId ~= detailItemId then
+		detailItemId = itemId
+		showModel(DetailPanel.Viewport, item and item.ModelName)
+	end
+end
+
+-- // Listing colors and the Detail panel, from the current items and selection
+local function updateSelection()
+	if not findItem(selectedItemId) then
+		local equippedItem = getEquippedItem()
+		selectedItemId = equippedItem and equippedItem.Id
+	end
+
+	for _, item in currentItems do
+		local listing = listings[item.Id]
+		if item.Equipped then
+			listing.Art.ImageColor3 = COLOR_EQUIPPED
+		elseif not item.Owned then
+			listing.Art.ImageColor3 = COLOR_LOCKED
+		elseif item.Id == selectedItemId then
+			listing.Art.ImageColor3 = COLOR_SELECTED
+		else
+			listing.Art.ImageColor3 = COLOR_OWNED
+		end
+	end
+
+	updateDetail()
 end
 
 local function onListingClicked(itemId: string)
+	selectedItemId = itemId
+	updateSelection()
+end
+
+local function onEquipClicked()
 	local tab = currentTabId and tabModules[currentTabId]
-	if selectRequestPending or not tab then
+	local item = findItem(selectedItemId)
+	if equipRequestPending or not tab or not item or not item.Owned or item.Equipped then
 		return
 	end
 
-	selectRequestPending = true
-	tab.selectItem(itemId)
-	selectRequestPending = false
+	equipRequestPending = true
+	tab.equipItem(item.Id)
+	equipRequestPending = false
 end
 
--- // Rebuilds the listing grid and the Detail panel from the open tab's items
+-- // Rebuilds the listing grid from the open tab's items (keeps the selection when it still exists)
 local function refreshListings()
 	for _, listing in listings do
 		listing:Destroy()
@@ -148,42 +212,30 @@ local function refreshListings()
 	table.clear(listings)
 
 	local tab = currentTabId and tabModules[currentTabId]
-	if not tab then
-		updateDetail(nil)
-		return
-	end
+	currentItems = if tab then tab.getItems() else {}
+	detailItemId = nil -- // Redraw the Detail model: the item data may have changed
 
-	local equippedItem: InventoryItem? = nil
-	for order, item in tab.getItems() do
+	for order, item in currentItems do
 		local listing = ListingTemplate:Clone()
 		listing.Name = item.Id
 		listing.LayoutOrder = order
 		listing.ItemName.Text = item.Name
-		setIcon(listing.ICON, item.Icon)
-
-		if item.Equipped then
-			listing.Art.ImageColor3 = COLOR_EQUIPPED
-			equippedItem = item
-		elseif item.Owned then
-			listing.Art.ImageColor3 = COLOR_OWNED
-		else
-			listing.Art.ImageColor3 = COLOR_LOCKED
-			listing.ItemName.TextTransparency = LOCKED_TEXT_TRANSPARENCY
-			listing.AutoButtonColor = false
-		end
+		showModel(listing.Viewport, item.ModelName)
 
 		if item.Owned then
 			listing.MouseButton1Click:Connect(function()
 				onListingClicked(item.Id)
 			end)
 			setupButtonHover(listing)
+		else
+			listing.ItemName.TextTransparency = LOCKED_TEXT_TRANSPARENCY
 		end
 
 		listing.Parent = ListingsFrame
-		table.insert(listings, listing)
+		listings[item.Id] = listing
 	end
 
-	updateDetail(equippedItem)
+	updateSelection()
 end
 
 local function updateTabColors()
@@ -202,6 +254,7 @@ local function selectTab(tabId: string)
 	end
 
 	currentTabId = tabId
+	selectedItemId = nil -- // Starts on the tab's equipped item
 	TitleLabel.Text = tab.Title
 	ListingsFrame.CanvasPosition = Vector2.zero
 	updateTabColors()
@@ -254,6 +307,7 @@ end
 function InventoryGui.open()
 	InventoryGui.Open = true
 	InventoryScreenGui.Enabled = true
+	selectedItemId = nil -- // Opens on the equipped item
 	refreshListings()
 	Container.Position = containerOffscreenPosition
 	playContainerTween(CONTAINER_TWEEN_INFO_IN, containerGoalPosition)
@@ -301,6 +355,10 @@ local function _init()
 	local exitButton = Container:WaitForChild("Exit")
 	setupButtonHover(exitButton)
 	exitButton.MouseButton1Click:Connect(InventoryGui.close)
+
+	local equipButton = DetailPanel:WaitForChild("Equip")
+	setupButtonHover(equipButton)
+	equipButton.MouseButton1Click:Connect(onEquipClicked)
 end
 
 function InventoryGui.start()

@@ -4,7 +4,7 @@
 	Description:
 	The Skins tab of the Inventory menu: lists the boomerang skins the player owns (Shared/Referential/Skins).
 	A skin's rarity is the Rarity of its model's entry in Shared/Constants/Tools.
-	Clicking an owned skin equips it. Follows the InventoryTab shape in Inventory/init.luau.
+	Equip equips the selected skin. Follows the InventoryTab shape in Inventory/init.luau.
 ]]
 
 local SkinsTab = {}
@@ -43,6 +43,7 @@ function SkinsTab.getItems()
 				Id = skinId,
 				Name = skin.Name,
 				Rarity = (tool and tool.Rarity) or DEFAULT_RARITY,
+				ModelName = skin.Model,
 				Owned = true,
 				Equipped = skinId == equippedSkinId,
 			})
@@ -53,7 +54,7 @@ function SkinsTab.getItems()
 end
 
 -- // Yields until the server answers
-function SkinsTab.selectItem(skinId: string)
+function SkinsTab.equipItem(skinId: string)
 	if SkinController.ownsSkin(skinId) and SkinController.getEquippedSkinId() ~= skinId then
 		SkinController.requestEquip(skinId)
 	end

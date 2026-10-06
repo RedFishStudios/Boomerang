@@ -99,7 +99,7 @@ Apply Sol's Inventory art (primary frame, item listing frame, tab frame) to the 
 
 **Test in Studio**
 - Open Skins (left menu): frame, "Your Skins" title, 4 tabs on the left, Classic listing green and shown on the right.
-- F2 → `grantskin me Shuriken` → Shuriken appears (tan); click it → green, Detail panel shows Shuriken and "Common", held boomerang swaps.
+- F2 → `grantskin me Shuriken` → Shuriken appears (tan); click it → Detail panel shows Shuriken, "Common" and an Equip button; click Equip → listing turns green, "Equipped" shows, held boomerang swaps. Check the 3D models fit inside each listing and the Detail panel.
 - Emotes / Arrows / Effects tabs show (darker) and do nothing yet.
 - Check the layout of `Inventory.rbxmx`, `InventoryListingTemplate.rbxmx`, `InventoryTabTemplate.rbxmx` in Studio (positions were set by hand from the reference; tweak freely).
 
@@ -111,6 +111,7 @@ Apply Sol's Inventory art (primary frame, item listing frame, tab frame) to the 
 - The item listing art has transparent padding: listings and the Detail panel are transparent and hold an oversized `Art` ImageLabel (scale-only values in `Icons.luau`), so the visible frame fills the cell. Listing colors are set on `Art`. (First version cropped with ImageRectOffset in pixels, which broke because Roblox downscales uploads over 1024px.) No Offset values in the Inventory .rbxmx files; text strokes use ScaledSize.
 - Follow-up (Sol, 2026-10-06): only owned skins are listed; the Detail panel uses the item listing art tinted brown (panel widened to 42% of the content to limit stretching); `Rarity` added to `Tools.luau` (skins read it through their model's tool entry) and shown under the name in the Detail panel.
 - `TODO:RELEASE placeholder`: `Rarity = "Common"` on ClassicBoomerang, Shuriken and Fan in `Tools.luau`.
+- Follow-up 2 (Sol, 2026-10-06): clicking a listing only selects it (lighter tint) and shows it in the Detail panel; the panel shows an Equip button (ListingFrameButtonGreen) when the selected skin isn't equipped, and "Equipped" when it is. Listings and the Detail panel show the 3D tool model (same asset as the character holds) via the new reusable `Client/UI/ItemViewport.luau` (`renderTool` / `renderModel`), which fits the model into a square camera automatically. Per-model pose: `Viewport = { Rotation, Zoom? }` in `Tools.luau` (angles picked with a test viewport GUI, `StarterGui.ViewportTest`, left disabled in the place; delete it whenever).
 - Icons.luau: added `InventoryFrame`, `InventoryItemListingFrame`, `InventoryTabFrame`.
 
 ### T-074 · Stats menu
