@@ -14,6 +14,8 @@ local DailyRewards = require(SharedMods.Referential.DailyRewards)
 local Skins = require(SharedMods.Referential.Skins)
 local PlayerDataController = require(ClientMods.Core.PlayerDataController)
 local ItemAcquiredGui = require(ClientMods.UI.Gui.ItemAcquired)
+local ItemViewport = require(ClientMods.UI.ItemViewport)
+local Icons = require(SharedMods.Constants.Icons)
 
 local SECONDS_IN_DAY = 86400
 
@@ -152,6 +154,9 @@ function DailyClaimsGui.start()
       -- Get reward info and update ItemLabel
       local reward = DailyRewards.Rewards[dayNum]
       local itemLabel = dayFrame:FindFirstChild("ItemLabel")
+      local itemImage = dayFrame:FindFirstChild("ItemImage")
+      local itemViewport = ItemViewport.getOrCreate(itemImage)
+      local modelName: string? = nil
       if reward then
          if reward.Type == "Currency" then
             itemLabel.Text = tostring(reward.Value)
@@ -159,13 +164,29 @@ function DailyClaimsGui.start()
             local itemData = Items[reward.Value]
             if itemData then
                itemLabel.Text = itemData.Name or reward.Value
+               modelName = itemData.Model
             else
                itemLabel.Text = reward.Value
             end
          elseif reward.Type == "Skin" then
             local skin = Skins[reward.Value]
             itemLabel.Text = if skin then `{skin.Name} Skin` else reward.Value
+            modelName = skin and skin.Model
          end
+      end
+
+      -- // Currency shows the coin icon; items and skins show their render
+      if reward and reward.Type == "Currency" then
+         itemImage.Image = `rbxassetid://{Icons.CurrencyIcon}`
+         itemImage.ScaleType = Enum.ScaleType.Fit
+         itemImage.Visible = true
+         itemViewport.Visible = false
+      elseif modelName then
+         itemImage.Visible = false
+         itemViewport.Visible = true
+         ItemViewport.renderTool(itemViewport, modelName)
+      else
+         itemViewport.Visible = false
       end
 
       -- Get day label and update its text

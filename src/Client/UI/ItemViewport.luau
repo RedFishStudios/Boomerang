@@ -111,6 +111,35 @@ function ItemViewport.renderTool(viewport: ViewportFrame, modelName: string): Mo
 	)
 end
 
+-- // A ViewportFrame laid out exactly where `placeholder` is (e.g. an ImageLabel in a template), created once and reused.
+-- // The caller decides which of the two is visible. Aspect ratio constraints are copied so the render keeps the placeholder's shape.
+function ItemViewport.getOrCreate(placeholder: GuiObject): ViewportFrame
+	local viewportName = `{placeholder.Name}Viewport`
+	local existing = placeholder.Parent:FindFirstChild(viewportName)
+	if existing and existing:IsA("ViewportFrame") then
+		return existing
+	end
+
+	local viewport = Instance.new("ViewportFrame")
+	viewport.Name = viewportName
+	viewport.AnchorPoint = placeholder.AnchorPoint
+	viewport.Position = placeholder.Position
+	viewport.Size = placeholder.Size
+	viewport.SizeConstraint = placeholder.SizeConstraint
+	viewport.Rotation = placeholder.Rotation
+	viewport.ZIndex = placeholder.ZIndex
+	viewport.LayoutOrder = placeholder.LayoutOrder
+	viewport.BackgroundTransparency = 1
+	viewport.BorderSizePixel = 0
+	for _, child in placeholder:GetChildren() do
+		if child:IsA("UIAspectRatioConstraint") then
+			child:Clone().Parent = viewport
+		end
+	end
+	viewport.Parent = placeholder.Parent
+	return viewport
+end
+
 function ItemViewport.clear(viewport: ViewportFrame)
 	clear(viewport)
 end

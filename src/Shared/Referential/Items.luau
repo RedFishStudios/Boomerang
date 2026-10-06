@@ -10,7 +10,8 @@ export type ItemClass = {
    OffSale: boolean?,
    ProductId: number?,
    IsPaidRandomItem: true?,
-   Type: ItemType
+   Type: ItemType,
+   Model: string?, -- // Model in Shared/Assets/Tools shown in GUI viewports (Shop, Daily Rewards)
 }
 
 -- // No items yet: boomerang skins live in Shared/Referential/Skins (the Example placeholders were removed for skins)
