@@ -5,7 +5,7 @@
 	The Inventory menu, opened from the Skins button in the left lobby menu (MenuButtons).
 	The tab column on the left (TABS) picks what the listing grid shows. A tab's content comes from the module
 	with the same name in Tabs/ (shape: InventoryTab below); a tab without a module is shown but does nothing yet.
-	Each listing is a button: clicking an owned item selects it (e.g. equips the skin). The equipped item's listing
+	Each listing is a button: clicking an owned item selects it (tabs may list only owned items, like Skins) (e.g. equips the skin). The equipped item's listing
 	is green and the item is shown in the Detail panel on the right.
 	Built from Inventory.rbxmx, InventoryListingTemplate.rbxmx and InventoryTabTemplate.rbxmx.
 	The ICON image labels are empty placeholders until icon art exists.
@@ -29,7 +29,7 @@ local UIController = require(ReplicatedStorage.Client.UI.UIController)
 export type InventoryItem = {
 	Id: string,
 	Name: string,
-	Subtitle: string?, -- // Shown under the name in the Detail panel
+	Rarity: string?, -- // Shown under the name in the Detail panel
 	Icon: string?, -- // Image for the ICON labels (nil = empty placeholder)
 	Owned: boolean,
 	Equipped: boolean,
@@ -124,7 +124,7 @@ end
 
 local function updateDetail(item: InventoryItem?)
 	DetailPanel.ItemName.Text = if item then item.Name else ""
-	DetailPanel.Subtitle.Text = if item then item.Subtitle or "" else ""
+	DetailPanel.Rarity.Text = if item then item.Rarity or "" else ""
 	DetailPanel.Status.Visible = item ~= nil
 	setIcon(DetailPanel.ICON, if item then item.Icon else nil)
 end

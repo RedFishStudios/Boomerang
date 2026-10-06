@@ -4,6 +4,7 @@ local GeneralUtil = require(ReplicatedStorage.Shared.Utils.GeneralUtil)
 export type Tool = {
    Id: string,
    LogicClass: "Boomerang", -- Name of the logics module responsible for handling this weapon's behavior when thrown
+   Rarity: string?, -- Shown in the Inventory (e.g. "Common"); not used by gameplay
 
    Boomerang: {
       Bounces: number, -- How many times the boomerang can bounce off objects before exhaustion
@@ -19,6 +20,7 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
    ClassicBoomerang = {
       Id = "Boomerang",
       LogicClass = "Boomerang",
+      Rarity = "Common", -- TODO:RELEASE placeholder
       Boomerang = {
          Bounces = 2,
          HitboxRadius = 2,
@@ -30,6 +32,7 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
    Shuriken = {
       Id = "Shuriken",
       LogicClass = "Boomerang",
+      Rarity = "Common", -- TODO:RELEASE placeholder
       Boomerang = {
          Bounces = 3,
          HitboxRadius = 1,
@@ -41,6 +44,7 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
    Fan = {
       Id = "Fan",
       LogicClass = "Boomerang",
+      Rarity = "Common", -- TODO:RELEASE placeholder
       Boomerang = {
          Bounces = 1,
          HitboxRadius = 3,

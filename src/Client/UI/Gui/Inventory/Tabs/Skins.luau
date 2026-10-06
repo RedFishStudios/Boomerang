@@ -2,7 +2,8 @@
 	Skins tab (Inventory)
 
 	Description:
-	The Skins tab of the Inventory menu: lists every boomerang skin (Shared/Referential/Skins).
+	The Skins tab of the Inventory menu: lists the boomerang skins the player owns (Shared/Referential/Skins).
+	A skin's rarity is the Rarity of its model's entry in Shared/Constants/Tools.
 	Clicking an owned skin equips it. Follows the InventoryTab shape in Inventory/init.luau.
 ]]
 
@@ -12,12 +13,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local SkinLibrary = require(ReplicatedStorage.Shared.Library.SkinLibrary)
 local SkinController = require(ReplicatedStorage.Client.Core.SkinController)
+local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
-local SUBTITLE = "Boomerang Skin" -- // Skins have no rarity yet; shown under the name in the Detail panel
+local DEFAULT_RARITY = "Common" -- // When the skin's tool has no Rarity
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -35,12 +37,13 @@ function SkinsTab.getItems()
 
 	for _, skinId in SkinLibrary.getSortedSkinIds() do
 		local skin = SkinLibrary.getSkin(skinId)
-		if skin then
+		if skin and SkinController.ownsSkin(skinId) then
+			local tool = Tools[skin.Model]
 			table.insert(items, {
 				Id = skinId,
 				Name = skin.Name,
-				Subtitle = SUBTITLE,
-				Owned = SkinController.ownsSkin(skinId),
+				Rarity = (tool and tool.Rarity) or DEFAULT_RARITY,
+				Owned = true,
 				Equipped = skinId == equippedSkinId,
 			})
 		end

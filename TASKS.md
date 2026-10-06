@@ -99,7 +99,7 @@ Apply Sol's Inventory art (primary frame, item listing frame, tab frame) to the 
 
 **Test in Studio**
 - Open Skins (left menu): frame, "Your Skins" title, 4 tabs on the left, Classic listing green and shown on the right.
-- F2 → `grantskin me Shuriken` → Shuriken listing turns from gray (locked) to tan; click it → green, Detail panel shows Shuriken, held boomerang swaps.
+- F2 → `grantskin me Shuriken` → Shuriken appears (tan); click it → green, Detail panel shows Shuriken and "Common", held boomerang swaps.
 - Emotes / Arrows / Effects tabs show (darker) and do nothing yet.
 - Check the layout of `Inventory.rbxmx`, `InventoryListingTemplate.rbxmx`, `InventoryTabTemplate.rbxmx` in Studio (positions were set by hand from the reference; tweak freely).
 
@@ -109,7 +109,8 @@ Apply Sol's Inventory art (primary frame, item listing frame, tab frame) to the 
 - Tabs: `TABS` in `Inventory/init.luau`; a tab's content is `Inventory/Tabs/<Id>.luau` (shape `InventoryTab`: `Title`, `getItems`, `selectItem`, `subscribe`). Tabs without a module are shown darker and do nothing.
 - All listings and tabs have an empty `ICON` ImageLabel placeholder (the 3D ViewportFrame previews were dropped). `InventoryItem.Icon` fills it once icons exist.
 - The item listing art has transparent padding, so it's cropped with ImageRectOffset/ImageRectSize (values in `Icons.luau`).
-- Decisions made without asking: locked (unowned) skins are still listed, gray and not clickable; the Detail panel uses the shared `ListingFrame` art tinted brown (no asset was given for it; ~4% stretch) and shows "Boomerang Skin" + "Equipped" under the name, since skins have no rarity yet.
+- Follow-up (Sol, 2026-10-06): only owned skins are listed; the Detail panel uses the item listing art tinted brown (panel widened to 42% of the content to limit stretching); `Rarity` added to `Tools.luau` (skins read it through their model's tool entry) and shown under the name in the Detail panel.
+- `TODO:RELEASE placeholder`: `Rarity = "Common"` on ClassicBoomerang, Shuriken and Fan in `Tools.luau`.
 - Icons.luau: added `InventoryFrame`, `InventoryItemListingFrame`, `InventoryTabFrame`.
 
 ### T-074 · Stats menu

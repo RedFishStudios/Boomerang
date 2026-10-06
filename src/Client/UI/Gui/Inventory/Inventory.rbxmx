@@ -2,7 +2,7 @@
 	<Meta name="ExplicitAutoJoints">true</Meta>
 	<External>null</External>
 	<External>nil</External>
-	<Item class="ScreenGui" referent="RBXCD92892D846349CDBEDDC99959DA6095">
+	<Item class="ScreenGui" referent="RBXA661AFA78D8F461A8460B6BE3043A892">
 		<Properties>
 			<string name="Name">Inventory</string>
 			<bool name="Enabled">false</bool>
@@ -11,7 +11,7 @@
 			<bool name="ClipToDeviceSafeArea">true</bool>
 			<token name="ScreenInsets">2</token>
 		</Properties>
-		<Item class="ImageLabel" referent="RBX73F912E2E7644B11BA86F8E469851F65">
+		<Item class="ImageLabel" referent="RBX3A7793BDAAB84EDAAE6A0BD2612C5AC7">
 			<Properties>
 				<string name="Name">Container</string>
 				<Vector2 name="AnchorPoint"><X>0.5</X><Y>0.5</Y></Vector2>
@@ -22,13 +22,13 @@
 				<Content name="Image"><url>rbxassetid://79347675065715</url></Content>
 				<token name="ScaleType">0</token>
 			</Properties>
-			<Item class="UIAspectRatioConstraint" referent="RBX05F91B8D329646B9AC4BEA2604171234">
+			<Item class="UIAspectRatioConstraint" referent="RBX06722E386AC843C9A0A0A344F110FFEF">
 				<Properties>
 					<string name="Name">UIAspectRatioConstraint</string>
 					<float name="AspectRatio">1.5</float>
 				</Properties>
 			</Item>
-			<Item class="TextLabel" referent="RBX7200E74522824A5D82AA8656BF7E95F6">
+			<Item class="TextLabel" referent="RBX6F3AA54FAEB547AE897C1CC28DAB3290">
 				<Properties>
 					<string name="Name">Title</string>
 					<Vector2 name="AnchorPoint"><X>0.5</X><Y>0</Y></Vector2>
@@ -46,7 +46,7 @@
 					<token name="TextYAlignment">1</token>
 				</Properties>
 			</Item>
-			<Item class="ImageButton" referent="RBX21B6D365707444E6A8A5B0A6FF2D5291">
+			<Item class="ImageButton" referent="RBX3A94D379792D4DDFB12D3F69D4557574">
 				<Properties>
 					<string name="Name">Exit</string>
 					<Vector2 name="AnchorPoint"><X>0.5</X><Y>0.5</Y></Vector2>
@@ -59,19 +59,19 @@
 					<token name="ScaleType">0</token>
 					<bool name="AutoButtonColor">false</bool>
 				</Properties>
-				<Item class="UIAspectRatioConstraint" referent="RBXF923E674E6484E0787A6295C4EB32574">
+				<Item class="UIAspectRatioConstraint" referent="RBXD4DD53AA6B7E46B7A7884B4EC7D8152C">
 					<Properties>
 						<string name="Name">UIAspectRatioConstraint</string>
 						<float name="AspectRatio">1</float>
 					</Properties>
 				</Item>
-				<Item class="UIScale" referent="RBXE4FC68F5147A4D7FBF9D7167F21C5DEB">
+				<Item class="UIScale" referent="RBXEBD7498B3C99469896A17A39DD864DBE">
 					<Properties>
 						<string name="Name">UIScale</string>
 					</Properties>
 				</Item>
 			</Item>
-			<Item class="Frame" referent="RBX654F2F8A110248278D8A546E2336F110">
+			<Item class="Frame" referent="RBX58FDEE9A24284559901C43F898BB7053">
 				<Properties>
 					<string name="Name">Tabs</string>
 					<Vector2 name="AnchorPoint"><X>0.5</X><Y>0</Y></Vector2>
@@ -81,7 +81,7 @@
 					<int name="BorderSizePixel">0</int>
 					<int name="ZIndex">2</int>
 				</Properties>
-				<Item class="UIListLayout" referent="RBX4D93B1AA3B964F7E833A2A7F79BA8D26">
+				<Item class="UIListLayout" referent="RBX5B02CD09078A4A539CEFD34C6DDDDE82">
 					<Properties>
 						<string name="Name">UIListLayout</string>
 						<token name="FillDirection">1</token>
@@ -91,7 +91,7 @@
 					</Properties>
 				</Item>
 			</Item>
-			<Item class="Frame" referent="RBX4B1CDB56752A4F04BAB9D3A3CCB3E3F8">
+			<Item class="Frame" referent="RBXCBC5E826D1BC484DB73F0BC586E9106E">
 				<Properties>
 					<string name="Name">Content</string>
 					<Vector2 name="AnchorPoint"><X>0</X><Y>0</Y></Vector2>
@@ -100,12 +100,12 @@
 					<float name="BackgroundTransparency">1</float>
 					<int name="BorderSizePixel">0</int>
 				</Properties>
-				<Item class="ScrollingFrame" referent="RBX64DEB0F4A07648FAB84230C0F9C9F502">
+				<Item class="ScrollingFrame" referent="RBX8737D382C97D4C68B3732CACF3917D1F">
 					<Properties>
 						<string name="Name">Listings</string>
 						<Vector2 name="AnchorPoint"><X>0</X><Y>0</Y></Vector2>
 						<UDim2 name="Position"><XS>0</XS><XO>0</XO><YS>0</YS><YO>0</YO></UDim2>
-						<UDim2 name="Size"><XS>0.6</XS><XO>0</XO><YS>1</YS><YO>0</YO></UDim2>
+						<UDim2 name="Size"><XS>0.56</XS><XO>0</XO><YS>1</YS><YO>0</YO></UDim2>
 						<float name="BackgroundTransparency">1</float>
 						<int name="BorderSizePixel">0</int>
 						<UDim2 name="CanvasSize"><XS>0</XS><XO>0</XO><YS>0</YS><YO>0</YO></UDim2>
@@ -115,7 +115,7 @@
 						<Color3 name="ScrollBarImageColor3"><R>0.54902</R><G>0.372549</G><B>0.215686</B></Color3>
 						<bool name="ClipsDescendants">true</bool>
 					</Properties>
-					<Item class="UIGridLayout" referent="RBX717787A56E584A8095A6715A52151349">
+					<Item class="UIGridLayout" referent="RBX9DD29301AF694B9DA55E1E30BCB9F55A">
 						<Properties>
 							<string name="Name">UIGridLayout</string>
 							<UDim2 name="CellSize"><XS>0.3</XS><XO>0</XO><YS>0.5</YS><YO>0</YO></UDim2>
@@ -124,14 +124,14 @@
 							<token name="FillDirection">0</token>
 							<token name="HorizontalAlignment">1</token>
 						</Properties>
-						<Item class="UIAspectRatioConstraint" referent="RBX1EA959EAEEEC42F38715599E0D3E88AA">
+						<Item class="UIAspectRatioConstraint" referent="RBX4C58A6333C08431084DDC7343A867354">
 							<Properties>
 								<string name="Name">UIAspectRatioConstraint</string>
 								<float name="AspectRatio">0.876</float>
 							</Properties>
 						</Item>
 					</Item>
-					<Item class="UIPadding" referent="RBX7741A2F061AF492C8753CB1D9875EE3A">
+					<Item class="UIPadding" referent="RBXA84F71BDEFF54D90A640BAC99ABFA5D0">
 						<Properties>
 							<string name="Name">UIPadding</string>
 							<UDim name="PaddingTop"><S>0</S><O>6</O></UDim>
@@ -141,24 +141,26 @@
 						</Properties>
 					</Item>
 				</Item>
-				<Item class="ImageLabel" referent="RBX59E5837CC60B4CEB90EAB7DF2B76F8F8">
+				<Item class="ImageLabel" referent="RBX0D6AFE78462A467F8A9F628F77E922F0">
 					<Properties>
 						<string name="Name">Detail</string>
 						<Vector2 name="AnchorPoint"><X>1</X><Y>0</Y></Vector2>
 						<UDim2 name="Position"><XS>1</XS><XO>0</XO><YS>0</YS><YO>0</YO></UDim2>
-						<UDim2 name="Size"><XS>0.37</XS><XO>0</XO><YS>1</YS><YO>0</YO></UDim2>
+						<UDim2 name="Size"><XS>0.42</XS><XO>0</XO><YS>1</YS><YO>0</YO></UDim2>
 						<float name="BackgroundTransparency">1</float>
 						<int name="BorderSizePixel">0</int>
-						<Content name="Image"><url>rbxassetid://105517889005779</url></Content>
+						<Content name="Image"><url>rbxassetid://112976197760413</url></Content>
 						<token name="ScaleType">0</token>
-						<Color3 name="ImageColor3"><R>0.862745</R><G>0.686275</G><B>0.529412</B></Color3>
+						<Color3 name="ImageColor3"><R>0.921569</R><G>0.686275</G><B>0.470588</B></Color3>
+						<Vector2 name="ImageRectOffset"><X>223</X><Y>137</Y></Vector2>
+						<Vector2 name="ImageRectSize"><X>859</X><Y>981</Y></Vector2>
 					</Properties>
-					<Item class="TextLabel" referent="RBX6C6FB99FC3C3409381041DC6EACA91B3">
+					<Item class="TextLabel" referent="RBX518B5A839FD24E94AE714C8244A81D22">
 						<Properties>
 							<string name="Name">ItemName</string>
 							<Vector2 name="AnchorPoint"><X>0.5</X><Y>0</Y></Vector2>
-							<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.06</YS><YO>0</YO></UDim2>
-							<UDim2 name="Size"><XS>0.85</XS><XO>0</XO><YS>0.11</YS><YO>0</YO></UDim2>
+							<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.09</YS><YO>0</YO></UDim2>
+							<UDim2 name="Size"><XS>0.78</XS><XO>0</XO><YS>0.11</YS><YO>0</YO></UDim2>
 							<float name="BackgroundTransparency">1</float>
 							<int name="BorderSizePixel">0</int>
 							<Font name="FontFace"><Family><url>rbxasset://fonts/families/FredokaOne.json</url></Family><Weight>400</Weight><Style>Normal</Style></Font>
@@ -169,55 +171,63 @@
 							<token name="TextXAlignment">2</token>
 							<token name="TextYAlignment">1</token>
 						</Properties>
-						<Item class="UIStroke" referent="RBX625999897B914739BD779CEDBC62D439">
+						<Item class="UIStroke" referent="RBX231D96466ECD40C786C10E0CE88CB746">
 							<Properties>
 								<string name="Name">UIStroke</string>
-								<Color3 name="Color"><R>0.360784</R><G>0.203922</G><B>0.078431</B></Color3>
+								<Color3 name="Color"><R>0.176471</R><G>0.109804</G><B>0.047059</B></Color3>
 								<float name="Thickness">3</float>
 								<token name="ApplyStrokeMode">0</token>
 							</Properties>
 						</Item>
 					</Item>
-					<Item class="TextLabel" referent="RBX785639A96915483C84BB6F589A77FC92">
+					<Item class="TextLabel" referent="RBX50E5E9FB70424E1DA3AA2E2E81114F30">
 						<Properties>
-							<string name="Name">Subtitle</string>
+							<string name="Name">Rarity</string>
 							<Vector2 name="AnchorPoint"><X>0.5</X><Y>0</Y></Vector2>
-							<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.175</YS><YO>0</YO></UDim2>
-							<UDim2 name="Size"><XS>0.7</XS><XO>0</XO><YS>0.06</YS><YO>0</YO></UDim2>
+							<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.2</YS><YO>0</YO></UDim2>
+							<UDim2 name="Size"><XS>0.6</XS><XO>0</XO><YS>0.065</YS><YO>0</YO></UDim2>
 							<float name="BackgroundTransparency">1</float>
 							<int name="BorderSizePixel">0</int>
 							<Font name="FontFace"><Family><url>rbxasset://fonts/families/FredokaOne.json</url></Family><Weight>400</Weight><Style>Normal</Style></Font>
-							<string name="Text">Boomerang Skin</string>
-							<Color3 name="TextColor3"><R>0.360784</R><G>0.203922</G><B>0.078431</B></Color3>
+							<string name="Text">Common</string>
+							<Color3 name="TextColor3"><R>1.0</R><G>0.941176</G><B>0.843137</B></Color3>
 							<bool name="TextScaled">true</bool>
 							<bool name="TextWrapped">true</bool>
 							<token name="TextXAlignment">2</token>
 							<token name="TextYAlignment">1</token>
 						</Properties>
+						<Item class="UIStroke" referent="RBX7C0B98B2431C43788B2A9C15B2D55428">
+							<Properties>
+								<string name="Name">UIStroke</string>
+								<Color3 name="Color"><R>0.176471</R><G>0.109804</G><B>0.047059</B></Color3>
+								<float name="Thickness">2</float>
+								<token name="ApplyStrokeMode">0</token>
+							</Properties>
+						</Item>
 					</Item>
-					<Item class="ImageLabel" referent="RBX37D55376741B4EE7995B6917C245D146">
+					<Item class="ImageLabel" referent="RBX98353A9FB42F44A08891593230FF6ED5">
 						<Properties>
 							<string name="Name">ICON</string>
 							<Vector2 name="AnchorPoint"><X>0.5</X><Y>0.5</Y></Vector2>
-							<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.52</YS><YO>0</YO></UDim2>
-							<UDim2 name="Size"><XS>0.75</XS><XO>0</XO><YS>0.45</YS><YO>0</YO></UDim2>
+							<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.53</YS><YO>0</YO></UDim2>
+							<UDim2 name="Size"><XS>0.7</XS><XO>0</XO><YS>0.42</YS><YO>0</YO></UDim2>
 							<float name="BackgroundTransparency">1</float>
 							<int name="BorderSizePixel">0</int>
 							<Content name="Image"><null></null></Content>
 							<token name="ScaleType">0</token>
 						</Properties>
-						<Item class="UIAspectRatioConstraint" referent="RBXEE6203FEC339497C9EC13D6F11C555A6">
+						<Item class="UIAspectRatioConstraint" referent="RBX2D378DE8FC82450C849DEB78B6B516C7">
 							<Properties>
 								<string name="Name">UIAspectRatioConstraint</string>
 								<float name="AspectRatio">1</float>
 							</Properties>
 						</Item>
 					</Item>
-					<Item class="TextLabel" referent="RBXF4336BF249764EE6B0C4CD8EBD378057">
+					<Item class="TextLabel" referent="RBX759CA29F1A0146509DE15B6C888DE87A">
 						<Properties>
 							<string name="Name">Status</string>
 							<Vector2 name="AnchorPoint"><X>0.5</X><Y>1</Y></Vector2>
-							<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.94</YS><YO>0</YO></UDim2>
+							<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.9</YS><YO>0</YO></UDim2>
 							<UDim2 name="Size"><XS>0.7</XS><XO>0</XO><YS>0.1</YS><YO>0</YO></UDim2>
 							<float name="BackgroundTransparency">1</float>
 							<int name="BorderSizePixel">0</int>
@@ -229,7 +239,7 @@
 							<token name="TextXAlignment">2</token>
 							<token name="TextYAlignment">1</token>
 						</Properties>
-						<Item class="UIStroke" referent="RBXD8C1CD91A87049999A827A6A859D0DDC">
+						<Item class="UIStroke" referent="RBXC565CBA24EB84EE1ACBB164182D5730F">
 							<Properties>
 								<string name="Name">UIStroke</string>
 								<Color3 name="Color"><R>0.14902</R><G>0.243137</G><B>0.094118</B></Color3>
