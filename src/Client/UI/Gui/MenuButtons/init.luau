@@ -5,13 +5,11 @@
 		[      Currency      ]   <- as wide as two buttons: boomerang icon + balance; click = Currency shop (later)
 		[ Shop ] [ Daily ]
 		[ Skins] [ Stats]
-		[Quests] [Achievements]
 	Buttons sit in a 2-column grid; hidden buttons are skipped, so the grid closes up.
-	Quests and Achievements stay hidden until their features exist; the feature turns its button on with
-		MenuButtonsGui.setButtonEnabled("Quests", true, QuestsGui.toggle)
+	Only these buttons exist in the left bar. A later feature that needs one adds it to the BUTTONS table.
 
 	Art: Sol's wooden frame + recolorable grayscale interior for the buttons, and the currency bar image. The button icons
-	are still emoji placeholders (the currency icon too). Every size, color, icon and the art's layout rectangles are in
+	are still emoji placeholders; the currency coin is Sol's image. Every size, color, icon and the art's layout rectangles are in
 	the constants / BUTTONS table below.
 	Hidden while the local player is alive in the arena (it's a lobby menu; the round camera locks the mouse anyway).
 ]]
@@ -68,7 +66,7 @@ local INTERIOR_CROP_HEIGHT = INTERIOR_IMAGE_SIZE.X * INTERIOR_BLEED.Height / INT
 local BAR_IMAGE = "rbxassetid://97631724752812" -- // Currency bar (transparent margin around the painted part)
 local BAR_IMAGE_SIZE = Vector2.new(1024, 512)
 local BAR_CONTENT = Rect.new(32, 56, 1006, 464) -- // The painted part; this is what gets CURRENCY_WIDTH wide
-local BAR_COIN_AREA = Rect.new(90, 131, 340, 381) -- // Free space for the boomerang coin on the left
+local CURRENCY_ICON_IMAGE = "rbxassetid://110596837298294" -- // Boomerang coin, placed as in Sol's Studio mockup (CURRENCY_ICON)
 local BAR_TEXT_AREA = Rect.new(360, 140, 860, 372) -- // Free space for the balance
 local CURRENCY_HEIGHT = math.round(CURRENCY_WIDTH * BAR_CONTENT.Height / BAR_CONTENT.Width)
 
@@ -80,8 +78,6 @@ local BUTTONS = {
 	{ Id = "Daily", Text = "Daily", Icon = "🎁", Color = Color3.fromRGB(205, 130, 255), Enabled = true },
 	{ Id = "Skins", Text = "Skins", Icon = "🪃", Color = Color3.fromRGB(110, 175, 255), Enabled = true }, -- // T-072
 	{ Id = "Stats", Text = "Stats", Icon = "📊", Color = Color3.fromRGB(100, 255, 225), Enabled = true }, -- // T-074
-	{ Id = "Quests", Text = "Quests", Icon = "📜", Color = Color3.fromRGB(255, 215, 90), Enabled = false }, -- // T-038
-	{ Id = "Achievements", Text = "Achievements", Icon = "🏆", Color = Color3.fromRGB(150, 255, 120), Enabled = false }, -- // T-039
 }
 
 -------------------------------------------------------------------------------
@@ -186,10 +182,12 @@ local function buildCurrency(parent: Instance)
 	bar.Position = UDim2.fromScale(-BAR_CONTENT.Min.X / BAR_CONTENT.Width, -BAR_CONTENT.Min.Y / BAR_CONTENT.Height)
 	bar.Size = UDim2.fromScale(BAR_IMAGE_SIZE.X / BAR_CONTENT.Width, BAR_IMAGE_SIZE.Y / BAR_CONTENT.Height)
 
-	-- // Boomerang coin on the left (placeholder emoji; swap for Sol's coin image)
-	local icon = newLabel("Icon", "🪃", button)
-	icon.Position, icon.Size = rectInRegion(BAR_COIN_AREA, BAR_CONTENT)
-	icon.ZIndex = 2
+	-- // Boomerang coin on the left: 70% of the bar's height, square (RelativeYY), centered vertically
+	local icon = newImage("CURRENCY_ICON", CURRENCY_ICON_IMAGE, button, 2)
+	icon.AnchorPoint = Vector2.new(0, 0.5)
+	icon.Position = UDim2.fromScale(0.05, 0.5)
+	icon.Size = UDim2.fromScale(0.7, 0.7)
+	icon.SizeConstraint = Enum.SizeConstraint.RelativeYY
 
 	currencyLabel = newLabel("Amount", "0", button)
 	currencyLabel.Position, currencyLabel.Size = rectInRegion(BAR_TEXT_AREA, BAR_CONTENT)
@@ -309,7 +307,7 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
--- // Shows or hides a button (e.g. Quests once T-038 exists). onActivated replaces the button's click action if given.
+-- // Shows or hides a button by id. onActivated replaces the button's click action if given.
 function MenuButtonsGui.setButtonEnabled(buttonId: string, enabled: boolean, onActivated: (() -> ())?)
 	if onActivated then
 		buttonCallbacks[buttonId] = onActivated
