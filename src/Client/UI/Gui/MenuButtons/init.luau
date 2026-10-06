@@ -311,7 +311,7 @@ function MenuButtonsGui.start()
 		toggleGui("DailyClaims")
 	end
 	buttonCallbacks.Skins = buttonCallbacks.Skins or function()
-		toggleGui("Skins")
+		toggleGui("Inventory")
 	end
 	buttonCallbacks.Stats = buttonCallbacks.Stats or function()
 		toggleGui("Stats")

@@ -9,4 +9,9 @@ return {
    ListingFrameButtonGreen = 115489178458642,
    ListingFrameButtonTeal = 137310124184905,
    CloseButton = 83841981001141,
+
+   -- Inventory
+   InventoryFrame = 79347675065715, -- // Primary content area (frame with the title plank)
+   InventoryItemListingFrame = 112976197760413, -- // Grayscale: tint with ImageColor3. Has transparent padding: crop with ImageRectOffset (223, 137), ImageRectSize (859, 981)
+   InventoryTabFrame = 106475010092350, -- // Grayscale: tint with ImageColor3
 }
