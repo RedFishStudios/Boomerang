@@ -108,7 +108,7 @@ Apply Sol's Inventory art (primary frame, item listing frame, tab frame) to the 
 - `Gui/Skins` renamed to `Gui/Inventory` (UIController name "Inventory"; MenuButtons' Skins button opens it). The old Shop-style `.rbxmx` files were removed.
 - Tabs: `TABS` in `Inventory/init.luau`; a tab's content is `Inventory/Tabs/<Id>.luau` (shape `InventoryTab`: `Title`, `getItems`, `selectItem`, `subscribe`). Tabs without a module are shown darker and do nothing.
 - All listings and tabs have an empty `ICON` ImageLabel placeholder (the 3D ViewportFrame previews were dropped). `InventoryItem.Icon` fills it once icons exist.
-- The item listing art has transparent padding, so it's cropped with ImageRectOffset/ImageRectSize (values in `Icons.luau`).
+- The item listing art has transparent padding: listings and the Detail panel are transparent and hold an oversized `Art` ImageLabel (scale-only values in `Icons.luau`), so the visible frame fills the cell. Listing colors are set on `Art`. (First version cropped with ImageRectOffset in pixels, which broke because Roblox downscales uploads over 1024px.) No Offset values in the Inventory .rbxmx files; text strokes use ScaledSize.
 - Follow-up (Sol, 2026-10-06): only owned skins are listed; the Detail panel uses the item listing art tinted brown (panel widened to 42% of the content to limit stretching); `Rarity` added to `Tools.luau` (skins read it through their model's tool entry) and shown under the name in the Detail panel.
 - `TODO:RELEASE placeholder`: `Rarity = "Common"` on ClassicBoomerang, Shuriken and Fan in `Tools.luau`.
 - Icons.luau: added `InventoryFrame`, `InventoryItemListingFrame`, `InventoryTabFrame`.

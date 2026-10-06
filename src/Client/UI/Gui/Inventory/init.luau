@@ -56,7 +56,7 @@ local TABS = {
 local DEFAULT_TAB = "Skins"
 local INACTIVE_TAB_DARKEN = 0.25 -- // How much darker the tabs that aren't open are
 
--- // Listing colors (the listing frame art is grayscale and tinted with ImageColor3)
+-- // Listing colors (the listing frame art, listing.Art, is grayscale and tinted with ImageColor3)
 local COLOR_OWNED = Color3.fromRGB(225, 170, 110)
 local COLOR_EQUIPPED = Color3.fromRGB(130, 215, 80)
 local COLOR_LOCKED = Color3.fromRGB(140, 140, 140)
@@ -162,12 +162,12 @@ local function refreshListings()
 		setIcon(listing.ICON, item.Icon)
 
 		if item.Equipped then
-			listing.ImageColor3 = COLOR_EQUIPPED
+			listing.Art.ImageColor3 = COLOR_EQUIPPED
 			equippedItem = item
 		elseif item.Owned then
-			listing.ImageColor3 = COLOR_OWNED
+			listing.Art.ImageColor3 = COLOR_OWNED
 		else
-			listing.ImageColor3 = COLOR_LOCKED
+			listing.Art.ImageColor3 = COLOR_LOCKED
 			listing.ItemName.TextTransparency = LOCKED_TEXT_TRANSPARENCY
 			listing.AutoButtonColor = false
 		end
