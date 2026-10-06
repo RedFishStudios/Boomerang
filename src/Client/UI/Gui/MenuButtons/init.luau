@@ -61,7 +61,9 @@ local FRAME_BOARD_TEXT = Rect.new(145, 560, 700, 695) -- // Free space on the na
 local INTERIOR_IMAGE = "rbxassetid://138558379535634" -- // Grayscale interior, recolored live with ImageColor3
 local INTERIOR_IMAGE_SIZE = Vector2.new(686, 674)
 local INTERIOR_BLEED = Rect.new(70, 60, 770, 572) -- // Drawn bigger than the window so the frame covers its edges
-local INTERIOR_SLICE = 56 -- // Bevel width in interior image pixels; 9-sliced so the bevel doesn't stretch
+-- // The interior is cropped (ImageRectOffset/Size, centered) to the bleed rectangle's proportions instead of stretched, so
+-- // its stone detail keeps its proportions. The cropped-off top and bottom end up under the wooden frame.
+local INTERIOR_CROP_HEIGHT = INTERIOR_IMAGE_SIZE.X * INTERIOR_BLEED.Height / INTERIOR_BLEED.Width
 
 local BAR_IMAGE = "rbxassetid://97631724752812" -- // Currency bar (transparent margin around the painted part)
 local BAR_IMAGE_SIZE = Vector2.new(1024, 512)
@@ -210,14 +212,8 @@ local function buildButton(info, layoutOrder: number, parent: Instance)
 	-- // Bottom to top: recolored interior, wooden frame, icon, name text
 	local interior = newImage("Interior", INTERIOR_IMAGE, button, 1)
 	interior.ImageColor3 = info.Color
-	interior.ScaleType = Enum.ScaleType.Slice
-	interior.SliceCenter = Rect.new(
-		INTERIOR_SLICE,
-		INTERIOR_SLICE,
-		INTERIOR_IMAGE_SIZE.X - INTERIOR_SLICE,
-		INTERIOR_IMAGE_SIZE.Y - INTERIOR_SLICE
-	)
-	interior.SliceScale = BUTTON_SIZE.X / FRAME_IMAGE_SIZE.X
+	interior.ImageRectSize = Vector2.new(INTERIOR_IMAGE_SIZE.X, INTERIOR_CROP_HEIGHT)
+	interior.ImageRectOffset = Vector2.new(0, (INTERIOR_IMAGE_SIZE.Y - INTERIOR_CROP_HEIGHT) / 2)
 	interior.Position, interior.Size = rectInRegion(INTERIOR_BLEED, FRAME_FULL)
 
 	local frame = newImage("Frame", FRAME_IMAGE, button, 2)
