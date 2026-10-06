@@ -14,4 +14,5 @@ return {
    InventoryFrame = 79347675065715, -- // Primary content area (frame with the title plank)
    InventoryItemListingFrame = 112976197760413, -- // Grayscale: tint with ImageColor3. Has transparent padding: to make the visible frame fill its parent, use Size (1.5181, 0, 1.2294, 0) and Position (-0.2596, 0, -0.1397, 0) (visible aspect 0.876)
    InventoryTabFrame = 106475010092350, -- // Grayscale: tint with ImageColor3
+	CurrencyIcon = 110596837298294
 }
