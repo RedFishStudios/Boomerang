@@ -10,8 +10,9 @@
 	Quests and Achievements stay hidden until their features exist; the feature turns its button on with
 		MenuButtonsGui.setButtonEnabled("Quests", true, QuestsGui.toggle)
 
-	Code-built placeholder art (colored tiles + emoji). Sol's assets can replace it later: every size, color and icon
-	is in the constants / BUTTONS table below.
+	Art: Sol's wooden frame + recolorable grayscale interior for the buttons, and the currency bar image. The button icons
+	are still emoji placeholders (the currency icon too). Every size, color, icon and the art's layout rectangles are in
+	the constants / BUTTONS table below.
 	Hidden while the local player is alive in the arena (it's a lobby menu; the round camera locks the mouse anyway).
 ]]
 
@@ -44,26 +45,41 @@ local TEXT_STROKE_COLOR = Color3.fromRGB(60, 35, 15)
 -- // Sizes at a 900 px tall screen; everything scales with the screen height (UIScale), clamped below
 local REFERENCE_SCREEN_HEIGHT = 900
 local MIN_SCALE, MAX_SCALE = 0.55, 1.2
-local BUTTON_SIZE = Vector2.new(96, 104) -- // Small buttons: slightly taller than wide, like the mockup
+local BUTTON_SIZE = Vector2.new(100, 90) -- // Same proportions as the frame art (838 x 753)
 local GAP = 10
-local CURRENCY_HEIGHT = 60
 local CURRENCY_WIDTH = BUTTON_SIZE.X * 2 + GAP -- // Two small buttons wide
 local LEFT_MARGIN = 14
 local VERTICAL_POSITION = 0.42 -- // Center of the menu, as a fraction of screen height (clear of the mobile thumbstick)
 
-local FRAME_COLOR = Color3.fromRGB(122, 78, 42) -- // Wooden border
-local CURRENCY_COLOR = Color3.fromRGB(214, 178, 128)
-local CORNER_RADIUS = 12
-local STROKE_THICKNESS = 3
+-- // Sol's image assets. All the rectangles below are in pixels of the source image and get converted to Scale, so the
+-- // text and icons stay inside the art's free space at any size.
+local FRAME_IMAGE = "rbxassetid://78059494085912" -- // Hollow wooden frame with a name board at the bottom
+local FRAME_IMAGE_SIZE = Vector2.new(838, 753)
+local FRAME_FULL = Rect.new(0, 0, 838, 753)
+local FRAME_ICON_AREA = Rect.new(160, 120, 680, 510) -- // Free window inside the frame (the window itself is 99,92 to 742,538)
+local FRAME_BOARD_TEXT = Rect.new(145, 560, 700, 695) -- // Free space on the name board, between the two rivets
+local INTERIOR_IMAGE = "rbxassetid://138558379535634" -- // Grayscale interior, recolored live with ImageColor3
+local INTERIOR_IMAGE_SIZE = Vector2.new(686, 674)
+local INTERIOR_BLEED = Rect.new(70, 60, 770, 572) -- // Drawn bigger than the window so the frame covers its edges
+local INTERIOR_SLICE = 56 -- // Bevel width in interior image pixels; 9-sliced so the bevel doesn't stretch
+
+local BAR_IMAGE = "rbxassetid://97631724752812" -- // Currency bar (transparent margin around the painted part)
+local BAR_IMAGE_SIZE = Vector2.new(1024, 512)
+local BAR_CONTENT = Rect.new(32, 56, 1006, 464) -- // The painted part; this is what gets CURRENCY_WIDTH wide
+local BAR_COIN_AREA = Rect.new(90, 131, 340, 381) -- // Free space for the boomerang coin on the left
+local BAR_TEXT_AREA = Rect.new(360, 140, 860, 372) -- // Free space for the balance
+local CURRENCY_HEIGHT = math.round(CURRENCY_WIDTH * BAR_CONTENT.Height / BAR_CONTENT.Width)
 
 -- // The buttons, in grid order. Enabled = shown from the start.
+-- // Color is a tint multiplied over the grayscale interior (average gray is about 50%), so it can't make the interior
+-- // brighter than the source art. Keep channels as high as they can go and vary the others.
 local BUTTONS = {
-	{ Id = "Shop", Text = "Shop", Icon = "🛒", Color = Color3.fromRGB(196, 72, 58), Enabled = true },
-	{ Id = "Daily", Text = "Daily", Icon = "🎁", Color = Color3.fromRGB(150, 92, 190), Enabled = true },
-	{ Id = "Skins", Text = "Skins", Icon = "🪃", Color = Color3.fromRGB(58, 132, 196), Enabled = true }, -- // T-072
-	{ Id = "Stats", Text = "Stats", Icon = "📊", Color = Color3.fromRGB(70, 170, 160), Enabled = true }, -- // T-074
-	{ Id = "Quests", Text = "Quests", Icon = "📜", Color = Color3.fromRGB(222, 170, 60), Enabled = false }, -- // T-038
-	{ Id = "Achievements", Text = "Achievements", Icon = "🏆", Color = Color3.fromRGB(92, 160, 74), Enabled = false }, -- // T-039
+	{ Id = "Shop", Text = "Shop", Icon = "🛒", Color = Color3.fromRGB(255, 120, 95), Enabled = true },
+	{ Id = "Daily", Text = "Daily", Icon = "🎁", Color = Color3.fromRGB(205, 130, 255), Enabled = true },
+	{ Id = "Skins", Text = "Skins", Icon = "🪃", Color = Color3.fromRGB(110, 175, 255), Enabled = true }, -- // T-072
+	{ Id = "Stats", Text = "Stats", Icon = "📊", Color = Color3.fromRGB(100, 255, 225), Enabled = true }, -- // T-074
+	{ Id = "Quests", Text = "Quests", Icon = "📜", Color = Color3.fromRGB(255, 215, 90), Enabled = false }, -- // T-038
+	{ Id = "Achievements", Text = "Achievements", Icon = "🏆", Color = Color3.fromRGB(150, 255, 120), Enabled = false }, -- // T-039
 }
 
 -------------------------------------------------------------------------------
@@ -89,15 +105,11 @@ local function formatNumber(value: number): string
 	return text
 end
 
-local function addCornerAndStroke(guiObject: GuiObject)
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, CORNER_RADIUS)
-	corner.Parent = guiObject
-	local stroke = Instance.new("UIStroke")
-	stroke.Color = FRAME_COLOR
-	stroke.Thickness = STROKE_THICKNESS
-	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	stroke.Parent = guiObject
+-- // Where a rectangle of an image's free space lands inside a GUI object that shows that image (or its painted part)
+local function rectInRegion(rect: Rect, region: Rect): (UDim2, UDim2)
+	local position = UDim2.fromScale((rect.Min.X - region.Min.X) / region.Width, (rect.Min.Y - region.Min.Y) / region.Height)
+	local size = UDim2.fromScale(rect.Width / region.Width, rect.Height / region.Height)
+	return position, size
 end
 
 local function newLabel(name: string, text: string, parent: Instance): TextLabel
@@ -146,27 +158,40 @@ local function openCurrencyShop()
 	end
 end
 
+local function newImage(name: string, image: string, parent: Instance, zIndex: number): ImageLabel
+	local imageLabel = Instance.new("ImageLabel")
+	imageLabel.Name = name
+	imageLabel.BackgroundTransparency = 1
+	imageLabel.Image = image
+	imageLabel.ZIndex = zIndex
+	imageLabel.Parent = parent
+	return imageLabel
+end
+
 local function buildCurrency(parent: Instance)
 	local button = Instance.new("TextButton")
 	button.Name = "Currency"
 	button.Text = ""
 	button.AutoButtonColor = false
-	button.BackgroundColor3 = CURRENCY_COLOR
+	button.BackgroundTransparency = 1
 	button.Size = UDim2.fromOffset(CURRENCY_WIDTH, CURRENCY_HEIGHT)
 	button.LayoutOrder = 1
 	button.Parent = parent
-	addCornerAndStroke(button)
 	addPressFeedback(button)
 
-	-- // Room for the boomerang icon on the left (placeholder emoji; swap for Sol's image)
+	-- // The image has a transparent margin: stretch it so its painted part exactly fills the button
+	local bar = newImage("Bar", BAR_IMAGE, button, 1)
+	bar.Position = UDim2.fromScale(-BAR_CONTENT.Min.X / BAR_CONTENT.Width, -BAR_CONTENT.Min.Y / BAR_CONTENT.Height)
+	bar.Size = UDim2.fromScale(BAR_IMAGE_SIZE.X / BAR_CONTENT.Width, BAR_IMAGE_SIZE.Y / BAR_CONTENT.Height)
+
+	-- // Boomerang coin on the left (placeholder emoji; swap for Sol's coin image)
 	local icon = newLabel("Icon", "🪃", button)
-	icon.Size = UDim2.new(0, CURRENCY_HEIGHT - 12, 1, -12)
-	icon.Position = UDim2.fromOffset(8, 6)
+	icon.Position, icon.Size = rectInRegion(BAR_COIN_AREA, BAR_CONTENT)
+	icon.ZIndex = 2
 
 	currencyLabel = newLabel("Amount", "0", button)
-	currencyLabel.Size = UDim2.new(1, -(CURRENCY_HEIGHT + 14), 1, -14)
-	currencyLabel.Position = UDim2.fromOffset(CURRENCY_HEIGHT + 4, 7)
-	currencyLabel.TextXAlignment = Enum.TextXAlignment.Left
+	currencyLabel.Position, currencyLabel.Size = rectInRegion(BAR_TEXT_AREA, BAR_CONTENT)
+	currencyLabel.ZIndex = 2
 
 	button.Activated:Connect(openCurrencyShop)
 end
@@ -176,30 +201,35 @@ local function buildButton(info, layoutOrder: number, parent: Instance)
 	button.Name = info.Id
 	button.Text = ""
 	button.AutoButtonColor = false
-	button.BackgroundColor3 = info.Color
+	button.BackgroundTransparency = 1
 	button.LayoutOrder = layoutOrder
 	button.Visible = info.Enabled
 	button.Parent = parent
-	addCornerAndStroke(button)
 	addPressFeedback(button)
 
-	local icon = newLabel("Icon", info.Icon, button)
-	icon.Size = UDim2.new(0.7, 0, 0.55, 0)
-	icon.Position = UDim2.fromScale(0.15, 0.08)
+	-- // Bottom to top: recolored interior, wooden frame, icon, name text
+	local interior = newImage("Interior", INTERIOR_IMAGE, button, 1)
+	interior.ImageColor3 = info.Color
+	interior.ScaleType = Enum.ScaleType.Slice
+	interior.SliceCenter = Rect.new(
+		INTERIOR_SLICE,
+		INTERIOR_SLICE,
+		INTERIOR_IMAGE_SIZE.X - INTERIOR_SLICE,
+		INTERIOR_IMAGE_SIZE.Y - INTERIOR_SLICE
+	)
+	interior.SliceScale = BUTTON_SIZE.X / FRAME_IMAGE_SIZE.X
+	interior.Position, interior.Size = rectInRegion(INTERIOR_BLEED, FRAME_FULL)
 
-	-- // Name plate along the bottom, like the mockup
-	local plate = Instance.new("Frame")
-	plate.Name = "Plate"
-	plate.BackgroundColor3 = FRAME_COLOR
-	plate.Size = UDim2.new(1, -8, 0.28, 0)
-	plate.Position = UDim2.new(0, 4, 0.68, 0)
-	plate.Parent = button
-	local plateCorner = Instance.new("UICorner")
-	plateCorner.CornerRadius = UDim.new(0, 8)
-	plateCorner.Parent = plate
-	local label = newLabel("Label", info.Text, plate)
-	label.Size = UDim2.new(1, -6, 1, -4)
-	label.Position = UDim2.fromOffset(3, 2)
+	local frame = newImage("Frame", FRAME_IMAGE, button, 2)
+	frame.Size = UDim2.fromScale(1, 1)
+
+	local icon = newLabel("Icon", info.Icon, button)
+	icon.Position, icon.Size = rectInRegion(FRAME_ICON_AREA, FRAME_FULL)
+	icon.ZIndex = 3
+
+	local label = newLabel("Label", info.Text, button)
+	label.Position, label.Size = rectInRegion(FRAME_BOARD_TEXT, FRAME_FULL)
+	label.ZIndex = 4
 
 	button.Activated:Connect(function()
 		local callback = buttonCallbacks[info.Id]
