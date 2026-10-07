@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-075** *(shared by every task list, general and Epic)*
+**Next free ID: T-076** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,36 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-075 · Inventory GUI (new art, tabs)
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** GUI / Client
+- **Files:** `Client/UI/Gui/Inventory/` (was `Gui/Skins/`), `Client/UI/Gui/MenuButtons/init.luau`, `Shared/Constants/Icons.luau`
+
+**Problem / goal**
+Apply Sol's Inventory art (primary frame, item listing frame, tab frame) to the Skins menu, following Sol's reference image. No separate Equip button: each listing is the button; the equipped one is green and shown in the large panel on the right. Tab column (Skins, Emotes, Arrows, Effects) set up modularly; only Skins works for now.
+
+**Done when**
+- [ ] Inventory opens from the lobby Skins button with the new art and the tab column
+- [ ] Clicking an owned skin equips it; its listing turns green and it shows in the Detail panel
+
+**Test in Studio**
+- Open Skins (left menu): frame, "Your Skins" title, 4 tabs on the left, Classic listing green and shown on the right.
+- F2 → `grantskin me Shuriken` → Shuriken appears (tan); click it → Detail panel shows Shuriken, "Common" and an Equip button; click Equip → listing turns green, "Equipped" shows, held boomerang swaps. Check the 3D models fit inside each listing and the Detail panel.
+- Emotes / Arrows / Effects tabs show (darker) and do nothing yet.
+- Check the layout of `Inventory.rbxmx`, `InventoryListingTemplate.rbxmx`, `InventoryTabTemplate.rbxmx` in Studio (positions were set by hand from the reference; tweak freely).
+
+**Notes**
+- Branch `agent/T-075-inventory-gui`, lane `Github/Boomerang-lanes/T-075-inventory-gui`.
+- `Gui/Skins` renamed to `Gui/Inventory` (UIController name "Inventory"; MenuButtons' Skins button opens it). The old Shop-style `.rbxmx` files were removed.
+- Tabs: `TABS` in `Inventory/init.luau`; a tab's content is `Inventory/Tabs/<Id>.luau` (shape `InventoryTab`: `Title`, `getItems`, `selectItem`, `subscribe`). Tabs without a module are shown darker and do nothing.
+- All listings and tabs have an empty `ICON` ImageLabel placeholder (the 3D ViewportFrame previews were dropped). `InventoryItem.Icon` fills it once icons exist.
+- The item listing art has transparent padding: listings and the Detail panel are transparent and hold an oversized `Art` ImageLabel (scale-only values in `Icons.luau`), so the visible frame fills the cell. Listing colors are set on `Art`. (First version cropped with ImageRectOffset in pixels, which broke because Roblox downscales uploads over 1024px.) No Offset values in the Inventory .rbxmx files; text strokes use ScaledSize.
+- Follow-up (Sol, 2026-10-06): only owned skins are listed; the Detail panel uses the item listing art tinted brown (panel widened to 42% of the content to limit stretching); `Rarity` added to `Tools.luau` (skins read it through their model's tool entry) and shown under the name in the Detail panel.
+- `TODO:RELEASE placeholder`: `Rarity = "Common"` on ClassicBoomerang, Shuriken and Fan in `Tools.luau`.
+- Follow-up 2 (Sol, 2026-10-06): clicking a listing only selects it (lighter tint) and shows it in the Detail panel; the panel shows an Equip button (ListingFrameButtonGreen) when the selected skin isn't equipped, and "Equipped" when it is. Listings and the Detail panel show the 3D tool model (same asset as the character holds) via the new reusable `Client/UI/ItemViewport.luau` (`renderTool` / `renderModel`), which fits the model into a square camera automatically. Per-model pose: `Viewport = { Rotation, Zoom? }` in `Tools.luau` (angles picked with a test viewport GUI, `StarterGui.ViewportTest`, left disabled in the place; delete it whenever).
+- Icons.luau: added `InventoryFrame`, `InventoryItemListingFrame`, `InventoryTabFrame`.
 
 ### T-074 · Stats menu
 - **Priority:** P1
@@ -193,6 +223,9 @@ The player needs a HUD with buttons. Known so far:
 - Hidden while you're alive in the arena (lobby menu); say if it should show during rounds too.
 - Didn't use `HudButtons/Hud.rbxmx` (that's the in-round Throw/Dash/Stab buttons).
 - Not lint-checked.
+- **Art pass (2026-10-06, branch `agent/hud-left-art`, lane `Github/Boomerang-lanes/hud-left-art`):** `MenuButtons` now uses Sol's assets. Buttons = grayscale interior `138558379535634` (cropped with `ImageRectOffset`/`ImageRectSize`, tinted per button with `ImageColor3`; 9-slice rendered wrongly in Studio) under the wooden frame `78059494085912`; currency bar = `97631724752812`. Icon and name text sit in the frame's free window and name board; the art's free-space rectangles are constants (`FRAME_ICON_AREA`, `FRAME_BOARD_TEXT`, `BAR_COIN_AREA`, `BAR_TEXT_AREA`) converted to Scale. Icons and the currency coin are still emoji placeholders. Button size is now 100x90 (the frame art's proportions).
+- **Update (2026-10-06, branch `agent/hud-left-currency-icon`):** the currency bar now shows Sol's coin image `110596837298294` (`CURRENCY_ICON`: left 5%, centered vertically, 70% of the bar height, square). Quests and Achievements were removed from the left bar (Sol: only Currency, Shop, Daily, Skins, Stats); `setButtonEnabled` stays for any later button.
+- **Test in Studio:** the tint only multiplies the grayscale (average ~50% gray), so button colors come out darker than a bright mockup; adjust the `Color` tints in `BUTTONS`, or lighten the grayscale asset. Check the text fits on the name board ("Achievements" is the longest, hidden for now), and the balance on the bar with big numbers.
 
 ---
 

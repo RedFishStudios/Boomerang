@@ -1,0 +1,81 @@
+<roblox xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4">
+	<Meta name="ExplicitAutoJoints">true</Meta>
+	<External>null</External>
+	<External>nil</External>
+	<Item class="ImageButton" referent="RBXC7CDD7A550C64EC09008070524A9F052">
+		<Properties>
+			<string name="Name">InventoryListingTemplate</string>
+			<Vector2 name="AnchorPoint"><X>0</X><Y>0</Y></Vector2>
+			<UDim2 name="Position"><XS>0</XS><XO>0</XO><YS>0</YS><YO>0</YO></UDim2>
+			<UDim2 name="Size"><XS>0.3</XS><XO>0</XO><YS>0.3</YS><YO>0</YO></UDim2>
+			<float name="BackgroundTransparency">1</float>
+			<int name="BorderSizePixel">0</int>
+			<Content name="Image"><null></null></Content>
+			<token name="ScaleType">0</token>
+			<bool name="AutoButtonColor">false</bool>
+		</Properties>
+		<Item class="UIScale" referent="RBX2E07205CC436489193A1A2557F448FA4">
+			<Properties>
+				<string name="Name">UIScale</string>
+			</Properties>
+		</Item>
+		<Item class="ImageLabel" referent="RBXEC4ED616CF074E57B78C8A2ECDB9EA88">
+			<Properties>
+				<string name="Name">Art</string>
+				<Vector2 name="AnchorPoint"><X>0</X><Y>0</Y></Vector2>
+				<UDim2 name="Position"><XS>-0.2596</XS><XO>0</XO><YS>-0.1397</YS><YO>0</YO></UDim2>
+				<UDim2 name="Size"><XS>1.5181</XS><XO>0</XO><YS>1.2294</YS><YO>0</YO></UDim2>
+				<float name="BackgroundTransparency">1</float>
+				<int name="BorderSizePixel">0</int>
+				<int name="ZIndex">1</int>
+				<Content name="Image"><url>rbxassetid://112976197760413</url></Content>
+				<token name="ScaleType">0</token>
+				<Color3 name="ImageColor3"><R>0.882353</R><G>0.666667</G><B>0.431373</B></Color3>
+			</Properties>
+		</Item>
+		<Item class="ViewportFrame" referent="RBX9F4017631B7B4307AF9AB2926E2C4F54">
+			<Properties>
+				<string name="Name">Viewport</string>
+				<Vector2 name="AnchorPoint"><X>0.5</X><Y>0</Y></Vector2>
+				<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.1</YS><YO>0</YO></UDim2>
+				<UDim2 name="Size"><XS>0.75</XS><XO>0</XO><YS>0.6</YS><YO>0</YO></UDim2>
+				<float name="BackgroundTransparency">1</float>
+				<int name="BorderSizePixel">0</int>
+				<int name="ZIndex">2</int>
+			</Properties>
+			<Item class="UIAspectRatioConstraint" referent="RBX94E020713D3F40A19568DAA2822C3A56">
+				<Properties>
+					<string name="Name">UIAspectRatioConstraint</string>
+					<float name="AspectRatio">1</float>
+				</Properties>
+			</Item>
+		</Item>
+		<Item class="TextLabel" referent="RBX64E7FC326025473BB6CC8BDA934B09E4">
+			<Properties>
+				<string name="Name">ItemName</string>
+				<Vector2 name="AnchorPoint"><X>0.5</X><Y>1</Y></Vector2>
+				<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.9</YS><YO>0</YO></UDim2>
+				<UDim2 name="Size"><XS>0.82</XS><XO>0</XO><YS>0.18</YS><YO>0</YO></UDim2>
+				<float name="BackgroundTransparency">1</float>
+				<int name="BorderSizePixel">0</int>
+				<int name="ZIndex">2</int>
+				<Font name="FontFace"><Family><url>rbxasset://fonts/families/FredokaOne.json</url></Family><Weight>400</Weight><Style>Normal</Style></Font>
+				<string name="Text">Classic</string>
+				<Color3 name="TextColor3"><R>1.0</R><G>1.0</G><B>1.0</B></Color3>
+				<bool name="TextScaled">true</bool>
+				<bool name="TextWrapped">true</bool>
+				<token name="TextXAlignment">2</token>
+				<token name="TextYAlignment">1</token>
+			</Properties>
+			<Item class="UIStroke" referent="RBX4A169353D9B048EBAFC7975F74148B9D">
+				<Properties>
+					<string name="Name">UIStroke</string>
+					<Color3 name="Color"><R>0.176471</R><G>0.109804</G><B>0.047059</B></Color3>
+					<float name="Thickness">0.08</float>
+					<token name="ApplyStrokeMode">0</token>
+					<token name="StrokeSizingMode">1</token>
+				</Properties>
+			</Item>
+		</Item>
+	</Item>
+</roblox>

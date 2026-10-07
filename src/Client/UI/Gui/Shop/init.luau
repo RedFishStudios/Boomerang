@@ -20,6 +20,8 @@ local UIController = require(ClientMods.UI.UIController)
 local ShopController = require(ClientMods.Core.ShopController)
 local SkinController = require(ClientMods.Core.SkinController)
 local TopbarGui = require(ClientMods.UI.Gui.Topbar)
+local ItemViewport = require(ClientMods.UI.ItemViewport)
+local Icons = require(SharedMods.Constants.Icons)
 
 local ShopScreenGui: ScreenGui? = script:WaitForChild("Shop")
 local TabButtons: Frame?
@@ -40,6 +42,7 @@ local OWNED_TEXT = "Owned"
 
 type ListingDisplay = {
    Name: string,
+   ModelName: string?,
    TypeText: string,
    Price: number,
    ProductId: number?,
@@ -125,6 +128,7 @@ local function getListingDisplay(listing: ShopItems.ShopListing): ListingDisplay
       end
       return {
          Name = skin.Name,
+         ModelName = skin.Model,
          TypeText = SKIN_TYPE_DISPLAY,
          Price = skin.Price,
          ProductId = skin.ProductId,
@@ -138,6 +142,7 @@ local function getListingDisplay(listing: ShopItems.ShopListing): ListingDisplay
    end
    return {
       Name = itemData.Name,
+      ModelName = itemData.Model,
       TypeText = itemTypeToDisplay[itemData.Type] or "type error",
       Price = itemData.Price,
       ProductId = itemData.ProductId,
@@ -175,6 +180,22 @@ local function loadTab(tab: ShopItems.ShopTab)
          
          listing.ItemName.Text = itemData.Name
          listing.ItemType.Text = itemData.TypeText
+
+         -- // The item's render replaces the placeholder image; keep the placeholder if there's no model
+         local itemRender = listing.ItemRender
+         local renderViewport = ItemViewport.getOrCreate(itemRender)
+         local hasModel = itemData.ModelName ~= nil
+         itemRender.Visible = not hasModel
+         renderViewport.Visible = hasModel
+         if itemData.ModelName then
+            ItemViewport.renderTool(renderViewport, itemData.ModelName)
+         end
+
+         -- // Currency icon next to the price (hidden while the button reads "Owned")
+         local currencyIcon = listing.Currency.ImageLabel
+         currencyIcon.Image = `rbxassetid://{Icons.CurrencyIcon}`
+         currencyIcon.ScaleType = Enum.ScaleType.Fit
+         currencyIcon.Visible = not itemData.Owned
 
          -- Toggle gifting based on regional law restrictions
          listing.Robux.Gift.Visible = false

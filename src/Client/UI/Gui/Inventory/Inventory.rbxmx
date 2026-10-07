@@ -1,0 +1,322 @@
+<roblox xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4">
+	<Meta name="ExplicitAutoJoints">true</Meta>
+	<External>null</External>
+	<External>nil</External>
+	<Item class="ScreenGui" referent="RBX41B3F37ABB924C549386F47FA5885319">
+		<Properties>
+			<string name="Name">Inventory</string>
+			<bool name="Enabled">false</bool>
+			<bool name="ResetOnSpawn">false</bool>
+			<token name="ZIndexBehavior">1</token>
+			<bool name="ClipToDeviceSafeArea">true</bool>
+			<token name="ScreenInsets">2</token>
+		</Properties>
+		<Item class="ImageLabel" referent="RBX58CD0BF6470943649A65ACF79037A025">
+			<Properties>
+				<string name="Name">Container</string>
+				<Vector2 name="AnchorPoint"><X>0.5</X><Y>0.5</Y></Vector2>
+				<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.5</YS><YO>0</YO></UDim2>
+				<UDim2 name="Size"><XS>0.6</XS><XO>0</XO><YS>0.85</YS><YO>0</YO></UDim2>
+				<float name="BackgroundTransparency">1</float>
+				<int name="BorderSizePixel">0</int>
+				<Content name="Image"><url>rbxassetid://79347675065715</url></Content>
+				<token name="ScaleType">0</token>
+			</Properties>
+			<Item class="UIAspectRatioConstraint" referent="RBX8F5DF1DF29C44B8DAE352AEF065BB4B2">
+				<Properties>
+					<string name="Name">UIAspectRatioConstraint</string>
+					<float name="AspectRatio">1.5</float>
+				</Properties>
+			</Item>
+			<Item class="TextLabel" referent="RBX8068EA9062B344EF9C0C3B23AC4CBB1C">
+				<Properties>
+					<string name="Name">Title</string>
+					<Vector2 name="AnchorPoint"><X>0.5</X><Y>0</Y></Vector2>
+					<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.072</YS><YO>0</YO></UDim2>
+					<UDim2 name="Size"><XS>0.36</XS><XO>0</XO><YS>0.09</YS><YO>0</YO></UDim2>
+					<float name="BackgroundTransparency">1</float>
+					<int name="BorderSizePixel">0</int>
+					<int name="ZIndex">2</int>
+					<Font name="FontFace"><Family><url>rbxasset://fonts/families/FredokaOne.json</url></Family><Weight>400</Weight><Style>Normal</Style></Font>
+					<string name="Text">Your Skins</string>
+					<Color3 name="TextColor3"><R>0.360784</R><G>0.203922</G><B>0.078431</B></Color3>
+					<bool name="TextScaled">true</bool>
+					<bool name="TextWrapped">true</bool>
+					<token name="TextXAlignment">2</token>
+					<token name="TextYAlignment">1</token>
+				</Properties>
+			</Item>
+			<Item class="ImageButton" referent="RBX75BF86B1794D480F9F2B8EABB4AC7DE1">
+				<Properties>
+					<string name="Name">Exit</string>
+					<Vector2 name="AnchorPoint"><X>0.5</X><Y>0.5</Y></Vector2>
+					<UDim2 name="Position"><XS>0.945</XS><XO>0</XO><YS>0.1</YS><YO>0</YO></UDim2>
+					<UDim2 name="Size"><XS>0.09</XS><XO>0</XO><YS>0.13</YS><YO>0</YO></UDim2>
+					<float name="BackgroundTransparency">1</float>
+					<int name="BorderSizePixel">0</int>
+					<int name="ZIndex">3</int>
+					<Content name="Image"><url>rbxassetid://83841981001141</url></Content>
+					<token name="ScaleType">0</token>
+					<bool name="AutoButtonColor">false</bool>
+				</Properties>
+				<Item class="UIAspectRatioConstraint" referent="RBX1CDBD46B1B4144ACBFCE7E531CDD9AB5">
+					<Properties>
+						<string name="Name">UIAspectRatioConstraint</string>
+						<float name="AspectRatio">1</float>
+					</Properties>
+				</Item>
+				<Item class="UIScale" referent="RBX0608EF05853F4D109FD0C8E503FB6A56">
+					<Properties>
+						<string name="Name">UIScale</string>
+					</Properties>
+				</Item>
+			</Item>
+			<Item class="Frame" referent="RBX4AEC929B80B04B8B8F05C72265AAFD98">
+				<Properties>
+					<string name="Name">Tabs</string>
+					<Vector2 name="AnchorPoint"><X>0.5</X><Y>0</Y></Vector2>
+					<UDim2 name="Position"><XS>0.04</XS><XO>0</XO><YS>0.17</YS><YO>0</YO></UDim2>
+					<UDim2 name="Size"><XS>0.105</XS><XO>0</XO><YS>0.705</YS><YO>0</YO></UDim2>
+					<float name="BackgroundTransparency">1</float>
+					<int name="BorderSizePixel">0</int>
+					<int name="ZIndex">2</int>
+				</Properties>
+				<Item class="UIListLayout" referent="RBX2531D2879E0E422299F50C123E181F32">
+					<Properties>
+						<string name="Name">UIListLayout</string>
+						<token name="FillDirection">1</token>
+						<token name="SortOrder">2</token>
+						<token name="HorizontalAlignment">0</token>
+						<UDim name="Padding"><S>0.0293</S><O>0</O></UDim>
+					</Properties>
+				</Item>
+			</Item>
+			<Item class="Frame" referent="RBX5877A38E21EE48E598199AC2CA7FDCCB">
+				<Properties>
+					<string name="Name">Content</string>
+					<Vector2 name="AnchorPoint"><X>0</X><Y>0</Y></Vector2>
+					<UDim2 name="Position"><XS>0.155</XS><XO>0</XO><YS>0.205</YS><YO>0</YO></UDim2>
+					<UDim2 name="Size"><XS>0.72</XS><XO>0</XO><YS>0.605</YS><YO>0</YO></UDim2>
+					<float name="BackgroundTransparency">1</float>
+					<int name="BorderSizePixel">0</int>
+				</Properties>
+				<Item class="ScrollingFrame" referent="RBXA8561F511D2744D9B5DCA9528D698425">
+					<Properties>
+						<string name="Name">Listings</string>
+						<Vector2 name="AnchorPoint"><X>0</X><Y>0</Y></Vector2>
+						<UDim2 name="Position"><XS>0</XS><XO>0</XO><YS>0</YS><YO>0</YO></UDim2>
+						<UDim2 name="Size"><XS>0.56</XS><XO>0</XO><YS>1</YS><YO>0</YO></UDim2>
+						<float name="BackgroundTransparency">1</float>
+						<int name="BorderSizePixel">0</int>
+						<UDim2 name="CanvasSize"><XS>0</XS><XO>0</XO><YS>0</YS><YO>0</YO></UDim2>
+						<token name="AutomaticCanvasSize">2</token>
+						<token name="ScrollingDirection">2</token>
+						<int name="ScrollBarThickness">6</int>
+						<Color3 name="ScrollBarImageColor3"><R>0.54902</R><G>0.372549</G><B>0.215686</B></Color3>
+						<bool name="ClipsDescendants">true</bool>
+					</Properties>
+					<Item class="UIGridLayout" referent="RBXFF5BA0E0E69C43E09DFAAB82ABF8DC64">
+						<Properties>
+							<string name="Name">UIGridLayout</string>
+							<UDim2 name="CellSize"><XS>0.3</XS><XO>0</XO><YS>0.5</YS><YO>0</YO></UDim2>
+							<UDim2 name="CellPadding"><XS>0.035</XS><XO>0</XO><YS>0.03</YS><YO>0</YO></UDim2>
+							<token name="SortOrder">2</token>
+							<token name="FillDirection">0</token>
+							<token name="HorizontalAlignment">1</token>
+						</Properties>
+						<Item class="UIAspectRatioConstraint" referent="RBXCFC8E2EC5F0846689190B843928CDA83">
+							<Properties>
+								<string name="Name">UIAspectRatioConstraint</string>
+								<float name="AspectRatio">0.876</float>
+							</Properties>
+						</Item>
+					</Item>
+					<Item class="UIPadding" referent="RBXD3A6F977593D413F8D75115C2D3D7CE2">
+						<Properties>
+							<string name="Name">UIPadding</string>
+							<UDim name="PaddingTop"><S>0.02</S><O>0</O></UDim>
+							<UDim name="PaddingBottom"><S>0.02</S><O>0</O></UDim>
+							<UDim name="PaddingLeft"><S>0.02</S><O>0</O></UDim>
+							<UDim name="PaddingRight"><S>0.02</S><O>0</O></UDim>
+						</Properties>
+					</Item>
+				</Item>
+				<Item class="Frame" referent="RBXC274EBE2E5C14F878150254C39A8D893">
+					<Properties>
+						<string name="Name">Detail</string>
+						<Vector2 name="AnchorPoint"><X>1</X><Y>0</Y></Vector2>
+						<UDim2 name="Position"><XS>1</XS><XO>0</XO><YS>0</YS><YO>0</YO></UDim2>
+						<UDim2 name="Size"><XS>0.42</XS><XO>0</XO><YS>1</YS><YO>0</YO></UDim2>
+						<float name="BackgroundTransparency">1</float>
+						<int name="BorderSizePixel">0</int>
+					</Properties>
+					<Item class="ImageLabel" referent="RBX9C7325CAEB204F668C8C315C2806AC8E">
+						<Properties>
+							<string name="Name">Art</string>
+							<Vector2 name="AnchorPoint"><X>0</X><Y>0</Y></Vector2>
+							<UDim2 name="Position"><XS>-0.2596</XS><XO>0</XO><YS>-0.1397</YS><YO>0</YO></UDim2>
+							<UDim2 name="Size"><XS>1.5181</XS><XO>0</XO><YS>1.2294</YS><YO>0</YO></UDim2>
+							<float name="BackgroundTransparency">1</float>
+							<int name="BorderSizePixel">0</int>
+							<int name="ZIndex">1</int>
+							<Content name="Image"><url>rbxassetid://112976197760413</url></Content>
+							<token name="ScaleType">0</token>
+							<Color3 name="ImageColor3"><R>1.0</R><G>0.803922</G><B>0.588235</B></Color3>
+						</Properties>
+					</Item>
+					<Item class="TextLabel" referent="RBX71029F5F43B848619D470A662A55862B">
+						<Properties>
+							<string name="Name">ItemName</string>
+							<Vector2 name="AnchorPoint"><X>0.5</X><Y>0</Y></Vector2>
+							<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.09</YS><YO>0</YO></UDim2>
+							<UDim2 name="Size"><XS>0.78</XS><XO>0</XO><YS>0.11</YS><YO>0</YO></UDim2>
+							<float name="BackgroundTransparency">1</float>
+							<int name="BorderSizePixel">0</int>
+							<int name="ZIndex">2</int>
+							<Font name="FontFace"><Family><url>rbxasset://fonts/families/FredokaOne.json</url></Family><Weight>400</Weight><Style>Normal</Style></Font>
+							<string name="Text">Classic</string>
+							<Color3 name="TextColor3"><R>1.0</R><G>1.0</G><B>1.0</B></Color3>
+							<bool name="TextScaled">true</bool>
+							<bool name="TextWrapped">true</bool>
+							<token name="TextXAlignment">2</token>
+							<token name="TextYAlignment">1</token>
+						</Properties>
+						<Item class="UIStroke" referent="RBX49CEC1D216504AD99A3733E8A63684C4">
+							<Properties>
+								<string name="Name">UIStroke</string>
+								<Color3 name="Color"><R>0.176471</R><G>0.109804</G><B>0.047059</B></Color3>
+								<float name="Thickness">0.1</float>
+								<token name="ApplyStrokeMode">0</token>
+								<token name="StrokeSizingMode">1</token>
+							</Properties>
+						</Item>
+					</Item>
+					<Item class="TextLabel" referent="RBX038A961BB9B54E999F71F3E7E1018D47">
+						<Properties>
+							<string name="Name">Rarity</string>
+							<Vector2 name="AnchorPoint"><X>0.5</X><Y>0</Y></Vector2>
+							<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.2</YS><YO>0</YO></UDim2>
+							<UDim2 name="Size"><XS>0.6</XS><XO>0</XO><YS>0.065</YS><YO>0</YO></UDim2>
+							<float name="BackgroundTransparency">1</float>
+							<int name="BorderSizePixel">0</int>
+							<int name="ZIndex">2</int>
+							<Font name="FontFace"><Family><url>rbxasset://fonts/families/FredokaOne.json</url></Family><Weight>400</Weight><Style>Normal</Style></Font>
+							<string name="Text">Common</string>
+							<Color3 name="TextColor3"><R>1.0</R><G>0.941176</G><B>0.843137</B></Color3>
+							<bool name="TextScaled">true</bool>
+							<bool name="TextWrapped">true</bool>
+							<token name="TextXAlignment">2</token>
+							<token name="TextYAlignment">1</token>
+						</Properties>
+						<Item class="UIStroke" referent="RBXDF931767D65443C591A8A79C0C97CB6E">
+							<Properties>
+								<string name="Name">UIStroke</string>
+								<Color3 name="Color"><R>0.176471</R><G>0.109804</G><B>0.047059</B></Color3>
+								<float name="Thickness">0.08</float>
+								<token name="ApplyStrokeMode">0</token>
+								<token name="StrokeSizingMode">1</token>
+							</Properties>
+						</Item>
+					</Item>
+					<Item class="ViewportFrame" referent="RBX1A86EA6AF44F439D93CBCD0D2874FE0C">
+						<Properties>
+							<string name="Name">Viewport</string>
+							<Vector2 name="AnchorPoint"><X>0.5</X><Y>0.5</Y></Vector2>
+							<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.53</YS><YO>0</YO></UDim2>
+							<UDim2 name="Size"><XS>0.8</XS><XO>0</XO><YS>0.45</YS><YO>0</YO></UDim2>
+							<float name="BackgroundTransparency">1</float>
+							<int name="BorderSizePixel">0</int>
+							<int name="ZIndex">2</int>
+						</Properties>
+						<Item class="UIAspectRatioConstraint" referent="RBX6F63838DD9AC4A6D8DFAC8D7D9EF0003">
+							<Properties>
+								<string name="Name">UIAspectRatioConstraint</string>
+								<float name="AspectRatio">1</float>
+							</Properties>
+						</Item>
+					</Item>
+					<Item class="TextLabel" referent="RBX81695C1247C546589BFE828A637271C7">
+						<Properties>
+							<string name="Name">Status</string>
+							<Vector2 name="AnchorPoint"><X>0.5</X><Y>1</Y></Vector2>
+							<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.9</YS><YO>0</YO></UDim2>
+							<UDim2 name="Size"><XS>0.7</XS><XO>0</XO><YS>0.1</YS><YO>0</YO></UDim2>
+							<float name="BackgroundTransparency">1</float>
+							<int name="BorderSizePixel">0</int>
+							<int name="ZIndex">2</int>
+							<Font name="FontFace"><Family><url>rbxasset://fonts/families/FredokaOne.json</url></Family><Weight>400</Weight><Style>Normal</Style></Font>
+							<string name="Text">Equipped</string>
+							<Color3 name="TextColor3"><R>0.588235</R><G>0.901961</G><B>0.470588</B></Color3>
+							<bool name="TextScaled">true</bool>
+							<bool name="TextWrapped">true</bool>
+							<token name="TextXAlignment">2</token>
+							<token name="TextYAlignment">1</token>
+						</Properties>
+						<Item class="UIStroke" referent="RBX7B9746969CFE43868EA28F3836134CEB">
+							<Properties>
+								<string name="Name">UIStroke</string>
+								<Color3 name="Color"><R>0.14902</R><G>0.243137</G><B>0.094118</B></Color3>
+								<float name="Thickness">0.08</float>
+								<token name="ApplyStrokeMode">0</token>
+								<token name="StrokeSizingMode">1</token>
+							</Properties>
+						</Item>
+					</Item>
+					<Item class="ImageButton" referent="RBX445E8B6497394CBA823BF6B4975F1868">
+						<Properties>
+							<string name="Name">Equip</string>
+							<Vector2 name="AnchorPoint"><X>0.5</X><Y>1</Y></Vector2>
+							<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.93</YS><YO>0</YO></UDim2>
+							<UDim2 name="Size"><XS>0.75</XS><XO>0</XO><YS>0.2</YS><YO>0</YO></UDim2>
+							<float name="BackgroundTransparency">1</float>
+							<int name="BorderSizePixel">0</int>
+							<int name="ZIndex">3</int>
+							<Content name="Image"><url>rbxassetid://115489178458642</url></Content>
+							<token name="ScaleType">0</token>
+							<bool name="AutoButtonColor">false</bool>
+							<bool name="Visible">false</bool>
+						</Properties>
+						<Item class="UIAspectRatioConstraint" referent="RBX6574B7D0425446759BA606542B9358C0">
+							<Properties>
+								<string name="Name">UIAspectRatioConstraint</string>
+								<float name="AspectRatio">3.199</float>
+							</Properties>
+						</Item>
+						<Item class="UIScale" referent="RBX151AB6DAB8D74755BEA771914C0731BC">
+							<Properties>
+								<string name="Name">UIScale</string>
+							</Properties>
+						</Item>
+						<Item class="TextLabel" referent="RBX53C3170A14BC42F9BBB7D9548A53DE68">
+							<Properties>
+								<string name="Name">Label</string>
+								<Vector2 name="AnchorPoint"><X>0.5</X><Y>0.5</Y></Vector2>
+								<UDim2 name="Position"><XS>0.5</XS><XO>0</XO><YS>0.43</YS><YO>0</YO></UDim2>
+								<UDim2 name="Size"><XS>0.75</XS><XO>0</XO><YS>0.6</YS><YO>0</YO></UDim2>
+								<float name="BackgroundTransparency">1</float>
+								<int name="BorderSizePixel">0</int>
+								<int name="ZIndex">4</int>
+								<Font name="FontFace"><Family><url>rbxasset://fonts/families/FredokaOne.json</url></Family><Weight>400</Weight><Style>Normal</Style></Font>
+								<string name="Text">Equip</string>
+								<Color3 name="TextColor3"><R>1.0</R><G>1.0</G><B>1.0</B></Color3>
+								<bool name="TextScaled">true</bool>
+								<bool name="TextWrapped">true</bool>
+								<token name="TextXAlignment">2</token>
+								<token name="TextYAlignment">1</token>
+							</Properties>
+							<Item class="UIStroke" referent="RBX17EDB6013C824E148FCCA1DDAA880D4D">
+								<Properties>
+									<string name="Name">UIStroke</string>
+									<Color3 name="Color"><R>0.117647</R><G>0.156863</G><B>0.078431</B></Color3>
+									<float name="Thickness">0.08</float>
+									<token name="ApplyStrokeMode">0</token>
+									<token name="StrokeSizingMode">1</token>
+								</Properties>
+							</Item>
+						</Item>
+					</Item>
+				</Item>
+			</Item>
+		</Item>
+	</Item>
+</roblox>
