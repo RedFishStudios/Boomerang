@@ -8,6 +8,7 @@ local Player = game:GetService("Players").LocalPlayer
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local AcquirableThingData = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Referential"):WaitForChild("AcquirableThingData"))
+local ItemViewport = require(ReplicatedStorage:WaitForChild("Client"):WaitForChild("UI"):WaitForChild("ItemViewport"))
 
 local Gui = script:WaitForChild("ItemAcquired") :: ScreenGui
 Gui.ResetOnSpawn = false
@@ -126,16 +127,8 @@ local function beginDestruction(frame: CanvasGroup)
 	end)
 end
 
-local function resolveImage(image: (string | number)?): string?
-	if type(image) == "number" then
-		return "rbxassetid://" .. image
-	elseif type(image) == "string" and image ~= "" then
-		return image
-	end
-	return nil
-end
-
-local function acquiredItem(image: (string | number)?, title: string, subtitle: string)
+-- // The icon is a model render when `modelName` is given (a Shared/Assets/Tools model), otherwise the image
+local function acquiredItem(image: (string | number)?, modelName: string?, title: string, subtitle: string)
 	ItemAcquiredGui.open()
 
 	while #activeNotifications >= MAX_VISIBLE_NOTIFICATIONS do
@@ -163,13 +156,7 @@ local function acquiredItem(image: (string | number)?, title: string, subtitle: 
 
 	local imageIcon = frame:FindFirstChild("ImageIcon")
 	if imageIcon and imageIcon:IsA("ImageLabel") then
-		local resolved = resolveImage(image)
-		if resolved then
-			imageIcon.Image = resolved
-			imageIcon.Visible = true
-		else
-			imageIcon.Visible = false
-		end
+		ItemViewport.setDisplay(imageIcon, image, modelName)
 	end
 
 	table.insert(activeNotifications, 1, frame)
@@ -209,7 +196,12 @@ function ItemAcquiredGui.close(_instant: boolean?)
 end
 
 function ItemAcquiredGui.acquiredCustomItem(image: (string | number)?, title: string, subtitle: string)
-	acquiredItem(image, title, subtitle)
+	acquiredItem(image, nil, title, subtitle)
+end
+
+-- // Shows a render of a model from Shared/Assets/Tools (a skin / weapon the player acquired) instead of an image
+function ItemAcquiredGui.acquiredModelItem(modelName: string?, title: string, subtitle: string)
+	acquiredItem(nil, modelName, title, subtitle)
 end
 
 function ItemAcquiredGui.acquiredItem(acquirableItemId: string)
@@ -218,7 +210,7 @@ function ItemAcquiredGui.acquiredItem(acquirableItemId: string)
 		warn("Acquirable item not found: " .. acquirableItemId)
 		return
 	end
-	acquiredItem(itemData.Img, itemData.Title, itemData.Subtitle)
+	acquiredItem(itemData.Img, nil, itemData.Title, itemData.Subtitle)
 end
 
 -------------------------------------------------------------------------------

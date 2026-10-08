@@ -87,9 +87,9 @@ end
 local function notifyReward(claimedDay: number, convertedToCurrency: boolean)
    local reward = DailyRewards.Rewards[claimedDay]
    if reward and reward.Type == "Currency" then
-      ItemAcquiredGui.acquiredCustomItem(nil, "Daily reward claimed!", `+{reward.Value} Currency`)
+      ItemAcquiredGui.acquiredCustomItem(Icons.CurrencyIcon, "Daily reward claimed!", `+{reward.Value} Currency`)
    elseif reward and reward.Type == "Skin" and convertedToCurrency then
-      ItemAcquiredGui.acquiredCustomItem(nil, "Daily reward claimed!", `+{reward.FallbackCurrency} Currency (skin already owned)`)
+      ItemAcquiredGui.acquiredCustomItem(Icons.CurrencyIcon, "Daily reward claimed!", `+{reward.FallbackCurrency} Currency (skin already owned)`)
    end
 end
 
@@ -155,7 +155,6 @@ function DailyClaimsGui.start()
       local reward = DailyRewards.Rewards[dayNum]
       local itemLabel = dayFrame:FindFirstChild("ItemLabel")
       local itemImage = dayFrame:FindFirstChild("ItemImage")
-      local itemViewport = ItemViewport.getOrCreate(itemImage)
       local modelName: string? = nil
       if reward then
          if reward.Type == "Currency" then
@@ -176,18 +175,7 @@ function DailyClaimsGui.start()
       end
 
       -- // Currency shows the coin icon; items and skins show their render
-      if reward and reward.Type == "Currency" then
-         itemImage.Image = `rbxassetid://{Icons.CurrencyIcon}`
-         itemImage.ScaleType = Enum.ScaleType.Fit
-         itemImage.Visible = true
-         itemViewport.Visible = false
-      elseif modelName then
-         itemImage.Visible = false
-         itemViewport.Visible = true
-         ItemViewport.renderTool(itemViewport, modelName)
-      else
-         itemViewport.Visible = false
-      end
+      ItemViewport.setDisplay(itemImage, if reward and reward.Type == "Currency" then Icons.CurrencyIcon else nil, modelName)
 
       -- Get day label and update its text
       local playerData = PlayerDataController.get()

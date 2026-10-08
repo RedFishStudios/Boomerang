@@ -11,6 +11,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local ItemAcquiredGui = require(ReplicatedStorage.Client.UI.Gui.ItemAcquired)
+local Icons = require(ReplicatedStorage.Shared.Constants.Icons)
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
@@ -24,7 +25,7 @@ local claimedEvent = SimpleRemotes.getEvent("GroupRewardClaimed")
 
 function GroupRewardController.init()
 	claimedEvent.OnClientEvent:Connect(function(amount: number)
-		ItemAcquiredGui.acquiredCustomItem(nil, "Group reward claimed!", `+{amount} Currency`)
+		ItemAcquiredGui.acquiredCustomItem(Icons.CurrencyIcon, "Group reward claimed!", `+{amount} Currency`)
 	end)
 end
 

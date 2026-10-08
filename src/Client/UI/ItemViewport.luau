@@ -3,10 +3,11 @@
 
 	Description:
 	Shows a model in a ViewportFrame, posed and framed so it fits entirely inside a square render.
-	For any GUI that displays items (Inventory, and later the Shop, Daily Claims...).
+	For any GUI that displays items (Inventory, Shop, Daily Claims, Item Acquired notification).
 	- renderTool: a weapon/skin model from Shared/Assets/Tools (the same model the character holds),
 	  posed with its Viewport data in Shared/Constants/Tools.
 	- renderModel: any model, with an explicit rotation.
+	- setDisplay: fills an ImageLabel's spot with either an image id or a model render (or nothing).
 	Give the ViewportFrame a UIAspectRatioConstraint of 1 so the render stays square.
 ]]
 
@@ -138,6 +139,35 @@ function ItemViewport.getOrCreate(placeholder: GuiObject): ViewportFrame
 	end
 	viewport.Parent = placeholder.Parent
 	return viewport
+end
+
+-- // Fills the spot of `placeholder` (an ImageLabel) with a model render if `modelName` is given (a Shared/Assets/Tools model),
+-- // otherwise with the image (an asset id or a full image string), otherwise hides both.
+function ItemViewport.setDisplay(placeholder: ImageLabel, image: (string | number)?, modelName: string?)
+	if modelName then
+		placeholder.Visible = false
+		local viewport = ItemViewport.getOrCreate(placeholder)
+		viewport.Visible = true
+		ItemViewport.renderTool(viewport, modelName)
+		return
+	end
+
+	-- // Only look for an existing viewport: none is created when there is no model to show
+	local existing = placeholder.Parent and placeholder.Parent:FindFirstChild(`{placeholder.Name}Viewport`)
+	if existing and existing:IsA("ViewportFrame") then
+		existing.Visible = false
+	end
+
+	if type(image) == "number" then
+		placeholder.Image = `rbxassetid://{image}`
+	elseif type(image) == "string" and image ~= "" then
+		placeholder.Image = image
+	else
+		placeholder.Visible = false
+		return
+	end
+	placeholder.ScaleType = Enum.ScaleType.Fit
+	placeholder.Visible = true
 end
 
 function ItemViewport.clear(viewport: ViewportFrame)

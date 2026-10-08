@@ -78,7 +78,7 @@ function SkinController.init()
 		knownOwnedSkins[index] = value == true
 		if value == true and not wasOwned then
 			local skin = SkinLibrary.getSkin(index)
-			ItemAcquiredGui.acquiredCustomItem(nil, "New skin acquired!", if skin then skin.Name else index)
+			ItemAcquiredGui.acquiredModelItem(skin and skin.Model, "New skin acquired!", if skin then skin.Name else index)
 			SkinController.SkinGrantedTasks:Execute("parallel", index)
 		end
 	end)

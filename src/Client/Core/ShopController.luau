@@ -38,7 +38,7 @@ local function showItemAcquired(itemId: string)
       return
    end
    local title = acquiredTitleByType[itemData.Type] or "New item acquired!"
-   ItemAcquiredGui.acquiredCustomItem(nil, title, itemData.Name)
+   ItemAcquiredGui.acquiredModelItem(itemData.Model, title, itemData.Name)
 end
 
 -------------------------------------------------------------------------------
