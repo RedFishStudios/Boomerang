@@ -26,5 +26,13 @@ return {
    ShopBalanceFrame = 120067026989991, -- // Plank at the bottom showing the player's balance
    ShopSquareButton = 79716048358641, -- // Grayscale: tint with ImageColor3 (gift button)
    ShopWideButton = 79716048358641, -- // Grayscale: tint with ImageColor3 (price buttons). TODO: same id as ShopSquareButton as given; confirm it's the intended wide art
-   GiftIcon = 78111289121317, -- // Gift box shown on the gift button
+   GiftIcon = 78111289121317, -- // Gift box shown on the gift button,
+
+	-- Abilities
+	ElectricBoomerang = 136469809434197,
+	ExplosiveBoomerang = 98510163856303,
+	FireBoomerang = 98510163856303,
+	TeleportBoomerang = 113756730038308,
+	DisguisePickup = 110455057830397
+
 }
