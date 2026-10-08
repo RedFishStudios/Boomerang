@@ -23,6 +23,7 @@ local TweenService = game:GetService("TweenService")
 
 local UIController = require(ReplicatedStorage.Client.UI.UIController)
 local ItemViewport = require(ReplicatedStorage.Client.UI.ItemViewport)
+local GuiColors = require(ReplicatedStorage.Shared.Referential.GuiColors)
 
 -------------------------------------------------------------------------------
 -- TYPES
@@ -59,7 +60,7 @@ local DEFAULT_TAB = "Skins"
 local INACTIVE_TAB_DARKEN = 0.25 -- // How much darker the tabs that aren't open are
 
 -- // Listing colors (the listing frame art, listing.Art, is grayscale and tinted with ImageColor3)
-local COLOR_OWNED = Color3.fromRGB(225, 170, 110)
+local COLOR_OWNED = GuiColors.CommonItemFrame -- // Owned items of Common rarity (the only rarity colored so far)
 local COLOR_EQUIPPED = Color3.fromRGB(130, 215, 80)
 local COLOR_SELECTED = Color3.fromRGB(255, 225, 165) -- // Selected but not equipped
 local COLOR_LOCKED = Color3.fromRGB(140, 140, 140)
