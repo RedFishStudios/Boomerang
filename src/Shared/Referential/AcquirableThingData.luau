@@ -14,7 +14,7 @@ local AcquirableNotifData: {
       Id = "OnFire",
       Title = "On Fire",
       Subtitle = "Dash or enter water to survive",
-      Img = 1
+      Img = Icons.OnFireEffect
    },
    Zapped = {
       Id = "Zapped",
@@ -50,13 +50,13 @@ local AcquirableNotifData: {
       Id = "HotPotato",
       Title = "Hot Potato",
       Subtitle = "Pass the explosive to another player!",
-      Img = 6
+      Img = Icons.HotPotato
    },
    Shield = {
       Id = "Shield",
       Title = "Shield",
       Subtitle = "Blocks the next hit you take",
-      Img = 7
+      Img = Icons.ShieldPickup
    },
    Speedup = {
       Id = "Speedup",
@@ -104,7 +104,7 @@ local AcquirableNotifData: {
       Id = "HomingBoomerang",
       Title = "Homing",
       Subtitle = "Weapon tilts toward nearby enemies",
-      Img = 15
+      Img = Icons.HomingBoomerang
    },
    IceBoomerang = {
       Id = "IceBoomerang",

@@ -68,6 +68,8 @@ local LISTING_ICONS = {
 	FireBoomerang = Icons.FireBoomerang,
 	TeleportBoomerang = Icons.TeleportBoomerang,
 	Disguise = Icons.DisguisePickup,
+	HomingBoomerang = Icons.HomingBoomerang,
+	Shield = Icons.ShieldPickup,
 }
 
 -- // Emoji shown as the icon on each right-hand row when it has no LISTING_ICONS entry, keyed by ability / pickup id (no entry = blank icon)
@@ -80,10 +82,8 @@ local LISTING_EMOJIS = {
 	ExtraBoomerang = "➕",
 	IceBoomerang = "❄️",
 	MultiBoomerang = "🔱",
-	Shield = "🛡️",
 	Speedup = "👟",
 	TelekinesisBoomerang = "🔮",
-	HomingBoomerang = "🎯",
 }
 
 local CONTAINER_TWEEN_INFO_IN = TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out)

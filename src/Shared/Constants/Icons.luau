@@ -29,10 +29,14 @@ return {
    GiftIcon = 78111289121317, -- // Gift box shown on the gift button,
 
 	-- Abilities
-	ElectricBoomerang = 136469809434197,
+	ElectricBoomerang = 98510163856303,
 	ExplosiveBoomerang = 98510163856303,
-	FireBoomerang = 98510163856303,
+	FireBoomerang = 83181687488794,
 	TeleportBoomerang = 113756730038308,
-	DisguisePickup = 110455057830397
+	DisguisePickup = 110455057830397,
+	HomingBoomerang = 96446271835879,
+	OnFireEffect = 118956710558189,
+	HotPotato = 90914469539086,
+	ShieldPickup = 91847330548907,
 
 }
