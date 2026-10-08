@@ -6,7 +6,8 @@
 	Left: six cards with the player's main lifetime stats (time played, eliminations, defeats, games played,
 	games won, throws). Right: a scrolling list of smaller stats (times each ability was used, times each pickup was collected).
 	Built entirely in code with CreateElement (no GUI instances stored under this script); the card art and frame
-	are image assets, and every icon is an emoji TextLabel (cards: CARD_DEFS, rows: LISTING_EMOJIS).
+	are image assets. Card icons are emoji TextLabels (CARD_DEFS); row icons are image assets from Icons (LISTING_ICONS)
+	where one exists, otherwise an emoji TextLabel (LISTING_EMOJIS).
 	Reads the replicated profile (PlayerDataController); the stats are written by LifetimeStatsService on the server.
 ]]
 
@@ -26,6 +27,7 @@ local TweenService = game:GetService("TweenService")
 local UIController = require(ReplicatedStorage.Client.UI.UIController)
 local PlayerDataController = require(ReplicatedStorage.Client.Core.PlayerDataController)
 local AcquirableThingData = require(ReplicatedStorage.Shared.Referential.AcquirableThingData)
+local Icons = require(ReplicatedStorage.Shared.Constants.Icons)
 local CreateElement = require(ReplicatedStorage.Shared.Utils.CreateElement)
 
 -------------------------------------------------------------------------------
@@ -58,24 +60,29 @@ local LISTING_ASPECT_RATIO = 7 -- // Row width / height
 local ABILITY_ORDER_OFFSET = 0
 local PICKUP_ORDER_OFFSET = 1000 -- // Pickups are listed after abilities
 
--- // Emoji shown as the icon on each right-hand row, keyed by ability / pickup id (no entry = blank icon)
+-- // Image icon on each right-hand row, keyed by ability / pickup id; takes priority over LISTING_EMOJIS
+-- // (change the asset id in Icons, not here)
+local LISTING_ICONS = {
+	ElectricBoomerang = Icons.ElectricBoomerang,
+	ExplosiveBoomerang = Icons.ExplosiveBoomerang,
+	FireBoomerang = Icons.FireBoomerang,
+	TeleportBoomerang = Icons.TeleportBoomerang,
+	Disguise = Icons.DisguisePickup,
+}
+
+-- // Emoji shown as the icon on each right-hand row when it has no LISTING_ICONS entry, keyed by ability / pickup id (no entry = blank icon)
 local LISTING_EMOJIS = {
 	Stab = "🗡️",
 	Dash = "💨",
 	BattleRoyale = "👑",
 	DashNoclip = "👻",
 	Decoy = "🎭",
-	Disguise = "👤",
-	ExplosiveBoomerang = "💥",
 	ExtraBoomerang = "➕",
-	FireBoomerang = "🔥",
 	IceBoomerang = "❄️",
 	MultiBoomerang = "🔱",
 	Shield = "🛡️",
 	Speedup = "👟",
 	TelekinesisBoomerang = "🔮",
-	TeleportBoomerang = "🌀",
-	ElectricBoomerang = "⚡",
 	HomingBoomerang = "🎯",
 }
 
@@ -203,14 +210,28 @@ local function createCard(def, order: number): Instance
 end
 
 local function createListingRow(entry: { Field: string, Id: string, Offset: number })
-	local icon = createLabel({
-		Name = "Icon",
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.fromScale(0.02, 0.5),
-		Size = UDim2.fromScale(0.1, 0.8),
-		Text = LISTING_EMOJIS[entry.Id] or "",
-		TextColor3 = Color3.new(1, 1, 1),
-	}, { CreateElement("UIAspectRatioConstraint", {}) })
+	local iconId = LISTING_ICONS[entry.Id]
+	local icon
+	if iconId then
+		icon = CreateElement("ImageLabel", {
+			Name = "Icon",
+			AnchorPoint = Vector2.new(0, 0.5),
+			Position = UDim2.fromScale(0.02, 0.5),
+			Size = UDim2.fromScale(0.1, 0.8),
+			BackgroundTransparency = 1,
+			Image = `rbxassetid://{iconId}`,
+			ScaleType = Enum.ScaleType.Fit,
+		}, { CreateElement("UIAspectRatioConstraint", {}) })
+	else
+		icon = createLabel({
+			Name = "Icon",
+			AnchorPoint = Vector2.new(0, 0.5),
+			Position = UDim2.fromScale(0.02, 0.5),
+			Size = UDim2.fromScale(0.1, 0.8),
+			Text = LISTING_EMOJIS[entry.Id] or "",
+			TextColor3 = Color3.new(1, 1, 1),
+		}, { CreateElement("UIAspectRatioConstraint", {}) })
+	end
 
 	local statName = createLabel({
 		Name = "StatName",

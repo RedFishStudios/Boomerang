@@ -1,3 +1,7 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Icons = require(ReplicatedStorage.Shared.Constants.Icons)
+
 local AcquirableNotifData: {
    [string]: {
       Id: string,
@@ -22,25 +26,25 @@ local AcquirableNotifData: {
       Id = "TeleportBoomerang",
       Title = "Teleportation",
       Subtitle = "Teleport to where you throw",
-      Img = 2
+      Img = Icons.TeleportBoomerang
    },
    FireBoomerang = {
       Id = "FireBoomerang",
       Title = "Flaming",
       Subtitle = "Create a trail of fire",
-      Img = 3
+      Img = Icons.FireBoomerang
    },
    ElectricBoomerang = {
       Id = "ElectricBoomerang",
       Title = "Electric",
       Subtitle = "Electricity shocks players in range",
-      Img = 125994532756468
+      Img = Icons.ElectricBoomerang
    },
    ExplosiveBoomerang = {
       Id = "ExplosiveBoomerang",
       Title = "Explosive",
       Subtitle = "Weapon will make an explosion",
-      Img = 5
+      Img = Icons.ExplosiveBoomerang
    },
    HotPotato = {
       Id = "HotPotato",
@@ -76,7 +80,7 @@ local AcquirableNotifData: {
       Id = "Disguise",
       Title = "Disguise",
       Subtitle = "Become disguised when standing still",
-      Img = 11
+      Img = Icons.DisguisePickup
    },
    BattleRoyale = {
       Id = "BattleRoyale",
