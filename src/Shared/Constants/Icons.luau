@@ -17,4 +17,14 @@ return {
 
    -- Currency
    CurrencyIcon = 110596837298294, -- // The coin: shown for currency amounts (Shop buttons, Daily Rewards)
+   RobuxIcon = 108754684100527, -- // The Robux hexagon (Shop Robux price buttons)
+
+   -- Shop
+   ShopFrame = 108529108372056, -- // Main body frame (wooden frame, title plank, purple corner stones)
+   ShopTabButton = 138983302127969, -- // Grayscale: tint with ImageColor3 (purple selected / brown unselected)
+   ShopListingBase = 106960187088227, -- // Grayscale: tint with ImageColor3 (by rarity)
+   ShopBalanceFrame = 120067026989991, -- // Plank at the bottom showing the player's balance
+   ShopSquareButton = 79716048358641, -- // Grayscale: tint with ImageColor3 (gift button)
+   ShopWideButton = 79716048358641, -- // Grayscale: tint with ImageColor3 (price buttons). TODO: same id as ShopSquareButton as given; confirm it's the intended wide art
+   GiftIcon = 78111289121317, -- // Gift box shown on the gift button
 }

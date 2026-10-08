@@ -84,6 +84,40 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
+### T-076 · Shop GUI (new art, tabs, rarity)
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** GUI / Client
+- **Files:** `Client/UI/Gui/Shop/` (`init.luau`, `RarityStyles.luau`, `ShopListings.luau`, `Tabs/`), `Client/Core/ShopController.luau`, `Shared/Referential/ShopItems.luau`, `Shared/Constants/Icons.luau`
+
+**Problem / goal**
+Build the Shop menu from Sol's new art (frame, tab button, listing base, balance plank, square and wide buttons) following Sol's reference image. Tabs: Featured, Skins, Emotes, Arrows, Effects. Featured and Skins work; the other tabs are selectable but blank. The grid shows 3x2 listings; Featured never scrolls, Skins scrolls past 6.
+
+**Done when**
+- [ ] The Shop opens from the lobby Shop button (and B in Studio) with the new art, red X, tab row and balance plank
+- [ ] Featured shows the hand-picked skins; Skins lists every skin on sale (same system as the Inventory's Skins tab)
+- [ ] Buying a skin with Currency updates the listing to "Owned" and the balance
+
+**Test in Studio**
+- Open the Shop: purple Featured tab selected, the other tabs brown; Featured shows Shuriken and Fan (Common, gray frames) with their 3D models and coin prices; balance at the bottom matches your Currency.
+- Click Skins, Emotes, Arrows, Effects: Skins lists the skins on sale; the other three open blank.
+- To see the scroll bar: temporarily add more `Skins` entries (more than 6 on sale) and open the Skins tab; the cells should shrink slightly to make room for the bar. Resize the Studio window to check it scales.
+- Your Studio profile already owns Shuriken and Fan, so both show a gray "Owned" button. To test a purchase you need a profile that doesn't own one (remove it from `OwnedSkins`, or use a fresh Studio store key), then F2 → `givecurrency me 5000` and click the price: the button turns gray "Owned" and the balance drops.
+- Check that the whole menu covers the screen without a gap at the top (IgnoreGuiInset) and the close X works.
+- The Robux price button and the gift button aren't visible yet: no skin has a `ProductId`, and gifting is off (`GIFTING_ENABLED` in `Shop/init.luau`).
+
+**Notes**
+- Branch `agent/T-076-shop-gui`, lane `Github/Boomerang-lanes/T-076-shop-gui`.
+- Built entirely in code with `CreateElement` (like Stats); the old `Shop.rbxmx`, `ItemListingTemplate.rbxmx` and `TabButtonTemplate.rbxmx` were removed, and so was the old Topbar Shop button (MenuButtons opens the Shop). The ScreenGui has `IgnoreGuiInset = true` and `ScreenInsets = None` (no safe areas).
+- Tabs are declared in `ShopItems.Tabs` (name, order, emoji icon). A tab's content is `Shop/Tabs/<Id>.luau` (shape `ShopTab` in `Shop/init.luau`: `Scrollable`, `MaxListings?`, `getListings`, `subscribe`). Tabs without a module (Emotes, Arrows, Effects) open blank: add a module to set one up.
+- Listings come from `ShopListings.getDisplay` (skins via `SkinLibrary` / `SkinController`, items via `Items`); the model is shown with `ItemViewport`.
+- Rarity: a listing's rarity is the `Rarity` of its model's entry in `Tools.luau`; `RarityStyles.luau` maps a rarity to the frame tint and name color (insertion point). Every tool is still the `Common` placeholder, so every listing is gray for now.
+- Layout is all scale, except the grid's cell size and scroll bar width, which are measured from the grid and recomputed when it resizes (a ScrollingFrame's children can't use scale for this). 
+- Placeholders: tab emoji (`ICON_EmojiPlaceholder` labels, in their own label so they can become images later). The Skins tab uses 🎨 because the boomerang emoji doesn't draw in Roblox's font.
+- `Icons.luau`: added `ShopFrame`, `ShopTabButton`, `ShopListingBase`, `ShopBalanceFrame`, `ShopSquareButton`, `ShopWideButton`, `GiftIcon`, `RobuxIcon`. `TODO:` Sol gave the same asset id for the square and wide buttons; check it's the wide art.
+- `ShopController.requestRobuxPurchaseItem` now takes the listing type, so skins with a `ProductId` can be bought with Robux (the server-side grant for a skin product isn't set up: no skin has a product yet).
+- Not tested in Studio: the lane couldn't be served through Rojo from here. Everything in this task needs a Studio check.
+
 ### T-075 · Inventory GUI (new art, tabs)
 - **Priority:** P1
 - **Owner:** Agent
@@ -466,6 +500,7 @@ The Daily Claims GUI uses placeholder visuals. Sol creates the final assets.
 The shop GUI still has placeholder/progress visuals. Sol finishes the assets.
 
 **Notes**
+- T-076 rebuilt the Shop GUI in code with Sol's new art; the three `.rbxmx` files listed above were removed.
 
 ---
 

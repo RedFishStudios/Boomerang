@@ -8,6 +8,7 @@ local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local ItemAcquiredGui = require(ReplicatedStorage.Client.UI.Gui.ItemAcquired)
 local PlayerDataController = require(ReplicatedStorage.Client.Core.PlayerDataController)
 local MarketplaceLibrary = require(ReplicatedStorage.Shared.Library.MarketplaceLibrary)
+local SkinLibrary = require(ReplicatedStorage.Shared.Library.SkinLibrary)
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
@@ -50,12 +51,20 @@ function ShopController.requestPurchaseItem(itemId: string, listingType: string?
    return requestPurchaseRemoteFunction:InvokeServer(itemId, listingType or "Item")
 end
 
-function ShopController.requestRobuxPurchaseItem(itemId: string)
-   local itemData = Items[itemId]
-   if not itemData or not itemData.ProductId then
+-- // listingType is the ShopItems listing Type ("Item" by default, or "Skin")
+function ShopController.requestRobuxPurchaseItem(itemId: string, listingType: string?)
+   local productId: number?
+   if listingType == "Skin" then
+      local skin = SkinLibrary.getSkin(itemId)
+      productId = skin and skin.ProductId
+   else
+      local itemData = Items[itemId]
+      productId = itemData and itemData.ProductId
+   end
+   if not productId then
       return
    end
-   MarketplaceLibrary.promptDeveloperProduct(itemData.ProductId)
+   MarketplaceLibrary.promptDeveloperProduct(productId)
 end
 
 -------------------------------------------------------------------------------
