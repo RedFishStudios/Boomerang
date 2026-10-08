@@ -21,7 +21,7 @@ export type RarityStyle = {
 RarityStyles.DEFAULT_RARITY = "Common"
 
 local STYLES: { [string]: RarityStyle } = {
-	Common = { Color = Color3.fromRGB(255, 255, 255), TextColor = Color3.fromRGB(215, 215, 215) },
+	Common = { Color = Color3.fromRGB(225, 170, 110), TextColor = Color3.fromRGB(215, 215, 215) },
 	Rare = { Color = Color3.fromRGB(95, 160, 255), TextColor = Color3.fromRGB(95, 185, 255) },
 	["Super Rare"] = { Color = Color3.fromRGB(60, 215, 255), TextColor = Color3.fromRGB(70, 225, 255) },
 	Epic = { Color = Color3.fromRGB(190, 110, 255), TextColor = Color3.fromRGB(215, 120, 255) },
