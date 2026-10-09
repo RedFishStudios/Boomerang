@@ -28,7 +28,7 @@ local Gamemodes: {
       CanRespawn = true,
       LateJoinEnabled = true,
       StormClose = false,
-      TimeLasts = FIVE_MINUTES
+      TimeLasts = 100000000
    },
    TeamClassic = {
       Id = "TeamClassic",
