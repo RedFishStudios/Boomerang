@@ -29,9 +29,9 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
       Boomerang = {
          Bounces = 2,
          HitboxRadius = 2,
-         Speed = 80,
+         Speed = 0,
          ThrowDistance = 70,
-         ManualRecallSpeed = 80
+         ManualRecallSpeed = 50
       }
    },
    Shuriken = {
@@ -42,9 +42,9 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
       Boomerang = {
          Bounces = 3,
          HitboxRadius = 1,
-         Speed = 80,
+         Speed = 50,
          ThrowDistance = 70,
-         ManualRecallSpeed = 80
+         ManualRecallSpeed = 50
       }
    },
    Fan = {
