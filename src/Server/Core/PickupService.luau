@@ -67,6 +67,10 @@ local NotCompatible: {
 } = {
    TeleportBoomerang = {
       "FireBoomerang", "ElectricBoomerang"
+   },
+   -- // T-077: Homing and Telekinesis both steer the thrown boomerang, so they can't stack (reverse auto-filled below)
+   HomingBoomerang = {
+      "TelekinesisBoomerang"
    }
 }
 

@@ -107,7 +107,6 @@ Implement the TelekinesisBoomerang stub. While the effect is active, the owner c
 - Confirm it only steers your own boomerang, not other players'.
 
 **Open questions (for Sol)**
-- Make Telekinesis incompatible with Homing (both steer the boomerang)? Left compatible for now; add to PickupService `NotCompatible` if you want them mutually exclusive.
 - Steering applies while the boomerang is flying out (Outgoing/Exhausted), not during its automatic return — confirm that feels right.
 - Default influence is 2 (Homing is 3). Tune to taste.
 
@@ -117,6 +116,7 @@ Implement the TelekinesisBoomerang stub. While the effect is active, the owner c
 - Client (`WeaponController`) streams the aim direction over a new unreliable remote `TelekinesisSteer` (throttled ~20 Hz) and predicts locally; server (`WeaponService`) validates (effect active + thrown weapon) and sets the bias. Added `PickupLibrary.isEffectActive`.
 - New tuning setting `TelekinesisInfluence` in `BoomerangTuningLibrary`; default from `GlobalConfig.TelekinesisSteerInfluence = 2`. The existing `tune` / `reset` Cmdr commands pick it up automatically.
 - No new placeholders added. `AcquirableThingData.TelekinesisBoomerang` already existed with a placeholder `Img = 17` (pre-existing; its real icon is part of T-018).
+- Telekinesis and Homing are mutually exclusive (Sol, 2026-10-09): PickupService `NotCompatible` keeps the other out of the pickup pool while you have one.
 - Couldn't syntax-check here (no Luau/selene/rojo on the device); needs a Studio load to confirm it compiles.
 
 ---
