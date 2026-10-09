@@ -13,7 +13,7 @@ How to use this file: Sol and the agent fill in each section during Discovery. `
 
 ## 1. Player experience
 
-The Decoy pickup spawns a convincing copy of the player that wanders off, baiting enemies into attacking it. First pass: the decoy spawns on the player's **first throw after pickup** — the pickup effect is **consumed at spawn**, so one pickup yields exactly **one** decoy. It wanders in the **direction the player was facing at spawn**, **strafing** (it faces one way and moves another), collides with the environment like a player, and despawns after a few seconds. An enemy can **hit/eliminate it**; when hit it **poofs into a smoke particle** (Sol, 2026-10-09).
+The Decoy pickup spawns a convincing copy of the player that wanders off, baiting enemies into attacking it. First pass: the decoy spawns on the player's **first throw after pickup** — the pickup effect is **consumed at spawn**, so one pickup yields exactly **one** decoy. It **faces the direction the player was facing at spawn** but **moves opposite the player's movement at spawn**, so it strafes (facing and movement differ), collides with the environment like a player, and despawns after a few seconds. An enemy can **hit/eliminate it**; when hit it **poofs into a smoke particle** (Sol, 2026-10-09).
 
 ## 2. Scope
 
@@ -44,7 +44,7 @@ None.
 - **Appearance:** matches the owning player; **built client-side** (Sol, 2026-10-09). `OPEN:` how a client obtains the owner's exact appearance (equipped skin / avatar) for a non-player id.
 - **Trigger (flexible):** first pass spawns on the player's boomerang throw via `SharedTasks.WeaponThrownTasks`, and the **pickup effect is removed at spawn** (one pickup = one decoy). Later triggers: on-pickup, or a dedicated activation button (reusing the Abilities input pattern). The spawn cause is one swappable hook so the decoy/bot logic doesn't change.
 - **Hit -> poof:** a server-side hitbox lets a boomerang eliminate the decoy; on elimination it despawns with a client-side smoke particle (T-078). `OPEN:` reuse `CombatService`/`HitboxService` vs a dedicated bot hitbox; whether a hit counts toward stats (likely no).
-- **Movement / collision:** players collide via a single **collision part at the body's centre**, assigned to the player-characters **collision group**; Roblox **physics** on that part resolves environment collisions (Sol, 2026-10-09). The bot reuses this: a **server-owned collision part in the same collision group**, moved by the server; Roblox replicates that part's position to all clients, and each client renders the avatar following it. The decoy's move direction is the player's spawn facing; it strafes (facing decoupled from movement). Sitting in the player collision group gives it the same environment collision as players (and the same player-vs-player behaviour that group already has). `OPEN:` what it faces while strafing.
+- **Movement / collision:** players collide via a single **collision part at the body's centre**, assigned to the player-characters **collision group**; Roblox **physics** on that part resolves environment collisions (Sol, 2026-10-09). The bot reuses this: a **server-owned collision part in the same collision group**, moved by the server; Roblox replicates that part's position to all clients, and each client renders the avatar following it. The decoy **faces the player's facing at spawn** and **moves opposite the player's movement direction at spawn** (facing decoupled from movement — it strafes). Sitting in the player collision group gives it the same environment collision as players (and the same player-vs-player behaviour that group already has).
 - **Cleanup:** despawn after N seconds; also on round end, owner death, owner leaving.
 - **Switch-off while in progress:** the Decoy pickup stays `Disabled = true` until ready.
 
@@ -62,7 +62,7 @@ Other triggers (on-pickup, activation button), pathfinding / rich AI, a general 
 
 ## 11. Open questions
 
-- `OPEN:` what the decoy **faces** while strafing — it must differ from its move direction (the player's spawn facing). Candidates: a frozen snapshot of the player's model facing at spawn, toward the player's aim at spawn, or toward the owner.
+- `OPEN:` fallback move direction when the player **isn't moving** at spawn (opposite-of-movement is undefined then) — e.g. move opposite the facing, or a default heading.
 - `OPEN:` exact **lifetime** (how many seconds the decoy survives before despawning).
 - `OPEN:` hit-detection reuse (`CombatService`/`HitboxService` vs a dedicated bot hitbox) and whether a hit affects stats (likely no).
 - `OPEN:` how a client reconstructs the owner's **exact appearance** (equipped skin / avatar) for the bot.
