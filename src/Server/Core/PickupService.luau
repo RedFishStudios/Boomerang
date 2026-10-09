@@ -279,28 +279,6 @@ function PickupService.grantPickupClassId(player: Player, insensitivePickupClass
    return true, pickupClassId
 end
 
--- // Dev/testing: grant a pickup's effect by exact class id, even if the pickup is Disabled (not in the spawn
--- // pool). Used by the spawndecoy command (T-082). Mirrors grantPickupClassId without the pool filter.
-function PickupService.forceGrantPickup(player: Player, pickupClassId: string): (boolean, string?)
-   local logic = getLogic(pickupClassId)
-   if not logic then
-      return false, `{pickupClassId} is not a recognized pickup class.`
-   end
-   if logic.canActivate and not logic.canActivate(player) then
-      return false, `{player.Name} cannot activate pickup {pickupClassId}`
-   end
-
-   local fakeLivePickupId = HttpService:GenerateGUID(false)
-   local endsAt = nil
-   if logic.onPickup then
-      endsAt = logic.onPickup(player)
-      PickupLibrary.setPickupEffectActive(player.UserId, fakeLivePickupId, pickupClassId, endsAt)
-   end
-
-   pickupReplication:FireAllClients(fakeLivePickupId, pickupClassId, player.UserId, workspace:GetServerTimeNow())
-   return true, pickupClassId
-end
-
 function PickupService.hasPickupEffectActive(player: Player, pickupClassId: string)
    return PickupLibrary.hasPickupEffectActive(player.UserId, pickupClassId)
 end

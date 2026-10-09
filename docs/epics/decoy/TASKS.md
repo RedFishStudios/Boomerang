@@ -9,10 +9,6 @@ Implementation tasks are written after Sol approves [DESIGN.md](DESIGN.md). Only
 
 ## Ready
 
-## In Progress
-
-## Review
-
 ### T-079 · Bot layer foundation (server entity + client-rendered avatar)
 - **Priority:** P0
 - **Owner:** Agent
@@ -32,48 +28,10 @@ A thin server-authoritative bot. The server spawns a single **collision part in 
 - Spawn one via the T-082 command; check another client sees it; walk it into a wall; end the round and confirm it's gone.
 
 **Notes**
-- Implemented first pass on branch `agent/T-079-decoy-bot` (shared with T-080/T-082). New `Server/Core/BotService.luau` (minimal Humanoid rig: HumanoidRootPart in the Players group, Humanoid moved with `:Move`, welded Hitbox kept non-queryable until T-081) and `Client/Core/BotController.luau` (clones the owner's rendered model and follows the bot every frame). Cleanup on round end / owner leaving.
-- Studio checks: HIP_HEIGHT grounding of a limbless Humanoid, and whether the fixed facing drifts (AutoRotate off). No walk animation yet (the clone slides in its spawn pose) — flagged for polish.
-- Test with `spawndecoy` (see T-082).
 
+## In Progress
 
-### T-080 · Decoy behavior
-- **Priority:** P0
-- **Owner:** Agent
-- **Epic:** Decoy
-- **Area:** Shared / Server / Client
-- **Files:** `Shared/Logics/PickupLogics/Decoy.luau`, a Decoy `BotBehavior` module
-- **Blocked by:** T-079
-
-**Problem / goal**
-The first `BotBehavior`. Spawns on the player's boomerang throw (`SharedTasks.WeaponThrownTasks`), **consuming the pickup effect at spawn** (one decoy per pickup). Appearance matches the player. It **faces the player's facing at spawn** and **moves opposite the player's movement at spawn** (a **random** direction if the player is standing still); it strafes; it lives **4 seconds** (a tunable constant). Keep the pickup `Disabled = true` until T-083.
-
-**Done when**
-- [ ] Picking up Decoy then throwing spawns exactly one player-looking decoy that strafes away as specified and vanishes after 4 s.
-
-**Notes**
-- Implemented first pass (same branch). `Server/Logics/BotBehaviors/Decoy.luau` + rewired `Shared/Logics/PickupLogics/Decoy.luau`: spawns on the owner's throw (`WeaponThrownTasks`) and consumes the effect (one decoy per pickup). Faces the owner's spawn facing, moves opposite the owner's movement at spawn (random if standing still), lives 4 s. Pickup stays `Disabled` (T-083 enables).
-- Test: `spawndecoy`, then throw.
-
-
-### T-082 · Cmdr command to spawn a decoy (testing)
-- **Priority:** P1
-- **Owner:** Agent
-- **Epic:** Decoy
-- **Area:** Server / Tooling
-- **Files:** `Server/Cmdr/Commands/SpawnDecoy.luau` + `SpawnDecoyServer.luau`
-- **Blocked by:** T-079
-
-**Problem / goal**
-A `DevTesting` Cmdr command to spawn a decoy for a player on demand (it's hard to reach by playing — needs the pickup and a throw).
-
-**Done when**
-- [ ] `spawndecoy [player]` spawns a decoy for testing.
-
-**Notes**
-- Implemented (same branch). `spawndecoy` Cmdr command (`DevTesting`) + `PickupService.forceGrantPickup`, which grants a disabled pickup's effect for testing (plain `getpickup` won't, since Decoy isn't in the pool).
-
-
+## Review
 
 ## Backlog
 
@@ -90,6 +48,22 @@ When a decoy is hit/eliminated it poofs into a smoke particle. Sol provides the 
 **Notes**
 - Parked during Discovery (Sol, 2026-10-09). Blocked on the asset from Sol and on the bot layer existing.
 
+### T-080 · Decoy behavior
+- **Priority:** P0
+- **Owner:** Agent
+- **Epic:** Decoy
+- **Area:** Shared / Server / Client
+- **Files:** `Shared/Logics/PickupLogics/Decoy.luau`, a Decoy `BotBehavior` module
+- **Blocked by:** T-079
+
+**Problem / goal**
+The first `BotBehavior`. Spawns on the player's boomerang throw (`SharedTasks.WeaponThrownTasks`), **consuming the pickup effect at spawn** (one decoy per pickup). Appearance matches the player. It **faces the player's facing at spawn** and **moves opposite the player's movement at spawn** (a **random** direction if the player is standing still); it strafes; it lives **4 seconds** (a tunable constant). Keep the pickup `Disabled = true` until T-083.
+
+**Done when**
+- [ ] Picking up Decoy then throwing spawns exactly one player-looking decoy that strafes away as specified and vanishes after 4 s.
+
+**Notes**
+
 ### T-081 · Decoy can be hit → eliminate + smoke poof
 - **Priority:** P0
 - **Owner:** Agent
@@ -103,6 +77,22 @@ The decoy uses the **same hitbox as player characters via `HitboxService`**. Onl
 
 **Done when**
 - [ ] An enemy boomerang pops the decoy into smoke; the owner and teammates can't hurt it; no stat changes.
+
+**Notes**
+
+### T-082 · Cmdr command to spawn a decoy (testing)
+- **Priority:** P1
+- **Owner:** Agent
+- **Epic:** Decoy
+- **Area:** Server / Tooling
+- **Files:** `Server/Cmdr/Commands/SpawnDecoy.luau` + `SpawnDecoyServer.luau`
+- **Blocked by:** T-079
+
+**Problem / goal**
+A `DevTesting` Cmdr command to spawn a decoy for a player on demand (it's hard to reach by playing — needs the pickup and a throw).
+
+**Done when**
+- [ ] `spawndecoy [player]` spawns a decoy for testing.
 
 **Notes**
 
