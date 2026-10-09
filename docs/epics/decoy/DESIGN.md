@@ -13,12 +13,12 @@ How to use this file: Sol and the agent fill in each section during Discovery. `
 
 ## 1. Player experience
 
-The Decoy pickup spawns a convincing copy of the player that wanders off, baiting enemies into attacking it. First pass: the decoy spawns **when the player throws their boomerang**. It wanders in a set direction, **strafing** (faces one way, moves another), collides with the environment like a player, and despawns after a few seconds. An enemy can **hit/eliminate it**; when hit it **poofs into a smoke particle** (Sol, 2026-10-09).
+The Decoy pickup spawns a convincing copy of the player that wanders off, baiting enemies into attacking it. First pass: the decoy spawns on the player's **first throw after pickup** — the pickup effect is **consumed at spawn**, so one pickup yields exactly **one** decoy. It wanders in the **direction the player was facing at spawn**, **strafing** (it faces one way and moves another), collides with the environment like a player, and despawns after a few seconds. An enemy can **hit/eliminate it**; when hit it **poofs into a smoke particle** (Sol, 2026-10-09).
 
 ## 2. Scope
 
 - **What it affects:** a new bot entity + `BotService`/`BotController`; the Decoy pickup (`PickupLogics/Decoy`); server-side hit detection; client->client replication.
-- **Integration points:** `PickupLogics/Decoy`, `SharedTasks.WeaponThrownTasks` (first-pass trigger), the character render pipeline (`CharacterRenderController` + the Animate pose system) reused for bot visuals, collision (`CollisionService` / `DynamicCollisionLibrary` / `EnvironmentService`), the server hitbox/combat path, and round/owner cleanup (`RoundCyclingService` / `RoundFinishedTasks` / `PlayerRemoving`). Keep changes small. `OPEN:` exact movement/collision reuse (see §7 — needs recon).
+- **Integration points:** `PickupLogics/Decoy`, `SharedTasks.WeaponThrownTasks` (first-pass trigger), the character render pipeline (`CharacterRenderController` + the Animate pose system) reused for bot visuals, collision (`CollisionService` / `DynamicCollisionLibrary` / `EnvironmentService`), the server hitbox/combat path, and round/owner cleanup (`RoundCyclingService` / `RoundFinishedTasks` / `PlayerRemoving`). Keep changes small.
 - **Assets needed:** a smoke particle for the poof on hit — Sol provides (Backlog **T-078**).
 - **Size:** `TODO (human review)` — rough task count after DESIGN approval.
 
@@ -42,9 +42,9 @@ None.
 
 - **Bot layer:** `BotService` (server) owns live bots (id, owner, authoritative CFrame, move direction, facing, lifetime, hitbox) and steps them; `BotController` (client) builds, renders and animates bot models, reusing the player render pipeline and the Animate pose system. A `BotBehavior` interface (`start` / `update` / `shouldDespawn`); **Decoy is the first behavior**.
 - **Appearance:** matches the owning player; **built client-side** (Sol, 2026-10-09). `OPEN:` how a client obtains the owner's exact appearance (equipped skin / avatar) for a non-player id.
-- **Trigger (flexible):** first pass spawns on boomerang throw via `SharedTasks.WeaponThrownTasks`. Later: on-pickup, or a dedicated activation button (reusing the Abilities input pattern). The spawn cause is one swappable hook so the decoy/bot logic doesn't change.
+- **Trigger (flexible):** first pass spawns on the player's boomerang throw via `SharedTasks.WeaponThrownTasks`, and the **pickup effect is removed at spawn** (one pickup = one decoy). Later triggers: on-pickup, or a dedicated activation button (reusing the Abilities input pattern). The spawn cause is one swappable hook so the decoy/bot logic doesn't change.
 - **Hit -> poof:** a server-side hitbox lets a boomerang eliminate the decoy; on elimination it despawns with a client-side smoke particle (T-078). `OPEN:` reuse `CombatService`/`HitboxService` vs a dedicated bot hitbox; whether a hit counts toward stats (likely no).
-- **Movement / collision:** wander in a set direction, strafe; collide with the environment like a player. `OPEN (needs recon):` how player movement + environment collision work today and how much the bot reuses (custom server movement vs Humanoid physics).
+- **Movement / collision:** players collide via a single **collision part at the body's centre**, assigned to the player-characters **collision group**; Roblox **physics** on that part resolves environment collisions (Sol, 2026-10-09). The bot reuses this: a **server-owned collision part in the same collision group**, moved by the server; Roblox replicates that part's position to all clients, and each client renders the avatar following it. The decoy's move direction is the player's spawn facing; it strafes (facing decoupled from movement). Sitting in the player collision group gives it the same environment collision as players (and the same player-vs-player behaviour that group already has). `OPEN:` what it faces while strafing.
 - **Cleanup:** despawn after N seconds; also on round end, owner death, owner leaving.
 - **Switch-off while in progress:** the Decoy pickup stays `Disabled = true` until ready.
 
@@ -62,12 +62,11 @@ Other triggers (on-pickup, activation button), pathfinding / rich AI, a general 
 
 ## 11. Open questions
 
-- `OPEN:` the "set direction" the decoy wanders (player facing at spawn / opposite the throw / away from nearest enemy / random?).
-- `OPEN:` facing while strafing (fixed to the player's spawn facing? toward a point?).
-- `OPEN:` lifetime length; one decoy per throw, or an effect window that spawns one on each throw for a duration?
-- `OPEN:` does the decoy collide with players / other decoys, or only the environment?
-- `OPEN:` hit-detection reuse (`CombatService`/`HitboxService`) and whether a hit affects stats.
-- `OPEN:` how a client reconstructs the owner's exact appearance for the bot.
-- `OPEN:` team modes (team color?) and Assassin interaction.
-- `OPEN:` confirm the epic's priority (defaulted to P2 from the T-010 pickup).
-- `OPEN:` concurrent-decoy cap and replication rate (performance).
+- `OPEN:` what the decoy **faces** while strafing — it must differ from its move direction (the player's spawn facing). Candidates: a frozen snapshot of the player's model facing at spawn, toward the player's aim at spawn, or toward the owner.
+- `OPEN:` exact **lifetime** (how many seconds the decoy survives before despawning).
+- `OPEN:` hit-detection reuse (`CombatService`/`HitboxService` vs a dedicated bot hitbox) and whether a hit affects stats (likely no).
+- `OPEN:` how a client reconstructs the owner's **exact appearance** (equipped skin / avatar) for the bot.
+- `OPEN:` **team modes** (team colour?) and Assassin interaction.
+- `OPEN:` should it collide with **players / other decoys**, or only the environment? (Default from the player collision group: whatever players already do to each other. Only one decoy exists per player at a time.)
+- `OPEN:` confirm the epic's **priority** (defaulted to P2 from the T-010 pickup).
+- `OPEN:` performance: many players each spawning a decoy at once — any cap or spacing needed?
