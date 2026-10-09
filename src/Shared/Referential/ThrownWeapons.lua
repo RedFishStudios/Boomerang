@@ -27,6 +27,7 @@ export type Data = {
    ServerDirection: Vector3?,
    ServerSpeed: number?,
    Homing: boolean?,
+   TelekinesisBias: Vector3?, -- // T-077: owner's desired steer direction (horizontal unit) while a Telekinesis effect is active; nil = no steering
    ReuseEquippedHost: boolean?,
    ExistingHost: Model?,
    LastMovementPositions: {Vector3}?,

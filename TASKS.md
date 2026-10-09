@@ -84,6 +84,43 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
+### T-077 · Telekinesis pickup: steer your thrown boomerang
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared / Client / Server
+- **Files:** `Shared/Logics/PickupLogics/TelekinesisBoomerang.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`, `Shared/Referential/ThrownWeapons.lua`, `Shared/Library/BoomerangTuningLibrary.luau`, `Shared/Library/PickupLibrary.luau`, `Shared/Constants/GlobalConfig.luau`, `Client/Core/WeaponController.luau`, `Server/Core/WeaponService.luau`
+
+**Problem / goal** (split from T-010)
+Implement the TelekinesisBoomerang stub. While the effect is active, the owner can nudge their thrown boomerang toward their aim — a gentle bias, not full control, so it slowly turns toward the cursor (PC) or the direction the aim thumbstick is dragged (touch).
+
+**Done when**
+- [ ] Pickup enabled and spawnable; effect lasts `GenericEffectTimeout`.
+- [ ] The owner's aim bends the thrown boomerang (server-authoritative, client-predicted, reconciled by the usual snapshots).
+- [ ] Input sits behind one provider function per control scheme (PC mouse, touch thumbstick, console stubbed) so it's easy to change later.
+- [ ] Steering strength tunable live via Cmdr `tune TelekinesisInfluence <n>`.
+
+**Test in Studio**
+- Get the pickup (spawn one / force it), throw, then:
+  - PC: move the mouse while it flies — it should slowly curve toward the cursor, not snap.
+  - Touch: after throwing, drag the aim thumbstick — the boomerang should bias that way; releasing stops steering and must NOT throw again.
+- `tune TelekinesisInfluence 5`, throw: it should turn faster. `reset TelekinesisInfluence` restores the default (2).
+- Confirm it only steers your own boomerang, not other players'.
+
+**Open questions (for Sol)**
+- Make Telekinesis incompatible with Homing (both steer the boomerang)? Left compatible for now; add to PickupService `NotCompatible` if you want them mutually exclusive.
+- Steering applies while the boomerang is flying out (Outgoing/Exhausted), not during its automatic return — confirm that feels right.
+- Default influence is 2 (Homing is 3). Tune to taste.
+
+**Notes**
+- Branch `agent/T-077-telekinesis`, lane `Boomerang-lanes/T-077-telekinesis`.
+- Added `TelekinesisBias` to `ThrownWeapons.Data`; the flight loop lerps `direction` toward it (`Boomerang.luau`, next to Homing), on server and the owner's client.
+- Client (`WeaponController`) streams the aim direction over a new unreliable remote `TelekinesisSteer` (throttled ~20 Hz) and predicts locally; server (`WeaponService`) validates (effect active + thrown weapon) and sets the bias. Added `PickupLibrary.isEffectActive`.
+- New tuning setting `TelekinesisInfluence` in `BoomerangTuningLibrary`; default from `GlobalConfig.TelekinesisSteerInfluence = 2`. The existing `tune` / `reset` Cmdr commands pick it up automatically.
+- No new placeholders added. `AcquirableThingData.TelekinesisBoomerang` already existed with a placeholder `Img = 17` (pre-existing; its real icon is part of T-018).
+- Couldn't syntax-check here (no Luau/selene/rojo on the device); needs a Studio load to confirm it compiles.
+
+---
+
 ### T-076 · Shop GUI (new art, tabs, rarity)
 - **Priority:** P1
 - **Owner:** Agent
@@ -411,12 +448,14 @@ The client's MVP spec and the code differ in a few places (minimum players, resp
 - **Priority:** P2
 - **Owner:** Sol
 - **Area:** Shared
-- **Files:** `src/Shared/Logics/PickupLogics/` (`BattleRoyale`, `DashNoclip`, `Decoy`, `ExplosiveBoomerang`, `ExtraBoomerang`, `IceBoomerang`, `MultiBoomerang`, `TelekinesisBoomerang`)
+- **Files:** `src/Shared/Logics/PickupLogics/` (`BattleRoyale`, `DashNoclip`, `Decoy`, `ExtraBoomerang`, `IceBoomerang`, `MultiBoomerang`)
 
 **Problem / goal**
 These pickups are stubs (`Disabled = true`, marked `-- STUD` / `-- TODO`) with only a one-line description. Each needs its design written before an agent can implement it. Split into one task per pickup when a design is ready.
 
 **Notes**
+- TelekinesisBoomerang split out to T-077 (implemented, in Review).
+- ExplosiveBoomerang and Disguise are already implemented (not stubs); removed from the list. The `-- STUD` / `-- TODO` header lines left in Disguise.luau are just stale comments.
 
 ---
 

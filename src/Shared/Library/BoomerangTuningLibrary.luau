@@ -28,7 +28,7 @@ local ATTRIBUTE_PREFIX = "BT"
 -- TYPES
 -------------------------------------------------------------------------------
 
-export type Setting = "ThrowSpeed" | "ThrowDistance" | "RecallSpeed" | "RecallAcceleration" | "ChargeTime" | "AimWalkSpeed"
+export type Setting = "ThrowSpeed" | "ThrowDistance" | "RecallSpeed" | "RecallAcceleration" | "ChargeTime" | "AimWalkSpeed" | "TelekinesisInfluence"
 
 type SettingInfo = {
 	Description: string,
@@ -40,7 +40,7 @@ type SettingInfo = {
 -------------------------------------------------------------------------------
 
 -- // Every tunable value, in display order. The names are what Cmdr shows (and autocompletes).
-BoomerangTuningLibrary.SETTING_ORDER = { "ThrowSpeed", "ThrowDistance", "RecallSpeed", "RecallAcceleration", "ChargeTime", "AimWalkSpeed" } :: { Setting }
+BoomerangTuningLibrary.SETTING_ORDER = { "ThrowSpeed", "ThrowDistance", "RecallSpeed", "RecallAcceleration", "ChargeTime", "AimWalkSpeed", "TelekinesisInfluence" } :: { Setting }
 
 BoomerangTuningLibrary.SETTINGS = {
 	ThrowSpeed = {
@@ -79,6 +79,13 @@ BoomerangTuningLibrary.SETTINGS = {
 		Description = "player walk speed while aiming/charging (studs/s)",
 		getDefault = function(_toolData)
 			return GlobalConfig.AimingWalkSpeed
+		end,
+	},
+	-- // T-077: how strongly a Telekinesis boomerang turns toward the owner's aim each second (bias, not full control)
+	TelekinesisInfluence = {
+		Description = "how strongly a Telekinesis boomerang turns toward the owner's aim (per second; a bias, not full control)",
+		getDefault = function(_toolData)
+			return GlobalConfig.TelekinesisSteerInfluence
 		end,
 	},
 } :: { [Setting]: SettingInfo }

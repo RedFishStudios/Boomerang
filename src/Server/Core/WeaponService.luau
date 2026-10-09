@@ -34,6 +34,7 @@ local _HitboxService = require(ServerStorage.Server.Core.HitboxService)
 local PlayerStatsLibrary = require(ReplicatedStorage.Shared.Library.PlayerStatsLibrary)
 local SharedTasks = require(ReplicatedStorage.Shared.Constants.SharedTasks)
 local SkinLibrary = require(ReplicatedStorage.Shared.Library.SkinLibrary)
+local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
 local SkinService = require(ServerStorage.Server.Core.SkinService)
 
 local ToolLogics = ReplicatedStorage.Shared.Logics.WeaponLogics
@@ -333,6 +334,27 @@ function WeaponService.init()
    SimpleRemotes.getEvent("ThrownBoomerangDespawned")
    SimpleRemotes.getEvent("WeaponEquipState")
    SimpleRemotes.getUnreliableEvent("ThrownWeaponReplication")
+
+   -- // T-077 Telekinesis: the owning client streams its desired steer direction while the effect is active and its
+   -- // boomerang is in flight. Validate here (server is authoritative) and store it on the thrown weapon.
+   local telekinesisSteerEvent = SimpleRemotes.getUnreliableEvent("TelekinesisSteer")
+   telekinesisSteerEvent.OnServerEvent:Connect(function(player: Player, direction: unknown)
+      if typeof(direction) ~= "Vector3" then
+         return
+      end
+      local horizontal = Vector3.new(direction.X, 0, direction.Z)
+      if horizontal.Magnitude < 1e-3 then
+         return
+      end
+      local thrownWeaponData = ThrownWeapons.Data[player]
+      if not thrownWeaponData then
+         return
+      end
+      if not PickupLibrary.isEffectActive(player.UserId, "TelekinesisBoomerang") then
+         return
+      end
+      thrownWeaponData.TelekinesisBias = horizontal.Unit
+   end)
 
    -- // Create thrown weapon replication part
    local replicationPart = Instance.new("Part")

@@ -94,6 +94,20 @@ function PickupLibrary.isDataOnlyEffect(pickupClassId: PickupClassId): boolean
    return DATA_ONLY_EFFECTS[pickupClassId] == true
 end
 
+-- // T-077: true if the player currently has the given pickup effect active
+function PickupLibrary.isEffectActive(userId: number, pickupClassId: PickupClassId): boolean
+   local userEffects = PickupLibrary.UserPickupEffectsActive[userId]
+   if not userEffects then
+      return false
+   end
+   for _, activePickupData in pairs(userEffects) do
+      if activePickupData.ClassId == pickupClassId then
+         return true
+      end
+   end
+   return false
+end
+
 function PickupLibrary.setPickupEffectActive(userId: number, livePickupId: LivePickupId, pickupClassId: PickupClassId, endsAt: number?)
    local userEffects = PickupLibrary.UserPickupEffectsActive[userId]
    if not userEffects then

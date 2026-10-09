@@ -794,6 +794,15 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          end
       end
 
+      -- // T-077 Telekinesis: steer toward the owner's live aim (streamed from the owning client, or predicted
+      -- // locally on that client). A gentle bias, not full control. Runs on the server (authoritative) and the
+      -- // owner's client (prediction); remote clients never set TelekinesisBias and just follow snapshots.
+      if thrownWeaponData.TelekinesisBias then
+         local telekinesisInfluence = BoomerangTuningLibrary.getForAnyTool(tuningToolId, "TelekinesisInfluence")
+         local telekinesisAlpha = math.clamp(telekinesisInfluence * deltaTime, 0, 1)
+         direction = getHorizontalDirection(direction:Lerp(thrownWeaponData.TelekinesisBias, telekinesisAlpha))
+      end
+
       local rayDistance = speed * deltaTime
 
       -- Distance-based recall

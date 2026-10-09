@@ -20,6 +20,7 @@ local GlobalConfig = {
    BoomerangHitThrottle = .5,
    ForceOverwritePickup = nil,
    GenericEffectTimeout = 15,
+   TelekinesisSteerInfluence = 2, -- // T-077: how strongly a Telekinesis boomerang turns toward the owner's aim each second (bias, not full control). Tunable live via Cmdr `tune TelekinesisInfluence`.
    ElectricChainRadius = 15, -- // Studs: an Electric boomerang elimination chains to every enemy within this distance of the victim
    ElectricChainLinkDelay = 0.05, -- // Seconds between each link of an Electric chain
    -- // Recall range: when a thrown boomerang would start returning on its own (end of its flight, or out of bounces),
