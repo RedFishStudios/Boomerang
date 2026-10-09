@@ -29,7 +29,7 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
       Boomerang = {
          Bounces = 2,
          HitboxRadius = 2,
-         Speed = 0,
+         Speed = 40,
          ThrowDistance = 70,
          ManualRecallSpeed = 50
       }
