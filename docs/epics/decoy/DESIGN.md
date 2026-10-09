@@ -1,6 +1,6 @@
 # Decoy / NPC-Bot system: Design
 
-- **Status:** Discovery · **Priority:** P2 · **Update:** next client update
+- **Status:** Approved · **Priority:** P0 · **Update:** next client update
 - **Stages:** single pass *(revisit if a prototype -> full split helps)*
 
 How to use this file: Sol and the agent fill in each section during Discovery. `TODO (human review)` means not written yet; `OPEN:` means undecided. **Agents never decide these.** When Sol approves the design, set Status to Approved and write the tasks into [TASKS.md](TASKS.md). Decisions so far are tagged (Sol, 2026-10-09).
@@ -43,7 +43,7 @@ None.
 - **Bot layer:** `BotService` (server) owns live bots (id, owner, authoritative CFrame, move direction, facing, lifetime, hitbox) and steps them; `BotController` (client) builds, renders and animates bot models, reusing the player render pipeline and the Animate pose system. A `BotBehavior` interface (`start` / `update` / `shouldDespawn`); **Decoy is the first behavior**.
 - **Appearance:** matches the owning player; **built client-side by cloning the same character model the client already builds for players** (reuse `CharacterRenderController`'s model build) rather than re-fetching avatar info or rebuilding a humanoid (Sol, 2026-10-09).
 - **Trigger (flexible):** first pass spawns on the player's boomerang throw via `SharedTasks.WeaponThrownTasks`, and the **pickup effect is removed at spawn** (one pickup = one decoy). Later triggers: on-pickup, or a dedicated activation button (reusing the Abilities input pattern). The spawn cause is one swappable hook so the decoy/bot logic doesn't change.
-- **Hit -> poof:** the decoy uses the **same hitbox as player characters via `HitboxService`** (Sol, 2026-10-09); a boomerang hit from an **enemy** eliminates it and it despawns with a client-side smoke particle (T-078). Treated as on its owner's team, so same-team weapons/abilities can't hurt it and the owner never can (team check via `GameTeamService` / `GameTeamLibrary.areEnemies`, plus an explicit owner guard).
+- **Hit -> poof:** the decoy uses the **same hitbox as player characters via `HitboxService`** (Sol, 2026-10-09); a boomerang hit from an **enemy** eliminates it and it despawns with a client-side smoke particle (T-078). Treated as on its owner's team, so same-team weapons/abilities can't hurt it and the owner never can (team check via `GameTeamService` / `GameTeamLibrary.areEnemies`, plus an explicit owner guard). Eliminating a decoy does **not** count toward the attacker's stats (Sol, 2026-10-09).
 - **Movement / collision:** players collide via a single **collision part at the body's centre**, assigned to the player-characters **collision group**; Roblox **physics** on that part resolves environment collisions (Sol, 2026-10-09). The bot reuses this: a **server-owned collision part in the same collision group**, moved by the server; Roblox replicates that part's position to all clients, and each client renders the avatar following it. The decoy **faces the player's facing at spawn** and **moves opposite the player's movement direction at spawn** (facing decoupled from movement — it strafes). Sitting in the player collision group gives it the same environment collision as players (and the same player-vs-player behaviour that group already has). It lives **4 seconds** (a tunable constant) then despawns. If the player is **standing still** at spawn, it picks a **random** move direction (Sol, 2026-10-09).
 - **Cleanup:** despawn after 4 seconds; also on round end, owner death, owner leaving.
 - **Switch-off while in progress:** the Decoy pickup stays `Disabled = true` until ready.
@@ -62,6 +62,4 @@ Other triggers (on-pickup, activation button), pathfinding / rich AI, a general 
 
 ## 11. Open questions
 
-- `OPEN:` confirm the epic's **priority** (defaulted to P2 from the T-010 pickup).
-- `OPEN:` does eliminating a decoy count toward the attacker's **stats**? (likely no.)
-- `OPEN:` performance at scale — many players each with a decoy at once; any cap or spacing needed? (At most one decoy per player at a time.)
+- None — all design questions resolved (Sol, 2026-10-09). Priority P0; decoy kills don't count toward stats; at most one decoy per player at a time.
