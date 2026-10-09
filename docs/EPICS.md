@@ -12,6 +12,7 @@ Task format, IDs and board rules: the "How to use this board" section of [TASKS.
 |---|---|---|---|
 | Lobby | P1 | In Progress | [epics/lobby/](epics/lobby/) |
 | Finalize Conversion to Server Authority | P1 | Discovery | [epics/server-authority/](epics/server-authority/) |
+| Decoy (NPC/bot) | P2 | Discovery | [epics/decoy/](epics/decoy/) |
 
 ## Proposed
 
