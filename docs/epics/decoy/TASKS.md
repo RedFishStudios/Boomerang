@@ -9,6 +9,10 @@ Implementation tasks are written after Sol approves [DESIGN.md](DESIGN.md). Only
 
 ## Ready
 
+## In Progress
+
+## Review
+
 ### T-079 · Bot layer foundation (server entity + client-rendered avatar)
 - **Priority:** P0
 - **Owner:** Agent
@@ -28,25 +32,10 @@ A thin server-authoritative bot. The server spawns a single **collision part in 
 - Spawn one via the T-082 command; check another client sees it; walk it into a wall; end the round and confirm it's gone.
 
 **Notes**
+- Implemented first pass on branch `agent/T-079-decoy-bot` (shared with T-080/T-082). New `Server/Core/BotService.luau` (minimal Humanoid rig: HumanoidRootPart in the Players group, Humanoid moved with `:Move`, welded Hitbox kept non-queryable until T-081) and `Client/Core/BotController.luau` (clones the owner's rendered model and follows the bot every frame). Cleanup on round end / owner leaving.
+- Studio checks: HIP_HEIGHT grounding of a limbless Humanoid, and whether the fixed facing drifts (AutoRotate off). No walk animation yet (the clone slides in its spawn pose) — flagged for polish.
+- Test with `spawndecoy` (see T-082).
 
-## In Progress
-
-## Review
-
-## Backlog
-
-### T-078 · Smoke particle for the decoy poof
-- **Priority:** P2
-- **Owner:** Sol
-- **Epic:** Decoy
-- **Area:** GUI / Assets
-- **Files:** (particle asset) + wherever bot/decoy despawn VFX are registered
-
-**Problem / goal**
-When a decoy is hit/eliminated it poofs into a smoke particle. Sol provides the smoke particle asset; an agent wires it into the decoy's despawn VFX once the bot layer exists.
-
-**Notes**
-- Parked during Discovery (Sol, 2026-10-09). Blocked on the asset from Sol and on the bot layer existing.
 
 ### T-080 · Decoy behavior
 - **Priority:** P0
@@ -63,22 +52,9 @@ The first `BotBehavior`. Spawns on the player's boomerang throw (`SharedTasks.We
 - [ ] Picking up Decoy then throwing spawns exactly one player-looking decoy that strafes away as specified and vanishes after 4 s.
 
 **Notes**
+- Implemented first pass (same branch). `Server/Logics/BotBehaviors/Decoy.luau` + rewired `Shared/Logics/PickupLogics/Decoy.luau`: spawns on the owner's throw (`WeaponThrownTasks`) and consumes the effect (one decoy per pickup). Faces the owner's spawn facing, moves opposite the owner's movement at spawn (random if standing still), lives 4 s. Pickup stays `Disabled` (T-083 enables).
+- Test: `spawndecoy`, then throw.
 
-### T-081 · Decoy can be hit → eliminate + smoke poof
-- **Priority:** P0
-- **Owner:** Agent
-- **Epic:** Decoy
-- **Area:** Server / Client
-- **Files:** `BotService` hit handling, `HitboxService` integration, the Decoy behavior
-- **Blocked by:** T-079 (smoke asset: T-078)
-
-**Problem / goal**
-The decoy uses the **same hitbox as player characters via `HitboxService`**. Only **enemies** can eliminate it — it's treated as on its owner's team (team check via `GameTeamService` / `GameTeamLibrary.areEnemies`, plus an explicit owner guard; no friendly fire, owner never). On elimination it despawns with a **smoke particle** (placeholder until T-078). Eliminating a decoy does **not** count toward stats.
-
-**Done when**
-- [ ] An enemy boomerang pops the decoy into smoke; the owner and teammates can't hurt it; no stat changes.
-
-**Notes**
 
 ### T-082 · Cmdr command to spawn a decoy (testing)
 - **Priority:** P1
@@ -93,6 +69,40 @@ A `DevTesting` Cmdr command to spawn a decoy for a player on demand (it's hard t
 
 **Done when**
 - [ ] `spawndecoy [player]` spawns a decoy for testing.
+
+**Notes**
+- Implemented (same branch). `spawndecoy` Cmdr command (`DevTesting`) + `PickupService.forceGrantPickup`, which grants a disabled pickup's effect for testing (plain `getpickup` won't, since Decoy isn't in the pool).
+
+
+
+## Backlog
+
+### T-078 · Smoke particle for the decoy poof
+- **Priority:** P2
+- **Owner:** Sol
+- **Epic:** Decoy
+- **Area:** GUI / Assets
+- **Files:** (particle asset) + wherever bot/decoy despawn VFX are registered
+
+**Problem / goal**
+When a decoy is hit/eliminated it poofs into a smoke particle. Sol provides the smoke particle asset; an agent wires it into the decoy's despawn VFX once the bot layer exists.
+
+**Notes**
+- Parked during Discovery (Sol, 2026-10-09). Blocked on the asset from Sol and on the bot layer existing.
+
+### T-081 · Decoy can be hit → eliminate + smoke poof
+- **Priority:** P0
+- **Owner:** Agent
+- **Epic:** Decoy
+- **Area:** Server / Client
+- **Files:** `BotService` hit handling, `HitboxService` integration, the Decoy behavior
+- **Blocked by:** T-079 (smoke asset: T-078)
+
+**Problem / goal**
+The decoy uses the **same hitbox as player characters via `HitboxService`**. Only **enemies** can eliminate it — it's treated as on its owner's team (team check via `GameTeamService` / `GameTeamLibrary.areEnemies`, plus an explicit owner guard; no friendly fire, owner never). On elimination it despawns with a **smoke particle** (placeholder until T-078). Eliminating a decoy does **not** count toward stats.
+
+**Done when**
+- [ ] An enemy boomerang pops the decoy into smoke; the owner and teammates can't hurt it; no stat changes.
 
 **Notes**
 
