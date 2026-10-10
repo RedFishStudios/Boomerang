@@ -34,6 +34,7 @@ local PLAYERS_COLLISION_GROUP = CollisionGroupConstants.Players
 local ROOT_SIZE = Vector3.new(2, 2, 1)
 local HIP_HEIGHT = 2 -- // TODO:VITAL Studio-tune so the rootless rig stands on the floor at the right height
 local HITBOX_SIZE = Vector3.new(10, 2.2, 10) -- // matches HitboxService's player hitbox cylinder
+local MOVING_SPEED_THRESHOLD = 0.5 -- // studs/s (horizontal); below this the bot animates as "Standing"
 
 -------------------------------------------------------------------------------
 -- TYPES
@@ -48,6 +49,7 @@ export type Bot = {
 	Hitbox: BasePart,
 	Behavior: BotBehavior,
 	MoveDirection: Vector3, -- // horizontal unit; the behavior sets this, the service applies it each frame
+	Pose: string?, -- // optional animation-state override ("Standing"/"Running"/"FreeFall"); nil = derive from movement
 	SpawnedAt: number,
 	State: { [any]: any }, -- // scratch space for the behavior
 }
@@ -146,6 +148,7 @@ local function buildRig(ownerUserId: number, botId: string, spawnCFrame: CFrame,
 
 	model:SetAttribute("BotId", botId)
 	model:SetAttribute("OwnerUserId", ownerUserId)
+	root:SetAttribute("pose", "Standing") -- // animation state; the step loop updates it (BotController renders from it)
 
 	model.Parent = getBotsFolder()
 	return model, humanoid, root, hitbox
@@ -223,6 +226,33 @@ end
 -- CORE FUNCTIONS
 -------------------------------------------------------------------------------
 
+-- // Animation state published as a replicated "pose" attribute on the rig root -- the same
+--    contract players use under Server Authority (T-068). BotController renders walk / idle / fall
+--    from it, so every bot animates without per-behavior work. A behavior can force a state via
+--    bot.Pose; otherwise it is derived from the rig's Humanoid state and horizontal speed.
+local function derivePose(bot: Bot): string
+	if bot.Pose then
+		return bot.Pose
+	end
+	local state = bot.Humanoid:GetState()
+	if state == Enum.HumanoidStateType.Freefall or state == Enum.HumanoidStateType.Flying then
+		return "FreeFall"
+	end
+	local velocity = bot.Root.AssemblyLinearVelocity
+	local horizontalSpeed = Vector3.new(velocity.X, 0, velocity.Z).Magnitude
+	if horizontalSpeed > MOVING_SPEED_THRESHOLD then
+		return "Running"
+	end
+	return "Standing"
+end
+
+local function applyPose(bot: Bot)
+	local pose = derivePose(bot)
+	if bot.Root:GetAttribute("pose") ~= pose then
+		bot.Root:SetAttribute("pose", pose)
+	end
+end
+
 local function step(deltaTime: number)
 	for botId, bot in pairs(bots) do
 		if not bot.Model.Parent then
@@ -238,6 +268,7 @@ local function step(deltaTime: number)
 			behavior.update(bot, deltaTime)
 		end
 		bot.Humanoid:Move(bot.MoveDirection, false)
+		applyPose(bot)
 	end
 end
 

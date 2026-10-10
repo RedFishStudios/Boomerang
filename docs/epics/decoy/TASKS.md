@@ -33,7 +33,7 @@ A thin server-authoritative bot. The server spawns a single **collision part in 
 
 **Notes**
 - Implemented first pass on branch `agent/T-079-decoy-bot` (shared with T-080/T-082). New `Server/Core/BotService.luau` (minimal Humanoid rig: HumanoidRootPart in the Players group, Humanoid moved with `:Move`, welded Hitbox kept non-queryable until T-081) and `Client/Core/BotController.luau` (clones the owner's rendered model and follows the bot every frame). Cleanup on round end / owner leaving.
-- Studio checks: HIP_HEIGHT grounding of a limbless Humanoid, and whether the fixed facing drifts (AutoRotate off). No walk animation yet (the clone slides in its spawn pose) — flagged for polish.
+- Studio checks: HIP_HEIGHT grounding of a limbless Humanoid, and whether the fixed facing drifts (AutoRotate off). (Walk animation now handled by T-084; the earlier slide was BotController anchoring every clone part, freezing the Animator.)
 - Test with `spawndecoy` (see T-082).
 
 
@@ -73,6 +73,31 @@ A `DevTesting` Cmdr command to spawn a decoy for a player on demand (it's hard t
 **Notes**
 - Implemented (same branch). `spawndecoy` Cmdr command (`DevTesting`) + `PickupService.forceGrantPickup`, which grants a disabled pickup's effect for testing (plain `getpickup` won't, since Decoy isn't in the pool).
 
+
+
+### T-084 · Bot/NPC animation states (pose-driven: idle / walk / fall)
+- **Priority:** P0
+- **Owner:** Agent
+- **Epic:** Decoy
+- **Area:** Server / Client
+- **Files:** new `Client/Core/BotAnimator.luau`; `Server/Core/BotService.luau`, `Client/Core/BotController.luau`
+- **Blocked by:** T-079
+
+**Problem / goal**
+Bots animate like players, as a general bot-layer capability (not decoy-specific). Reuses the Server-Authority "pose" contract (T-068): the rig root carries a replicated `pose` attribute (`Standing` / `Running` / `FreeFall`), and each client renders idle / walk / fall from it with the same walk/run speed blend players use. A behavior may override the state via `bot.Pose`.
+
+**Done when**
+- [ ] A moving bot shows a speed-blended walk, idles when still, and plays the fall pose when airborne.
+- [ ] Works for the decoy with no decoy-specific animation code; future behaviors get animation for free.
+
+**Test in Studio**
+- `spawndecoy`, then throw: the decoy should walk (not slide) as it strafes away and idle if it stops; push it off a ledge for the fall pose.
+
+**Notes**
+- Implemented on branch `agent/T-084-bot-animation` (lane `Boomerang-lanes/T-077-telekinesis`).
+- Root cause of the earlier slide: `BotController` anchored EVERY clone part, freezing the Animator. Fixed to anchor only the root (mirrors `CharacterRenderController`'s player render model, T-071).
+- Server (`BotService`) derives pose from the rig Humanoid state + horizontal speed each step, set on the root (set-on-change); initial `Standing` at spawn; `bot.Pose` overrides.
+- Client (`BotAnimator`, new) loads the clone's Animate tracks and drives idle/walk/fall + the walk/run blend from the pose attribute + root velocity; disables a LocalScript `Animate` clone so it can't double-drive. `BotController` owns one per bot.
 
 
 ## Backlog
