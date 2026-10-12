@@ -183,6 +183,7 @@ local function throwForPlayer(
    end
 
    local canThrow, reason = WeaponLibrary.canThrow(player, toolId)
+   print(`[DECOYDBG server] throwForPlayer {player} canThrow={canThrow} reason={tostring(reason)}`)
    if not canThrow then
       if reason == "AlreadyThrown" then
          print(`player already has a thrown weapon`)

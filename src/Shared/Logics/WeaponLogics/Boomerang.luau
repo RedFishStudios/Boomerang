@@ -565,6 +565,7 @@ local function damagedPlayer(player: Player, boomerangId: string, thrownWeaponDa
    -- // Bots (e.g. the decoy) aren't players. Route them to the bot layer, which applies the
    --    behavior's hit rules and eliminates server-side (T-081). No stat crediting for bot kills.
    if victimModel:GetAttribute("BotId") ~= nil then
+      print(`[DECOYDBG {if isServer then "server" else "client"}] boomerang detected BOT {victimModel.Name}`)
       if isServer and BotService then
          return BotService.onWeaponHit(player, victimModel)
       end
@@ -961,6 +962,7 @@ end
 
 -- // Restore to player / remove from field
 function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapons.Data, options: RemoveFromFieldOptions?)
+   print(`[DECOYDBG {if isServer then "server" else "client"}] removeFromField {player} return={if options then tostring(options.ReturnToPlayer) else "nil"}`)
    local returnToPlayer = options == nil or options.ReturnToPlayer ~= false
    local shouldReattachLocally = returnToPlayer and (not isServer) and thrownWeaponData.ReuseEquippedHost == true
 
@@ -1104,6 +1106,7 @@ function Boomerang.stopRecallFromDead(player: Player, thrownWeaponData: ThrownWe
 end
 
 function Boomerang.clash(player: Player, thrownWeaponData: ThrownWeapons.Data, options: ClashInitOptions)
+   print(`[DECOYDBG {if isServer then "server" else "client"}] CLASH {player}`)
    if ClashedWeapons.Data[player] then
       return
    end

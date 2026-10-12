@@ -173,6 +173,7 @@ local function setLocalAimState(nextState: boolean, notifyServer: boolean?)
 end
 
 local function clearThrownWeapon(forPlayer: Player, returnToPlayer: boolean?)
+   print(`[DECOYDBG client] clearThrownWeapon {forPlayer} return={returnToPlayer} hadTW={ThrownWeapons.Data[forPlayer]~=nil} hadCW={ClashedWeapons.Data[forPlayer]~=nil}`)
    local thrownWeaponData = ThrownWeapons.Data[forPlayer]
    if not thrownWeaponData then
       clearClashedWeapon(forPlayer, returnToPlayer)
@@ -209,6 +210,7 @@ local function beginEquippedToolAim(): boolean
    end
 
    local canThrow = WeaponLibrary.canThrow(Players.LocalPlayer, equippedToolId)
+   print(`[DECOYDBG client] beginAim locked={WeaponController.playerIsWeaponLocked()} tool={equippedToolId} canThrow={canThrow} TW={ThrownWeapons.Data[Players.LocalPlayer]~=nil} CW={ClashedWeapons.Data[Players.LocalPlayer]~=nil}`)
    if not canThrow then
       return false
    end
@@ -225,6 +227,7 @@ local function beginEquippedToolAim(): boolean
 end
 
 local function throwEquippedTool(forcedDirection: Vector3?): boolean
+   print(`[DECOYDBG client] throwEquippedTool isAiming={isAiming} locked={WeaponController.playerIsWeaponLocked()}`)
    if not isAiming then
       return false
    end
@@ -281,6 +284,7 @@ local function throwEquippedTool(forcedDirection: Vector3?): boolean
 	 end
 
     
+	print(`[DECOYDBG client] InvokeServer throw tool={equippedToolId}`)
 	throwFunction:InvokeServer(equippedToolId, direction, releasePosition)
    setLocalAimState(false)
 
@@ -663,6 +667,7 @@ function WeaponController.playerIsWeaponLocked(player: Player?): boolean
 end
 
 function WeaponController.startThrownWeapon(forPlayer: Player, toolId: string, toolData: Tools.Tool, initOptions)
+   print(`[DECOYDBG client] startThrownWeapon {forPlayer} tool={toolId}`)
    clearThrownWeapon(forPlayer)
 
    ThrownWeapons.Data[forPlayer] = {
@@ -910,6 +915,7 @@ function WeaponController.init()
       if not forPlayer then
          return
       end
+      print(`[DECOYDBG client] DESPAWN event received for {forPlayer} return={returnToPlayer}`)
       clearThrownWeapon(forPlayer, returnToPlayer)
    end)
 
