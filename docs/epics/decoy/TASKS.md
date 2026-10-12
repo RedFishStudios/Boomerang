@@ -54,6 +54,8 @@ When a decoy is hit/eliminated it poofs into a smoke particle. Sol provides the 
 **Notes**
 - Parked during Discovery (Sol, 2026-10-09). Blocked on the asset from Sol and on the bot layer existing.
 
+## Done
+
 ### T-083 · Enable the Decoy pickup
 - **Priority:** P0
 - **Owner:** Agent
@@ -66,11 +68,11 @@ When a decoy is hit/eliminated it poofs into a smoke particle. Sol provides the 
 Once T-079–T-081 pass Sol's Studio testing, remove `Disabled` from the Decoy pickup so it enters the spawn pool. Final review pass.
 
 **Done when**
-- [ ] Decoy spawns from the normal pickup pool and the whole flow works end to end.
+- [x] Decoy spawns from the normal pickup pool and the whole flow works end to end.
 
 **Notes**
+- Enabled 2026-10-12 (directly on main): removed `Decoy.Disabled` so it joins `availablePickupClasses`. The decoy pickup now spawns in live games like any other pickup.
 
-## Done
 
 ### T-079 · Bot layer foundation (server entity + client-rendered avatar)
 - **Priority:** P0
