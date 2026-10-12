@@ -342,9 +342,43 @@ local function getWeaponCFrame(thrownWeaponData: ThrownWeapons.Data): CFrame?
    return thrownWeaponData.CFrame
 end
 
+-- [DECOYDBG] server-truth visualizer: a bright neon ball showing where the SERVER thinks the boomerang is
+local function updateServerViz(thrownWeaponData: any, position: Vector3)
+   if not isServer then
+      return
+   end
+   local viz = thrownWeaponData.DebugViz
+   if not viz or not viz.Parent then
+      viz = Instance.new("Part")
+      viz.Name = "DECOYDBG_ServerBoomerang"
+      viz.Shape = Enum.PartType.Ball
+      viz.Size = Vector3.new(3, 3, 3)
+      viz.Anchored = true
+      viz.CanCollide = false
+      viz.CanQuery = false
+      viz.CanTouch = false
+      viz.Material = Enum.Material.Neon
+      viz.Color = Color3.new(1, 0, 0)
+      viz.Transparency = 0.3
+      viz.Parent = workspace
+      thrownWeaponData.DebugViz = viz
+   end
+   viz.Position = position
+end
+
+local function destroyServerViz(thrownWeaponData: any)
+   if thrownWeaponData.DebugViz then
+      thrownWeaponData.DebugViz:Destroy()
+      thrownWeaponData.DebugViz = nil
+   end
+end
+
 local function setWeaponCFrame(thrownWeaponData: ThrownWeapons.Data, cframe: CFrame, deltaTime: number?)
    thrownWeaponData.LastPosition = thrownWeaponData.CFrame.Position
    thrownWeaponData.CFrame = cframe
+   if isServer then
+      updateServerViz(thrownWeaponData, cframe.Position)
+   end
 
    local host = thrownWeaponData.Host
    if host and host.Parent then
@@ -870,6 +904,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
 
       local obstructionRaycastResult = blockcastWithHorizontalHitbox(rayOrigin, direction, rayDistance, hitboxRadius, raycastParams)
       if obstructionRaycastResult then
+         print(`[DECOYDBG {if isServer then "server" else "client"}] obstruction hit {obstructionRaycastResult.Instance:GetFullName()}`)
          if isServer and WeaponService then
             WeaponService.WeaponStruckObject:Execute("parallel", player, thrownWeaponData.ToolId, obstructionRaycastResult)
          end
@@ -965,6 +1000,7 @@ end
 -- // Restore to player / remove from field
 function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapons.Data, options: RemoveFromFieldOptions?)
    print(`[DECOYDBG {if isServer then "server" else "client"}] removeFromField {player} return={if options then tostring(options.ReturnToPlayer) else "nil"}`)
+   destroyServerViz(thrownWeaponData)
    local returnToPlayer = options == nil or options.ReturnToPlayer ~= false
    local shouldReattachLocally = returnToPlayer and (not isServer) and thrownWeaponData.ReuseEquippedHost == true
 
@@ -1023,6 +1059,14 @@ end
 -- // flying until the server's Clashed snapshot arrives (WeaponController.onSnapshot then calls clash), so a disagreement
 -- // at the range edge can't leave the client showing a dead boomerang the server is recalling.
 function Boomerang.autoRecallOrDie(player: Player, boomerangId: string, toolData: Tools.Tool, thrownWeaponData: ThrownWeapons.Data, position: Vector3, direction: Vector3, speed: number): boolean
+   do
+      local inR = isWithinRecallRange(player, position)
+      local los = hasLineOfSightToPlayer(player, position, thrownWeaponData)
+      local ch = player.Character
+      local rp = ch and ch.PrimaryPart
+      local dist = rp and getHorizontalDistance(position, rp.Position) or -1
+      print(`[DECOYDBG {if isServer then "server" else "client"}] autoRecallOrDie inRange={inR} los={los} dist={string.format("%.1f", dist)} -> {if (inR and los) then "RECALL" else "DIE/clash"}`)
+   end
    if isWithinRecallRange(player, position) and hasLineOfSightToPlayer(player, position, thrownWeaponData) then
       Boomerang.recall(player, boomerangId, toolData, thrownWeaponData)
       return true
@@ -1109,6 +1153,7 @@ end
 
 function Boomerang.clash(player: Player, thrownWeaponData: ThrownWeapons.Data, options: ClashInitOptions)
    print(`[DECOYDBG {if isServer then "server" else "client"}] CLASH {player}`)
+   destroyServerViz(thrownWeaponData)
    if ClashedWeapons.Data[player] then
       return
    end

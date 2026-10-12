@@ -36,7 +36,8 @@ An enemy boomerang eliminates the decoy; it poofs into smoke. Only enemies can �
 - Boomerang hit path: `spherecastCharacterHitbox` also includes the `Bots` workspace folder; `damagedPlayer` routes a victim carrying a `BotId` attribute to `BotService.onWeaponHit` (server only), which asks the behavior's `onHit` and despawns with reason `eliminated`. No `WeaponKilledPlayer` for bots → no stats.
 - `RaycastsUtility.getProjectileObstructionParams` also excludes the `Bots` folder, so a decoy never blocks a boomerang as an obstruction.
 - Smoke: `BotService.despawn` plays the behavior's `DespawnParticle` (`DecoySmokePoof`) at the rig position for 1.5 s via `ParticlesLibrary`, on every despawn except round-end teardown. Decoy sets it in `start`.
-- **Needs the `DecoySmokePoof` asset present in `Shared/Assets/Particles` — it is not in the repo working copy yet; if it is missing the poof silently no-ops (ParticlesLibrary warns).**
+- Smoke asset `DecoySmokePoof` is in `Shared/Assets/Particles` (Sol committed it).
+- **Bug fixed (2026-10-12):** making the decoy's hitbox weapon-detectable caused thrown boomerangs to treat the decoy's client-rendered avatar as a solid obstruction — it bounced/stalled on the client while the server flew normally, so the server boomerang went dead out of range and every later throw was rejected (server weapon stuck). Fix: the decoy visual is kept `CanCollide`/`CanQuery`/`CanTouch = false` and on the Players collision group EVERY frame (a Humanoid rebuild had been resetting those), visuals live in a `BotVisuals` folder, and the boomerang's obstruction/line-of-sight casts exclude both the `Bots` rig folder and `BotVisuals`. Boomerangs now pass through decoys like players. Confirmed working by Sol.
 
 ## Backlog
 

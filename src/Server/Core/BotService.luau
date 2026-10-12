@@ -32,7 +32,7 @@ local ParticlesLibrary = require(ReplicatedStorage.Shared.Library.ParticlesLibra
 -------------------------------------------------------------------------------
 
 local BOTS_FOLDER_NAME = "Bots"
-local BOTS_COLLISION_GROUP = CollisionGroupConstants.Bots
+local BOTS_COLLISION_GROUP = CollisionGroupConstants.Players -- // match players: same collision group as player characters/hitboxes
 local ROOT_SIZE = Vector3.new(2, 2, 1)
 local HIP_HEIGHT = 2 -- // TODO:VITAL Studio-tune so the rootless rig stands on the floor at the right height
 local HITBOX_SIZE = Vector3.new(10, 2.2, 10) -- // matches HitboxService's player hitbox cylinder

@@ -80,7 +80,32 @@ local function buildVisual(ownerUserId: number): Model?
 		end
 	end
 
-	clone.Parent = workspace
+	local visualsFolder = workspace:FindFirstChild("BotVisuals")
+	if not visualsFolder then
+		visualsFolder = Instance.new("Folder")
+		visualsFolder.Name = "BotVisuals"
+		visualsFolder.Parent = workspace
+	end
+	clone.Parent = visualsFolder
+
+	-- // Keep the cosmetic avatar non-interactive EVERY frame. Its Humanoid rebuilds body parts when it
+	--    scales / applies appearance, which resets them to CanCollide = true / CanQuery = true -- that made
+	--    thrown boomerangs physically bounce off (and raycast-hit) the decoy's body. Mirror the persistent
+	--    guard CharacterRenderController keeps on the player's render model (T-081).
+	task.spawn(function()
+		repeat
+			for _, d in pairs(clone:GetDescendants()) do
+				if d:IsA("BasePart") then
+					d.CanCollide = false
+					d.CanQuery = false
+					d.CanTouch = false
+					d.CollisionGroup = CollisionGroupConstants.Players
+				end
+			end
+			RunService.Stepped:Wait()
+		until not clone.Parent
+	end)
+
 	return clone
 end
 

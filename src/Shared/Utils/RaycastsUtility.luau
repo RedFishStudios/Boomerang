@@ -15,6 +15,11 @@ function RaycastsUtility.getProjectileObstructionParams(filterDescendantsInstanc
 	if botsFolder then
 		table.insert(filter, botsFolder)
 	end
+	-- // Client-rendered bot avatars (cosmetic, spawn on top of the owner) must not count as obstructions either (T-081).
+	local botVisualsFolder = workspace:FindFirstChild("BotVisuals")
+	if botVisualsFolder then
+		table.insert(filter, botVisualsFolder)
+	end
 	raycastParams.FilterDescendantsInstances = filter
 	raycastParams.FilterType = Enum.RaycastFilterType.Exclude
    raycastParams.CollisionGroup = CollisionGroupConstants.ThrownWeapons
