@@ -59,6 +59,10 @@ local REPLICATION_RATE = 1 / 20
 local AIM_START_SPEED_BONUS_MULTIPLIER = 1.0
 local AIM_SPEED_FADE_RATE = 2.0
 local RECALL_CATCH_RADIUS_MIN = 1.5
+-- // The server catches a returning boomerang at a slightly larger radius than the client. The server can keep the
+-- // boomerang orbiting a hair outside the catch radius (it appears to graze the player and circle) while the client
+-- // already caught it; this small server-only bonus closes that gap so the two agree. Tunable.
+local SERVER_RECALL_CATCH_BONUS = 0.5
 local RETURN_STEER_TIGHTNESS = 3 -- // How sharply a returning boomerang turns into the player up close (1 = circles them; higher = more direct)
 local CLASH_SPEED_SCALE = 0.5
 local CLASH_MINIMUM_SPEED = 12
@@ -342,43 +346,9 @@ local function getWeaponCFrame(thrownWeaponData: ThrownWeapons.Data): CFrame?
    return thrownWeaponData.CFrame
 end
 
--- [DECOYDBG] server-truth visualizer: a bright neon ball showing where the SERVER thinks the boomerang is
-local function updateServerViz(thrownWeaponData: any, position: Vector3)
-   if not isServer then
-      return
-   end
-   local viz = thrownWeaponData.DebugViz
-   if not viz or not viz.Parent then
-      viz = Instance.new("Part")
-      viz.Name = "DECOYDBG_ServerBoomerang"
-      viz.Shape = Enum.PartType.Ball
-      viz.Size = Vector3.new(3, 3, 3)
-      viz.Anchored = true
-      viz.CanCollide = false
-      viz.CanQuery = false
-      viz.CanTouch = false
-      viz.Material = Enum.Material.Neon
-      viz.Color = Color3.new(1, 0, 0)
-      viz.Transparency = 0.3
-      viz.Parent = workspace
-      thrownWeaponData.DebugViz = viz
-   end
-   viz.Position = position
-end
-
-local function destroyServerViz(thrownWeaponData: any)
-   if thrownWeaponData.DebugViz then
-      thrownWeaponData.DebugViz:Destroy()
-      thrownWeaponData.DebugViz = nil
-   end
-end
-
 local function setWeaponCFrame(thrownWeaponData: ThrownWeapons.Data, cframe: CFrame, deltaTime: number?)
    thrownWeaponData.LastPosition = thrownWeaponData.CFrame.Position
    thrownWeaponData.CFrame = cframe
-   if isServer then
-      updateServerViz(thrownWeaponData, cframe.Position)
-   end
 
    local host = thrownWeaponData.Host
    if host and host.Parent then
@@ -448,7 +418,6 @@ local function fireSpawned(ownerUserId: number, boomerangId: string, instanceId:
    offset = BufferUtil.writef32(payload, offset, speed)
    BufferUtil.writef64(payload, offset, throwServerTime)
 
-   print(`[DECOYDBG server] fireSpawned owner={ownerUserId} instanceId={instanceId}`)
    thrownBoomerangSpawnedRemote:FireAllClients(boomerangId, payload, instanceId)
 end
 
@@ -460,7 +429,6 @@ local function fireDespawned(ownerUserId: number, returnToPlayer: boolean)
    local payload = buffer.create(DESPAWN_PACKET_SIZE)
    local offset = BufferUtil.writeUserId(payload, 0, ownerUserId)
    BufferUtil.writeu8(payload, offset, if returnToPlayer then 1 else 0)
-   print(`[DECOYDBG server] fireDespawned owner={ownerUserId} return={returnToPlayer}`)
    thrownBoomerangDespawnedRemote:FireAllClients(payload)
 end
 
@@ -601,7 +569,6 @@ local function damagedPlayer(player: Player, boomerangId: string, thrownWeaponDa
    -- // Bots (e.g. the decoy) aren't players. Route them to the bot layer, which applies the
    --    behavior's hit rules and eliminates server-side (T-081). No stat crediting for bot kills.
    if victimModel:GetAttribute("BotId") ~= nil then
-      print(`[DECOYDBG {if isServer then "server" else "client"}] boomerang detected BOT {victimModel.Name}`)
       if isServer and BotService then
          return BotService.onWeaponHit(player, victimModel)
       end
@@ -904,7 +871,6 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
 
       local obstructionRaycastResult = blockcastWithHorizontalHitbox(rayOrigin, direction, rayDistance, hitboxRadius, raycastParams)
       if obstructionRaycastResult then
-         print(`[DECOYDBG {if isServer then "server" else "client"}] obstruction hit {obstructionRaycastResult.Instance:GetFullName()}`)
          if isServer and WeaponService then
             WeaponService.WeaponStruckObject:Execute("parallel", player, thrownWeaponData.ToolId, obstructionRaycastResult)
          end
@@ -999,8 +965,6 @@ end
 
 -- // Restore to player / remove from field
 function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapons.Data, options: RemoveFromFieldOptions?)
-   print(`[DECOYDBG {if isServer then "server" else "client"}] removeFromField {player} return={if options then tostring(options.ReturnToPlayer) else "nil"}`)
-   destroyServerViz(thrownWeaponData)
    local returnToPlayer = options == nil or options.ReturnToPlayer ~= false
    local shouldReattachLocally = returnToPlayer and (not isServer) and thrownWeaponData.ReuseEquippedHost == true
 
@@ -1059,14 +1023,6 @@ end
 -- // flying until the server's Clashed snapshot arrives (WeaponController.onSnapshot then calls clash), so a disagreement
 -- // at the range edge can't leave the client showing a dead boomerang the server is recalling.
 function Boomerang.autoRecallOrDie(player: Player, boomerangId: string, toolData: Tools.Tool, thrownWeaponData: ThrownWeapons.Data, position: Vector3, direction: Vector3, speed: number): boolean
-   do
-      local inR = isWithinRecallRange(player, position)
-      local los = hasLineOfSightToPlayer(player, position, thrownWeaponData)
-      local ch = player.Character
-      local rp = ch and ch.PrimaryPart
-      local dist = rp and getHorizontalDistance(position, rp.Position) or -1
-      print(`[DECOYDBG {if isServer then "server" else "client"}] autoRecallOrDie inRange={inR} los={los} dist={string.format("%.1f", dist)} -> {if (inR and los) then "RECALL" else "DIE/clash"}`)
-   end
    if isWithinRecallRange(player, position) and hasLineOfSightToPlayer(player, position, thrownWeaponData) then
       Boomerang.recall(player, boomerangId, toolData, thrownWeaponData)
       return true
@@ -1152,8 +1108,6 @@ function Boomerang.stopRecallFromDead(player: Player, thrownWeaponData: ThrownWe
 end
 
 function Boomerang.clash(player: Player, thrownWeaponData: ThrownWeapons.Data, options: ClashInitOptions)
-   print(`[DECOYDBG {if isServer then "server" else "client"}] CLASH {player}`)
-   destroyServerViz(thrownWeaponData)
    if ClashedWeapons.Data[player] then
       return
    end
@@ -1248,7 +1202,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
    local speed = math.max((options and options.InitialSpeed) or 0, thrownWeaponData.Speed or 0)
    local slideSpeed = 0
    local hitboxRadius = toolData.Boomerang.HitboxRadius
-   local catchRadius = math.max(RECALL_CATCH_RADIUS_MIN, hitboxRadius * 1.25)
+   local catchRadius = math.max(RECALL_CATCH_RADIUS_MIN, hitboxRadius * 1.25) + (if isServer then SERVER_RECALL_CATCH_BONUS else 0)
    local raycastParams = RaycastsUtility.getProjectileObstructionParams({hostPart, Characters})
    local nextReplicationAt = 0
 

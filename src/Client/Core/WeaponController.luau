@@ -173,7 +173,6 @@ local function setLocalAimState(nextState: boolean, notifyServer: boolean?)
 end
 
 local function clearThrownWeapon(forPlayer: Player, returnToPlayer: boolean?)
-   print(`[DECOYDBG client] clearThrownWeapon {forPlayer} return={returnToPlayer} hadTW={ThrownWeapons.Data[forPlayer]~=nil} hadCW={ClashedWeapons.Data[forPlayer]~=nil}`)
    local thrownWeaponData = ThrownWeapons.Data[forPlayer]
    if not thrownWeaponData then
       clearClashedWeapon(forPlayer, returnToPlayer)
@@ -210,7 +209,6 @@ local function beginEquippedToolAim(): boolean
    end
 
    local canThrow = WeaponLibrary.canThrow(Players.LocalPlayer, equippedToolId)
-   print(`[DECOYDBG client] beginAim locked={WeaponController.playerIsWeaponLocked()} tool={equippedToolId} canThrow={canThrow} TW={ThrownWeapons.Data[Players.LocalPlayer]~=nil} CW={ClashedWeapons.Data[Players.LocalPlayer]~=nil}`)
    if not canThrow then
       return false
    end
@@ -227,7 +225,6 @@ local function beginEquippedToolAim(): boolean
 end
 
 local function throwEquippedTool(forcedDirection: Vector3?): boolean
-   print(`[DECOYDBG client] throwEquippedTool isAiming={isAiming} locked={WeaponController.playerIsWeaponLocked()}`)
    if not isAiming then
       return false
    end
@@ -284,7 +281,6 @@ local function throwEquippedTool(forcedDirection: Vector3?): boolean
 	 end
 
     
-	print(`[DECOYDBG client] InvokeServer throw tool={equippedToolId}`)
 	throwFunction:InvokeServer(equippedToolId, direction, releasePosition)
    setLocalAimState(false)
 
@@ -366,7 +362,6 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
    thrownWeaponData.Speed = speed
 
    if previousState ~= state then
-      print(`[DECOYDBG client] onSnapshot {forPlayer} state {previousState}->{state}`)
       local toolData = Tools[thrownWeaponData.ToolId]
       if toolData then
          local logic = getLogic(toolData.LogicClass)
@@ -668,7 +663,6 @@ function WeaponController.playerIsWeaponLocked(player: Player?): boolean
 end
 
 function WeaponController.startThrownWeapon(forPlayer: Player, toolId: string, toolData: Tools.Tool, initOptions)
-   print(`[DECOYDBG client] startThrownWeapon {forPlayer} tool={toolId}`)
    clearThrownWeapon(forPlayer)
 
    ThrownWeapons.Data[forPlayer] = {
@@ -916,7 +910,6 @@ function WeaponController.init()
       if not forPlayer then
          return
       end
-      print(`[DECOYDBG client] DESPAWN event received for {forPlayer} return={returnToPlayer}`)
       clearThrownWeapon(forPlayer, returnToPlayer)
    end)
 
@@ -946,21 +939,6 @@ function WeaponController.init()
 
       onSnapshot(forPlayer, position, getHorizontalDirection(direction), speed, state, serverTime)
    end)
-
-   -- [DECOYDBG] client weapon-state watcher: prints the LocalPlayer's TW/CW the instant they change
-   do
-      local lp = Players.LocalPlayer
-      local lastState = ""
-      RunService.Heartbeat:Connect(function()
-         local tw = ThrownWeapons.Data[lp]
-         local cw = ClashedWeapons.Data[lp]
-         local s = `TW={tw and tostring(tw.State) or "nil"} CW={cw and tostring(cw.State) or "nil"}`
-         if s ~= lastState then
-            lastState = s
-            print(`[DECOYDBG client-state] {s}`)
-         end
-      end)
-   end
 
    RunService.PreSimulation:Connect(function(deltaTime)
       updateSmoothing(deltaTime)
