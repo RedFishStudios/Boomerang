@@ -74,7 +74,7 @@ local AcquirableNotifData: {
       Id = "Decoy",
       Title = "Decoy",
       Subtitle = "A clone of you has spawned!",
-      Img = 10
+      Img = Icons.DecoyPickup
    },
    Disguise = {
       Id = "Disguise",
