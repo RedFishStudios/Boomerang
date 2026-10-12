@@ -47,6 +47,10 @@ end
 
 local SetupData = {
    Players = collisionGroupData("Players", {"ArenaWalls", "ArenaFloor", "Default"}),
+   -- // Bots (e.g. the decoy): collide with the environment like a player, and be detectable by
+   -- // boomerang casts (ThrownWeapons). Deliberately NOT collidable with Players, so a decoy passes
+   -- // through players just as players pass through each other (T-081).
+   Bots = collisionGroupData("Bots", {"ArenaWalls", "ArenaFloor", "Default", "ThrownWeapons"}),
    ThrownWeapons = collisionGroupData("ThrownWeapons", {"ArenaWalls", "ThrownWeapons", "Players"}),
    HandWeapons = collisionGroupData("HandWeapons", {"Players"}),
    ArenaWalls = collisionGroupData("ArenaWalls", {"Players", "ThrownWeapons"}),
@@ -63,6 +67,7 @@ configureCollisionMatrix(SetupData)
 
 local CollisionGroups = {
    Players = deepRegisterCollisionGroups(SetupData.Players),
+   Bots = deepRegisterCollisionGroups(SetupData.Bots),
    ThrownWeapons = deepRegisterCollisionGroups(SetupData.ThrownWeapons),
    HandWeapons = deepRegisterCollisionGroups(SetupData.HandWeapons),
    ArenaWalls = deepRegisterCollisionGroups(SetupData.ArenaWalls),

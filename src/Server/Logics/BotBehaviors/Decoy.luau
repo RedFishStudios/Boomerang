@@ -14,6 +14,8 @@ local ServerStorage = game:GetService("ServerStorage")
 
 local BotService = require(ServerStorage.Server.Core.BotService)
 local CharacterService = require(ServerStorage.Server.Core.CharacterService)
+local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
+local GameTeamLibrary = require(ReplicatedStorage.Shared.Library.GameTeamLibrary)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -59,10 +61,25 @@ function DecoyBehavior.start(bot: BotService.Bot)
 	else
 		bot.MoveDirection = BotService.flattenHorizontal(randomHorizontal())
 	end
+
+	bot.DespawnParticle = "DecoySmokePoof" -- // T-081 / T-078: smoke poof where the decoy vanishes
 end
 
 function DecoyBehavior.shouldDespawn(bot: BotService.Bot): boolean
 	return (os.clock() - bot.SpawnedAt) >= LIFETIME_SECONDS
+end
+
+-- // Only an enemy may eliminate the decoy. The owner can't pop their own decoy unless
+--    GlobalConfig.CanHitSelfDecoy is on; teammates follow the team's normal friendly-fire rule.
+function DecoyBehavior.onHit(bot: BotService.Bot, throwerPlayer: Player): boolean
+	if throwerPlayer.UserId == bot.OwnerUserId then
+		return GlobalConfig.CanHitSelfDecoy == true
+	end
+	local owner = Players:GetPlayerByUserId(bot.OwnerUserId)
+	if not owner then
+		return true -- // owner left; the orphaned decoy can be popped by anyone (it's being cleaned up anyway)
+	end
+	return GameTeamLibrary.areEnemies(throwerPlayer, owner)
 end
 
 return DecoyBehavior
