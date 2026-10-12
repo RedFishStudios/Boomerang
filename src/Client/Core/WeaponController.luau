@@ -366,6 +366,7 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
    thrownWeaponData.Speed = speed
 
    if previousState ~= state then
+      print(`[DECOYDBG client] onSnapshot {forPlayer} state {previousState}->{state}`)
       local toolData = Tools[thrownWeaponData.ToolId]
       if toolData then
          local logic = getLogic(toolData.LogicClass)
@@ -945,6 +946,21 @@ function WeaponController.init()
 
       onSnapshot(forPlayer, position, getHorizontalDirection(direction), speed, state, serverTime)
    end)
+
+   -- [DECOYDBG] client weapon-state watcher: prints the LocalPlayer's TW/CW the instant they change
+   do
+      local lp = Players.LocalPlayer
+      local lastState = ""
+      RunService.Heartbeat:Connect(function()
+         local tw = ThrownWeapons.Data[lp]
+         local cw = ClashedWeapons.Data[lp]
+         local s = `TW={tw and tostring(tw.State) or "nil"} CW={cw and tostring(cw.State) or "nil"}`
+         if s ~= lastState then
+            lastState = s
+            print(`[DECOYDBG client-state] {s}`)
+         end
+      end)
+   end
 
    RunService.PreSimulation:Connect(function(deltaTime)
       updateSmoothing(deltaTime)

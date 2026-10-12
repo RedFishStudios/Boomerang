@@ -330,6 +330,22 @@ end
 -------------------------------------------------------------------------------
 
 function WeaponService.init()
+   -- [DECOYDBG] server weapon-state watcher: prints each player's TW/CW the instant they change
+   do
+      local lastState: {[Player]: string} = {}
+      game:GetService("RunService").Heartbeat:Connect(function()
+         for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
+            local tw = ThrownWeapons.Data[p]
+            local cw = ClashedWeapons.Data[p]
+            local s = `TW={tw and tostring(tw.State) or "nil"} CW={cw and tostring(cw.State) or "nil"}`
+            if lastState[p] ~= s then
+               lastState[p] = s
+               print(`[DECOYDBG server-state] {p} {s}`)
+            end
+         end
+      end)
+   end
+
    -- Ensure boomerang replication remotes exist at server startup.
    SimpleRemotes.getEvent("ThrownBoomerangSpawned")
    SimpleRemotes.getEvent("ThrownBoomerangDespawned")

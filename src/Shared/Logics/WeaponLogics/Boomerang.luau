@@ -414,6 +414,7 @@ local function fireSpawned(ownerUserId: number, boomerangId: string, instanceId:
    offset = BufferUtil.writef32(payload, offset, speed)
    BufferUtil.writef64(payload, offset, throwServerTime)
 
+   print(`[DECOYDBG server] fireSpawned owner={ownerUserId} instanceId={instanceId}`)
    thrownBoomerangSpawnedRemote:FireAllClients(boomerangId, payload, instanceId)
 end
 
@@ -425,6 +426,7 @@ local function fireDespawned(ownerUserId: number, returnToPlayer: boolean)
    local payload = buffer.create(DESPAWN_PACKET_SIZE)
    local offset = BufferUtil.writeUserId(payload, 0, ownerUserId)
    BufferUtil.writeu8(payload, offset, if returnToPlayer then 1 else 0)
+   print(`[DECOYDBG server] fireDespawned owner={ownerUserId} return={returnToPlayer}`)
    thrownBoomerangDespawnedRemote:FireAllClients(payload)
 end
 
