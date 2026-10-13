@@ -84,6 +84,28 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
+### T-087 · Stats frame art and Quests / Settings HUD buttons
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** GUI
+- **Files:** `Client/UI/Gui/Stats/init.luau`, `Client/UI/Gui/MenuButtons/init.luau`
+
+**Problem / goal**
+The Stats menu uses new main container art (107079429198573). Two new square buttons sit under the left HUD grid: Quests (83981048085676) and Settings (118835487029221). They open nothing yet.
+
+**Done when**
+- [ ] The Stats container shows the new frame image.
+- [ ] Quests and Settings buttons show in the lobby menu, under Skins/Stats, and do nothing when clicked.
+
+**Test in Studio**
+- Open Stats: check the new frame fits and the title, exit button, cards and listings still sit inside it.
+- Lobby: check the two square buttons under the grid look right at different screen sizes.
+
+**Notes**
+- Branch `agent/T-087-stats-frame-hud-buttons`, lane `Boomerang-lanes/T-085-aim-arrows`. Not tested in Studio.
+- Only the image id changed in Stats; `CONTAINER_ASPECT_RATIO` (1.4619) and the title/exit/card positions still match the old art. If the new image has different proportions or layout, those need adjusting (I can't read the image's size from here; tell me or adjust the constant).
+- The square buttons are 100 px (same as the grid buttons, scaled with the screen), show the icon image as the whole button, and have no click action. To wire one later: `MenuButtonsGui.setButtonEnabled("Quests", true, callback)`.
+
 ### T-086 · HUD menu button icons
 - **Priority:** P2
 - **Owner:** Agent
