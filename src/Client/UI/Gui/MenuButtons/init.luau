@@ -5,7 +5,7 @@
 		[      Currency      ]   <- as wide as two buttons: boomerang icon + balance; click = Currency shop (later)
 		[ Shop ] [ Daily ]
 		[ Skins] [ Stats]
-		[Quests] [Settings]   <- square icon buttons (no frame); they don't open anything yet
+		[Quests] [Settings]   <- no gui behind them yet (clicking does nothing)
 	Buttons sit in a 2-column grid; hidden buttons are skipped, so the grid closes up.
 	Only these buttons exist in the left bar. A later feature that needs one adds it to the BUTTONS table.
 
@@ -79,14 +79,9 @@ local BUTTONS = {
 	{ Id = "Daily", Text = "Daily", Icon = "rbxassetid://126765785652910", Color = Color3.fromRGB(205, 130, 255), Enabled = true },
 	{ Id = "Skins", Text = "Skins", Icon = "rbxassetid://123566439013193", Color = Color3.fromRGB(110, 175, 255), Enabled = true }, -- // T-072
 	{ Id = "Stats", Text = "Stats", Icon = "rbxassetid://124985088272789", Color = Color3.fromRGB(100, 255, 225), Enabled = true }, -- // T-074
-}
-
--- // Square icon buttons under the grid: the image is the whole button (no wooden frame). They open nothing yet; give one
--- // a click action with setButtonEnabled(id, true, callback) when its gui exists.
-local SQUARE_BUTTON_SIZE = BUTTON_SIZE.X
-local SQUARE_BUTTONS = {
-	{ Id = "Quests", Icon = "rbxassetid://83981048085676" },
-	{ Id = "Settings", Icon = "rbxassetid://118835487029221" },
+	-- // T-087: no gui behind these yet; give one a click action with setButtonEnabled(id, true, callback)
+	{ Id = "Quests", Text = "Quests", Icon = "rbxassetid://83981048085676", Color = Color3.fromRGB(255, 215, 90), Enabled = true },
+	{ Id = "Settings", Text = "Settings", Icon = "rbxassetid://118835487029221", Color = Color3.fromRGB(190, 200, 215), Enabled = true },
 }
 
 -------------------------------------------------------------------------------
@@ -243,42 +238,6 @@ local function buildButton(info, layoutOrder: number, parent: Instance)
 	buttonInstances[info.Id] = button
 end
 
-local function buildSquareButtons(parent: Instance)
-	local row = Instance.new("Frame")
-	row.Name = "SquareButtons"
-	row.BackgroundTransparency = 1
-	row.Size = UDim2.fromOffset(CURRENCY_WIDTH, SQUARE_BUTTON_SIZE)
-	row.LayoutOrder = 3
-	row.Parent = parent
-
-	local rowLayout = Instance.new("UIListLayout")
-	rowLayout.FillDirection = Enum.FillDirection.Horizontal
-	rowLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	rowLayout.Padding = UDim.new(0, GAP)
-	rowLayout.Parent = row
-
-	for order, info in ipairs(SQUARE_BUTTONS) do
-		local button = Instance.new("ImageButton")
-		button.Name = info.Id
-		button.Image = info.Icon
-		button.ScaleType = Enum.ScaleType.Fit
-		button.AutoButtonColor = false
-		button.BackgroundTransparency = 1
-		button.Size = UDim2.fromOffset(SQUARE_BUTTON_SIZE, SQUARE_BUTTON_SIZE)
-		button.LayoutOrder = order
-		button.Parent = row
-		addPressFeedback(button)
-
-		button.Activated:Connect(function()
-			local callback = buttonCallbacks[info.Id]
-			if callback then
-				callback()
-			end
-		end)
-		buttonInstances[info.Id] = button
-	end
-end
-
 local function updateScale(uiScale: UIScale)
 	local camera = workspace.CurrentCamera
 	local height = if camera then camera.ViewportSize.Y else REFERENCE_SCREEN_HEIGHT
@@ -338,8 +297,6 @@ local function build()
 	for index, info in ipairs(BUTTONS) do
 		buildButton(info, index, grid)
 	end
-
-	buildSquareButtons(container)
 
 	screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 end

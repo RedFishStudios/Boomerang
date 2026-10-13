@@ -104,7 +104,7 @@ The Stats menu uses new main container art (107079429198573). Two new square but
 **Notes**
 - Branch `agent/T-087-stats-frame-hud-buttons`, lane `Boomerang-lanes/T-085-aim-arrows`. Not tested in Studio.
 - Only the image id changed in Stats; `CONTAINER_ASPECT_RATIO` (1.4619) and the title/exit/card positions still match the old art. If the new image has different proportions or layout, those need adjusting (I can't read the image's size from here; tell me or adjust the constant).
-- The square buttons are 100 px (same as the grid buttons, scaled with the screen), show the icon image as the whole button, and have no click action. To wire one later: `MenuButtonsGui.setButtonEnabled("Quests", true, callback)`.
+- Quests and Settings are entries in the `BUTTONS` table like the other four (frame + name board, icon inside the frame window), so the grid is now 2 columns x 3 rows. Quests is tinted gold, Settings gray-blue (my picks; change the `Color` in `BUTTONS`). They have no click action. To wire one later: `MenuButtonsGui.setButtonEnabled("Quests", true, callback)`.
 
 ### T-086 · HUD menu button icons
 - **Priority:** P2
