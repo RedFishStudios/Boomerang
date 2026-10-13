@@ -12,6 +12,7 @@ local GlobalConfig = {
    CharacterFocalHeight = 154.902,
    SkipVoting = false,
    CanHurtSelf = false,
+   CanHitSelfDecoy = false, -- // T-081: if true, a player's own boomerang can eliminate their own decoy (friendly fire on your own decoy). Default off.
    SpawnShieldDuration = 2,
    NilDataType = "nil_",
    AimFullStrength = 2.0,

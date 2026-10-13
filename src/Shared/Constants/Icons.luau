@@ -38,5 +38,6 @@ return {
 	OnFireEffect = 118956710558189,
 	HotPotato = 90914469539086,
 	ShieldPickup = 91847330548907,
+	DecoyPickup = 72162085547970,
 
 }

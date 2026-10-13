@@ -3,7 +3,7 @@
 
 	On the owner's FIRST throw after pickup, spawns one decoy bot and consumes the effect
 	(one pickup = one decoy). The decoy entity + movement live in the bot layer (BotService +
-	the Decoy BotBehavior). Disabled until the epic's enable task (T-083).
+	the Decoy BotBehavior). Enabled (T-083): spawns from the normal pickup pool like other pickups.
 ]]
 
 local Decoy = {}
@@ -11,8 +11,6 @@ local Decoy = {}
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
-
-Decoy.Disabled = true -- // T-083 removes this once the decoy passes Studio testing
 
 local isServer = RunService:IsServer()
 

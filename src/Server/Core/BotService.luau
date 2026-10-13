@@ -2,8 +2,9 @@
 	BotService (T-079)
 
 	A thin server-authoritative "bot" layer. A bot is a minimal INVISIBLE Humanoid rig:
-	a HumanoidRootPart (in the Players collision group, so it collides with the environment like
-	a player), a Humanoid (moved with Humanoid:Move), and a welded Hitbox part. Clients build the
+	a HumanoidRootPart (in the Bots collision group, so it collides with the environment like a
+	player but passes through players), a Humanoid (moved with Humanoid:Move), and a welded Hitbox
+	part that boomerangs can detect. Clients build the
 	visible avatar themselves (BotController), so the server stays lightweight -- it only owns the
 	small rig + its hitbox and lets Roblox replicate the rig's transform.
 
@@ -24,13 +25,14 @@ local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.Colli
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
+local ParticlesLibrary = require(ReplicatedStorage.Shared.Library.ParticlesLibrary)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
 local BOTS_FOLDER_NAME = "Bots"
-local PLAYERS_COLLISION_GROUP = CollisionGroupConstants.Players
+local BOTS_COLLISION_GROUP = CollisionGroupConstants.Players -- // match players: same collision group as player characters/hitboxes
 local ROOT_SIZE = Vector3.new(2, 2, 1)
 local HIP_HEIGHT = 2 -- // TODO:VITAL Studio-tune so the rootless rig stands on the floor at the right height
 local HITBOX_SIZE = Vector3.new(10, 2.2, 10) -- // matches HitboxService's player hitbox cylinder
@@ -50,6 +52,7 @@ export type Bot = {
 	Behavior: BotBehavior,
 	MoveDirection: Vector3, -- // horizontal unit; the behavior sets this, the service applies it each frame
 	Pose: string?, -- // optional animation-state override ("Standing"/"Running"/"FreeFall"); nil = derive from movement
+	DespawnParticle: string?, -- // particle name (Shared/Assets/Particles) played where the bot vanishes
 	SpawnedAt: number,
 	State: { [any]: any }, -- // scratch space for the behavior
 }
@@ -63,6 +66,7 @@ export type BotBehavior = {
 	start: ((bot: Bot) -> ())?,
 	update: ((bot: Bot, deltaTime: number) -> ())?,
 	shouldDespawn: ((bot: Bot) -> boolean)?,
+	onHit: ((bot: Bot, throwerPlayer: Player) -> boolean)?, -- // may this weapon hit eliminate the bot? (nil = any hit does)
 }
 
 -------------------------------------------------------------------------------
@@ -109,10 +113,10 @@ local function buildRig(ownerUserId: number, botId: string, spawnCFrame: CFrame,
 	root.Name = "HumanoidRootPart"
 	root.Size = ROOT_SIZE
 	root.Transparency = 1
-	root.CanCollide = true -- // environment collision via the Players group
-	root.CanQuery = false -- // not weapon-detectable until T-081 wires elimination
+	root.CanCollide = true -- // environment collision via the Bots group
+	root.CanQuery = false -- // the welded Hitbox is the weapon-detectable part, not the root
 	root.CanTouch = false
-	root.CollisionGroup = PLAYERS_COLLISION_GROUP
+	root.CollisionGroup = BOTS_COLLISION_GROUP
 	root.CFrame = spawnCFrame
 	root.Parent = model
 
@@ -135,9 +139,9 @@ local function buildRig(ownerUserId: number, botId: string, spawnCFrame: CFrame,
 	hitbox.Massless = true
 	hitbox.Transparency = 1
 	hitbox.CanCollide = false
-	hitbox.CanQuery = false -- // T-081 flips this on
+	hitbox.CanQuery = true -- // T-081: weapon spherecasts detect the bot through this hitbox
 	hitbox.CanTouch = false
-	hitbox.CollisionGroup = PLAYERS_COLLISION_GROUP
+	hitbox.CollisionGroup = BOTS_COLLISION_GROUP
 	hitbox:PivotTo(root.CFrame * CFrame.Angles(0, 0, math.rad(90)))
 	hitbox.Parent = model
 
@@ -208,6 +212,13 @@ function BotService.despawn(botId: string, reason: string?)
 		return
 	end
 	bots[botId] = nil
+
+	-- // Vanish VFX: play the behavior's despawn particle where the bot was (server-driven, so it
+	--    replicates to every client). Skipped on round-end teardown to avoid a smoke cloud at reset.
+	if bot.DespawnParticle and reason ~= "roundEnd" and bot.Root and bot.Root.Parent then
+		ParticlesLibrary.play(botId, bot.DespawnParticle, bot.Root.Position, nil, 1.5, true)
+	end
+
 	botDespawnedEvent:FireAllClients(botId, reason)
 	if bot.Model then
 		bot.Model:Destroy()
@@ -220,6 +231,25 @@ function BotService.despawnOwnedBy(userId: number, reason: string?)
 			BotService.despawn(botId, reason)
 		end
 	end
+end
+
+-- // A weapon hit from throwerPlayer landed on this bot's hitbox. The bot's behavior decides whether
+--    the hit eliminates it (no onHit = any hit does). Returns whether the bot was eliminated. No
+--    stat/kill crediting happens here -- a bot is not a player.
+function BotService.onWeaponHit(throwerPlayer: Player, botModel: Instance): boolean
+	local botId = botModel:GetAttribute("BotId")
+	if typeof(botId) ~= "string" then
+		return false
+	end
+	local bot = bots[botId]
+	if not bot then
+		return false
+	end
+	if bot.Behavior.onHit and not bot.Behavior.onHit(bot, throwerPlayer) then
+		return false
+	end
+	BotService.despawn(botId, "eliminated")
+	return true
 end
 
 -------------------------------------------------------------------------------

@@ -35,9 +35,10 @@ local HttpService = game:GetService("HttpService")
 local AnimationController
 
 -- // Context-Specific Modules
-local WeaponService, ToolController
+local WeaponService, ToolController, BotService
 if isServer then
    WeaponService = require(game.ServerStorage.Server.Core.WeaponService)
+   BotService = require(game.ServerStorage.Server.Core.BotService)
 else
    ToolController = require(ReplicatedStorage.Client.Core.ToolController)
 	AnimationController = require(ReplicatedStorage.Client.Core.AnimationController)
@@ -58,6 +59,10 @@ local REPLICATION_RATE = 1 / 20
 local AIM_START_SPEED_BONUS_MULTIPLIER = 1.0
 local AIM_SPEED_FADE_RATE = 2.0
 local RECALL_CATCH_RADIUS_MIN = 1.5
+-- // The server catches a returning boomerang at a slightly larger radius than the client. The server can keep the
+-- // boomerang orbiting a hair outside the catch radius (it appears to graze the player and circle) while the client
+-- // already caught it; this small server-only bonus closes that gap so the two agree. Tunable.
+local SERVER_RECALL_CATCH_BONUS = 0.5
 local RETURN_STEER_TIGHTNESS = 3 -- // How sharply a returning boomerang turns into the player up close (1 = circles them; higher = more direct)
 local CLASH_SPEED_SCALE = 0.5
 local CLASH_MINIMUM_SPEED = 12
@@ -474,7 +479,12 @@ local function spherecastCharacterHitbox(rayOrigin: Vector3, direction: Vector3,
 
    local characterRaycastParams = RaycastParams.new()
    characterRaycastParams.FilterType = Enum.RaycastFilterType.Include
-   characterRaycastParams.FilterDescendantsInstances = {Characters}
+   local hitFilter = {Characters}
+   local botsFolder = workspace:FindFirstChild("Bots") -- // bots (e.g. the decoy) live here, not under Characters
+   if botsFolder then
+      table.insert(hitFilter, botsFolder)
+   end
+   characterRaycastParams.FilterDescendantsInstances = hitFilter
    characterRaycastParams.IgnoreWater = true
    characterRaycastParams.CollisionGroup = WEAPON_RAYCAST_COLLISION_GROUP
 
@@ -556,6 +566,15 @@ local function updateOwnWeaponHighlight(player: Player, thrownWeaponData: Thrown
 end
 
 local function damagedPlayer(player: Player, boomerangId: string, thrownWeaponData: ThrownWeapons.Data, victimModel: Model): boolean
+   -- // Bots (e.g. the decoy) aren't players. Route them to the bot layer, which applies the
+   --    behavior's hit rules and eliminates server-side (T-081). No stat crediting for bot kills.
+   if victimModel:GetAttribute("BotId") ~= nil then
+      if isServer and BotService then
+         return BotService.onWeaponHit(player, victimModel)
+      end
+      return false
+   end
+
    local victimPlayer = game.Players:GetPlayerFromCharacter(victimModel)
    if not victimPlayer or victimPlayer == player then
       return false
@@ -1183,7 +1202,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
    local speed = math.max((options and options.InitialSpeed) or 0, thrownWeaponData.Speed or 0)
    local slideSpeed = 0
    local hitboxRadius = toolData.Boomerang.HitboxRadius
-   local catchRadius = math.max(RECALL_CATCH_RADIUS_MIN, hitboxRadius * 1.25)
+   local catchRadius = math.max(RECALL_CATCH_RADIUS_MIN, hitboxRadius * 1.25) + (if isServer then SERVER_RECALL_CATCH_BONUS else 0)
    local raycastParams = RaycastsUtility.getProjectileObstructionParams({hostPart, Characters})
    local nextReplicationAt = 0
 
