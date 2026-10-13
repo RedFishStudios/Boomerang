@@ -2,7 +2,7 @@
 	<Meta name="ExplicitAutoJoints">true</Meta>
 	<External>null</External>
 	<External>nil</External>
-	<Item class="Model" referent="RBXEB74BD8A1026422DB8CA6090127BFC36">
+	<Item class="Model" referent="RBX5D5F7DE076DE41B6966A6D84E1C20305">
 		<Properties>
 			<token name="LevelOfDetail">0</token>
 			<CoordinateFrame name="ModelMeshCFrame">
@@ -27,7 +27,7 @@
 			</Vector3>
 			<token name="ModelStreamingMode">0</token>
 			<bool name="NeedsPivotMigration">false</bool>
-			<Ref name="PrimaryPart">RBXC9E13A2185B94D55B8AB7376DFF4BC9E</Ref>
+			<Ref name="PrimaryPart">null</Ref>
 			<float name="ScaleFactor">1</float>
 			<SharedString name="SlimHash">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			<OptionalCoordinateFrame name="WorldPivotData">
@@ -54,7 +54,7 @@
 			<int64 name="SourceAssetId">-1</int64>
 			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 		</Properties>
-		<Item class="Part" referent="RBXC9E13A2185B94D55B8AB7376DFF4BC9E">
+		<Item class="Part" referent="RBX9FE9F392BD604BFEBD64476B3A4187A6">
 			<Properties>
 				<token name="shape">1</token>
 				<token name="formFactorRaw">1</token>
@@ -153,7 +153,7 @@
 				<int64 name="SourceAssetId">-1</int64>
 				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			</Properties>
-			<Item class="SurfaceGui" referent="RBXF6085B53F54D4CF8BAB6FCCF82E5A6D2">
+			<Item class="SurfaceGui" referent="RBX2CC281D7AEF54DB2A9331D6AA203D34D">
 				<Properties>
 					<bool name="AlwaysOnTop">false</bool>
 					<float name="Brightness">1.46500003</float>
@@ -189,7 +189,7 @@
 					<int64 name="SourceAssetId">-1</int64>
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 				</Properties>
-				<Item class="CanvasGroup" referent="RBX1FB3609F2AF44AA888890B5958F8AB1A">
+				<Item class="CanvasGroup" referent="RBXA75A0889C299437094E6D5CF919A7D4E">
 					<Properties>
 						<Color3 name="GroupColor3">
 							<R>1</R>
@@ -259,7 +259,7 @@
 						<int64 name="SourceAssetId">-1</int64>
 						<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 					</Properties>
-					<Item class="Frame" referent="RBX780BA00027FF4C1BAC2065179F53C3AA">
+					<Item class="Frame" referent="RBXABD71088B09B484E8927B6938D0B71D7">
 						<Properties>
 							<token name="Style">0</token>
 							<bool name="Active">false</bool>
@@ -324,7 +324,7 @@
 							<int64 name="SourceAssetId">-1</int64>
 							<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 						</Properties>
-						<Item class="UIGradient" referent="RBX3D9D8AB31C4F45F99B82A443071D79BB">
+						<Item class="UIGradient" referent="RBX1961B467F284421390304709CF9B365D">
 							<Properties>
 								<ColorSequence name="Color">0 1 0.952941 0.454902 0 1 1 0.952941 0.454902 0 </ColorSequence>
 								<bool name="Enabled">true</bool>
@@ -347,7 +347,7 @@
 							</Properties>
 						</Item>
 					</Item>
-					<Item class="Frame" referent="RBX34C3A37329754BC481CCE25EDD9569A2">
+					<Item class="Frame" referent="RBXE0598FC539604896BB931748F17BF373">
 						<Properties>
 							<token name="Style">0</token>
 							<bool name="Active">false</bool>
@@ -412,7 +412,7 @@
 							<int64 name="SourceAssetId">-1</int64>
 							<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 						</Properties>
-						<Item class="ImageLabel" referent="RBX1540346FDAA74B7ABFA7CDDABA4BE615">
+						<Item class="ImageLabel" referent="RBXF847776F006D4212B3632614A12C8EE9">
 							<Properties>
 								<Content name="Image"><url>rbxassetid://135765544529212</url></Content>
 								<Color3 name="ImageColor3">
@@ -510,7 +510,7 @@
 								<int64 name="SourceAssetId">-1</int64>
 								<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 							</Properties>
-							<Item class="UIGradient" referent="RBX3744765020654F5896B38D064AFC75D7">
+							<Item class="UIGradient" referent="RBX9344407B989446EB9B410B16F92D0E8F">
 								<Properties>
 									<ColorSequence name="Color">0 1 0.952941 0.454902 0 1 0.72549 0.403922 0.188235 0 </ColorSequence>
 									<bool name="Enabled">true</bool>
@@ -533,7 +533,7 @@
 								</Properties>
 							</Item>
 						</Item>
-						<Item class="ImageLabel" referent="RBX33BBA8B0A814415285B6590C91280499">
+						<Item class="ImageLabel" referent="RBX1FBB7578E1D0491A8B06280489FE17B1">
 							<Properties>
 								<Content name="Image"><url>rbxassetid://135765544529212</url></Content>
 								<Color3 name="ImageColor3">
@@ -631,7 +631,7 @@
 								<int64 name="SourceAssetId">-1</int64>
 								<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 							</Properties>
-							<Item class="UIGradient" referent="RBX88C7505953A44C599EC6046D4E6EF526">
+							<Item class="UIGradient" referent="RBX599699091F2046A4BEA6757FB8DB2A9A">
 								<Properties>
 									<ColorSequence name="Color">0 1 0.807843 0.419608 0 1 0.470588 0.196078 0.105882 0 </ColorSequence>
 									<bool name="Enabled">true</bool>
