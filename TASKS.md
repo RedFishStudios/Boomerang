@@ -84,6 +84,24 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
+### T-086 · HUD menu button icons
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** GUI
+- **Files:** `Client/UI/Gui/MenuButtons/init.luau`
+
+**Problem / goal**
+The left HUD menu buttons (Shop, Daily, Skins/inventory, Stats) used emoji placeholders. Use Sol's icon images.
+
+**Done when**
+- [ ] Each button shows its image: Shop 95884415147706, Daily 126765785652910, Inventory (Skins) 123566439013193, Stats 124985088272789.
+
+**Test in Studio**
+- In the lobby, check the four left buttons show the new icons, centered in the frame window and not stretched, and still open their menus.
+
+**Notes**
+- Branch `agent/T-086-hud-button-icons`, lane `Boomerang-lanes/T-085-aim-arrows`. Not tested in Studio. Icons use `ScaleType.Fit` in the same window the emoji used.
+
 ### T-085 · Aim arrow customization (own, buy and equip aim arrows)
 - **Priority:** P1
 - **Owner:** Agent

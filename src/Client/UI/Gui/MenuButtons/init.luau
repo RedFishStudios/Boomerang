@@ -9,7 +9,7 @@
 	Only these buttons exist in the left bar. A later feature that needs one adds it to the BUTTONS table.
 
 	Art: Sol's wooden frame + recolorable grayscale interior for the buttons, and the currency bar image. The button icons
-	are still emoji placeholders; the currency coin is Sol's image. Every size, color, icon and the art's layout rectangles are in
+	and the currency coin are Sol's images. Every size, color, icon and the art's layout rectangles are in
 	the constants / BUTTONS table below.
 	Hidden while the local player is alive in the arena (it's a lobby menu; the round camera locks the mouse anyway).
 ]]
@@ -74,10 +74,10 @@ local CURRENCY_HEIGHT = math.round(CURRENCY_WIDTH * BAR_CONTENT.Height / BAR_CON
 -- // Color is a tint multiplied over the grayscale interior (average gray is about 50%), so it can't make the interior
 -- // brighter than the source art. Keep channels as high as they can go and vary the others.
 local BUTTONS = {
-	{ Id = "Shop", Text = "Shop", Icon = "🛒", Color = Color3.fromRGB(255, 120, 95), Enabled = true },
-	{ Id = "Daily", Text = "Daily", Icon = "🎁", Color = Color3.fromRGB(205, 130, 255), Enabled = true },
-	{ Id = "Skins", Text = "Skins", Icon = "🪃", Color = Color3.fromRGB(110, 175, 255), Enabled = true }, -- // T-072
-	{ Id = "Stats", Text = "Stats", Icon = "📊", Color = Color3.fromRGB(100, 255, 225), Enabled = true }, -- // T-074
+	{ Id = "Shop", Text = "Shop", Icon = "rbxassetid://95884415147706", Color = Color3.fromRGB(255, 120, 95), Enabled = true },
+	{ Id = "Daily", Text = "Daily", Icon = "rbxassetid://126765785652910", Color = Color3.fromRGB(205, 130, 255), Enabled = true },
+	{ Id = "Skins", Text = "Skins", Icon = "rbxassetid://123566439013193", Color = Color3.fromRGB(110, 175, 255), Enabled = true }, -- // T-072
+	{ Id = "Stats", Text = "Stats", Icon = "rbxassetid://124985088272789", Color = Color3.fromRGB(100, 255, 225), Enabled = true }, -- // T-074
 }
 
 -------------------------------------------------------------------------------
@@ -217,9 +217,9 @@ local function buildButton(info, layoutOrder: number, parent: Instance)
 	local frame = newImage("Frame", FRAME_IMAGE, button, 2)
 	frame.Size = UDim2.fromScale(1, 1)
 
-	local icon = newLabel("Icon", info.Icon, button)
+	local icon = newImage("Icon", info.Icon, button, 3)
+	icon.ScaleType = Enum.ScaleType.Fit
 	icon.Position, icon.Size = rectInRegion(FRAME_ICON_AREA, FRAME_FULL)
-	icon.ZIndex = 3
 
 	local label = newLabel("Label", info.Text, button)
 	label.Position, label.Size = rectInRegion(FRAME_BOARD_TEXT, FRAME_FULL)
