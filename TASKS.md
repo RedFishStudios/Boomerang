@@ -84,6 +84,35 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
+### T-085 · Aim arrow customization (own, buy and equip aim arrows)
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Server / Client / Shared / Data / GUI
+- **Files:** `Shared/Referential/AimArrows.luau`, `Shared/Library/AimArrowLibrary.luau`, `Shared/Library/CosmeticLibrary.luau`, `Server/Core/AimArrowService.luau`, `Client/Core/AimArrowController.luau`, `Client/Core/WeaponController.luau`, Shop and Inventory `Tabs/Arrows.luau`
+
+**Problem / goal**
+Players can own, buy (Shop > Arrows) and equip (Inventory > Arrows) different aim arrows, and see each other's equipped arrows. Same approach as boomerang skins.
+
+**Done when**
+- [ ] Shop Arrows tab lists the arrows on sale; buying one with Currency adds it to the Inventory Arrows tab.
+- [ ] Equipping an arrow in the Inventory changes the arrow shown while the player aims, for that player and for every other player.
+- [ ] The equipped arrow is saved (`OwnedAimArrows` / `EquippedAimArrow`).
+
+**Test in Studio**
+- Make sure `DefaultAimArrow` and `RedAimArrow` are in `ReplicatedStorage.Shared.Assets.Gui` (see Notes).
+- Cmdr: `grantaimarrow <player> RedAimArrow`, or buy it in Shop > Arrows (250 Currency placeholder; `givecurrency` to afford it).
+- Inventory > Arrows: Equip Red. Aim a throw: the arrow is red. With 2+ players (Studio Test, 2 players) each sees the other's arrow color; equip while the other player is mid-lobby and aim again to check it updates.
+- Rejoin: the equipped arrow is kept.
+
+**Notes**
+- Branch `agent/T-085-aim-arrows`, lane `Boomerang-lanes/T-085-aim-arrows`. Not tested in Studio; no syntax checker (luau/selene) was available in the session.
+- Design: aim arrows mirror skins (`AimArrows` data, `AimArrowLibrary`, `AimArrowService`, `AimArrowController`, Cmdr `grantaimarrow`). Shop listing Type `"AimArrow"`.
+- Shared cosmetics: new `CosmeticLibrary` holds the per-category `Equipped*` Player attribute names (Skin, AimArrow). The server writes them and Roblox replicates them to every client, so each client reads any player's equipped cosmetic from one place (late joiners included, no extra remote). Readers validate against the category data and fall back to the default. `SkinLibrary.ATTRIBUTE_NAME` now comes from it; skin behaviour is unchanged. I did not add a separate client-side cache table: the replicated attributes already are one.
+- `WeaponController` picks the template when a player starts aiming (`AimArrowLibrary.getTemplateFor`) and keeps it for that aim; changing arrows mid-aim applies from the next aim.
+- Assets: code expects `DefaultAimArrow` and `RedAimArrow` in `Shared/Assets/Gui`. They are **not in the repo yet** (only `AimArrow.rbxmx` is). Until they are, `AimArrowLibrary.getTemplate` warns and falls back to the old `AimArrow` template. Add the two `.rbxmx` files (and remove `AimArrow.rbxmx`) when you export them.
+- Placeholders (`-- TODO:RELEASE placeholder`): `AimArrows.Icon` is nil for both (the Shop/Inventory show a placeholder label with an emoji until a GUI image id is set); `RedAimArrow.Price = 250`; no `ProductId`.
+- New profile fields `OwnedAimArrows` and `EquippedAimArrow` (filled in by Reconcile).
+
 ### T-077 · Telekinesis pickup: steer your thrown boomerang
 - **Priority:** P2
 - **Owner:** Agent

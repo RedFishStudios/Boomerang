@@ -1,10 +1,12 @@
 local Items = require(script.Parent.Items)
 local Skins = require(script.Parent.Skins)
+local AimArrows = require(script.Parent.AimArrows)
 
--- // A shop listing points at an item (Shared/Referential/Items) or a skin (Shared/Referential/Skins)
+-- // A shop listing points at an item (Shared/Referential/Items), a skin (Shared/Referential/Skins) or an aim arrow
+-- // (Shared/Referential/AimArrows)
 export type ShopListing = {
-   Type: "Item" | "Skin",
-   Id: Items.ItemClassId | Skins.SkinId
+   Type: "Item" | "Skin" | "AimArrow",
+   Id: Items.ItemClassId | Skins.SkinId | AimArrows.AimArrowId
 }
 
 -- // Tabs are listed here in display order; a tab's content comes from the module with the same name in
@@ -41,12 +43,13 @@ local ShopItems: {
          Name = "Skins",
          Icon = "🎨", -- // PLACEHOLDER emoji, replace with an image later (the boomerang emoji isn't in Roblox's font)
       },
-      -- // TODO: not set up yet: these tabs open blank until a module with the same name is added to Shop/Tabs
+      -- // TODO: not set up yet: this tab opens blank until a module with the same name is added to Shop/Tabs
       Emotes = {
          Order = 3,
          Name = "Emotes",
          Icon = "🎵", -- // PLACEHOLDER emoji, replace with an image later
       },
+      -- // Every aim arrow on sale (Shared/Referential/AimArrows, same system as the Inventory's Arrows tab)
       Arrows = {
          Order = 4,
          Name = "Arrows",

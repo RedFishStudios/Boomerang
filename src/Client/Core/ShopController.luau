@@ -9,6 +9,7 @@ local ItemAcquiredGui = require(ReplicatedStorage.Client.UI.Gui.ItemAcquired)
 local PlayerDataController = require(ReplicatedStorage.Client.Core.PlayerDataController)
 local MarketplaceLibrary = require(ReplicatedStorage.Shared.Library.MarketplaceLibrary)
 local SkinLibrary = require(ReplicatedStorage.Shared.Library.SkinLibrary)
+local AimArrowLibrary = require(ReplicatedStorage.Shared.Library.AimArrowLibrary)
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
@@ -46,17 +47,20 @@ end
 -------------------------------------------------------------------------------
 
 -- // The ItemAcquired gui is shown by the Inventory replication listener in init()
--- // listingType is the ShopItems listing Type ("Item" by default, or "Skin")
+-- // listingType is the ShopItems listing Type ("Item" by default, "Skin" or "AimArrow")
 function ShopController.requestPurchaseItem(itemId: string, listingType: string?): boolean
    return requestPurchaseRemoteFunction:InvokeServer(itemId, listingType or "Item")
 end
 
--- // listingType is the ShopItems listing Type ("Item" by default, or "Skin")
+-- // listingType is the ShopItems listing Type ("Item" by default, "Skin" or "AimArrow")
 function ShopController.requestRobuxPurchaseItem(itemId: string, listingType: string?)
    local productId: number?
    if listingType == "Skin" then
       local skin = SkinLibrary.getSkin(itemId)
       productId = skin and skin.ProductId
+   elseif listingType == "AimArrow" then
+      local aimArrow = AimArrowLibrary.getAimArrow(itemId)
+      productId = aimArrow and aimArrow.ProductId
    else
       local itemData = Items[itemId]
       productId = itemData and itemData.ProductId

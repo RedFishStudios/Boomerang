@@ -12,13 +12,14 @@ local SkinLibrary = {}
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Skins = require(ReplicatedStorage.Shared.Referential.Skins)
+local CosmeticLibrary = require(ReplicatedStorage.Shared.Library.CosmeticLibrary)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
-SkinLibrary.ATTRIBUTE_NAME = "EquippedSkin"
+SkinLibrary.ATTRIBUTE_NAME = CosmeticLibrary.ATTRIBUTES.Skin
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES

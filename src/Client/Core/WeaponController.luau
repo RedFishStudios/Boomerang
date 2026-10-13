@@ -20,6 +20,7 @@ local WeaponLibrary = require(ReplicatedStorage.Shared.Library.WeaponLibrary)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local SkinLibrary = require(ReplicatedStorage.Shared.Library.SkinLibrary)
+local AimArrowLibrary = require(ReplicatedStorage.Shared.Library.AimArrowLibrary)
 local BoomerangTuningLibrary = require(ReplicatedStorage.Shared.Library.BoomerangTuningLibrary)
 local CharacterController = require(ReplicatedStorage.Client.Core.CharacterController)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
@@ -62,8 +63,6 @@ local thrownBoomerangDespawnedEvent = SimpleRemotes.getEvent("ThrownBoomerangDes
 local thrownWeaponReplicationEvent = SimpleRemotes.getUnreliableEvent("ThrownWeaponReplication")
 local telekinesisSteerEvent = SimpleRemotes.getUnreliableEvent("TelekinesisSteer") -- // T-077
 
-local aimArrowTemplate = ReplicatedStorage.Shared.Assets.Gui.AimArrow
-
 local UNRELIABLE_CODES = RemoteCodes.Weapon.Unreliable
 local SOFT_CORRECTION_RATE = 14
 local HARD_SNAP_DISTANCE = 14
@@ -73,6 +72,7 @@ local PORTAL_SNAPSHOT_GRACE = 0.5 -- // Seconds after the local boomerang goes t
 local aimArrows: {
    [Player]: {
       Instance: Instance,
+      Template: Model, -- // The template of the aim arrow equipped when the aim began (fixed for the whole aim)
       AimStart: number
    }
 } = {}
@@ -578,6 +578,7 @@ local function renderAimArrows()
             continue
          end
 
+         local aimArrowTemplate = arrows.Template
          local fullSize = aimArrowTemplate.PrimaryPart.Size
          local startSize = fullSize * .7
          local timeSinceAimStart = os.clock() - arrows.AimStart
@@ -643,12 +644,16 @@ local function beginAiming(player: Player)
 
    AnimationController.playCoreAnimation(player, "Charging")
 
+   -- // Every client renders each player's arrow locally, from that player's replicated EquippedAimArrow (validated by
+   -- // AimArrowLibrary, so an unknown or not-yet-replicated value shows the default arrow)
+   local aimArrowTemplate = AimArrowLibrary.getTemplateFor(player)
    local aimArrow = aimArrowTemplate:Clone()
    aimArrow.Name = `AimArrow_{player.UserId}`
    aimArrow.Parent = game.Workspace
    aimArrow.PrimaryPart.Anchored = true
    aimArrows[player] = {
       Instance = aimArrow,
+      Template = aimArrowTemplate,
       AimStart = os.clock()
    }
    renderAimArrows()

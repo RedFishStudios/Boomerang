@@ -219,6 +219,7 @@ The server is authoritative. The client may predict (e.g. boomerang throws, dash
 - `EconomyService` (server) / `EconomyController` (client) own `Currency`: use `addCurrency` / `spendCurrency`, not direct writes.
 - `ItemService` (server) / `ItemController` (client) own `Inventory` (item id -> amount). Item data is in `Shared/Referential/Items.luau`; shop layout in `ShopItems.luau` (listings point at an item or a skin).
 - **Skins:** `SkinService` (server) / `SkinController` (client) / `SkinLibrary` (shared) own `OwnedSkins` and `EquippedSkin`. Skin data is in `Shared/Referential/Skins.luau`: each skin has a `Model` (in `Shared/Assets/Tools`) and a `WeaponClass` (stats id in `Tools.luau`). Never read `GlobalConfig.ForceEquippedTool` as the tool id: use `SkinLibrary.getWeaponClass` / `getModelName`. Cmdr: `grantskin`.
+- **Aim arrows:** same shape as skins: `AimArrowService` / `AimArrowController` / `AimArrowLibrary`, data in `Shared/Referential/AimArrows.luau` (each has an `Asset` template in `Shared/Assets/Gui`), saved as `OwnedAimArrows` / `EquippedAimArrow`. `CosmeticLibrary` holds the `Equipped*` Player attribute names for every cosmetic category: the server sets them, they replicate to all clients, and readers validate and fall back to the default. Cmdr: `grantaimarrow`.
 
 ## Developer commands (Cmdr)
 

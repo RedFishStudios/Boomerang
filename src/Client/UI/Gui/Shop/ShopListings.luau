@@ -2,7 +2,7 @@
 	ShopListings
 
 	Description:
-	Turns a ShopItems listing ({ Type = "Item" | "Skin", Id }) into what the Shop shows for it. A skin's data comes from
+	Turns a ShopItems listing ({ Type = "Item" | "Skin" | "AimArrow", Id }) into what the Shop shows for it. A skin's data comes from
 	Shared/Referential/Skins (through SkinLibrary / SkinController, the same system as the Inventory's Skins tab), an
 	item's from Shared/Referential/Items. Used by every tab, so a tab only has to say which listings it has.
 ]]
@@ -15,6 +15,8 @@ local Items = require(ReplicatedStorage.Shared.Referential.Items)
 local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
 local SkinLibrary = require(ReplicatedStorage.Shared.Library.SkinLibrary)
 local SkinController = require(ReplicatedStorage.Client.Core.SkinController)
+local AimArrowLibrary = require(ReplicatedStorage.Shared.Library.AimArrowLibrary)
+local AimArrowController = require(ReplicatedStorage.Client.Core.AimArrowController)
 local RarityStyles = require(script.Parent.RarityStyles)
 
 -------------------------------------------------------------------------------
@@ -23,9 +25,11 @@ local RarityStyles = require(script.Parent.RarityStyles)
 
 export type ListingDisplay = {
 	Id: string,
-	Type: string, -- // "Item" | "Skin"
+	Type: string, -- // "Item" | "Skin" | "AimArrow"
 	Name: string,
 	ModelName: string?, -- // Model in Shared/Assets/Tools shown in the listing's viewport
+	IconImage: number?, -- // Aim arrows: GUI image asset id shown instead of a model
+	IconGlyph: string?, -- // Aim arrows: placeholder label shown while there is no image yet
 	Rarity: string,
 	Price: number, -- // Currency price
 	ProductId: number?, -- // Robux developer product, if it can be bought with Robux
@@ -65,6 +69,24 @@ function ShopListings.getDisplay(listing: { Type: string, Id: string }): Listing
 			Price = skin.Price,
 			ProductId = skin.ProductId,
 			Owned = SkinController.ownsSkin(listing.Id),
+		}
+	end
+
+	if listing.Type == "AimArrow" then
+		local aimArrow = AimArrowLibrary.getAimArrow(listing.Id)
+		if not aimArrow or aimArrow.OffSale then
+			return nil
+		end
+		return {
+			Id = listing.Id,
+			Type = listing.Type,
+			Name = aimArrow.Name,
+			IconImage = aimArrow.Icon,
+			IconGlyph = aimArrow.PlaceholderGlyph or "?",
+			Rarity = aimArrow.Rarity or RarityStyles.DEFAULT_RARITY,
+			Price = aimArrow.Price,
+			ProductId = aimArrow.ProductId,
+			Owned = AimArrowController.ownsAimArrow(listing.Id),
 		}
 	end
 

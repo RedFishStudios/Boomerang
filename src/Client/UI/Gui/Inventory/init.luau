@@ -34,6 +34,8 @@ export type InventoryItem = {
 	Name: string,
 	Rarity: string?, -- // Shown under the name in the Detail panel
 	ModelName: string?, -- // Model in Shared/Assets/Tools shown in the viewports (posed by its Tools entry)
+	IconImage: number?, -- // Instead of a model (aim arrows): GUI image asset id
+	IconGlyph: string?, -- // Instead of a model (aim arrows): placeholder label shown while there is no image yet
 	Owned: boolean,
 	Equipped: boolean,
 }
@@ -143,10 +145,15 @@ local function getEquippedItem(): InventoryItem?
 	return nil
 end
 
-local function showModel(viewport: ViewportFrame, modelName: string?)
-	if modelName then
-		ItemViewport.renderTool(viewport, modelName)
+-- // An item shows as a model render, or (aim arrows) as an image / placeholder label
+local function showItem(viewport: ViewportFrame, item: InventoryItem?)
+	if item and item.ModelName then
+		ItemViewport.setImagePlaceholder(viewport) -- // Removes a leftover placeholder from the previous item
+		ItemViewport.renderTool(viewport, item.ModelName)
+	elseif item and item.IconGlyph then
+		ItemViewport.setImagePlaceholder(viewport, item.IconImage, item.IconGlyph)
 	else
+		ItemViewport.setImagePlaceholder(viewport)
 		ItemViewport.clear(viewport)
 	end
 end
@@ -161,7 +168,7 @@ local function updateDetail()
 	local itemId = item and item.Id
 	if itemId ~= detailItemId then
 		detailItemId = itemId
-		showModel(DetailPanel.Viewport, item and item.ModelName)
+		showItem(DetailPanel.Viewport, item)
 	end
 end
 
@@ -221,7 +228,7 @@ local function refreshListings()
 		listing.Name = item.Id
 		listing.LayoutOrder = order
 		listing.ItemName.Text = item.Name
-		showModel(listing.Viewport, item.ModelName)
+		showItem(listing.Viewport, item)
 
 		if item.Owned then
 			listing.MouseButton1Click:Connect(function()

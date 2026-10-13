@@ -174,4 +174,47 @@ function ItemViewport.clear(viewport: ViewportFrame)
 	clear(viewport)
 end
 
+local IMAGE_PLACEHOLDER_NAME = "ImagePlaceholder"
+
+-- // For items that aren't a model (aim arrows): fills the viewport with an ImageLabel showing `image` (an asset id), or, while
+-- // there is no art yet, a placeholder label showing `glyph`. Pass nothing to remove it (and then render a model as usual).
+-- // IMAGE PLACEHOLDER: replace by setting the item's Icon (e.g. AimArrows.Icon) once Sol's GUI image exists.
+function ItemViewport.setImagePlaceholder(viewport: ViewportFrame, image: number?, glyph: string?, label: string?)
+	local existing = viewport:FindFirstChild(IMAGE_PLACEHOLDER_NAME)
+	if image == nil and glyph == nil then
+		if existing then
+			existing:Destroy()
+		end
+		return
+	end
+
+	clear(viewport)
+	local imageLabel = existing
+	if not imageLabel then
+		imageLabel = Instance.new("ImageLabel")
+		imageLabel.Name = IMAGE_PLACEHOLDER_NAME
+		imageLabel.BackgroundTransparency = 1
+		imageLabel.Size = UDim2.fromScale(1, 1)
+		imageLabel.ScaleType = Enum.ScaleType.Fit
+		imageLabel.ZIndex = viewport.ZIndex + 1
+		imageLabel.Parent = viewport
+
+		local text = Instance.new("TextLabel")
+		text.Name = "Glyph"
+		text.BackgroundTransparency = 1
+		text.AnchorPoint = Vector2.new(0.5, 0.5)
+		text.Position = UDim2.fromScale(0.5, 0.5)
+		text.Size = UDim2.fromScale(0.8, 0.8)
+		text.TextScaled = true
+		text.Font = Enum.Font.GothamBold
+		text.TextColor3 = Color3.new(1, 1, 1)
+		text.ZIndex = imageLabel.ZIndex
+		text.Parent = imageLabel
+	end
+
+	imageLabel.Image = if image then `rbxassetid://{image}` else ""
+	imageLabel.Glyph.Text = if image then "" else (glyph or "?")
+	imageLabel.Glyph.Visible = image == nil
+end
+
 return ItemViewport

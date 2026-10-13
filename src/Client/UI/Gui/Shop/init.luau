@@ -396,6 +396,9 @@ local function createListing(display: ShopListings.ListingDisplay, order: number
 	}, { new("UIAspectRatioConstraint", {}) })
 	if display.ModelName then
 		ItemViewport.renderTool(viewport, display.ModelName)
+	elseif display.IconGlyph then
+		-- // IMAGE PLACEHOLDER (aim arrows): a label until the item has a GUI image (AimArrows.Icon)
+		ItemViewport.setImagePlaceholder(viewport, display.IconImage, display.IconGlyph)
 	end
 
 	local giftButton = new("ImageButton", {
