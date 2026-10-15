@@ -500,24 +500,14 @@ function ClashedWeaponLogic.applyClash(player: Player, clashedWeaponData: Clashe
 			return
 		end
 
-		-- // Optional rule (GlobalConfig.DyingBoomerangCanRecoverInRange, off by default): a boomerang losing momentum
-		-- // because it was out of range resumes returning if it comes back within range. Server decides; Boomerang sets the hook.
-		if isServer and GlobalConfig.DyingBoomerangCanRecoverInRange and clashedWeaponData.DiedOutOfRange
-			and clashedWeaponData.State == ClashedWeapons.StateEnum.Clashed and ClashedWeaponLogic.onDyingInRange then
+		-- // Failsafe (GlobalConfig.BoomerangAutoRecallRange): a dying boomerang that ends up far beyond its player (out of the
+		-- // map bounds) returns on its own. Being far away never makes it die, and being close never revives it.
+		if isServer and clashedWeaponData.State == ClashedWeapons.StateEnum.Clashed and ClashedWeaponLogic.onBeyondAutoRecallRange then
 			local character = player.Character
 			local rootPart = character and character.PrimaryPart
-			if rootPart and getHorizontalDistance(currentPivot.Position, rootPart.Position) <= GlobalConfig.BoomerangRecallRange then
-				-- // Line of sight too, the same rule as auto-return (T-063): nothing solid between it and the player
-				local toPlayer = rootPart.Position - currentPivot.Position
-				local sightFilter: { Instance } = { Characters, character }
-				if clashedWeaponData.Host then
-					table.insert(sightFilter, clashedWeaponData.Host)
-				end
-				local sightParams = RaycastsUtility.getProjectileObstructionParams(sightFilter)
-				if RaycastsUtility.raycastProjectileObstruction(currentPivot.Position, toPlayer, toPlayer.Magnitude, sightParams) == nil then
-					ClashedWeaponLogic.onDyingInRange(player, clashedWeaponData)
-					return
-				end
+			if rootPart and getHorizontalDistance(currentPivot.Position, rootPart.Position) > GlobalConfig.BoomerangAutoRecallRange then
+				ClashedWeaponLogic.onBeyondAutoRecallRange(player, clashedWeaponData)
+				return
 			end
 		end
 

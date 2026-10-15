@@ -109,7 +109,6 @@ type ClashInitOptions = {
    Direction: Vector3,
    Speed: number?,
    Position: Vector3?,
-   DiedOutOfRange: boolean?, -- // Set by autoRecallOrDie (see GlobalConfig.DyingBoomerangCanRecoverInRange)
 }
 
 -- // Flatten a direction vector
@@ -306,14 +305,15 @@ local function getHorizontalDistance(fromPosition: Vector3, toPosition: Vector3)
    return delta.Magnitude
 end
 
--- // True if the position is within the player's recall range (GlobalConfig.BoomerangRecallRange, horizontal distance)
-local function isWithinRecallRange(player: Player, position: Vector3): boolean
+-- // True if the position is farther from the player than the automatic recall range (GlobalConfig.BoomerangAutoRecallRange,
+-- // horizontal distance): a failsafe for a boomerang that ends up out of the map bounds
+local function isBeyondAutoRecallRange(player: Player, position: Vector3): boolean
    local character = player.Character
    local rootPart = character and character.PrimaryPart
    if not rootPart then
       return false
    end
-   return getHorizontalDistance(position, rootPart.Position) <= GlobalConfig.BoomerangRecallRange
+   return getHorizontalDistance(position, rootPart.Position) > GlobalConfig.BoomerangAutoRecallRange
 end
 
 -- // True if nothing solid is between the position and the player (the same obstructions the boomerang collides with;
@@ -824,7 +824,14 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
 
       local rayDistance = speed * deltaTime
 
-      -- Distance-based recall
+      -- // Failsafe: far beyond the player (out of the map bounds), it returns on its own. Never dies for being far away.
+      if shouldRecallTransitions and isBeyondAutoRecallRange(player, rayOrigin) then
+         Boomerang.recall(player, boomerangId, toolData, thrownWeaponData)
+         return true
+      end
+
+      -- Distance-based recall: the end of its outward flight is the normal turnaround, so it always returns from here
+      -- (dying is only decided when it runs out of energy, below)
       if distanceTraveled >= (if bounced then bounceDistance else initThrowDistance) then
          if shouldRecallTransitions then
             if isServer and WeaponService then
@@ -833,10 +840,8 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
             if ThrownWeapons.Data[player] ~= thrownWeaponData then
                return true -- // Removed by an event-point effect (e.g. explosive boomerang)
             end
-            if Boomerang.autoRecallOrDie(player, boomerangId, toolData, thrownWeaponData, rayOrigin, direction, speed) then
-               return true
-            end
-            -- // Client, out of range: keep flying until the server's decision arrives
+            Boomerang.recall(player, boomerangId, toolData, thrownWeaponData)
+            return true
          end
       end
 
@@ -1017,13 +1022,14 @@ function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapo
    end
 end
 
--- // Where a thrown boomerang would start returning on its own: returns if it's within the player's recall range AND has
--- // a clear line of sight to the player (T-063), otherwise loses momentum and drops into the dead state (the clash path).
--- // Only the server decides death: out of range on the client, nothing happens (returns false) and the boomerang keeps
--- // flying until the server's Clashed snapshot arrives (WeaponController.onSnapshot then calls clash), so a disagreement
--- // at the range edge can't leave the client showing a dead boomerang the server is recalling.
+-- // A thrown boomerang that has run out of energy: returns on its own if there is a clear line of sight to its player (one
+-- // ray, T-063), otherwise loses momentum and drops into the dead state (the clash path) and must be manually recalled.
+-- // Distance from the player plays no part (see GlobalConfig.BoomerangAutoRecallRange for the out-of-bounds failsafe).
+-- // Only the server decides death: with no line of sight on the client, nothing happens (returns false) and the boomerang
+-- // keeps flying until the server's Clashed snapshot arrives (WeaponController.onSnapshot then calls clash), so a
+-- // disagreement can't leave the client showing a dead boomerang the server is recalling.
 function Boomerang.autoRecallOrDie(player: Player, boomerangId: string, toolData: Tools.Tool, thrownWeaponData: ThrownWeapons.Data, position: Vector3, direction: Vector3, speed: number): boolean
-   if isWithinRecallRange(player, position) and hasLineOfSightToPlayer(player, position, thrownWeaponData) then
+   if hasLineOfSightToPlayer(player, position, thrownWeaponData) then
       Boomerang.recall(player, boomerangId, toolData, thrownWeaponData)
       return true
    end
@@ -1034,14 +1040,13 @@ function Boomerang.autoRecallOrDie(player: Player, boomerangId: string, toolData
       Direction = direction,
       Speed = speed,
       Position = position,
-      DiedOutOfRange = true,
    })
    return true
 end
 
 -- // Manual recall of a dying (Clashed) or dead boomerang: it becomes a thrown boomerang again and returns.
 -- // requiresHold: it keeps returning only while the player holds recall (Boomerang.stopRecallFromDead puts it back).
--- // Server: called from WeaponService on recall press (and by the DyingBoomerangCanRecoverInRange check, without hold).
+-- // Server: called from WeaponService on recall press (and by the out-of-bounds failsafe / sliding-away hooks, without hold).
 -- // Client: called from WeaponController.onSnapshot when the server's snapshot says it is Returning.
 function Boomerang.recallFromClashed(player: Player, clashedWeaponData: ClashedWeapons.Data, requiresHold: boolean)
    if ThrownWeapons.Data[player] or ClashedWeapons.Data[player] ~= clashedWeaponData then
@@ -1144,7 +1149,6 @@ function Boomerang.clash(player: Player, thrownWeaponData: ThrownWeapons.Data, o
       ReuseEquippedHost = thrownWeaponData.ReuseEquippedHost,
       ExistingHost = thrownWeaponData.ExistingHost,
       VisualRotation = thrownWeaponData.VisualRotation,
-      DiedOutOfRange = options.DiedOutOfRange,
    }
 
    thrownWeaponData.Host = nil
@@ -1464,8 +1468,9 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
    end
 end
 
--- // Hook for the optional "dying boomerang recovers in range" rule (Clashed.luau can't require this module)
-ClashedWeaponLogic.onDyingInRange = function(player: Player, clashedWeaponData: ClashedWeapons.Data)
+-- // Hook: a dying boomerang beyond GlobalConfig.BoomerangAutoRecallRange (out of bounds failsafe) returns on its own
+-- // (Clashed.luau can't require this module)
+ClashedWeaponLogic.onBeyondAutoRecallRange = function(player: Player, clashedWeaponData: ClashedWeapons.Data)
    Boomerang.recallFromClashed(player, clashedWeaponData, false)
 end
 

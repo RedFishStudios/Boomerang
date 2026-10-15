@@ -24,14 +24,12 @@ local GlobalConfig = {
    TelekinesisSteerInfluence = 2, -- // T-077: how strongly a Telekinesis boomerang turns toward the owner's aim each second (bias, not full control). Tunable live via Cmdr `tune TelekinesisInfluence`.
    ElectricChainRadius = 15, -- // Studs: an Electric boomerang elimination chains to every enemy within this distance of the victim
    ElectricChainLinkDelay = 0.05, -- // Seconds between each link of an Electric chain
-   -- // Recall range: when a thrown boomerang would start returning on its own (end of its flight, or out of bounces),
-   -- // it only does so if it's within this many studs (horizontally) of its player and can see them (nothing solid in
-   -- // between, T-063). Otherwise it loses momentum and
-   -- // drops into the dead state, like after a clash, and must be manually recalled or picked up.
-   BoomerangRecallRange = 30,
-   -- // If true, a boomerang that is losing momentum because it was out of range resumes returning automatically when it
-   -- // comes back into range and can see its player (line of sight, as for auto-return). On since 2026-10-03 (Sol, T-063).
-   DyingBoomerangCanRecoverInRange = true,
+   -- // Automatic recall range (a failsafe, not a gameplay rule): a boomerang that gets more than this many studs
+   -- // (horizontally) from its player, thrown or still dying, starts returning on its own instead of dying. It only exists
+   -- // for a boomerang thrown out of the map bounds. About 4x the old death range (30).
+   BoomerangAutoRecallRange = 120,
+   -- // When a thrown boomerang runs out of energy (bounces) it returns on its own if nothing solid is between it and its
+   -- // player (one ray), otherwise it drops into the dead state and must be manually recalled or picked up.
    -- // A dying boomerang that keeps sliding away instead of landing returns to its player on its own (automatic recall,
    -- // no manual recall needed) once either limit is hit (T-062). Previously it snapped straight back at 100 studs.
    DyingBoomerangNoGroundRecallSeconds = 0.75, -- // Seconds of sliding with nothing below to land on
