@@ -218,7 +218,7 @@ function ShopBuilder.create(config: ShopConfig)
 			Name = "Title",
 			Text = config.Title,
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.068),
+			Position = UDim2.fromScale(0.5, 0.092),
 			Size = UDim2.fromScale(0.3, 0.1),
 			TextColor3 = TITLE_COLOR,
 		})
@@ -244,15 +244,16 @@ function ShopBuilder.create(config: ShopConfig)
 		TabsFrame = new("Frame", {
 			Name = "Tabs",
 			BackgroundTransparency = 1,
-			Position = UDim2.fromScale(0.098, 0.13),
-			Size = UDim2.fromScale(0.8, 0.08),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.173), -- // Centered in the tab strip of the frame art
+			Size = UDim2.fromScale(0.83, 0.095),
 			ZIndex = 2,
 		}, {
 			new("UIListLayout", {
 				FillDirection = Enum.FillDirection.Horizontal,
 				SortOrder = Enum.SortOrder.LayoutOrder,
 				Padding = UDim.new(0.01, 0),
-				HorizontalAlignment = Enum.HorizontalAlignment.Left,
+				HorizontalAlignment = Enum.HorizontalAlignment.Center,
 				VerticalAlignment = Enum.VerticalAlignment.Center,
 			}),
 		})
@@ -286,8 +287,8 @@ function ShopBuilder.create(config: ShopConfig)
 			Name = "Amount",
 			Text = "0",
 			AnchorPoint = Vector2.new(0, 0.5),
-			Position = UDim2.fromScale(0.34, 0.5),
-			Size = UDim2.fromScale(0.52, 0.6),
+			Position = UDim2.fromScale(0.36, 0.5),
+			Size = UDim2.fromScale(0.5, 0.56),
 			TextXAlignment = Enum.TextXAlignment.Left,
 		}, { createStroke(OUTLINE_COLOR) })
 
@@ -296,8 +297,8 @@ function ShopBuilder.create(config: ShopConfig)
 			Image = `rbxassetid://{Icons.ShopBalanceFrame}`,
 			BackgroundTransparency = 1,
 			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.fromScale(0.5, 0.892),
-			Size = UDim2.fromScale(0.32, 0.098),
+			Position = UDim2.fromScale(0.5, 0.876),
+			Size = UDim2.fromScale(0.42, 0.13),
 			ZIndex = 3,
 		}, {
 			new("ImageLabel", {
@@ -306,8 +307,8 @@ function ShopBuilder.create(config: ShopConfig)
 				BackgroundTransparency = 1,
 				ScaleType = Enum.ScaleType.Fit,
 				AnchorPoint = Vector2.new(0, 0.5),
-				Position = UDim2.fromScale(0.1, 0.5),
-				Size = UDim2.fromScale(0.2, 0.72),
+				Position = UDim2.fromScale(0.12, 0.5),
+				Size = UDim2.fromScale(0.2, 0.64),
 				ZIndex = 4,
 			}, { new("UIAspectRatioConstraint", {}) }),
 			BalanceAmount,
@@ -349,7 +350,7 @@ function ShopBuilder.create(config: ShopConfig)
 			ImageColor3 = UNSELECTED_TAB_COLOR,
 			BackgroundTransparency = 1,
 			AutoButtonColor = false,
-			Size = UDim2.fromScale(0.192, 1),
+			Size = UDim2.fromScale(0.31, 1),
 			ZIndex = 2,
 		}, {
 			new("UIScale", {}),
@@ -360,14 +361,14 @@ function ShopBuilder.create(config: ShopConfig)
 				Text = tabInfo.Icon,
 				AnchorPoint = Vector2.new(0, 0.5),
 				Position = UDim2.fromScale(0.07, 0.48),
-				Size = UDim2.fromScale(0.2, 0.62),
+				Size = UDim2.fromScale(0.16, 0.7),
 			}, { new("UIAspectRatioConstraint", {}) }),
 			createLabel({
 				Name = "Label",
 				Text = tabInfo.Name,
 				AnchorPoint = Vector2.new(0.5, 0.5),
-				Position = UDim2.fromScale(0.62, 0.5),
-				Size = UDim2.fromScale(0.58, 0.5),
+				Position = UDim2.fromScale(0.6, 0.5),
+				Size = UDim2.fromScale(0.62, 0.58),
 			}, { createStroke(OUTLINE_COLOR) }),
 		})
 	end
