@@ -38,6 +38,12 @@ local GlobalConfig = {
    DyingBoomerangMaxSlideDistance = 100, -- // Studs (horizontal) from where it started dying
    -- // Manual recall of a dying/dead boomerang (held recall): slower, heavier, sluggish lift with a visual tilt
    ManualRecallMomentumMultiplier = 0.15, -- // How quickly it accelerates/turns toward the player (1 = normal recall)
+   -- // Manual recall speed-up: the boomerang starts at ManualRecallRampStartFraction of its max recall speed and builds up
+   -- // along a curve that stays slow at first and then climbs steeply, reaching max speed after ManualRecallRampSeconds.
+   -- // speed = max * (StartFraction + (1 - StartFraction) * (t / RampSeconds) ^ RampPower). Tunable live via Cmdr `tune RecallRampTime` / `RecallRampPower`.
+   ManualRecallRampSeconds = 0.7, -- // Seconds from the start of a manual recall until it reaches max speed
+   ManualRecallRampPower = 3, -- // Curve steepness: 1 = steady speed-up, higher = slower start and a sharper late surge
+   ManualRecallRampStartFraction = 0.12, -- // Fraction of max recall speed at the moment the recall starts
    ManualRecallLiftRate = 2.5, -- // How quickly it rises to hand height (normal from-ground lift is 8)
    ManualRecallMaxTiltDegrees = 35, -- // Visual tilt toward the player while it's being lifted
    ManualRecallHighlightFadeOutSeconds = 0.6, -- // The dead boomerang's highlight fades this slowly when a manual recall starts (normal fade: 0.1)

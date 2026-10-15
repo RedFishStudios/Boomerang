@@ -1188,11 +1188,15 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
    local isManualRecallFromDead = thrownWeaponData.RecallFromDead == true
    local liftRate = if isManualRecallFromDead then GlobalConfig.ManualRecallLiftRate else RECALL_FROM_DEAD_LIFT_RATE
    local maximumSpeed, momentumMultiplier = 0, 1
+   local rampSeconds, rampPower = GlobalConfig.ManualRecallRampSeconds, GlobalConfig.ManualRecallRampPower
+   local rampElapsed = 0 -- // Seconds since this recall started (drives the manual recall's speed-up curve)
    -- // Tools/GlobalConfig values unless changed with Cmdr; re-read every frame so live changes apply mid-recall (T-054)
    local function updateRecallTuning()
       if isManualRecallFromDead then
          maximumSpeed = BoomerangTuningLibrary.get(tuningToolId, "RecallSpeed") * returnSpeedMultiplier
          momentumMultiplier = BoomerangTuningLibrary.get(tuningToolId, "RecallAcceleration")
+         rampSeconds = math.max(BoomerangTuningLibrary.get(tuningToolId, "RecallRampTime"), 0.01)
+         rampPower = BoomerangTuningLibrary.get(tuningToolId, "RecallRampPower")
       else
          maximumSpeed = BoomerangTuningLibrary.get(tuningToolId, "ThrowSpeed") * returnSpeedMultiplier
          momentumMultiplier = 1
@@ -1240,6 +1244,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       end
 
       updateRecallTuning()
+      rampElapsed += deltaTime
 
       -- // Prioritize movement towards the player
       local hostPivot = getWeaponCFrame(thrownWeaponData)
@@ -1302,7 +1307,14 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       -- // Far away this changes nothing (the normal rate is already higher); it only tightens the turn up close.
       local forwardSpeed = travelVelocity:Dot(targetDirection)
       local sidewaysVelocity = travelVelocity - targetDirection * forwardSpeed
-      forwardSpeed += (maximumSpeed - forwardSpeed) * transitionAlpha
+      if isManualRecallFromDead then
+         -- // Manual recall: visibly slow at first, then a steep surge up to full speed (convex curve over time, not a lag toward max)
+         local rampAlpha = math.clamp(rampElapsed / rampSeconds, 0, 1)
+         local startFraction = GlobalConfig.ManualRecallRampStartFraction
+         forwardSpeed = maximumSpeed * (startFraction + (1 - startFraction) * rampAlpha ^ rampPower)
+      else
+         forwardSpeed += (maximumSpeed - forwardSpeed) * transitionAlpha
+      end
       local steerRate = math.max(transitionRate, RETURN_STEER_TIGHTNESS * travelVelocity.Magnitude / math.max(horizontalDistance, catchRadius))
       sidewaysVelocity *= math.exp(-steerRate * deltaTime)
       travelVelocity = targetDirection * forwardSpeed + sidewaysVelocity

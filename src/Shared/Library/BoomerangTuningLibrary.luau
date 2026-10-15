@@ -28,7 +28,7 @@ local ATTRIBUTE_PREFIX = "BT"
 -- TYPES
 -------------------------------------------------------------------------------
 
-export type Setting = "ThrowSpeed" | "ThrowDistance" | "RecallSpeed" | "RecallAcceleration" | "ChargeTime" | "AimWalkSpeed" | "TelekinesisInfluence"
+export type Setting = "ThrowSpeed" | "ThrowDistance" | "RecallSpeed" | "RecallAcceleration" | "RecallRampTime" | "RecallRampPower" | "ChargeTime" | "AimWalkSpeed" | "TelekinesisInfluence"
 
 type SettingInfo = {
 	Description: string,
@@ -40,7 +40,7 @@ type SettingInfo = {
 -------------------------------------------------------------------------------
 
 -- // Every tunable value, in display order. The names are what Cmdr shows (and autocompletes).
-BoomerangTuningLibrary.SETTING_ORDER = { "ThrowSpeed", "ThrowDistance", "RecallSpeed", "RecallAcceleration", "ChargeTime", "AimWalkSpeed", "TelekinesisInfluence" } :: { Setting }
+BoomerangTuningLibrary.SETTING_ORDER = { "ThrowSpeed", "ThrowDistance", "RecallSpeed", "RecallAcceleration", "RecallRampTime", "RecallRampPower", "ChargeTime", "AimWalkSpeed", "TelekinesisInfluence" } :: { Setting }
 
 BoomerangTuningLibrary.SETTINGS = {
 	ThrowSpeed = {
@@ -62,9 +62,22 @@ BoomerangTuningLibrary.SETTINGS = {
 		end,
 	},
 	RecallAcceleration = {
-		Description = "how quickly a manual recall reaches its max speed (1 = normal recall)",
+		Description = "how quickly a manual recall turns toward the player (1 = normal recall)",
 		getDefault = function(_toolData)
 			return GlobalConfig.ManualRecallMomentumMultiplier
+		end,
+	},
+	-- // Manual recall speed-up curve (see GlobalConfig.ManualRecallRampSeconds)
+	RecallRampTime = {
+		Description = "seconds for a manual recall to build up to max speed",
+		getDefault = function(_toolData)
+			return GlobalConfig.ManualRecallRampSeconds
+		end,
+	},
+	RecallRampPower = {
+		Description = "manual recall speed-up curve (1 = steady, higher = slower start and sharper surge)",
+		getDefault = function(_toolData)
+			return GlobalConfig.ManualRecallRampPower
 		end,
 	},
 	-- // T-066: seconds of holding aim until the throw is at max power (also the aim arrow's fill time)
