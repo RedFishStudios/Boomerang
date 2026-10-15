@@ -397,7 +397,7 @@ local function createListing(display: ShopListings.ListingDisplay, order: number
 	if display.ModelName then
 		ItemViewport.renderTool(viewport, display.ModelName)
 	elseif display.IconGlyph then
-		-- // IMAGE PLACEHOLDER (aim arrows): a label until the item has a GUI image (AimArrows.Icon)
+		-- // IMAGE PLACEHOLDER (charge up effects): a label until the item has a GUI image (ChargeUpEffects.Icon)
 		ItemViewport.setImagePlaceholder(viewport, display.IconImage, display.IconGlyph)
 	end
 

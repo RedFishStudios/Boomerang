@@ -176,9 +176,9 @@ end
 
 local IMAGE_PLACEHOLDER_NAME = "ImagePlaceholder"
 
--- // For items that aren't a model (aim arrows): fills the viewport with an ImageLabel showing `image` (an asset id), or, while
+-- // For items that aren't a model (charge up effects): fills the viewport with an ImageLabel showing `image` (an asset id), or, while
 -- // there is no art yet, a placeholder label showing `glyph`. Pass nothing to remove it (and then render a model as usual).
--- // IMAGE PLACEHOLDER: replace by setting the item's Icon (e.g. AimArrows.Icon) once Sol's GUI image exists.
+-- // IMAGE PLACEHOLDER: replace by setting the item's Icon (e.g. ChargeUpEffects.Icon) once Sol's GUI image exists.
 function ItemViewport.setImagePlaceholder(viewport: ViewportFrame, image: number?, glyph: string?, label: string?)
 	local existing = viewport:FindFirstChild(IMAGE_PLACEHOLDER_NAME)
 	if image == nil and glyph == nil then

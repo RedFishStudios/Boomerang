@@ -2,8 +2,8 @@
 	Arrows tab (Inventory)
 
 	Description:
-	The Arrows tab of the Inventory menu: lists the aim arrows the player owns (Shared/Referential/AimArrows).
-	Equip equips the selected arrow. Aim arrows have no GUI image yet, so their listings show a placeholder label
+	The Arrows tab of the Inventory menu: lists the charge up effects the player owns (Shared/Referential/ChargeUpEffects).
+	Equip equips the selected arrow. Charge up effects have no GUI image yet, so their listings show a placeholder label
 	(ItemViewport.setImagePlaceholder) until an arrow's Icon is set. Follows the InventoryTab shape in Inventory/init.luau.
 ]]
 
@@ -11,40 +11,40 @@ local ArrowsTab = {}
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local AimArrowLibrary = require(ReplicatedStorage.Shared.Library.AimArrowLibrary)
-local AimArrowController = require(ReplicatedStorage.Client.Core.AimArrowController)
+local ChargeUpEffectLibrary = require(ReplicatedStorage.Shared.Library.ChargeUpEffectLibrary)
+local ChargeUpEffectController = require(ReplicatedStorage.Client.Core.ChargeUpEffectController)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
-local DEFAULT_RARITY = "Common" -- // When the aim arrow has no Rarity
+local DEFAULT_RARITY = "Common" -- // When the charge up effect has no Rarity
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
 -------------------------------------------------------------------------------
 
-ArrowsTab.Title = "Your Aim Arrows"
+ArrowsTab.Title = "Your Charge Up Effects"
 
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
 function ArrowsTab.getItems()
-	local equippedId = AimArrowController.getEquippedId()
+	local equippedId = ChargeUpEffectController.getEquippedId()
 	local items = {}
 
-	for _, aimArrowId in AimArrowLibrary.getSortedIds() do
-		local aimArrow = AimArrowLibrary.getAimArrow(aimArrowId)
-		if aimArrow and AimArrowController.ownsAimArrow(aimArrowId) then
+	for _, chargeUpEffectId in ChargeUpEffectLibrary.getSortedIds() do
+		local chargeUpEffect = ChargeUpEffectLibrary.getChargeUpEffect(chargeUpEffectId)
+		if chargeUpEffect and ChargeUpEffectController.ownsChargeUpEffect(chargeUpEffectId) then
 			table.insert(items, {
-				Id = aimArrowId,
-				Name = aimArrow.Name,
-				Rarity = aimArrow.Rarity or DEFAULT_RARITY,
-				IconImage = aimArrow.Icon,
-				IconGlyph = aimArrow.PlaceholderGlyph or "?",
+				Id = chargeUpEffectId,
+				Name = chargeUpEffect.Name,
+				Rarity = chargeUpEffect.Rarity or DEFAULT_RARITY,
+				IconImage = chargeUpEffect.Icon,
+				IconGlyph = chargeUpEffect.PlaceholderGlyph or "?",
 				Owned = true,
-				Equipped = aimArrowId == equippedId,
+				Equipped = chargeUpEffectId == equippedId,
 			})
 		end
 	end
@@ -53,15 +53,15 @@ function ArrowsTab.getItems()
 end
 
 -- // Yields until the server answers
-function ArrowsTab.equipItem(aimArrowId: string)
-	if AimArrowController.ownsAimArrow(aimArrowId) and AimArrowController.getEquippedId() ~= aimArrowId then
-		AimArrowController.requestEquip(aimArrowId)
+function ArrowsTab.equipItem(chargeUpEffectId: string)
+	if ChargeUpEffectController.ownsChargeUpEffect(chargeUpEffectId) and ChargeUpEffectController.getEquippedId() ~= chargeUpEffectId then
+		ChargeUpEffectController.requestEquip(chargeUpEffectId)
 	end
 end
 
 function ArrowsTab.subscribe(onChanged: () -> ())
-	AimArrowController.AimArrowGrantedTasks:Add(onChanged)
-	AimArrowController.AimArrowEquippedTasks:Add(onChanged)
+	ChargeUpEffectController.ChargeUpEffectGrantedTasks:Add(onChanged)
+	ChargeUpEffectController.ChargeUpEffectEquippedTasks:Add(onChanged)
 end
 
 return ArrowsTab

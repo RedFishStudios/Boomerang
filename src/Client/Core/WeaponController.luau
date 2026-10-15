@@ -20,7 +20,7 @@ local WeaponLibrary = require(ReplicatedStorage.Shared.Library.WeaponLibrary)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local SkinLibrary = require(ReplicatedStorage.Shared.Library.SkinLibrary)
-local AimArrowLibrary = require(ReplicatedStorage.Shared.Library.AimArrowLibrary)
+local ChargeUpEffectLibrary = require(ReplicatedStorage.Shared.Library.ChargeUpEffectLibrary)
 local BoomerangTuningLibrary = require(ReplicatedStorage.Shared.Library.BoomerangTuningLibrary)
 local CharacterController = require(ReplicatedStorage.Client.Core.CharacterController)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
@@ -69,7 +69,7 @@ local HARD_SNAP_DISTANCE = 14
 local MAX_SNAPSHOT_CATCHUP = 0.35
 local PORTAL_SNAPSHOT_GRACE = 0.5 -- // Seconds after the local boomerang goes through a portal during which far-off snapshots are treated as stale
 
-local aimArrows: {
+local chargeUpEffects: {
    [Player]: {
       Instance: Instance,
       Template: Model, -- // The template of the aim arrow equipped when the aim began (fixed for the whole aim)
@@ -441,15 +441,15 @@ end
 
 -- // T-060: bumped on every stop/begin, so a beginAiming that yielded (waiting for the character model) can tell it
 -- // was overtaken by a stop and must not create a leftover arrow
-local aimArrowGeneration: { [Player]: number } = {}
+local chargeUpEffectGeneration: { [Player]: number } = {}
 
 function stopAiming(player: Player)
-   aimArrowGeneration[player] = (aimArrowGeneration[player] or 0) + 1
+   chargeUpEffectGeneration[player] = (chargeUpEffectGeneration[player] or 0) + 1
    AnimationController.stopCoreAnimation(player, "Charging")
-   local aimArrow = aimArrows[player]
-   if aimArrow then
-      aimArrow.Instance:Destroy()
-      aimArrows[player] = nil
+   local chargeUpEffect = chargeUpEffects[player]
+   if chargeUpEffect then
+      chargeUpEffect.Instance:Destroy()
+      chargeUpEffects[player] = nil
    end
 end
 
@@ -548,19 +548,19 @@ local function observeRemoteWeaponLock(player: Player)
    end)
 end
 
-local aimArrowConnection: RBXScriptConnection? = nil
+local chargeUpEffectConnection: RBXScriptConnection? = nil
 
-local function renderAimArrows()
-   if aimArrowConnection then
+local function renderChargeUpEffects()
+   if chargeUpEffectConnection then
       return
    end
-   aimArrowConnection = RunService.RenderStepped:Connect(function()
-      if not next(aimArrows) then
-         aimArrowConnection:Disconnect()
-         aimArrowConnection = nil
+   chargeUpEffectConnection = RunService.RenderStepped:Connect(function()
+      if not next(chargeUpEffects) then
+         chargeUpEffectConnection:Disconnect()
+         chargeUpEffectConnection = nil
          return
       end
-      for p, arrows in pairs(aimArrows) do
+      for p, arrows in pairs(chargeUpEffects) do
          if p == Players.LocalPlayer and not isAiming then
             stopAiming(p) -- // T-060: the local arrow never outlives the local aim, whatever path created it
             continue
@@ -578,8 +578,8 @@ local function renderAimArrows()
             continue
          end
 
-         local aimArrowTemplate = arrows.Template
-         local fullSize = aimArrowTemplate.PrimaryPart.Size
+         local chargeUpEffectTemplate = arrows.Template
+         local fullSize = chargeUpEffectTemplate.PrimaryPart.Size
          local startSize = fullSize * .7
          local timeSinceAimStart = os.clock() - arrows.AimStart
          local aimStrengthAlpha = math.clamp(timeSinceAimStart / BoomerangTuningLibrary.getForAnyTool(SkinLibrary.getWeaponClass(Players.LocalPlayer), "ChargeTime"), 0, 1) -- // T-066
@@ -590,14 +590,14 @@ local function renderAimArrows()
          local characterCFrame = if p == Players.LocalPlayer then CharacterController.LastCFrame else humanoidRootPart.CFrame
 
          local distance = 3 + ((GlobalConfig.AimFullStrength * aimStrengthAlpha)*2.5)
-         local aimArrow = arrows.Instance
+         local chargeUpEffect = arrows.Instance
          local arrowOffset = Vector3.new(0, -2, 0) + (characterCFrame.LookVector.Unit * distance)
          local arrowPosition = humanoidRootPart.Position + arrowOffset
-         aimArrow:PivotTo(CFrame.new(arrowPosition, arrowPosition + characterCFrame.LookVector))
+         chargeUpEffect:PivotTo(CFrame.new(arrowPosition, arrowPosition + characterCFrame.LookVector))
 
          -- Shaking
          local frameThatShakes = arrows.Instance.PrimaryPart.SurfaceGui.CanvasGroup.Arrows
-         local defaultPosition = aimArrowTemplate.PrimaryPart.SurfaceGui.CanvasGroup.Arrows.Position
+         local defaultPosition = chargeUpEffectTemplate.PrimaryPart.SurfaceGui.CanvasGroup.Arrows.Position
          if aimStrengthAlpha > .8 then
             local now = os.clock()
             local shakeAlpha = (aimStrengthAlpha - 0.8) / 0.2
@@ -622,14 +622,14 @@ local function renderAimArrows()
 end
 
 local function beginAiming(player: Player)
-   local generation = (aimArrowGeneration[player] or 0) + 1
-   aimArrowGeneration[player] = generation
+   local generation = (chargeUpEffectGeneration[player] or 0) + 1
+   chargeUpEffectGeneration[player] = generation
    local character = CharacterRenderController.getCharacterModel(player, true) -- // Can yield (model being built)
    if not character then
       return
    end
    -- // T-060: while we waited, the aim may have ended (throw/cancel) or a newer begin may have started
-   if aimArrowGeneration[player] ~= generation or (player == Players.LocalPlayer and not isAiming) then
+   if chargeUpEffectGeneration[player] ~= generation or (player == Players.LocalPlayer and not isAiming) then
       return
    end
 
@@ -638,25 +638,25 @@ local function beginAiming(player: Player)
       return
    end
 
-   if aimArrows[player] then
+   if chargeUpEffects[player] then
       stopAiming(player)
    end
 
    AnimationController.playCoreAnimation(player, "Charging")
 
-   -- // Every client renders each player's arrow locally, from that player's replicated EquippedAimArrow (validated by
-   -- // AimArrowLibrary, so an unknown or not-yet-replicated value shows the default arrow)
-   local aimArrowTemplate = AimArrowLibrary.getTemplateFor(player)
-   local aimArrow = aimArrowTemplate:Clone()
-   aimArrow.Name = `AimArrow_{player.UserId}`
-   aimArrow.Parent = game.Workspace
-   aimArrow.PrimaryPart.Anchored = true
-   aimArrows[player] = {
-      Instance = aimArrow,
-      Template = aimArrowTemplate,
+   -- // Every client renders each player's arrow locally, from that player's replicated EquippedChargeUpEffect (validated by
+   -- // ChargeUpEffectLibrary, so an unknown or not-yet-replicated value shows the default arrow)
+   local chargeUpEffectTemplate = ChargeUpEffectLibrary.getTemplateFor(player)
+   local chargeUpEffect = chargeUpEffectTemplate:Clone()
+   chargeUpEffect.Name = `AimArrow_{player.UserId}`
+   chargeUpEffect.Parent = game.Workspace
+   chargeUpEffect.PrimaryPart.Anchored = true
+   chargeUpEffects[player] = {
+      Instance = chargeUpEffect,
+      Template = chargeUpEffectTemplate,
       AimStart = os.clock()
    }
-   renderAimArrows()
+   renderChargeUpEffects()
 end
 
 -------------------------------------------------------------------------------

@@ -43,10 +43,10 @@ export type Template = {
       [string]: boolean -- Skin id (Shared/Referential/Skins) : true. Default skins are owned without an entry
    },
    EquippedSkin: string, -- Skin id the player holds and throws
-   OwnedAimArrows: {
-      [string]: boolean -- Aim arrow id (Shared/Referential/AimArrows) : true. Default arrows are owned without an entry
+   OwnedChargeUpEffects: {
+      [string]: boolean -- Charge up effect id (Shared/Referential/ChargeUpEffects) : true. Default arrows are owned without an entry
    },
-   EquippedAimArrow: string, -- Aim arrow id shown while the player aims
+   EquippedChargeUpEffect: string, -- Charge up effect id shown while the player aims
    GiftedPasses: {
       number -- Gamepass id
    }
@@ -81,8 +81,8 @@ function ProfileTemplate.get()
       Inventory = {},
       OwnedSkins = {},
       EquippedSkin = "ClassicBoomerang",
-      OwnedAimArrows = {},
-      EquippedAimArrow = "DefaultAimArrow",
+      OwnedChargeUpEffects = {},
+      EquippedChargeUpEffect = "DefaultChargeUpEffect",
       GiftedPasses = {},
    }
 

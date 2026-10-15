@@ -1,22 +1,22 @@
 local ServerStorage = game:GetService("ServerStorage")
 
-local AimArrowService = require(ServerStorage.Server.Core.AimArrowService)
+local ChargeUpEffectService = require(ServerStorage.Server.Core.ChargeUpEffectService)
 local PlayerDataService = require(ServerStorage.Server.Core.PlayerDataService)
 
-return function(_context, players: { Player }, aimArrowId: string)
+return function(_context, players: { Player }, chargeUpEffectId: string)
 	local results = {}
 
 	for _, player in players do
 		if not PlayerDataService.get(player) then
 			table.insert(results, `{player.Name}: data not loaded`)
-		elseif AimArrowService.ownsAimArrow(player, aimArrowId) then
+		elseif ChargeUpEffectService.ownsChargeUpEffect(player, chargeUpEffectId) then
 			table.insert(results, `{player.Name}: already owned`)
-		elseif AimArrowService.grantAimArrow(player, aimArrowId) then
+		elseif ChargeUpEffectService.grantChargeUpEffect(player, chargeUpEffectId) then
 			table.insert(results, `{player.Name}: granted`)
 		else
 			table.insert(results, `{player.Name}: failed`)
 		end
 	end
 
-	return `grantaimarrow {aimArrowId}. {table.concat(results, ", ")}`
+	return `grantchargeupeffect {chargeUpEffectId}. {table.concat(results, ", ")}`
 end

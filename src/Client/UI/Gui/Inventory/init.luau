@@ -34,8 +34,8 @@ export type InventoryItem = {
 	Name: string,
 	Rarity: string?, -- // Shown under the name in the Detail panel
 	ModelName: string?, -- // Model in Shared/Assets/Tools shown in the viewports (posed by its Tools entry)
-	IconImage: number?, -- // Instead of a model (aim arrows): GUI image asset id
-	IconGlyph: string?, -- // Instead of a model (aim arrows): placeholder label shown while there is no image yet
+	IconImage: number?, -- // Instead of a model (charge up effects): GUI image asset id
+	IconGlyph: string?, -- // Instead of a model (charge up effects): placeholder label shown while there is no image yet
 	Owned: boolean,
 	Equipped: boolean,
 }
@@ -145,7 +145,7 @@ local function getEquippedItem(): InventoryItem?
 	return nil
 end
 
--- // An item shows as a model render, or (aim arrows) as an image / placeholder label
+-- // An item shows as a model render, or (charge up effects) as an image / placeholder label
 local function showItem(viewport: ViewportFrame, item: InventoryItem?)
 	if item and item.ModelName then
 		ItemViewport.setImagePlaceholder(viewport) -- // Removes a leftover placeholder from the previous item

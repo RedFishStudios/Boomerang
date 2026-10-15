@@ -1,12 +1,12 @@
 local Items = require(script.Parent.Items)
 local Skins = require(script.Parent.Skins)
-local AimArrows = require(script.Parent.AimArrows)
+local ChargeUpEffects = require(script.Parent.ChargeUpEffects)
 
--- // A shop listing points at an item (Shared/Referential/Items), a skin (Shared/Referential/Skins) or an aim arrow
--- // (Shared/Referential/AimArrows)
+-- // A shop listing points at an item (Shared/Referential/Items), a skin (Shared/Referential/Skins) or a charge up effect
+-- // (Shared/Referential/ChargeUpEffects)
 export type ShopListing = {
-   Type: "Item" | "Skin" | "AimArrow",
-   Id: Items.ItemClassId | Skins.SkinId | AimArrows.AimArrowId
+   Type: "Item" | "Skin" | "ChargeUpEffect",
+   Id: Items.ItemClassId | Skins.SkinId | ChargeUpEffects.ChargeUpEffectId
 }
 
 -- // Tabs are listed here in display order; a tab's content comes from the module with the same name in
@@ -49,7 +49,7 @@ local ShopItems: {
          Name = "Emotes",
          Icon = "🎵", -- // PLACEHOLDER emoji, replace with an image later
       },
-      -- // Every aim arrow on sale (Shared/Referential/AimArrows, same system as the Inventory's Arrows tab)
+      -- // Every charge up effect on sale (Shared/Referential/ChargeUpEffects, same system as the Inventory's Arrows tab)
       Arrows = {
          Order = 4,
          Name = "Arrows",

@@ -9,7 +9,7 @@ local ItemAcquiredGui = require(ReplicatedStorage.Client.UI.Gui.ItemAcquired)
 local PlayerDataController = require(ReplicatedStorage.Client.Core.PlayerDataController)
 local MarketplaceLibrary = require(ReplicatedStorage.Shared.Library.MarketplaceLibrary)
 local SkinLibrary = require(ReplicatedStorage.Shared.Library.SkinLibrary)
-local AimArrowLibrary = require(ReplicatedStorage.Shared.Library.AimArrowLibrary)
+local ChargeUpEffectLibrary = require(ReplicatedStorage.Shared.Library.ChargeUpEffectLibrary)
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
@@ -47,20 +47,20 @@ end
 -------------------------------------------------------------------------------
 
 -- // The ItemAcquired gui is shown by the Inventory replication listener in init()
--- // listingType is the ShopItems listing Type ("Item" by default, "Skin" or "AimArrow")
+-- // listingType is the ShopItems listing Type ("Item" by default, "Skin" or "ChargeUpEffect")
 function ShopController.requestPurchaseItem(itemId: string, listingType: string?): boolean
    return requestPurchaseRemoteFunction:InvokeServer(itemId, listingType or "Item")
 end
 
--- // listingType is the ShopItems listing Type ("Item" by default, "Skin" or "AimArrow")
+-- // listingType is the ShopItems listing Type ("Item" by default, "Skin" or "ChargeUpEffect")
 function ShopController.requestRobuxPurchaseItem(itemId: string, listingType: string?)
    local productId: number?
    if listingType == "Skin" then
       local skin = SkinLibrary.getSkin(itemId)
       productId = skin and skin.ProductId
-   elseif listingType == "AimArrow" then
-      local aimArrow = AimArrowLibrary.getAimArrow(itemId)
-      productId = aimArrow and aimArrow.ProductId
+   elseif listingType == "ChargeUpEffect" then
+      local chargeUpEffect = ChargeUpEffectLibrary.getChargeUpEffect(itemId)
+      productId = chargeUpEffect and chargeUpEffect.ProductId
    else
       local itemData = Items[itemId]
       productId = itemData and itemData.ProductId

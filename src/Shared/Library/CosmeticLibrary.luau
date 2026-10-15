@@ -6,9 +6,9 @@
 	arrows...). The server writes a player's equipped id for each category as a Player attribute, which Roblox
 	replicates to every client, so each client always knows every other player's equipped cosmetics from one place
 	(including players who join late) without any extra remote. Clients can't write another player's attributes
-	to the server, and every reader validates the id against its category's data (SkinLibrary, AimArrowLibrary),
+	to the server, and every reader validates the id against its category's data (SkinLibrary, ChargeUpEffectLibrary),
 	so a missing or unknown value falls back to the category's default.
-	To add a category: add its attribute below, then build its own Library / Service / Controller like AimArrows.
+	To add a category: add its attribute below, then build its own Library / Service / Controller like ChargeUpEffects.
 	Safe to use on both server and client.
 ]]
 
@@ -18,7 +18,7 @@ local CosmeticLibrary = {}
 -- TYPES
 -------------------------------------------------------------------------------
 
-export type Category = "Skin" | "AimArrow"
+export type Category = "Skin" | "ChargeUpEffect" | "Emote" | "ElimEffect"
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -27,7 +27,9 @@ export type Category = "Skin" | "AimArrow"
 -- // Category -> Player attribute holding the player's equipped id. These names are shared by the server and clients.
 CosmeticLibrary.ATTRIBUTES = {
 	Skin = "EquippedSkin",
-	AimArrow = "EquippedAimArrow",
+	ChargeUpEffect = "EquippedChargeUpEffect",
+	Emote = "EquippedEmote",
+	ElimEffect = "EquippedElimEffect",
 } :: { [Category]: string }
 
 -------------------------------------------------------------------------------
@@ -35,7 +37,7 @@ CosmeticLibrary.ATTRIBUTES = {
 -------------------------------------------------------------------------------
 
 --- The raw equipped id of a player for a category, or nil when it isn't set (yet). Not validated: use the category's
---- Library (SkinLibrary.getEquippedSkinId, AimArrowLibrary.getEquippedId) for a usable id.
+--- Library (SkinLibrary.getEquippedSkinId, ChargeUpEffectLibrary.getEquippedId) for a usable id.
 function CosmeticLibrary.getEquippedRaw(player: Player, category: Category): string?
 	local value = player:GetAttribute(CosmeticLibrary.ATTRIBUTES[category])
 	return if type(value) == "string" then value else nil

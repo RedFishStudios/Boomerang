@@ -1,21 +1,21 @@
 --[[
-	AimArrows
+	ChargeUpEffects
 
 	Description:
-	Aim arrows players can own and equip. An aim arrow is the arrow shown on the ground while a player aims a throw
+	Charge up effects players can own and equip. A charge up effect is the arrow shown on the ground while a player aims a throw
 	(WeaponController); it is rendered locally by every client from the arrow's template in Shared/Assets/Gui.
-	Ownership and the equipped arrow are saved in the profile (OwnedAimArrows / EquippedAimArrow) and handled by
-	AimArrowService / AimArrowController. Same shape as Skins.
-	Aim arrow ids are saved and sent over the network: never change or reuse one.
+	Ownership and the equipped arrow are saved in the profile (OwnedChargeUpEffects / EquippedChargeUpEffect) and handled by
+	ChargeUpEffectService / ChargeUpEffectController. Same shape as Skins.
+	Charge up effect ids are saved and sent over the network: never change or reuse one.
 ]]
 
 -------------------------------------------------------------------------------
 -- TYPES
 -------------------------------------------------------------------------------
 
-export type AimArrowId = string
+export type ChargeUpEffectId = string
 
-export type AimArrow = {
+export type ChargeUpEffect = {
 	Name: string,
 	Asset: string, -- // Name of the arrow template in Shared/Assets/Gui
 	Price: number, -- // Currency price in the shop
@@ -32,8 +32,8 @@ export type AimArrow = {
 -- DATA
 -------------------------------------------------------------------------------
 
-local AimArrows: { [AimArrowId]: AimArrow } = {
-	DefaultAimArrow = {
+local ChargeUpEffects: { [ChargeUpEffectId]: ChargeUpEffect } = {
+	DefaultChargeUpEffect = {
 		Name = "Default",
 		Asset = "DefaultAimArrow",
 		Price = 0,
@@ -43,7 +43,7 @@ local AimArrows: { [AimArrowId]: AimArrow } = {
 		Default = true,
 		OffSale = true,
 	},
-	RedAimArrow = {
+	RedChargeUpEffect = {
 		Name = "Red",
 		Asset = "RedAimArrow",
 		Price = 250, -- TODO:RELEASE placeholder
@@ -53,4 +53,4 @@ local AimArrows: { [AimArrowId]: AimArrow } = {
 	},
 }
 
-return AimArrows
+return ChargeUpEffects

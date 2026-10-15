@@ -14,7 +14,7 @@ local Items = require(ReplicatedStorage.Shared.Referential.Items)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local PlayerDataService = require(ServerStorage.Server.Core.PlayerDataService)
 local SkinService = require(ServerStorage.Server.Core.SkinService)
-local AimArrowService = require(ServerStorage.Server.Core.AimArrowService)
+local ChargeUpEffectService = require(ServerStorage.Server.Core.ChargeUpEffectService)
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
@@ -54,7 +54,7 @@ end
 -------------------------------------------------------------------------------
 
 function ShopService.init()
-   -- // listingType is a ShopItems listing Type: "Item" (default), "Skin" or "AimArrow"
+   -- // listingType is a ShopItems listing Type: "Item" (default), "Skin" or "ChargeUpEffect"
    requestPurchaseRemoteFunction.OnServerInvoke = function(player: Player, itemId: unknown, listingType: unknown)
       if type(itemId) ~= "string" then
          return false
@@ -62,8 +62,8 @@ function ShopService.init()
       if listingType == "Skin" then
          return SkinService.purchaseSkin(player, itemId)
       end
-      if listingType == "AimArrow" then
-         return AimArrowService.purchaseAimArrow(player, itemId)
+      if listingType == "ChargeUpEffect" then
+         return ChargeUpEffectService.purchaseChargeUpEffect(player, itemId)
       end
       return ShopService.purchaseItem(player, itemId)
    end
