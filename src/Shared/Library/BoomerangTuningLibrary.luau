@@ -28,7 +28,7 @@ local ATTRIBUTE_PREFIX = "BT"
 -- TYPES
 -------------------------------------------------------------------------------
 
-export type Setting = "ThrowSpeed" | "ThrowDistance" | "RecallSpeed" | "RecallAcceleration" | "RecallRampTime" | "RecallRampPower" | "ChargeTime" | "AimWalkSpeed" | "TelekinesisInfluence"
+export type Setting = "ThrowSpeed" | "ThrowDistance" | "RecallSpeed" | "RecallAcceleration" | "RecallRampTime" | "RecallRampPower" | "DyingSpeedMultiplier" | "ChargeTime" | "AimWalkSpeed" | "TelekinesisInfluence"
 
 type SettingInfo = {
 	Description: string,
@@ -40,7 +40,7 @@ type SettingInfo = {
 -------------------------------------------------------------------------------
 
 -- // Every tunable value, in display order. The names are what Cmdr shows (and autocompletes).
-BoomerangTuningLibrary.SETTING_ORDER = { "ThrowSpeed", "ThrowDistance", "RecallSpeed", "RecallAcceleration", "RecallRampTime", "RecallRampPower", "ChargeTime", "AimWalkSpeed", "TelekinesisInfluence" } :: { Setting }
+BoomerangTuningLibrary.SETTING_ORDER = { "ThrowSpeed", "ThrowDistance", "RecallSpeed", "RecallAcceleration", "RecallRampTime", "RecallRampPower", "DyingSpeedMultiplier", "ChargeTime", "AimWalkSpeed", "TelekinesisInfluence" } :: { Setting }
 
 BoomerangTuningLibrary.SETTINGS = {
 	ThrowSpeed = {
@@ -78,6 +78,13 @@ BoomerangTuningLibrary.SETTINGS = {
 		Description = "manual recall speed-up curve (1 = steady, higher = slower start and sharper surge)",
 		getDefault = function(_toolData)
 			return GlobalConfig.ManualRecallRampPower
+		end,
+	},
+	-- // How fast a dying boomerang stops sliding and falls (Clashed.luau; client and server both read it)
+	DyingSpeedMultiplier = {
+		Description = "how much faster a dying boomerang loses its slide and falls (1 = original pace)",
+		getDefault = function(_toolData)
+			return GlobalConfig.DyingSpeedMultiplier
 		end,
 	},
 	-- // T-066: seconds of holding aim until the throw is at max power (also the aim arrow's fill time)

@@ -18,6 +18,7 @@ local SoundLibrary = require(ReplicatedStorage.Shared.Library.SoundLibrary)
 local Sounds = require(ReplicatedStorage.Shared.Constants.Sounds)
 local RaycastsUtility = require(ReplicatedStorage.Shared.Utils.RaycastsUtility)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
+local BoomerangTuningLibrary = require(ReplicatedStorage.Shared.Library.BoomerangTuningLibrary)
 
 local isServer = RunService:IsServer()
 
@@ -32,9 +33,8 @@ end
 local Characters = game.Workspace.Characters
 
 local REPLICATION_RATE = 1 / 20
-local CLASH_DECELERATION = 120
-CLASH_DECELERATION = 80
-local CLASH_FALL_ACCELERATION = 120
+local CLASH_DECELERATION = 80 -- // Times the DyingSpeedMultiplier tuning value (GlobalConfig.DyingSpeedMultiplier)
+local CLASH_FALL_ACCELERATION = 120 -- // Times the DyingSpeedMultiplier tuning value
 local CLASH_MAX_FALL_SPEED = 80
 local CLASH_GROUND_RAY_DISTANCE = 10
 local CLASH_GROUND_MAX_IGNORE_ITERATIONS = 16
@@ -516,7 +516,9 @@ function ClashedWeaponLogic.applyClash(player: Player, clashedWeaponData: Clashe
 			return
 		end
 
-		local nextSpeed = math.max(0, speed - CLASH_DECELERATION * deltaTime)
+		-- // Live tuning: read every frame, on the server and on clients, so both simulate the same dying pace
+		local dyingSpeedMultiplier = BoomerangTuningLibrary.getForAnyTool(clashedWeaponData.ToolId, "DyingSpeedMultiplier")
+		local nextSpeed = math.max(0, speed - CLASH_DECELERATION * dyingSpeedMultiplier * deltaTime)
 		local travelDistance = (speed + nextSpeed) * 0.5 * deltaTime
 		local nextPosition, nextDirection, isBlocked = resolveHorizontalMovement(currentPivot.Position, direction, travelDistance, obstructionRaycastParams)
 
@@ -537,7 +539,7 @@ function ClashedWeaponLogic.applyClash(player: Player, clashedWeaponData: Clashe
 
 		if not isGrounded then
 			if restingY then
-				fallSpeed = math.min(CLASH_MAX_FALL_SPEED, fallSpeed + CLASH_FALL_ACCELERATION * deltaTime)
+				fallSpeed = math.min(CLASH_MAX_FALL_SPEED, fallSpeed + CLASH_FALL_ACCELERATION * dyingSpeedMultiplier * deltaTime)
 				local nextY = nextPosition.Y - fallSpeed * deltaTime
 				if nextY <= restingY then
 					nextY = restingY

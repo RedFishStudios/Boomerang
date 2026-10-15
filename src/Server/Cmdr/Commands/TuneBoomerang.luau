@@ -9,7 +9,7 @@ return {
 		{
 			Type = "boomerangsetting",
 			Name = "setting",
-			Description = "ThrowSpeed (studs/s), ThrowDistance (studs), RecallSpeed (studs/s, manual recall), RecallAcceleration (turn rate toward the player, 1 = normal recall), RecallRampTime (seconds for a manual recall to reach max speed), RecallRampPower (speed-up curve; higher = slower start, sharper surge), ChargeTime (seconds to max power), AimWalkSpeed (studs/s while aiming).",
+			Description = "ThrowSpeed (studs/s), ThrowDistance (studs), RecallSpeed (studs/s, manual recall), RecallAcceleration (turn rate toward the player, 1 = normal recall), RecallRampTime (seconds for a manual recall to reach max speed), RecallRampPower (speed-up curve; higher = slower start, sharper surge), DyingSpeedMultiplier (how much faster a dying boomerang stops sliding and falls, 1 = original pace), ChargeTime (seconds to max power), AimWalkSpeed (studs/s while aiming).",
 			Optional = true,
 		},
 		{
