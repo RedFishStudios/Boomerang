@@ -51,7 +51,7 @@ local GlobalConfig = {
    MyBoomerangTrailColor = Color3.new(0.984314, 0.988235, 0.988235),
    EnemyBoomerangTrailColor = Color3.new(0.952941, 0.07451, 0.368627),
 
-   DefaultWalkSpeed = 16,
+   DefaultWalkSpeed = 20,
    LobbyJumpHeight = 7.2, -- // Jumping is only enabled in the lobby (dash replaces it in the arena)
    AimingWalkSpeed = (16 * .3),
 
