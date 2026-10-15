@@ -71,7 +71,7 @@ BoomerangTuningLibrary.SETTINGS = {
 	ChargeTime = {
 		Description = "seconds of charging until the throw is at max power",
 		getDefault = function(_toolData)
-			return GlobalConfig.AimFullStrength
+			return GlobalConfig.ChargeTime
 		end,
 	},
 	-- // T-067: the player's walk speed while aiming/charging a throw

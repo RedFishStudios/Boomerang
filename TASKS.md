@@ -734,7 +734,7 @@ Add a tuning command for the speed at which a throw charge becomes max powered. 
 
 **Notes**
 - Branch `agent/T-066-T-067-tune-charge-aimwalk`, lane `Github/Boomerang-lanes/maintenance`.
-- New `tune` setting `ChargeTime` (default `GlobalConfig.AimFullStrength`, 2 s). The server uses it for the throw's power (`WeaponService` throw handler, per the thrown tool); the client uses it for the aim arrow's fill/shake. The arrow's length is unchanged. `resetboomerang ChargeTime` resets it.
+- New `tune` setting `ChargeTime` (default `GlobalConfig.ChargeTime`, 1 s). The server uses it for the throw's power (`WeaponService` throw handler, per the thrown tool); the client uses it for the aim arrow's fill/shake. The arrow's length is unchanged. `resetboomerang ChargeTime` resets it.
 - Other players' aim arrows use `GlobalConfig.ForceEquippedTool`'s value (the client doesn't know their tool); fine while everyone uses the forced tool.
 - Not lint-checked.
 - Passed Sol's Studio test (2026-10-03).

@@ -13,7 +13,6 @@ local ArrowEffect = {}
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local ChargeUpEffectLibrary = require(ReplicatedStorage.Shared.Library.ChargeUpEffectLibrary)
 
 -------------------------------------------------------------------------------
@@ -22,7 +21,7 @@ local ChargeUpEffectLibrary = require(ReplicatedStorage.Shared.Library.ChargeUpE
 
 local START_SIZE_SCALE = 0.7 -- // The arrow starts at this fraction of its template size and grows to full size
 local ARROW_BASE_DISTANCE = 3 -- // Studs in front of the character at zero charge
-local ARROW_DISTANCE_PER_STRENGTH = 2.5 -- // Extra distance multiplier at full strength (times GlobalConfig.AimFullStrength)
+local ARROW_EXTRA_DISTANCE_AT_FULL_STRENGTH = 5 -- // Extra studs the arrow moves out by at full charge (reached after GlobalConfig.ChargeTime)
 local ARROW_HEIGHT_OFFSET = -2 -- // The arrow sits this far below the root part
 local SHAKE_START_ALPHA = 0.8 -- // Charge progress at which the arrow starts to shake
 local SHAKE_MAX_OFFSET_SCALE = 0.25 -- // Shake amplitude as a fraction of the arrow image's default offset
@@ -69,7 +68,7 @@ function ArrowEffect.apply(template: Model, player: Player): ChargeUpEffectLibra
 		primaryPart.SurfaceGui.CanvasGroup.GroupTransparency = 1 - alpha
 
 		local lookVector = frame.AimCFrame.LookVector
-		local distance = ARROW_BASE_DISTANCE + ((GlobalConfig.AimFullStrength * alpha) * ARROW_DISTANCE_PER_STRENGTH)
+		local distance = ARROW_BASE_DISTANCE + (ARROW_EXTRA_DISTANCE_AT_FULL_STRENGTH * alpha)
 		local arrowPosition = frame.RootPart.Position + Vector3.new(0, ARROW_HEIGHT_OFFSET, 0) + (lookVector.Unit * distance)
 		arrow:PivotTo(CFrame.new(arrowPosition, arrowPosition + lookVector))
 

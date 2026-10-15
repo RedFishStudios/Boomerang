@@ -15,7 +15,7 @@ local GlobalConfig = {
    CanHitSelfDecoy = false, -- // T-081: if true, a player's own boomerang can eliminate their own decoy (friendly fire on your own decoy). Default off.
    SpawnShieldDuration = 2,
    NilDataType = "nil_",
-   AimFullStrength = 2.0,
+   ChargeTime = 1, -- // Seconds of holding aim until BOTH the throw is at max power AND the aim arrow is at its full size/length. Default for the Cmdr `tuneboomerang ChargeTime` setting (BoomerangTuningLibrary).
    ForceEquippedTool = "ClassicBoomerang", -- // nil = players hold no weapon. Otherwise the held/thrown model and weapon class come from the equipped skin (SkinLibrary)
    ThrownWeaponTrailLifetime = .3,
    BoomerangHitThrottle = .5,
