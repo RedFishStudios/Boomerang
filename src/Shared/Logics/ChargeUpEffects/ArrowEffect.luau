@@ -30,23 +30,36 @@ local SHAKE_SPEED = 4.5
 local SHAKE_NOISE_SCALE = 0.11
 
 -------------------------------------------------------------------------------
+-- PRIVATE FUNCTIONS
+-------------------------------------------------------------------------------
+
+-- // The arrow's Part: the Model's PrimaryPart, or its first Part when the template has none set
+local function getArrowPart(model: Model): BasePart
+	local part = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
+	assert(part, `ArrowEffect: arrow template {model.Name} has no Part`)
+	return part
+end
+
+-------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
---- Clones `template` (a Model whose PrimaryPart has a SurfaceGui > CanvasGroup > Arrows frame) into Workspace for the
---- player and returns its handle. `update` sizes, fades, places and shakes the arrow from the charge progress;
+--- Clones `template` (a Model with a Part holding a SurfaceGui > CanvasGroup > Arrows frame; the Part is the PrimaryPart,
+--- or the first Part when none is set) into Workspace for the player and returns its handle. `update` sizes, fades, places and shakes the arrow from the charge progress;
 --- `remove` destroys it.
 function ArrowEffect.apply(template: Model, player: Player): ChargeUpEffectLibrary.ChargeUpEffectHandle
 	local arrow = template:Clone()
 	arrow.Name = `ChargeUpEffect_{player.UserId}`
 	arrow.Parent = workspace
-	local primaryPart = arrow.PrimaryPart :: BasePart
+	local primaryPart = getArrowPart(arrow)
+	arrow.PrimaryPart = primaryPart
 	primaryPart.Anchored = true
 
-	local fullSize = template.PrimaryPart.Size
+	local templatePart = getArrowPart(template)
+	local fullSize = templatePart.Size
 	local startSize = fullSize * START_SIZE_SCALE
 	local shakingFrame = primaryPart.SurfaceGui.CanvasGroup.Arrows
-	local defaultPosition = template.PrimaryPart.SurfaceGui.CanvasGroup.Arrows.Position
+	local defaultPosition = templatePart.SurfaceGui.CanvasGroup.Arrows.Position
 
 	local handle = {} :: ChargeUpEffectLibrary.ChargeUpEffectHandle
 
