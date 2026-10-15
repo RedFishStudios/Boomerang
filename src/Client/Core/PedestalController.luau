@@ -8,8 +8,8 @@
 	to show. The avatar is a standalone clone of that player's client-rendered character (see
 	CharacterRenderController.getFreshCharacterModelForUserId), stood on the top surface of the pedestal, facing the
 	pedestal's front (-Z, the way its LookVector points). The animation comes from the player's equipped "WinningEmote"
-	cosmetic (PlayerCosmeticController, resolved by WinningEmoteLibrary, which falls back to its default animation)
-	and follows later changes of it.
+	cosmetic, which the server (PedestalService) publishes on the pedestal as its EMOTE_ATTRIBUTE ("EmoteAnimationId");
+	this controller plays whatever that attribute says and follows later changes of it.
 
 	The cosmetic's value may be an Animation, an animation asset id (digits, as a string or number) or a "rbxassetid://"
 	string. If it can't be retrieved or understood, WinningEmoteLibrary's default animation plays instead.
@@ -25,11 +25,9 @@
 local PedestalController = {}
 
 local CollectionService = game:GetService("CollectionService")
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local CharacterRenderController = require(ReplicatedStorage.Client.Core.CharacterRenderController)
-local PlayerCosmeticController = require(ReplicatedStorage.Client.Core.PlayerCosmeticController)
 local WinningEmoteLibrary = require(ReplicatedStorage.Shared.Library.WinningEmoteLibrary)
 
 -------------------------------------------------------------------------------
@@ -41,8 +39,8 @@ type PedestalState = {
 	Model: Model?,
 	AvatarTopY: number?, -- // World Y of the top of the avatar when it was placed (before animating)
 	Track: AnimationTrack?,
-	StopObserving: (() -> ())?,
 	AttributeConnection: RBXScriptConnection?,
+	EmoteConnection: RBXScriptConnection?,
 	ChildConnection: RBXScriptConnection?,
 }
 
@@ -52,7 +50,7 @@ type PedestalState = {
 
 local PEDESTAL_TAG = "PlayerPedestal"
 local USER_ID_ATTRIBUTE = "UserId"
-local COSMETIC_CATEGORY = "WinningEmote"
+local EMOTE_ATTRIBUTE = "EmoteAnimationId"
 local ASSET_ID_PREFIX = "rbxassetid://"
 local LABEL_NAME = "PedestalLabel"
 local LABEL_PADDING = 2.25 -- // Studs between the top of the avatar (at rest) and the bottom of the label; room for raised arms
@@ -136,10 +134,6 @@ local function stopAnimation(state: PedestalState)
 end
 
 local function clearAvatar(pedestal: Instance, state: PedestalState)
-	if state.StopObserving then
-		state.StopObserving()
-		state.StopObserving = nil
-	end
 	stopAnimation(state)
 	if state.Model then
 		state.Model:Destroy()
@@ -149,12 +143,11 @@ local function clearAvatar(pedestal: Instance, state: PedestalState)
 	updateLabel(pedestal, state)
 end
 
--- // Plays the player's equipped cosmetic on the model, or leaves it without animation if it can't be retrieved
-local function playEquippedAnimation(state: PedestalState, model: Model, player: Player)
+-- // Plays the pedestal's emote animation on the model; the default emote if the attribute is missing or unusable
+local function playEmote(pedestal: Instance, state: PedestalState, model: Model)
 	stopAnimation(state)
 
-	local ok, value = pcall(PlayerCosmeticController.get, player, COSMETIC_CATEGORY)
-	local animation = if ok then toAnimation(value) else nil
+	local animation = toAnimation(pedestal:GetAttribute(EMOTE_ATTRIBUTE))
 	if not animation then
 		animation = toAnimation(WinningEmoteLibrary.DEFAULT_ANIMATION_ID)
 	end
@@ -176,7 +169,7 @@ local function playEquippedAnimation(state: PedestalState, model: Model, player:
 		return animator:LoadAnimation(animation)
 	end)
 	if not loaded then
-		warn(`PedestalController: Failed to load animation for {player.Name}`)
+		warn(`PedestalController: Failed to load the emote animation on pedestal {pedestal:GetFullName()}`)
 		return
 	end
 
@@ -266,15 +259,7 @@ local function refresh(pedestal: Instance)
 		state.AvatarTopY = avatarTopY
 		updateLabel(pedestal, state)
 
-		local player = Players:GetPlayerByUserId(userId)
-		if player then
-			playEquippedAnimation(state, model, player)
-			state.StopObserving = PlayerCosmeticController.observe(player, COSMETIC_CATEGORY, function()
-				if state.Model == model then
-					playEquippedAnimation(state, model, player)
-				end
-			end)
-		end
+		playEmote(pedestal, state, model)
 	end)
 end
 
@@ -287,6 +272,12 @@ local function onPedestalAdded(pedestal: Instance)
 	states[pedestal] = state
 	state.AttributeConnection = pedestal:GetAttributeChangedSignal(USER_ID_ATTRIBUTE):Connect(function()
 		refresh(pedestal)
+	end)
+	-- // The server changes the emote when the displayed player equips another one
+	state.EmoteConnection = pedestal:GetAttributeChangedSignal(EMOTE_ATTRIBUTE):Connect(function()
+		if state.Model then
+			playEmote(pedestal, state, state.Model)
+		end
 	end)
 	-- // The label may replicate after the avatar is already placed
 	state.ChildConnection = pedestal.ChildAdded:Connect(function(child)
@@ -308,6 +299,10 @@ local function onPedestalRemoved(pedestal: Instance)
 	if state.AttributeConnection then
 		state.AttributeConnection:Disconnect()
 		state.AttributeConnection = nil
+	end
+	if state.EmoteConnection then
+		state.EmoteConnection:Disconnect()
+		state.EmoteConnection = nil
 	end
 	if state.ChildConnection then
 		state.ChildConnection:Disconnect()

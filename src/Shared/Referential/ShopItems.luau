@@ -1,12 +1,13 @@
 local Items = require(script.Parent.Items)
 local Skins = require(script.Parent.Skins)
 local ChargeUpEffects = require(script.Parent.ChargeUpEffects)
+local Emotes = require(script.Parent.Emotes)
 
--- // A shop listing points at an item (Shared/Referential/Items), a skin (Shared/Referential/Skins) or a charge up effect
--- // (Shared/Referential/ChargeUpEffects)
+-- // A shop listing points at an item (Shared/Referential/Items), a skin (Shared/Referential/Skins), a charge up effect
+-- // (Shared/Referential/ChargeUpEffects) or an emote (Shared/Referential/Emotes)
 export type ShopListing = {
-   Type: "Item" | "Skin" | "ChargeUpEffect",
-   Id: Items.ItemClassId | Skins.SkinId | ChargeUpEffects.ChargeUpEffectId
+   Type: "Item" | "Skin" | "ChargeUpEffect" | "Emote",
+   Id: Items.ItemClassId | Skins.SkinId | ChargeUpEffects.ChargeUpEffectId | Emotes.EmoteId
 }
 
 -- // Tabs are listed here in display order; a tab's content comes from the module with the same name in
@@ -43,7 +44,7 @@ local ShopItems: {
          Name = "Skins",
          Icon = "🎨", -- // PLACEHOLDER emoji, replace with an image later (the boomerang emoji isn't in Roblox's font)
       },
-      -- // TODO: not set up yet: this tab opens blank until a module with the same name is added to Shop/Tabs
+      -- // Every emote on sale (Shared/Referential/Emotes, same system as the Inventory's Emotes tab)
       Emotes = {
          Order = 3,
          Name = "Emotes",

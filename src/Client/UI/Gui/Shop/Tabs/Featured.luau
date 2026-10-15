@@ -13,6 +13,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ShopItems = require(ReplicatedStorage.Shared.Referential.ShopItems)
 local SkinController = require(ReplicatedStorage.Client.Core.SkinController)
 local ChargeUpEffectController = require(ReplicatedStorage.Client.Core.ChargeUpEffectController)
+local EmoteController = require(ReplicatedStorage.Client.Core.EmoteController)
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -33,6 +34,7 @@ end
 function FeaturedTab.subscribe(onChanged: () -> ())
 	SkinController.SkinGrantedTasks:Add(onChanged)
 	ChargeUpEffectController.ChargeUpEffectGrantedTasks:Add(onChanged)
+	EmoteController.EmoteGrantedTasks:Add(onChanged)
 end
 
 return FeaturedTab

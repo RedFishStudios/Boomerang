@@ -23,6 +23,9 @@ local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
 -------------------------------------------------------------------------------
 
 local FIELD_OF_VIEW = 30
+local EMOTES_RIG_NAME = "EmotesRig" -- // Model in ReplicatedStorage: the blank character that previews emotes
+local EMOTES_RIG_ROTATION = CFrame.Angles(0, math.pi, 0) -- // Characters face -Z; the camera looks from +Z
+local EMOTES_RIG_ZOOM = 0.85 -- // <1 leaves extra room around the rig for emotes that move outside its standing pose
 local MARGIN = 1.08 -- // Camera distance multiplier: >1 leaves a little space around the model
 local DEFAULT_ROTATION = CFrame.Angles(math.rad(75), 0, 0) -- // Flat models (local Y thin) face the camera, tilted a little
 local CORNER_SIGNS = {
@@ -36,7 +39,7 @@ local CORNER_SIGNS = {
 
 local function clear(viewport: ViewportFrame)
 	for _, child in viewport:GetChildren() do
-		if child:IsA("Model") or child:IsA("BasePart") or child:IsA("Camera") then
+		if child:IsA("Model") or child:IsA("BasePart") or child:IsA("Camera") or child:IsA("WorldModel") then
 			child:Destroy()
 		end
 	end
@@ -168,6 +171,72 @@ function ItemViewport.setDisplay(placeholder: ImageLabel, image: (string | numbe
 	end
 	placeholder.ScaleType = Enum.ScaleType.Fit
 	placeholder.Visible = true
+end
+
+-- // Loads and plays the animation on the model's Animator on a loop
+local function playLooped(model: Model, animationId: string | number)
+	local humanoid = model:FindFirstChildOfClass("Humanoid")
+	local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
+	if not animator then
+		warn(`ItemViewport: {EMOTES_RIG_NAME} has no Humanoid/Animator`)
+		return
+	end
+
+	local animation = Instance.new("Animation")
+	animation.AnimationId = `rbxassetid://{animationId}`
+	local track = animator:LoadAnimation(animation)
+	track.Looped = true
+	track:Play()
+end
+
+-- // Shows a copy of the EmotesRig (a blank character, fully visible) playing the animation on a loop. Returns the copy, or nil if
+-- // the rig is missing. Animations in a ViewportFrame need the rig inside a WorldModel, and the viewport has to be part of the
+-- // game (assigned into the GUI, not parented to nil) before the animation is loaded and played, so the animation starts as soon
+-- // as the viewport is in the game, which can be right away or later when the caller parents it. The animation stops when the
+-- // viewport's content is replaced or cleared.
+function ItemViewport.renderEmote(viewport: ViewportFrame, animationId: string | number): Model?
+	local rig = ReplicatedStorage:FindFirstChild(EMOTES_RIG_NAME) or ReplicatedStorage:WaitForChild(EMOTES_RIG_NAME, 5)
+	if not (rig and rig:IsA("Model")) then
+		warn(`ItemViewport: {EMOTES_RIG_NAME} not found in ReplicatedStorage`)
+		clear(viewport)
+		return nil
+	end
+
+	clear(viewport)
+
+	local worldModel = Instance.new("WorldModel")
+	worldModel.Parent = viewport
+
+	local model = rig:Clone()
+	model:PivotTo(EMOTES_RIG_ROTATION)
+	model.Parent = worldModel
+
+	local camera = Instance.new("Camera")
+	camera.FieldOfView = FIELD_OF_VIEW
+	camera.CFrame = getFittingCameraCFrame(model, EMOTES_RIG_ZOOM)
+	camera.Parent = viewport
+	viewport.CurrentCamera = camera
+
+	if viewport:IsDescendantOf(game) then
+		playLooped(model, animationId)
+	else
+		local connection: RBXScriptConnection
+		connection = viewport.AncestryChanged:Connect(function()
+			if not viewport:IsDescendantOf(game) then
+				return
+			end
+			connection:Disconnect()
+			if model:IsDescendantOf(viewport) then
+				playLooped(model, animationId)
+			end
+		end)
+		-- // The content was replaced or the viewport destroyed before it ever joined the game
+		model.Destroying:Once(function()
+			connection:Disconnect()
+		end)
+	end
+
+	return model
 end
 
 function ItemViewport.clear(viewport: ViewportFrame)

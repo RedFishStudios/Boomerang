@@ -47,6 +47,10 @@ export type Template = {
       [string]: boolean -- Charge up effect id (Shared/Referential/ChargeUpEffects) : true. Default arrows are owned without an entry
    },
    EquippedChargeUpEffect: string, -- Charge up effect id shown while the player aims
+   OwnedEmotes: {
+      [string]: boolean -- Emote id (Shared/Referential/Emotes) : true. The default emote is owned without an entry
+   },
+   EquippedEmote: string, -- Emote id the player's avatar performs on the winner pedestal
    GiftedPasses: {
       number -- Gamepass id
    }
@@ -83,6 +87,8 @@ function ProfileTemplate.get()
       EquippedSkin = "ClassicBoomerang",
       OwnedChargeUpEffects = {},
       EquippedChargeUpEffect = "DefaultChargeUpEffect",
+      OwnedEmotes = {},
+      EquippedEmote = "DefaultEmote",
       GiftedPasses = {},
    }
 

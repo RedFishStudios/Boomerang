@@ -36,6 +36,7 @@ export type InventoryItem = {
 	ModelName: string?, -- // Model in Shared/Assets/Tools shown in the viewports (posed by its Tools entry)
 	IconImage: number?, -- // Instead of a model (charge up effects): GUI image asset id
 	IconGlyph: string?, -- // Instead of a model (charge up effects): placeholder label shown while there is no image yet
+	EmoteAnimationId: string?, -- // Instead of a model (emotes): animation asset id played by the EmotesRig
 	Owned: boolean,
 	Equipped: boolean,
 }
@@ -145,13 +146,16 @@ local function getEquippedItem(): InventoryItem?
 	return nil
 end
 
--- // An item shows as a model render, or (charge up effects) as an image / placeholder label
+-- // An item shows as a model render, (charge up effects) as an image / placeholder label, or (emotes) as the EmotesRig playing the emote
 local function showItem(viewport: ViewportFrame, item: InventoryItem?)
 	if item and item.ModelName then
 		ItemViewport.setImagePlaceholder(viewport) -- // Removes a leftover placeholder from the previous item
 		ItemViewport.renderTool(viewport, item.ModelName)
 	elseif item and item.IconGlyph then
 		ItemViewport.setImagePlaceholder(viewport, item.IconImage, item.IconGlyph)
+	elseif item and item.EmoteAnimationId then
+		ItemViewport.setImagePlaceholder(viewport)
+		ItemViewport.renderEmote(viewport, item.EmoteAnimationId)
 	else
 		ItemViewport.setImagePlaceholder(viewport)
 		ItemViewport.clear(viewport)

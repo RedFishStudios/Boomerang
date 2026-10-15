@@ -10,6 +10,7 @@ local PlayerDataController = require(ReplicatedStorage.Client.Core.PlayerDataCon
 local MarketplaceLibrary = require(ReplicatedStorage.Shared.Library.MarketplaceLibrary)
 local SkinLibrary = require(ReplicatedStorage.Shared.Library.SkinLibrary)
 local ChargeUpEffectLibrary = require(ReplicatedStorage.Shared.Library.ChargeUpEffectLibrary)
+local EmoteLibrary = require(ReplicatedStorage.Shared.Library.EmoteLibrary)
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
@@ -61,6 +62,9 @@ function ShopController.requestRobuxPurchaseItem(itemId: string, listingType: st
    elseif listingType == "ChargeUpEffect" then
       local chargeUpEffect = ChargeUpEffectLibrary.getChargeUpEffect(itemId)
       productId = chargeUpEffect and chargeUpEffect.ProductId
+   elseif listingType == "Emote" then
+      local emote = EmoteLibrary.getEmote(itemId)
+      productId = emote and emote.ProductId
    else
       local itemData = Items[itemId]
       productId = itemData and itemData.ProductId

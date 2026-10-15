@@ -9,6 +9,9 @@
 	round ends it shows the winner of that round. When several players share the win (a tie, or a winning team),
 	it steps through them, changing the UserId every TIED_WINNER_SWITCH_INTERVAL seconds and looping.
 	Until the first round ends, the pedestal keeps whatever UserId it was placed with in Studio.
+	The emote the avatar performs is also set here: the pedestal's EMOTE_ATTRIBUTE ("EmoteAnimationId", an animation
+	asset id) is the displayed player's equipped WinningEmote (CosmeticLibrary / WinningEmoteLibrary), kept up to date if
+	that player equips another one. PedestalController just plays whatever that attribute says.
 
 	Every pedestal can also show a text label. The server builds the label's BillboardGui (a child of the pedestal
 	named LABEL_NAME, with a "Title" and a "Subtitle" TextLabel) and sets its text/style with `setLabel`; each pedestal
@@ -23,6 +26,8 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
+local CosmeticLibrary = require(ReplicatedStorage.Shared.Library.CosmeticLibrary)
+local WinningEmoteLibrary = require(ReplicatedStorage.Shared.Library.WinningEmoteLibrary)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -31,6 +36,7 @@ local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibra
 local PEDESTAL_TAG = "PlayerPedestal"
 local WINNER_PEDESTAL_NAME = "WinnerPedestal"
 local USER_ID_ATTRIBUTE = "UserId"
+local EMOTE_ATTRIBUTE = "EmoteAnimationId"
 local TIED_WINNER_SWITCH_INTERVAL = 2.5
 
 local LABEL_NAME = "PedestalLabel"
@@ -149,9 +155,20 @@ local function applyWinnerLabel(pedestal: Instance, userId: number)
 	PedestalService.setLabel(pedestal, WINNER_TITLE, `{player.DisplayName} @{player.Name}!`, WINNER_LABEL_STYLE)
 end
 
+-- // The pedestal performs the displayed player's equipped winning emote. Players who aren't in the server keep the previous one.
+local function applyWinnerEmote(pedestal: Instance, userId: number)
+	local player = Players:GetPlayerByUserId(userId)
+	if not player then
+		return
+	end
+	local animationId = WinningEmoteLibrary.getAnimationId(CosmeticLibrary.getEquippedRaw(player, "WinningEmote"))
+	pedestal:SetAttribute(EMOTE_ATTRIBUTE, animationId)
+end
+
 local function setWinnerUserId(userId: number)
 	displayedUserId = userId
 	for pedestal in winnerPedestals do
+		applyWinnerEmote(pedestal, userId) -- // Before the UserId, so the client sees the emote when it builds the avatar
 		pedestal:SetAttribute(USER_ID_ATTRIBUTE, userId)
 		applyWinnerLabel(pedestal, userId)
 	end
@@ -164,10 +181,12 @@ local function registerPedestal(instance: Instance)
 	winnerPedestals[instance] = true
 	getOrCreateLabel(instance)
 	if displayedUserId then
+		applyWinnerEmote(instance, displayedUserId)
 		instance:SetAttribute(USER_ID_ATTRIBUTE, displayedUserId)
 	end
 	local userId = instance:GetAttribute(USER_ID_ATTRIBUTE)
 	if type(userId) == "number" then
+		applyWinnerEmote(instance, userId)
 		applyWinnerLabel(instance, userId)
 	end
 end
@@ -229,14 +248,28 @@ function PedestalService.start()
 		registerPedestal(instance)
 	end
 
-	-- // A winner pedestal's UserId may belong to someone who joins after the pedestal registered
-	Players.PlayerAdded:Connect(function(player)
+	-- // A winner pedestal's UserId may belong to someone who joins after the pedestal registered; and a displayed
+	--    player can equip another emote at any time
+	local function refreshDisplayedPlayer(player: Player)
 		for pedestal in winnerPedestals do
 			if pedestal:GetAttribute(USER_ID_ATTRIBUTE) == player.UserId then
+				applyWinnerEmote(pedestal, player.UserId)
 				applyWinnerLabel(pedestal, player.UserId)
 			end
 		end
+	end
+	local function watchPlayer(player: Player)
+		CosmeticLibrary.observe(player, "WinningEmote", function()
+			refreshDisplayedPlayer(player)
+		end)
+	end
+	Players.PlayerAdded:Connect(function(player)
+		watchPlayer(player)
+		refreshDisplayedPlayer(player)
 	end)
+	for _, player in Players:GetPlayers() do
+		watchPlayer(player)
+	end
 
 	GameStateLibrary.RoundFinishedTasks:Add(onRoundFinished)
 end

@@ -399,6 +399,9 @@ local function createListing(display: ShopListings.ListingDisplay, order: number
 	elseif display.IconGlyph then
 		-- // IMAGE PLACEHOLDER (charge up effects): a label until the item has a GUI image (ChargeUpEffects.Icon)
 		ItemViewport.setImagePlaceholder(viewport, display.IconImage, display.IconGlyph)
+	elseif display.EmoteAnimationId then
+		-- // Emotes: the EmotesRig playing the emote
+		ItemViewport.renderEmote(viewport, display.EmoteAnimationId)
 	end
 
 	local giftButton = new("ImageButton", {

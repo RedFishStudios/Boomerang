@@ -17,6 +17,8 @@ local SkinLibrary = require(ReplicatedStorage.Shared.Library.SkinLibrary)
 local SkinController = require(ReplicatedStorage.Client.Core.SkinController)
 local ChargeUpEffectLibrary = require(ReplicatedStorage.Shared.Library.ChargeUpEffectLibrary)
 local ChargeUpEffectController = require(ReplicatedStorage.Client.Core.ChargeUpEffectController)
+local EmoteLibrary = require(ReplicatedStorage.Shared.Library.EmoteLibrary)
+local EmoteController = require(ReplicatedStorage.Client.Core.EmoteController)
 local RarityStyles = require(script.Parent.RarityStyles)
 
 -------------------------------------------------------------------------------
@@ -25,11 +27,12 @@ local RarityStyles = require(script.Parent.RarityStyles)
 
 export type ListingDisplay = {
 	Id: string,
-	Type: string, -- // "Item" | "Skin" | "ChargeUpEffect"
+	Type: string, -- // "Item" | "Skin" | "ChargeUpEffect" | "Emote"
 	Name: string,
 	ModelName: string?, -- // Model in Shared/Assets/Tools shown in the listing's viewport
 	IconImage: number?, -- // Charge up effects: GUI image asset id shown instead of a model
 	IconGlyph: string?, -- // Charge up effects: placeholder label shown while there is no image yet
+	EmoteAnimationId: string?, -- // Emotes: animation asset id played by the EmotesRig in the listing's viewport
 	Rarity: string,
 	Price: number, -- // Currency price
 	ProductId: number?, -- // Robux developer product, if it can be bought with Robux
@@ -87,6 +90,23 @@ function ShopListings.getDisplay(listing: { Type: string, Id: string }): Listing
 			Price = chargeUpEffect.Price,
 			ProductId = chargeUpEffect.ProductId,
 			Owned = ChargeUpEffectController.ownsChargeUpEffect(listing.Id),
+		}
+	end
+
+	if listing.Type == "Emote" then
+		local emote = EmoteLibrary.getEmote(listing.Id)
+		if not emote or emote.OffSale then
+			return nil
+		end
+		return {
+			Id = listing.Id,
+			Type = listing.Type,
+			Name = emote.Name,
+			EmoteAnimationId = emote.AnimationId,
+			Rarity = emote.Rarity or RarityStyles.DEFAULT_RARITY,
+			Price = emote.Price,
+			ProductId = emote.ProductId,
+			Owned = EmoteController.ownsEmote(listing.Id),
 		}
 	end
 
