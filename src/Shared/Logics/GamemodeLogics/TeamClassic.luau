@@ -1,6 +1,7 @@
 local TeamClassic = {} 
 
 local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CurrentGameState = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
@@ -71,9 +72,21 @@ function TeamClassic.teardown()
       winningTeam = nil
    end
 
+   -- // The players of the winning team (or of every tied team), collected before the teams are dismantled
+   local winners = {}
+   for team, elimCount in pairs(TeamElims) do
+      if elimCount == highestElims and elimCount > 0 then
+         for _, player in ipairs(Players:GetPlayers()) do
+            if player.Team == team then
+               table.insert(winners, player)
+            end
+         end
+      end
+   end
+
    clear()
    GameTeamService.dismantleRoundTeams()
-   CurrentGameState.RoundFinishedTasks:Execute("parallel", nil, winningTeam, isTie)
+   CurrentGameState.RoundFinishedTasks:Execute("parallel", nil, winningTeam, isTie, winners)
 end
 
 return TeamClassic

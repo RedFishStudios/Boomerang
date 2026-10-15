@@ -60,8 +60,14 @@ function ClassicRoundLogic.teardown()
       if isTie then
          winner = nil
       end
+      local winners = {}
+      for player, elimCount in pairs(Elims) do
+         if elimCount == highestElims and elimCount > 0 then
+            table.insert(winners, player)
+         end
+      end
       clear()
-      CurrentGameState.RoundFinishedTasks:Execute("parallel", winner, nil, isTie)
+      CurrentGameState.RoundFinishedTasks:Execute("parallel", winner, nil, isTie, winners)
    end
 end
 

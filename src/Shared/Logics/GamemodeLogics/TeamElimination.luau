@@ -123,10 +123,19 @@ function TeamEliminationRoundLogic.teardown(winner: Player?, winningTeam: Team?)
          warn(`TeamElimination: no winning team found`)
       end
       matchFinished = true
+      -- // The winning team's players, collected before the teams are dismantled
+      local winners = {}
+      if winningTeam then
+         for _, player in ipairs(game:GetService("Players"):GetPlayers()) do
+            if player.Team == winningTeam then
+               table.insert(winners, player)
+            end
+         end
+      end
       clear()
       table.clear(activeTeams)
       GameTeamService.dismantleRoundTeams()
-      GameStateLibrary.RoundFinishedTasks:Execute("parallel", winner, winningTeam)
+      GameStateLibrary.RoundFinishedTasks:Execute("parallel", winner, winningTeam, nil, winners)
    end
 end
 

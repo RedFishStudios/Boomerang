@@ -347,8 +347,14 @@ function AssassinRoundLogic.teardown()
    if isTie then
       winner = nil
    end
+   local winners = {}
+   for player, points in pairs(Points) do
+      if points == highestPoints and points > 0 then
+         table.insert(winners, player)
+      end
+   end
    clear()
-   GameStateLibrary.RoundFinishedTasks:Execute("parallel", winner, nil, isTie)
+   GameStateLibrary.RoundFinishedTasks:Execute("parallel", winner, nil, isTie, winners)
 end
 
 if not isServer then

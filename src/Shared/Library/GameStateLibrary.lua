@@ -14,7 +14,8 @@ local GameplayPhases = require(ReplicatedStorage.Shared.Constants.Enums.Gameplay
 -- PRIVATE VARIABLES
 -------------------------------------------------------------------------------
 
-type RoundFinishedTask = (winner: Player?, winningTeam: Team?, isTie: boolean?) -> ()
+-- // winners: every player who shares the win (the tied players, or the winning team's players), when the gamemode provides them
+type RoundFinishedTask = (winner: Player?, winningTeam: Team?, isTie: boolean?, winners: {Player}?) -> ()
 type SnapshotLoadedReason = "ServerApplied" | "ServerReplicated" | "InitialReplication"
 type CurrentRoundData = {
    CurrentRoundId: number,
