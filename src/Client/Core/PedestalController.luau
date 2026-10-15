@@ -15,6 +15,10 @@
 	TODO: play a default fallback animation instead.
 
 	Pedestals are detected as they stream in (and out), and the avatar is rebuilt when `UserId` is added or changed.
+
+	The server (PedestalService) creates each pedestal's label, a BillboardGui named LABEL_NAME. This controller
+	attaches it to the avatar's head and lifts it just above the head (so it never sits inside the pedestal's model),
+	and hides it while the pedestal has no avatar.
 ]]
 
 local PedestalController = {}
@@ -36,6 +40,7 @@ type PedestalState = {
 	Track: AnimationTrack?,
 	StopObserving: (() -> ())?,
 	AttributeConnection: RBXScriptConnection?,
+	ChildConnection: RBXScriptConnection?,
 }
 
 -------------------------------------------------------------------------------
@@ -46,6 +51,8 @@ local PEDESTAL_TAG = "PlayerPedestal"
 local USER_ID_ATTRIBUTE = "UserId"
 local COSMETIC_CATEGORY = "Emote"
 local ASSET_ID_PREFIX = "rbxassetid://"
+local LABEL_NAME = "PedestalLabel"
+local LABEL_HEAD_PADDING = 0.75 -- // Studs between the top of the head and the bottom of the label
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
@@ -77,6 +84,25 @@ local function toAnimation(value: any): Animation?
 	return animation
 end
 
+-- // Puts the pedestal's label above the avatar's head and shows it, or hides it when there is no avatar
+local function updateLabel(pedestal: Instance, model: Model?)
+	local label = pedestal:FindFirstChild(LABEL_NAME)
+	if not label or not label:IsA("BillboardGui") then
+		return
+	end
+
+	local head = if model then model:FindFirstChild("Head") else nil
+	if not head or not head:IsA("BasePart") then
+		label.Enabled = false
+		label.Adornee = nil
+		return
+	end
+
+	label.Adornee = head
+	label.StudsOffsetWorldSpace = Vector3.new(0, head.Size.Y / 2 + LABEL_HEAD_PADDING + label.Size.Y.Scale / 2, 0)
+	label.Enabled = true
+end
+
 local function stopAnimation(state: PedestalState)
 	if state.Track then
 		state.Track:Stop(0)
@@ -85,7 +111,8 @@ local function stopAnimation(state: PedestalState)
 	end
 end
 
-local function clearAvatar(state: PedestalState)
+local function clearAvatar(pedestal: Instance, state: PedestalState)
+	updateLabel(pedestal, nil)
 	if state.StopObserving then
 		state.StopObserving()
 		state.StopObserving = nil
@@ -176,7 +203,7 @@ local function refresh(pedestal: Instance)
 
 	state.Request += 1
 	local request = state.Request
-	clearAvatar(state)
+	clearAvatar(pedestal, state)
 
 	local userId = pedestal:GetAttribute(USER_ID_ATTRIBUTE)
 	if type(userId) ~= "number" then
@@ -204,6 +231,7 @@ local function refresh(pedestal: Instance)
 		model.Name = "PedestalAvatar"
 		model.Parent = pedestal
 		state.Model = model
+		updateLabel(pedestal, model)
 
 		local player = Players:GetPlayerByUserId(userId)
 		if player then
@@ -227,6 +255,12 @@ local function onPedestalAdded(pedestal: Instance)
 	state.AttributeConnection = pedestal:GetAttributeChangedSignal(USER_ID_ATTRIBUTE):Connect(function()
 		refresh(pedestal)
 	end)
+	-- // The label may replicate after the avatar is already placed
+	state.ChildConnection = pedestal.ChildAdded:Connect(function(child)
+		if child.Name == LABEL_NAME then
+			updateLabel(pedestal, state.Model)
+		end
+	end)
 	refresh(pedestal)
 end
 
@@ -242,7 +276,11 @@ local function onPedestalRemoved(pedestal: Instance)
 		state.AttributeConnection:Disconnect()
 		state.AttributeConnection = nil
 	end
-	clearAvatar(state)
+	if state.ChildConnection then
+		state.ChildConnection:Disconnect()
+		state.ChildConnection = nil
+	end
+	clearAvatar(pedestal, state)
 end
 
 -------------------------------------------------------------------------------
