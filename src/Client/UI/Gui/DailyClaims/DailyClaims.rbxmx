@@ -1128,7 +1128,7 @@
 									<UDim2 name="Position">
 										<XS>0.5</XS>
 										<XO>0</XO>
-										<YS>0.430000007</YS>
+										<YS>0.37</YS>
 										<YO>0</YO>
 									</UDim2>
 									<float name="Rotation">0</float>
@@ -1362,7 +1362,7 @@
 									<UDim2 name="Position">
 										<XS>0.5</XS>
 										<XO>0</XO>
-										<YS>0.430000007</YS>
+										<YS>0.37</YS>
 										<YO>0</YO>
 									</UDim2>
 									<float name="Rotation">0</float>
@@ -1596,7 +1596,7 @@
 									<UDim2 name="Position">
 										<XS>0.5</XS>
 										<XO>0</XO>
-										<YS>0.430000007</YS>
+										<YS>0.37</YS>
 										<YO>0</YO>
 									</UDim2>
 									<float name="Rotation">0</float>
@@ -2239,7 +2239,7 @@
 									<UDim2 name="Position">
 										<XS>0.5</XS>
 										<XO>0</XO>
-										<YS>0.430000007</YS>
+										<YS>0.37</YS>
 										<YO>0</YO>
 									</UDim2>
 									<float name="Rotation">0</float>
@@ -2473,7 +2473,7 @@
 									<UDim2 name="Position">
 										<XS>0.5</XS>
 										<XO>0</XO>
-										<YS>0.430000007</YS>
+										<YS>0.37</YS>
 										<YO>0</YO>
 									</UDim2>
 									<float name="Rotation">0</float>
@@ -2707,7 +2707,7 @@
 									<UDim2 name="Position">
 										<XS>0.5</XS>
 										<XO>0</XO>
-										<YS>0.430000007</YS>
+										<YS>0.37</YS>
 										<YO>0</YO>
 									</UDim2>
 									<float name="Rotation">0</float>
@@ -3350,7 +3350,7 @@
 									<UDim2 name="Position">
 										<XS>0.5</XS>
 										<XO>0</XO>
-										<YS>0.430000007</YS>
+										<YS>0.37</YS>
 										<YO>0</YO>
 									</UDim2>
 									<float name="Rotation">0</float>
@@ -3584,7 +3584,7 @@
 									<UDim2 name="Position">
 										<XS>0.5</XS>
 										<XO>0</XO>
-										<YS>0.430000007</YS>
+										<YS>0.37</YS>
 										<YO>0</YO>
 									</UDim2>
 									<float name="Rotation">0</float>
@@ -3818,7 +3818,7 @@
 									<UDim2 name="Position">
 										<XS>0.5</XS>
 										<XO>0</XO>
-										<YS>0.430000007</YS>
+										<YS>0.37</YS>
 										<YO>0</YO>
 									</UDim2>
 									<float name="Rotation">0</float>
@@ -4461,7 +4461,7 @@
 									<UDim2 name="Position">
 										<XS>0.5</XS>
 										<XO>0</XO>
-										<YS>0.430000007</YS>
+										<YS>0.37</YS>
 										<YO>0</YO>
 									</UDim2>
 									<float name="Rotation">0</float>
@@ -4695,7 +4695,7 @@
 									<UDim2 name="Position">
 										<XS>0.5</XS>
 										<XO>0</XO>
-										<YS>0.430000007</YS>
+										<YS>0.37</YS>
 										<YO>0</YO>
 									</UDim2>
 									<float name="Rotation">0</float>
@@ -4929,7 +4929,7 @@
 									<UDim2 name="Position">
 										<XS>0.5</XS>
 										<XO>0</XO>
-										<YS>0.430000007</YS>
+										<YS>0.37</YS>
 										<YO>0</YO>
 									</UDim2>
 									<float name="Rotation">0</float>
@@ -5572,7 +5572,7 @@
 									<UDim2 name="Position">
 										<XS>0.5</XS>
 										<XO>0</XO>
-										<YS>0.430000007</YS>
+										<YS>0.37</YS>
 										<YO>0</YO>
 									</UDim2>
 									<float name="Rotation">0</float>
@@ -5806,7 +5806,7 @@
 									<UDim2 name="Position">
 										<XS>0.5</XS>
 										<XO>0</XO>
-										<YS>0.430000007</YS>
+										<YS>0.37</YS>
 										<YO>0</YO>
 									</UDim2>
 									<float name="Rotation">0</float>
@@ -6040,7 +6040,7 @@
 									<UDim2 name="Position">
 										<XS>0.5</XS>
 										<XO>0</XO>
-										<YS>0.430000007</YS>
+										<YS>0.37</YS>
 										<YO>0</YO>
 									</UDim2>
 									<float name="Rotation">0</float>
@@ -6683,7 +6683,7 @@
 									<UDim2 name="Position">
 										<XS>0.5</XS>
 										<XO>0</XO>
-										<YS>0.430000007</YS>
+										<YS>0.37</YS>
 										<YO>0</YO>
 									</UDim2>
 									<float name="Rotation">0</float>
@@ -6917,7 +6917,7 @@
 									<UDim2 name="Position">
 										<XS>0.5</XS>
 										<XO>0</XO>
-										<YS>0.430000007</YS>
+										<YS>0.37</YS>
 										<YO>0</YO>
 									</UDim2>
 									<float name="Rotation">0</float>
@@ -7151,7 +7151,7 @@
 									<UDim2 name="Position">
 										<XS>0.5</XS>
 										<XO>0</XO>
-										<YS>0.430000007</YS>
+										<YS>0.37</YS>
 										<YO>0</YO>
 									</UDim2>
 									<float name="Rotation">0</float>
@@ -7795,7 +7795,7 @@
 								<UDim2 name="Position">
 									<XS>0.5</XS>
 									<XO>0</XO>
-									<YS>0.430000007</YS>
+									<YS>0.33</YS>
 									<YO>0</YO>
 								</UDim2>
 								<float name="Rotation">0</float>
@@ -8029,7 +8029,7 @@
 								<UDim2 name="Position">
 									<XS>0.5</XS>
 									<XO>0</XO>
-									<YS>0.430000007</YS>
+									<YS>0.33</YS>
 									<YO>0</YO>
 								</UDim2>
 								<float name="Rotation">0</float>
@@ -8263,7 +8263,7 @@
 								<UDim2 name="Position">
 									<XS>0.5</XS>
 									<XO>0</XO>
-									<YS>0.430000007</YS>
+									<YS>0.33</YS>
 									<YO>0</YO>
 								</UDim2>
 								<float name="Rotation">0</float>
