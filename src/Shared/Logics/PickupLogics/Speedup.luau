@@ -2,7 +2,7 @@ local Speedup = {}
 
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local GlobalConfig = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Constants"):WaitForChild("GlobalConfig"))
+local WalkSpeedLibrary = require(ReplicatedStorage.Shared.Library.WalkSpeedLibrary)
 local PlayerStatsLibrary = require(ReplicatedStorage.Shared.Library.PlayerStatsLibrary)
 local SoundLibrary = require(ReplicatedStorage.Shared.Library.SoundLibrary)
 local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
@@ -26,14 +26,14 @@ function Speedup.onPickup(player: Player, startedAt: number?): number?
       if character then
          local doNotApplyNow = WeaponService.isAiming(player)
          print(doNotApplyNow)
-         PlayerStatsLibrary.setStat(player, "RunSpeed", GlobalConfig.DefaultWalkSpeed * SPEED_MULTIPLIER, doNotApplyNow, true)
+         PlayerStatsLibrary.setStat(player, "RunSpeed", WalkSpeedLibrary.getDefault() * SPEED_MULTIPLIER, doNotApplyNow, true)
       end
    else
       -- Client context
       -- Maybe a sound, gui etc
       SoundLibrary.play(nil, "PickupGeneric", nil, nil, nil)
       if player == game.Players.LocalPlayer then
-         PlayerStatsLibrary.setStat(player, "RunSpeed", GlobalConfig.DefaultWalkSpeed * SPEED_MULTIPLIER, nil, true)
+         PlayerStatsLibrary.setStat(player, "RunSpeed", WalkSpeedLibrary.getDefault() * SPEED_MULTIPLIER, nil, true)
       end
    end
 
@@ -46,10 +46,13 @@ function Speedup.onEnd(player: Player)
       local character = player.Character
       if character then
          local doNotApplyNow = WeaponService.isAiming(player)
-         PlayerStatsLibrary.setStat(player, "RunSpeed", GlobalConfig.DefaultWalkSpeed * SPEED_MULTIPLIER, doNotApplyNow, true)
+         PlayerStatsLibrary.setStat(player, "RunSpeed", WalkSpeedLibrary.getDefault(), doNotApplyNow, true)
       end
    else
-      -- Client context
+      -- Client context: the server does not replicate this stat, so the owner returns to the normal speed itself
+      if player == game.Players.LocalPlayer then
+         PlayerStatsLibrary.setStat(player, "RunSpeed", WalkSpeedLibrary.getDefault(), nil, true)
+      end
    end
 end
 

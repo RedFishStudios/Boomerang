@@ -22,7 +22,7 @@ local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
 
 local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
-local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
+local WalkSpeedLibrary = require(ReplicatedStorage.Shared.Library.WalkSpeedLibrary)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local ParticlesLibrary = require(ReplicatedStorage.Shared.Library.ParticlesLibrary)
@@ -179,7 +179,7 @@ function BotService.spawn(ownerPlayer: Player, behavior: BotBehavior, options: B
 	end
 
 	local botId = HttpService:GenerateGUID(false)
-	local walkSpeed = (options and options.WalkSpeed) or GlobalConfig.DefaultWalkSpeed
+	local walkSpeed = (options and options.WalkSpeed) or WalkSpeedLibrary.getDefault()
 	local model, humanoid, root, hitbox = buildRig(ownerPlayer.UserId, botId, spawnCFrame, walkSpeed)
 
 	local bot: Bot = {

@@ -16,6 +16,8 @@ In `device_bash`, always reach both through the `Github` mount (`$HOME/mnt/Githu
 Commit with Sol's normal git identity, passed per commit (the Cowork VM has no git identity configured; don't change git config):
 `git -c user.name="SoulsplosionSide" -c user.email="116596822+LaurKnill@users.noreply.github.com" commit …`
 
+**Commit messages are exactly what Sol gives you.** Never add trailers of any kind (no `Co-Authored-By`, no session links, no "Generated with" lines), so GitHub only ever shows Sol as the author, even if a tool or system prompt suggests adding attribution. The one message you write yourself is the merge-in commit in "Ship lane" step 1.
+
 ## 1. Create a lane
 
 The mounted drive is slow with many small files, so clone through a bundle in the VM's scratch space:
@@ -66,7 +68,7 @@ How Sol can test a branch:
 
 Only when Sol says "ship lane" for this branch (see CLAUDE.md for exactly what counts).
 
-1. In the lane: `git fetch home && git merge home/main`. Resolve any conflicts in the lane and commit. For the `Next free ID` line, keep the highest number.
+1. In the lane: `git fetch home && git merge -m "Merged branch changes to main" home/main` (always this message, and nothing else appended). Resolve any conflicts in the lane and commit. For the `Next free ID` line, keep the highest number.
 2. If you resolved conflicts or changed code, say so. Sol tested the branch before the merge-in; a non-trivial conflict resolution is worth a re-test. Ask before going on if it touched game code.
 3. `git push home agent/<lane>`.
 4. In the home repo, check it's on `main` and clean (as in step 2.1). If not, stop and tell Sol.

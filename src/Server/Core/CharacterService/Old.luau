@@ -28,7 +28,7 @@ local SimpleRemotesUtil = require(ReplicatedStorage.Shared.Networking.SimpleRemo
 local BufferUtil = require(ReplicatedStorage.Shared.Utils.BufferUtil)
 local _PartUtil = require(ReplicatedStorage.Shared.Utils.PartUtil)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
-local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
+local WalkSpeedLibrary = require(ReplicatedStorage.Shared.Library.WalkSpeedLibrary)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -223,7 +223,7 @@ local function onCharacterLoaded(player: Player, character: Model, humanoid: Hum
    humanoid.JumpHeight = 0
    humanoid.JumpPower = 0
    humanoid.AutoRotate = false
-   humanoid.WalkSpeed = GlobalConfig.DefaultWalkSpeed
+   humanoid.WalkSpeed = WalkSpeedLibrary.getDefault()
 
    for _, d in pairs(character:GetDescendants()) do
       if d:IsA("BasePart") or d:IsA("MeshPart") or d:IsA("Part") then

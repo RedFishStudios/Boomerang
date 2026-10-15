@@ -7,6 +7,10 @@ local PlayerStatsLibrary = require(
     game:GetService("ReplicatedStorage").Shared.Library.PlayerStatsLibrary
 )
 
+local WalkSpeedLibrary = require(
+    game:GetService("ReplicatedStorage").Shared.Library.WalkSpeedLibrary
+)
+
 local state = {}
 
 local SAMPLE_INTERVAL = 0.1
@@ -65,7 +69,7 @@ local function checkPlayer(player, dt)
 
     local speed = horizontalDistance / elapsed
 
-    local expectedSpeed = PlayerStatsLibrary.getStat(player, "CurrentSpeed") or 16
+    local expectedSpeed = PlayerStatsLibrary.getStat(player, "CurrentSpeed") or WalkSpeedLibrary.getDefault()
 
     local maximumSpeed = expectedSpeed * SPEED_TOLERANCE
 

@@ -5,7 +5,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
-local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
+local WalkSpeedLibrary = require(ReplicatedStorage.Shared.Library.WalkSpeedLibrary)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 local GameplayPhaseEnum = require(ReplicatedStorage.Shared.Constants.Enums.GameplayPhases)
@@ -39,8 +39,7 @@ export type PlayerStats = {
 -------------------------------------------------------------------------------
 
 local defaultStats: PlayerStats = {
-   RunSpeed = GlobalConfig.DefaultWalkSpeed,
-   CurrentSpeed = GlobalConfig.DefaultWalkSpeed,
+   -- // RunSpeed and CurrentSpeed start at WalkSpeedLibrary.getDefault() (read when the player's stats are created)
    CurrentMovementState = "FreeMotion",
 
    WeaponLockedUntilTimestamp = nil
@@ -74,6 +73,8 @@ local StatApplicators: {[string]: (player: Player, value: any, stats: PlayerStat
 
 local function newPlayerStats(player: Player)
    local userStats = table.clone(defaultStats)
+   userStats.RunSpeed = WalkSpeedLibrary.getDefault()
+   userStats.CurrentSpeed = userStats.RunSpeed
    playerStats[player.UserId] = userStats
    for statName, value in pairs(userStats) do
       local applicator = StatApplicators[statName]

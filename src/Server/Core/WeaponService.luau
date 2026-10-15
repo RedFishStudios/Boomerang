@@ -26,6 +26,7 @@ local GameStateLibrary= require(ReplicatedStorage.Shared.Library.GameStateLibrar
 local WeaponLibrary = require(ReplicatedStorage.Shared.Library.WeaponLibrary)
 local _ArenaService = require(ServerStorage.Server.Core.ArenaService)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
+local WalkSpeedLibrary = require(ReplicatedStorage.Shared.Library.WalkSpeedLibrary)
 local BoomerangTuningLibrary = require(ReplicatedStorage.Shared.Library.BoomerangTuningLibrary)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local _AnimationService = require(ServerStorage.Server.Core.AnimationService)
@@ -278,7 +279,7 @@ local function cancelAiming(player: Player)
          tweenWalkSpeedInverse,
          player,
          humanoid,
-         PlayerStatsLibrary.getStat(player, "RunSpeed") or GlobalConfig.DefaultWalkSpeed,
+         PlayerStatsLibrary.getStat(player, "RunSpeed") or WalkSpeedLibrary.getDefault(),
          AIM_WALK_SPEED_RETURN_TWEEN_DURATION,
          AIM_WALK_SPEED_RETURN_TWEEN_EXPONENT
       )
@@ -432,7 +433,7 @@ function WeaponService.init()
             tweenWalkSpeedInverse(
                player,
                humanoid,
-               PlayerStatsLibrary.getStat(player, "RunSpeed") or GlobalConfig.DefaultWalkSpeed,
+               PlayerStatsLibrary.getStat(player, "RunSpeed") or WalkSpeedLibrary.getDefault(),
                AIM_WALK_SPEED_RETURN_TWEEN_DURATION,
                AIM_WALK_SPEED_RETURN_TWEEN_EXPONENT
             )
@@ -642,7 +643,7 @@ function WeaponService.init()
          aimStateEvent:FireAllClients(p.UserId, false)
          local character = p.Character
          if character and character:FindFirstChild("Humanoid") then
-            PlayerStatsLibrary.setStat(p, "CurrentSpeed", PlayerStatsLibrary.getStat(p, "RunSpeed") or GlobalConfig.DefaultWalkSpeed, nil, nil)
+            PlayerStatsLibrary.setStat(p, "CurrentSpeed", PlayerStatsLibrary.getStat(p, "RunSpeed") or WalkSpeedLibrary.getDefault(), nil, nil)
          end
       end
    end)

@@ -53,7 +53,7 @@ local GlobalConfig = {
 
    DefaultWalkSpeed = 16,
    LobbyJumpHeight = 7.2, -- // Jumping is only enabled in the lobby (dash replaces it in the arena)
-   AimingWalkSpeed = (16 * .3),
+   AimingWalkSpeedMultiplier = 0.3, -- // Walk speed while aiming/charging a throw, as a fraction of the default walk speed (WalkSpeedLibrary.getDefault())
 
    -- // The game's Roblox group (community), checked by GroupMembershipService (Cmdr `setgroupid` overrides it per server).
    -- // Members can claim GroupRewardCurrency from the lobby Group Rewards chest once every 24 h (T-045).

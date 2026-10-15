@@ -13,6 +13,7 @@ local RunService = game:GetService("RunService")
 
 local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
+local WalkSpeedLibrary = require(ReplicatedStorage.Shared.Library.WalkSpeedLibrary)
 
 local BoomerangTuningLibrary = {}
 
@@ -98,7 +99,7 @@ BoomerangTuningLibrary.SETTINGS = {
 	AimWalkSpeed = {
 		Description = "player walk speed while aiming/charging (studs/s)",
 		getDefault = function(_toolData)
-			return GlobalConfig.AimingWalkSpeed
+			return WalkSpeedLibrary.getDefault() * GlobalConfig.AimingWalkSpeedMultiplier
 		end,
 	},
 	-- // T-077: how strongly a Telekinesis boomerang turns toward the owner's aim each second (bias, not full control)
