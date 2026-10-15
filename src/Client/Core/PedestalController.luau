@@ -7,12 +7,12 @@
 	A pedestal is any BasePart or Model tagged "PlayerPedestal". Its `UserId` attribute (number) says whose avatar
 	to show. The avatar is a standalone clone of that player's client-rendered character (see
 	CharacterRenderController.getFreshCharacterModelForUserId), stood on the top surface of the pedestal, facing the
-	pedestal's front (-Z, the way its LookVector points). The animation comes from the player's equipped "Emote"
-	cosmetic (PlayerCosmeticController) and follows later changes of it.
+	pedestal's front (-Z, the way its LookVector points). The animation comes from the player's equipped "WinningEmote"
+	cosmetic (PlayerCosmeticController, resolved by WinningEmoteLibrary, which falls back to its default animation)
+	and follows later changes of it.
 
-	The emote's resolved value may be an Animation, an animation asset id (number) or a "rbxassetid://" string.
-	Anything else, or any failure to get/load it, shows the avatar with no animation (placeholder).
-	TODO: play a default fallback animation instead.
+	The cosmetic's value may be an Animation, an animation asset id (digits, as a string or number) or a "rbxassetid://"
+	string. If it can't be retrieved or understood, WinningEmoteLibrary's default animation plays instead.
 
 	Pedestals are detected as they stream in (and out), and the avatar is rebuilt when `UserId` is added or changed.
 
@@ -29,6 +29,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local CharacterRenderController = require(ReplicatedStorage.Client.Core.CharacterRenderController)
 local PlayerCosmeticController = require(ReplicatedStorage.Client.Core.PlayerCosmeticController)
+local WinningEmoteLibrary = require(ReplicatedStorage.Shared.Library.WinningEmoteLibrary)
 
 -------------------------------------------------------------------------------
 -- TYPES
@@ -49,7 +50,7 @@ type PedestalState = {
 
 local PEDESTAL_TAG = "PlayerPedestal"
 local USER_ID_ATTRIBUTE = "UserId"
-local COSMETIC_CATEGORY = "Emote"
+local COSMETIC_CATEGORY = "WinningEmote"
 local ASSET_ID_PREFIX = "rbxassetid://"
 local LABEL_NAME = "PedestalLabel"
 local LABEL_HEAD_PADDING = 0.75 -- // Studs between the top of the head and the bottom of the label
@@ -74,6 +75,8 @@ local function toAnimation(value: any): Animation?
 		animationId = `{ASSET_ID_PREFIX}{value}`
 	elseif type(value) == "string" and value:sub(1, #ASSET_ID_PREFIX) == ASSET_ID_PREFIX then
 		animationId = value
+	elseif type(value) == "string" and value:match("^%d+$") then
+		animationId = `{ASSET_ID_PREFIX}{value}`
 	end
 	if not animationId then
 		return nil
@@ -131,7 +134,10 @@ local function playEquippedAnimation(state: PedestalState, model: Model, player:
 	local ok, value = pcall(PlayerCosmeticController.get, player, COSMETIC_CATEGORY)
 	local animation = if ok then toAnimation(value) else nil
 	if not animation then
-		return -- // TODO: default fallback animation
+		animation = toAnimation(WinningEmoteLibrary.DEFAULT_ANIMATION_ID)
+	end
+	if not animation then
+		return
 	end
 
 	local humanoid = model:FindFirstChildOfClass("Humanoid")
