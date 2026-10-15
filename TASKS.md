@@ -550,6 +550,8 @@ The file headers say "TODO: figure out how teams should work" (HitboxService has
 **Problem / goal**
 The Hot Potato "bomb will explode" GUI is a placeholder. Sol creates the final image assets and layout; an agent can wire up any behaviour changes afterwards.
 
+> Update (branch `agent/hotpotato-pickup-timer`, lane `hotpotato-pickup-timer`): the placeholder "Bomb will explode in" text and `HotPotatoGui.rbxmx` were removed. The bomb countdown now shows as the HotPotato pickup effect timer in the Effects HUD.
+
 **Notes**
 
 ---

@@ -27,8 +27,6 @@ else
    ItemAcquiredGui = require(ReplicatedStorage.Client.UI.Gui.ItemAcquired)
 end
 
-local guiTemplate = script:WaitForChild("HotPotatoGui")
-
 --------------------------------------------------------------------------------
 -- CONSTANTS
 --------------------------------------------------------------------------------
@@ -40,7 +38,6 @@ local NON_HOLDER_WEAPON_LOCK_DURATION = 60 * 60 -- Outlasts the round; cleared o
 
 local explodePlayerRemote = SimpleRemotes.getEvent("ExplodePlayerPotato")
 local pickupEffectStateChanged = SimpleRemotes.getEvent("PickupEffectStateChanged")
-local updateHotPotatoTimer = SimpleRemotes.getEvent("UpdateHotPotatoTimer")
 
 --------------------------------------------------------------------------------
 -- PER-SESSION VALUES
@@ -51,16 +48,14 @@ local initialHolderSet = false
 local currentHolder: Player? = nil
 local Particles: {[Player]: Part} = {}
 local Elims: {[Player]: number} = {}
-local elapsed = 0
+-- // workspace:GetServerTimeNow() timestamp the current bomb explodes at. Shown to the holder as the HotPotato pickup effect timer; nil while no bomb is live
+local bombExplodesAt: number? = nil
 local nextHolderElapsed = 0
 local nextHolderRoundId: number? = nil
 local PerMatchDestroyerFunctions: {()->()} = {}
 
 -- Dual-Context
 local heartbeatConnection: RBXScriptConnection? = nil
-
--- Client-Only
-local scheduledPotatoExplosionClient = nil
 
 --------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS
@@ -85,9 +80,13 @@ end
 local function grantHolderEffect(player: Player)
    initialHolderSet = true
    currentHolder = player
+   -- // A new bomb starts its countdown when first held; passing it on keeps the same explosion time
+   if not bombExplodesAt then
+      bombExplodesAt = workspace:GetServerTimeNow() + EXPLOSION_COUNTER
+   end
    WeaponService.removeLockOnWeapon(player)
    lockNonHolderWeapons()
-   PickupLibrary.setPickupEffectActive(player.UserId, generateHolderLivePickupId(player), HOT_POTATO_EFFECT_ID)
+   PickupLibrary.setPickupEffectActive(player.UserId, generateHolderLivePickupId(player), HOT_POTATO_EFFECT_ID, bombExplodesAt)
 end
 
 local function explode(player: Player)
@@ -110,15 +109,15 @@ local function explode(player: Player)
 end
 
 local function startservercontext()
-   elapsed = 0
+   bombExplodesAt = nil
    if heartbeatConnection then
       heartbeatConnection:Disconnect()
    end
    heartbeatConnection = RunService.Heartbeat:Connect(function(dt)
-      elapsed += dt
-      if elapsed >= EXPLOSION_COUNTER and currentHolder then
+      if bombExplodesAt and currentHolder and workspace:GetServerTimeNow() >= bombExplodesAt then
          local exploding = currentHolder
          currentHolder = nil
+         bombExplodesAt = nil
          explode(exploding)
          WeaponService.applyLockOnWeapon(exploding, NON_HOLDER_WEAPON_LOCK_DURATION)
       end
@@ -129,7 +128,6 @@ local function startservercontext()
             local roundIdAtExplosion = nextHolderRoundId
             nextHolderRoundId = nil
             nextHolderElapsed = 0
-            elapsed = 0
 
             local gameStateData = CurrentGameState.getGameStateData()
             local currentRoundData = gameStateData.CurrentRoundData:Get()
@@ -138,7 +136,6 @@ local function startservercontext()
                if #livingPlayers > 0 then
                   local randomPlayer = livingPlayers[math.random(1, #livingPlayers)]
                   grantHolderEffect(randomPlayer)
-                  updateHotPotatoTimer:FireAllClients(workspace:GetServerTimeNow() + EXPLOSION_COUNTER)
                else
                   warn(`hot potato gamemode has no living players to give potato to!`)
                end
@@ -173,7 +170,7 @@ local function teardown()
          clearHolderEffect(currentHolder)
       end
       currentHolder = nil
-      elapsed = 0
+      bombExplodesAt = nil
       nextHolderElapsed = 0
       nextHolderRoundId = nil
 
@@ -182,13 +179,6 @@ local function teardown()
       end
 
       CombatLibrary.removeAttackHitPlayerCallback(HOT_POTATO_EFFECT_ID)
-   else
-      local localPlayer = game.Players.LocalPlayer
-      for _, c in pairs(localPlayer.PlayerGui:GetChildren()) do
-         if c.Name == guiTemplate.Name then
-            c:Destroy()
-         end
-      end
    end
 end
 
@@ -207,13 +197,13 @@ function HotPotatoRoundLogic.setup()
       if #playersInArena > 0 then
          local randomPlayer = playersInArena[math.random(1, #playersInArena)]
          grantHolderEffect(randomPlayer)
-         updateHotPotatoTimer:FireAllClients(workspace:GetServerTimeNow() + EXPLOSION_COUNTER)
       end
 
       table.insert(PerMatchDestroyerFunctions, CurrentGameState.PlayerRemovedFromArenaTasks:Add(function(player: Player)
          if player == currentHolder then
             clearHolderEffect(currentHolder)
             currentHolder = nil
+            bombExplodesAt = nil
             nextHolderElapsed = 0
             nextHolderRoundId = currentGameData.CurrentRoundData:Get().CurrentRoundId
          end
@@ -229,7 +219,6 @@ function HotPotatoRoundLogic.setup()
       table.insert(PerMatchDestroyerFunctions, CurrentGameState.PlayerAddedToArenaTasks:Add(function(player: Player)
          if not currentHolder and not initialHolderSet then
             grantHolderEffect(player)
-            updateHotPotatoTimer:FireAllClients(workspace:GetServerTimeNow() + EXPLOSION_COUNTER)
          end
       end))
 
@@ -239,24 +228,6 @@ function HotPotatoRoundLogic.setup()
          local winner = if #livingPlayers == 1 then livingPlayers[1] else nil
          HotPotatoRoundLogic.teardown(winner)
       end))
-   else
-      local localPlayer = game.Players.LocalPlayer
-      local guiClone = guiTemplate:Clone()
-      guiClone.Parent = localPlayer.PlayerGui
-      guiClone.Enabled = true
-
-      heartbeatConnection = RunService.Heartbeat:Connect(function(dt)
-         if scheduledPotatoExplosionClient then
-            guiClone.Enabled = true
-            local now = game.Workspace:GetServerTimeNow()
-            local timeRemaining = math.round(scheduledPotatoExplosionClient - now)
-            if timeRemaining <= 0 then
-               timeRemaining = 0
-               scheduledPotatoExplosionClient = nil
-            end
-            guiClone.TextLabel.Text = "Bomb will explode in: " .. timeRemaining
-         end
-      end)
    end
 end
 
@@ -337,10 +308,6 @@ if not isServer then
             end
          end
       end
-   end)
-
-   updateHotPotatoTimer.OnClientEvent:Connect(function(potatoExplodesAt: number)
-      scheduledPotatoExplosionClient = potatoExplodesAt
    end)
 end
 
