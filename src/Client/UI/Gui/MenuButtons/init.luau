@@ -333,7 +333,7 @@ function MenuButtonsGui.start()
 	build()
 
 	buttonCallbacks.Shop = buttonCallbacks.Shop or function()
-		toggleGui("Shop")
+		toggleGui("WeaponsShop") -- // The Cosmetics Shop has no button yet
 	end
 	buttonCallbacks.Daily = buttonCallbacks.Daily or function()
 		toggleGui("DailyClaims")

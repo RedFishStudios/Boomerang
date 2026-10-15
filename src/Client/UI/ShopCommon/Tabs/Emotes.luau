@@ -1,10 +1,10 @@
 --[[
-	Emotes tab (Shop)
+	Emotes tab (Cosmetics Shop)
 
 	Description:
 	Every emote on sale, in the same order as the Inventory's Emotes tab (EmoteLibrary / EmoteController, data in
 	Shared/Referential/Emotes). Emotes that are off sale are left out by ShopListings. Scrolls past 6 listings.
-	Follows the ShopTab shape in Shop/init.luau.
+	Follows the ShopTab shape in ShopCommon/ShopBuilder.
 ]]
 
 local EmotesTab = {}

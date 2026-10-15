@@ -39,16 +39,16 @@ local Skins: { [SkinId]: Skin } = {
 		Default = true,
 		OffSale = true,
 	},
-	Shuriken = {
-		Name = "Shuriken",
-		Model = "Shuriken",
+	BasicShuriken = {
+		Name = "Basic Shuriken",
+		Model = "BasicShuriken",
 		WeaponClass = "ClassicBoomerang", -- TODO:RELEASE placeholder (every skin uses the Classic stats for now)
 		Price = 500, -- TODO:RELEASE placeholder
 		Order = 2,
 	},
-	Fan = {
-		Name = "Fan",
-		Model = "Fan",
+	BasicFan = {
+		Name = "Basic Fan",
+		Model = "BasicFan",
 		WeaponClass = "ClassicBoomerang", -- TODO:RELEASE placeholder (every skin uses the Classic stats for now)
 		Price = 1000, -- TODO:RELEASE placeholder
 		Order = 3,

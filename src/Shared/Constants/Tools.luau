@@ -1,8 +1,11 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GeneralUtil = require(ReplicatedStorage.Shared.Utils.GeneralUtil)
 
+export type ToolCategory = "Boomerang" | "Fan" | "Shuriken"
+
 export type Tool = {
    Id: string,
+   Category: ToolCategory, -- Which Weapons Shop tab lists it
    LogicClass: "Boomerang", -- Name of the logics module responsible for handling this weapon's behavior when thrown
    Rarity: string?, -- Shown in the Inventory (e.g. "Common"); not used by gameplay
    Viewport: { -- How the model is posed in GUI item viewports (Client/UI/ItemViewport)
@@ -23,6 +26,7 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
    -- // Boomerangs // --
    ClassicBoomerang = {
       Id = "Boomerang",
+      Category = "Boomerang",
       LogicClass = "Boomerang",
       Rarity = "Common", -- TODO:RELEASE placeholder
       Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(25)) * CFrame.Angles(math.rad(75), 0, 0) },
@@ -34,8 +38,9 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
          ManualRecallSpeed = 90
       }
    },
-   Shuriken = {
-      Id = "Shuriken",
+   BasicShuriken = {
+      Id = "BasicShuriken",
+      Category = "Shuriken",
       LogicClass = "Boomerang",
       Rarity = "Common", -- TODO:RELEASE placeholder
       Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(15)) * CFrame.Angles(math.rad(75), 0, 0), Zoom = 1.2 },
@@ -47,8 +52,9 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
          ManualRecallSpeed = 90
       }
    },
-   Fan = {
-      Id = "Fan",
+   BasicFan = {
+      Id = "BasicFan",
+      Category = "Fan",
       LogicClass = "Boomerang",
       Rarity = "Common", -- TODO:RELEASE placeholder
       Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) },

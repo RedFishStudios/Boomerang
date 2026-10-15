@@ -1,13 +1,13 @@
 --[[
-	Arrows tab (Shop)
+	Charge Effects tab (Cosmetics Shop)
 
 	Description:
 	Every charge up effect on sale, in the same order as the Inventory's Arrows tab (ChargeUpEffectLibrary / ChargeUpEffectController, data in
 	Shared/Referential/ChargeUpEffects). Arrows that are off sale are left out by ShopListings. Scrolls past 6 listings.
-	Follows the ShopTab shape in Shop/init.luau.
+	Follows the ShopTab shape in ShopCommon/ShopBuilder.
 ]]
 
-local ArrowsTab = {}
+local ChargeEffectsTab = {}
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -19,13 +19,13 @@ local ChargeUpEffectController = require(ReplicatedStorage.Client.Core.ChargeUpE
 -- PUBLIC VARIABLES
 -------------------------------------------------------------------------------
 
-ArrowsTab.Scrollable = true
+ChargeEffectsTab.Scrollable = true
 
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
-function ArrowsTab.getListings(): { ShopItems.ShopListing }
+function ChargeEffectsTab.getListings(): { ShopItems.ShopListing }
 	local listings = {}
 	for _, chargeUpEffectId in ChargeUpEffectLibrary.getSortedIds() do
 		table.insert(listings, { Type = "ChargeUpEffect", Id = chargeUpEffectId })
@@ -33,8 +33,8 @@ function ArrowsTab.getListings(): { ShopItems.ShopListing }
 	return listings
 end
 
-function ArrowsTab.subscribe(onChanged: () -> ())
+function ChargeEffectsTab.subscribe(onChanged: () -> ())
 	ChargeUpEffectController.ChargeUpEffectGrantedTasks:Add(onChanged)
 end
 
-return ArrowsTab
+return ChargeEffectsTab
