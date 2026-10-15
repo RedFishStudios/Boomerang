@@ -75,6 +75,8 @@ local NORMALIZED_WALK_SPEED = 0.5
 local NORMALIZED_RUN_SPEED = 1
 local HUMANOID_HIP_HEIGHT = 2
 local R15_WALK_SPEED_SCALE = 16
+-- // How long getFreshCharacterModelForUserId waits for a player's rendered model before cloning the replicated one
+local FRESH_MODEL_WAIT_TIMEOUT = 30
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -727,6 +729,50 @@ function CharacterRenderController.getCharacterModel(player: Player, canYield: b
       return disguiseModels[player]
    end
    return getCharacterModel(player, canYield)
+end
+
+-- // Returns a fresh, standalone clone of a player's client-rendered character model (not driven by the controller:
+--    not synced to the player's character, not tracked, not parented anywhere). The caller owns it and must parent and
+--    destroy it. Yields. Returns nil when the user isn't in the server or no model could be built.
+--    Reuses the player's existing rendered model when there is one, waits for it when it is being created,
+--    and starts creating it otherwise (all handled by getCharacterModel). If the rendered model can't be had (e.g. the
+--    character is missing or ragdolled), the pristine replicated model is cloned instead.
+function CharacterRenderController.getFreshCharacterModelForUserId(userId: number): Model?
+   local player = Players:GetPlayerByUserId(userId)
+   if not player then
+      return nil
+   end
+
+   -- // Start creation if nothing exists or is pending (no-op otherwise), then wait for the model to appear. The per-frame
+   --    loop keeps retrying creation, and the replicated source can arrive well after boot, so a single yielding
+   --    creation attempt (5s limit, strict descendant count) is not used here.
+   local source = getCharacterModel(player, false)
+   local elapsed = 0
+   while not source and elapsed < FRESH_MODEL_WAIT_TIMEOUT and player.Parent do
+      elapsed += RunService.Heartbeat:Wait()
+      source = localCharacterModels[player]
+   end
+   if source and ragdollApplied[player] then
+      source = nil -- // Dead/ragdolled render: a clone would be a corpse
+   end
+   if not source then
+      local localPlayer = Players.LocalPlayer
+      source = CharacterRenderLibrary.getReplicatedModelForPlayer(localPlayer, userId)
+         or CharacterRenderLibrary.getReplicatedModelForPlayer(localPlayer, CharacterRenderLibrary.getCharacterSourceUserId(userId))
+   end
+   if not source then
+      return nil
+   end
+
+   local model = source:Clone()
+   model.Name = `{userId}_FreshModel`
+   -- // Animate scripts and their animation folders belong to the live render; the clone is driven by its new owner
+   for _, child in pairs(model:GetChildren()) do
+      if child:IsA("LuaSourceContainer") then
+         child:Destroy()
+      end
+   end
+   return model
 end
 
 -------------------------------------------------------------------------------
