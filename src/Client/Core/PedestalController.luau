@@ -17,8 +17,9 @@
 	Pedestals are detected as they stream in (and out), and the avatar is rebuilt when `UserId` is added or changed.
 
 	The server (PedestalService) creates each pedestal's label, a BillboardGui named LABEL_NAME. This controller
-	attaches it to the avatar's head and lifts it just above the head (so it never sits inside the pedestal's model),
-	and hides it while the pedestal has no avatar.
+	adorns it to the pedestal itself (so it stays still while the avatar animates) and offsets it up to just above the
+	top of the avatar as measured when the avatar was placed, plus a margin for animations that reach higher.
+	It hides the label while the pedestal has no avatar.
 ]]
 
 local PedestalController = {}
@@ -38,6 +39,7 @@ local WinningEmoteLibrary = require(ReplicatedStorage.Shared.Library.WinningEmot
 type PedestalState = {
 	Request: number, -- // Bumped on every refresh/release; an async build that finds a newer number discards itself
 	Model: Model?,
+	AvatarTopY: number?, -- // World Y of the top of the avatar when it was placed (before animating)
 	Track: AnimationTrack?,
 	StopObserving: (() -> ())?,
 	AttributeConnection: RBXScriptConnection?,
@@ -53,7 +55,7 @@ local USER_ID_ATTRIBUTE = "UserId"
 local COSMETIC_CATEGORY = "WinningEmote"
 local ASSET_ID_PREFIX = "rbxassetid://"
 local LABEL_NAME = "PedestalLabel"
-local LABEL_HEAD_PADDING = 0.75 -- // Studs between the top of the head and the bottom of the label
+local LABEL_PADDING = 2.25 -- // Studs between the top of the avatar (at rest) and the bottom of the label; room for raised arms
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
@@ -87,22 +89,41 @@ local function toAnimation(value: any): Animation?
 	return animation
 end
 
--- // Puts the pedestal's label above the avatar's head and shows it, or hides it when there is no avatar
-local function updateLabel(pedestal: Instance, model: Model?)
+-- // A part of the pedestal that doesn't move: the pedestal itself, or a part of it that isn't the avatar
+local function getLabelAdornee(pedestal: Instance, avatar: Model): BasePart?
+	if pedestal:IsA("BasePart") then
+		return pedestal
+	end
+	if pedestal:IsA("Model") and pedestal.PrimaryPart then
+		return pedestal.PrimaryPart
+	end
+	for _, descendant in pedestal:GetDescendants() do
+		if descendant:IsA("BasePart") and not descendant:IsDescendantOf(avatar) then
+			return descendant
+		end
+	end
+	return nil
+end
+
+-- // Shows the pedestal's label above the avatar, or hides it when there is no avatar. The label is adorned to the
+--   pedestal (static) and offset upward, so it doesn't follow the animation.
+local function updateLabel(pedestal: Instance, state: PedestalState)
 	local label = pedestal:FindFirstChild(LABEL_NAME)
 	if not label or not label:IsA("BillboardGui") then
 		return
 	end
 
-	local head = if model then model:FindFirstChild("Head") else nil
-	if not head or not head:IsA("BasePart") then
+	local avatar = state.Model
+	local avatarTopY = state.AvatarTopY
+	local adornee = if avatar and avatarTopY then getLabelAdornee(pedestal, avatar) else nil
+	if not adornee or not avatarTopY then
 		label.Enabled = false
 		label.Adornee = nil
 		return
 	end
 
-	label.Adornee = head
-	label.StudsOffsetWorldSpace = Vector3.new(0, head.Size.Y / 2 + LABEL_HEAD_PADDING + label.Size.Y.Scale / 2, 0)
+	label.Adornee = adornee
+	label.StudsOffsetWorldSpace = Vector3.new(0, avatarTopY + LABEL_PADDING + label.Size.Y.Scale / 2 - adornee.Position.Y, 0)
 	label.Enabled = true
 end
 
@@ -115,7 +136,6 @@ local function stopAnimation(state: PedestalState)
 end
 
 local function clearAvatar(pedestal: Instance, state: PedestalState)
-	updateLabel(pedestal, nil)
 	if state.StopObserving then
 		state.StopObserving()
 		state.StopObserving = nil
@@ -125,6 +145,8 @@ local function clearAvatar(pedestal: Instance, state: PedestalState)
 		state.Model:Destroy()
 		state.Model = nil
 	end
+	state.AvatarTopY = nil
+	updateLabel(pedestal, state)
 end
 
 -- // Plays the player's equipped cosmetic on the model, or leaves it without animation if it can't be retrieved
@@ -175,13 +197,14 @@ local function getTopCFrame(pedestal: Instance): CFrame?
 	return nil
 end
 
--- // Makes the clone purely visual and stands it on the pedestal. False if it can't be placed.
-local function placeModel(pedestal: Instance, model: Model): boolean
+-- // Makes the clone purely visual and stands it on the pedestal. Returns the world Y of the top of the model at rest,
+--   or nil if it can't be placed.
+local function placeModel(pedestal: Instance, model: Model): number?
 	local topCFrame = getTopCFrame(pedestal)
 	local root = model:FindFirstChild("HumanoidRootPart")
 	local humanoid = model:FindFirstChildOfClass("Humanoid")
 	if not topCFrame or not root or not root:IsA("BasePart") or not humanoid then
-		return false
+		return nil
 	end
 
 	for _, descendant in model:GetDescendants() do
@@ -198,7 +221,9 @@ local function placeModel(pedestal: Instance, model: Model): boolean
 
 	local rootCFrame = topCFrame * CFrame.new(0, humanoid.HipHeight + root.Size.Y / 2, 0)
 	model:PivotTo(rootCFrame * root.CFrame:ToObjectSpace(model:GetPivot()))
-	return true
+
+	local boxCFrame, boxSize = model:GetBoundingBox()
+	return boxCFrame.Position.Y + boxSize.Y / 2
 end
 
 local function refresh(pedestal: Instance)
@@ -228,7 +253,8 @@ local function refresh(pedestal: Instance)
 			warn(`PedestalController: No character model available for UserId {userId}`)
 			return
 		end
-		if not placeModel(pedestal, model) then
+		local avatarTopY = placeModel(pedestal, model)
+		if not avatarTopY then
 			warn(`PedestalController: Could not place the model for UserId {userId} on pedestal {pedestal:GetFullName()}`)
 			model:Destroy()
 			return
@@ -237,7 +263,8 @@ local function refresh(pedestal: Instance)
 		model.Name = "PedestalAvatar"
 		model.Parent = pedestal
 		state.Model = model
-		updateLabel(pedestal, model)
+		state.AvatarTopY = avatarTopY
+		updateLabel(pedestal, state)
 
 		local player = Players:GetPlayerByUserId(userId)
 		if player then
@@ -264,7 +291,7 @@ local function onPedestalAdded(pedestal: Instance)
 	-- // The label may replicate after the avatar is already placed
 	state.ChildConnection = pedestal.ChildAdded:Connect(function(child)
 		if child.Name == LABEL_NAME then
-			updateLabel(pedestal, state.Model)
+			updateLabel(pedestal, state)
 		end
 	end)
 	refresh(pedestal)
