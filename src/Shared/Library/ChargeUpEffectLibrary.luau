@@ -2,9 +2,10 @@
 	ChargeUpEffectLibrary
 
 	Description:
-	Shared helpers for charge up effects (Shared/Referential/ChargeUpEffects). Works out any player's equipped charge up effect and its
-	template from the `EquippedChargeUpEffect` attribute that ChargeUpEffectService sets on the Player (see CosmeticLibrary).
-	Safe to use on both server and client.
+	Shared helpers for charge up effects (Shared/Referential/ChargeUpEffects). Works out any player's equipped charge up effect
+	and its logic module from the `EquippedChargeUpEffect` attribute that ChargeUpEffectService sets on the Player (see
+	CosmeticLibrary). A charge up effect id is also the name of the module in Shared/Logics/ChargeUpEffects that animates it.
+	Safe to use on both server and client (the logic modules are only required where something asks for them).
 ]]
 
 local ChargeUpEffectLibrary = {}
@@ -15,16 +16,40 @@ local ChargeUpEffects = require(ReplicatedStorage.Shared.Referential.ChargeUpEff
 local CosmeticLibrary = require(ReplicatedStorage.Shared.Library.CosmeticLibrary)
 
 -------------------------------------------------------------------------------
+-- TYPES
+-------------------------------------------------------------------------------
+
+-- // What a charge up effect is told every frame while its player is charging
+export type ChargeUpFrame = {
+	Alpha: number, -- // Charge progress, 0 (just started) to 1 (full charge)
+	RootPart: BasePart, -- // The rendered character's HumanoidRootPart
+	AimCFrame: CFrame, -- // The direction the player is aiming (their facing)
+}
+
+-- // A running charge up effect. Removed when the player stops charging (throw, cancel, death...); it must clean up everything it made.
+export type ChargeUpEffectHandle = {
+	update: (self: ChargeUpEffectHandle, frame: ChargeUpFrame) -> (),
+	remove: (self: ChargeUpEffectHandle) -> (),
+}
+
+-- // The shape of a module in Shared/Logics/ChargeUpEffects. `apply` is called when a player begins charging, on every
+-- // client (it only creates visuals; nothing here is authoritative), and returns the handle that animates and removes it.
+export type ChargeUpEffectLogic = {
+	apply: (player: Player, character: Model) -> ChargeUpEffectHandle,
+}
+
+-------------------------------------------------------------------------------
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
 ChargeUpEffectLibrary.ATTRIBUTE_NAME = CosmeticLibrary.ATTRIBUTES.ChargeUpEffect
 
-local LEGACY_TEMPLATE_NAME = "AimArrow" -- // The template's name before charge up effects were cosmetics; a last-resort fallback
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
 -------------------------------------------------------------------------------
+
+local logicCache: { [string]: ChargeUpEffectLogic } = {}
 
 local defaultChargeUpEffectId: string = "DefaultChargeUpEffect"
 for chargeUpEffectId, chargeUpEffect in ChargeUpEffects do
@@ -79,23 +104,29 @@ function ChargeUpEffectLibrary.getEquippedId(player: Player): string
 	return defaultChargeUpEffectId
 end
 
--- // The template (a Model in Shared/Assets/Gui) for a charge up effect id. Falls back to the default arrow's template, then
--- // to the old "AimArrow" template, so a missing asset never breaks aiming.
-function ChargeUpEffectLibrary.getTemplate(chargeUpEffectId: string): Model
-	local guiAssets = ReplicatedStorage.Shared.Assets.Gui
-	local chargeUpEffect = ChargeUpEffects[chargeUpEffectId]
-	local template = chargeUpEffect and guiAssets:FindFirstChild(chargeUpEffect.Asset)
-	if not template then
-		warn(`ChargeUpEffectLibrary: no template for charge up effect {chargeUpEffectId}, using the default`)
-		local default = ChargeUpEffects[defaultChargeUpEffectId]
-		template = guiAssets:FindFirstChild(default.Asset) or guiAssets:FindFirstChild(LEGACY_TEMPLATE_NAME)
+-- // The logic module of a charge up effect id (Shared/Logics/ChargeUpEffects/<id>). An unknown id, or an effect without a
+-- // module, uses the default effect's module, so a missing module never breaks aiming.
+function ChargeUpEffectLibrary.getLogic(chargeUpEffectId: string): ChargeUpEffectLogic
+	local cached = logicCache[chargeUpEffectId]
+	if cached then
+		return cached
 	end
-	return template :: Model
+
+	local logicsFolder = ReplicatedStorage.Shared.Logics.ChargeUpEffects
+	local logicModule = if ChargeUpEffects[chargeUpEffectId] then logicsFolder:FindFirstChild(chargeUpEffectId) else nil
+	if not (logicModule and logicModule:IsA("ModuleScript")) then
+		warn(`ChargeUpEffectLibrary: no logic module for charge up effect {chargeUpEffectId}, using the default`)
+		logicModule = logicsFolder:FindFirstChild(defaultChargeUpEffectId)
+	end
+
+	local logic = require(logicModule :: ModuleScript) :: ChargeUpEffectLogic
+	logicCache[chargeUpEffectId] = logic
+	return logic
 end
 
--- // The template of the charge up effect the player has equipped
-function ChargeUpEffectLibrary.getTemplateFor(player: Player): Model
-	return ChargeUpEffectLibrary.getTemplate(ChargeUpEffectLibrary.getEquippedId(player))
+-- // The logic module of the charge up effect the player has equipped
+function ChargeUpEffectLibrary.getLogicFor(player: Player): ChargeUpEffectLogic
+	return ChargeUpEffectLibrary.getLogic(ChargeUpEffectLibrary.getEquippedId(player))
 end
 
 return ChargeUpEffectLibrary

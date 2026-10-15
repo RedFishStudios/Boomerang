@@ -2,9 +2,10 @@
 	ChargeUpEffects
 
 	Description:
-	Charge up effects players can own and equip. A charge up effect is the arrow shown on the ground while a player aims a throw
-	(WeaponController); it is rendered locally by every client from the arrow's template in Shared/Assets/Gui.
-	Ownership and the equipped arrow are saved in the profile (OwnedChargeUpEffects / EquippedChargeUpEffect) and handled by
+	Charge up effects players can own and equip. A charge up effect is what plays on a player while they charge a throw
+	(WeaponController); today each one shows an arrow on the ground. The effect's id is the name of the logic module in
+	Shared/Logics/ChargeUpEffects that animates it (every client runs it locally), so each effect can behave differently.
+	Ownership and the equipped effect are saved in the profile (OwnedChargeUpEffects / EquippedChargeUpEffect) and handled by
 	ChargeUpEffectService / ChargeUpEffectController. Same shape as Skins.
 	Charge up effect ids are saved and sent over the network: never change or reuse one.
 ]]
@@ -17,7 +18,6 @@ export type ChargeUpEffectId = string
 
 export type ChargeUpEffect = {
 	Name: string,
-	Asset: string, -- // Name of the arrow template in Shared/Assets/Gui
 	Price: number, -- // Currency price in the shop
 	Order: number, -- // Display order in the Arrows menu and the shop
 	Rarity: string?, -- // Shown in the shop and inventory; "Common" when missing
@@ -35,7 +35,6 @@ export type ChargeUpEffect = {
 local ChargeUpEffects: { [ChargeUpEffectId]: ChargeUpEffect } = {
 	DefaultChargeUpEffect = {
 		Name = "Default",
-		Asset = "DefaultAimArrow",
 		Price = 0,
 		Order = 1,
 		Icon = nil, -- TODO:RELEASE placeholder (no GUI image yet)
@@ -45,7 +44,6 @@ local ChargeUpEffects: { [ChargeUpEffectId]: ChargeUpEffect } = {
 	},
 	RedChargeUpEffect = {
 		Name = "Red",
-		Asset = "RedAimArrow",
 		Price = 250, -- TODO:RELEASE placeholder
 		Order = 2,
 		Icon = nil, -- TODO:RELEASE placeholder (no GUI image yet)

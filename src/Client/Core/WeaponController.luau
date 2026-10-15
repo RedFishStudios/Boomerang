@@ -71,8 +71,7 @@ local PORTAL_SNAPSHOT_GRACE = 0.5 -- // Seconds after the local boomerang goes t
 
 local chargeUpEffects: {
    [Player]: {
-      Instance: Instance,
-      Template: Model, -- // The template of the aim arrow equipped when the aim began (fixed for the whole aim)
+      Handle: ChargeUpEffectLibrary.ChargeUpEffectHandle, -- // The charge up effect applied when the aim began (fixed for the whole aim)
       AimStart: number
    }
 } = {}
@@ -448,7 +447,7 @@ function stopAiming(player: Player)
    AnimationController.stopCoreAnimation(player, "Charging")
    local chargeUpEffect = chargeUpEffects[player]
    if chargeUpEffect then
-      chargeUpEffect.Instance:Destroy()
+      chargeUpEffect.Handle:remove()
       chargeUpEffects[player] = nil
    end
 end
@@ -578,45 +577,16 @@ local function renderChargeUpEffects()
             continue
          end
 
-         local chargeUpEffectTemplate = arrows.Template
-         local fullSize = chargeUpEffectTemplate.PrimaryPart.Size
-         local startSize = fullSize * .7
          local timeSinceAimStart = os.clock() - arrows.AimStart
          local aimStrengthAlpha = math.clamp(timeSinceAimStart / BoomerangTuningLibrary.getForAnyTool(SkinLibrary.getWeaponClass(Players.LocalPlayer), "ChargeTime"), 0, 1) -- // T-066
-         local currentSize = startSize:Lerp(fullSize, aimStrengthAlpha)
-         arrows.Instance.PrimaryPart.Size = currentSize
-         arrows.Instance.PrimaryPart.SurfaceGui.CanvasGroup.GroupTransparency = (1 - aimStrengthAlpha)
-
          local characterCFrame = if p == Players.LocalPlayer then CharacterController.LastCFrame else humanoidRootPart.CFrame
 
-         local distance = 3 + ((GlobalConfig.AimFullStrength * aimStrengthAlpha)*2.5)
-         local chargeUpEffect = arrows.Instance
-         local arrowOffset = Vector3.new(0, -2, 0) + (characterCFrame.LookVector.Unit * distance)
-         local arrowPosition = humanoidRootPart.Position + arrowOffset
-         chargeUpEffect:PivotTo(CFrame.new(arrowPosition, arrowPosition + characterCFrame.LookVector))
-
-         -- Shaking
-         local frameThatShakes = arrows.Instance.PrimaryPart.SurfaceGui.CanvasGroup.Arrows
-         local defaultPosition = chargeUpEffectTemplate.PrimaryPart.SurfaceGui.CanvasGroup.Arrows.Position
-         if aimStrengthAlpha > .8 then
-            local now = os.clock()
-            local shakeAlpha = (aimStrengthAlpha - 0.8) / 0.2
-            local defaultOffsetMagnitude = math.max(1, math.abs(defaultPosition.X.Offset) + math.abs(defaultPosition.Y.Offset))
-            local maxShakePixels = defaultOffsetMagnitude * 0.25
-            local shakePixels = maxShakePixels * shakeAlpha
-
-            -- Use smooth noise so direction shifts fluidly over multiple frames.
-            local shakeX = (math.noise(p.UserId * 0.11, now * 4.5, 0) * shakePixels) * 100
-            local shakeY = (math.noise((p.UserId + 97) * 0.11, now * 4.5, 0) * shakePixels) * 100
-            frameThatShakes.Position = UDim2.new(
-               defaultPosition.X.Scale,
-               defaultPosition.X.Offset + shakeX,
-               defaultPosition.Y.Scale,
-               defaultPosition.Y.Offset + shakeY
-            )
-         else
-            frameThatShakes.Position = defaultPosition
-         end
+         -- // The effect's own logic module animates it from the charge progress (see Shared/Logics/ChargeUpEffects)
+         arrows.Handle:update({
+            Alpha = aimStrengthAlpha,
+            RootPart = humanoidRootPart,
+            AimCFrame = characterCFrame,
+         })
       end
    end)
 end
@@ -644,16 +614,12 @@ local function beginAiming(player: Player)
 
    AnimationController.playCoreAnimation(player, "Charging")
 
-   -- // Every client renders each player's arrow locally, from that player's replicated EquippedChargeUpEffect (validated by
-   -- // ChargeUpEffectLibrary, so an unknown or not-yet-replicated value shows the default arrow)
-   local chargeUpEffectTemplate = ChargeUpEffectLibrary.getTemplateFor(player)
-   local chargeUpEffect = chargeUpEffectTemplate:Clone()
-   chargeUpEffect.Name = `AimArrow_{player.UserId}`
-   chargeUpEffect.Parent = game.Workspace
-   chargeUpEffect.PrimaryPart.Anchored = true
+   -- // Every client applies each player's charge up effect locally. The equipped id is replicated on the Player and
+   -- // validated by ChargeUpEffectLibrary (an unknown or not-yet-replicated value uses the default effect); the id names
+   -- // the logic module in Shared/Logics/ChargeUpEffects that applies and animates the effect
+   local logic = ChargeUpEffectLibrary.getLogicFor(player)
    chargeUpEffects[player] = {
-      Instance = chargeUpEffect,
-      Template = chargeUpEffectTemplate,
+      Handle = logic.apply(player, character),
       AimStart = os.clock()
    }
    renderChargeUpEffects()
