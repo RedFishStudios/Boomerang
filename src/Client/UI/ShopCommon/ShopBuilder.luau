@@ -245,7 +245,7 @@ function ShopBuilder.create(config: ShopConfig)
 			Name = "Tabs",
 			BackgroundTransparency = 1,
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.188), -- // Centered in the tab strip of the frame art
+			Position = UDim2.fromScale(0.5, 0.202), -- // Centered in the tab strip of the frame art
 			Size = UDim2.fromScale(0.83, 0.095),
 			ZIndex = 2,
 		}, {
@@ -288,7 +288,7 @@ function ShopBuilder.create(config: ShopConfig)
 			Text = "0",
 			AnchorPoint = Vector2.new(0, 0.5),
 			Position = UDim2.fromScale(0.36, 0.5),
-			Size = UDim2.fromScale(0.5, 0.42),
+			Size = UDim2.fromScale(0.5, 0.38),
 			TextXAlignment = Enum.TextXAlignment.Left,
 		}, { createStroke(OUTLINE_COLOR) })
 
@@ -297,8 +297,8 @@ function ShopBuilder.create(config: ShopConfig)
 			Image = `rbxassetid://{Icons.ShopBalanceFrame}`,
 			BackgroundTransparency = 1,
 			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.fromScale(0.5, 0.876),
-			Size = UDim2.fromScale(0.42, 0.13),
+			Position = UDim2.fromScale(0.5, 0.81),
+			Size = UDim2.fromScale(0.4, 0.2),
 			ZIndex = 3,
 		}, {
 			new("ImageLabel", {
@@ -308,7 +308,7 @@ function ShopBuilder.create(config: ShopConfig)
 				ScaleType = Enum.ScaleType.Fit,
 				AnchorPoint = Vector2.new(0, 0.5),
 				Position = UDim2.fromScale(0.12, 0.5),
-				Size = UDim2.fromScale(0.2, 0.64),
+				Size = UDim2.fromScale(0.5, 0.5),
 				ZIndex = 4,
 			}, { new("UIAspectRatioConstraint", {}) }),
 			BalanceAmount,
