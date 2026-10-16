@@ -245,7 +245,7 @@ function ShopBuilder.create(config: ShopConfig)
 			Name = "Tabs",
 			BackgroundTransparency = 1,
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.173), -- // Centered in the tab strip of the frame art
+			Position = UDim2.fromScale(0.5, 0.188), -- // Centered in the tab strip of the frame art
 			Size = UDim2.fromScale(0.83, 0.095),
 			ZIndex = 2,
 		}, {
@@ -288,7 +288,7 @@ function ShopBuilder.create(config: ShopConfig)
 			Text = "0",
 			AnchorPoint = Vector2.new(0, 0.5),
 			Position = UDim2.fromScale(0.36, 0.5),
-			Size = UDim2.fromScale(0.5, 0.56),
+			Size = UDim2.fromScale(0.5, 0.42),
 			TextXAlignment = Enum.TextXAlignment.Left,
 		}, { createStroke(OUTLINE_COLOR) })
 
@@ -400,7 +400,7 @@ function ShopBuilder.create(config: ShopConfig)
 				Name = "PriceText",
 				Text = "0",
 				AnchorPoint = Vector2.new(0.5, 0.5),
-				Position = UDim2.fromScale(0.66, 0.5),
+				Position = UDim2.fromScale(0.66, 0.44),
 				Size = UDim2.fromScale(0.58, 0.58),
 				ZIndex = 5,
 			}, { createStroke(PRICE_OUTLINE_COLOR) }),
@@ -559,7 +559,7 @@ function ShopBuilder.create(config: ShopConfig)
 	local function setPriceButton(button: ImageButton, text: string, showIcon: boolean)
 		button.PriceText.Text = text
 		button.Icon.Visible = showIcon
-		button.PriceText.Position = if showIcon then UDim2.fromScale(0.66, 0.5) else UDim2.fromScale(0.5, 0.5)
+		button.PriceText.Position = if showIcon then UDim2.fromScale(0.66, 0.44) else UDim2.fromScale(0.5, 0.44)
 	end
 
 	local function buildListing(display: ShopListings.ListingDisplay, order: number, thisRefreshId: number): GuiObject
