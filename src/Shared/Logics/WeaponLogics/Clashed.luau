@@ -18,6 +18,7 @@ local SoundLibrary = require(ReplicatedStorage.Shared.Library.SoundLibrary)
 local Sounds = require(ReplicatedStorage.Shared.Constants.Sounds)
 local RaycastsUtility = require(ReplicatedStorage.Shared.Utils.RaycastsUtility)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
+local AuthorityViewLibrary = require(ReplicatedStorage.Shared.Library.AuthorityViewLibrary)
 local BoomerangTuningLibrary = require(ReplicatedStorage.Shared.Library.BoomerangTuningLibrary)
 
 local isServer = RunService:IsServer()
@@ -211,6 +212,7 @@ end
 local function setWeaponCFrame(clashedWeaponData: ClashedWeapons.Data, cframe: CFrame, deltaTime: number?)
 	clashedWeaponData.LastPosition = clashedWeaponData.CFrame and clashedWeaponData.CFrame.Position or cframe.Position
 	clashedWeaponData.CFrame = cframe
+	AuthorityViewLibrary.update(clashedWeaponData.OwnerUserId, clashedWeaponData.ToolId, cframe.Position) -- // Server only (no-op elsewhere)
 
 	local host = clashedWeaponData.Host
 	if host and host.Parent then
@@ -337,6 +339,7 @@ function ClashedWeaponLogic.removeFromField(player: Player, clashedWeaponData: C
 	if clashedWeaponData.Host and not shouldReattachLocally then
 		clashedWeaponData.Host:Destroy()
 	end
+	AuthorityViewLibrary.clear(clashedWeaponData.OwnerUserId)
 	if clashedWeaponData.MovementConnection then
 		clashedWeaponData.MovementConnection:Disconnect()
 		clashedWeaponData.MovementConnection = nil

@@ -10,6 +10,7 @@ local isServer = RunService:IsServer()
 
 local ReplicatedStorage = game.ReplicatedStorage
 local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
+local AuthorityViewLibrary = require(ReplicatedStorage.Shared.Library.AuthorityViewLibrary)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local SkinLibrary = require(ReplicatedStorage.Shared.Library.SkinLibrary)
 local BoomerangTuningLibrary = require(ReplicatedStorage.Shared.Library.BoomerangTuningLibrary)
@@ -349,6 +350,7 @@ end
 local function setWeaponCFrame(thrownWeaponData: ThrownWeapons.Data, cframe: CFrame, deltaTime: number?)
    thrownWeaponData.LastPosition = thrownWeaponData.CFrame.Position
    thrownWeaponData.CFrame = cframe
+   AuthorityViewLibrary.update(thrownWeaponData.OwnerUserId, thrownWeaponData.ToolId, cframe.Position) -- // Server only (no-op elsewhere)
 
    local host = thrownWeaponData.Host
    if host and host.Parent then
@@ -986,6 +988,7 @@ function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapo
          thrownWeaponData.Host:Destroy()
       end
    end
+   AuthorityViewLibrary.clear(thrownWeaponData.OwnerUserId)
    if isServer then
       fireDespawned(player.UserId, returnToPlayer)
       SharedTasks.ThrownWeaponRemoved:Execute("serial", player, thrownWeaponData.ToolId)

@@ -64,6 +64,7 @@ local GlobalConfig = {
    -- Enabling these can greatly increase lag or network traffic
    RaycastVisualizersEnabled = false,
    ProjectileHitboxVisualizerEnabled = false,
+   ToggleAuthorityView = false, -- // Default for the authority view: a neon red ball at the position the SERVER has for each thrown boomerang (AuthorityViewLibrary; Cmdr `toggleauthorityview` changes it live)
    ParryVisualizersEnabled = false,
    VisualizeElectricChainRadius = true, -- // Client-only red cylinder showing the chain radius around every Electric boomerang elimination
    SyncAbilitiesToEveryPlayer = false,
