@@ -29,7 +29,7 @@ local ATTRIBUTE_PREFIX = "BT"
 -- TYPES
 -------------------------------------------------------------------------------
 
-export type Setting = "ThrowSpeed" | "MinEnergy" | "MaxEnergy" | "EnergyPerStud" | "BounceEnergyCost" | "PlayerHitEnergyCost" | "ClashEnergyCost" | "RecallSpeed" | "RecallAcceleration" | "RecallRampTime" | "RecallRampPower" | "RecallBounceRecovery" | "DyingSpeedMultiplier" | "ChargeTime" | "AimWalkSpeed" | "TelekinesisInfluence"
+export type Setting = "ThrowSpeed" | "MinEnergy" | "MaxEnergy" | "EnergyPerStud" | "RecallEnergy" | "BounceEnergyCost" | "PlayerHitEnergyCost" | "ClashEnergyCost" | "RecallSpeed" | "RecallAcceleration" | "RecallRampTime" | "RecallRampPower" | "RecallBounceRecovery" | "DyingSpeedMultiplier" | "ChargeTime" | "AimWalkSpeed" | "TelekinesisInfluence"
 
 type SettingInfo = {
 	Description: string,
@@ -41,7 +41,7 @@ type SettingInfo = {
 -------------------------------------------------------------------------------
 
 -- // Every tunable value, in display order. The names are what Cmdr shows (and autocompletes).
-BoomerangTuningLibrary.SETTING_ORDER = { "ThrowSpeed", "MinEnergy", "MaxEnergy", "EnergyPerStud", "BounceEnergyCost", "PlayerHitEnergyCost", "ClashEnergyCost", "RecallSpeed", "RecallAcceleration", "RecallRampTime", "RecallRampPower", "RecallBounceRecovery", "DyingSpeedMultiplier", "ChargeTime", "AimWalkSpeed", "TelekinesisInfluence" } :: { Setting }
+BoomerangTuningLibrary.SETTING_ORDER = { "ThrowSpeed", "MinEnergy", "MaxEnergy", "EnergyPerStud", "RecallEnergy", "BounceEnergyCost", "PlayerHitEnergyCost", "ClashEnergyCost", "RecallSpeed", "RecallAcceleration", "RecallRampTime", "RecallRampPower", "RecallBounceRecovery", "DyingSpeedMultiplier", "ChargeTime", "AimWalkSpeed", "TelekinesisInfluence" } :: { Setting }
 
 BoomerangTuningLibrary.SETTINGS = {
 	ThrowSpeed = {
@@ -67,6 +67,12 @@ BoomerangTuningLibrary.SETTINGS = {
 		Description = "energy lost per stud flown",
 		getDefault = function(_toolData)
 			return GlobalConfig.BoomerangEnergyPerStud
+		end,
+	},
+	RecallEnergy = {
+		Description = "energy a boomerang is refilled to when it starts returning because it ran out (0 again while returning means death)",
+		getDefault = function(_toolData)
+			return GlobalConfig.BoomerangRecallEnergy
 		end,
 	},
 	BounceEnergyCost = {

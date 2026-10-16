@@ -877,27 +877,22 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          end
       end
 
-      -- // Out of energy: the one decision, and only ever made over ground. A boomerang that is out of energy over open air has
-      -- // nowhere to die, so it returns to the player whether or not it can see them, and keeps checking for ground beneath it.
-      -- // Once it is over ground: a clear line of sight to its player means it keeps returning; none means it dies.
+      -- // Out of energy while flying OUT: the one recall-or-die decision. Over open air it can't die (nothing to land on), so it
+      -- // returns to the player whether or not it can see them. Over ground: a clear line of sight to its player means it
+      -- // returns; none means it dies. Either way a recall refills it to the recall reserve (GlobalConfig.BoomerangRecallEnergy).
       -- // The server decides death. A client predicts the return; one that has ground and no line of sight just slows down
       -- // (Exhausted) and waits for the server's verdict (a Returning or Dying snapshot).
+      -- //
+      -- // Out of energy while RETURNING (the reserve, or what a manual recall had left, is spent): it dies, with no line of
+      -- // sight question (it already had its one). Over open air it keeps heading for the player and dies once over ground.
       if isReturning then
-         if (thrownWeaponData.Energy or 0) <= 0 and not thrownWeaponData.EnergyDepletedHandled then
-            -- // Ran out while already returning (a recall in flight): the same decision, made as soon as it is over ground
-            thrownWeaponData.EnergyDepletedHandled = true
-            thrownWeaponData.AwaitingGround = true
-         end
-         if thrownWeaponData.AwaitingGround and DeadWeaponLogic.hasGroundBelow(pivot.Position, thrownWeaponData.Host) then
-            thrownWeaponData.AwaitingGround = nil
-            if isServer and not hasLineOfSightToPlayer(player, pivot.Position, toolData, thrownWeaponData) then
-               Boomerang.die(player, thrownWeaponData, {
-                  Direction = direction,
-                  Speed = speed,
-                  Position = pivot.Position,
-               })
-               return true
-            end
+         if isServer and (thrownWeaponData.Energy or 0) <= 0 and DeadWeaponLogic.hasGroundBelow(pivot.Position, thrownWeaponData.Host) then
+            Boomerang.die(player, thrownWeaponData, {
+               Direction = direction,
+               Speed = speed,
+               Position = pivot.Position,
+            })
+            return true
          end
       elseif (thrownWeaponData.Energy or 0) <= 0 then
          if shouldRecallTransitions and not thrownWeaponData.EnergyDepletedHandled then
@@ -914,8 +909,8 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
                   return true
                end
             else
-               -- // Open air: it can't die here. Head back regardless of line of sight, checking for ground on the way.
-               thrownWeaponData.AwaitingGround = true
+               -- // Open air: it can't die here. Head back regardless of line of sight.
+               thrownWeaponData.Energy = BoomerangTuningLibrary.get(tuningToolId, "RecallEnergy")
                Boomerang.recall(player, boomerangId, toolData, thrownWeaponData)
                return true
             end
@@ -1012,8 +1007,10 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
             thrownWeaponData.SyncTargetPosition = nil -- // A pre-crossing smoothing target would drag it back toward the entry portal
          end
          setWeaponCFrame(thrownWeaponData, CFrame.new(portalExit.Position), deltaTime)
-         -- // Only the part flown before entering costs energy; the jump isn't flight
-         thrownWeaponData.Energy = (thrownWeaponData.Energy or 0) - portalExit.EntryDistance * BoomerangTuningLibrary.get(tuningToolId, "EnergyPerStud")
+         -- // Only the part flown before entering costs energy; the jump isn't flight. Distance is free on the way back.
+         if not isReturning then
+            thrownWeaponData.Energy = (thrownWeaponData.Energy or 0) - portalExit.EntryDistance * BoomerangTuningLibrary.get(tuningToolId, "EnergyPerStud")
+         end
          thrownWeaponData.Direction = direction
          thrownWeaponData.Speed = speed
          return true
@@ -1060,7 +1057,11 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
 
       local currentCFrame = pivot
       setWeaponCFrame(thrownWeaponData, currentCFrame + dynamicDisplacement + direction * rayDistance, deltaTime)
-      thrownWeaponData.Energy = (thrownWeaponData.Energy or 0) - rayDistance * BoomerangTuningLibrary.get(tuningToolId, "EnergyPerStud")
+      if not isReturning then
+         -- // Flying out costs energy per stud; the way back is free, so an unobstructed return always makes it home (only bounces,
+         -- // player hits and clashes cost energy while returning)
+         thrownWeaponData.Energy = (thrownWeaponData.Energy or 0) - rayDistance * BoomerangTuningLibrary.get(tuningToolId, "EnergyPerStud")
+      end
       thrownWeaponData.Direction = direction
       thrownWeaponData.Speed = speed
       return true
@@ -1177,7 +1178,8 @@ function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapo
    end
 end
 
--- // The recall-or-die question for a boomerang that is out of energy and over ground: it returns on its own if there is a clear
+-- // The recall-or-die question for a boomerang that is out of energy and over ground: it returns on its own (with a fresh
+-- // recall energy reserve) if there is a clear
 -- // line of sight to its player (a flat block cast to the player's Hitbox, T-063), otherwise loses momentum and drops into the
 -- // dying/dead state (Dead.luau) and must be manually recalled. Over open air nothing dies: the caller just returns it.
 -- // Distance from the player plays no part, and this is the only way a thrown boomerang dies.
@@ -1186,6 +1188,8 @@ end
 -- // disagreement can't leave the client showing a dead boomerang the server is recalling.
 function Boomerang.autoRecallOrDie(player: Player, boomerangId: string, toolData: Tools.Tool, thrownWeaponData: ThrownWeapons.Data, position: Vector3, direction: Vector3, speed: number): boolean
    if hasLineOfSightToPlayer(player, position, toolData, thrownWeaponData) then
+      -- // The return gets its own small energy reserve; if bounces and hits use it up, the boomerang dies
+      thrownWeaponData.Energy = BoomerangTuningLibrary.get(thrownWeaponData.ToolId or boomerangId, "RecallEnergy")
       Boomerang.recall(player, boomerangId, toolData, thrownWeaponData)
       return true
    end

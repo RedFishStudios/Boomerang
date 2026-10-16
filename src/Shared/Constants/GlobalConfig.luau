@@ -25,15 +25,17 @@ local GlobalConfig = {
    ElectricChainRadius = 15, -- // Studs: an Electric boomerang elimination chains to every enemy within this distance of the victim
    ElectricChainLinkDelay = 0.05, -- // Seconds between each link of an Electric chain
    -- // Boomerang ENERGY. A thrown boomerang starts with BoomerangMinEnergy (a tap) up to BoomerangMaxEnergy (aim held for a
-   -- // full ChargeTime), and loses energy as it flies. At 0 or below: over OPEN AIR it returns to the player whether or not it
-   -- // can see them (it can't die with nothing to land on) and keeps checking for ground beneath it. Over GROUND it asks one
-   -- // question: is there a clear line of sight to its player? Yes: it returns (or keeps returning). No: it drops into the dead
-   -- // state and must be manually recalled or picked up. That is the ONLY way a boomerang dies; there is no distance limit.
+   -- // full ChargeTime), and loses energy as it flies out. At 0 or below: over OPEN AIR it returns to the player whether or not
+   -- // it can see them (it can't die with nothing to land on). Over GROUND it asks one question: is there a clear line of sight
+   -- // to its player? Yes: it returns. No: it drops into the dead state and must be manually recalled or picked up.
+   -- // A recall starts with BoomerangRecallEnergy; the way back costs no distance energy, only bounces, player hits and clashes.
+   -- // At 0 again while returning it dies (once over ground). There is no distance limit.
    -- // Every value here is the default of a Cmdr `tuneboomerang` setting (MinEnergy, MaxEnergy, EnergyPerStud,
    -- // BounceEnergyCost, PlayerHitEnergyCost, ClashEnergyCost), so it can be tuned live. Min/Max apply from the next throw.
    BoomerangMinEnergy = 50, -- // Energy of a throw with no charge
    BoomerangMaxEnergy = 100, -- // Energy of a throw charged for a full ChargeTime
    BoomerangEnergyPerStud = 1, -- // Energy lost per stud flown while thrown (so 50-100 energy is about 50-100 studs of flight)
+   BoomerangRecallEnergy = 30, -- // Energy a boomerang is refilled to when it starts returning because it ran out. Equal to the bounce cost, so any wall hit on the way back kills it
    BoomerangBounceEnergyCost = 30, -- // Energy lost when it bounces off a wall or other obstruction
    BoomerangPlayerHitEnergyCost = 10, -- // Energy lost when it strikes a player
    BoomerangClashEnergyCost = 40, -- // Energy lost when it strikes another boomerang mid-air (a clash)

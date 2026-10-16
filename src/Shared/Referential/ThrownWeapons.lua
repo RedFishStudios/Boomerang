@@ -30,7 +30,6 @@ export type Data = {
    ServerSpeed: number?,
    Homing: boolean?,
    Energy: number?, -- // Remaining energy while thrown (GlobalConfig.BoomerangMinEnergy..MaxEnergy at the throw)
-   AwaitingGround: boolean?, -- // Out of energy over open air: returning to the player regardless of line of sight, until it is over ground and can make the recall-or-die decision
    EnergyDepletedHandled: boolean?, -- // The 0-energy decision (recall or die) has been made
    ReturnSpeedMultiplier: number?, -- // Max recall speed multiplier for a returning boomerang (Explosive effect), set by Boomerang.recall
    PendingDirection: Vector3?, -- // A new flight direction to adopt on the next step (set by a clash)
