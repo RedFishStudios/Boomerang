@@ -53,6 +53,9 @@ local GlobalConfig = {
    -- // and within this many studs (horizontal) it resumes its recall even at 0 energy. Checked this often (seconds), server only.
    DyingBoomerangRecallDistance = 50,
    DyingBoomerangRecallCheckSeconds = 0.1,
+   -- // Before a boomerang dies the server also simulates its dying slide this many seconds ahead; if the player would be in sight and
+   -- // within range at any point of it, the boomerang keeps returning instead of dying (no die-then-revive flicker).
+   DyingBoomerangRecallLookaheadSeconds = 0.4,
    -- // Manual recall of a dying/dead boomerang (held recall): slower, heavier, sluggish lift with a visual tilt
    ManualRecallMomentumMultiplier = 0.15, -- // How quickly it accelerates/turns toward the player (1 = normal recall)
    -- // Manual recall speed-up: the boomerang starts at ManualRecallRampStartFraction of its max recall speed and builds up

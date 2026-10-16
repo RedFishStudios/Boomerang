@@ -100,6 +100,7 @@ For all gamemodes:
 - Hitting map objects reduces the boomerang's energy (30), as does striking a player (10), a clash (40) and distance flown (1 per stud).
 - Players are not bounced off: the boomerang passes through them (at the energy cost above).
 - A dying boomerang (sliding to a stop after dying) keeps checking for its player: with line of sight and within 50 studs it resumes its recall, even at 0 energy.
+- Before a boomerang dies, the server simulates the slide it is about to make (about 0.4 s). If the player would be in sight and within 50 studs at any point, it keeps returning instead of dying (a returning boomerang gets a fresh recall reserve, once per throw).
 
 ---
 

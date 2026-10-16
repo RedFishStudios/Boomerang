@@ -31,6 +31,7 @@ export type Data = {
    Homing: boolean?,
    Energy: number?, -- // Remaining energy while thrown (GlobalConfig.BoomerangMinEnergy..MaxEnergy at the throw)
    EnergyDepletedHandled: boolean?, -- // The 0-energy decision (recall or die) has been made
+   ReturnRescued: boolean?, -- // A returning boomerang that ran out of energy was already saved from dying once (see Boomerang.canAvoidDying)
    ReturnSpeedMultiplier: number?, -- // Max recall speed multiplier for a returning boomerang (Explosive effect), set by Boomerang.recall
    PendingDirection: Vector3?, -- // A new flight direction to adopt on the next step (set by a clash)
    TelekinesisBias: Vector3?, -- // T-077: owner's desired steer direction (horizontal unit) while a Telekinesis effect is active; nil = no steering

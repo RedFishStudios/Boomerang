@@ -413,6 +413,45 @@ local function hasLineOfSightToPlayer(player: Player, position: Vector3, toolDat
    return result == nil
 end
 
+-- // In sight AND within GlobalConfig.DyingBoomerangRecallDistance (horizontal) of its player: the test a dying boomerang
+-- // passes to resume its recall. No visualizer, it runs often.
+local function isPlayerInRecallReach(player: Player, position: Vector3, toolData: Tools.Tool, weaponData: any): boolean
+   local character = player.Character
+   local targetPart = character and getPlayerTargetPart(character)
+   if not targetPart then
+      return false
+   end
+   local targetPosition = targetPart.Position
+   local horizontalOffset = Vector3.new(targetPosition.X - position.X, 0, targetPosition.Z - position.Z)
+   if horizontalOffset.Magnitude > GlobalConfig.DyingBoomerangRecallDistance then
+      return false
+   end
+   return hasLineOfSightToPlayer(player, position, toolData, weaponData, true)
+end
+
+-- // Server only. Called right before a boomerang would die: true if it would resume its recall anyway, now or at some point of the
+-- // slide it is about to make (predicted over DyingBoomerangRecallLookaheadSeconds with the real dying movement). Then it never
+-- // dies at all, instead of dying and being revived a moment later. The dying-state check stays as the safety net.
+local function canAvoidDying(player: Player, toolData: Tools.Tool, thrownWeaponData: ThrownWeapons.Data, position: Vector3, direction: Vector3, speed: number): boolean
+   if not isServer then
+      return false
+   end
+   if isPlayerInRecallReach(player, position, toolData, thrownWeaponData) then
+      return true
+   end
+   local stepSeconds = GlobalConfig.DyingBoomerangRecallCheckSeconds
+   local predicted = DeadWeaponLogic.predictSlidePositions(
+      position, direction, speed, thrownWeaponData.Host, thrownWeaponData.ToolId,
+      GlobalConfig.DyingBoomerangRecallLookaheadSeconds, stepSeconds
+   )
+   for _, predictedPosition in ipairs(predicted) do
+      if isPlayerInRecallReach(player, predictedPosition, toolData, thrownWeaponData) then
+         return true
+      end
+   end
+   return false
+end
+
 local function getWeaponCFrame(thrownWeaponData: ThrownWeapons.Data): CFrame?
    local host = thrownWeaponData.Host
    if host and host.Parent then
@@ -889,12 +928,19 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       -- // sight question (it already had its one). Over open air it keeps heading for the player and dies once over ground.
       if isReturning then
          if isServer and (thrownWeaponData.Energy or 0) <= 0 and DeadWeaponLogic.hasGroundBelow(pivot.Position, thrownWeaponData.Host) then
-            Boomerang.die(player, thrownWeaponData, {
-               Direction = direction,
-               Speed = speed,
-               Position = pivot.Position,
-            })
-            return true
+            -- // It would die, but if it would be back in sight and in range right away (now or along its slide) it keeps returning on a
+            -- // fresh reserve. Once per throw, so a boomerang can't be bounced around forever.
+            if not thrownWeaponData.ReturnRescued and canAvoidDying(player, toolData, thrownWeaponData, pivot.Position, direction, speed) then
+               thrownWeaponData.ReturnRescued = true
+               thrownWeaponData.Energy = BoomerangTuningLibrary.get(tuningToolId, "RecallEnergy")
+            else
+               Boomerang.die(player, thrownWeaponData, {
+                  Direction = direction,
+                  Speed = speed,
+                  Position = pivot.Position,
+               })
+               return true
+            end
          end
       elseif (thrownWeaponData.Energy or 0) <= 0 then
          if shouldRecallTransitions and not thrownWeaponData.EnergyDepletedHandled then
@@ -1189,7 +1235,8 @@ end
 -- // keeps flying until the server's Dying snapshot arrives (WeaponController.onSnapshot then calls die), so a
 -- // disagreement can't leave the client showing a dead boomerang the server is recalling.
 function Boomerang.autoRecallOrDie(player: Player, boomerangId: string, toolData: Tools.Tool, thrownWeaponData: ThrownWeapons.Data, position: Vector3, direction: Vector3, speed: number): boolean
-   if hasLineOfSightToPlayer(player, position, toolData, thrownWeaponData) then
+   -- // Line of sight right now, or (server) in sight and in range at some point of the slide it is about to make
+   if hasLineOfSightToPlayer(player, position, toolData, thrownWeaponData) or canAvoidDying(player, toolData, thrownWeaponData, position, direction, speed) then
       -- // The return gets its own small energy reserve; if bounces and hits use it up, the boomerang dies
       thrownWeaponData.Energy = BoomerangTuningLibrary.get(thrownWeaponData.ToolId or boomerangId, "RecallEnergy")
       Boomerang.recall(player, boomerangId, toolData, thrownWeaponData)
@@ -1709,12 +1756,7 @@ DeadWeaponLogic.checkRecallWhileDying = function(player: Player, deadWeaponData:
    if not toolData or not toolData.Boomerang or not targetPart then
       return false
    end
-   local targetPosition = targetPart.Position
-   local horizontalOffset = Vector3.new(targetPosition.X - position.X, 0, targetPosition.Z - position.Z)
-   if horizontalOffset.Magnitude > GlobalConfig.DyingBoomerangRecallDistance then
-      return false
-   end
-   if not hasLineOfSightToPlayer(player, position, toolData, deadWeaponData :: any, true) then
+   if not isPlayerInRecallReach(player, position, toolData, deadWeaponData) then
       return false
    end
    Boomerang.recallFromDead(player, deadWeaponData, false)

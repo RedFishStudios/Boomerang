@@ -342,6 +342,48 @@ function DeadWeaponLogic.hasGroundBelow(position: Vector3, host: Instance?): boo
 	return getDeadRestingY({ Host = host } :: any, position, raycastParams) ~= nil
 end
 
+-- // Where a boomerang dying right now would be over the next lookaheadSeconds, one position per stepSeconds. Runs the same
+-- // deceleration and wall sliding as the real dying loop (applyDeath) so a prediction can't drift from what would happen.
+-- // Used by Boomerang before it commits to dying, to see if the player would be in sight and in range along the slide.
+function DeadWeaponLogic.predictSlidePositions(position: Vector3, direction: Vector3, speed: number, host: Instance?, toolId: string?, lookaheadSeconds: number, stepSeconds: number): { Vector3 }
+	local positions: { Vector3 } = {}
+	local slideDirection = getHorizontalDirection(direction)
+	local filter: { Instance } = { Characters }
+	local groundFilter: { Instance } = { Characters }
+	if host then
+		table.insert(filter, 1, host)
+		table.insert(groundFilter, 1, host)
+	end
+	local obstructionParams = RaycastsUtility.getProjectileObstructionParams(filter)
+	local groundParams = RaycastParams.new()
+	groundParams.FilterType = Enum.RaycastFilterType.Exclude
+	groundParams.FilterDescendantsInstances = groundFilter
+	groundParams.IgnoreWater = true
+	groundParams.CollisionGroup = CollisionGroupConstants.Camera
+
+	local dyingSpeedMultiplier = BoomerangTuningLibrary.getForAnyTool(toolId, "DyingSpeedMultiplier")
+	local currentPosition = position
+	local currentSpeed = speed
+	local elapsed = 0
+	while elapsed + stepSeconds <= lookaheadSeconds + 1e-4 and currentSpeed > 0 do
+		elapsed += stepSeconds
+		local nextSpeed = math.max(0, currentSpeed - DEAD_DECELERATION * dyingSpeedMultiplier * stepSeconds)
+		local travelDistance = (currentSpeed + nextSpeed) * 0.5 * stepSeconds
+		local nextPosition, nextDirection, isBlocked = resolveHorizontalMovement(currentPosition, slideDirection, travelDistance, obstructionParams)
+		local hasGround = getDeadRestingY({ Host = host } :: any, nextPosition, groundParams) ~= nil
+		if hasGround or isBlocked then
+			currentSpeed = nextSpeed
+		else
+			-- // Nothing to land on: it keeps its momentum (as in the real loop)
+			nextPosition, nextDirection = resolveHorizontalMovement(currentPosition, slideDirection, currentSpeed * stepSeconds, obstructionParams)
+		end
+		slideDirection = nextDirection
+		currentPosition = nextPosition
+		table.insert(positions, currentPosition)
+	end
+	return positions
+end
+
 function DeadWeaponLogic.removeFromField(player: Player, deadWeaponData: DeadWeapons.Data, returnToPlayer: boolean?)
 	local shouldReturnToPlayer = returnToPlayer ~= false
 	local shouldReattachLocally = shouldReturnToPlayer and (not isServer) and deadWeaponData.ReuseEquippedHost == true
