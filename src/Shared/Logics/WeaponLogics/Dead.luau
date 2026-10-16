@@ -24,6 +24,8 @@ local BoomerangTuningLibrary = require(ReplicatedStorage.Shared.Library.Boomeran
 local isServer = RunService:IsServer()
 
 local DeadWeaponLogic = {}
+-- // Hooks set by Boomerang.luau (this module can't require it). checkRecallWhileDying returns true if it started a recall.
+-- // (checkRecallWhileDying: (player, deadWeaponData, position) -> boolean)
 
 local ToolController, AnimationController
 if not isServer then
@@ -477,6 +479,7 @@ function DeadWeaponLogic.applyDeath(player: Player, deadWeaponData: DeadWeapons.
 	local fallSpeed = 0
 	local isGrounded = false
 	local noGroundSlideTime = 0 -- // How long it has kept sliding with nothing to land on (T-062)
+	local nextRecallCheckAt = 0 -- // Next time the dying boomerang looks for its player (see checkRecallWhileDying)
 	local groundRaycastParams = RaycastParams.new()
 	groundRaycastParams.FilterType = Enum.RaycastFilterType.Exclude
 	groundRaycastParams.FilterDescendantsInstances = {deadWeaponData.Host, Characters}
@@ -574,6 +577,15 @@ function DeadWeaponLogic.applyDeath(player: Player, deadWeaponData: DeadWeapons.
 				DeadWeaponLogic.removeFromField(player, deadWeaponData)
 			end
 			return
+		end
+
+		-- // Still dying: keep checking whether the player is in sight and close. If so the recall resumes even at 0 energy
+		-- // (the hook decides and starts the recall; clients follow its Returning snapshot). Server only, throttled.
+		if isServer and DeadWeaponLogic.checkRecallWhileDying and time >= nextRecallCheckAt then
+			nextRecallCheckAt = time + GlobalConfig.DyingBoomerangRecallCheckSeconds
+			if DeadWeaponLogic.checkRecallWhileDying(player, deadWeaponData, nextPosition) then
+				return
+			end
 		end
 
 		setWeaponCFrame(deadWeaponData, (currentPivot - currentPivot.Position) + nextPosition, deltaTime)

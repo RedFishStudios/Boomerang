@@ -381,7 +381,7 @@ end
 -- // True if the boomerang could fly straight to the player: a flat block (the same shape and height it bounces with in flight)
 -- // swept from the boomerang to the player's Hitbox, at the boomerang's own height, so only horizontal obstructions count
 -- // (T-063). Characters are ignored. Same result on client and server, it only depends on replicated state.
-local function hasLineOfSightToPlayer(player: Player, position: Vector3, toolData: Tools.Tool, thrownWeaponData: ThrownWeapons.Data): boolean
+local function hasLineOfSightToPlayer(player: Player, position: Vector3, toolData: Tools.Tool, thrownWeaponData: ThrownWeapons.Data, skipVisualizer: boolean?): boolean
    local character = player.Character
    local targetPart = character and getPlayerTargetPart(character)
    if not character or not targetPart then
@@ -407,7 +407,9 @@ local function hasLineOfSightToPlayer(player: Player, position: Vector3, toolDat
    local castSize = getObstructionCastSize(hitboxRadius)
    local castCFrame = getObstructionBlockcastCFrame(position, direction)
    local result = RaycastsUtility.blockcastProjectileObstruction(castCFrame, castSize, direction, distance, raycastParams)
-   visualizeLineOfSight(castCFrame, castSize, distance, result)
+   if not skipVisualizer then
+      visualizeLineOfSight(castCFrame, castSize, distance, result)
+   end
    return result == nil
 end
 
@@ -1693,6 +1695,30 @@ end
 -- // Hook: a dying boomerang that keeps sliding with nothing to land on returns on its own (T-062; Dead.luau can't require this module)
 DeadWeaponLogic.onSlidingAway = function(player: Player, deadWeaponData: DeadWeapons.Data)
    Boomerang.recallFromDead(player, deadWeaponData, false)
+end
+
+-- // Hook: while a boomerang is dying it keeps looking for its player. With line of sight and within DyingBoomerangRecallDistance
+-- // (horizontal) it resumes its recall even at 0 energy. Same recall as the sliding-away one above (Dead.luau can't require this module).
+DeadWeaponLogic.checkRecallWhileDying = function(player: Player, deadWeaponData: DeadWeapons.Data, position: Vector3): boolean
+   if DeadWeapons.Data[player] ~= deadWeaponData or deadWeaponData.State ~= DeadWeapons.StateEnum.Dying then
+      return false
+   end
+   local toolData = Tools[deadWeaponData.ToolId]
+   local character = player.Character
+   local targetPart = character and getPlayerTargetPart(character)
+   if not toolData or not toolData.Boomerang or not targetPart then
+      return false
+   end
+   local targetPosition = targetPart.Position
+   local horizontalOffset = Vector3.new(targetPosition.X - position.X, 0, targetPosition.Z - position.Z)
+   if horizontalOffset.Magnitude > GlobalConfig.DyingBoomerangRecallDistance then
+      return false
+   end
+   if not hasLineOfSightToPlayer(player, position, toolData, deadWeaponData :: any, true) then
+      return false
+   end
+   Boomerang.recallFromDead(player, deadWeaponData, false)
+   return ThrownWeapons.Data[player] ~= nil
 end
 
 return Boomerang

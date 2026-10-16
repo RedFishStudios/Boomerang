@@ -99,6 +99,7 @@ For all gamemodes:
 - Angle of incidence equals angle of reflection.
 - Hitting map objects reduces the boomerang's energy (30), as does striking a player (10), a clash (40) and distance flown (1 per stud).
 - Players are not bounced off: the boomerang passes through them (at the energy cost above).
+- A dying boomerang (sliding to a stop after dying) keeps checking for its player: with line of sight and within 50 studs it resumes its recall, even at 0 energy.
 
 ---
 
