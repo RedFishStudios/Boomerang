@@ -13,7 +13,7 @@ local AcquirableNotifData: {
    OnFire = {
       Id = "OnFire",
       Title = "On Fire",
-      Subtitle = "Dash or enter water to survive",
+      Subtitle = "Dash to heal yourself!",
       Img = Icons.OnFireEffect
    },
    Zapped = {
