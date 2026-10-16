@@ -340,6 +340,17 @@ function RoundCyclingService.forceEndRound(): boolean
    return true
 end
 
+-- // Sets how many seconds are left in the active round (0 ends it on the next frame). Returns false if no round is active.
+function RoundCyclingService.setRoundTimeRemaining(seconds: number): boolean
+   if not RoundCyclingService.isInRound() then
+      return false
+   end
+   local snapshot = GameStateLibrary.getSnapshot()
+   snapshot.CurrentTimerEndsAt = workspace:GetServerTimeNow() + math.max(seconds, 0)
+   GameStateLibrary.applySnapshot(snapshot)
+   return true
+end
+
 -- // Forces the gamemode of the next round (case-insensitive). Returns the matching gamemode id, or nil if there is none.
 function RoundCyclingService.setNextGamemode(gamemodeId: string): string?
    local matchedId = getGamemodeIdCaseInsensitive(gamemodeId)
