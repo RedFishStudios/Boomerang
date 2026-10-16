@@ -13,7 +13,7 @@ export type RoundType = {
    PickupsDisabled: boolean?
 }
 
-local FIVE_MINUTES = 5 * 60
+local FIVE_MINUTES = 5 * 60 * 1000
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
