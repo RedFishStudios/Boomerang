@@ -32,6 +32,8 @@ local NON_WIPABLE_INDEXES: { string } = {} -- // Profile fields kept when a prof
 
 local DATA_KEY = RunService:IsStudio() and "Dev" or "Live"
 
+local REFRESH_SAVE_TIMEOUT_SECONDS = 30 -- // PlayerDataService.refresh gives up waiting for its save after this long
+
 -------------------------------------------------------------------------------
 -- TYPES
 -------------------------------------------------------------------------------
@@ -58,6 +60,7 @@ local store = ProfileStore.New(DATA_KEY, ProfileTemplate.get() :: any)
 
 local profiles: { [Player]: Profile } = {}
 local replicationSchedule: { [Player]: { { any } } } = {}
+local refreshing: { [Player]: boolean } = {}
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -211,6 +214,81 @@ end
 ]]
 function PlayerDataService.getProfiles()
 	return profiles
+end
+
+--[[
+	Simulates the player leaving and rejoining, without actually removing them (Cmdr `refreshdata`). Yields.
+	1. Runs the same "leaving" tasks as PlayerRemoving (flushes pending stats into the data).
+	2. Saves the profile to the datastore and waits for that save to finish.
+	3. Reads the saved data back from the datastore.
+	4. Replaces the profile's data and data proxy with what was read, sends it all to the client and runs the "joined" tasks.
+	The profile session is kept the whole time, so if anything fails before step 4 the player's data is untouched.
+	@return boolean, string -- success, and a message describing what happened
+]]
+function PlayerDataService.refresh(player: Player): (boolean, string)
+	local profile = profiles[player]
+	if not profile then
+		return false, "data not loaded"
+	end
+	if refreshing[player] then
+		return false, "already refreshing"
+	end
+	refreshing[player] = true
+
+	local ok, result = pcall(function(): string
+		PlayerDataService.ProfileRemovingTasks:Execute("serial", player, profile)
+
+		-- // Save and wait. OnSave fires as our save starts, OnAfterSave once a save succeeds; only count one that follows ours.
+		local started, saved = false, false
+		local onSaveConnection = profile.OnSave:Connect(function()
+			started = true
+		end)
+		local onAfterSaveConnection = profile.OnAfterSave:Connect(function()
+			if started then
+				saved = true
+			end
+		end)
+		profile:Save()
+		local deadline = os.clock() + REFRESH_SAVE_TIMEOUT_SECONDS
+		while not saved and os.clock() < deadline and profiles[player] == profile do
+			task.wait()
+		end
+		onSaveConnection:Disconnect()
+		onAfterSaveConnection:Disconnect()
+		if profiles[player] ~= profile then
+			error("the player left or their profile ended")
+		end
+		if not saved then
+			error(`the save didn't finish within {REFRESH_SAVE_TIMEOUT_SECONDS}s`)
+		end
+
+		-- // Read it back from the datastore (a view of the saved data; the live session is untouched)
+		local loaded = store:GetAsync(`{player.UserId}`)
+		if not loaded then
+			error("couldn't read the saved data back from the datastore")
+		end
+		loaded:Reconcile()
+		if profiles[player] ~= profile then
+			error("the player left or their profile ended")
+		end
+
+		-- // Swap it in, tell the client, and let every system pick up the new data like it does on join
+		profile.Data = loaded.Data
+		profile.DataProxy = loadReplication(player, profile.Data)
+		for index, value in profile.Data do
+			scheduleReplication(player, {}, index, value)
+			PlayerDataService.UpdatedTasks:Execute("parallel", player, index, value, {})
+		end
+		PlayerDataService.ProfileAddedTasks:Execute("parallel", player, profile.DataProxy, profile)
+
+		return "saved and reloaded from the datastore"
+	end)
+
+	refreshing[player] = nil
+	if ok then
+		return true, result
+	end
+	return false, tostring(result)
 end
 
 -------------------------------------------------------------------------------
