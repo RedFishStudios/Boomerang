@@ -41,6 +41,8 @@ local hitboxes: {[Player]: Part} = {}
 local characterDescendantAddedConnections: {[Player]: RBXScriptConnection} = {}
 
 local HITBOX_COLLISION_GROUP = CollisionGroupConstants.Players
+local HITBOX_VISIBLE_TRANSPARENCY = 0.6 -- // Transparency of a hitbox while Cmdr `viewhitbox` has them shown (they are invisible otherwise)
+local hitboxesVisible = false
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -84,7 +86,7 @@ local function onCharacterLoaded(player: Player, character: Model, humanoid: Hum
    hitbox.CanCollide = false
    hitbox.CanTouch = true
    hitbox.CanQuery = true
-   hitbox.Transparency = 1
+   hitbox.Transparency = if hitboxesVisible then HITBOX_VISIBLE_TRANSPARENCY else 1
    hitbox.Color = Color3.new(1, 0, 0)
    hitbox.Name = "Hitbox"
    hitbox.CollisionGroup = HITBOX_COLLISION_GROUP
@@ -114,6 +116,18 @@ end
 
 function HitboxService.getHitbox(player)
    return hitboxes[player]
+end
+
+-- // Shows or hides every player's Hitbox (debug; the part replicates, so everyone sees it). Applies to hitboxes created later too.
+function HitboxService.setVisible(visible: boolean)
+   hitboxesVisible = visible
+   for _, hitbox in pairs(hitboxes) do
+      hitbox.Transparency = if visible then HITBOX_VISIBLE_TRANSPARENCY else 1
+   end
+end
+
+function HitboxService.isVisible(): boolean
+   return hitboxesVisible
 end
 
 -------------------------------------------------------------------------------
