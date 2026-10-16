@@ -49,6 +49,11 @@ Players dash in the direction they're facing. Availability may depend on the gam
 - Reaching 0 energy out of line of sight is the **only** way a boomerang dies. There is no distance limit and no turnaround distance, and a clash never kills it by itself.
 - Every number is a `GlobalConfig` value and a Cmdr `tuneboomerang` setting (MinEnergy, MaxEnergy, EnergyPerStud, BounceEnergyCost, PlayerHitEnergyCost, ClashEnergyCost).
 
+### b2. Returning boomerangs (revised 2026-10-16)
+- A boomerang on its way back to the player behaves like an outgoing one with a different heading: it **bounces off obstructions**, **strikes players**, **loses energy** (flight, bounces, hits, clashes) and **dies at 0 energy** out of line of sight (the same one-time check as outgoing; a boomerang that auto-returned at 0 energy has already made it).
+- A bounce **overrides** the steering toward the player: the bounce momentum takes over, then fades back into heading for the player over `BoomerangRecallBounceRecoverySeconds` (0.35 s; `tune RecallBounceRecovery`). If the bounce sends it toward the player it just builds speed; if it sends it away, it slows and curves around. This works for any combination of directions, including a moving player.
+- This applies to a thrown boomerang recalled in flight or auto-returning. The held manual recall of a dead boomerang (below) keeps its own slide-along-surfaces behavior and has no energy.
+
 ### c. Manual recall
 - Holding the recall input brings the boomerang back to the player's hand.
 - Releasing it midway stops the recall; the boomerang rests at the last point it reached.
@@ -79,7 +84,7 @@ A free-for-all mode focused on fast-paced, constant combat.
 
 ### b. Clash (projectiles)
 - Happens when **two boomerangs collide mid-air**.
-- Both are deflected: they bounce off at new angles and each loses **40 energy** (`BoomerangClashEnergyCost`). A clash doesn't kill a boomerang by itself; it dies only if the clash leaves it at 0 energy with no line of sight to its player. A boomerang that is already returning is unaffected.
+- Both are deflected: they bounce off at new angles and each loses **40 energy** (`BoomerangClashEnergyCost`). A clash doesn't kill a boomerang by itself; it dies only if the clash leaves it at 0 energy with no line of sight to its player. A returning boomerang is knocked off course the same way.
 
 ### c. Camera *(marked done in the spec)*
 For all gamemodes:

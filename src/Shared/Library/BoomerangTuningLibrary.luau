@@ -29,7 +29,7 @@ local ATTRIBUTE_PREFIX = "BT"
 -- TYPES
 -------------------------------------------------------------------------------
 
-export type Setting = "ThrowSpeed" | "MinEnergy" | "MaxEnergy" | "EnergyPerStud" | "BounceEnergyCost" | "PlayerHitEnergyCost" | "ClashEnergyCost" | "RecallSpeed" | "RecallAcceleration" | "RecallRampTime" | "RecallRampPower" | "DyingSpeedMultiplier" | "ChargeTime" | "AimWalkSpeed" | "TelekinesisInfluence"
+export type Setting = "ThrowSpeed" | "MinEnergy" | "MaxEnergy" | "EnergyPerStud" | "BounceEnergyCost" | "PlayerHitEnergyCost" | "ClashEnergyCost" | "RecallSpeed" | "RecallAcceleration" | "RecallRampTime" | "RecallRampPower" | "RecallBounceRecovery" | "DyingSpeedMultiplier" | "ChargeTime" | "AimWalkSpeed" | "TelekinesisInfluence"
 
 type SettingInfo = {
 	Description: string,
@@ -41,7 +41,7 @@ type SettingInfo = {
 -------------------------------------------------------------------------------
 
 -- // Every tunable value, in display order. The names are what Cmdr shows (and autocompletes).
-BoomerangTuningLibrary.SETTING_ORDER = { "ThrowSpeed", "MinEnergy", "MaxEnergy", "EnergyPerStud", "BounceEnergyCost", "PlayerHitEnergyCost", "ClashEnergyCost", "RecallSpeed", "RecallAcceleration", "RecallRampTime", "RecallRampPower", "DyingSpeedMultiplier", "ChargeTime", "AimWalkSpeed", "TelekinesisInfluence" } :: { Setting }
+BoomerangTuningLibrary.SETTING_ORDER = { "ThrowSpeed", "MinEnergy", "MaxEnergy", "EnergyPerStud", "BounceEnergyCost", "PlayerHitEnergyCost", "ClashEnergyCost", "RecallSpeed", "RecallAcceleration", "RecallRampTime", "RecallRampPower", "RecallBounceRecovery", "DyingSpeedMultiplier", "ChargeTime", "AimWalkSpeed", "TelekinesisInfluence" } :: { Setting }
 
 BoomerangTuningLibrary.SETTINGS = {
 	ThrowSpeed = {
@@ -110,6 +110,13 @@ BoomerangTuningLibrary.SETTINGS = {
 		Description = "manual recall speed-up curve (1 = steady, higher = slower start and sharper surge)",
 		getDefault = function(_toolData)
 			return GlobalConfig.ManualRecallRampPower
+		end,
+	},
+	-- // A returning boomerang's bounce momentum fades back into steering toward the player over this long
+	RecallBounceRecovery = {
+		Description = "seconds for a returning boomerang's bounce momentum to fade back into heading for the player",
+		getDefault = function(_toolData)
+			return GlobalConfig.BoomerangRecallBounceRecoverySeconds
 		end,
 	},
 	-- // How fast a dying boomerang stops sliding and falls (Clashed.luau; client and server both read it)

@@ -41,6 +41,9 @@ local GlobalConfig = {
    -- // is solid. Taller = walls up to that height count for both (centered on the boomerang's flight height). Tunable live with
    -- // Cmdr `setboomerangcastheight` (ObstructionCastLibrary).
    BoomerangRaycastHeight = 1,
+   -- // A RETURNING boomerang bounces, takes player hits and loses energy exactly like an outgoing one. After a bounce (or clash) its
+   -- // bounce momentum is in charge and fades back into steering toward the player over this many seconds (Cmdr `tune RecallBounceRecovery`).
+   BoomerangRecallBounceRecoverySeconds = 0.35,
    -- // A dying boomerang that keeps sliding with nothing to land on returns to its player on its own after this long (T-062)
    DyingBoomerangNoGroundRecallSeconds = 0.75, -- // Seconds of sliding with nothing below to land on
    -- // Manual recall of a dying/dead boomerang (held recall): slower, heavier, sluggish lift with a visual tilt

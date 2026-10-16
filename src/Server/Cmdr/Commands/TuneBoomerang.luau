@@ -9,7 +9,7 @@ return {
 		{
 			Type = "boomerangsetting",
 			Name = "setting",
-			Description = "ThrowSpeed (studs/s), MinEnergy (energy of an uncharged throw, next throw), MaxEnergy (energy of a fully charged throw, next throw), EnergyPerStud (energy lost per stud flown), BounceEnergyCost (energy lost bouncing off a wall), PlayerHitEnergyCost (energy lost striking a player), ClashEnergyCost (energy lost striking another boomerang), RecallSpeed (studs/s, manual recall), RecallAcceleration (turn rate toward the player, 1 = normal recall), RecallRampTime (seconds for a manual recall to reach max speed), RecallRampPower (speed-up curve; higher = slower start, sharper surge), DyingSpeedMultiplier (how much faster a dying boomerang stops sliding and falls, 1 = original pace), ChargeTime (seconds to max power), AimWalkSpeed (studs/s while aiming).",
+			Description = "ThrowSpeed (studs/s), MinEnergy (energy of an uncharged throw, next throw), MaxEnergy (energy of a fully charged throw, next throw), EnergyPerStud (energy lost per stud flown), BounceEnergyCost (energy lost bouncing off a wall), PlayerHitEnergyCost (energy lost striking a player), ClashEnergyCost (energy lost striking another boomerang), RecallSpeed (studs/s, manual recall), RecallAcceleration (turn rate toward the player, 1 = normal recall), RecallRampTime (seconds for a manual recall to reach max speed), RecallRampPower (speed-up curve; higher = slower start, sharper surge), RecallBounceRecovery (seconds for a returning boomerang's bounce momentum to fade back into heading for the player), DyingSpeedMultiplier (how much faster a dying boomerang stops sliding and falls, 1 = original pace), ChargeTime (seconds to max power), AimWalkSpeed (studs/s while aiming).",
 			Optional = true,
 		},
 		{
