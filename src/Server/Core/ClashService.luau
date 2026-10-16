@@ -187,8 +187,6 @@ function ClashService.init()
                WeaponService.clashWeapon(playerA, weaponA, directionA, collisionPoint)
                WeaponService.clashWeapon(playerB, weaponB, directionB, collisionPoint)
 
-               SoundLibrary.stop(weaponA.InstanceId)
-               SoundLibrary.stop(weaponB.InstanceId)
                SoundLibrary.play(`{weaponA.InstanceId}-{weaponB.InstanceId}-Clash`, Sounds.Data.BoomerangClash.Name, collisionPoint)
                break
             end

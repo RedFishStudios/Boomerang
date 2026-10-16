@@ -503,17 +503,6 @@ function ClashedWeaponLogic.applyClash(player: Player, clashedWeaponData: Clashe
 			return
 		end
 
-		-- // Failsafe (GlobalConfig.BoomerangAutoRecallRange): a dying boomerang that ends up far beyond its player (out of the
-		-- // map bounds) returns on its own. Being far away never makes it die, and being close never revives it.
-		if isServer and clashedWeaponData.State == ClashedWeapons.StateEnum.Clashed and ClashedWeaponLogic.onBeyondAutoRecallRange then
-			local character = player.Character
-			local rootPart = character and character.PrimaryPart
-			if rootPart and getHorizontalDistance(currentPivot.Position, rootPart.Position) > GlobalConfig.BoomerangAutoRecallRange then
-				ClashedWeaponLogic.onBeyondAutoRecallRange(player, clashedWeaponData)
-				return
-			end
-		end
-
 		if not isServer and speed <= 0 and isGrounded then
 			updateOwnWeaponHighlight(player, clashedWeaponData, currentPivot.Position)
 			return
@@ -560,21 +549,15 @@ function ClashedWeaponLogic.applyClash(player: Player, clashedWeaponData: Clashe
 			end
 		end
 
-		-- // T-062: it keeps sliding away looking for somewhere to land (or has slid too far): instead of snapping back to the
-		-- // player, it flies back on its own (automatic recall). Server decides; clients follow its Returning snapshot.
-		local slidTooFar = clashedWeaponData.ClashOrigin ~= nil
-			and getHorizontalDistance(clashedWeaponData.ClashOrigin, nextPosition) > GlobalConfig.DyingBoomerangMaxSlideDistance
-		if slidTooFar or noGroundSlideTime >= GlobalConfig.DyingBoomerangNoGroundRecallSeconds then
-			if isServer then
-				if ClashedWeaponLogic.onSlidingAway then
-					ClashedWeaponLogic.onSlidingAway(player, clashedWeaponData)
-				else
-					ClashedWeaponLogic.removeFromField(player, clashedWeaponData)
-				end
-				return
-			elseif slidTooFar then
-				return -- // Client: hold here until the server's Returning snapshot arrives
+		-- // T-062: it keeps sliding with nowhere to land: instead of snapping back to the player, it flies back on its own
+		-- // (automatic recall). Based on time only, never on distance. Server decides; clients follow its Returning snapshot.
+		if noGroundSlideTime >= GlobalConfig.DyingBoomerangNoGroundRecallSeconds and isServer then
+			if ClashedWeaponLogic.onSlidingAway then
+				ClashedWeaponLogic.onSlidingAway(player, clashedWeaponData)
+			else
+				ClashedWeaponLogic.removeFromField(player, clashedWeaponData)
 			end
+			return
 		end
 
 		setWeaponCFrame(clashedWeaponData, (currentPivot - currentPivot.Position) + nextPosition, deltaTime)

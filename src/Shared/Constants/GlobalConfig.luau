@@ -24,16 +24,20 @@ local GlobalConfig = {
    TelekinesisSteerInfluence = 2, -- // T-077: how strongly a Telekinesis boomerang turns toward the owner's aim each second (bias, not full control). Tunable live via Cmdr `tune TelekinesisInfluence`.
    ElectricChainRadius = 15, -- // Studs: an Electric boomerang elimination chains to every enemy within this distance of the victim
    ElectricChainLinkDelay = 0.05, -- // Seconds between each link of an Electric chain
-   -- // Automatic recall range (a failsafe, not a gameplay rule): a boomerang that gets more than this many studs
-   -- // (horizontally) from its player, thrown or still dying, starts returning on its own instead of dying. It only exists
-   -- // for a boomerang thrown out of the map bounds. About 4x the old death range (30).
-   BoomerangAutoRecallRange = 120,
-   -- // When a thrown boomerang runs out of energy (bounces) it returns on its own if nothing solid is between it and its
-   -- // player (one ray), otherwise it drops into the dead state and must be manually recalled or picked up.
-   -- // A dying boomerang that keeps sliding away instead of landing returns to its player on its own (automatic recall,
-   -- // no manual recall needed) once either limit is hit (T-062). Previously it snapped straight back at 100 studs.
+   -- // Boomerang ENERGY. A thrown boomerang starts with BoomerangMinEnergy (a tap) up to BoomerangMaxEnergy (aim held for a
+   -- // full ChargeTime), and loses energy as it flies. At 0 or below it asks one question: is there a clear line of sight to
+   -- // its player (one ray)? Yes: it returns on its own. No: it drops into the dead state and must be manually recalled or
+   -- // picked up. Reaching 0 energy out of line of sight is the ONLY way a boomerang dies; there is no distance limit.
+   -- // Every value here is the default of a Cmdr `tuneboomerang` setting (MinEnergy, MaxEnergy, EnergyPerStud,
+   -- // BounceEnergyCost, PlayerHitEnergyCost, ClashEnergyCost), so it can be tuned live. Min/Max apply from the next throw.
+   BoomerangMinEnergy = 50, -- // Energy of a throw with no charge
+   BoomerangMaxEnergy = 100, -- // Energy of a throw charged for a full ChargeTime
+   BoomerangEnergyPerStud = 1, -- // Energy lost per stud flown while thrown (so 50-100 energy is about 50-100 studs of flight)
+   BoomerangBounceEnergyCost = 30, -- // Energy lost when it bounces off a wall or other obstruction
+   BoomerangPlayerHitEnergyCost = 10, -- // Energy lost when it strikes a player
+   BoomerangClashEnergyCost = 40, -- // Energy lost when it strikes another boomerang mid-air (a clash)
+   -- // A dying boomerang that keeps sliding with nothing to land on returns to its player on its own after this long (T-062)
    DyingBoomerangNoGroundRecallSeconds = 0.75, -- // Seconds of sliding with nothing below to land on
-   DyingBoomerangMaxSlideDistance = 100, -- // Studs (horizontal) from where it started dying
    -- // Manual recall of a dying/dead boomerang (held recall): slower, heavier, sluggish lift with a visual tilt
    ManualRecallMomentumMultiplier = 0.15, -- // How quickly it accelerates/turns toward the player (1 = normal recall)
    -- // Manual recall speed-up: the boomerang starts at ManualRecallRampStartFraction of its max recall speed and builds up

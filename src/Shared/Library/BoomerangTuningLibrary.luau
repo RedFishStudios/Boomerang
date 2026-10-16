@@ -29,7 +29,7 @@ local ATTRIBUTE_PREFIX = "BT"
 -- TYPES
 -------------------------------------------------------------------------------
 
-export type Setting = "ThrowSpeed" | "ThrowDistance" | "RecallSpeed" | "RecallAcceleration" | "RecallRampTime" | "RecallRampPower" | "DyingSpeedMultiplier" | "ChargeTime" | "AimWalkSpeed" | "TelekinesisInfluence"
+export type Setting = "ThrowSpeed" | "MinEnergy" | "MaxEnergy" | "EnergyPerStud" | "BounceEnergyCost" | "PlayerHitEnergyCost" | "ClashEnergyCost" | "RecallSpeed" | "RecallAcceleration" | "RecallRampTime" | "RecallRampPower" | "DyingSpeedMultiplier" | "ChargeTime" | "AimWalkSpeed" | "TelekinesisInfluence"
 
 type SettingInfo = {
 	Description: string,
@@ -41,7 +41,7 @@ type SettingInfo = {
 -------------------------------------------------------------------------------
 
 -- // Every tunable value, in display order. The names are what Cmdr shows (and autocompletes).
-BoomerangTuningLibrary.SETTING_ORDER = { "ThrowSpeed", "ThrowDistance", "RecallSpeed", "RecallAcceleration", "RecallRampTime", "RecallRampPower", "DyingSpeedMultiplier", "ChargeTime", "AimWalkSpeed", "TelekinesisInfluence" } :: { Setting }
+BoomerangTuningLibrary.SETTING_ORDER = { "ThrowSpeed", "MinEnergy", "MaxEnergy", "EnergyPerStud", "BounceEnergyCost", "PlayerHitEnergyCost", "ClashEnergyCost", "RecallSpeed", "RecallAcceleration", "RecallRampTime", "RecallRampPower", "DyingSpeedMultiplier", "ChargeTime", "AimWalkSpeed", "TelekinesisInfluence" } :: { Setting }
 
 BoomerangTuningLibrary.SETTINGS = {
 	ThrowSpeed = {
@@ -50,10 +50,41 @@ BoomerangTuningLibrary.SETTINGS = {
 			return toolData.Boomerang.Speed
 		end,
 	},
-	ThrowDistance = {
-		Description = "maximum throw distance (studs)",
-		getDefault = function(toolData)
-			return toolData.Boomerang.ThrowDistance
+	-- // Energy (see GlobalConfig.BoomerangMinEnergy). Min/Max only apply to the next throw; the rest apply live.
+	MinEnergy = {
+		Description = "energy of a throw with no charge (applies from the next throw)",
+		getDefault = function(_toolData)
+			return GlobalConfig.BoomerangMinEnergy
+		end,
+	},
+	MaxEnergy = {
+		Description = "energy of a throw charged for a full ChargeTime (applies from the next throw)",
+		getDefault = function(_toolData)
+			return GlobalConfig.BoomerangMaxEnergy
+		end,
+	},
+	EnergyPerStud = {
+		Description = "energy lost per stud flown",
+		getDefault = function(_toolData)
+			return GlobalConfig.BoomerangEnergyPerStud
+		end,
+	},
+	BounceEnergyCost = {
+		Description = "energy lost when bouncing off a wall",
+		getDefault = function(_toolData)
+			return GlobalConfig.BoomerangBounceEnergyCost
+		end,
+	},
+	PlayerHitEnergyCost = {
+		Description = "energy lost when striking a player",
+		getDefault = function(_toolData)
+			return GlobalConfig.BoomerangPlayerHitEnergyCost
+		end,
+	},
+	ClashEnergyCost = {
+		Description = "energy lost when striking another boomerang mid-air (a clash)",
+		getDefault = function(_toolData)
+			return GlobalConfig.BoomerangClashEnergyCost
 		end,
 	},
 	RecallSpeed = {

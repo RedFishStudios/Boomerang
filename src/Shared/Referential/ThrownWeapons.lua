@@ -6,10 +6,12 @@ ThrownWeapons.StateEnum = {
    Outgoing = 1,
    Exhausted = 2,
    Returning = 3,
+   Deflected = 6, -- // Snapshot-only event: the server says this boomerang clashed with another and was knocked onto a new direction (never stored as a State; 4 and 5 are Clashed/Dead)
 } :: {
    ["Outgoing"]: number,
    ["Exhausted"]: number,
    ["Returning"]: number,
+   ["Deflected"]: number,
 }
 
 export type Data = {
@@ -27,6 +29,9 @@ export type Data = {
    ServerDirection: Vector3?,
    ServerSpeed: number?,
    Homing: boolean?,
+   Energy: number?, -- // Remaining energy while thrown (GlobalConfig.BoomerangMinEnergy..MaxEnergy at the throw)
+   EnergyDepletedHandled: boolean?, -- // The 0-energy decision (recall or die) has been made
+   PendingDirection: Vector3?, -- // A new flight direction to adopt on the next step (set by a clash)
    TelekinesisBias: Vector3?, -- // T-077: owner's desired steer direction (horizontal unit) while a Telekinesis effect is active; nil = no steering
    ReuseEquippedHost: boolean?,
    ExistingHost: Model?,

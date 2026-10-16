@@ -41,13 +41,12 @@ Players dash in the direction they're facing. Availability may depend on the gam
 - While aiming, the camera, aim arrow and held boomerang have a **slight vibration** effect.
 - The boomerang is launched in the **exact direction the player is facing at the moment of release**.
 
-**Auto-recall:** the boomerang returns to the thrower automatically when:
-- it slices through players, or
-- it hits a surface and ricochets **once**. (Diagram: thrown at a surface → bounces off at the mirrored angle → flies back to the player.)
-
-**Energy loss:**
-- Every surface hit costs the boomerang energy.
-- If it loses too much (e.g. after **2 or more surface hits**), it no longer auto-recalls. It stops where it ran out of energy, and the player must recall it manually.
+**Energy (revised 2026-10-16; the original spec counted bounces):**
+- A thrown boomerang starts with **50 energy** (a tap) up to **100 energy** (aim held for a full `ChargeTime`), scaling with the charge.
+- It loses energy as it flies: **1 per stud flown**, **30** when it bounces off a wall, **10** when it strikes a player, **40** when it clashes with another boomerang mid-air.
+- At **0 energy or below** it asks one question. If there is a **clear line of sight** to its player, it **returns automatically**. If not, it **dies** (the dead state) and must be recalled manually or picked up.
+- Reaching 0 energy out of line of sight is the **only** way a boomerang dies. There is no distance limit and no turnaround distance, and a clash never kills it by itself.
+- Every number is a `GlobalConfig` value and a Cmdr `tuneboomerang` setting (MinEnergy, MaxEnergy, EnergyPerStud, BounceEnergyCost, PlayerHitEnergyCost, ClashEnergyCost).
 
 ### c. Manual recall
 - Holding the recall input brings the boomerang back to the player's hand.
@@ -79,7 +78,7 @@ A free-for-all mode focused on fast-paced, constant combat.
 
 ### b. Clash (projectiles)
 - Happens when **two boomerangs collide mid-air**.
-- Both are deflected or cancelled: they bounce off at new angles and lose momentum / drop.
+- Both are deflected: they bounce off at new angles and each loses **40 energy** (`BoomerangClashEnergyCost`). A clash doesn't kill a boomerang by itself; it dies only if the clash leaves it at 0 energy with no line of sight to its player. A boomerang that is already returning is unaffected.
 
 ### c. Camera *(marked done in the spec)*
 For all gamemodes:
@@ -89,8 +88,8 @@ For all gamemodes:
 
 ## 5. Boomerang physics notes
 - Angle of incidence equals angle of reflection.
-- Hitting map objects reduces the boomerang's energy.
-- Passing through players doesn't reduce energy.
+- Hitting map objects reduces the boomerang's energy (30), as does striking a player (10), a clash (40) and distance flown (1 per stud).
+- Players are not bounced off: the boomerang passes through them (at the energy cost above).
 
 ---
 
@@ -103,4 +102,4 @@ Found while writing this file (2026-10-01). Each is either deliberate or still t
 | A match needs at least 2 players | `GlobalConfig.PlayersRequiredToStart = 1` (see T-008) |
 | Respawn forcefield lasts about 5 seconds | `GlobalConfig.SpawnShieldDuration = 2` |
 | Classic: top 3 players by kills win, podium | `GamemodeLogics/Classic` picks a single highest-kill winner (none on a tie) |
-| Auto-recall after one ricochet; 2+ surface hits → stops, manual recall | `Tools.ClassicBoomerang.Boomerang.Bounces = 2`. Not checked further. |
+| Auto-recall after one ricochet; 2+ surface hits → stops, manual recall | Replaced on 2026-10-16 by the energy system above (the old `Bounces` and `ThrowDistance` tool values are gone). |

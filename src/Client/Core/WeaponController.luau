@@ -328,6 +328,16 @@ end
 -- // Register a snapshot of a server-authoritative position
 local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vector3, speed: number, state: number, serverTime: number)
    local thrownWeaponData = ThrownWeapons.Data[forPlayer]
+
+   -- // The server says this boomerang clashed with another one and was knocked onto a new direction (it keeps flying)
+   if state == ThrownWeapons.StateEnum.Deflected then
+      local deflectedToolData = thrownWeaponData and Tools[thrownWeaponData.ToolId]
+      local deflectedLogic = deflectedToolData and getLogic(deflectedToolData.LogicClass)
+      if thrownWeaponData and deflectedLogic and deflectedLogic.deflect then
+         deflectedLogic.deflect(forPlayer, thrownWeaponData, direction)
+      end
+      return
+   end
    if not thrownWeaponData or not thrownWeaponData.Host or not thrownWeaponData.Host.Parent then
       -- // The server started returning a dying/dead boomerang (manual recall): follow it
       local clashedWeaponData = ClashedWeapons.Data[forPlayer]
@@ -368,8 +378,8 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
             logic.recall(forPlayer, thrownWeaponData.ToolId, toolData, thrownWeaponData, {
                InitialSpeed = speed,
             })
-         elseif state == ClashedWeapons.StateEnum.Clashed and logic.clash then
-            logic.clash(forPlayer, thrownWeaponData, {
+         elseif state == ClashedWeapons.StateEnum.Clashed and logic.die then
+            logic.die(forPlayer, thrownWeaponData, {
                Direction = direction,
                Speed = speed,
                Position = position,

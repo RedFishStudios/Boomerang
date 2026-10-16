@@ -14,10 +14,8 @@ export type Tool = {
    }?,
 
    Boomerang: {
-      Bounces: number, -- How many times the boomerang can bounce off objects before exhaustion
       HitboxRadius: number,
       Speed: number,
-      ThrowDistance: number,
       ManualRecallSpeed: number -- Max speed (studs/s) of a held manual recall of a dying/dead boomerang
    }?
 }
@@ -31,10 +29,8 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
       Rarity = "Common", -- TODO:RELEASE placeholder
       Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(25)) * CFrame.Angles(math.rad(75), 0, 0) },
       Boomerang = {
-         Bounces = 2,
          HitboxRadius = 2,
          Speed = 75,
-         ThrowDistance = 70,
          ManualRecallSpeed = 90
       }
    },
@@ -45,10 +41,8 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
       Rarity = "Common", -- TODO:RELEASE placeholder
       Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(15)) * CFrame.Angles(math.rad(75), 0, 0), Zoom = 1.2 },
       Boomerang = {
-         Bounces = 3,
          HitboxRadius = 1,
          Speed = 75,
-         ThrowDistance = 70,
          ManualRecallSpeed = 90
       }
    },
@@ -59,10 +53,8 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
       Rarity = "Common", -- TODO:RELEASE placeholder
       Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) },
       Boomerang = {
-         Bounces = 1,
          HitboxRadius = 3,
          Speed = 75,
-         ThrowDistance = 70,
          ManualRecallSpeed = 90
       }
    },
