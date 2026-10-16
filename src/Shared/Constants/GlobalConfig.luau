@@ -36,6 +36,11 @@ local GlobalConfig = {
    BoomerangBounceEnergyCost = 30, -- // Energy lost when it bounces off a wall or other obstruction
    BoomerangPlayerHitEnergyCost = 10, -- // Energy lost when it strikes a player
    BoomerangClashEnergyCost = 40, -- // Energy lost when it strikes another boomerang mid-air (a clash)
+   -- // The height (studs) of the flat block the boomerang casts to detect obstructions. ONE value drives both the bounce
+   -- // blockcast while it flies AND the line-of-sight cast to the player's Hitbox at 0 energy, so the two always agree on what
+   -- // is solid. Taller = walls up to that height count for both (centered on the boomerang's flight height). Tunable live with
+   -- // Cmdr `setboomerangcastheight` (ObstructionCastLibrary).
+   BoomerangRaycastHeight = 1,
    -- // A dying boomerang that keeps sliding with nothing to land on returns to its player on its own after this long (T-062)
    DyingBoomerangNoGroundRecallSeconds = 0.75, -- // Seconds of sliding with nothing below to land on
    -- // Manual recall of a dying/dead boomerang (held recall): slower, heavier, sluggish lift with a visual tilt
@@ -68,6 +73,7 @@ local GlobalConfig = {
    -- Enabling these can greatly increase lag or network traffic
    RaycastVisualizersEnabled = false,
    ProjectileHitboxVisualizerEnabled = false,
+   LineOfSightVisualizerEnabled = false, -- // Default for the line-of-sight visualizer: when a boomerang runs out of energy the server draws the LOS cast (green = clear, red = blocked + hit marker) for a few seconds. Cmdr `togglelosvisualizer` changes it live.
    ToggleAuthorityView = false, -- // Default for the authority view: a neon red ball at the position the SERVER has for each thrown boomerang (AuthorityViewLibrary; Cmdr `toggleauthorityview` changes it live)
    ParryVisualizersEnabled = false,
    VisualizeElectricChainRadius = true, -- // Client-only red cylinder showing the chain radius around every Electric boomerang elimination

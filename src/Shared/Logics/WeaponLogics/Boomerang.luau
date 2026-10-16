@@ -14,6 +14,7 @@ local AuthorityViewLibrary = require(ReplicatedStorage.Shared.Library.AuthorityV
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local SkinLibrary = require(ReplicatedStorage.Shared.Library.SkinLibrary)
 local BoomerangTuningLibrary = require(ReplicatedStorage.Shared.Library.BoomerangTuningLibrary)
+local ObstructionCastLibrary = require(ReplicatedStorage.Shared.Library.ObstructionCastLibrary)
 local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 local BufferUtil = require(ReplicatedStorage.Shared.Utils.BufferUtil)
 local RaycastsUtility = require(ReplicatedStorage.Shared.Utils.RaycastsUtility)
@@ -67,11 +68,11 @@ local SERVER_RECALL_CATCH_BONUS = 0.5
 local RETURN_STEER_TIGHTNESS = 3 -- // How sharply a returning boomerang turns into the player up close (1 = circles them; higher = more direct)
 local CLASH_SPEED_SCALE = 0.5
 local CLASH_MINIMUM_SPEED = 12
-local OBSTRUCTION_BLOCKCAST_HEIGHT = 1
 local OBSTRUCTION_BLOCKCAST_DEPTH = 0.2
 local OBSTRUCTION_BLOCKCAST_WIDTH_SCALE = 1.4
 local OBSTRUCTION_BLOCKCAST_SKIN = 1
 local BLOCKCAST_VISUALIZER_LIFETIME = 0.05
+local LOS_VISUALIZER_LIFETIME = 3 -- // Seconds a line-of-sight cast stays drawn (it is only made once, at 0 energy)
 
 local WEAPON_UNRELIABLE_CODES = RemoteCodes.Weapon.Unreliable
 local WEAPON_RAYCAST_COLLISION_GROUP = CollisionGroupConstants.ThrownWeapons
@@ -306,26 +307,99 @@ local function getHorizontalDistance(fromPosition: Vector3, toPosition: Vector3)
    return delta.Magnitude
 end
 
--- // True if nothing solid is between the position and the player (the same obstructions the boomerang collides with;
--- // characters are ignored) (T-063)
-local function hasLineOfSightToPlayer(player: Player, position: Vector3, thrownWeaponData: ThrownWeapons.Data): boolean
+-- // CFrame for a flat, horizontal blockcast oriented towards the travel direction
+local function getObstructionBlockcastCFrame(rayOrigin: Vector3, direction: Vector3): CFrame
+   return CFrame.lookAt(rayOrigin, rayOrigin + direction, UP_VECTOR)
+end
+
+-- // The flat block every obstruction cast uses: bounce detection in flight and the line-of-sight cast. Its height is the one
+-- // shared cast height (GlobalConfig.BoomerangRaycastHeight, tunable with Cmdr `setboomerangcastheight`).
+local function getObstructionCastSize(hitboxRadius: number): Vector3
+   return Vector3.new(hitboxRadius * OBSTRUCTION_BLOCKCAST_WIDTH_SCALE, ObstructionCastLibrary.getHeight(), OBSTRUCTION_BLOCKCAST_DEPTH)
+end
+
+-- // The part that stands for a player's position in line-of-sight checks: the Hitbox HitboxService puts in their character
+-- // (it replicates, so clients find it too). Falls back to the HumanoidRootPart, where it is centered, if it isn't there yet.
+local function getPlayerTargetPart(character: Model): BasePart?
+   local hitbox = character:FindFirstChild("Hitbox")
+   if hitbox and hitbox:IsA("BasePart") then
+      return hitbox
+   end
+   local rootPart = character:FindFirstChild("HumanoidRootPart")
+   return if rootPart and rootPart:IsA("BasePart") then rootPart else nil
+end
+
+-- // Server only. Draws a line-of-sight cast for a few seconds (ObstructionCastLibrary / Cmdr `togglelosvisualizer`):
+-- // the swept block (green = clear, red = blocked) and a marker where it hit.
+local function visualizeLineOfSight(castCFrame: CFrame, castSize: Vector3, castDistance: number, result: RaycastResult?)
+   if not isServer or not ObstructionCastLibrary.isLosVisualizerEnabled() then
+      return
+   end
+
+   local sweepLength = castSize.Z + castDistance
+   local sweepPart = Instance.new("Part")
+   sweepPart.Name = "LineOfSightVisualizer"
+   sweepPart.Anchored = true
+   sweepPart.CanCollide = false
+   sweepPart.CanQuery = false
+   sweepPart.CanTouch = false
+   sweepPart.CastShadow = false
+   sweepPart.Material = Enum.Material.Neon
+   sweepPart.Transparency = 0.6
+   sweepPart.Color = if result then Color3.fromRGB(255, 0, 0) else Color3.fromRGB(0, 255, 0)
+   sweepPart.Size = Vector3.new(castSize.X, castSize.Y, sweepLength)
+   sweepPart.CFrame = castCFrame * CFrame.new(0, 0, -sweepLength / 2 + castSize.Z / 2)
+   sweepPart.Parent = workspace
+   Debris:AddItem(sweepPart, LOS_VISUALIZER_LIFETIME)
+
+   if result then
+      local hitPart = Instance.new("Part")
+      hitPart.Name = "LineOfSightHitVisualizer"
+      hitPart.Shape = Enum.PartType.Ball
+      hitPart.Anchored = true
+      hitPart.CanCollide = false
+      hitPart.CanQuery = false
+      hitPart.CanTouch = false
+      hitPart.Material = Enum.Material.Neon
+      hitPart.Color = Color3.fromRGB(255, 0, 0)
+      hitPart.Size = Vector3.new(1, 1, 1)
+      hitPart.Position = result.Position
+      hitPart.Parent = workspace
+      Debris:AddItem(hitPart, LOS_VISUALIZER_LIFETIME)
+   end
+end
+
+-- // True if the boomerang could fly straight to the player: a flat block (the same shape and height it bounces with in flight)
+-- // swept from the boomerang to the player's Hitbox, at the boomerang's own height, so only horizontal obstructions count
+-- // (T-063). Characters are ignored. Same result on client and server, it only depends on replicated state.
+local function hasLineOfSightToPlayer(player: Player, position: Vector3, toolData: Tools.Tool, thrownWeaponData: ThrownWeapons.Data): boolean
    local character = player.Character
-   local rootPart = character and character.PrimaryPart
-   if not rootPart then
+   local targetPart = character and getPlayerTargetPart(character)
+   if not character or not targetPart then
       return false
    end
-   local toPlayer = rootPart.Position - position
+
+   -- // Flatten to the boomerang's height: this is a top-down check against walls, not against the player's body height
+   local targetPosition = targetPart.Position
+   local toPlayer = Vector3.new(targetPosition.X - position.X, 0, targetPosition.Z - position.Z)
+   local distance = toPlayer.Magnitude
+   if distance <= 1e-3 then
+      return true
+   end
+   local direction = toPlayer / distance
+
    local filter: {Instance} = {Characters, character}
    if thrownWeaponData.Host then
       table.insert(filter, thrownWeaponData.Host)
    end
    local raycastParams = RaycastsUtility.getProjectileObstructionParams(filter)
-   return RaycastsUtility.raycastProjectileObstruction(position, toPlayer, toPlayer.Magnitude, raycastParams) == nil
-end
 
--- // CFrame for a flat, horizontal blockcast oriented towards the travel direction
-local function getObstructionBlockcastCFrame(rayOrigin: Vector3, direction: Vector3): CFrame
-   return CFrame.lookAt(rayOrigin, rayOrigin + direction, UP_VECTOR)
+   local hitboxRadius = toolData.Boomerang.HitboxRadius
+   local castSize = getObstructionCastSize(hitboxRadius)
+   local castCFrame = getObstructionBlockcastCFrame(position, direction)
+   local result = RaycastsUtility.blockcastProjectileObstruction(castCFrame, castSize, direction, distance, raycastParams)
+   visualizeLineOfSight(castCFrame, castSize, distance, result)
+   return result == nil
 end
 
 local function getWeaponCFrame(thrownWeaponData: ThrownWeapons.Data): CFrame?
@@ -456,7 +530,7 @@ local function blockcastWithHorizontalHitbox(
    local castOrigin = rayOrigin - direction * OBSTRUCTION_BLOCKCAST_SKIN
    local castDistance = rayDistance + OBSTRUCTION_BLOCKCAST_SKIN
    local castCFrame = getObstructionBlockcastCFrame(castOrigin, direction)
-   local castSize = Vector3.new(hitboxRadius * OBSTRUCTION_BLOCKCAST_WIDTH_SCALE, OBSTRUCTION_BLOCKCAST_HEIGHT, OBSTRUCTION_BLOCKCAST_DEPTH)
+   local castSize = getObstructionCastSize(hitboxRadius)
 
    local result = RaycastsUtility.blockcastProjectileObstruction(castCFrame, castSize, direction, castDistance, raycastParams)
    updateRaycastVisualizers(castCFrame, castSize, castDistance, result)
@@ -1005,13 +1079,13 @@ function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapo
 end
 
 -- // A thrown boomerang that has run out of energy: returns on its own if there is a clear line of sight to its player (one
--- // ray, T-063), otherwise loses momentum and drops into the dead state (the clash path) and must be manually recalled.
+-- // flat block cast to the player's Hitbox, T-063), otherwise loses momentum and drops into the dead state (the clash path) and must be manually recalled.
 -- // Distance from the player plays no part, and this is the only way a thrown boomerang dies.
 -- // Only the server decides death: with no line of sight on the client, nothing happens (returns false) and the boomerang
 -- // keeps flying until the server's Clashed snapshot arrives (WeaponController.onSnapshot then calls die), so a
 -- // disagreement can't leave the client showing a dead boomerang the server is recalling.
 function Boomerang.autoRecallOrDie(player: Player, boomerangId: string, toolData: Tools.Tool, thrownWeaponData: ThrownWeapons.Data, position: Vector3, direction: Vector3, speed: number): boolean
-   if hasLineOfSightToPlayer(player, position, thrownWeaponData) then
+   if hasLineOfSightToPlayer(player, position, toolData, thrownWeaponData) then
       Boomerang.recall(player, boomerangId, toolData, thrownWeaponData)
       return true
    end

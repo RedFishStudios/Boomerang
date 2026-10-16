@@ -45,6 +45,7 @@ Players dash in the direction they're facing. Availability may depend on the gam
 - A thrown boomerang starts with **50 energy** (a tap) up to **100 energy** (aim held for a full `ChargeTime`), scaling with the charge.
 - It loses energy as it flies: **1 per stud flown**, **30** when it bounces off a wall, **10** when it strikes a player, **40** when it clashes with another boomerang mid-air.
 - At **0 energy or below** it asks one question. If there is a **clear line of sight** to its player, it **returns automatically**. If not, it **dies** (the dead state) and must be recalled manually or picked up.
+- **Line of sight** is a flat block cast (same shape and height the boomerang bounces with) from the boomerang to the player's `Hitbox` part, at the boomerang's own height, so only walls at least that tall block it. The height is one value, `GlobalConfig.BoomerangRaycastHeight` (default 1 stud), shared by the bounce cast and the LOS cast; tune it live with `setboomerangcastheight`. `togglelosvisualizer true` draws each LOS cast (green = clear, red = blocked).
 - Reaching 0 energy out of line of sight is the **only** way a boomerang dies. There is no distance limit and no turnaround distance, and a clash never kills it by itself.
 - Every number is a `GlobalConfig` value and a Cmdr `tuneboomerang` setting (MinEnergy, MaxEnergy, EnergyPerStud, BounceEnergyCost, PlayerHitEnergyCost, ClashEnergyCost).
 
