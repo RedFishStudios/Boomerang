@@ -87,12 +87,15 @@ local function loadReplication(player: Player, tbl: { [any]: any }, _path: { str
 	local childProxies = {}
 	local proxy = setmetatable({}, {
 		__newindex = function(_, i, v)
+			-- // The value always goes into the real table (that is what the profile saves and __call returns). A table also
+			-- // gets a child proxy wrapping that same table; any other value drops a child proxy left over from a table it replaces.
+			tbl[i] = v
 			if type(v) == "table" then
 				local newPath = table.clone(path)
 				table.insert(newPath, i)
 				childProxies[i] = loadReplication(player, v, newPath)
 			else
-				tbl[i] = v
+				childProxies[i] = nil
 			end
 			scheduleReplication(player, path, i, v)
 			PlayerDataService.UpdatedTasks:Execute("parallel", player, i, v, path)
