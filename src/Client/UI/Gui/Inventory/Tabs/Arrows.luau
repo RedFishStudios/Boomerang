@@ -24,7 +24,7 @@ local DEFAULT_RARITY = "Common" -- // When the charge up effect has no Rarity
 -- PUBLIC VARIABLES
 -------------------------------------------------------------------------------
 
-ArrowsTab.Title = "Your Charge Up Effects"
+ArrowsTab.Title = "My Charge Up Effects"
 
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS

@@ -54,7 +54,7 @@ export type InventoryTab = {
 
 -- // The tab column, top to bottom. A tab's content is Tabs/<Id>; tabs without a module aren't set up yet.
 local TABS = {
-	{ Id = "Skins", Text = "Skins", Color = Color3.fromRGB(165, 95, 200) },
+	{ Id = "Skins", Text = "Weapons", Color = Color3.fromRGB(165, 95, 200) },
 	{ Id = "Emotes", Text = "Emotes", Color = Color3.fromRGB(55, 170, 180) },
 	{ Id = "Arrows", Text = "Arrows", Color = Color3.fromRGB(240, 165, 50) },
 	{ Id = "Effects", Text = "Effects", Color = Color3.fromRGB(215, 70, 70) },

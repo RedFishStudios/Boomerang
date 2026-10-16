@@ -38,7 +38,7 @@
 					<int name="BorderSizePixel">0</int>
 					<int name="ZIndex">2</int>
 					<Font name="FontFace"><Family><url>rbxasset://fonts/families/FredokaOne.json</url></Family><Weight>400</Weight><Style>Normal</Style></Font>
-					<string name="Text">Your Skins</string>
+					<string name="Text">My Weapons</string>
 					<Color3 name="TextColor3"><R>0.360784</R><G>0.203922</G><B>0.078431</B></Color3>
 					<bool name="TextScaled">true</bool>
 					<bool name="TextWrapped">true</bool>

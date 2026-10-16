@@ -24,7 +24,7 @@ local DEFAULT_RARITY = "Common" -- // When the emote has no Rarity
 -- PUBLIC VARIABLES
 -------------------------------------------------------------------------------
 
-EmotesTab.Title = "Your Emotes"
+EmotesTab.Title = "My Emotes"
 
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS

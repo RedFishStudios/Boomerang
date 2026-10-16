@@ -25,7 +25,7 @@ local DEFAULT_RARITY = "Common" -- // When the skin's tool has no Rarity
 -- PUBLIC VARIABLES
 -------------------------------------------------------------------------------
 
-SkinsTab.Title = "Your Skins"
+SkinsTab.Title = "My Weapons"
 
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
