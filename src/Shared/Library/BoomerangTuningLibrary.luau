@@ -119,7 +119,7 @@ BoomerangTuningLibrary.SETTINGS = {
 			return GlobalConfig.BoomerangRecallBounceRecoverySeconds
 		end,
 	},
-	-- // How fast a dying boomerang stops sliding and falls (Clashed.luau; client and server both read it)
+	-- // How fast a dying boomerang stops sliding and falls (Dead.luau; client and server both read it)
 	DyingSpeedMultiplier = {
 		Description = "how much faster a dying boomerang loses its slide and falls (1 = original pace)",
 		getDefault = function(_toolData)

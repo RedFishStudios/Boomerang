@@ -1,12 +1,12 @@
--- // Data on clashed weapons that exist in the field
+-- // Data on dying and dead weapons that exist in the field (a boomerang that ran out of energy out of line of sight)
 
-local ClashedWeapons = {}
+local DeadWeapons = {}
 
-ClashedWeapons.StateEnum = {
-   Clashed = 4,
+DeadWeapons.StateEnum = {
+   Dying = 4,
    Dead = 5,
 } :: {
-   ["Clashed"]: number,
+   ["Dying"]: number,
    ["Dead"]: number,
 }
 
@@ -26,14 +26,14 @@ export type Data = {
    ServerSpeed: number?,
    ReuseEquippedHost: boolean?,
    ExistingHost: Model?,
-   ClashOrigin: Vector3?,
+   DeathOrigin: Vector3?,
    VisualRotation: number?,
    
    MovementConnection: RBXScriptConnection?,
 }
 
-ClashedWeapons.Data = {} :: {
+DeadWeapons.Data = {} :: {
    [Player]: Data
 }
 
-return ClashedWeapons
+return DeadWeapons

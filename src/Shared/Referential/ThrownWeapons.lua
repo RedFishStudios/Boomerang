@@ -6,7 +6,7 @@ ThrownWeapons.StateEnum = {
    Outgoing = 1,
    Exhausted = 2,
    Returning = 3,
-   Deflected = 6, -- // Snapshot-only event: the server says this boomerang clashed with another and was knocked onto a new direction (never stored as a State; 4 and 5 are Clashed/Dead)
+   Deflected = 6, -- // Snapshot-only event: the server says this boomerang clashed with another and was knocked onto a new direction (never stored as a State; 4 and 5 are Dying/Dead)
 } :: {
    ["Outgoing"]: number,
    ["Exhausted"]: number,
@@ -30,6 +30,7 @@ export type Data = {
    ServerSpeed: number?,
    Homing: boolean?,
    Energy: number?, -- // Remaining energy while thrown (GlobalConfig.BoomerangMinEnergy..MaxEnergy at the throw)
+   AwaitingGround: boolean?, -- // Out of energy over open air: returning to the player regardless of line of sight, until it is over ground and can make the recall-or-die decision
    EnergyDepletedHandled: boolean?, -- // The 0-energy decision (recall or die) has been made
    ReturnSpeedMultiplier: number?, -- // Max recall speed multiplier for a returning boomerang (Explosive effect), set by Boomerang.recall
    PendingDirection: Vector3?, -- // A new flight direction to adopt on the next step (set by a clash)

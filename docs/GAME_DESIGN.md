@@ -44,13 +44,15 @@ Players dash in the direction they're facing. Availability may depend on the gam
 **Energy (revised 2026-10-16; the original spec counted bounces):**
 - A thrown boomerang starts with **50 energy** (a tap) up to **100 energy** (aim held for a full `ChargeTime`), scaling with the charge.
 - It loses energy as it flies: **1 per stud flown**, **30** when it bounces off a wall, **10** when it strikes a player, **40** when it clashes with another boomerang mid-air.
-- At **0 energy or below** it asks one question. If there is a **clear line of sight** to its player, it **returns automatically**. If not, it **dies** (the dead state) and must be recalled manually or picked up.
+- At **0 energy or below**, what happens depends on what is beneath it:
+  - **Over open air** (no ground to land on) it can't die: it **returns to the player automatically, whether or not it has line of sight**, and keeps checking for ground beneath it. The moment it is over ground it asks the question below.
+  - **Over ground** it asks one question. If there is a **clear line of sight** to its player, it **returns automatically** (or keeps returning). If not, it **dies** (the dead state) and must be recalled manually or picked up.
 - **Line of sight** is a flat block cast (same shape and height the boomerang bounces with) from the boomerang to the player's `Hitbox` part, at the boomerang's own height, so only walls at least that tall block it. The height is one value, `GlobalConfig.BoomerangRaycastHeight` (default 1 stud), shared by the bounce cast and the LOS cast; tune it live with `setboomerangcastheight`. `togglelosvisualizer true` draws each LOS cast (green = clear, red = blocked).
-- Reaching 0 energy out of line of sight is the **only** way a boomerang dies. There is no distance limit and no turnaround distance, and a clash never kills it by itself.
+- Reaching 0 energy over ground and out of line of sight is the **only** way a boomerang dies. There is no distance limit and no turnaround distance, and a clash never kills it by itself.
 - Every number is a `GlobalConfig` value and a Cmdr `tuneboomerang` setting (MinEnergy, MaxEnergy, EnergyPerStud, BounceEnergyCost, PlayerHitEnergyCost, ClashEnergyCost).
 
 ### b2. Returning boomerangs (revised 2026-10-16)
-- A boomerang on its way back to the player behaves like an outgoing one with a different heading: it **bounces off obstructions**, **strikes players**, **loses energy** (flight, bounces, hits, clashes) and **dies at 0 energy** out of line of sight (the same one-time check as outgoing; a boomerang that auto-returned at 0 energy has already made it).
+- A boomerang on its way back to the player behaves like an outgoing one with a different heading: it **bounces off obstructions**, **strikes players**, **loses energy** (flight, bounces, hits, clashes) and follows the same 0-energy rule as outgoing: over open air it keeps returning whether or not it can see the player, and the moment it is over ground it keeps returning with line of sight or **dies** without it.
 - A bounce **overrides** the steering toward the player: the bounce momentum takes over, then fades back into heading for the player over `BoomerangRecallBounceRecoverySeconds` (0.35 s; `tune RecallBounceRecovery`). If the bounce sends it toward the player it just builds speed; if it sends it away, it slows and curves around. This works for any combination of directions, including a moving player.
 - This applies to a thrown boomerang recalled in flight or auto-returning. The held manual recall of a dead boomerang (below) keeps its own slide-along-surfaces behavior and has no energy.
 

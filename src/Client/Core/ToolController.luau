@@ -9,7 +9,7 @@ local SimpleRemotes = require(game.ReplicatedStorage.Shared.Networking.SimpleRem
 local PlayersUtil = require(game.ReplicatedStorage.Shared.Utils.PlayersUtil)
 local ToolLibrary = require(game.ReplicatedStorage.Shared.Library.ToolLibrary)
 local ThrownWeapons = require(game.ReplicatedStorage.Shared.Referential.ThrownWeapons)
-local ClashedWeapons = require(game.ReplicatedStorage.Shared.Referential.ClashedWeapons)
+local DeadWeapons = require(game.ReplicatedStorage.Shared.Referential.DeadWeapons)
 local GameStateLibrary = require(game.ReplicatedStorage.Shared.Library.GameStateLibrary)
 local ParticlesLibrary = require(game.ReplicatedStorage.Shared.Library.ParticlesLibrary)
 
@@ -416,7 +416,7 @@ function ToolController.updateTool(player: Player)
 
 	-- Detach/attach is not driven by aiming state
 	-- While aiming/charging, tools remain attached; detachment occurs only during throw flow
-	if DetachedTools[player] and DetachedTools[player] == toolModel and (ThrownWeapons.Data[player] or ClashedWeapons.Data[player]) and GameStateLibrary.getGameStateData().CurrentRoundData:Get() ~= nil then
+	if DetachedTools[player] and DetachedTools[player] == toolModel and (ThrownWeapons.Data[player] or DeadWeapons.Data[player]) and GameStateLibrary.getGameStateData().CurrentRoundData:Get() ~= nil then
 		DetachedToolCharacters[player] = character
 		finish()
 		return
@@ -523,10 +523,10 @@ function ToolController.finishToolThrow(player: Player)
 end
 
 -- // fadeOutSeconds: optional slower fade when the highlight goes away (e.g. a dead boomerang starting a manual recall)
-function ToolController.applyHighlight(isObstructed: boolean, isClashedOrDead: boolean?, fadeOutSeconds: number?)
+function ToolController.applyHighlight(isObstructed: boolean, isDeadOrDying: boolean?, fadeOutSeconds: number?)
 	local outlineColor = if isObstructed
 		then Color3.new(0.976471, 0.247059, 1)
-		elseif isClashedOrDead
+		elseif isDeadOrDying
 		then Color3.new(1, 1, 1)
 		else nil
 	local myTool = getDetachedTool(localPlayer)

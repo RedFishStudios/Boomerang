@@ -30,8 +30,8 @@ local SharedTasks = require(ReplicatedStorage.Shared.Constants.SharedTasks)
 local HomingBoomerang = require(ReplicatedStorage.Shared.Logics.PickupLogics.HomingBoomerang)
 local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
 local Portal = require(ReplicatedStorage.Shared.Logics.Environment.Portal)
-local ClashedWeapons = require(ReplicatedStorage.Shared.Referential.ClashedWeapons)
-local ClashedWeaponLogic = require(ReplicatedStorage.Shared.Logics.WeaponLogics.Clashed)
+local DeadWeapons = require(ReplicatedStorage.Shared.Referential.DeadWeapons)
+local DeadWeaponLogic = require(ReplicatedStorage.Shared.Logics.WeaponLogics.Dead)
 local HttpService = game:GetService("HttpService")
 
 local AnimationController
@@ -66,8 +66,8 @@ local RECALL_CATCH_RADIUS_MIN = 1.5
 -- // already caught it; this small server-only bonus closes that gap so the two agree. Tunable.
 local SERVER_RECALL_CATCH_BONUS = 0.5
 local RETURN_STEER_TIGHTNESS = 3 -- // How sharply a returning boomerang turns into the player up close (1 = circles them; higher = more direct)
-local CLASH_SPEED_SCALE = 0.5
-local CLASH_MINIMUM_SPEED = 12
+local DEATH_SPEED_SCALE = 0.5
+local DEATH_MINIMUM_SPEED = 12
 local OBSTRUCTION_BLOCKCAST_DEPTH = 0.2
 local OBSTRUCTION_BLOCKCAST_WIDTH_SCALE = 1.4
 local OBSTRUCTION_BLOCKCAST_SKIN = 1
@@ -108,7 +108,15 @@ type RemoveFromFieldOptions = {
    ReturnToPlayer: boolean?
 }
 
+-- // A mid-air clash with another boomerang (Boomerang.clash)
 type ClashInitOptions = {
+   Direction: Vector3,
+   Speed: number?,
+   Position: Vector3?,
+}
+
+-- // A boomerang dying (Boomerang.die)
+type DieInitOptions = {
    Direction: Vector3,
    Speed: number?,
    Position: Vector3?,
@@ -610,7 +618,7 @@ local function isCameraObstructedToPoint(cameraPosition: Vector3, targetPosition
    return false
 end
 
-local function updateOwnWeaponHighlight(player: Player, thrownWeaponData: ThrownWeapons.Data, position: Vector3, isClashedOrDead: boolean?, fadeOutSeconds: number?)
+local function updateOwnWeaponHighlight(player: Player, thrownWeaponData: ThrownWeapons.Data, position: Vector3, isDeadOrDying: boolean?, fadeOutSeconds: number?)
    if isServer or not ToolController or player ~= Players.LocalPlayer then
       return
    end
@@ -628,7 +636,7 @@ local function updateOwnWeaponHighlight(player: Player, thrownWeaponData: Thrown
    local isObstructed = camera ~= nil and host ~= nil
       and isCameraObstructedToPoint(camera.CFrame.Position, position, obstructionFilter)
       or false
-   ToolController.applyHighlight(isObstructed, isClashedOrDead, fadeOutSeconds)
+   ToolController.applyHighlight(isObstructed, isDeadOrDying, fadeOutSeconds)
 end
 
 local function damagedPlayer(player: Player, boomerangId: string, thrownWeaponData: ThrownWeapons.Data, victimModel: Model): boolean
@@ -666,7 +674,7 @@ local function damagedPlayer(player: Player, boomerangId: string, thrownWeaponDa
    local Humanoid = victimModel:FindFirstChildOfClass("Humanoid")
    if Humanoid and Humanoid.Health > 0 then
       -- // A boomerang (outgoing or returning) loses energy for each player it strikes. Server only: the client's prediction keeps
-      -- // a little more energy than the server and the server's Returning / Clashed snapshot decides the rest.
+      -- // a little more energy than the server and the server's Returning / Dying snapshot decides the rest.
       if isServer and thrownWeaponData.Energy then
          thrownWeaponData.Energy -= BoomerangTuningLibrary.get(thrownWeaponData.ToolId, "PlayerHitEnergyCost")
       end
@@ -869,15 +877,19 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          end
       end
 
-      -- // Out of energy: the one decision. A clear line of sight to its player: it returns on its own. None: it dies.
-      -- // The server decides both. A client that can see its player predicts the return; one that can't just slows down
-      -- // (Exhausted) and waits for the server's verdict (a Returning or Clashed snapshot).
+      -- // Out of energy: the one decision, and only ever made over ground. A boomerang that is out of energy over open air has
+      -- // nowhere to die, so it returns to the player whether or not it can see them, and keeps checking for ground beneath it.
+      -- // Once it is over ground: a clear line of sight to its player means it keeps returning; none means it dies.
+      -- // The server decides death. A client predicts the return; one that has ground and no line of sight just slows down
+      -- // (Exhausted) and waits for the server's verdict (a Returning or Dying snapshot).
       if isReturning then
-         -- // A returning boomerang that runs out of energy asks the same question once, if it hasn't already (a boomerang that
-         -- // auto-returned at 0 energy has: it is already on its way home). The server decides; a client just keeps flying
-         -- // until the server's Clashed snapshot arrives.
-         if (thrownWeaponData.Energy or 0) <= 0 and shouldRecallTransitions and not thrownWeaponData.EnergyDepletedHandled then
+         if (thrownWeaponData.Energy or 0) <= 0 and not thrownWeaponData.EnergyDepletedHandled then
+            -- // Ran out while already returning (a recall in flight): the same decision, made as soon as it is over ground
             thrownWeaponData.EnergyDepletedHandled = true
+            thrownWeaponData.AwaitingGround = true
+         end
+         if thrownWeaponData.AwaitingGround and DeadWeaponLogic.hasGroundBelow(pivot.Position, thrownWeaponData.Host) then
+            thrownWeaponData.AwaitingGround = nil
             if isServer and not hasLineOfSightToPlayer(player, pivot.Position, toolData, thrownWeaponData) then
                Boomerang.die(player, thrownWeaponData, {
                   Direction = direction,
@@ -897,14 +909,21 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
             if ThrownWeapons.Data[player] ~= thrownWeaponData then
                return true -- // Removed by an event-point effect (e.g. explosive boomerang)
             end
-            if Boomerang.autoRecallOrDie(player, boomerangId, toolData, thrownWeaponData, pivot.Position, direction, speed) then
+            if DeadWeaponLogic.hasGroundBelow(pivot.Position, thrownWeaponData.Host) then
+               if Boomerang.autoRecallOrDie(player, boomerangId, toolData, thrownWeaponData, pivot.Position, direction, speed) then
+                  return true
+               end
+            else
+               -- // Open air: it can't die here. Head back regardless of line of sight, checking for ground on the way.
+               thrownWeaponData.AwaitingGround = true
+               Boomerang.recall(player, boomerangId, toolData, thrownWeaponData)
                return true
             end
          end
          thrownWeaponData.State = ThrownWeapons.StateEnum.Exhausted
          speed = speed - (speed * SLOW_RATE * deltaTime)
          if speed <= .1 then
-            -- // Stopped and waiting for the server's verdict (Returning or Clashed snapshot). The loop stays alive so a
+            -- // Stopped and waiting for the server's verdict (Returning or Dying snapshot). The loop stays alive so a
             -- // recall can steer this same boomerang home with the same movement code.
             speed = 0
             thrownWeaponData.Speed = 0
@@ -1158,11 +1177,12 @@ function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapo
    end
 end
 
--- // A thrown boomerang that has run out of energy: returns on its own if there is a clear line of sight to its player (one
--- // flat block cast to the player's Hitbox, T-063), otherwise loses momentum and drops into the dead state (the clash path) and must be manually recalled.
+-- // The recall-or-die question for a boomerang that is out of energy and over ground: it returns on its own if there is a clear
+-- // line of sight to its player (a flat block cast to the player's Hitbox, T-063), otherwise loses momentum and drops into the
+-- // dying/dead state (Dead.luau) and must be manually recalled. Over open air nothing dies: the caller just returns it.
 -- // Distance from the player plays no part, and this is the only way a thrown boomerang dies.
 -- // Only the server decides death: with no line of sight on the client, nothing happens (returns false) and the boomerang
--- // keeps flying until the server's Clashed snapshot arrives (WeaponController.onSnapshot then calls die), so a
+-- // keeps flying until the server's Dying snapshot arrives (WeaponController.onSnapshot then calls die), so a
 -- // disagreement can't leave the client showing a dead boomerang the server is recalling.
 function Boomerang.autoRecallOrDie(player: Player, boomerangId: string, toolData: Tools.Tool, thrownWeaponData: ThrownWeapons.Data, position: Vector3, direction: Vector3, speed: number): boolean
    if hasLineOfSightToPlayer(player, position, toolData, thrownWeaponData) then
@@ -1180,46 +1200,46 @@ function Boomerang.autoRecallOrDie(player: Player, boomerangId: string, toolData
    return true
 end
 
--- // Manual recall of a dying (Clashed) or dead boomerang: it becomes a thrown boomerang again and returns.
+-- // Manual recall of a dying or dead boomerang: it becomes a thrown boomerang again and returns.
 -- // requiresHold: it keeps returning only while the player holds recall (Boomerang.stopRecallFromDead puts it back).
 -- // Server: called from WeaponService on recall press (and by the out-of-bounds failsafe / sliding-away hooks, without hold).
 -- // Client: called from WeaponController.onSnapshot when the server's snapshot says it is Returning.
-function Boomerang.recallFromClashed(player: Player, clashedWeaponData: ClashedWeapons.Data, requiresHold: boolean)
-   if ThrownWeapons.Data[player] or ClashedWeapons.Data[player] ~= clashedWeaponData then
+function Boomerang.recallFromDead(player: Player, deadWeaponData: DeadWeapons.Data, requiresHold: boolean)
+   if ThrownWeapons.Data[player] or DeadWeapons.Data[player] ~= deadWeaponData then
       return
    end
-   local toolData = Tools[clashedWeaponData.ToolId]
+   local toolData = Tools[deadWeaponData.ToolId]
    if not toolData or not toolData.Boomerang then
       return
    end
-   local host = clashedWeaponData.Host
-   local pivot = if host and host.Parent then host:GetPivot() else clashedWeaponData.CFrame
+   local host = deadWeaponData.Host
+   local pivot = if host and host.Parent then host:GetPivot() else deadWeaponData.CFrame
    if not pivot then
       return
    end
 
-   if clashedWeaponData.MovementConnection then
-      clashedWeaponData.MovementConnection:Disconnect()
-      clashedWeaponData.MovementConnection = nil
+   if deadWeaponData.MovementConnection then
+      deadWeaponData.MovementConnection:Disconnect()
+      deadWeaponData.MovementConnection = nil
    end
 
    local thrownWeaponData: ThrownWeapons.Data = {
-      ToolId = clashedWeaponData.ToolId,
+      ToolId = deadWeaponData.ToolId,
       State = ThrownWeapons.StateEnum.Exhausted, -- // recall() switches it to Returning
-      InstanceId = clashedWeaponData.InstanceId,
-      OwnerUserId = clashedWeaponData.OwnerUserId,
+      InstanceId = deadWeaponData.InstanceId,
+      OwnerUserId = deadWeaponData.OwnerUserId,
       Host = host,
       LastPosition = pivot.Position,
       CFrame = pivot,
-      Direction = clashedWeaponData.Direction,
+      Direction = deadWeaponData.Direction,
       Speed = 0,
-      ReuseEquippedHost = clashedWeaponData.ReuseEquippedHost,
-      ExistingHost = clashedWeaponData.ExistingHost,
-      VisualRotation = clashedWeaponData.VisualRotation,
+      ReuseEquippedHost = deadWeaponData.ReuseEquippedHost,
+      ExistingHost = deadWeaponData.ExistingHost,
+      VisualRotation = deadWeaponData.VisualRotation,
       RecallFromDead = requiresHold,
    } :: any
 
-   ClashedWeapons.Data[player] = nil
+   DeadWeapons.Data[player] = nil
    ThrownWeapons.Data[player] = thrownWeaponData
 
    if not isServer and host and host.PrimaryPart then
@@ -1230,7 +1250,7 @@ function Boomerang.recallFromClashed(player: Player, clashedWeaponData: ClashedW
 end
 
 -- // Recall button released while recalling a boomerang that was dead: it loses momentum and drops again (server only;
--- // clients follow the Clashed snapshot). Ignored for boomerangs that weren't recalled from the dead state.
+-- // clients follow the Dying snapshot). Ignored for boomerangs that weren't recalled from the dead state.
 function Boomerang.stopRecallFromDead(player: Player, thrownWeaponData: ThrownWeapons.Data)
    if not isServer or not thrownWeaponData.RecallFromDead or thrownWeaponData.State ~= ThrownWeapons.StateEnum.Returning then
       return
@@ -1290,9 +1310,9 @@ function Boomerang.deflect(player: Player, thrownWeaponData: ThrownWeapons.Data,
    thrownWeaponData.PendingDirection = getHorizontalDirection(direction)
 end
 
--- // A thrown boomerang dies: it loses its flight and drops into the dying/dead state (Clashed.luau)
-function Boomerang.die(player: Player, thrownWeaponData: ThrownWeapons.Data, options: ClashInitOptions)
-   if ClashedWeapons.Data[player] then
+-- // A thrown boomerang dies: it loses its flight and drops into the dying/dead state (Dead.luau)
+function Boomerang.die(player: Player, thrownWeaponData: ThrownWeapons.Data, options: DieInitOptions)
+   if DeadWeapons.Data[player] then
       return
    end
 
@@ -1306,7 +1326,7 @@ function Boomerang.die(player: Player, thrownWeaponData: ThrownWeapons.Data, opt
    end
 
    local direction = getHorizontalDirection(options.Direction)
-   local speed = options.Speed or math.max((thrownWeaponData.Speed or 0) * CLASH_SPEED_SCALE, CLASH_MINIMUM_SPEED)
+   local speed = options.Speed or math.max((thrownWeaponData.Speed or 0) * DEATH_SPEED_SCALE, DEATH_MINIMUM_SPEED)
 
    if thrownWeaponData.TrailObject then
       if thrownWeaponData.TrailObject.TrailHost and thrownWeaponData.TrailObject.TrailHost.Parent then
@@ -1315,10 +1335,10 @@ function Boomerang.die(player: Player, thrownWeaponData: ThrownWeapons.Data, opt
       thrownWeaponData.TrailObject = nil
    end
 
-   local clashedWeaponData = {
+   local deadWeaponData = {
       OwnerUserId = thrownWeaponData.OwnerUserId,
       ToolId = thrownWeaponData.ToolId,
-      State = ClashedWeapons.StateEnum.Clashed,
+      State = DeadWeapons.StateEnum.Dying,
       InstanceId = thrownWeaponData.InstanceId,
       Host = thrownWeaponData.Host,
       LastPosition = thrownWeaponData.LastPosition,
@@ -1332,9 +1352,9 @@ function Boomerang.die(player: Player, thrownWeaponData: ThrownWeapons.Data, opt
 
    thrownWeaponData.Host = nil
    ThrownWeapons.Data[player] = nil
-   ClashedWeapons.Data[player] = clashedWeaponData
+   DeadWeapons.Data[player] = deadWeaponData
 
-   ClashedWeaponLogic.applyClash(player, clashedWeaponData, {
+   DeadWeaponLogic.applyDeath(player, deadWeaponData, {
       Direction = direction,
       Speed = speed,
       Position = options.Position,
@@ -1353,7 +1373,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       return
    end
    if thrownWeaponData.State == ThrownWeapons.StateEnum.Returning
-      or ClashedWeapons.Data[player] ~= nil
+      or DeadWeapons.Data[player] ~= nil
    then
       return
    end
@@ -1666,9 +1686,9 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
    end
 end
 
--- // Hook: a dying boomerang that keeps sliding with nothing to land on returns on its own (T-062; Clashed.luau can't require this module)
-ClashedWeaponLogic.onSlidingAway = function(player: Player, clashedWeaponData: ClashedWeapons.Data)
-   Boomerang.recallFromClashed(player, clashedWeaponData, false)
+-- // Hook: a dying boomerang that keeps sliding with nothing to land on returns on its own (T-062; Dead.luau can't require this module)
+DeadWeaponLogic.onSlidingAway = function(player: Player, deadWeaponData: DeadWeapons.Data)
+   Boomerang.recallFromDead(player, deadWeaponData, false)
 end
 
 return Boomerang

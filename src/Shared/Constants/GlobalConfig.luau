@@ -25,9 +25,10 @@ local GlobalConfig = {
    ElectricChainRadius = 15, -- // Studs: an Electric boomerang elimination chains to every enemy within this distance of the victim
    ElectricChainLinkDelay = 0.05, -- // Seconds between each link of an Electric chain
    -- // Boomerang ENERGY. A thrown boomerang starts with BoomerangMinEnergy (a tap) up to BoomerangMaxEnergy (aim held for a
-   -- // full ChargeTime), and loses energy as it flies. At 0 or below it asks one question: is there a clear line of sight to
-   -- // its player (one ray)? Yes: it returns on its own. No: it drops into the dead state and must be manually recalled or
-   -- // picked up. Reaching 0 energy out of line of sight is the ONLY way a boomerang dies; there is no distance limit.
+   -- // full ChargeTime), and loses energy as it flies. At 0 or below: over OPEN AIR it returns to the player whether or not it
+   -- // can see them (it can't die with nothing to land on) and keeps checking for ground beneath it. Over GROUND it asks one
+   -- // question: is there a clear line of sight to its player? Yes: it returns (or keeps returning). No: it drops into the dead
+   -- // state and must be manually recalled or picked up. That is the ONLY way a boomerang dies; there is no distance limit.
    -- // Every value here is the default of a Cmdr `tuneboomerang` setting (MinEnergy, MaxEnergy, EnergyPerStud,
    -- // BounceEnergyCost, PlayerHitEnergyCost, ClashEnergyCost), so it can be tuned live. Min/Max apply from the next throw.
    BoomerangMinEnergy = 50, -- // Energy of a throw with no charge

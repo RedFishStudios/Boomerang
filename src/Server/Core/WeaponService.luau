@@ -19,8 +19,8 @@ local _ProfileTemplate = require(ReplicatedStorage.Shared.Data.ProfileTemplate)
 local _RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
-local ClashedWeapons = require(ReplicatedStorage.Shared.Referential.ClashedWeapons)
-local ClashedWeaponLogic = require(ReplicatedStorage.Shared.Logics.WeaponLogics.Clashed)
+local DeadWeapons = require(ReplicatedStorage.Shared.Referential.DeadWeapons)
+local DeadWeaponLogic = require(ReplicatedStorage.Shared.Logics.WeaponLogics.Dead)
 local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
 local GameStateLibrary= require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local WeaponLibrary = require(ReplicatedStorage.Shared.Library.WeaponLibrary)
@@ -293,9 +293,9 @@ function WeaponService.applyLockOnWeapon(player: Player, forTime: number)
 
    local thrownWeaponData = ThrownWeapons.Data[player]
    if not thrownWeaponData then
-      local clashedWeaponData = ClashedWeapons.Data[player]
-      if clashedWeaponData then
-         ClashedWeaponLogic.removeFromField(player, clashedWeaponData, false)
+      local deadWeaponData = DeadWeapons.Data[player]
+      if deadWeaponData then
+         DeadWeaponLogic.removeFromField(player, deadWeaponData, false)
       end
       return
    end
@@ -512,11 +512,11 @@ function WeaponService.init()
             end
             return
          end
-         local clashedWeaponData = ClashedWeapons.Data[Player]
-         local toolData = clashedWeaponData and Tools[clashedWeaponData.ToolId]
+         local deadWeaponData = DeadWeapons.Data[Player]
+         local toolData = deadWeaponData and Tools[deadWeaponData.ToolId]
          local Logic = toolData and getLogic(toolData.LogicClass)
-         if Logic and Logic.recallFromClashed then
-            Logic.recallFromClashed(Player, clashedWeaponData, true)
+         if Logic and Logic.recallFromDead then
+            Logic.recallFromDead(Player, deadWeaponData, true)
          end
       elseif thrownWeaponData and thrownWeaponData.RecallFromDead then
          local toolData = Tools[thrownWeaponData.ToolId]
@@ -571,9 +571,9 @@ function WeaponService.init()
          local Logic = getLogic(toolData.LogicClass)
          Logic.removeFromField(player, thrownWeaponData)
       end
-      local clashedWeaponData = ClashedWeapons.Data[player]
-      if clashedWeaponData then
-         ClashedWeaponLogic.removeFromField(player, clashedWeaponData, false)
+      local deadWeaponData = DeadWeapons.Data[player]
+      if deadWeaponData then
+         DeadWeaponLogic.removeFromField(player, deadWeaponData, false)
       end
    end)
 
@@ -581,7 +581,7 @@ function WeaponService.init()
       for player, equippedToolId in pairs(equippedToolIds) do
          if player.Character and player.Character.Parent then
             weaponEquipStateEvent:FireClient(joiningPlayer, player.UserId, "Equip", SkinLibrary.getModelName(player) or equippedToolId)
-            if equippedToolVisible[player] == false and (ThrownWeapons.Data[player] or ClashedWeapons.Data[player]) then
+            if equippedToolVisible[player] == false and (ThrownWeapons.Data[player] or DeadWeapons.Data[player]) then
                weaponEquipStateEvent:FireClient(joiningPlayer, player.UserId, "SetVisible", false)
             end
          end
@@ -593,9 +593,9 @@ function WeaponService.init()
       PlayerStatsLibrary.setStat(player, "CurrentMovementState", "FreeMotion", nil, nil)
       equippedToolIds[player] = nil
       equippedToolVisible[player] = nil
-      local clashedWeaponData = ClashedWeapons.Data[player]
-      if clashedWeaponData then
-         ClashedWeaponLogic.removeFromField(player, clashedWeaponData, false)
+      local deadWeaponData = DeadWeapons.Data[player]
+      if deadWeaponData then
+         DeadWeaponLogic.removeFromField(player, deadWeaponData, false)
       end
    end)
 
@@ -608,9 +608,9 @@ function WeaponService.init()
 
       local thrownWeaponData = ThrownWeapons.Data[player]
       if not thrownWeaponData then
-         local clashedWeaponData = ClashedWeapons.Data[player]
-         if clashedWeaponData then
-            ClashedWeaponLogic.removeFromField(player, clashedWeaponData, false)
+         local deadWeaponData = DeadWeapons.Data[player]
+         if deadWeaponData then
+            DeadWeaponLogic.removeFromField(player, deadWeaponData, false)
          end
          return
       end
@@ -634,8 +634,8 @@ function WeaponService.init()
          local Logic = getLogic(toolData.LogicClass)
          Logic.removeFromField(player, thrownWeaponData)
       end
-      for player, clashedWeaponData in pairs(ClashedWeapons.Data) do
-         ClashedWeaponLogic.removeFromField(player, clashedWeaponData, false)
+      for player, deadWeaponData in pairs(DeadWeapons.Data) do
+         DeadWeaponLogic.removeFromField(player, deadWeaponData, false)
       end
       for p, _ in pairs(aiming) do
          PlayerStatsLibrary.setStat(p, "CurrentMovementState", "FreeMotion", nil, nil)

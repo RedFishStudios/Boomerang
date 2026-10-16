@@ -2,7 +2,7 @@
 	AuthorityViewLibrary
 
 	Description:
-	Debug view of where the SERVER thinks a thrown (or clashed) boomerang is. While it is enabled, the server keeps one
+	Debug view of where the SERVER thinks a thrown (or dying) boomerang is. While it is enabled, the server keeps one
 	neon red ball per player's boomerang at the server-side position, sized to the weapon's hitbox
 	(Tools[toolId].Boomerang.HitboxRadius, so the ball's diameter is twice the radius). Because the ball is a server-made
 	part it replicates to every client, so comparing it with the client's rendered boomerang shows any client-server desync.

@@ -13,8 +13,8 @@ local BufferUtil = require(ReplicatedStorage.Shared.Utils.BufferUtil)
 local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
-local ClashedWeapons = require(ReplicatedStorage.Shared.Referential.ClashedWeapons)
-local ClashedWeaponLogic = require(ReplicatedStorage.Shared.Logics.WeaponLogics.Clashed)
+local DeadWeapons = require(ReplicatedStorage.Shared.Referential.DeadWeapons)
+local DeadWeaponLogic = require(ReplicatedStorage.Shared.Logics.WeaponLogics.Dead)
 local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
 local WeaponLibrary = require(ReplicatedStorage.Shared.Library.WeaponLibrary)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
@@ -112,7 +112,7 @@ local function getHorizontalDirection(direction: Vector3): Vector3
 end
 
 local function getWeaponState(): string
-   if ThrownWeapons.Data[Players.LocalPlayer] or ClashedWeapons.Data[Players.LocalPlayer] then
+   if ThrownWeapons.Data[Players.LocalPlayer] or DeadWeapons.Data[Players.LocalPlayer] then
       return WeaponController.CurrentWeaponState.OnField
    end
 
@@ -123,13 +123,13 @@ local function getWeaponState(): string
    return WeaponController.CurrentWeaponState.InHand
 end
 
-local function clearClashedWeapon(forPlayer: Player, returnToPlayer: boolean?)
-   local clashedWeaponData = ClashedWeapons.Data[forPlayer]
-   if not clashedWeaponData then
+local function clearDeadWeapon(forPlayer: Player, returnToPlayer: boolean?)
+   local deadWeaponData = DeadWeapons.Data[forPlayer]
+   if not deadWeaponData then
       return
    end
 
-   ClashedWeaponLogic.removeFromField(forPlayer, clashedWeaponData, returnToPlayer ~= false)
+   DeadWeaponLogic.removeFromField(forPlayer, deadWeaponData, returnToPlayer ~= false)
 
    if returnToPlayer ~= false and forPlayer ~= Players.LocalPlayer then
       ToolController.setToolVisible(forPlayer, true)
@@ -174,7 +174,7 @@ end
 local function clearThrownWeapon(forPlayer: Player, returnToPlayer: boolean?)
    local thrownWeaponData = ThrownWeapons.Data[forPlayer]
    if not thrownWeaponData then
-      clearClashedWeapon(forPlayer, returnToPlayer)
+      clearDeadWeapon(forPlayer, returnToPlayer)
       return
    end
    local toolData = Tools[thrownWeaponData.ToolId]
@@ -292,7 +292,7 @@ local isRecallHeld = false
 
 function WeaponController.beginRecallInput(): boolean
    local localPlayer = Players.LocalPlayer
-   if not ThrownWeapons.Data[localPlayer] and not ClashedWeapons.Data[localPlayer] then
+   if not ThrownWeapons.Data[localPlayer] and not DeadWeapons.Data[localPlayer] then
       return false
    end
    isRecallHeld = true
@@ -313,7 +313,7 @@ function WeaponController.getWeaponState(): string
 end
 
 function WeaponController.handleEquippedToolButton(): string
-   if ThrownWeapons.Data[Players.LocalPlayer] or ClashedWeapons.Data[Players.LocalPlayer] then
+   if ThrownWeapons.Data[Players.LocalPlayer] or DeadWeapons.Data[Players.LocalPlayer] then
       -- // On the field: the HUD button recalls through beginRecallInput/endRecallInput (press/release), not this tap
       return getWeaponState()
    elseif isAiming then
@@ -340,16 +340,16 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
    end
    if not thrownWeaponData or not thrownWeaponData.Host or not thrownWeaponData.Host.Parent then
       -- // The server started returning a dying/dead boomerang (manual recall): follow it
-      local clashedWeaponData = ClashedWeapons.Data[forPlayer]
-      if state == ThrownWeapons.StateEnum.Returning and clashedWeaponData and clashedWeaponData.Host and clashedWeaponData.Host.Parent then
-         local clashedToolData = Tools[clashedWeaponData.ToolId]
-         local clashedLogic = clashedToolData and getLogic(clashedToolData.LogicClass)
-         if clashedLogic and clashedLogic.recallFromClashed then
-            clashedLogic.recallFromClashed(forPlayer, clashedWeaponData, true)
+      local deadWeaponData = DeadWeapons.Data[forPlayer]
+      if state == ThrownWeapons.StateEnum.Returning and deadWeaponData and deadWeaponData.Host and deadWeaponData.Host.Parent then
+         local deadToolData = Tools[deadWeaponData.ToolId]
+         local deadLogic = deadToolData and getLogic(deadToolData.LogicClass)
+         if deadLogic and deadLogic.recallFromDead then
+            deadLogic.recallFromDead(forPlayer, deadWeaponData, true)
          end
          return
       end
-      ClashedWeaponLogic.applyServerSnapshot(forPlayer, position, direction, speed, state, serverTime)
+      DeadWeaponLogic.applyServerSnapshot(forPlayer, position, direction, speed, state, serverTime)
       return
    end
 
@@ -378,7 +378,7 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
             logic.recall(forPlayer, thrownWeaponData.ToolId, toolData, thrownWeaponData, {
                InitialSpeed = speed,
             })
-         elseif state == ClashedWeapons.StateEnum.Clashed and logic.die then
+         elseif state == DeadWeapons.StateEnum.Dying and logic.die then
             logic.die(forPlayer, thrownWeaponData, {
                Direction = direction,
                Speed = speed,
@@ -388,7 +388,7 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
       end
    end
 
-   if state == ClashedWeapons.StateEnum.Clashed then
+   if state == DeadWeapons.StateEnum.Dying then
       return
    end
 
@@ -923,7 +923,7 @@ function WeaponController.init()
 
    RunService.PreSimulation:Connect(function(deltaTime)
       updateSmoothing(deltaTime)
-      ClashedWeaponLogic.updateSmoothing(deltaTime)
+      DeadWeaponLogic.updateSmoothing(deltaTime)
    end)
 
    local gameStateData = GameStateLibrary.getGameStateData()

@@ -17,7 +17,7 @@ local CombatLibrary = require(ReplicatedStorage.Shared.Library.CombatLibrary)
 local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
 local WeaponLibrary = require(ReplicatedStorage.Shared.Library.WeaponLibrary)
 local ThrownWeaponsData = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
-local ClashedWeaponsData = require(ReplicatedStorage.Shared.Referential.ClashedWeapons)
+local DeadWeaponsData = require(ReplicatedStorage.Shared.Referential.DeadWeapons)
 
 local isServer = RunService:IsServer()
 
@@ -466,7 +466,7 @@ function Stab.canActivate(player: Player): boolean
       return false
    end
 
-   if ThrownWeaponsData.Data[player] or ClashedWeaponsData.Data[player] then
+   if ThrownWeaponsData.Data[player] or DeadWeaponsData.Data[player] then
       return false
    end
 

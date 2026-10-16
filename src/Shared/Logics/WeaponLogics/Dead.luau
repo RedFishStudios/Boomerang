@@ -1,7 +1,7 @@
 --[[
 
-Manages the logics of clashed weapons
-Any weapon type, when it clashes, converts to this logic
+Manages the logics of dying and dead weapons
+Any weapon type, when it dies (runs out of energy out of line of sight), converts to this logic
 
 ]]
 
@@ -9,7 +9,7 @@ local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ClashedWeapons = require(ReplicatedStorage.Shared.Referential.ClashedWeapons)
+local DeadWeapons = require(ReplicatedStorage.Shared.Referential.DeadWeapons)
 local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 local BufferUtil = require(ReplicatedStorage.Shared.Utils.BufferUtil)
 local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
@@ -23,7 +23,7 @@ local BoomerangTuningLibrary = require(ReplicatedStorage.Shared.Library.Boomeran
 
 local isServer = RunService:IsServer()
 
-local ClashedWeaponLogic = {}
+local DeadWeaponLogic = {}
 
 local ToolController, AnimationController
 if not isServer then
@@ -34,13 +34,13 @@ end
 local Characters = game.Workspace.Characters
 
 local REPLICATION_RATE = 1 / 20
-local CLASH_DECELERATION = 80 -- // Times the DyingSpeedMultiplier tuning value (GlobalConfig.DyingSpeedMultiplier)
-local CLASH_FALL_ACCELERATION = 120 -- // Times the DyingSpeedMultiplier tuning value
-local CLASH_MAX_FALL_SPEED = 80
-local CLASH_GROUND_RAY_DISTANCE = 10
-local CLASH_GROUND_MAX_IGNORE_ITERATIONS = 16
-local CLASH_GROUND_EPSILON = 0.02
-local CLASH_OBSTRUCTION_RADIUS = 2
+local DEAD_DECELERATION = 80 -- // Times the DyingSpeedMultiplier tuning value (GlobalConfig.DyingSpeedMultiplier)
+local DEAD_FALL_ACCELERATION = 120 -- // Times the DyingSpeedMultiplier tuning value
+local DEAD_MAX_FALL_SPEED = 80
+local DEAD_GROUND_RAY_DISTANCE = 10
+local DEAD_GROUND_MAX_IGNORE_ITERATIONS = 16
+local DEAD_GROUND_EPSILON = 0.02
+local DEAD_OBSTRUCTION_RADIUS = 2
 local DEAD_PICKUP_DISTANCE = 3
 local DEAD_OVERLAP_CHECK_SIZE = Vector3.new(0.01, 0.01, 0.01)
 local SNAPSHOT_PACKET_SIZE = 1 + 8 + 12 + 12 + 4 + 1 + 8
@@ -48,7 +48,7 @@ local DESPAWN_PACKET_SIZE = 8 + 1
 local WEAPON_UNRELIABLE_CODES = RemoteCodes.Weapon.Unreliable
 local BOOMERANG_SPIN_SPEED = math.rad(1080)
 
-export type ClashInitOptions = {
+export type DeathInitOptions = {
 	Direction: Vector3,
 	Speed: number?,
 	Position: Vector3?,
@@ -67,25 +67,25 @@ local function getHorizontalDistance(fromPosition: Vector3, toPosition: Vector3)
 	return delta.Magnitude
 end
 
-local function getWeaponCFrame(clashedWeaponData: ClashedWeapons.Data): CFrame?
-	local host = clashedWeaponData.Host
+local function getWeaponCFrame(deadWeaponData: DeadWeapons.Data): CFrame?
+	local host = deadWeaponData.Host
 	if host and host.Parent then
 		return host:GetPivot()
 	end
-	return clashedWeaponData.CFrame
+	return deadWeaponData.CFrame
 end
 
 -- // Returns true if the instance hit by a raycast under a boomerang is viable as an obstruction or if the boomerang should pass through it or not land on it
-local function isViableClashGroundObstruction(hitInstance: Instance): boolean
+local function isViableDeadGroundObstruction(hitInstance: Instance): boolean
 	if not hitInstance:IsA("BasePart") then
 		return false
 	end
 	return hitInstance.CanCollide and hitInstance.Transparency < 1
 end
 
--- // Get resting height when a clashed boomerang falls
-local function getClashRestingY(clashedWeaponData: ClashedWeapons.Data, position: Vector3, raycastParams: RaycastParams): number?
-	local host = clashedWeaponData.Host
+-- // Get resting height when a dying boomerang falls
+local function getDeadRestingY(deadWeaponData: DeadWeapons.Data, position: Vector3, raycastParams: RaycastParams): number?
+	local host = deadWeaponData.Host
 	if host and not host.Parent then
 		host = nil
 	end
@@ -97,13 +97,13 @@ local function getClashRestingY(clashedWeaponData: ClashedWeapons.Data, position
 	castParams.CollisionGroup = raycastParams.CollisionGroup
 
 	local result
-	for _ = 1, CLASH_GROUND_MAX_IGNORE_ITERATIONS do
+	for _ = 1, DEAD_GROUND_MAX_IGNORE_ITERATIONS do
 		castParams.FilterDescendantsInstances = ignoreList
-		local castResult = workspace:Raycast(position, Vector3.new(0, -CLASH_GROUND_RAY_DISTANCE, 0), castParams)
+		local castResult = workspace:Raycast(position, Vector3.new(0, -DEAD_GROUND_RAY_DISTANCE, 0), castParams)
 		if not castResult then
 			return nil
 		end
-		if isViableClashGroundObstruction(castResult.Instance) then
+		if isViableDeadGroundObstruction(castResult.Instance) then
 			result = castResult
 			break
 		end
@@ -127,7 +127,7 @@ local function getClashRestingY(clashedWeaponData: ClashedWeapons.Data, position
 		pivotToBottom = math.max(0, position.Y - bottomY)
 	end
 
-	return result.Position.Y + pivotToBottom + CLASH_GROUND_EPSILON
+	return result.Position.Y + pivotToBottom + DEAD_GROUND_EPSILON
 end
 
 -- // Moves horizontally without entering obstructions, sliding along the struck face
@@ -142,13 +142,13 @@ local function resolveHorizontalMovement(
 		return position, direction, false
 	end
 
-	local rayDistance = travelDistance + CLASH_OBSTRUCTION_RADIUS
+	local rayDistance = travelDistance + DEAD_OBSTRUCTION_RADIUS
 	local obstruction = RaycastsUtility.raycastProjectileObstruction(position, direction, rayDistance, raycastParams)
 	if not obstruction then
 		return position + direction * travelDistance, direction, false
 	end
 
-	local approachDistance = math.clamp((obstruction.Position - position).Magnitude - CLASH_OBSTRUCTION_RADIUS, 0, travelDistance)
+	local approachDistance = math.clamp((obstruction.Position - position).Magnitude - DEAD_OBSTRUCTION_RADIUS, 0, travelDistance)
 	local nextPosition = position + direction * approachDistance
 	local remainingDistance = travelDistance - approachDistance
 
@@ -168,12 +168,12 @@ local function resolveHorizontalMovement(
 		local slideObstruction = RaycastsUtility.raycastProjectileObstruction(
 			nextPosition,
 			slideDirection,
-			remainingDistance + CLASH_OBSTRUCTION_RADIUS,
+			remainingDistance + DEAD_OBSTRUCTION_RADIUS,
 			raycastParams
 		)
 		if slideObstruction then
 			remainingDistance = math.clamp(
-				(slideObstruction.Position - nextPosition).Magnitude - CLASH_OBSTRUCTION_RADIUS,
+				(slideObstruction.Position - nextPosition).Magnitude - DEAD_OBSTRUCTION_RADIUS,
 				0,
 				remainingDistance
 			)
@@ -185,13 +185,13 @@ local function resolveHorizontalMovement(
 end
 
 -- // Failsafe; if a weapon ends up dying inside an obstruction, immediately return it to the player
-local function isPositionInsideCollidablePart(clashedWeaponData: ClashedWeapons.Data, position: Vector3): boolean
+local function isPositionInsideCollidablePart(deadWeaponData: DeadWeapons.Data, position: Vector3): boolean
 	local overlapParams = OverlapParams.new()
    overlapParams.CollisionGroup = CollisionGroupConstants.ArenaFloorDetector
 	overlapParams.FilterType = Enum.RaycastFilterType.Exclude
 	local filter = {Characters}
-	if clashedWeaponData.Host then
-		table.insert(filter, 1, clashedWeaponData.Host)
+	if deadWeaponData.Host then
+		table.insert(filter, 1, deadWeaponData.Host)
 	end
 	overlapParams.FilterDescendantsInstances = filter
 
@@ -209,18 +209,18 @@ local function isPositionInsideCollidablePart(clashedWeaponData: ClashedWeapons.
 	return false
 end
 
-local function setWeaponCFrame(clashedWeaponData: ClashedWeapons.Data, cframe: CFrame, deltaTime: number?)
-	clashedWeaponData.LastPosition = clashedWeaponData.CFrame and clashedWeaponData.CFrame.Position or cframe.Position
-	clashedWeaponData.CFrame = cframe
-	AuthorityViewLibrary.update(clashedWeaponData.OwnerUserId, clashedWeaponData.ToolId, cframe.Position) -- // Server only (no-op elsewhere)
+local function setWeaponCFrame(deadWeaponData: DeadWeapons.Data, cframe: CFrame, deltaTime: number?)
+	deadWeaponData.LastPosition = deadWeaponData.CFrame and deadWeaponData.CFrame.Position or cframe.Position
+	deadWeaponData.CFrame = cframe
+	AuthorityViewLibrary.update(deadWeaponData.OwnerUserId, deadWeaponData.ToolId, cframe.Position) -- // Server only (no-op elsewhere)
 
-	local host = clashedWeaponData.Host
+	local host = deadWeaponData.Host
 	if host and host.Parent then
 		if not isServer then
-			local direction = clashedWeaponData.Direction
+			local direction = deadWeaponData.Direction
 			if direction and direction.Magnitude > 1e-5 then
-				local visualRotation = (clashedWeaponData.VisualRotation or 0) + (BOOMERANG_SPIN_SPEED * (deltaTime or 0))
-				clashedWeaponData.VisualRotation = visualRotation
+				local visualRotation = (deadWeaponData.VisualRotation or 0) + (BOOMERANG_SPIN_SPEED * (deltaTime or 0))
+				deadWeaponData.VisualRotation = visualRotation
 
 				local faceDirection = getHorizontalDirection(direction)
 				local baseCFrame = CFrame.new(cframe.Position, cframe.Position + faceDirection)
@@ -275,13 +275,13 @@ local function isCameraObstructedToPoint(cameraPosition: Vector3, targetPosition
 	return false
 end
 
-local function updateOwnWeaponHighlight(player: Player, clashedWeaponData: ClashedWeapons.Data, position: Vector3)
+local function updateOwnWeaponHighlight(player: Player, deadWeaponData: DeadWeapons.Data, position: Vector3)
 	if isServer or not ToolController or player ~= Players.LocalPlayer then
 		return
 	end
 
 	local camera = workspace.CurrentCamera
-	local host = clashedWeaponData.Host
+	local host = deadWeaponData.Host
 	local character = player.Character
 	local obstructionFilter = {}
 	if character then
@@ -324,9 +324,25 @@ local function fireDespawned(ownerUserId: number, returnToPlayer: boolean)
 	SimpleRemotes.getEvent("ThrownBoomerangDespawned"):FireAllClients(payload)
 end
 
-function ClashedWeaponLogic.removeFromField(player: Player, clashedWeaponData: ClashedWeapons.Data, returnToPlayer: boolean?)
+-- // True if there is ground beneath the position that a dying boomerang could land on (the same test the dying fall uses:
+-- // a collidable, visible part within DEAD_GROUND_RAY_DISTANCE below). Used by Boomerang's 0-energy decision, which only lets a
+-- // boomerang die over ground.
+function DeadWeaponLogic.hasGroundBelow(position: Vector3, host: Instance?): boolean
+	local filter: { Instance } = { Characters }
+	if host then
+		table.insert(filter, host)
+	end
+	local raycastParams = RaycastParams.new()
+	raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+	raycastParams.FilterDescendantsInstances = filter
+	raycastParams.IgnoreWater = true
+	raycastParams.CollisionGroup = CollisionGroupConstants.Camera
+	return getDeadRestingY({ Host = host } :: any, position, raycastParams) ~= nil
+end
+
+function DeadWeaponLogic.removeFromField(player: Player, deadWeaponData: DeadWeapons.Data, returnToPlayer: boolean?)
 	local shouldReturnToPlayer = returnToPlayer ~= false
-	local shouldReattachLocally = shouldReturnToPlayer and (not isServer) and clashedWeaponData.ReuseEquippedHost == true
+	local shouldReattachLocally = shouldReturnToPlayer and (not isServer) and deadWeaponData.ReuseEquippedHost == true
 
 	if not isServer and ToolController and player == Players.LocalPlayer then
 		ToolController.applyHighlight(false, false)
@@ -336,16 +352,16 @@ function ClashedWeaponLogic.removeFromField(player: Player, clashedWeaponData: C
 		AnimationController.playCoreAnimation(player, "Catch")
 	end
 
-	if clashedWeaponData.Host and not shouldReattachLocally then
-		clashedWeaponData.Host:Destroy()
+	if deadWeaponData.Host and not shouldReattachLocally then
+		deadWeaponData.Host:Destroy()
 	end
-	AuthorityViewLibrary.clear(clashedWeaponData.OwnerUserId)
-	if clashedWeaponData.MovementConnection then
-		clashedWeaponData.MovementConnection:Disconnect()
-		clashedWeaponData.MovementConnection = nil
+	AuthorityViewLibrary.clear(deadWeaponData.OwnerUserId)
+	if deadWeaponData.MovementConnection then
+		deadWeaponData.MovementConnection:Disconnect()
+		deadWeaponData.MovementConnection = nil
 	end
 
-	ClashedWeapons.Data[player] = nil
+	DeadWeapons.Data[player] = nil
 
 	if isServer then
 		fireDespawned(player.UserId, shouldReturnToPlayer)
@@ -353,7 +369,7 @@ function ClashedWeaponLogic.removeFromField(player: Player, clashedWeaponData: C
 			SimpleRemotes.getEvent("WeaponEquipState"):FireAllClients(player.UserId, "SetVisible", true)
 		end
 	elseif shouldReturnToPlayer then
-		SoundLibrary.play(clashedWeaponData.InstanceId, Sounds.Data.BoomerangCatch.Name, player.Character)
+		SoundLibrary.play(deadWeaponData.InstanceId, Sounds.Data.BoomerangCatch.Name, player.Character)
 		if shouldReattachLocally and ToolController then
 			ToolController.finishToolThrow(player)
 		end
@@ -361,160 +377,160 @@ function ClashedWeaponLogic.removeFromField(player: Player, clashedWeaponData: C
 end
 
 -- // Boomerang has reached final resting point and died there (rip)
-function ClashedWeaponLogic.setDead(player: Player, clashedWeaponData: ClashedWeapons.Data, position: Vector3?)
-	local pivot = getWeaponCFrame(clashedWeaponData)
+function DeadWeaponLogic.setDead(player: Player, deadWeaponData: DeadWeapons.Data, position: Vector3?)
+	local pivot = getWeaponCFrame(deadWeaponData)
 	if not pivot then
 		return
 	end
 
 	if position then
 		local deadPosition = Vector3.new(position.X, pivot.Position.Y, position.Z)
-		setWeaponCFrame(clashedWeaponData, (pivot - pivot.Position) + deadPosition)
+		setWeaponCFrame(deadWeaponData, (pivot - pivot.Position) + deadPosition)
 	end
 
-	clashedWeaponData.State = ClashedWeapons.StateEnum.Dead
-	clashedWeaponData.Speed = 0
-	clashedWeaponData.SyncTargetPosition = nil
+	deadWeaponData.State = DeadWeapons.StateEnum.Dead
+	deadWeaponData.Speed = 0
+	deadWeaponData.SyncTargetPosition = nil
 
 	-- // A resting boomerang stops its flight loop (started in Boomerang.throw on the same channel). On the server this
 	-- // replicates the stop to every client; clients also stop it locally when they receive the Dead snapshot.
-	SoundLibrary.stop(clashedWeaponData.InstanceId)
+	SoundLibrary.stop(deadWeaponData.InstanceId)
 
-	local deadPivot = getWeaponCFrame(clashedWeaponData)
+	local deadPivot = getWeaponCFrame(deadWeaponData)
 
-	if deadPivot and isPositionInsideCollidablePart(clashedWeaponData, deadPivot.Position) then
-		ClashedWeaponLogic.removeFromField(player, clashedWeaponData)
+	if deadPivot and isPositionInsideCollidablePart(deadWeaponData, deadPivot.Position) then
+		DeadWeaponLogic.removeFromField(player, deadWeaponData)
 		return
 	end
 
 	if isServer then
 		if deadPivot then
-			fireSnapshot(player.UserId, deadPivot.Position, clashedWeaponData.Direction or Vector3.zero, 0, clashedWeaponData.State)
+			fireSnapshot(player.UserId, deadPivot.Position, deadWeaponData.Direction or Vector3.zero, 0, deadWeaponData.State)
 		end
 	end
 end
 
-function ClashedWeaponLogic.applyServerSnapshot(player: Player, position: Vector3, direction: Vector3, speed: number, state: number, serverTime: number)
-	local clashedWeaponData = ClashedWeapons.Data[player]
-	if not clashedWeaponData or not clashedWeaponData.Host or not clashedWeaponData.Host.Parent then
+function DeadWeaponLogic.applyServerSnapshot(player: Player, position: Vector3, direction: Vector3, speed: number, state: number, serverTime: number)
+	local deadWeaponData = DeadWeapons.Data[player]
+	if not deadWeaponData or not deadWeaponData.Host or not deadWeaponData.Host.Parent then
 		return
 	end
-	if state ~= ClashedWeapons.StateEnum.Clashed and state ~= ClashedWeapons.StateEnum.Dead then
+	if state ~= DeadWeapons.StateEnum.Dying and state ~= DeadWeapons.StateEnum.Dead then
 		return
 	end
 
-	if state == ClashedWeapons.StateEnum.Dead then
-		ClashedWeaponLogic.setDead(player, clashedWeaponData, position)
+	if state == DeadWeapons.StateEnum.Dead then
+		DeadWeaponLogic.setDead(player, deadWeaponData, position)
 		return
 	end
 
 	local catchup = math.clamp(workspace:GetServerTimeNow() - serverTime, 0, 0.35)
-	clashedWeaponData.ServerDirection = direction
-	clashedWeaponData.ServerSpeed = speed
-	clashedWeaponData.Direction = direction
-	clashedWeaponData.Speed = speed
-	clashedWeaponData.SyncTargetPosition = position + direction * speed * catchup
+	deadWeaponData.ServerDirection = direction
+	deadWeaponData.ServerSpeed = speed
+	deadWeaponData.Direction = direction
+	deadWeaponData.Speed = speed
+	deadWeaponData.SyncTargetPosition = position + direction * speed * catchup
 end
 
-function ClashedWeaponLogic.updateSmoothing(deltaTime: number)
-	for _, clashedWeaponData in pairs(ClashedWeapons.Data) do
-		if not clashedWeaponData.SyncTargetPosition then
+function DeadWeaponLogic.updateSmoothing(deltaTime: number)
+	for _, deadWeaponData in pairs(DeadWeapons.Data) do
+		if not deadWeaponData.SyncTargetPosition then
 			continue
 		end
-		if not clashedWeaponData.Host or not clashedWeaponData.Host.Parent then
+		if not deadWeaponData.Host or not deadWeaponData.Host.Parent then
 			continue
 		end
 
-		local host = clashedWeaponData.Host
+		local host = deadWeaponData.Host
 		local currentPivot = host:GetPivot()
 		local currentPosition = currentPivot.Position
-		local targetPosition = Vector3.new(clashedWeaponData.SyncTargetPosition.X, currentPosition.Y, clashedWeaponData.SyncTargetPosition.Z)
+		local targetPosition = Vector3.new(deadWeaponData.SyncTargetPosition.X, currentPosition.Y, deadWeaponData.SyncTargetPosition.Z)
 		local errorDistance = (targetPosition - currentPosition).Magnitude
 
 		if errorDistance <= 0.05 then
-			clashedWeaponData.SyncTargetPosition = nil
+			deadWeaponData.SyncTargetPosition = nil
 			continue
 		end
 
 		local alpha = math.clamp(deltaTime * 14, 0, 1)
 		local correctedPosition = currentPosition:Lerp(targetPosition, alpha)
 		local correctedCFrame = (currentPivot - currentPivot.Position) + correctedPosition
-		clashedWeaponData.CFrame = correctedCFrame
+		deadWeaponData.CFrame = correctedCFrame
 		host:PivotTo(correctedCFrame)
 	end
 end
 
-function ClashedWeaponLogic.applyClash(player: Player, clashedWeaponData: ClashedWeapons.Data, options: ClashInitOptions)
-	local pivot = getWeaponCFrame(clashedWeaponData)
+function DeadWeaponLogic.applyDeath(player: Player, deadWeaponData: DeadWeapons.Data, options: DeathInitOptions)
+	local pivot = getWeaponCFrame(deadWeaponData)
 	if not pivot then
 		return
 	end
 
-	if clashedWeaponData.MovementConnection then
-		clashedWeaponData.MovementConnection:Disconnect()
-		clashedWeaponData.MovementConnection = nil
+	if deadWeaponData.MovementConnection then
+		deadWeaponData.MovementConnection:Disconnect()
+		deadWeaponData.MovementConnection = nil
 	end
 
 	local direction = getHorizontalDirection(options.Direction)
-	local speed = options.Speed or clashedWeaponData.Speed or 0
+	local speed = options.Speed or deadWeaponData.Speed or 0
 	local nextReplicationAt = 0
 	local fallSpeed = 0
 	local isGrounded = false
 	local noGroundSlideTime = 0 -- // How long it has kept sliding with nothing to land on (T-062)
 	local groundRaycastParams = RaycastParams.new()
 	groundRaycastParams.FilterType = Enum.RaycastFilterType.Exclude
-	groundRaycastParams.FilterDescendantsInstances = {clashedWeaponData.Host, Characters}
+	groundRaycastParams.FilterDescendantsInstances = {deadWeaponData.Host, Characters}
 	groundRaycastParams.IgnoreWater = true
 	groundRaycastParams.CollisionGroup = CollisionGroupConstants.Camera
 
 	local obstructionFilter = {Characters}
-	if clashedWeaponData.Host then
-		table.insert(obstructionFilter, 1, clashedWeaponData.Host)
+	if deadWeaponData.Host then
+		table.insert(obstructionFilter, 1, deadWeaponData.Host)
 	end
 	local obstructionRaycastParams = RaycastsUtility.getProjectileObstructionParams(obstructionFilter)
 
-	clashedWeaponData.State = ClashedWeapons.StateEnum.Clashed
-	clashedWeaponData.Direction = direction
-	clashedWeaponData.Speed = speed
-	clashedWeaponData.SyncTargetPosition = nil
+	deadWeaponData.State = DeadWeapons.StateEnum.Dying
+	deadWeaponData.Direction = direction
+	deadWeaponData.Speed = speed
+	deadWeaponData.SyncTargetPosition = nil
 
 	if options.Position then
 		local initialPosition = Vector3.new(options.Position.X, pivot.Position.Y, options.Position.Z)
-		setWeaponCFrame(clashedWeaponData, (pivot - pivot.Position) + initialPosition)
+		setWeaponCFrame(deadWeaponData, (pivot - pivot.Position) + initialPosition)
 	end
 
-	clashedWeaponData.ClashOrigin = options.Position or pivot.Position
+	deadWeaponData.DeathOrigin = options.Position or pivot.Position
 
-	local clashPivot = getWeaponCFrame(clashedWeaponData)
-	if clashPivot then
-		updateOwnWeaponHighlight(player, clashedWeaponData, clashPivot.Position)
+	local deathPivot = getWeaponCFrame(deadWeaponData)
+	if deathPivot then
+		updateOwnWeaponHighlight(player, deadWeaponData, deathPivot.Position)
 		if isServer then
-			fireSnapshot(player.UserId, clashPivot.Position, direction, speed, clashedWeaponData.State)
+			fireSnapshot(player.UserId, deathPivot.Position, direction, speed, deadWeaponData.State)
 		end
 	end
 
-	clashedWeaponData.MovementConnection = RunService.Stepped:Connect(function(time, deltaTime)
-		if ClashedWeapons.Data[player] ~= clashedWeaponData then
+	deadWeaponData.MovementConnection = RunService.Stepped:Connect(function(time, deltaTime)
+		if DeadWeapons.Data[player] ~= deadWeaponData then
 			return
 		end
 
-		local currentPivot = getWeaponCFrame(clashedWeaponData)
+		local currentPivot = getWeaponCFrame(deadWeaponData)
 		if not currentPivot then
 			return
 		end
 
 		if not isServer and speed <= 0 and isGrounded then
-			updateOwnWeaponHighlight(player, clashedWeaponData, currentPivot.Position)
+			updateOwnWeaponHighlight(player, deadWeaponData, currentPivot.Position)
 			return
 		end
 
 		-- // Live tuning: read every frame, on the server and on clients, so both simulate the same dying pace
-		local dyingSpeedMultiplier = BoomerangTuningLibrary.getForAnyTool(clashedWeaponData.ToolId, "DyingSpeedMultiplier")
-		local nextSpeed = math.max(0, speed - CLASH_DECELERATION * dyingSpeedMultiplier * deltaTime)
+		local dyingSpeedMultiplier = BoomerangTuningLibrary.getForAnyTool(deadWeaponData.ToolId, "DyingSpeedMultiplier")
+		local nextSpeed = math.max(0, speed - DEAD_DECELERATION * dyingSpeedMultiplier * deltaTime)
 		local travelDistance = (speed + nextSpeed) * 0.5 * deltaTime
 		local nextPosition, nextDirection, isBlocked = resolveHorizontalMovement(currentPivot.Position, direction, travelDistance, obstructionRaycastParams)
 
-		local restingY = if isGrounded then nil else getClashRestingY(clashedWeaponData, nextPosition, groundRaycastParams)
+		local restingY = if isGrounded then nil else getDeadRestingY(deadWeaponData, nextPosition, groundRaycastParams)
 
 		if isGrounded or restingY or isBlocked then
 			speed = nextSpeed
@@ -527,11 +543,11 @@ function ClashedWeaponLogic.applyClash(player: Player, clashedWeaponData: Clashe
 		end
 
 		direction = nextDirection
-		clashedWeaponData.Direction = direction
+		deadWeaponData.Direction = direction
 
 		if not isGrounded then
 			if restingY then
-				fallSpeed = math.min(CLASH_MAX_FALL_SPEED, fallSpeed + CLASH_FALL_ACCELERATION * dyingSpeedMultiplier * deltaTime)
+				fallSpeed = math.min(DEAD_MAX_FALL_SPEED, fallSpeed + DEAD_FALL_ACCELERATION * dyingSpeedMultiplier * deltaTime)
 				local nextY = nextPosition.Y - fallSpeed * deltaTime
 				if nextY <= restingY then
 					nextY = restingY
@@ -540,7 +556,7 @@ function ClashedWeaponLogic.applyClash(player: Player, clashedWeaponData: Clashe
 					-- // Insertion point: "clunk" when the boomerang hits the ground. Played from the server so every player hears it.
 					local clunkSound = Sounds.Data.BoomerangClunk
 					if isServer and clunkSound and clunkSound.Id ~= 0 then
-						SoundLibrary.play(`{clashedWeaponData.InstanceId}_Clunk`, clunkSound.Name, Vector3.new(nextPosition.X, nextY, nextPosition.Z))
+						SoundLibrary.play(`{deadWeaponData.InstanceId}_Clunk`, clunkSound.Name, Vector3.new(nextPosition.X, nextY, nextPosition.Z))
 					end
 				end
 				nextPosition = Vector3.new(nextPosition.X, nextY, nextPosition.Z)
@@ -552,55 +568,55 @@ function ClashedWeaponLogic.applyClash(player: Player, clashedWeaponData: Clashe
 		-- // T-062: it keeps sliding with nowhere to land: instead of snapping back to the player, it flies back on its own
 		-- // (automatic recall). Based on time only, never on distance. Server decides; clients follow its Returning snapshot.
 		if noGroundSlideTime >= GlobalConfig.DyingBoomerangNoGroundRecallSeconds and isServer then
-			if ClashedWeaponLogic.onSlidingAway then
-				ClashedWeaponLogic.onSlidingAway(player, clashedWeaponData)
+			if DeadWeaponLogic.onSlidingAway then
+				DeadWeaponLogic.onSlidingAway(player, deadWeaponData)
 			else
-				ClashedWeaponLogic.removeFromField(player, clashedWeaponData)
+				DeadWeaponLogic.removeFromField(player, deadWeaponData)
 			end
 			return
 		end
 
-		setWeaponCFrame(clashedWeaponData, (currentPivot - currentPivot.Position) + nextPosition, deltaTime)
-		clashedWeaponData.Speed = speed
-		updateOwnWeaponHighlight(player, clashedWeaponData, nextPosition)
+		setWeaponCFrame(deadWeaponData, (currentPivot - currentPivot.Position) + nextPosition, deltaTime)
+		deadWeaponData.Speed = speed
+		updateOwnWeaponHighlight(player, deadWeaponData, nextPosition)
 
 		if isServer and time >= nextReplicationAt then
 			nextReplicationAt = time + REPLICATION_RATE
-			fireSnapshot(player.UserId, nextPosition, direction, speed, clashedWeaponData.State)
+			fireSnapshot(player.UserId, nextPosition, direction, speed, deadWeaponData.State)
 		end
 
 		-- // Only dead once it has actually landed (or there's nothing below to land on): a slow boomerang dropped from
 		-- // hand height (e.g. a released manual recall) must finish falling instead of freezing mid-air
 		if speed <= 0 and isServer and (isGrounded or not restingY) then
-			ClashedWeaponLogic.setDead(player, clashedWeaponData)
-			if ClashedWeapons.Data[player] ~= clashedWeaponData then
+			DeadWeaponLogic.setDead(player, deadWeaponData)
+			if DeadWeapons.Data[player] ~= deadWeaponData then
 				return
 			end
 
-			local movementConnection = clashedWeaponData.MovementConnection
+			local movementConnection = deadWeaponData.MovementConnection
 			if movementConnection then
 				movementConnection:Disconnect()
-				clashedWeaponData.MovementConnection = nil
+				deadWeaponData.MovementConnection = nil
 			end
 
-			clashedWeaponData.MovementConnection = RunService.Heartbeat:Connect(function()
-				if ClashedWeapons.Data[player] ~= clashedWeaponData then
-					if clashedWeaponData.MovementConnection then
-						clashedWeaponData.MovementConnection:Disconnect()
-						clashedWeaponData.MovementConnection = nil
+			deadWeaponData.MovementConnection = RunService.Heartbeat:Connect(function()
+				if DeadWeapons.Data[player] ~= deadWeaponData then
+					if deadWeaponData.MovementConnection then
+						deadWeaponData.MovementConnection:Disconnect()
+						deadWeaponData.MovementConnection = nil
 					end
 					return
 				end
 
-				local deadPivot = getWeaponCFrame(clashedWeaponData)
+				local deadPivot = getWeaponCFrame(deadWeaponData)
 				local character = player.Character
 				local rootPart = character and character.PrimaryPart
 				if deadPivot and rootPart and getHorizontalDistance(deadPivot.Position, rootPart.Position) <= DEAD_PICKUP_DISTANCE then
-					ClashedWeaponLogic.removeFromField(player, clashedWeaponData)
+					DeadWeaponLogic.removeFromField(player, deadWeaponData)
 				end
 			end)
 		end
 	end)
 end
 
-return ClashedWeaponLogic
+return DeadWeaponLogic
