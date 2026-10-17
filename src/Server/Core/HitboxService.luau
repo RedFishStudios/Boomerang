@@ -135,6 +135,24 @@ function HitboxService.setVisible(visible: boolean)
    end
 end
 
+-- // Radius (studs) of the player Hitbox. Setting it resizes every existing Hitbox (the part is welded to the root, so it stays
+-- // centered) and is used for hitboxes created from now on (respawns). Not saved.
+function HitboxService.setRadius(radius: number)
+   hitboxRadius = radius
+   local size = getHitboxSize()
+   for _, hitbox in pairs(hitboxes) do
+      hitbox.Size = size
+   end
+end
+
+function HitboxService.getRadius(): number
+   return hitboxRadius
+end
+
+function HitboxService.getDefaultRadius(): number
+   return GlobalConfig.PlayerHitboxRadius
+end
+
 function HitboxService.isVisible(): boolean
    return hitboxesVisible
 end
