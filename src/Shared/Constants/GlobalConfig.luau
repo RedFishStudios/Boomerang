@@ -44,6 +44,9 @@ local GlobalConfig = {
    -- // is solid. Taller = walls up to that height count for both (centered on the boomerang's flight height). Tunable live with
    -- // Cmdr `setboomerangcastheight` (ObstructionCastLibrary).
    BoomerangRaycastHeight = 1,
+   -- // Radius (studs) of every player's Hitbox, the vertical cylinder boomerangs hit (3.3 studs across). A boomerang strikes a player when
+   -- // its own radius (tool HitboxRadius) plus this reaches them. Live-tunable with Cmdr `sethitboxradius` (HitboxService).
+   PlayerHitboxRadius = 1.65,
    -- // A RETURNING boomerang bounces, takes player hits and loses energy exactly like an outgoing one. After a bounce (or clash) its
    -- // bounce momentum is in charge and fades back into steering toward the player over this many seconds (Cmdr `tune RecallBounceRecovery`).
    BoomerangRecallBounceRecoverySeconds = 0.35,

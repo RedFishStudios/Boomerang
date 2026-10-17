@@ -22,6 +22,7 @@ local _ServerStorage = game:GetService("ServerStorage")
 local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local HitboxLibrary = require(ReplicatedStorage.Shared.Library.HitboxLibrary)
+local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -43,6 +44,14 @@ local characterDescendantAddedConnections: {[Player]: RBXScriptConnection} = {}
 local HITBOX_COLLISION_GROUP = CollisionGroupConstants.Players
 local HITBOX_VISIBLE_TRANSPARENCY = 0.6 -- // Transparency of a hitbox while Cmdr `viewhitbox` has them shown (they are invisible otherwise)
 local hitboxesVisible = false
+local HITBOX_HEIGHT = 10 -- // Studs tall, centered on the root part
+local hitboxRadius: number = GlobalConfig.PlayerHitboxRadius
+
+-- // A cylinder part's axis is X and its width is the SMALLER of Y and Z, so both are set to the diameter on purpose
+local function getHitboxSize(): Vector3
+   local diameter = hitboxRadius * 2
+   return Vector3.new(HITBOX_HEIGHT, diameter, diameter)
+end
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -76,7 +85,7 @@ local function onCharacterLoaded(player: Player, character: Model, humanoid: Hum
    end
 
    local hitbox = Instance.new("Part")
-   hitbox.Size = Vector3.new(10, 2.2, 10)
+   hitbox.Size = getHitboxSize()
    hitbox.Shape = Enum.PartType.Cylinder
    hitbox.Massless = true
    hitbox.Anchored = false
