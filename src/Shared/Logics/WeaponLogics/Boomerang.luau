@@ -587,11 +587,48 @@ local function blockcastWithHorizontalHitbox(
    return result
 end
 
-local function spherecastCharacterHitbox(rayOrigin: Vector3, direction: Vector3, rayDistance: number, hitboxRadius: number): {Model}
-   if rayDistance <= 0 then
-      return {}
-   end
+-- // A sphere cast ignores anything it already overlaps where it starts, so a player standing next to a thrower, walking into the
+-- // boomerang, or beside a bounce / portal exit would never be hit. This invisible ball is moved to the start of each step and asked
+-- // what it touches (an exact test; the cheaper bounds queries are looser than the cylinder). One ball is shared, used one step at a time.
+local overlapProbe: Part? = nil
 
+local function getOverlapProbe(radius: number): Part
+   local probe = overlapProbe
+   if not probe or not probe.Parent then
+      probe = Instance.new("Part")
+      probe.Name = "BoomerangOverlapProbe"
+      probe.Shape = Enum.PartType.Ball
+      probe.Anchored = true
+      probe.CanCollide = false
+      probe.CanQuery = false
+      probe.CanTouch = false
+      probe.CastShadow = false
+      probe.Transparency = 1
+      probe.CollisionGroup = WEAPON_RAYCAST_COLLISION_GROUP
+      probe.Parent = workspace
+      overlapProbe = probe
+   end
+   local diameter = radius * 2
+   if probe.Size.X ~= diameter then
+      probe.Size = Vector3.new(diameter, diameter, diameter)
+   end
+   return probe :: Part
+end
+
+local function addLivingModel(hitModels: {Model}, seen: {[Model]: boolean}, instance: Instance)
+   local hitModel = instance:FindFirstAncestorOfClass("Model")
+   if hitModel and not seen[hitModel] then
+      local humanoid = hitModel:FindFirstChildOfClass("Humanoid")
+      if humanoid and humanoid.Health > 0 then
+         seen[hitModel] = true
+         table.insert(hitModels, hitModel)
+      end
+   end
+end
+
+-- // The characters (and bots) a boomerang touches this step: everyone already overlapping it at the start of the step, plus the first
+-- // one its sweep runs into.
+local function spherecastCharacterHitbox(rayOrigin: Vector3, direction: Vector3, rayDistance: number, hitboxRadius: number): {Model}
    local characterRaycastParams = RaycastParams.new()
    characterRaycastParams.FilterType = Enum.RaycastFilterType.Include
    local hitFilter = {Characters}
@@ -603,15 +640,26 @@ local function spherecastCharacterHitbox(rayOrigin: Vector3, direction: Vector3,
    characterRaycastParams.IgnoreWater = true
    characterRaycastParams.CollisionGroup = WEAPON_RAYCAST_COLLISION_GROUP
 
-   local hitModels = {}
-   local spherecastResult = workspace:Spherecast(rayOrigin, hitboxRadius, direction * rayDistance, characterRaycastParams)
-   if spherecastResult then
-      local hitModel = spherecastResult.Instance:FindFirstAncestorOfClass("Model")
-      if hitModel then
-         local humanoid = hitModel:FindFirstChildOfClass("Humanoid")
-         if humanoid and humanoid.Health > 0 then
-            table.insert(hitModels, hitModel)
-         end
+   local hitModels: {Model} = {}
+   local seen: {[Model]: boolean} = {}
+
+   -- // Already overlapping at the start of the step (parts that can't be queried, like the Torso, don't count, same as for the cast)
+   local overlapParams = OverlapParams.new()
+   overlapParams.FilterType = Enum.RaycastFilterType.Include
+   overlapParams.FilterDescendantsInstances = hitFilter
+   overlapParams.CollisionGroup = WEAPON_RAYCAST_COLLISION_GROUP
+   local probe = getOverlapProbe(hitboxRadius)
+   probe.CFrame = CFrame.new(rayOrigin)
+   for _, part in ipairs(workspace:GetPartsInPart(probe, overlapParams)) do
+      if part.CanQuery then
+         addLivingModel(hitModels, seen, part)
+      end
+   end
+
+   if rayDistance > 0 then
+      local spherecastResult = workspace:Spherecast(rayOrigin, hitboxRadius, direction * rayDistance, characterRaycastParams)
+      if spherecastResult then
+         addLivingModel(hitModels, seen, spherecastResult.Instance)
       end
    end
 
@@ -685,6 +733,16 @@ local function damagedPlayer(player: Player, boomerangId: string, thrownWeaponDa
    --    behavior's hit rules and eliminates server-side (T-081). No stat crediting for bot kills.
    if victimModel:GetAttribute("BotId") ~= nil then
       if isServer and BotService then
+         -- // The boomerang checks what it overlaps every step, so one bot is reported many times in a row: same per-target cooldown as players
+         if not thrownWeaponData.HitBots then
+            thrownWeaponData.HitBots = {}
+         end
+         local botNow = workspace:GetServerTimeNow()
+         local previousBotHitAt = thrownWeaponData.HitBots[victimModel]
+         if previousBotHitAt and (botNow - previousBotHitAt) < (GlobalConfig.BoomerangHitThrottle or .5) then
+            return false
+         end
+         thrownWeaponData.HitBots[victimModel] = botNow
          return BotService.onWeaponHit(player, victimModel)
       end
       return false
