@@ -83,7 +83,7 @@ local WEAPON_RAYCAST_COLLISION_GROUP = CollisionGroupConstants.ThrownWeapons
 
 local SPAWN_PACKET_SIZE = 8 + 12 + 12 + 4 + 8
 local DESPAWN_PACKET_SIZE = 8 + 1
-local SNAPSHOT_PACKET_SIZE = 1 + 8 + 12 + 12 + 4 + 1 + 8
+local SNAPSHOT_PACKET_SIZE = 1 + 8 + 12 + 12 + 4 + 1 + 8 + 12 -- // ... + the thrower's position (Dead.luau's snapshots omit it)
 local RAYCAST_VISUALIZERS_ENABLED = GlobalConfig.RaycastVisualizersEnabled
 local PROJECTILE_HITBOX_VISUALIZER_ENABLED = GlobalConfig.ProjectileHitboxVisualizerEnabled
 
@@ -568,7 +568,11 @@ local function fireSnapshot(ownerUserId: number, position: Vector3, direction: V
    offset = BufferUtil.writeVector3_96(payload, offset, direction)
    offset = BufferUtil.writef32(payload, offset, speed)
    offset = BufferUtil.writeu8(payload, offset, state)
-   BufferUtil.writef64(payload, offset, workspace:GetServerTimeNow())
+   offset = BufferUtil.writef64(payload, offset, workspace:GetServerTimeNow())
+   -- // Where the thrower is: remote clients see them slightly in the past, so a returning boomerang steers toward this instead
+   local ownerPlayer = Players:GetPlayerByUserId(ownerUserId)
+   local ownerRoot = ownerPlayer and ownerPlayer.Character and ownerPlayer.Character.PrimaryPart
+   BufferUtil.writeVector3_96(payload, offset, if ownerRoot then ownerRoot.Position else position)
 
    thrownWeaponReplicationRemote:FireAllClients(payload)
 end
@@ -1066,8 +1070,15 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
             return false
          end
 
-         local toPlayer = rootPart.Position - pivot.Position
-         local horizontalDistance = getHorizontalDistance(pivot.Position, rootPart.Position)
+         -- // The server steers toward where it has the thrower. The thrower's own client steers toward its own character (it feels
+         -- // right, and nothing it decides here counts), every other client toward the position the server sent (their view of the
+         -- // thrower is slightly in the past), so the path they draw matches the server's.
+         local targetPosition = rootPart.Position
+         if not isServer and player ~= Players.LocalPlayer and thrownWeaponData.ServerTargetPosition then
+            targetPosition = thrownWeaponData.ServerTargetPosition
+         end
+         local toPlayer = targetPosition - pivot.Position
+         local horizontalDistance = getHorizontalDistance(pivot.Position, targetPosition)
          local catchRadius = math.max(RECALL_CATCH_RADIUS_MIN, hitboxRadius * 1.25) + (if isServer then SERVER_RECALL_CATCH_BONUS else 0)
          if horizontalDistance <= catchRadius then
             Boomerang.removeFromField(player, thrownWeaponData)

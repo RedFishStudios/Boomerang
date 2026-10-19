@@ -28,6 +28,7 @@ export type Data = {
    SyncCorrection: Vector3?, -- // Client: position error still to ease out (set by each server snapshot, applied gradually by WeaponController)
    SnapshotDirection: Vector3?, -- // Client: the server's latest heading, adopted by the simulation on its next step
    SnapshotSpeed: number?, -- // Client: the server's latest speed, adopted with SnapshotDirection
+   ServerTargetPosition: Vector3?, -- // Client: where the server had the thrower at the latest snapshot (remote clients steer a recall toward it)
    ServerDirection: Vector3?,
    ServerSpeed: number?,
    Homing: boolean?,
