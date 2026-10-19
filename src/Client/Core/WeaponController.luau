@@ -369,6 +369,9 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
    thrownWeaponData.ServerSpeed = speed
    thrownWeaponData.Direction = direction
    thrownWeaponData.Speed = speed
+   -- // The simulation adopts the server's heading and speed on its next step (position is eased below)
+   thrownWeaponData.SnapshotDirection = direction
+   thrownWeaponData.SnapshotSpeed = speed
 
    if previousState ~= state then
       local toolData = Tools[thrownWeaponData.ToolId]
