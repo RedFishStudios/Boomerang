@@ -326,7 +326,7 @@ function WeaponController.handleEquippedToolButton(): string
 end
 
 -- // Register a snapshot of a server-authoritative position
-local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vector3, speed: number, state: number, serverTime: number)
+local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vector3, speed: number, state: number, serverTime: number, targetPosition: Vector3?)
    local thrownWeaponData = ThrownWeapons.Data[forPlayer]
 
    -- // The server says this boomerang clashed with another one and was knocked onto a new direction (it keeps flying)
@@ -373,6 +373,7 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
    -- // The simulation adopts the server's heading and speed on its next step (position is eased below)
    thrownWeaponData.SnapshotDirection = direction
    thrownWeaponData.SnapshotSpeed = speed
+   thrownWeaponData.ServerTargetPosition = targetPosition
 
    if previousState ~= state then
       local toolData = Tools[thrownWeaponData.ToolId]
@@ -908,13 +909,18 @@ function WeaponController.init()
       state, offset = BufferUtil.readu8(payload, offset)
       local serverTime
       serverTime, offset = BufferUtil.readf64(payload, offset)
+      -- // The thrower's position follows the time (the dead-weapon snapshots don't carry it)
+      local targetPosition: Vector3? = nil
+      if buffer.len(payload) >= offset + 12 then
+         targetPosition = BufferUtil.readVector3_96(payload, offset)
+      end
 
       local forPlayer = Players:GetPlayerByUserId(ownerUserId)
       if not forPlayer then
          return
       end
 
-      onSnapshot(forPlayer, position, getHorizontalDirection(direction), speed, state, serverTime)
+      onSnapshot(forPlayer, position, getHorizontalDirection(direction), speed, state, serverTime, targetPosition)
    end)
 
    RunService.PreSimulation:Connect(function(deltaTime)
