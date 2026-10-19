@@ -768,24 +768,30 @@ local function damagedPlayer(player: Player, boomerangId: string, thrownWeaponDa
       return false
    end
 
-   thrownWeaponData.HitPlayers[victimPlayer] = now
-
    local Humanoid = victimModel:FindFirstChildOfClass("Humanoid")
-   if Humanoid and Humanoid.Health > 0 then
-      -- // A boomerang (outgoing or returning) loses energy for each player it strikes. Server only: the client's prediction keeps
-      -- // a little more energy than the server and the server's Returning / Dying snapshot decides the rest.
-      if isServer and thrownWeaponData.Energy then
-         thrownWeaponData.Energy -= BoomerangTuningLibrary.get(thrownWeaponData.ToolId, "PlayerHitEnergyCost")
-      end
-      local healthBeforeDamage = Humanoid.Health
-      CombatLibrary.attackHitPlayer(player, boomerangId, victimPlayer, Humanoid, 100000)
-      if isServer and WeaponService and healthBeforeDamage > 0 and Humanoid.Health <= 0 then
-         WeaponService.WeaponKilledPlayer:Execute("parallel", player, victimPlayer, thrownWeaponData.ToolId)
-      end
-      return true
+   if not Humanoid or Humanoid.Health <= 0 then
+      return false
    end
 
-   return false
+   local healthBeforeDamage = Humanoid.Health
+   local hitResult = CombatLibrary.attackHitPlayer(player, boomerangId, victimPlayer, Humanoid, 100000)
+
+   -- // A dash / spawn-protection dodge (or a hit that does nothing in this mode) is not a strike: no cooldown and no energy cost, so a
+   -- // boomerang still overlapping a player whose dash just ended can hit them on the next step.
+   if hitResult == "Immune" or hitResult == "Ignored" then
+      return false
+   end
+   thrownWeaponData.HitPlayers[victimPlayer] = now
+
+   -- // A boomerang (outgoing or returning) loses energy for each player it strikes (not for a shield block). Server only: the client's
+   -- // prediction keeps a little more energy than the server and the server's Returning / Dying snapshot decides the rest.
+   if hitResult ~= "Blocked" and isServer and thrownWeaponData.Energy then
+      thrownWeaponData.Energy -= BoomerangTuningLibrary.get(thrownWeaponData.ToolId, "PlayerHitEnergyCost")
+   end
+   if hitResult == "Hit" and isServer and WeaponService and healthBeforeDamage > 0 and Humanoid.Health <= 0 then
+      WeaponService.WeaponKilledPlayer:Execute("parallel", player, victimPlayer, thrownWeaponData.ToolId)
+   end
+   return hitResult == "Hit"
 end
 
 -- // Throw a boomerang onto the field
