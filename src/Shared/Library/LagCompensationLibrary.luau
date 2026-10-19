@@ -7,8 +7,9 @@
 	thrower SAW them (a bit in the past: the thrower's ping plus a little interpolation delay), so a hit that looks like a hit on the
 	thrower's screen counts. It only ever adds hits to the normal (live) check; flight, bounces and recalls are never rewound.
 
-	The setting is one number, in milliseconds: the most the server will rewind. 200 by default (DEFAULT_REWIND_MILLISECONDS).
-	0 turns lag compensation off completely (nothing is recorded, hits are exactly as before). Server only: on a client every function does nothing.
+	The setting is one number, in milliseconds: the most the server will rewind. 200 by default (GlobalConfig.LagCompensationMilliseconds).
+	0 turns lag compensation off completely (nothing is recorded, hits are exactly as before). Cmdr `setlagcompensation` changes it live
+	for this server session only (not saved). Server only: on a client every function does nothing.
 ]]
 
 local LagCompensationLibrary = {}
@@ -17,6 +18,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local HitboxLibrary = require(ReplicatedStorage.Shared.Library.HitboxLibrary)
 
 -------------------------------------------------------------------------------
@@ -25,7 +27,6 @@ local HitboxLibrary = require(ReplicatedStorage.Shared.Library.HitboxLibrary)
 
 local SAMPLE_CAPACITY = 90 -- // Samples kept per player: 1.5 s at 60 Hz (the longest rewind allowed is MAX_REWIND_MILLISECONDS)
 local MAX_REWIND_MILLISECONDS = 1000
-local DEFAULT_REWIND_MILLISECONDS = 200
 local INTERPOLATION_DELAY_SECONDS = 0.1 -- // Roughly how far behind the thrower's screen draws other players, on top of their ping. TUNABLE
 
 -------------------------------------------------------------------------------
@@ -44,7 +45,7 @@ type History = {
 }
 
 local histories: { [Player]: History } = {}
-local maxRewindSeconds: number = math.clamp(DEFAULT_REWIND_MILLISECONDS, 0, MAX_REWIND_MILLISECONDS) / 1000
+local maxRewindSeconds: number = math.clamp(GlobalConfig.LagCompensationMilliseconds, 0, MAX_REWIND_MILLISECONDS) / 1000
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -133,7 +134,7 @@ function LagCompensationLibrary.getRewindMilliseconds(): number
 end
 
 function LagCompensationLibrary.getDefaultMilliseconds(): number
-	return DEFAULT_REWIND_MILLISECONDS
+	return GlobalConfig.LagCompensationMilliseconds
 end
 
 function LagCompensationLibrary.getMaxMilliseconds(): number
