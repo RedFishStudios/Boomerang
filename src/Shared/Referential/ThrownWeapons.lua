@@ -26,6 +26,8 @@ export type Data = {
    Direction: Vector3?,
    Speed: number?,
    SyncTargetPosition: Vector3?,
+   SnapshotDirection: Vector3?, -- // Client: the server's latest heading, adopted by the simulation on its next step
+   SnapshotSpeed: number?, -- // Client: the server's latest speed, adopted with SnapshotDirection
    ServerDirection: Vector3?,
    ServerSpeed: number?,
    Homing: boolean?,

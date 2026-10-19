@@ -974,6 +974,15 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          end
       end
 
+      -- // Client: the server's latest heading and speed replace ours (position is eased separately, see WeaponController), so a bounce,
+      -- // a homing or steering turn or a recall that only the server saw can't leave us flying off in another direction
+      if not isServer and thrownWeaponData.SnapshotDirection then
+         direction = thrownWeaponData.SnapshotDirection
+         speed = thrownWeaponData.SnapshotSpeed or speed
+         thrownWeaponData.SnapshotDirection = nil
+         thrownWeaponData.SnapshotSpeed = nil
+      end
+
       if not isReturning and (thrownWeaponData.Energy or 0) > 0 and (speed > defaultSpeed or isRetuning) then
          local fadeAlpha = math.clamp(deltaTime * AIM_SPEED_FADE_RATE, 0, 1)
          speed = speed + (defaultSpeed - speed) * fadeAlpha
