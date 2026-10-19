@@ -15,6 +15,7 @@ local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local SkinLibrary = require(ReplicatedStorage.Shared.Library.SkinLibrary)
 local BoomerangTuningLibrary = require(ReplicatedStorage.Shared.Library.BoomerangTuningLibrary)
 local ObstructionCastLibrary = require(ReplicatedStorage.Shared.Library.ObstructionCastLibrary)
+local LagCompensationLibrary = require(ReplicatedStorage.Shared.Library.LagCompensationLibrary)
 local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 local BufferUtil = require(ReplicatedStorage.Shared.Utils.BufferUtil)
 local RaycastsUtility = require(ReplicatedStorage.Shared.Utils.RaycastsUtility)
@@ -638,8 +639,9 @@ local function addLivingModel(hitModels: {Model}, seen: {[Model]: boolean}, inst
 end
 
 -- // The characters (and bots) a boomerang touches this step: everyone already overlapping it at the start of the step, plus the first
--- // one its sweep runs into.
-local function spherecastCharacterHitbox(rayOrigin: Vector3, direction: Vector3, rayDistance: number, hitboxRadius: number): {Model}
+-- // one its sweep runs into. With lag compensation on, also everyone the sweep would hit if they were where `thrower` saw them
+-- // (LagCompensationLibrary; a thrower is passed on the server only).
+local function spherecastCharacterHitbox(rayOrigin: Vector3, direction: Vector3, rayDistance: number, hitboxRadius: number, thrower: Player?): {Model}
    local characterRaycastParams = RaycastParams.new()
    characterRaycastParams.FilterType = Enum.RaycastFilterType.Include
    local hitFilter = {Characters}
@@ -671,6 +673,18 @@ local function spherecastCharacterHitbox(rayOrigin: Vector3, direction: Vector3,
       local spherecastResult = workspace:Spherecast(rayOrigin, hitboxRadius, direction * rayDistance, characterRaycastParams)
       if spherecastResult then
          addLivingModel(hitModels, seen, spherecastResult.Instance)
+      end
+   end
+
+   if thrower then
+      local rewindSeconds = LagCompensationLibrary.getRewindSeconds(thrower)
+      if rewindSeconds > 0 then
+         for _, rewoundModel in ipairs(LagCompensationLibrary.getRewoundHitModels(thrower, rewindSeconds, rayOrigin, direction, rayDistance, hitboxRadius)) do
+            if not seen[rewoundModel] then
+               seen[rewoundModel] = true
+               table.insert(hitModels, rewoundModel)
+            end
+         end
       end
    end
 
@@ -1170,7 +1184,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          if obstructionRaycastResult then
             sweepDistance = math.clamp(obstructionRaycastResult.Distance - OBSTRUCTION_BLOCKCAST_SKIN, 0, rayDistance)
          end
-         for _, victimModel in ipairs(spherecastCharacterHitbox(rayOrigin, direction, sweepDistance, hitboxRadius)) do
+         for _, victimModel in ipairs(spherecastCharacterHitbox(rayOrigin, direction, sweepDistance, hitboxRadius, player)) do
             damagedPlayer(player, boomerangId, thrownWeaponData, victimModel)
          end
       end
@@ -1819,7 +1833,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       local characterDirection = if sliding then slideDirection else direction
       local characterRayDistance = (if sliding then slideSpeed else speed) * deltaTime
       if isServer then -- // Only the server decides hits (see the flight loop)
-         for _, victimModel in ipairs(spherecastCharacterHitbox(rayOrigin, characterDirection, characterRayDistance, hitboxRadius)) do
+         for _, victimModel in ipairs(spherecastCharacterHitbox(rayOrigin, characterDirection, characterRayDistance, hitboxRadius, player)) do
             damagedPlayer(player, boomerangId, thrownWeaponData, victimModel)
          end
       end
