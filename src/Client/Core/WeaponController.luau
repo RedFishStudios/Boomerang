@@ -65,7 +65,7 @@ local telekinesisSteerEvent = SimpleRemotes.getUnreliableEvent("TelekinesisSteer
 
 local UNRELIABLE_CODES = RemoteCodes.Weapon.Unreliable
 local SOFT_CORRECTION_RATE = 14
-local HARD_SNAP_DISTANCE = 14
+local HARD_SNAP_DISTANCE = 8 -- // A position error this large is a teleport, not drift: snap instead of easing
 local MAX_SNAPSHOT_CATCHUP = 0.35
 local PORTAL_SNAPSHOT_GRACE = 0.5 -- // Seconds after the local boomerang goes through a portal during which far-off snapshots are treated as stale
 
@@ -360,8 +360,9 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
 
    -- // Just went through a portal locally: snapshots sent before the server's own crossing are stale (still on the
    -- // entry side). Skip them briefly instead of snapping the boomerang back through the portal.
+   local simulatedPosition = if thrownWeaponData.CFrame then thrownWeaponData.CFrame.Position else thrownWeaponData.Host:GetPivot().Position
    local recentlyCrossedPortal = thrownWeaponData.PortalExitAt ~= nil and os.clock() - thrownWeaponData.PortalExitAt < PORTAL_SNAPSHOT_GRACE
-   if recentlyCrossedPortal and previousState == state and (authoritativePosition - thrownWeaponData.Host:GetPivot().Position).Magnitude >= HARD_SNAP_DISTANCE then
+   if recentlyCrossedPortal and previousState == state and (authoritativePosition - simulatedPosition).Magnitude >= HARD_SNAP_DISTANCE then
       return
    end
 
@@ -397,8 +398,8 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
 
    thrownWeaponData.State = state
 
-   local currentPosition = thrownWeaponData.Host:GetPivot().Position
-   local errorDistance = (authoritativePosition - currentPosition).Magnitude
+   local positionError = authoritativePosition - simulatedPosition
+   local errorDistance = positionError.Magnitude
    if errorDistance >= HARD_SNAP_DISTANCE then
       local currentPivot = thrownWeaponData.Host:GetPivot()
       local snappedCFrame = (currentPivot - currentPivot.Position) + authoritativePosition
@@ -409,45 +410,37 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
          snapLogic.retireTrail(thrownWeaponData)
       end
       thrownWeaponData.CFrame = snappedCFrame
+      thrownWeaponData.LastPosition = authoritativePosition
       thrownWeaponData.Host:PivotTo(snappedCFrame)
-      thrownWeaponData.SyncTargetPosition = nil
+      thrownWeaponData.SyncCorrection = nil
       return
    end
 
-   thrownWeaponData.SyncTargetPosition = authoritativePosition
+   -- // Not a position to drag toward (the boomerang keeps moving meanwhile) but the error left to ease out, a little each frame
+   thrownWeaponData.SyncCorrection = positionError
 end
 
--- // Sync client-rendered positions smoothly to server-authoritative positions
+-- // Ease each boomerang's remaining position error (from the latest snapshot) out of its simulated position, a fraction per frame
 local function updateSmoothing(deltaTime: number)
    for _, thrownWeaponData in pairs(ThrownWeapons.Data) do
-      if not thrownWeaponData.SyncTargetPosition then
+      local correction = thrownWeaponData.SyncCorrection
+      if not correction then
          continue
       end
-      if not thrownWeaponData.Host or not thrownWeaponData.Host.Parent then
-         continue
-      end
-
       local host = thrownWeaponData.Host
-      local currentPivot = host:GetPivot()
-      local currentPosition = currentPivot.Position
-      local targetPosition = thrownWeaponData.SyncTargetPosition
-      local errorDistance = (targetPosition - currentPosition).Magnitude
-
-      if errorDistance <= 0.05 then
-         thrownWeaponData.SyncTargetPosition = nil
-         continue
-      end
-      -- // A target this far away is stale (e.g. set just before a portal crossing); never drag the boomerang across that gap
-      if errorDistance >= HARD_SNAP_DISTANCE then
-         thrownWeaponData.SyncTargetPosition = nil
+      local simCFrame = thrownWeaponData.CFrame
+      if not host or not host.Parent or not simCFrame then
          continue
       end
 
-      local alpha = math.clamp(deltaTime * SOFT_CORRECTION_RATE, 0, 1)
-      local correctedPosition = currentPosition:Lerp(targetPosition, alpha)
-      local correctedCFrame = (currentPivot - currentPivot.Position) + correctedPosition
-      thrownWeaponData.CFrame = correctedCFrame
-      host:PivotTo(correctedCFrame)
+      local alpha = if correction.Magnitude <= 0.05 then 1 else math.clamp(deltaTime * SOFT_CORRECTION_RATE, 0, 1)
+      local step = correction * alpha
+      thrownWeaponData.CFrame = simCFrame + step
+      if thrownWeaponData.LastPosition then
+         thrownWeaponData.LastPosition += step
+      end
+      host:PivotTo(host:GetPivot() + step)
+      thrownWeaponData.SyncCorrection = if alpha >= 1 then nil else correction - step
    end
 end
 
@@ -654,7 +647,7 @@ function WeaponController.startThrownWeapon(forPlayer: Player, toolId: string, t
       ToolId = toolId,
       State = ThrownWeapons.StateEnum.Outgoing,
       ReplicationPart = nil,
-      SyncTargetPosition = nil,
+      SyncCorrection = nil,
       ServerDirection = nil,
       ServerSpeed = nil,
    }
