@@ -57,7 +57,9 @@ local thrownWeaponReplicationRemote = SimpleRemotes.getUnreliableEvent("ThrownWe
 
 local SLOW_RATE = 5
 local UP_VECTOR = Vector3.new(0, 1, 0)
-local REPLICATION_RATE = 1 / 20
+local REPLICATION_RATE = 1 / 30 -- // Seconds between snapshots (bounces, portals, recalls and clashes also send one at once)
+local FIXED_STEP = 1 / 60 -- // The flight simulation always advances in steps of exactly this long, on the server and on every client
+local MAX_STEPS_PER_FRAME = 4 -- // After a long hitch at most this many steps are run in one frame (the rest of the time is dropped)
 local AIM_START_SPEED_BONUS_MULTIPLIER = 1.0
 local AIM_SPEED_FADE_RATE = 2.0
 local RECALL_CATCH_RADIUS_MIN = 1.5
@@ -1124,6 +1126,9 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          end
          thrownWeaponData.Direction = direction
          thrownWeaponData.Speed = speed
+         if isServer then
+            fireSnapshot(player.UserId, portalExit.Position, direction, speed, thrownWeaponData.State) -- // Keyframe: clients come out at the same spot
+         end
          return true
       end
 
@@ -1164,6 +1169,9 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          SharedTasks.ThrownWeaponHitObject:Execute("parallel", player, thrownWeaponData.ToolId, obstructionRaycastResult.Instance, obstructionRaycastResult.Position)
          thrownWeaponData.Direction = direction
          thrownWeaponData.Speed = speed
+         if isServer then
+            fireSnapshot(player.UserId, pivot.Position, direction, speed, thrownWeaponData.State) -- // Keyframe: clients bounce at the same spot
+         end
          return true
       end
 
@@ -1193,36 +1201,38 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       end
    end]]
 
-   thrownWeaponData.MovementConnection = RunService.Stepped:Connect(function(time, deltaTime)
-      if not simulateStep(deltaTime, true) then
-         local movementConnection = thrownWeaponData.MovementConnection
-         if movementConnection then
-            movementConnection:Disconnect()
-            thrownWeaponData.MovementConnection = nil
-         end
-         return
+   local function stopMovement()
+      local movementConnection = thrownWeaponData.MovementConnection
+      if movementConnection then
+         movementConnection:Disconnect()
+         thrownWeaponData.MovementConnection = nil
       end
+   end
 
-      if ThrownWeapons.Data[player] ~= thrownWeaponData then
-         return
+   -- // Fixed timestep: the server and every client advance in identical FIXED_STEP slices, so frame rate can't change where a bounce or
+   -- // a recall turn happens. Leftover time carries to the next frame.
+   local stepAccumulator = 0
+   thrownWeaponData.MovementConnection = RunService.Stepped:Connect(function(time, deltaTime)
+      stepAccumulator = math.min(stepAccumulator + deltaTime, FIXED_STEP * MAX_STEPS_PER_FRAME)
+      while stepAccumulator >= FIXED_STEP - 1e-4 do
+         stepAccumulator = math.max(stepAccumulator - FIXED_STEP, 0)
+         if not simulateStep(FIXED_STEP, true) then
+            stopMovement()
+            return
+         end
+         if ThrownWeapons.Data[player] ~= thrownWeaponData then
+            return
+         end
       end
 
       local currentPivot = getWeaponCFrame(thrownWeaponData)
       if isServer and PROJECTILE_HITBOX_VISUALIZER_ENABLED then
          if not thrownWeaponData.Host or not thrownWeaponData.Host.Parent then
-            local movementConnection = thrownWeaponData.MovementConnection
-            if movementConnection then
-               movementConnection:Disconnect()
-               thrownWeaponData.MovementConnection = nil
-            end
+            stopMovement()
             return
          end
       elseif not currentPivot then
-         local movementConnection = thrownWeaponData.MovementConnection
-         if movementConnection then
-            movementConnection:Disconnect()
-            thrownWeaponData.MovementConnection = nil
-         end
+         stopMovement()
          return
       end
 
