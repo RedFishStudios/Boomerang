@@ -1128,21 +1128,13 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          return true
       end
 
-      if isServer then -- // Only the server decides hits (a client's boomerang never hits anyone, so it can't show a hit the server rejects)
-         for _, victimModel in ipairs(spherecastCharacterHitbox(rayOrigin, direction, rayDistance, hitboxRadius)) do
-            damagedPlayer(player, boomerangId, thrownWeaponData, victimModel)
-         end
-      end
-
-      --if playerDamaged then
-      --  if shouldRecallTransitions then
-      --      Boomerang.recall(player, boomerangId, toolData, thrownWeaponData)
-      --      return true
-      --   end
-      --end
-
       local obstructionRaycastResult = blockcastWithHorizontalHitbox(rayOrigin, direction, rayDistance, hitboxRadius, raycastParams)
-      if obstructionRaycastResult then
+
+      -- // Only the server decides hits (a client's boomerang never hits anyone, so it can't show a hit the server rejects). The sweep
+      -- // stops where the boomerang meets a wall this step, so a player behind a wall isn't struck through it.
+      if isServer then
+         local sweepDistance = rayDistance
+         if obstructionRaycastResult then
          if isServer and WeaponService then
             WeaponService.WeaponStruckObject:Execute("parallel", player, thrownWeaponData.ToolId, obstructionRaycastResult)
          end
