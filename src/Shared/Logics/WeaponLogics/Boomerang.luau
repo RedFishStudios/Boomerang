@@ -85,7 +85,7 @@ local SPAWN_PACKET_SIZE = 8 + 12 + 12 + 4 + 8
 local DESPAWN_PACKET_SIZE = 8 + 1
 local SNAPSHOT_PACKET_SIZE = 1 + 8 + 12 + 12 + 4 + 1 + 8 + 12 -- // ... + the thrower's position (Dead.luau's snapshots omit it)
 local RAYCAST_VISUALIZERS_ENABLED = GlobalConfig.RaycastVisualizersEnabled
-local PROJECTILE_HITBOX_VISUALIZER_ENABLED = GlobalConfig.ProjectileHitboxVisualizerEnabled
+local projectileVisualizerEnabled = GlobalConfig.ProjectileHitboxVisualizerEnabled -- // Server only; Cmdr `toggleprojectilevisualizer` changes it live. Read when a boomerang is thrown
 
 local BOOMERANG_SPIN_SPEED = math.rad(1080)
 local RECALL_FROM_DEAD_LIFT_RATE = 8 -- // How fast a boomerang recalled off the ground rises to hand height
@@ -879,7 +879,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    if isServer then
       fireSpawned(player.UserId, boomerangId, boomerangInstanceId, startPosition, direction, speed, throwServerTime)
       thrownWeaponData.State = ThrownWeapons.StateEnum.Outgoing
-      if PROJECTILE_HITBOX_VISUALIZER_ENABLED then
+      if projectileVisualizerEnabled then
          -- Server creates and monitors a simple representation part for debugging.
          local partHost = ThrownWeaponReplicationPart:Clone()
          partHost.Name = `BoomerangReplication_{player.Name}`
@@ -953,8 +953,8 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       end]]
 
       if isServer then
-         if PROJECTILE_HITBOX_VISUALIZER_ENABLED then
-            if not thrownWeaponData.Host or not thrownWeaponData.Host.Parent then
+         if thrownWeaponData.Host then -- // Only boomerangs thrown with the visualizer on have a server part
+            if not thrownWeaponData.Host.Parent then
                return false
             end
          end
@@ -1265,8 +1265,8 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       end
 
       local currentPivot = getWeaponCFrame(thrownWeaponData)
-      if isServer and PROJECTILE_HITBOX_VISUALIZER_ENABLED then
-         if not thrownWeaponData.Host or not thrownWeaponData.Host.Parent then
+      if isServer and thrownWeaponData.Host then
+         if not thrownWeaponData.Host.Parent then
             stopMovement()
             return
          end
@@ -1609,8 +1609,8 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
    end
 
    thrownWeaponData.MovementConnection = RunService.Stepped:Connect(function(_, deltaTime)
-      if isServer and PROJECTILE_HITBOX_VISUALIZER_ENABLED then
-         if not hostPart or not hostPart.Parent then
+      if isServer and hostPart then
+         if not hostPart.Parent then
             thrownWeaponData.MovementConnection:Disconnect()
             thrownWeaponData.MovementConnection = nil
             return
@@ -1877,6 +1877,12 @@ DeadWeaponLogic.checkRecallWhileDying = function(player: Player, deadWeaponData:
    end
    Boomerang.recallFromDead(player, deadWeaponData, false)
    return ThrownWeapons.Data[player] ~= nil
+end
+
+-- // Server only. Boomerangs thrown from now on get (or no longer get) the red server-position part; ones already in flight are unchanged.
+function Boomerang.setProjectileVisualizerEnabled(value: boolean)
+   assert(isServer, "Boomerang.setProjectileVisualizerEnabled is server only")
+   projectileVisualizerEnabled = value
 end
 
 return Boomerang
