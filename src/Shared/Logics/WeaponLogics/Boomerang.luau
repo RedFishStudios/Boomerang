@@ -60,6 +60,7 @@ local UP_VECTOR = Vector3.new(0, 1, 0)
 local REPLICATION_RATE = 1 / 30 -- // Seconds between snapshots (bounces, portals, recalls and clashes also send one at once)
 local FIXED_STEP = 1 / 60 -- // The flight simulation always advances in steps of exactly this long, on the server and on every client
 local MAX_STEPS_PER_FRAME = 4 -- // After a long hitch at most this many steps are run in one frame (the rest of the time is dropped)
+local MAX_SPAWN_CATCHUP = 0.35 -- // Seconds a newly spawned boomerang may be eased forward to where the server already has it
 local AIM_START_SPEED_BONUS_MULTIPLIER = 1.0
 local AIM_SPEED_FADE_RATE = 2.0
 local RECALL_CATCH_RADIUS_MIN = 1.5
@@ -456,6 +457,11 @@ end
 local function getWeaponCFrame(thrownWeaponData: ThrownWeapons.Data): CFrame?
    local host = thrownWeaponData.Host
    if host and host.Parent then
+      -- // Client: the simulated position is thrownWeaponData.CFrame; the model (host) is only drawn from it, interpolated
+      -- // between steps (see the flight loop), so it never is the source of truth
+      if not isServer and thrownWeaponData.CFrame then
+         return thrownWeaponData.CFrame
+      end
       return host:GetPivot()
    end
    return thrownWeaponData.CFrame
@@ -1126,9 +1132,12 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          thrownWeaponData.PortalExitPart = portalExit.ExitPart
          if not isServer then
             retireTrail(thrownWeaponData)
-            thrownWeaponData.SyncTargetPosition = nil -- // A pre-crossing smoothing target would drag it back toward the entry portal
+            thrownWeaponData.SyncCorrection = nil -- // A pre-crossing correction would drag it back toward the entry portal
          end
          setWeaponCFrame(thrownWeaponData, CFrame.new(portalExit.Position), deltaTime)
+         if not isServer then
+            thrownWeaponData.LastPosition = portalExit.Position -- // A teleport: the drawn position must not slide through the gap
+         end
          -- // Only the part flown before entering costs energy; the jump isn't flight. Distance is free on the way back.
          if not isReturning then
             thrownWeaponData.Energy = (thrownWeaponData.Energy or 0) - portalExit.EntryDistance * BoomerangTuningLibrary.get(tuningToolId, "EnergyPerStud")
@@ -1196,19 +1205,29 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       return true
    end
 
-   -- Fast-forward newly replicated boomerangs to the best estimate of where they should be now
-   -- DISABLED; this cannot be disabled in its current state as it causes significant jumping of the boomerang on the client upon spawn
-   -- The boomerang's position does appear to correctly catch up immediately after, so this doesn't seem to be of significance to remove
-  --[[if not isServer and options and options.ThrowServerTime then
-      local catchup = math.clamp(workspace:GetServerTimeNow() - options.ThrowServerTime, 0, MAX_CATCHUP_SECONDS)
-      while catchup > 0 do
-         local dt = math.min(CATCHUP_STEP, catchup)
-         if not simulateStep(dt, false) then
-            break
-         end
-         catchup -= dt
+   -- // A newly spawned boomerang arrives one network trip after the server threw it. Instead of jumping it forward (or running steps in
+   -- // one frame), the distance the server has already flown is eased in through the same correction the snapshots use.
+   if not isServer and options and options.ThrowServerTime then
+      local catchup = math.clamp(workspace:GetServerTimeNow() - options.ThrowServerTime, 0, MAX_SPAWN_CATCHUP)
+      if catchup > 0 then
+         thrownWeaponData.SyncCorrection = direction * speed * catchup
+         thrownWeaponData.Energy = (thrownWeaponData.Energy or 0) - speed * catchup * BoomerangTuningLibrary.get(tuningToolId, "EnergyPerStud")
       end
-   end]]
+   end
+
+   -- // Client only: draw the model between the last two simulated positions, so the motion is smooth at any frame rate and the picture
+   -- // never goes past where the simulation has actually checked for walls
+   local function drawHost(stepAccumulator: number)
+      local host = thrownWeaponData.Host
+      local simCFrame = thrownWeaponData.CFrame
+      if isServer or not host or not host.Parent or not simCFrame then
+         return
+      end
+      local alpha = math.clamp(stepAccumulator / FIXED_STEP, 0, 1)
+      local drawnPosition = (thrownWeaponData.LastPosition or simCFrame.Position):Lerp(simCFrame.Position, alpha)
+      local spin = (thrownWeaponData.VisualRotation or 0) + BOOMERANG_SPIN_SPEED * stepAccumulator
+      host:PivotTo(CFrame.new(drawnPosition) * (thrownWeaponData.RecallTilt or CFrame.identity) * CFrame.Angles(0, spin, 0))
+   end
 
    local function stopMovement()
       local movementConnection = thrownWeaponData.MovementConnection
@@ -1219,7 +1238,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    end
 
    -- // Fixed timestep: the server and every client advance in identical FIXED_STEP slices, so frame rate can't change where a bounce or
-   -- // a recall turn happens. Leftover time carries to the next frame.
+   -- // a recall turn happens. Leftover time carries to the next frame (and is only used to draw smoothly).
    local stepAccumulator = 0
    thrownWeaponData.MovementConnection = RunService.Stepped:Connect(function(time, deltaTime)
       stepAccumulator = math.min(stepAccumulator + deltaTime, FIXED_STEP * MAX_STEPS_PER_FRAME)
@@ -1244,6 +1263,8 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          stopMovement()
          return
       end
+
+      drawHost(stepAccumulator)
 
       SharedTasks.ThrownWeaponMoved:Execute("serial", player, thrownWeaponData.ToolId, currentPivot.Position, thrownWeaponData.State == ThrownWeapons.StateEnum.Returning)
 

@@ -25,7 +25,7 @@ export type Data = {
    CFrame: CFrame?,
    Direction: Vector3?,
    Speed: number?,
-   SyncTargetPosition: Vector3?,
+   SyncCorrection: Vector3?, -- // Client: position error still to ease out (set by each server snapshot, applied gradually by WeaponController)
    SnapshotDirection: Vector3?, -- // Client: the server's latest heading, adopted by the simulation on its next step
    SnapshotSpeed: number?, -- // Client: the server's latest speed, adopted with SnapshotDirection
    ServerDirection: Vector3?,
