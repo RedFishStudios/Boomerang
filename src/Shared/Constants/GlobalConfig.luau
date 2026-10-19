@@ -88,7 +88,7 @@ local GlobalConfig = {
    -- Use for debugging
    -- Enabling these can greatly increase lag or network traffic
    RaycastVisualizersEnabled = false,
-   ProjectileHitboxVisualizerEnabled = false,
+   ProjectileHitboxVisualizerEnabled = false, -- // Default for the red server-position part on thrown boomerangs. Cmdr `toggleprojectilevisualizer` changes it live (affects boomerangs thrown afterwards).
    LineOfSightVisualizerEnabled = false, -- // Default for the line-of-sight visualizer: when a boomerang runs out of energy the server draws the LOS cast (green = clear, red = blocked + hit marker) for a few seconds. Cmdr `togglelosvisualizer` changes it live.
    ToggleAuthorityView = false, -- // Default for the authority view: a neon red ball at the position the SERVER has for each thrown boomerang (AuthorityViewLibrary; Cmdr `toggleauthorityview` changes it live)
    ParryVisualizersEnabled = false,
