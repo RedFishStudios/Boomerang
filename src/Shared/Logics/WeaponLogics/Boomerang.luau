@@ -285,7 +285,6 @@ local function addTrail(thrownWeaponData: ThrownWeapons.Data)
       trail.Color = ColorSequence.new(GlobalConfig.EnemyBoomerangTrailColor)
    else
       local team = ownerPlayer.Team
-      print(team.TeamColor)
       trail.Color = ColorSequence.new(if team then team.TeamColor.Color else GlobalConfig.EnemyBoomerangTrailColor)
    end
 
@@ -1135,6 +1134,14 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       if isServer then
          local sweepDistance = rayDistance
          if obstructionRaycastResult then
+            sweepDistance = math.clamp(obstructionRaycastResult.Distance - OBSTRUCTION_BLOCKCAST_SKIN, 0, rayDistance)
+         end
+         for _, victimModel in ipairs(spherecastCharacterHitbox(rayOrigin, direction, sweepDistance, hitboxRadius)) do
+            damagedPlayer(player, boomerangId, thrownWeaponData, victimModel)
+         end
+      end
+
+      if obstructionRaycastResult then
          if isServer and WeaponService then
             WeaponService.WeaponStruckObject:Execute("parallel", player, thrownWeaponData.ToolId, obstructionRaycastResult)
          end
