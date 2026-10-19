@@ -11,7 +11,6 @@ local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.Colli
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local SoundLibrary = require(ReplicatedStorage.Shared.Library.SoundLibrary)
 local Sounds = require(ReplicatedStorage.Shared.Constants.Sounds)
-local ParticlesLibrary = require(ReplicatedStorage.Shared.Library.ParticlesLibrary)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local CombatLibrary = require(ReplicatedStorage.Shared.Library.CombatLibrary)
 local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
@@ -580,10 +579,7 @@ function Stab.activate(player: Player)
          elseif targetDistance <= STAB_DISTANCE and not registeredKillHits[victimPlayer] then
             registeredKillHits[victimPlayer] = true
 
-            local eventId = `{player.UserId}_vs_{victimPlayer.UserId}`
-            SoundLibrary.play(eventId, Sounds.Data.Kill.Name, victimCharacter.PrimaryPart, nil, true)
-            ParticlesLibrary.emit(eventId, "Slash", victimCharacter.PrimaryPart.Position, 1, nil, true)
-
+            -- // The slash and kill sound come from CombatLibrary.attackHitPlayer, only when the hit is accepted
             local victimHumanoid = victimCharacter:FindFirstChildOfClass("Humanoid")
             if victimHumanoid and victimHumanoid.Health > 0 then
                CombatLibrary.attackHitPlayer(player, "Stab", victimPlayer, victimHumanoid, STAB_KILL_DAMAGE)

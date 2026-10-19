@@ -1122,9 +1122,10 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          return true
       end
 
-      local victimModels = spherecastCharacterHitbox(rayOrigin, direction, rayDistance, hitboxRadius)
-      for _, victimModel in ipairs(victimModels) do
-         damagedPlayer(player, boomerangId, thrownWeaponData, victimModel)
+      if isServer then -- // Only the server decides hits (a client's boomerang never hits anyone, so it can't show a hit the server rejects)
+         for _, victimModel in ipairs(spherecastCharacterHitbox(rayOrigin, direction, rayDistance, hitboxRadius)) do
+            damagedPlayer(player, boomerangId, thrownWeaponData, victimModel)
+         end
       end
 
       --if playerDamaged then
@@ -1761,9 +1762,10 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
 
       local characterDirection = if sliding then slideDirection else direction
       local characterRayDistance = (if sliding then slideSpeed else speed) * deltaTime
-      local victimModels = spherecastCharacterHitbox(rayOrigin, characterDirection, characterRayDistance, hitboxRadius)
-      for _, victimModel in ipairs(victimModels) do
-         damagedPlayer(player, boomerangId, thrownWeaponData, victimModel)
+      if isServer then -- // Only the server decides hits (see the flight loop)
+         for _, victimModel in ipairs(spherecastCharacterHitbox(rayOrigin, characterDirection, characterRayDistance, hitboxRadius)) do
+            damagedPlayer(player, boomerangId, thrownWeaponData, victimModel)
+         end
       end
 
       thrownWeaponData.Direction = direction

@@ -52,6 +52,10 @@ end
 -- TYPES
 -------------------------------------------------------------------------------
 
+-- // What became of an attack: "Hit" (damage applied on the server), "Immune" (dash / spawn protection), "Blocked" (a shield took it),
+-- // "Interrupted" (a gamemode callback handled it), "Ignored" (no humanoid, no round, or a mode where hits do nothing)
+export type HitResult = "Hit" | "Immune" | "Blocked" | "Interrupted" | "Ignored"
+
 type attackHitPlayerCallback = (attacker: Player, attackerToolId: string?, victim: Player, victimHumanoid: Humanoid?, damageAmount: number) -> (boolean)
 
 -------------------------------------------------------------------------------
@@ -106,55 +110,61 @@ function CombatLibrary.removeAttackHitPlayerCallback(key: string)
    attackHitPlayerCallbacks[key] = nil
 end
 
-function CombatLibrary.attackHitPlayer(attacker: Player, attackerToolId: string?, victim: Player, victimHumanoid: Humanoid?, damageAmount: number, doNotPlaySliceEffect: boolean?)
-   warn(`damaged player called`)
-   local eventId = `{(if attacker then attacker.UserId else 0)}_vs_{victim.UserId}`
-
+-- // The slash and kill sound are played by the server only (they replicate to every client), so a client can never show a hit the
+-- // server rejected. Returns what became of the attack so callers (e.g. a boomerang's energy cost) can react to it.
+function CombatLibrary.attackHitPlayer(attacker: Player, attackerToolId: string?, victim: Player, victimHumanoid: Humanoid?, damageAmount: number, doNotPlaySliceEffect: boolean?): HitResult
    if HitboxLibrary.isImmunized(victim) then
-      print("CombatLibrary.damagePlayer: victim is immunized")
-      return
+      return "Immune"
    end
    local humanoid = victimHumanoid or getHumanoid(victim)
    if not humanoid then
-      return
+      return "Ignored"
    end
-   
+
    if PickupLibrary.hasPickupEffectActive(victim.UserId, "Shield") then
       if isServer then
          PickupLibrary.removePickupEffectActiveByClassId(victim.UserId, "Shield", PickupCancelCodeEnum.ShieldBroken, false)
       end
-      return
+      return "Blocked"
    end
 
    for k, v in pairs(attackHitPlayerCallbacks) do
       local attackInterruptedByCallback = v(attacker, attackerToolId, victim, humanoid, damageAmount)
       if attackInterruptedByCallback then
-         return
+         return "Interrupted"
       end
    end
 
    local currentRoundData = GameStateLibrary.getGameStateData().CurrentRoundData
    if not currentRoundData or not currentRoundData:Get() then
-      return
+      return "Ignored"
    end
    local currentGamemode = currentRoundData:Get().Gamemode
    if currentGamemode == "HotPotato" then
-      return
+      return "Ignored"
+   end
+
+   if not isServer then
+      return "Hit" -- // Clients never play the effect or apply damage themselves
    end
 
    if not doNotPlaySliceEffect then
-      SoundLibrary.play(eventId, Sounds.Data.Kill.Name, victimHumanoid.Parent.PrimaryPart, nil, true)
-      ParticlesLibrary.emit(eventId, "Slash", victimHumanoid.Parent.PrimaryPart.Position, 1)
-   end
-
-   if isServer then
-      if attacker and attackerToolId then
-         CombatLibrary.applyDamageToHumanoid(victim, humanoid, 10000, attacker, nil)
-         CombatLibrary.PlayerKilledPlayerTasks:Execute("parallel", attacker, victim, attackerToolId)
-      else
-         CombatLibrary.applyDamageToHumanoid(victim, humanoid, 10000, nil, "Unknown")
+      local victimRootPart = humanoid.Parent and (humanoid.Parent :: Model).PrimaryPart
+      if victimRootPart then
+         -- // One id per hit, so the clients' repeat-play guard can never swallow a real hit's effect
+         local eventId = `{(if attacker then attacker.UserId else 0)}_vs_{victim.UserId}_{workspace:GetServerTimeNow()}`
+         SoundLibrary.play(eventId, Sounds.Data.Kill.Name, victimRootPart, nil, true)
+         ParticlesLibrary.emit(eventId, "Slash", victimRootPart.Position, 1)
       end
    end
+
+   if attacker and attackerToolId then
+      CombatLibrary.applyDamageToHumanoid(victim, humanoid, 10000, attacker, nil)
+      CombatLibrary.PlayerKilledPlayerTasks:Execute("parallel", attacker, victim, attackerToolId)
+   else
+      CombatLibrary.applyDamageToHumanoid(victim, humanoid, 10000, nil, "Unknown")
+   end
+   return "Hit"
 end
 
 -------------------------------------------------------------------------------
