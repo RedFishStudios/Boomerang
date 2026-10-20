@@ -525,13 +525,9 @@ function WeaponService.init()
          if deadWeaponData then
             deadWeaponData.RecallHeld = true
          end
-      elseif thrownWeaponData and thrownWeaponData.RecallFromDead then
-         local toolData = Tools[thrownWeaponData.ToolId]
-         local Logic = toolData and getLogic(toolData.LogicClass)
-         if Logic and Logic.stopRecallFromDead then
-            Logic.stopRecallFromDead(Player, thrownWeaponData)
-         end
       end
+      -- // Releasing the button does NOT stop a charged recall: once the dead boomerang has started returning (T-090) it keeps
+      -- // returning until it is caught (or the round ends / the player respawns). Only an uncharged one is cancelled, below.
 
       -- // Released: a dead boomerang that is still charging drops back to the ground (T-090)
       if not isPressed then

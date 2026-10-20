@@ -43,7 +43,7 @@ export type Data = {
    LastMovementPositions: {Vector3}?,
    HitPlayers: {[Player]: number}?,
    HitBots: {[Model]: number}?, -- // When a bot (decoy) was last struck by this boomerang, for the same per-target cooldown as HitPlayers
-   RecallFromDead: boolean?, -- // Recalled off the ground: true = only while recall is held, false = automatic (recovered)
+   RecallFromDead: boolean?, -- // Recalled off the ground: true = the player's charged manual recall (can't be cancelled), false = automatic (recovered)
    PortalExitAt: number?, -- // os.clock() of the last portal exit (Environment/Portal)
    PortalExitPart: BasePart?, -- // The portal it last came out of
    TrailObject: {
