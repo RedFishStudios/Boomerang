@@ -1632,10 +1632,10 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          return
       end
 
-      -- // Recovering off the ground by itself (automatic recall, RecallFromDead == false): rise smoothly to hand height while
-      -- // returning. A manual recall (RecallFromDead == true) was already lifted to hand height by the recall charge
-      -- // (Dead.luau, T-090), so it keeps its height and only moves toward the player.
-      if thrownWeaponData.RecallFromDead == false then
+      -- // Recalled off the ground: keep to the player's hand height while returning, as a thrown boomerang does. The obstruction
+      -- // cast is a thin flat block, so a boomerang left even half a stud above hand height flies over arena walls. A manual
+      -- // recall was lifted there by the recall charge (Dead.luau, T-090); this also follows the player if they moved up or down.
+      if thrownWeaponData.RecallFromDead ~= nil then
          local heightDelta = rootPart.Position.Y - hostPivot.Position.Y
          if math.abs(heightDelta) > 0.05 then
             hostPivot += Vector3.new(0, heightDelta * math.clamp(deltaTime * liftRate, 0, 1), 0)
