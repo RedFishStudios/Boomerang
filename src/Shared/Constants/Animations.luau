@@ -30,6 +30,14 @@ local Animations: {
       Looping = false
    },
 
+	Summon = {
+		Id = 93282079872868,
+		Layer = "WeaponAction",
+		FadeIn = .6,
+		FadeOut = .2,
+		Looping = true
+	},
+
    Catch = {
       Id = 111625966555407,
       Layer = "WeaponAction",
