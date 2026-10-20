@@ -7,9 +7,8 @@
 	The beam is built from scratch here (the `BeamToDeadWeapon` instance in the Studio workspace is only a visual reference
 	and is never used at runtime):
 	  - Attachment0 sits on the boomerang's PrimaryPart (or the first BasePart found in its model), offset (0, 1, 0).
-	  - Attachment1 sits on the local character's `Hitbox` (HitboxService), offset 2 studs straight up.
-	    (The Hitbox is a cylinder rotated 90 degrees, so its local "up" is not world up: the offset is converted
-	    into the Hitbox's own space once, when the beam is built.)
+	  - Attachment1 sits on the local character's `Hitbox` (HitboxService), at offset (0, 0, 0). (PLAYER_ATTACHMENT_OFFSET is in
+	    world-upright terms and converted into the Hitbox's own space, since the Hitbox cylinder is rotated 90 degrees.)
 
 	One beam at a time, by design (a "single source of truth" instead of event-driven create/destroy):
 	  - Every frame `reconcile()` compares what SHOULD exist (derived from DeadWeapons.Data) with what DOES exist and fixes
@@ -39,9 +38,9 @@ local CONTAINER_NAME = "DeadWeaponBeams"
 local BEAM_NAME = "BeamToDeadWeapon"
 local ATTACHMENT_NAME = "DeadWeaponBeamAttachment"
 
--- // Attachment offsets (from the BeamToDeadWeapon reference): boomerang (0, 1, 0), player (0, 2, 0)
+-- // Attachment offsets: boomerang (0, 1, 0) (from the BeamToDeadWeapon reference), player (0, 0, 0) (Sol, 2026-10-20)
 local WEAPON_ATTACHMENT_OFFSET = Vector3.new(0, 1, 0) -- // In the boomerang part's own space
-local PLAYER_ATTACHMENT_OFFSET = Vector3.new(0, 2, 0) -- // In WORLD-upright terms, converted to the Hitbox's space
+local PLAYER_ATTACHMENT_OFFSET = Vector3.zero -- // In WORLD-upright terms, converted to the Hitbox's space (zero = the Hitbox's center)
 
 -- // Beam look (copied from the BeamToDeadWeapon reference)
 local BEAM_TEXTURE = "rbxassetid://75521069157462"
