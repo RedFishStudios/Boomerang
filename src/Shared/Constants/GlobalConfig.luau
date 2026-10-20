@@ -85,7 +85,7 @@ local GlobalConfig = {
    GroupId = 293180599,
    GroupRewardCurrency = 100, -- TODO:RELEASE placeholder (the real reward isn't decided yet)
 
-   LagCompensationMilliseconds = 200, -- // Most the server rewinds players when a boomerang sweep checks for hits (LagCompensationLibrary). 0 = lag compensation off. Cmdr `setpingcompensation` changes it live.
+   LagCompensationMilliseconds = 200, -- // Most the server rewinds players when a boomerang sweep checks for hits (LagCompensationLibrary). 0 = lag compensation off. Cmdr `setlagcompensation` changes it live.
 
    -- Use for debugging
    -- Enabling these can greatly increase lag or network traffic
