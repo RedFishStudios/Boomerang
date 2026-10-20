@@ -47,7 +47,6 @@ local PLAYER_ATTACHMENT_OFFSET = Vector3.new(0, 2, 0) -- // In WORLD-upright ter
 local BEAM_TEXTURE = "rbxassetid://75521069157462"
 local BEAM_WIDTH = 6
 local TEXTURE_ASPECT_RATIO = 1 -- // The beam texture image is square (1:1): one tile is as long as it is wide
-local BEAM_TEXTURE_LENGTH = 1 -- // Only the starting value: updateTextureLength() sets the real one every frame
 local BEAM_TEXTURE_SPEED = 1
 local BEAM_SEGMENTS = 100
 local BEAM_BRIGHTNESS = 1
@@ -154,14 +153,11 @@ local function destroyAll(reason: string)
 	end
 end
 
--- // Static texture mode stretches the texture over the whole beam and TextureLength is how many times it repeats. For the
--- // tiles to stay undistorted, each one must be as long as the beam is wide (times the image's aspect ratio): with both ends
--- // 6 studs wide and a 1:1 image, a tile is 6 studs long, so repeats = distance / 6. Called every frame while the beam exists.
-local function updateTextureLength(active: ActiveBeam)
-	local distance = (active.WeaponAttachment.WorldPosition - active.PlayerAttachment.WorldPosition).Magnitude
-	local averageWidth = (active.Beam.Width0 + active.Beam.Width1) / 2
-	local tileLength = averageWidth * TEXTURE_ASPECT_RATIO
-	active.Beam.TextureLength = if tileLength > 0 then distance / tileLength else BEAM_TEXTURE_LENGTH
+-- // In Static (and Wrap) texture mode, TextureLength is the length of ONE texture tile in studs (verified in Studio). It does
+-- // not depend on how far apart the ends are: the pattern simply repeats along the beam, and the last tile is cut off.
+-- // For a square (1:1) image to look undistorted, a tile must be as long as the beam is wide, so with width 6 it is 6 studs.
+local function getTileLength(): number
+	return BEAM_WIDTH * TEXTURE_ASPECT_RATIO
 end
 
 local function createBeam(deadWeaponData: DeadWeapons.Data, weaponPart: BasePart, hitbox: BasePart)
@@ -188,7 +184,7 @@ local function createBeam(deadWeaponData: DeadWeapons.Data, weaponPart: BasePart
 	beam.Attachment1 = weaponAttachment
 	beam.Texture = BEAM_TEXTURE
 	beam.TextureMode = Enum.TextureMode.Static
-	beam.TextureLength = BEAM_TEXTURE_LENGTH
+	beam.TextureLength = getTileLength()
 	beam.TextureSpeed = BEAM_TEXTURE_SPEED
 	beam.Width0 = BEAM_WIDTH
 	beam.Width1 = BEAM_WIDTH
@@ -214,7 +210,6 @@ local function createBeam(deadWeaponData: DeadWeapons.Data, weaponPart: BasePart
 		WeaponPart = weaponPart,
 		Hitbox = hitbox,
 	}
-	updateTextureLength(activeBeam :: ActiveBeam)
 	debugPrint("created")
 end
 
@@ -254,7 +249,6 @@ local function reconcile()
 	end
 
 	if isActiveBeamValid(deadWeaponData, weaponPart, hitbox) then
-		updateTextureLength(activeBeam :: ActiveBeam)
 		if DEBUG then
 			local beamCount = 0
 			for _, instance in CollectionService:GetTagged(TAG) do
