@@ -731,6 +731,12 @@ function CharacterRenderController.getCharacterModel(player: Player, canYield: b
    return getCharacterModel(player, canYield)
 end
 
+-- // The player's real (cached) avatar render model, ignoring any active Disguise. Use this when the avatar itself is
+--    wanted (e.g. a Decoy clone), not whatever the player currently looks like to others.
+function CharacterRenderController.getUndisguisedCharacterModel(player: Player, canYield: boolean?): Model?
+   return getCharacterModel(player, canYield)
+end
+
 -- // Returns a fresh, standalone clone of a player's client-rendered character model (not driven by the controller:
 --    not synced to the player's character, not tracked, not parented anywhere). The caller owns it and must parent and
 --    destroy it. Yields. Returns nil when the user isn't in the server or no model could be built.

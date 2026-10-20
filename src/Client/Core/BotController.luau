@@ -53,7 +53,8 @@ local function buildVisual(ownerUserId: number): Model?
 	if not owner then
 		return nil
 	end
-	local ownerModel = CharacterRenderController.getCharacterModel(owner, true)
+	-- // Never the owner's Disguise model: a decoy always looks like the real avatar
+	local ownerModel = CharacterRenderController.getUndisguisedCharacterModel(owner, true)
 	if not ownerModel then
 		return nil
 	end
