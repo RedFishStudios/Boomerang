@@ -8,7 +8,7 @@
 	thrower's screen counts. It only ever adds hits to the normal (live) check; flight, bounces and recalls are never rewound.
 
 	The setting is one number, in milliseconds: the most the server will rewind. 200 by default (GlobalConfig.LagCompensationMilliseconds).
-	0 turns lag compensation off completely (nothing is recorded, hits are exactly as before). Cmdr `setpingcompensation` changes it live
+	0 turns lag compensation off completely (nothing is recorded, hits are exactly as before). Cmdr `setlagcompensation` changes it live
 	for this server session only (not saved). Server only: on a client every function does nothing.
 ]]
 
