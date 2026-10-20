@@ -1,7 +1,7 @@
--- // Cmdr command definition (replicated to clients for autocomplete). Server logic is in SetLagCompensationServer.
+-- // Cmdr command definition (replicated to clients for autocomplete). Server logic is in SetPingCompensationServer.
 return {
-	Name = "setlagcompensation",
-	Aliases = { "lagcompensation" },
+	Name = "setpingcompensation",
+	Aliases = { "pingcompensation" },
 	Description = "Shows or sets the most (milliseconds) the server rewinds players when a boomerang checks for hits, so a hit that looked like a hit on the thrower's screen counts. 0 turns lag compensation off. This server only (not saved).",
 	Group = "DevTesting",
 	Args = {
