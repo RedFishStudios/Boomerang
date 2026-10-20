@@ -28,6 +28,15 @@ export type Data = {
    ExistingHost: Model?,
    DeathOrigin: Vector3?,
    VisualRotation: number?,
+
+   -- // T-090 recall charge (Dead.luau). Timestamps are server time (workspace:GetServerTimeNow()), replicated by the RecallCharge event
+   RecallHeld: boolean?, -- // Server only: the owner is holding the recall button
+   RecallChargeStart: number?, -- // When the current charge began
+   RecallChargeStartY: number?, -- // Height the boomerang had when the charge began
+   RecallChargeTargetY: number?, -- // Height it lifts to (hand height) by the end of the charge
+   RecallRestY: number?, -- // Its resting height on the ground
+   RecallCancelAt: number?, -- // When an uncharged recall was released (it then drops back to RecallRestY)
+   RecallCancelFromY: number?, -- // Height it had at that moment
    
    MovementConnection: RBXScriptConnection?,
 }

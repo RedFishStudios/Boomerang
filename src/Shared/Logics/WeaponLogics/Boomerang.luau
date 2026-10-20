@@ -90,9 +90,7 @@ local RAYCAST_VISUALIZERS_ENABLED = GlobalConfig.RaycastVisualizersEnabled
 local projectileVisualizerEnabled = GlobalConfig.ProjectileHitboxVisualizerEnabled -- // Server only; Cmdr `toggleprojectilevisualizer` changes it live. Read when a boomerang is thrown
 
 local BOOMERANG_SPIN_SPEED = math.rad(1080)
-local RECALL_FROM_DEAD_LIFT_RATE = 8 -- // How fast a boomerang recalled off the ground rises to hand height
-local MANUAL_RECALL_TILT_HEIGHT = 2 -- // Height still to rise (studs) at which the manual-recall tilt is at its maximum
-local MANUAL_RECALL_TILT_RESPONSE = 6 -- // How quickly the tilt eases toward its target
+local RECALL_FROM_DEAD_LIFT_RATE = 8 -- // How fast a boomerang that recovers by itself (automatic recall off the ground) rises to hand height
 
 type ThrowInitOptions = {
    StartPosition: Vector3?,
@@ -474,8 +472,7 @@ local function setWeaponCFrame(thrownWeaponData: ThrownWeapons.Data, cframe: CFr
          -- Spin is constant and flat regardless of movement direction, speed, or state
          local visualRotation = (thrownWeaponData.VisualRotation or 0) + (BOOMERANG_SPIN_SPEED * (deltaTime or 0))
          thrownWeaponData.VisualRotation = visualRotation
-         -- // RecallTilt: visual tilt while a manual recall drags it up off the ground (set in Boomerang.recall)
-         host:PivotTo(CFrame.new(cframe.Position) * (thrownWeaponData.RecallTilt or CFrame.identity) * CFrame.Angles(0, visualRotation, 0))
+         host:PivotTo(CFrame.new(cframe.Position) * CFrame.Angles(0, visualRotation, 0))
       else
          host:PivotTo(cframe)
       end
@@ -1246,7 +1243,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       local alpha = math.clamp(stepAccumulator / FIXED_STEP, 0, 1)
       local drawnPosition = (thrownWeaponData.LastPosition or simCFrame.Position):Lerp(simCFrame.Position, alpha)
       local spin = (thrownWeaponData.VisualRotation or 0) + BOOMERANG_SPIN_SPEED * stepAccumulator
-      host:PivotTo(CFrame.new(drawnPosition) * (thrownWeaponData.RecallTilt or CFrame.identity) * CFrame.Angles(0, spin, 0))
+      host:PivotTo(CFrame.new(drawnPosition) * CFrame.Angles(0, spin, 0))
    end
 
    local function stopMovement()
@@ -1585,7 +1582,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
    local returnSpeedMultiplier = if PickupLibrary.hasPickupEffectActive(player.UserId, "ExplosiveBoomerang") then GlobalConfig.ExplosiveBoomerangReturnSpeedMultiplier else 1
    -- // Held manual recall of a dying/dead boomerang: capped speed and heavy momentum
    local isManualRecallFromDead = thrownWeaponData.RecallFromDead == true
-   local liftRate = if isManualRecallFromDead then GlobalConfig.ManualRecallLiftRate else RECALL_FROM_DEAD_LIFT_RATE
+   local liftRate = RECALL_FROM_DEAD_LIFT_RATE
    local maximumSpeed, momentumMultiplier = 0, 1
    local rampSeconds, rampPower = GlobalConfig.ManualRecallRampSeconds, GlobalConfig.ManualRecallRampPower
    local rampElapsed = 0 -- // Seconds since this recall started (drives the manual recall's speed-up curve)
@@ -1653,30 +1650,13 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          return
       end
 
-      -- // Recalled off the ground: rise smoothly to hand height while returning
-      if thrownWeaponData.RecallFromDead ~= nil then
+      -- // Recovering off the ground by itself (automatic recall, RecallFromDead == false): rise smoothly to hand height while
+      -- // returning. A manual recall (RecallFromDead == true) was already lifted to hand height by the recall charge
+      -- // (Dead.luau, T-090), so it keeps its height and only moves toward the player.
+      if thrownWeaponData.RecallFromDead == false then
          local heightDelta = rootPart.Position.Y - hostPivot.Position.Y
          if math.abs(heightDelta) > 0.05 then
             hostPivot += Vector3.new(0, heightDelta * math.clamp(deltaTime * liftRate, 0, 1), 0)
-         end
-
-         -- // Visual only: tilt up toward the player while still being dragged up, easing flat as it reaches hand height
-         if not isServer and isManualRecallFromDead then
-            -- // The tilt is exactly 0 once the lift stops (the lift above stops within 0.05 studs of hand height)
-            local remainingRise = math.max(rootPart.Position.Y - hostPivot.Position.Y, 0)
-            local riseAlpha = math.clamp((remainingRise - 0.05) / (MANUAL_RECALL_TILT_HEIGHT - 0.05), 0, 1)
-            local targetTilt = math.rad(GlobalConfig.ManualRecallMaxTiltDegrees) * riseAlpha * riseAlpha * (3 - 2 * riseAlpha) -- // smoothstep
-            local currentTilt = thrownWeaponData.RecallTiltAngle or 0
-            if targetTilt < currentTilt then
-               currentTilt = targetTilt -- // Leveling out follows the rise directly (no lag), so it's flat by the peak
-            else
-               currentTilt += (targetTilt - currentTilt) * (1 - math.exp(-MANUAL_RECALL_TILT_RESPONSE * deltaTime)) -- // Tilting in eases
-            end
-            thrownWeaponData.RecallTiltAngle = currentTilt
-            local towardPlayer = getHorizontalDirection(rootPart.Position - hostPivot.Position)
-            local tiltAxis = UP_VECTOR:Cross(towardPlayer)
-            -- // Negative angle about (up x towardPlayer) raises the side facing the player
-            thrownWeaponData.RecallTilt = if tiltAxis.Magnitude > 1e-4 and currentTilt > 1e-3 then CFrame.fromAxisAngle(tiltAxis.Unit, -currentTilt) else nil
          end
       end
 
@@ -1862,6 +1842,11 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       end
       fireSnapshot(player.UserId, currentPivot.Position, immediateDirection, thrownWeaponData.Speed or speed, thrownWeaponData.State)
    end
+end
+
+-- // Hook: the owner held recall on a dead boomerang for the full GlobalConfig.RecallCharge (T-090): it starts returning
+DeadWeaponLogic.onRecallCharged = function(player: Player, deadWeaponData: DeadWeapons.Data)
+   Boomerang.recallFromDead(player, deadWeaponData, true)
 end
 
 -- // Hook: a dying boomerang that keeps sliding with nothing to land on returns on its own (T-062; Dead.luau can't require this module)

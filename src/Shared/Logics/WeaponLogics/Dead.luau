@@ -10,6 +10,7 @@ local Players = game:GetService("Players")
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local DeadWeapons = require(ReplicatedStorage.Shared.Referential.DeadWeapons)
+local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
 local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 local BufferUtil = require(ReplicatedStorage.Shared.Utils.BufferUtil)
 local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
@@ -501,6 +502,166 @@ function DeadWeaponLogic.updateSmoothing(deltaTime: number)
 		local correctedCFrame = (currentPivot - currentPivot.Position) + correctedPosition
 		deadWeaponData.CFrame = correctedCFrame
 		host:PivotTo(correctedCFrame)
+	end
+end
+
+-------------------------------------------------------------------------------
+-- RECALL CHARGE (T-090)
+-- A dead boomerang only returns after its owner has held the manual recall for GlobalConfig.RecallCharge seconds. While
+-- charging it lifts straight up to hand height (Y only), arriving exactly when the charge completes; releasing early drops it
+-- back down. The server owns the state; the start/cancel are broadcast with server timestamps (RecallCharge event) and every
+-- machine derives the height from those timestamps, so the lift is smooth everywhere without streaming positions.
+-- Boomerang.luau sets DeadWeaponLogic.onRecallCharged (this module can't require it) to start the actual recall.
+-------------------------------------------------------------------------------
+
+local RECALL_CHARGE_EVENT = "RecallCharge"
+
+local function smoothstep(alpha: number): number
+	alpha = math.clamp(alpha, 0, 1)
+	return alpha * alpha * (3 - 2 * alpha)
+end
+
+-- // The height the boomerang should be at right now (nil = not charging or dropping: leave it where it is)
+local function getChargeHeight(deadWeaponData: DeadWeapons.Data, now: number): number?
+	local cancelAt = deadWeaponData.RecallCancelAt
+	if cancelAt then
+		local fromY = deadWeaponData.RecallCancelFromY
+		local restY = deadWeaponData.RecallRestY
+		if not fromY or not restY then
+			return nil
+		end
+		local alpha = math.clamp((now - cancelAt) / math.max(GlobalConfig.RecallChargeCancelDropSeconds, 0.01), 0, 1)
+		return fromY + (restY - fromY) * alpha * alpha -- // Accelerates downward, like falling
+	end
+
+	local startAt = deadWeaponData.RecallChargeStart
+	local startY = deadWeaponData.RecallChargeStartY
+	local targetY = deadWeaponData.RecallChargeTargetY
+	if not startAt or not startY or not targetY then
+		return nil
+	end
+	local alpha = (now - startAt) / math.max(GlobalConfig.RecallCharge, 0.01)
+	return startY + (targetY - startY) * smoothstep(alpha)
+end
+
+local function clearChargeFields(deadWeaponData: DeadWeapons.Data)
+	deadWeaponData.RecallChargeStart = nil
+	deadWeaponData.RecallChargeStartY = nil
+	deadWeaponData.RecallChargeTargetY = nil
+	deadWeaponData.RecallCancelAt = nil
+	deadWeaponData.RecallCancelFromY = nil
+end
+
+local function setHeight(deadWeaponData: DeadWeapons.Data, y: number)
+	local pivot = getWeaponCFrame(deadWeaponData)
+	if not pivot then
+		return
+	end
+	local position = pivot.Position
+	setWeaponCFrame(deadWeaponData, (pivot - position) + Vector3.new(position.X, y, position.Z), 0)
+end
+
+-- // True while the recall is being held on a dead boomerang (not cancelled, not yet returning)
+function DeadWeaponLogic.isRecallCharging(deadWeaponData: DeadWeapons.Data): boolean
+	return deadWeaponData.RecallChargeStart ~= nil and deadWeaponData.RecallCancelAt == nil
+end
+
+-- // True while the player's recall visuals should show: charging a dead boomerang, or a charged one flying back to them
+-- // (the SelectionRing, the Summon animation and the dimmer beam all follow this)
+function DeadWeaponLogic.isRecallChargeActive(player: Player): boolean
+	local deadWeaponData = DeadWeapons.Data[player]
+	if deadWeaponData then
+		return DeadWeaponLogic.isRecallCharging(deadWeaponData)
+	end
+	local thrownWeaponData = ThrownWeapons.Data[player]
+	return thrownWeaponData ~= nil and thrownWeaponData.RecallFromDead == true
+end
+
+-- // Both sides: record a charge start/cancel (server calls it for itself, clients call it from the RecallCharge event)
+function DeadWeaponLogic.applyRecallChargeEvent(player: Player, action: string, serverTime: number, a: number?, b: number?, c: number?)
+	local deadWeaponData = DeadWeapons.Data[player]
+	if not deadWeaponData then
+		return
+	end
+	if action == "Start" then
+		deadWeaponData.RecallChargeStart = serverTime
+		deadWeaponData.RecallChargeStartY = a
+		deadWeaponData.RecallChargeTargetY = b
+		deadWeaponData.RecallRestY = c
+		deadWeaponData.RecallCancelAt = nil
+		deadWeaponData.RecallCancelFromY = nil
+	elseif action == "Cancel" then
+		if deadWeaponData.RecallChargeStart then
+			deadWeaponData.RecallCancelAt = serverTime
+			deadWeaponData.RecallCancelFromY = a
+		end
+	end
+end
+
+-- // Server only: the owner pressed recall on a boomerang that is Dead: start lifting it
+function DeadWeaponLogic.beginRecallCharge(player: Player, deadWeaponData: DeadWeapons.Data)
+	if not isServer or DeadWeapons.Data[player] ~= deadWeaponData or deadWeaponData.State ~= DeadWeapons.StateEnum.Dead then
+		return
+	end
+	if DeadWeaponLogic.isRecallCharging(deadWeaponData) then
+		return
+	end
+	local pivot = getWeaponCFrame(deadWeaponData)
+	local rootPart = player.Character and player.Character.PrimaryPart
+	if not pivot or not rootPart then
+		return
+	end
+
+	local now = workspace:GetServerTimeNow()
+	-- // Pressing again while it is still dropping resumes from where it is (the full charge time still applies)
+	local startY = getChargeHeight(deadWeaponData, now) or pivot.Position.Y
+	local restY = deadWeaponData.RecallRestY or pivot.Position.Y
+	local targetY = math.max(rootPart.Position.Y, restY) -- // Hand height: the same height the old recall lifted it to
+
+	DeadWeaponLogic.applyRecallChargeEvent(player, "Start", now, startY, targetY, restY)
+	SimpleRemotes.getEvent(RECALL_CHARGE_EVENT):FireAllClients(player.UserId, "Start", now, startY, targetY, restY)
+end
+
+-- // Server only: the owner released recall before the charge finished: it drops back to the ground
+function DeadWeaponLogic.cancelRecallCharge(player: Player, deadWeaponData: DeadWeapons.Data)
+	if not isServer or DeadWeapons.Data[player] ~= deadWeaponData or not DeadWeaponLogic.isRecallCharging(deadWeaponData) then
+		return
+	end
+	local now = workspace:GetServerTimeNow()
+	local currentY = getChargeHeight(deadWeaponData, now) or deadWeaponData.RecallRestY or 0
+	DeadWeaponLogic.applyRecallChargeEvent(player, "Cancel", now, currentY)
+	SimpleRemotes.getEvent(RECALL_CHARGE_EVENT):FireAllClients(player.UserId, "Cancel", now, currentY)
+end
+
+-- // Every frame, on the server and on clients: move charging / dropping boomerangs to their height. The server also
+-- // starts a charge for a held button once the boomerang has landed, and starts the recall when the charge completes.
+function DeadWeaponLogic.updateRecallCharges(_deltaTime: number)
+	local now = workspace:GetServerTimeNow()
+	for player, deadWeaponData in pairs(DeadWeapons.Data) do
+		if deadWeaponData.State ~= DeadWeapons.StateEnum.Dead then
+			continue
+		end
+
+		if isServer and deadWeaponData.RecallHeld and not deadWeaponData.RecallChargeStart then
+			DeadWeaponLogic.beginRecallCharge(player, deadWeaponData)
+		end
+
+		local height = getChargeHeight(deadWeaponData, now)
+		if not height then
+			continue
+		end
+		setHeight(deadWeaponData, height)
+
+		local cancelAt = deadWeaponData.RecallCancelAt
+		if cancelAt and now - cancelAt >= GlobalConfig.RecallChargeCancelDropSeconds then
+			clearChargeFields(deadWeaponData) -- // Back on the ground
+		elseif isServer and not cancelAt and deadWeaponData.RecallChargeStart and now - deadWeaponData.RecallChargeStart >= GlobalConfig.RecallCharge then
+			if DeadWeaponLogic.onRecallCharged then
+				DeadWeaponLogic.onRecallCharged(player, deadWeaponData)
+			else
+				clearChargeFields(deadWeaponData)
+			end
+		end
 	end
 end
 

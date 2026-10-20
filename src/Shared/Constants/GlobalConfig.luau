@@ -59,7 +59,12 @@ local GlobalConfig = {
    -- // Before a boomerang dies the server also simulates its dying slide this many seconds ahead; if the player would be in sight and
    -- // within range at any point of it, the boomerang keeps returning instead of dying (no die-then-revive flicker).
    DyingBoomerangRecallLookaheadSeconds = 0.4,
-   -- // Manual recall of a dying/dead boomerang (held recall): slower, heavier, sluggish lift with a visual tilt
+   -- // Manual recall of a dying/dead boomerang (held recall): slower and heavier. It must first be charged (RecallCharge below)
+   RecallCharge = 1.5, -- // T-090: seconds the recall must be held on a dead boomerang before it starts returning; it lifts to hand height meanwhile
+   RecallChargeCancelDropSeconds = 0.25, -- // Releasing the recall before it is charged drops the boomerang back to the ground over this long
+   RecallChargeBeamOpacity = 0.2, -- // The player-to-boomerang beam fades to at most this opacity while the recall is charging / recalling (1 = normal beam)
+   SelectionRingGrowSeconds = 0.3, -- // The SelectionRing tweens from nothing to full size (with a small overshoot) over this long
+   SelectionRingVanishSeconds = 0.15, -- // ...and shrinks away over this long when the recall is released early
    ManualRecallMomentumMultiplier = 0.15, -- // How quickly it accelerates/turns toward the player (1 = normal recall)
    -- // Manual recall speed-up: the boomerang starts at ManualRecallRampStartFraction of its max recall speed and builds up
    -- // along a curve that stays slow at first and then climbs steeply, reaching max speed after ManualRecallRampSeconds.
@@ -67,8 +72,6 @@ local GlobalConfig = {
    ManualRecallRampSeconds = 0.7, -- // Seconds from the start of a manual recall until it reaches max speed
    ManualRecallRampPower = 3, -- // Curve steepness: 1 = steady speed-up, higher = slower start and a sharper late surge
    ManualRecallRampStartFraction = 0.12, -- // Fraction of max recall speed at the moment the recall starts
-   ManualRecallLiftRate = 2.5, -- // How quickly it rises to hand height (normal from-ground lift is 8)
-   ManualRecallMaxTiltDegrees = 35, -- // Visual tilt toward the player while it's being lifted
    ManualRecallHighlightFadeOutSeconds = 0.6, -- // The dead boomerang's highlight fades this slowly when a manual recall starts (normal fade: 0.1)
    DyingSpeedMultiplier = 4, -- // How much faster a boomerang loses its slide momentum and drops to the ground once it starts dying (1 = the original pace). Tunable live via Cmdr `tuneboomerang DyingSpeedMultiplier`.
    ExplosiveBoomerangReturnSpeedMultiplier = 1.5, -- // While the effect is active: recall speed x this, and the post-explosion weapon lock / this

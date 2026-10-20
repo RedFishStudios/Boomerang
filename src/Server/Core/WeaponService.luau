@@ -335,6 +335,12 @@ function WeaponService.init()
    SimpleRemotes.getEvent("ThrownBoomerangDespawned")
    SimpleRemotes.getEvent("WeaponEquipState")
    SimpleRemotes.getUnreliableEvent("ThrownWeaponReplication")
+   SimpleRemotes.getEvent("RecallCharge") -- // T-090: recall charge start/cancel (Dead.luau)
+
+   -- // T-090: charging dead boomerangs lift/drop and the server starts the recall once the charge completes
+   RunService.Heartbeat:Connect(function(deltaTime: number)
+      DeadWeaponLogic.updateRecallCharges(deltaTime)
+   end)
 
    -- // T-077 Telekinesis: the owning client streams its desired steer direction while the effect is active and its
    -- // boomerang is in flight. Validate here (server is authoritative) and store it on the thrown weapon.
@@ -512,17 +518,27 @@ function WeaponService.init()
             end
             return
          end
+         -- // A dead boomerang doesn't return on the press: holding recall charges it (GlobalConfig.RecallCharge). Dead.luau
+         -- // starts the charge once it is Dead (a Dying one begins charging as soon as it lands while held) and starts the
+         -- // recall when the charge completes.
          local deadWeaponData = DeadWeapons.Data[Player]
-         local toolData = deadWeaponData and Tools[deadWeaponData.ToolId]
-         local Logic = toolData and getLogic(toolData.LogicClass)
-         if Logic and Logic.recallFromDead then
-            Logic.recallFromDead(Player, deadWeaponData, true)
+         if deadWeaponData then
+            deadWeaponData.RecallHeld = true
          end
       elseif thrownWeaponData and thrownWeaponData.RecallFromDead then
          local toolData = Tools[thrownWeaponData.ToolId]
          local Logic = toolData and getLogic(toolData.LogicClass)
          if Logic and Logic.stopRecallFromDead then
             Logic.stopRecallFromDead(Player, thrownWeaponData)
+         end
+      end
+
+      -- // Released: a dead boomerang that is still charging drops back to the ground (T-090)
+      if not isPressed then
+         local deadWeaponData = DeadWeapons.Data[Player]
+         if deadWeaponData then
+            deadWeaponData.RecallHeld = false
+            DeadWeaponLogic.cancelRecallCharge(Player, deadWeaponData)
          end
       end
    end)

@@ -62,6 +62,7 @@ local thrownBoomerangSpawnedEvent = SimpleRemotes.getEvent("ThrownBoomerangSpawn
 local thrownBoomerangDespawnedEvent = SimpleRemotes.getEvent("ThrownBoomerangDespawned")
 local thrownWeaponReplicationEvent = SimpleRemotes.getUnreliableEvent("ThrownWeaponReplication")
 local telekinesisSteerEvent = SimpleRemotes.getUnreliableEvent("TelekinesisSteer") -- // T-077
+local recallChargeEvent = SimpleRemotes.getEvent("RecallCharge") -- // T-090: a dead boomerang's recall charge started / was cancelled (any player)
 
 local UNRELIABLE_CODES = RemoteCodes.Weapon.Unreliable
 local SOFT_CORRECTION_RATE = 14
@@ -926,6 +927,15 @@ function WeaponController.init()
    RunService.PreSimulation:Connect(function(deltaTime)
       updateSmoothing(deltaTime)
       DeadWeaponLogic.updateSmoothing(deltaTime)
+      DeadWeaponLogic.updateRecallCharges(deltaTime) -- // T-090: lift / drop charging dead boomerangs (same timestamps as the server)
+   end)
+
+   -- // T-090: the server says a player's dead boomerang started charging a recall (it lifts) or the charge was released (it drops)
+   recallChargeEvent.OnClientEvent:Connect(function(playerUserId: number, action: string, serverTime: number, a: number?, b: number?, c: number?)
+      local chargingPlayer = Players:GetPlayerByUserId(playerUserId)
+      if chargingPlayer then
+         DeadWeaponLogic.applyRecallChargeEvent(chargingPlayer, action, serverTime, a, b, c)
+      end
    end)
 
    local gameStateData = GameStateLibrary.getGameStateData()

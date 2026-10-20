@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-090** *(shared by every task list, general and Epic)*
+**Next free ID: T-091** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,42 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-090 · Dead boomerang recall must be charged (lift, SelectionRing, Summon animation)
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Server / Client / Shared
+- **Files:** `Shared/Logics/WeaponLogics/Dead.luau` (charge logic), `Shared/Logics/WeaponLogics/Boomerang.luau`, `Server/Core/WeaponService.luau`, `Client/Core/WeaponController.luau`, `Client/Core/RecallChargeController.luau` (new), `Client/Core/DeadWeaponBeamController.luau`, `Client/Core/AnimationController.luau`, `Shared/Utils/BoomerangColorUtil.luau` (new), `Shared/Constants/GlobalConfig.luau`, `Shared/Referential/DeadWeapons.luau`
+
+**Problem / goal**
+A dead boomerang no longer lifts lazily and flies to the player on the recall press. The player must hold the manual recall for `GlobalConfig.RecallCharge` (1.5 s). During that time the boomerang rises straight up to hand height (Y only), the player plays the Summon animation, a SelectionRing appears around the boomerang and the beam to it dims to 20% opacity. When the charge completes it flies to the player with the existing manual-recall physics (speed ramp), without any lift. Releasing early drops it back, the ring shrinks away and the beam returns to normal. When it is caught the ring and beam are destroyed and Summon stops. The beam is local only; the lift, animation and ring are seen by every client.
+
+**Done when**
+- [ ] Holding recall (E / the recall button) on a Dead boomerang lifts it to hand height over `GlobalConfig.RecallCharge`, with no sideways movement; at the end of the charge it starts flying to the player
+- [ ] Releasing before the charge completes drops it back to its resting spot; pressing again restarts the charge
+- [ ] The Summon animation plays on the charging player (visible to other players) and stops on release / catch
+- [ ] The SelectionRing (from `ReplicatedStorage.Shared.Assets.SelectionRing`, its size = 100%) grows from nothing to full size over 0.3 s with a small overshoot, stays while the boomerang returns, shrinks away on an early release, and is destroyed on catch; its color matches the boomerang trail (white = you, red = free-for-all enemies, team color for teams)
+- [ ] The beam dims to 20% opacity during the charge and the return, and goes back to normal if released early; it is destroyed on catch
+- [ ] Holding recall on a Dying boomerang does nothing until it lands, then the charge starts (still holding)
+
+**Test in Studio**
+- `setnextgamemode classic`, throw so the boomerang dies out of sight (rest on the ground). Hold E: it should rise straight up over about 1.5 s while you play Summon, a ring pops in around it, and the beam dims. At 1.5 s it should fly to you with the usual slow start and surge, at constant height.
+- Release E at about 0.7 s: it falls back to where it was, the ring shrinks, the beam brightens again; hold again to retry.
+- Release E after the charge is complete (while it flies): it drops (existing behaviour) and the ring disappears.
+- `tune`-style testing of the time: change `GlobalConfig.RecallCharge` (e.g. 3) and hold again.
+- Second client (or Studio server with 2 players): the other player should see the boomerang lift, the Summon animation and the ring (in their own color rule: red if enemy in free-for-all, team color in teams), but NOT the beam.
+- Catch it: the ring, beam and Summon should all be gone.
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-090-recall-charge`. Edits left uncommitted.
+- **How it works:** the server owns the charge (`Dead.luau`: `beginRecallCharge` / `cancelRecallCharge` / `updateRecallCharges`). The press only sets `RecallHeld`; once the boomerang is Dead the server broadcasts a reliable `RecallCharge` event (`Start` with the start time and the start / target / resting heights, or `Cancel` with the current height), all stamped in server time. Every machine (server and clients) derives the boomerang's height from those stamps each frame (smoothstep up over `RecallCharge`, a quadratic drop back over `RecallChargeCancelDropSeconds`), so the lift is smooth without streaming positions. When the charge completes the server calls `Boomerang.recallFromDead(..., true)` through the `DeadWeaponLogic.onRecallCharged` hook, and clients follow the Returning snapshot as before.
+- **Removed:** the manual recall's lazy lift and visual tilt (`ManualRecallLiftRate`, `ManualRecallMaxTiltDegrees`, the tilt code and the `RecallTilt` fields). The automatic recall of a dying boomerang that slides off by itself (`RecallFromDead == false`) keeps its lift.
+- **Visuals** are derived every frame from `DeadWeaponLogic.isRecallChargeActive(player)` (no event handlers), like the beam: `RecallChargeController` handles the ring and the Summon animation for every player; `DeadWeaponBeamController` now also keeps the beam while the charged boomerang flies back and dims it.
+- **Color rule** moved to the new `Shared/Utils/BoomerangColorUtil.getColor(ownerPlayer)` (the thrown trail in `Boomerang.luau` uses it too): own = `MyBoomerangTrailColor`, free-for-all or friendly-fire team = `EnemyBoomerangTrailColor`, otherwise the team color. Allies on your own team get their team color (the existing trail behaviour).
+- New `GlobalConfig` values: `RecallCharge = 1.5`, `RecallChargeCancelDropSeconds = 0.25`, `RecallChargeBeamOpacity = 0.2`, `SelectionRingGrowSeconds = 0.3`, `SelectionRingVanishSeconds = 0.15`.
+- The `SelectionRing` asset exists only in the place (`ReplicatedStorage.Shared.Assets.SelectionRing`, not under `ReplicatedStorage.Assets`, and not in the repo); the controller waits for it there. It is a flat Neon disc (4.26 x 4.26 studs), kept in its own orientation and recolored per player.
+- Decisions I made: holding recall on a Dying boomerang starts the charge when it lands; a boomerang being caught mid-return destroys the ring at once; releasing after the charge is complete uses the existing "drops and dies again" behaviour.
+- Not syntax-checked or tested (no Luau tooling on the device; Studio play-testing is Sol's). Task ID: I used T-090 and bumped `Next free ID` to T-091 in this lane without a reservation commit; renumber if it clashes.
 
 ### T-089 · Beam between the player and their dead boomerang
 - **Priority:** P1
