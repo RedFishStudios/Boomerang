@@ -33,7 +33,7 @@ type ActiveEffect = {
    Frame: CanvasGroup,
    TimerLabel: TextLabel,
    EndsAt: number?,
-   ShownSeconds: number?, -- // Hundredths of a second currently shown
+   ShownSeconds: number?, -- // Tenths of a second currently shown
    MoveTween: Tween?,
    FadeTween: Tween?,
    Destroyed: boolean,
@@ -114,11 +114,11 @@ local function updateEffectTimer(effect: ActiveEffect, now: number)
       end
       return
    end
-   -- // Shown in hundredths of a second (1.43); the label only changes when the shown value does
-   local hundredthsLeft = math.max(0, math.ceil((effect.EndsAt - now) * 100))
-   if effect.ShownSeconds ~= hundredthsLeft then
-      effect.ShownSeconds = hundredthsLeft
-      effect.TimerLabel.Text = string.format("%.2f", hundredthsLeft / 100)
+   -- // Shown in tenths of a second (1.4); the label only changes when the shown value does
+   local tenthsLeft = math.max(0, math.ceil((effect.EndsAt - now) * 10))
+   if effect.ShownSeconds ~= tenthsLeft then
+      effect.ShownSeconds = tenthsLeft
+      effect.TimerLabel.Text = string.format("%.1f", tenthsLeft / 10)
    end
 end
 
