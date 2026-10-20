@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-091** *(shared by every task list, general and Epic)*
+**Next free ID: T-092** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,27 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-091 · Dash cooldown shown in the effects bar
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client / Shared
+- **Files:** `Shared/Logics/AbilityLogics/Dash.luau`, `Shared/Referential/AcquirableThingData.luau`, `Shared/Library/PickupLibrary.luau`, `Shared/Constants/Icons.luau`
+
+**Problem / goal**
+After dashing, the cooldown until the next dash shows along the bottom of the screen like pickups and On Fire: an icon (`Icons.DashCooldown`) and a countdown timer. It is display-only: no item-acquired notification, and the server doesn't know about it.
+
+**Done when**
+- [ ] Dashing shows the Dash Cooldown icon with a timer in the bottom effects bar; it disappears when the cooldown ends (1 s)
+- [ ] No "item acquired" notification appears for it
+- [ ] Dying clears it; other players never see it
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-091-dash-cooldown`. Edits left uncommitted.
+- The countdown is only `cooldowns` inside `Dash.luau`. Each client frame it mirrors that into the effects gui as a data-only effect `DashCooldown` through `PickupLibrary.setPickupEffectActive` / `removePickupEffectActive(..., doNotReplicate)` (client only; nothing reaches the server). No `ItemAcquired` call anywhere.
+- **`Icons.DashCooldown` is a placeholder (`0`, blank icon):** I had no asset id. Put the real id in `Shared/Constants/Icons.luau`.
+- Not syntax-checked or tested (Studio play-testing is Sol's).
+
 
 ### T-090 · Dead boomerang recall must be charged (lift, SelectionRing, Summon animation)
 - **Priority:** P1

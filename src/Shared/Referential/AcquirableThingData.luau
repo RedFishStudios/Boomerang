@@ -16,6 +16,14 @@ local AcquirableNotifData: {
       Subtitle = "Dash to heal yourself!",
       Img = Icons.OnFireEffect
    },
+   -- // Display-only: the Dash module shows this in the effects bar on the local client while the dash is cooling down. It is never
+   -- // acquired (no item-acquired notification) and the server doesn't know about it.
+   DashCooldown = {
+      Id = "DashCooldown",
+      Title = "Dash Cooldown",
+      Subtitle = "You can dash again soon",
+      Img = Icons.DashCooldown
+   },
    Zapped = {
       Id = "Zapped",
       Title = "Zapped",

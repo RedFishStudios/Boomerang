@@ -79,6 +79,7 @@ PickupLibrary.UserPickupEffectsActive = {} :: {
 
 local DATA_ONLY_EFFECTS: {[PickupClassId]: boolean} = {
    OnFire = true,
+   DashCooldown = true, -- // Client-only display effect owned by Dash.luau
    HotPotato = true,
 }
 

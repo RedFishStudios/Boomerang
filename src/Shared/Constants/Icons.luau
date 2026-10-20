@@ -36,6 +36,7 @@ return {
 	DisguisePickup = 110455057830397,
 	HomingBoomerang = 96446271835879,
 	OnFireEffect = 118956710558189,
+	DashCooldown = 0, -- // TODO: upload the dash cooldown icon and put its asset id here (0 shows an empty icon)
 	HotPotato = 90914469539086,
 	ShieldPickup = 91847330548907,
 	DecoyPickup = 72162085547970,

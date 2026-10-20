@@ -42,6 +42,8 @@ local DASH_SPEED = 80
 local DASH_DURATION_SECONDS = 0.12
 local DASH_COOLDOWN_SECONDS = 1
 
+local COOLDOWN_EFFECT_ID = "DashCooldown"
+
 local activeDashConnections: {[Model]: RBXScriptConnection} = {}
 
 -- The timestamp every player's dash wears off at
@@ -61,6 +63,32 @@ local function stopDash(player: Player, character: Model)
 	if AnimationController then
 		AnimationController.stopCoreAnimation(player, "Dash")
 	end
+end
+
+-- // Client only: the dash cooldown is shown in the effects bar (the same gui as pickups / On Fire) as a display-only effect.
+-- // The countdown itself lives only in `cooldowns` above; the server never hears about this effect. Every frame this compares
+-- // whether the local player's dash is cooling down with whether the effect is shown, so death, round end or any reset
+-- // that clears the cooldown also removes the icon, and nothing here is event-driven.
+local shownCooldownEndsAt: number? = nil -- // The cooldown (an os.clock timestamp) the effect currently shown was started for
+
+local function updateCooldownEffect()
+   local localPlayer = Players.LocalPlayer
+   local cooldownEndsAt = cooldowns[localPlayer]
+   if cooldownEndsAt and os.clock() >= cooldownEndsAt then
+      cooldownEndsAt = nil -- // Expired
+   end
+   if cooldownEndsAt == shownCooldownEndsAt then
+      return
+   end
+
+   if cooldownEndsAt then
+      -- // The effects gui counts down with server time, so convert the remaining cooldown
+      local endsAt = workspace:GetServerTimeNow() + (cooldownEndsAt - os.clock())
+      PickupLibrary.setPickupEffectActive(localPlayer.UserId, COOLDOWN_EFFECT_ID, COOLDOWN_EFFECT_ID, endsAt)
+   else
+      PickupLibrary.removePickupEffectActive(localPlayer.UserId, COOLDOWN_EFFECT_ID, nil, true)
+   end
+   shownCooldownEndsAt = cooldownEndsAt
 end
 
 local function isPlayerAiming(player: Player): boolean
@@ -271,6 +299,8 @@ PlayersUtil.CharacterDied:Add(function(player: Player, character: Model, humanoi
 end)
 
 if not isServer then
+   RunService.Heartbeat:Connect(updateCooldownEffect)
+
    PlayDash.OnClientEvent:Connect(function(userId: number, timestamp: number)
       local player = Players:GetPlayerByUserId(userId)
       if not player then
