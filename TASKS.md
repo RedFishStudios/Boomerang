@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-089** *(shared by every task list, general and Epic)*
+**Next free ID: T-090** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,36 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-089 · Beam between the player and their dead boomerang
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Client
+- **Files:** `Client/Core/DeadWeaponBeamController.luau` (new)
+
+**Problem / goal**
+While the local player's own boomerang is Dead (resting on the field, waiting for a manual recall), a beam connects the player to it so it's easy to find. Only the local player sees it; other players' dead boomerangs get no beam. The beam is destroyed when the boomerang is picked up or recalled.
+
+**Done when**
+- [ ] A beam appears between you and your own Dead boomerang, and only then (not while Dying, thrown or returning)
+- [ ] The beam disappears when the boomerang is picked up, recalled, or the round ends
+- [ ] Other players never see a beam, and you never see one for another player's boomerang
+- [ ] Never more than one beam at a time
+
+**Test in Studio**
+- Start a round (`setnextgamemode classic`), throw a boomerang so it dies out of line of sight (or any way you normally get a Dead one).
+- When it comes to rest (Dead), a white textured beam should run from above your character to the boomerang. Walk around: it follows you.
+- Hold recall (E) or walk over the boomerang: the beam disappears the moment it starts coming back / is picked up.
+- Repeat several times quickly (throw, die, recall, throw again), and die/respawn while it is Dead: there should never be two beams, and none left behind.
+- Second client: should never see your beam.
+- For debugging, set `DEBUG = true` at the top of the controller: it prints every create/destroy and warns if a second beam ever exists. In the command bar (client), `require(game.ReplicatedStorage.Client.Core.DeadWeaponBeamController).getBeamCount()` should return 0 or 1.
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/dead-weapon-beam`. Edits left uncommitted.
+- New auto-loaded client controller. The beam is built entirely in code (the `BeamToDeadWeapon` instance in the workspace is only a reference). Copied from it: texture `rbxassetid://75521069157462`, width 1/1, FaceCamera, TextureMode Wrap, TextureLength 1, TextureSpeed 1, Segments 100, white color, Brightness 1, LightEmission 0, LightInfluence 1, ZOffset 0, no curve, transparency sequence 1 → 0.506 → 0.494 → 1 (keypoints 0, 0.101, 0.899, 1).
+- Attachments: on the boomerang's PrimaryPart (or the first BasePart found in the model) at (0, 1, 0), and on the local character's `Hitbox` (HitboxService) 2 studs up. The Hitbox is a cylinder rotated 90 degrees, so a literal (0, 2, 0) in its own space would point sideways; the offset is converted into the Hitbox's space so it is 2 studs straight up. Change `PLAYER_ATTACHMENT_OFFSET` to adjust.
+- One-beam safety: the controller never reacts to events. Every frame it derives whether a beam should exist from `DeadWeapons.Data[LocalPlayer]` (State == Dead, host and Hitbox valid) and fixes any difference. The beam is rebuilt if the weapon data, weapon part or Hitbox changes (e.g. respawn). Everything it creates is tagged (`DeadWeaponBeamObject`), and the tracked beam plus every tagged leftover is destroyed before building a new one and whenever it tears down. The beam lives in a client-only `workspace.DeadWeaponBeams` folder.
+- Not syntax-checked or tested (no Luau tooling on the device; Studio play-testing is Sol's). Task ID: I used T-089 and bumped `Next free ID` to T-090 in this lane without a reservation commit on `main`; if another lane took T-089 meanwhile, renumber when merging.
 
 ### T-087 · Stats frame art and Quests / Settings HUD buttons
 - **Priority:** P2
