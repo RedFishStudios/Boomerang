@@ -19,6 +19,7 @@ local LagCompensationLibrary = require(ReplicatedStorage.Shared.Library.LagCompe
 local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 local BufferUtil = require(ReplicatedStorage.Shared.Utils.BufferUtil)
 local RaycastsUtility = require(ReplicatedStorage.Shared.Utils.RaycastsUtility)
+local BoomerangColorUtil = require(ReplicatedStorage.Shared.Utils.BoomerangColorUtil)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
 local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
@@ -282,15 +283,9 @@ local function addTrail(thrownWeaponData: ThrownWeapons.Data)
    trail.Attachment1 = attachment1
    trail.Parent = trailHost
 
+   -- // Same color rule as the recall SelectionRing (BoomerangColorUtil)
    local ownerPlayer = game.Players:GetPlayerByUserId(thrownWeaponData.OwnerUserId)
-   if ownerPlayer == game.Players.LocalPlayer then
-      trail.Color = ColorSequence.new(GlobalConfig.MyBoomerangTrailColor)
-   elseif GameTeamLibrary.hasFriendlyFire(ownerPlayer.Team) then
-      trail.Color = ColorSequence.new(GlobalConfig.EnemyBoomerangTrailColor)
-   else
-      local team = ownerPlayer.Team
-      trail.Color = ColorSequence.new(if team then team.TeamColor.Color else GlobalConfig.EnemyBoomerangTrailColor)
-   end
+   trail.Color = ColorSequence.new(BoomerangColorUtil.getColor(ownerPlayer))
 
    trail.Lifetime = GlobalConfig.ThrownWeaponTrailLifetime
 
