@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-094** *(shared by every task list, general and Epic)*
+**Next free ID: T-095** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,24 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-094 · Dead-boomerang beam fades in and out
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client
+- **Files:** `Client/Core/DeadWeaponBeamController.luau`, `Shared/Constants/GlobalConfig.luau`
+
+**Done when**
+- [ ] The beam to a dead boomerang fades in when it appears (0.4 s, `DeadBeamFadeSeconds`) instead of popping in
+- [ ] While the recall charges the beam fades gradually and is completely invisible exactly when the charge peaks
+- [ ] Releasing/cancelling the charge, or the boomerang dropping back to dead, fades it back in
+- [ ] Pressing again after a release picks up smoothly (never jumps); dying or the round ending removes it without errors at any point
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-094-beam-fade`. Edits left uncommitted.
+- The dead beam has its own opacity value stepped each frame: while charging it only goes down (following `1 - progress` from the server-time charge start), otherwise it moves at `1 / DeadBeamFadeSeconds` per second. A beam whose boomerang goes away keeps fading out if its parts still exist, and is removed immediately if they don't (player died / boomerang destroyed). `RecallChargeBeamOpacity` is no longer used.
+- Not syntax-checked or tested (Studio play-testing is Sol's).
+
 
 ### T-093 · Manual recall is a hold again (client feedback)
 - **Priority:** P1

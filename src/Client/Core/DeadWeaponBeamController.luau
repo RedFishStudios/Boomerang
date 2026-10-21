@@ -5,8 +5,10 @@
 	never get a beam.
 
 	  1. "Dead" beam (BeamToDeadWeapon): while the boomerang is Dead, resting on the field, waiting for a manual recall. It
-	     fades to GlobalConfig.RecallChargeBeamOpacity (20%) while the recall is charging (T-090), and back if it is released early.
-	     It ends when the recall has charged and the boomerang starts flying back.
+	     fades in when it appears (GlobalConfig.DeadBeamFadeSeconds), fades out gradually as the recall charges and is completely
+	     invisible exactly when the charge peaks (T-094), and fades back in if the recall is released/cancelled or the boomerang is
+	     dead again. It fades out the same way when it goes away for any other reason, if it can still be drawn (if the boomerang or
+	     the player's character is gone it is removed at once).
 	  2. "Returning" beam (BeamToReturningWeapon): from the moment the charged recall starts moving the boomerang until it is
 	     caught. It fades in over GlobalConfig.RecallReturnBeamFadeInSeconds.
 
@@ -65,12 +67,11 @@ local DEAD_TEXTURE = "rbxassetid://75521069157462"
 local DEAD_WIDTH = 6
 local DEAD_TEXTURE_ASPECT_RATIO = 1 -- // The texture image is square (1:1): one tile is as long as it is wide
 -- // Transparency flows 1 -> middle -> 1 so the beam fades in at the start and out at the end. The two middle values come from the
--- // reference; while the recall is charging they move to (1 - RecallChargeBeamOpacity), by BLEND_RATE per second.
+-- // reference. The whole beam is then scaled by an opacity (1 = the reference look, 0 = invisible), see deadOpacity.
 local DEAD_TRANSPARENCY_START_TIME = 0.10109288990497589
 local DEAD_TRANSPARENCY_END_TIME = 0.8989070653915405
 local DEAD_NORMAL_MIDDLE_A = 0.5061728358268738
 local DEAD_NORMAL_MIDDLE_B = 0.4938271641731262
-local BLEND_RATE = 10 -- // How quickly the dead beam fades between normal and charging opacity (higher = faster)
 
 -- // Returning beam (copied from the BeamToReturningWeapon reference: no texture, width 1, Wrap mode, TextureLength 1)
 local RETURNING_WIDTH = 1
@@ -112,6 +113,12 @@ type BeamKind = {
 	getTransparency: (active: ActiveBeam, deltaTime: number) -> NumberSequence?,
 	-- // Resets per-beam state when there is no beam
 	reset: (() -> ())?,
+	-- // Called right before a fresh beam is built
+	onCreate: (() -> ())?,
+	-- // The beam fades in and out: when its boomerang goes away it keeps fading out (if it still can) before it is removed
+	step: ((wanted: boolean, deltaTime: number) -> ())?,
+	-- // True once a fading-out beam is invisible and can be removed
+	isFadedOut: (() -> boolean)?,
 }
 
 -------------------------------------------------------------------------------
@@ -120,7 +127,7 @@ type BeamKind = {
 
 local localPlayer = Players.LocalPlayer
 local container: Folder? = nil
-local chargeBlend = 0 -- // Dead beam: 0 = normal opacity, 1 = recall charging (dimmer)
+local deadOpacity = 0 -- // Dead beam: 1 = fully shown, 0 = invisible. Fades in when it appears, out as the recall charges (see getDeadTarget)
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -183,14 +190,46 @@ local function getDeadTileLength(): number
 	return DEAD_WIDTH * DEAD_TEXTURE_ASPECT_RATIO
 end
 
-local function buildDeadTransparency(blend: number): NumberSequence
-	local chargedTransparency = 1 - GlobalConfig.RecallChargeBeamOpacity -- // Opacity 20% = transparency 0.8
+-- // opacity 1 = the reference's transparency, 0 = completely invisible
+local function buildDeadTransparency(opacity: number): NumberSequence
 	return NumberSequence.new({
 		NumberSequenceKeypoint.new(0, 1),
-		NumberSequenceKeypoint.new(DEAD_TRANSPARENCY_START_TIME, DEAD_NORMAL_MIDDLE_A + (chargedTransparency - DEAD_NORMAL_MIDDLE_A) * blend),
-		NumberSequenceKeypoint.new(DEAD_TRANSPARENCY_END_TIME, DEAD_NORMAL_MIDDLE_B + (chargedTransparency - DEAD_NORMAL_MIDDLE_B) * blend),
+		NumberSequenceKeypoint.new(DEAD_TRANSPARENCY_START_TIME, 1 - (1 - DEAD_NORMAL_MIDDLE_A) * opacity),
+		NumberSequenceKeypoint.new(DEAD_TRANSPARENCY_END_TIME, 1 - (1 - DEAD_NORMAL_MIDDLE_B) * opacity),
 		NumberSequenceKeypoint.new(1, 1),
 	})
+end
+
+-- // How visible the dead beam should be right now, and whether that value is a smooth countdown that opacity should follow exactly.
+-- //   charging a recall: 1 -> 0 over GlobalConfig.RecallCharge, reaching 0 exactly when the charge peaks (server time, so every
+-- //     machine agrees, and releasing or restarting the charge simply changes this value; the beam never jumps)
+-- //   otherwise: 1 while the boomerang rests dead, 0 when the beam shouldn't be shown
+local function getDeadTarget(wanted: boolean): (number, boolean)
+	if not wanted then
+		return 0, false
+	end
+	local deadWeaponData = DeadWeapons.Data[localPlayer]
+	if deadWeaponData and DeadWeaponLogic.isRecallCharging(deadWeaponData) and deadWeaponData.RecallChargeStart then
+		local progress = (workspace:GetServerTimeNow() - deadWeaponData.RecallChargeStart) / math.max(GlobalConfig.RecallCharge, 0.01)
+		return 1 - math.clamp(progress, 0, 1), true
+	end
+	return 1, false
+end
+
+-- // Moves deadOpacity toward the target: never up while a charge is in progress (it just follows the countdown down), otherwise at
+-- // a fixed rate (GlobalConfig.DeadBeamFadeSeconds for a full fade) in both directions
+local function stepDeadOpacity(wanted: boolean, deltaTime: number)
+	local target, charging = getDeadTarget(wanted)
+	if charging then
+		deadOpacity = math.min(deadOpacity, target)
+		return
+	end
+	local step = deltaTime / math.max(GlobalConfig.DeadBeamFadeSeconds, 0.01)
+	if target > deadOpacity then
+		deadOpacity = math.min(target, deadOpacity + step)
+	else
+		deadOpacity = math.max(target, deadOpacity - step)
+	end
 end
 
 -- // fadeAlpha 0 = fully transparent, 1 = the reference's transparency
@@ -261,6 +300,9 @@ local function createBeam(kind: BeamKind, weaponPart: BasePart, hitbox: BasePart
 		Hitbox = hitbox,
 		CreatedAt = os.clock(),
 	}
+	if kind.onCreate then
+		kind.onCreate()
+	end
 	local transparency = kind.getTransparency(active, 0)
 	if transparency then
 		beam.Transparency = transparency
@@ -325,22 +367,25 @@ local deadKind: BeamKind = {
 		beam.Width1 = DEAD_WIDTH
 	end,
 
-	-- // Eases toward the dimmer charging opacity while the recall is charging, and back when it is released
-	getTransparency = function(_active: ActiveBeam, deltaTime: number): NumberSequence?
-		local target = if DeadWeaponLogic.isRecallChargeActive(localPlayer) then 1 else 0
-		if math.abs(target - chargeBlend) < 0.001 then
-			if chargeBlend == target then
-				return nil -- // Nothing changed
-			end
-			chargeBlend = target
-		else
-			chargeBlend += (target - chargeBlend) * (1 - math.exp(-BLEND_RATE * deltaTime))
-		end
-		return buildDeadTransparency(chargeBlend)
+	-- // The current opacity, advanced once per frame by `step` (called from reconcileKind)
+	getTransparency = function(_active: ActiveBeam, _deltaTime: number): NumberSequence?
+		return buildDeadTransparency(deadOpacity)
+	end,
+
+	onCreate = function()
+		deadOpacity = 0 -- // A new beam fades in from invisible
+	end,
+
+	step = function(wanted: boolean, deltaTime: number)
+		stepDeadOpacity(wanted, deltaTime)
+	end,
+
+	isFadedOut = function(): boolean
+		return deadOpacity <= 0.001
 	end,
 
 	reset = function()
-		chargeBlend = 0
+		deadOpacity = 0
 	end,
 }
 
@@ -392,7 +437,22 @@ local function reconcileKind(kind: BeamKind, deltaTime: number)
 	local hitbox: BasePart? = if weaponPart then getLocalHitbox() else nil
 
 	if not weaponPart or not hitbox then
-		-- // Nothing should exist: remove the tracked beam, and any untracked leftover of this kind
+		-- // Nothing should be shown any more. A fading beam whose parts still exist keeps fading out before it is removed (it comes back
+		-- // smoothly if the boomerang is Dead again in the meantime: the branch below then finds it valid); otherwise, e.g. the
+		-- // boomerang was removed or the player died, it can't be drawn any more and goes at once.
+		local active = kind.Active
+		if kind.step and active and active.Beam.Parent and active.WeaponPart.Parent and active.Hitbox.Parent
+			and active.WeaponAttachment.Parent == active.WeaponPart and active.PlayerAttachment.Parent == active.Hitbox then
+			kind.step(false, deltaTime)
+			if not (kind.isFadedOut and kind.isFadedOut()) then
+				local fadingTransparency = kind.getTransparency(active, deltaTime)
+				if fadingTransparency then
+					active.Beam.Transparency = fadingTransparency
+				end
+				return
+			end
+		end
+		-- // Remove the tracked beam, and any untracked leftover of this kind
 		if kind.Active or #CollectionService:GetTagged(kind.Tag) > 0 then
 			destroyAll(kind, "no weapon")
 		end
@@ -404,6 +464,9 @@ local function reconcileKind(kind: BeamKind, deltaTime: number)
 
 	if isActiveBeamValid(kind, weaponPart, hitbox) then
 		local active = kind.Active :: ActiveBeam
+		if kind.step then
+			kind.step(true, deltaTime)
+		end
 		local transparency = kind.getTransparency(active, deltaTime)
 		if transparency then
 			active.Beam.Transparency = transparency
