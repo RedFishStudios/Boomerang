@@ -71,7 +71,8 @@ local GlobalConfig = {
    ManualRecallLiftRate = 2.5, -- // UNUSED for manual recalls since T-095 (they rise over ManualRecallRiseSeconds) -- // How quickly a manually recalled boomerang rises to flight height while returning (the automatic from-ground lift is 8)
    ManualRecallMaxTiltDegrees = 35, -- // Visual tilt toward the player while it's being lifted
    RecallChargeCancelDropSeconds = 0.25, -- // UNUSED since T-092 (the charge can't be cancelled and doesn't lift): kept for the lifting charge in Dead.luau -- // Releasing the recall before it is charged drops the boomerang back to the ground over this long
-   RecallChargeBeamOpacity = 0.2, -- // The player-to-dead-boomerang beam fades to at most this opacity while the recall is charging (1 = normal beam)
+   DeadBeamFadeSeconds = 0.4, -- // T-094: the beam to a dead boomerang fades in / out over this long (a full 0 to 1 fade)
+   RecallChargeBeamOpacity = 0.2, -- // UNUSED since T-094 (the beam now fades to invisible as the charge builds) -- // The player-to-dead-boomerang beam fades to at most this opacity while the recall is charging (1 = normal beam)
    RecallReturnBeamFadeInSeconds = 0.3, -- // The beam to the returning boomerang fades in over this long once the charged recall starts moving it
    SelectionRingGrowSeconds = 0.3, -- // The SelectionRing tweens from nothing to full size (with a small overshoot) over this long
    SelectionRingVanishSeconds = 0.15, -- // ...and shrinks away over this long when the recall is released early
