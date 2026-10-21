@@ -633,8 +633,24 @@ function DeadWeaponLogic.cancelRecallCharge(player: Player, deadWeaponData: Dead
 	SimpleRemotes.getEvent(RECALL_CHARGE_EVENT):FireAllClients(player.UserId, "Cancel", now, currentY)
 end
 
--- // Every frame, on the server and on clients: move charging / dropping boomerangs to their height. The server also
--- // starts a charge for a held button once the boomerang has landed, and starts the recall when the charge completes.
+-- // T-092 (client feedback): the charge no longer lifts the boomerang; it stays on the ground for GlobalConfig.RecallCharge and then
+-- // rises and tilts while it flies back (Boomerang.recall). This is the old lifting charge, kept UNUSED in case it comes back: call it
+-- // for each dead boomerang from updateRecallCharges (it moves it to getChargeHeight, and finishes a cancelled drop).
+local function applyRecallChargeLift_UNUSED(deadWeaponData: DeadWeapons.Data, now: number)
+	local height = getChargeHeight(deadWeaponData, now)
+	if not height then
+		return
+	end
+	setHeight(deadWeaponData, height)
+
+	local cancelAt = deadWeaponData.RecallCancelAt
+	if cancelAt and now - cancelAt >= GlobalConfig.RecallChargeCancelDropSeconds then
+		clearChargeFields(deadWeaponData) -- // Back on the ground
+	end
+end
+
+-- // Every frame, on the server and on clients' copy of the data. The server starts a charge for a tapped recall once the boomerang has
+-- // landed (a tap can't be undone: RecallHeld is never reset), and starts the return when the charge time is up. Nothing can cancel it.
 function DeadWeaponLogic.updateRecallCharges(_deltaTime: number)
 	local now = workspace:GetServerTimeNow()
 	for player, deadWeaponData in pairs(DeadWeapons.Data) do
@@ -646,16 +662,9 @@ function DeadWeaponLogic.updateRecallCharges(_deltaTime: number)
 			DeadWeaponLogic.beginRecallCharge(player, deadWeaponData)
 		end
 
-		local height = getChargeHeight(deadWeaponData, now)
-		if not height then
-			continue
-		end
-		setHeight(deadWeaponData, height)
+		-- applyRecallChargeLift_UNUSED(deadWeaponData, now)
 
-		local cancelAt = deadWeaponData.RecallCancelAt
-		if cancelAt and now - cancelAt >= GlobalConfig.RecallChargeCancelDropSeconds then
-			clearChargeFields(deadWeaponData) -- // Back on the ground
-		elseif isServer and not cancelAt and deadWeaponData.RecallChargeStart and now - deadWeaponData.RecallChargeStart >= GlobalConfig.RecallCharge then
+		if isServer and deadWeaponData.RecallChargeStart and now - deadWeaponData.RecallChargeStart >= GlobalConfig.RecallCharge then
 			if DeadWeaponLogic.onRecallCharged then
 				DeadWeaponLogic.onRecallCharged(player, deadWeaponData)
 			else

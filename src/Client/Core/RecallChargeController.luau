@@ -173,7 +173,10 @@ local function reconcilePlayer(player: Player)
 	local position = getWeaponPosition(player)
 	local wanted = position ~= nil and DeadWeaponLogic.isRecallChargeActive(player)
 
-	setSummon(player, wanted)
+	-- // T-092: the Summon animation lasts only for the (short) charge itself; once the boomerang starts returning the player is free again
+	-- // (the ring and the beams stay until it is caught)
+	local deadWeaponData = DeadWeapons.Data[player]
+	setSummon(player, wanted and deadWeaponData ~= nil and DeadWeaponLogic.isRecallCharging(deadWeaponData))
 
 	local entry = rings[player]
 	if wanted then

@@ -66,8 +66,10 @@ local GlobalConfig = {
    -- // within range at any point of it, the boomerang keeps returning instead of dying (no die-then-revive flicker).
    DyingBoomerangRecallLookaheadSeconds = 0.4,
    -- // Manual recall of a dying/dead boomerang (held recall): slower and heavier. It must first be charged (RecallCharge below)
-   RecallCharge = 1, -- // T-090: seconds the recall must be held on a dead boomerang before it starts returning; it lifts to hand height meanwhile
-   RecallChargeCancelDropSeconds = 0.25, -- // Releasing the recall before it is charged drops the boomerang back to the ground over this long
+   RecallCharge = 0.3, -- // T-092: seconds a tapped manual recall charges (boomerang stays on the ground, player slowed, no dash, can't be interrupted) before it starts returning
+   ManualRecallLiftRate = 2.5, -- // How quickly a manually recalled boomerang rises to flight height while returning (the automatic from-ground lift is 8)
+   ManualRecallMaxTiltDegrees = 35, -- // Visual tilt toward the player while it's being lifted
+   RecallChargeCancelDropSeconds = 0.25, -- // UNUSED since T-092 (the charge can't be cancelled and doesn't lift): kept for the lifting charge in Dead.luau -- // Releasing the recall before it is charged drops the boomerang back to the ground over this long
    RecallChargeBeamOpacity = 0.2, -- // The player-to-dead-boomerang beam fades to at most this opacity while the recall is charging (1 = normal beam)
    RecallReturnBeamFadeInSeconds = 0.3, -- // The beam to the returning boomerang fades in over this long once the charged recall starts moving it
    SelectionRingGrowSeconds = 0.3, -- // The SelectionRing tweens from nothing to full size (with a small overshoot) over this long

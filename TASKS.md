@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-092** *(shared by every task list, general and Epic)*
+**Next free ID: T-093** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,26 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-092 · Manual recall rework (client feedback): ground charge, no interrupt, slowed, tilt-up return
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Server / Client / Shared
+- **Files:** `Shared/Logics/WeaponLogics/Dead.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`, `Shared/Logics/AbilityLogics/Dash.luau`, `Server/Core/WeaponService.luau`, `Client/Core/RecallChargeController.luau`, `Shared/Constants/GlobalConfig.luau`, `Shared/Referential/ThrownWeapons.lua`
+
+**Done when**
+- [ ] Tapping recall on a dead boomerang starts a `GlobalConfig.RecallCharge` (0.3 s) charge; the boomerang stays on the ground, the ring appears and the Summon animation plays
+- [ ] The charge can't be interrupted: releasing the button does nothing
+- [ ] While charging the player is slowed like when aiming a throw (server-authoritative) and can't dash
+- [ ] When the charge completes the boomerang rises to `BoomerangFlightHeight`, tilted toward the player, and speeds up toward them (old manual-recall return); the player is released at that moment (Summon stops, speed restored, can dash)
+- [ ] Ring and beams behave as before (stay until caught)
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-092-recall-rework`. Edits left uncommitted.
+- Old lifting charge kept but unused: `applyRecallChargeLift_UNUSED` in `Dead.luau`, the release/cancel block commented out in `WeaponService.luau`, `RecallChargeCancelDropSeconds` unused. The lift-and-tilt on the return (`ManualRecallLiftRate`, `ManualRecallMaxTiltDegrees`, `RecallTilt`) is restored from before T-090, now rising to `BoomerangFlightHeight`.
+- Slowdown: `reconcileRecallChargeSlowdown` in `WeaponService.luau` uses the same `tweenWalkSpeed` / `tweenWalkSpeedInverse` and `AimWalkSpeed` as aiming. Dash: `Dash.canActivate` (both sides) refuses during a charge.
+- Not syntax-checked or tested (Studio play-testing is Sol's).
+
 
 ### T-091 · Dash cooldown shown in the effects bar
 - **Priority:** P2

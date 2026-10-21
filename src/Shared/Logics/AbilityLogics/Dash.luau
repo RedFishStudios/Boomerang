@@ -19,6 +19,7 @@ local PlayerStatsLibrary = require(ReplicatedStorage.Shared.Library.PlayerStatsL
 local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
 local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 local LobbyLibrary = require(ReplicatedStorage.Shared.Library.LobbyLibrary)
+local DeadWeapons = require(ReplicatedStorage.Shared.Referential.DeadWeapons)
 
 local PlayDash = SimpleRemotes.getEvent("PlayDash")
 
@@ -125,6 +126,13 @@ end
 function Dash.canActivate(player: Player)
    if isPlayerAiming(player) then
       print("cannot dash: is aiming")
+      return false
+   end
+
+   -- // T-092: charging a manual recall of a dead boomerang hinders the player like aiming does (the charge is short and can't be cancelled)
+   local deadWeaponData = DeadWeapons.Data[player]
+   if deadWeaponData and deadWeaponData.RecallChargeStart ~= nil then
+      print("cannot dash: charging a recall")
       return false
    end
 
