@@ -89,6 +89,16 @@ local SNAPSHOT_PACKET_SIZE = 1 + 8 + 12 + 12 + 4 + 1 + 8 + 12 -- // ... + the th
 local RAYCAST_VISUALIZERS_ENABLED = GlobalConfig.RaycastVisualizersEnabled
 local projectileVisualizerEnabled = GlobalConfig.ProjectileHitboxVisualizerEnabled -- // Server only; Cmdr `toggleprojectilevisualizer` changes it live. Read when a boomerang is thrown
 
+-- ============================================================================================================================
+-- INTERNAL CONFIG (manual recall of a dead boomerang, T-096)
+-- ============================================================================================================================
+-- // Seconds for a manually recalled boomerang to go from standing still to its full recall movement speed AND full spin rate once it
+-- // starts moving toward the player. Both build up gradually but quickly over this time. (Overrides the Cmdr `tune` RecallRampTime.)
+local MANUAL_RECALL_FULL_SPEED_SECONDS = 0.2
+-- // The charge now lifts the boomerang to flight height before it starts moving (Dead.luau). If true, the older timed rise during the
+-- // flight itself (T-095, GlobalConfig.ManualRecallRiseSeconds, with the tilt toward the player) runs as well: kept in case it returns.
+local MANUAL_RECALL_RISES_DURING_FLIGHT = false
+
 local BOOMERANG_SPIN_SPEED = math.rad(1080)
 local RECALL_FROM_DEAD_LIFT_RATE = 8 -- // How fast a boomerang that recovers by itself (automatic recall off the ground) rises to flight height
 local MANUAL_RECALL_TILT_HEIGHT = 2 -- // Height still to rise (studs) at which the manual-recall tilt is at its maximum
@@ -490,7 +500,7 @@ local function setWeaponCFrame(thrownWeaponData: ThrownWeapons.Data, cframe: CFr
    if host and host.Parent then
       if not isServer then
          -- Spin is constant and flat regardless of movement direction, speed, or state
-         local visualRotation = (thrownWeaponData.VisualRotation or 0) + (BOOMERANG_SPIN_SPEED * (deltaTime or 0))
+         local visualRotation = (thrownWeaponData.VisualRotation or 0) + (BOOMERANG_SPIN_SPEED * (thrownWeaponData.RecallSpinScale or 1) * (deltaTime or 0))
          thrownWeaponData.VisualRotation = visualRotation
          -- // RecallTilt: visual tilt while a manual recall drags it up off the ground (set in Boomerang.recall)
          host:PivotTo(CFrame.new(cframe.Position + Vector3.new(0, getVisualYOffset(thrownWeaponData), 0)) * (thrownWeaponData.RecallTilt or CFrame.identity) * CFrame.Angles(0, visualRotation, 0))
@@ -1625,7 +1635,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       if isManualRecallFromDead then
          maximumSpeed = BoomerangTuningLibrary.get(tuningToolId, "RecallSpeed") * returnSpeedMultiplier
          momentumMultiplier = BoomerangTuningLibrary.get(tuningToolId, "RecallAcceleration")
-         rampSeconds = math.max(BoomerangTuningLibrary.get(tuningToolId, "RecallRampTime"), 0.01)
+         rampSeconds = MANUAL_RECALL_FULL_SPEED_SECONDS
          rampPower = BoomerangTuningLibrary.get(tuningToolId, "RecallRampPower")
       else
          maximumSpeed = BoomerangTuningLibrary.get(tuningToolId, "ThrowSpeed") * returnSpeedMultiplier
@@ -1688,7 +1698,9 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       -- // flies at; it never depends on the player's height, or a jump would carry it over the arena walls). A manual recall rises
       -- // slowly and tilts toward the player while it does, then levels out as it settles at flight height (T-092).
       if thrownWeaponData.RecallFromDead ~= nil then
-         if isManualRecallFromDead then
+         if isManualRecallFromDead and not MANUAL_RECALL_RISES_DURING_FLIGHT then
+            -- // Already lifted to flight height by the recall charge (T-096): nothing to do
+         elseif isManualRecallFromDead then
             -- // Manual recall (T-095): a timed, eased rise from where it rests to flight height, starting slowly, speeding up
             -- // and settling softly (smoothstep over GlobalConfig.ManualRecallRiseSeconds), so it lifts off gradually as it starts to move
             riseStartY = riseStartY or hostPivot.Position.Y
@@ -1754,6 +1766,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          local rampAlpha = math.clamp(rampElapsed / rampSeconds, 0, 1)
          local startFraction = GlobalConfig.ManualRecallRampStartFraction
          forwardSpeed = maximumSpeed * (startFraction + (1 - startFraction) * rampAlpha ^ rampPower)
+         thrownWeaponData.RecallSpinScale = rampAlpha * rampAlpha -- // The spin builds up over the same time, gradually then quickly
       else
          forwardSpeed += (maximumSpeed - forwardSpeed) * transitionAlpha
       end

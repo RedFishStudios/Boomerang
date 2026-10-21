@@ -47,6 +47,7 @@ export type Data = {
    RecallTiltAngle: number?, -- // Client visual: current manual-recall tilt (radians)
    RecallTilt: CFrame?, -- // Client visual: rotation applied to the model while a manual recall lifts it
    HasBeenDead: boolean?, -- // It has been fully Dead at least once (T-093): it never recalls by itself again, only by the owner's manual recall
+   RecallSpinScale: number?, -- // 0..1: how much of the full spin rate a manually recalled boomerang has built up (nil = full)
    VisualYOffset: number?, -- // Client drawing only: how far the freshly thrown boomerang is still drawn above/below its physics height (eases to 0)
    VisualYOffsetStartedAt: number?, -- // os.clock() of the throw
    PortalExitAt: number?, -- // os.clock() of the last portal exit (Environment/Portal)

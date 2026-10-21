@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-095** *(shared by every task list, general and Epic)*
+**Next free ID: T-96** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,23 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-095 · Manual recall lifts during the charge again, quick start of the return (client feedback)
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared
+- **Files:** `Shared/Logics/WeaponLogics/Dead.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`, `Shared/Referential/ThrownWeapons.lua`, `Shared/Constants/GlobalConfig.luau`
+
+**Done when**
+- [ ] When the recall is held, the dead boomerang rises to `GlobalConfig.BoomerangFlightHeight`: slow at first, fast (quart-in), overshoots the height a little, then bobs down onto it exactly when the charge completes
+- [ ] Releasing during the charge drops it back to the ground; the beam, ring, Summon, slowdown and hold rules are unchanged
+- [ ] When the return begins it reaches full recall speed and full spin rate within 0.2 s (`MANUAL_RECALL_FULL_SPEED_SECONDS`, top of `Boomerang.luau`)
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-096-recall-lift`. Edits left uncommitted.
+- Re-enabled `applyRecallChargeLift` (was `_UNUSED`) with a new rise curve (`getRiseCurve`, internal config at the top of the charge section in `Dead.luau`: `RISE_OVERSHOOT`, `RISE_PEAK_AT`, `RISE_SETTLE_BOBS`). The in-flight timed rise (T-095) is kept behind `MANUAL_RECALL_RISES_DURING_FLIGHT = false`. The Cmdr `tune` RecallRampTime no longer affects manual recalls.
+- Not syntax-checked or tested (Studio play-testing is Sol's).
+
 
 ### T-094 · Dead-boomerang beam fades in and out
 - **Priority:** P2

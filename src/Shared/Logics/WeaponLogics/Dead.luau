@@ -517,9 +517,29 @@ end
 
 local RECALL_CHARGE_EVENT = "RecallCharge"
 
+-- ============================================================================================================================
+-- INTERNAL CONFIG: how a dead boomerang rises while its manual recall charges (T-096). The rise ends exactly at the target
+-- height (GlobalConfig.BoomerangFlightHeight) when the charge is complete (GlobalConfig.RecallCharge).
+-- ============================================================================================================================
+local RISE_OVERSHOOT = 0.3 -- // How far past the target it goes at the top, as a fraction of the rise (0.3 = 30% of the distance risen)
+local RISE_PEAK_AT = 0.62 -- // Fraction of the charge time at which it reaches that top: slow at first, then a fast quart-in climb
+local RISE_SETTLE_BOBS = 1.5 -- // How many half-swings it makes around the target while settling (it dips just under it once, then rests on it)
+
 local function smoothstep(alpha: number): number
 	alpha = math.clamp(alpha, 0, 1)
 	return alpha * alpha * (3 - 2 * alpha)
+end
+
+-- // 0 -> 1 over the charge, with 1 = the target height. Rises with a quart-in (gradual to fast), overshoots the target at RISE_PEAK_AT,
+-- // then settles back with a damped bob and lands on the target exactly at the end.
+local function getRiseCurve(alpha: number): number
+	alpha = math.clamp(alpha, 0, 1)
+	if alpha < RISE_PEAK_AT then
+		local riseAlpha = alpha / RISE_PEAK_AT
+		return (1 + RISE_OVERSHOOT) * riseAlpha ^ 4
+	end
+	local settleAlpha = (alpha - RISE_PEAK_AT) / (1 - RISE_PEAK_AT)
+	return 1 + RISE_OVERSHOOT * math.cos(settleAlpha * math.pi * RISE_SETTLE_BOBS) * (1 - settleAlpha) ^ 2
 end
 
 -- // The height the boomerang should be at right now (nil = not charging or dropping: leave it where it is)
@@ -542,7 +562,7 @@ local function getChargeHeight(deadWeaponData: DeadWeapons.Data, now: number): n
 		return nil
 	end
 	local alpha = (now - startAt) / math.max(GlobalConfig.RecallCharge, 0.01)
-	return startY + (targetY - startY) * smoothstep(alpha)
+	return startY + (targetY - startY) * getRiseCurve(alpha)
 end
 
 local function clearChargeFields(deadWeaponData: DeadWeapons.Data)
@@ -592,9 +612,11 @@ function DeadWeaponLogic.applyRecallChargeEvent(player: Player, action: string, 
 		deadWeaponData.RecallCancelAt = nil
 		deadWeaponData.RecallCancelFromY = nil
 	elseif action == "Cancel" then
-		-- // T-093: released before the charge finished. The boomerang never left the ground, so the charge is simply forgotten
-		-- // (the old lifting charge dropped it with RecallCancelAt / RecallCancelFromY; see applyRecallChargeLift_UNUSED)
-		clearChargeFields(deadWeaponData)
+		-- // Released before the charge finished (T-093): it drops back to where it rested (T-096)
+		if deadWeaponData.RecallChargeStart then
+			deadWeaponData.RecallCancelAt = serverTime
+			deadWeaponData.RecallCancelFromY = a
+		end
 	end
 end
 
@@ -628,14 +650,14 @@ function DeadWeaponLogic.cancelRecallCharge(player: Player, deadWeaponData: Dead
 		return
 	end
 	local now = workspace:GetServerTimeNow()
-	DeadWeaponLogic.applyRecallChargeEvent(player, "Cancel", now)
-	SimpleRemotes.getEvent(RECALL_CHARGE_EVENT):FireAllClients(player.UserId, "Cancel", now)
+	local currentY = getChargeHeight(deadWeaponData, now) or deadWeaponData.RecallRestY or 0
+	DeadWeaponLogic.applyRecallChargeEvent(player, "Cancel", now, currentY)
+	SimpleRemotes.getEvent(RECALL_CHARGE_EVENT):FireAllClients(player.UserId, "Cancel", now, currentY)
 end
 
--- // T-092 (client feedback): the charge no longer lifts the boomerang; it stays on the ground for GlobalConfig.RecallCharge and then
--- // rises and tilts while it flies back (Boomerang.recall). This is the old lifting charge, kept UNUSED in case it comes back: call it
--- // for each dead boomerang from updateRecallCharges (it moves it to getChargeHeight, and finishes a cancelled drop).
-local function applyRecallChargeLift_UNUSED(deadWeaponData: DeadWeapons.Data, now: number)
+-- // The charge lifts the boomerang again (T-096, client feedback; T-092 had kept it on the ground). Moves it to getChargeHeight each frame
+-- // and finishes a cancelled drop.
+local function applyRecallChargeLift(deadWeaponData: DeadWeapons.Data, now: number)
 	local height = getChargeHeight(deadWeaponData, now)
 	if not height then
 		return
@@ -661,9 +683,9 @@ function DeadWeaponLogic.updateRecallCharges(_deltaTime: number)
 			DeadWeaponLogic.beginRecallCharge(player, deadWeaponData)
 		end
 
-		-- applyRecallChargeLift_UNUSED(deadWeaponData, now)
+		applyRecallChargeLift(deadWeaponData, now)
 
-		if isServer and deadWeaponData.RecallChargeStart and now - deadWeaponData.RecallChargeStart >= GlobalConfig.RecallCharge then
+		if isServer and not deadWeaponData.RecallCancelAt and deadWeaponData.RecallChargeStart and now - deadWeaponData.RecallChargeStart >= GlobalConfig.RecallCharge then
 			if DeadWeaponLogic.onRecallCharged then
 				DeadWeaponLogic.onRecallCharged(player, deadWeaponData)
 			else
