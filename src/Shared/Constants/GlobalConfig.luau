@@ -48,7 +48,7 @@ local GlobalConfig = {
    -- // returns at it. It doesn't depend on the player's height (jumps, dashes). Obstructions are only detected within BoomerangRaycastHeight
    -- // of it, so it must sit inside the arena walls. 158.2 is what live thrown boomerangs measured in a playtest (they drew at 158.1 to 158.4
    -- // while the character's root part stood at about 159.25).
-   BoomerangFlightHeight = 160,
+   BoomerangFlightHeight = 158.7,
    BoomerangVisualHeightSyncSeconds = 1.5, -- // A thrown boomerang is DRAWN from the thrower's height and eases to BoomerangFlightHeight within this long (visual only)
    -- // Radius (studs) of every player's Hitbox, the vertical cylinder boomerangs hit (3.3 studs across). A boomerang strikes a player when
    -- // its own radius (tool HitboxRadius) plus this reaches them. Live-tunable with Cmdr `sethitboxradius` (HitboxService).
