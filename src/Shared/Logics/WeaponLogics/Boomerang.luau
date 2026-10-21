@@ -1619,6 +1619,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
    local maximumSpeed, momentumMultiplier = 0, 1
    local rampSeconds, rampPower = GlobalConfig.ManualRecallRampSeconds, GlobalConfig.ManualRecallRampPower
    local rampElapsed = 0 -- // Seconds since this recall started (drives the manual recall's speed-up curve)
+   local riseStartY: number? = nil -- // Manual recall: the height it started rising from (T-095)
    -- // Tools/GlobalConfig values unless changed with Cmdr; re-read every frame so live changes apply mid-recall (T-054)
    local function updateRecallTuning()
       if isManualRecallFromDead then
@@ -1687,9 +1688,19 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       -- // flies at; it never depends on the player's height, or a jump would carry it over the arena walls). A manual recall rises
       -- // slowly and tilts toward the player while it does, then levels out as it settles at flight height (T-092).
       if thrownWeaponData.RecallFromDead ~= nil then
-         local heightDelta = GlobalConfig.BoomerangFlightHeight - hostPivot.Position.Y
-         if math.abs(heightDelta) > 0.05 then
-            hostPivot += Vector3.new(0, heightDelta * math.clamp(deltaTime * liftRate, 0, 1), 0)
+         if isManualRecallFromDead then
+            -- // Manual recall (T-095): a timed, eased rise from where it rests to flight height, starting slowly, speeding up
+            -- // and settling softly (smoothstep over GlobalConfig.ManualRecallRiseSeconds), so it lifts off gradually as it starts to move
+            riseStartY = riseStartY or hostPivot.Position.Y
+            local riseAlpha = math.clamp(rampElapsed / math.max(GlobalConfig.ManualRecallRiseSeconds, 0.01), 0, 1)
+            local easedRise = riseAlpha * riseAlpha * (3 - 2 * riseAlpha)
+            local risenY = riseStartY + (GlobalConfig.BoomerangFlightHeight - riseStartY) * easedRise
+            hostPivot = (hostPivot - hostPivot.Position) + Vector3.new(hostPivot.Position.X, risenY, hostPivot.Position.Z)
+         else
+            local heightDelta = GlobalConfig.BoomerangFlightHeight - hostPivot.Position.Y
+            if math.abs(heightDelta) > 0.05 then
+               hostPivot += Vector3.new(0, heightDelta * math.clamp(deltaTime * liftRate, 0, 1), 0)
+            end
          end
 
          -- // Visual only: tilt up toward the player while still being dragged up, easing flat as it reaches flight height
