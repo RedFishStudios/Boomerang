@@ -30,6 +30,8 @@ export type Data = {
    VisualRotation: number?,
 
    -- // T-090 recall charge (Dead.luau). Timestamps are server time (workspace:GetServerTimeNow()), replicated by the RecallCharge event
+   HasBeenDead: boolean?, -- // Set the moment it fully enters the Dead state and kept for good (it travels with the boomerang through recalls and drops): from then on it can never recall by itself
+   ReleasedAtServerTime: number?, -- // Client: when the local owner let go of a manual recall (stale Returning snapshots before it are ignored)
    RecallHeld: boolean?, -- // Server only: the owner is holding the recall button
    RecallChargeStart: number?, -- // When the current charge began
    RecallChargeStartY: number?, -- // Height the boomerang had when the charge began

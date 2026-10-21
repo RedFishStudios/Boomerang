@@ -1387,7 +1387,7 @@ end
 -- // disagreement can't leave the client showing a dead boomerang the server is recalling.
 function Boomerang.autoRecallOrDie(player: Player, boomerangId: string, toolData: Tools.Tool, thrownWeaponData: ThrownWeapons.Data, position: Vector3, direction: Vector3, speed: number): boolean
    -- // Line of sight right now, or (server) in sight and in range at some point of the slide it is about to make
-   if hasLineOfSightToPlayer(player, position, toolData, thrownWeaponData) or canAvoidDying(player, toolData, thrownWeaponData, position, direction, speed) then
+   if not thrownWeaponData.HasBeenDead and (hasLineOfSightToPlayer(player, position, toolData, thrownWeaponData) or canAvoidDying(player, toolData, thrownWeaponData, position, direction, speed)) then
       -- // The return gets its own small energy reserve; if bounces and hits use it up, the boomerang dies
       thrownWeaponData.Energy = BoomerangTuningLibrary.get(thrownWeaponData.ToolId or boomerangId, "RecallEnergy")
       Boomerang.recall(player, boomerangId, toolData, thrownWeaponData)
@@ -1442,6 +1442,7 @@ function Boomerang.recallFromDead(player: Player, deadWeaponData: DeadWeapons.Da
       ExistingHost = deadWeaponData.ExistingHost,
       VisualRotation = deadWeaponData.VisualRotation,
       RecallFromDead = isManualRecall,
+      HasBeenDead = deadWeaponData.HasBeenDead,
    } :: any
 
    DeadWeapons.Data[player] = nil
@@ -1553,6 +1554,7 @@ function Boomerang.die(player: Player, thrownWeaponData: ThrownWeapons.Data, opt
       ReuseEquippedHost = thrownWeaponData.ReuseEquippedHost,
       ExistingHost = thrownWeaponData.ExistingHost,
       VisualRotation = thrownWeaponData.VisualRotation,
+      HasBeenDead = thrownWeaponData.HasBeenDead, -- // Carried along for good (see DeadWeapons.Data)
    }
 
    thrownWeaponData.Host = nil
@@ -1901,6 +1903,9 @@ end
 
 -- // Hook: a dying boomerang that keeps sliding with nothing to land on returns on its own (T-062; Dead.luau can't require this module)
 DeadWeaponLogic.onSlidingAway = function(player: Player, deadWeaponData: DeadWeapons.Data)
+   if deadWeaponData.HasBeenDead then
+      return -- // Once Dead, never an automatic recall again (T-093)
+   end
    Boomerang.recallFromDead(player, deadWeaponData, false)
 end
 
@@ -1908,6 +1913,11 @@ end
 -- // (horizontal) it resumes its recall even at 0 energy. Same recall as the sliding-away one above (Dead.luau can't require this module).
 DeadWeaponLogic.checkRecallWhileDying = function(player: Player, deadWeaponData: DeadWeapons.Data, position: Vector3): boolean
    if DeadWeapons.Data[player] ~= deadWeaponData or deadWeaponData.State ~= DeadWeapons.StateEnum.Dying then
+      return false
+   end
+   -- // Once a boomerang has been Dead it never recalls by itself again, e.g. when the owner lets go of a manual recall and it
+   -- // drops back down in reach (T-093)
+   if deadWeaponData.HasBeenDead then
       return false
    end
    local toolData = Tools[deadWeaponData.ToolId]

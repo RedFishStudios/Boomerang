@@ -307,6 +307,29 @@ function WeaponController.endRecallInput()
    end
    isRecallHeld = false
    recallEvent:FireServer(false)
+
+   -- // T-093: letting go of a charged manual recall drops the boomerang. The server decides, but waiting for its reply would let the
+   -- // boomerang keep flying here for a round trip and then snap back, so drop it right away the same way the server does.
+   local localPlayer = Players.LocalPlayer
+   local thrownWeaponData = ThrownWeapons.Data[localPlayer]
+   if thrownWeaponData and thrownWeaponData.RecallFromDead == true and thrownWeaponData.State == ThrownWeapons.StateEnum.Returning then
+      local toolData = Tools[thrownWeaponData.ToolId]
+      local logic = toolData and getLogic(toolData.LogicClass)
+      if logic and logic.die then
+         local direction = thrownWeaponData.Direction
+         if not direction or direction.Magnitude < 1e-5 then
+            direction = Vector3.new(0, 0, -1)
+         end
+         logic.die(localPlayer, thrownWeaponData, {
+            Direction = direction,
+            Speed = thrownWeaponData.Speed or 0,
+         })
+         local droppedData = DeadWeapons.Data[localPlayer]
+         if droppedData then
+            droppedData.ReleasedAtServerTime = workspace:GetServerTimeNow()
+         end
+      end
+   end
 end
 
 function WeaponController.getWeaponState(): string
@@ -342,6 +365,13 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
    if not thrownWeaponData or not thrownWeaponData.Host or not thrownWeaponData.Host.Parent then
       -- // The server started returning a dying/dead boomerang (manual recall): follow it
       local deadWeaponData = DeadWeapons.Data[forPlayer]
+      -- // Returning snapshots the server sent before it received the owner's release are stale: ignore them, or the dropped boomerang
+      -- // would take off again here (T-093). A genuinely new recall needs a fresh charge, so its snapshots are much later.
+      local releasedAt = deadWeaponData and deadWeaponData.ReleasedAtServerTime
+      if releasedAt and state == ThrownWeapons.StateEnum.Returning
+         and serverTime < releasedAt + 2 * Players.LocalPlayer:GetNetworkPing() + 0.15 then
+         return
+      end
       if state == ThrownWeapons.StateEnum.Returning and deadWeaponData and deadWeaponData.Host and deadWeaponData.Host.Parent then
          local deadToolData = Tools[deadWeaponData.ToolId]
          local deadLogic = deadToolData and getLogic(deadToolData.LogicClass)

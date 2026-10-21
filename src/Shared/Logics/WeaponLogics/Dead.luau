@@ -434,6 +434,7 @@ function DeadWeaponLogic.setDead(player: Player, deadWeaponData: DeadWeapons.Dat
 	end
 
 	deadWeaponData.State = DeadWeapons.StateEnum.Dead
+	deadWeaponData.HasBeenDead = true -- // Permanent: see DeadWeapons.Data.HasBeenDead
 	deadWeaponData.Speed = 0
 	deadWeaponData.SyncTargetPosition = nil
 
