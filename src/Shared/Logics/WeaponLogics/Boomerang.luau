@@ -1405,8 +1405,8 @@ function Boomerang.autoRecallOrDie(player: Player, boomerangId: string, toolData
 end
 
 -- // Manual recall of a dying or dead boomerang: it becomes a thrown boomerang again and returns.
--- // isManualRecall: the player's charged recall (T-090). Once started it can't be cancelled: releasing the button doesn't stop it,
--- // the boomerang keeps returning until it is caught (or the round ends / the player respawns). false = the automatic recovery.
+-- // isManualRecall: the player's charged recall (T-090): it keeps returning only while the player holds recall (T-093,
+-- // Boomerang.stopRecallFromDead puts it back). false = the automatic recovery.
 -- // Server: called from WeaponService on recall press (and by the out-of-bounds failsafe / sliding-away hooks, without hold).
 -- // Client: called from WeaponController.onSnapshot when the server's snapshot says it is Returning.
 function Boomerang.recallFromDead(player: Player, deadWeaponData: DeadWeapons.Data, isManualRecall: boolean)
@@ -1452,6 +1452,25 @@ function Boomerang.recallFromDead(player: Player, deadWeaponData: DeadWeapons.Da
    end
 
    Boomerang.recall(player, thrownWeaponData.ToolId, toolData, thrownWeaponData, { InitialSpeed = 0 })
+end
+
+-- // Recall button released while a charged boomerang flies back (T-093): it loses momentum and drops again (server only; clients
+-- // follow the Dying snapshot). Ignored for boomerangs that weren't recalled from the dead state.
+function Boomerang.stopRecallFromDead(player: Player, thrownWeaponData: ThrownWeapons.Data)
+   if not isServer or not thrownWeaponData.RecallFromDead or thrownWeaponData.State ~= ThrownWeapons.StateEnum.Returning then
+      return
+   end
+   if ThrownWeapons.Data[player] ~= thrownWeaponData then
+      return
+   end
+   local direction = thrownWeaponData.Direction
+   if not direction or direction.Magnitude < 1e-5 then
+      direction = Vector3.new(0, 0, -1)
+   end
+   Boomerang.die(player, thrownWeaponData, {
+      Direction = direction,
+      Speed = thrownWeaponData.Speed or 0,
+   })
 end
 
 -- // Two thrown boomerangs struck each other mid-air (server only: ClashService > WeaponService.clashWeapon). It costs

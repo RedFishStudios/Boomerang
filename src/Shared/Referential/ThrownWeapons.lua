@@ -43,7 +43,7 @@ export type Data = {
    LastMovementPositions: {Vector3}?,
    HitPlayers: {[Player]: number}?,
    HitBots: {[Model]: number}?, -- // When a bot (decoy) was last struck by this boomerang, for the same per-target cooldown as HitPlayers
-   RecallFromDead: boolean?, -- // Recalled off the ground: true = the player's charged manual recall (can't be cancelled), false = automatic (recovered)
+   RecallFromDead: boolean?, -- // Recalled off the ground: true = the player's charged manual recall (only while recall is held), false = automatic (recovered)
    RecallTiltAngle: number?, -- // Client visual: current manual-recall tilt (radians)
    RecallTilt: CFrame?, -- // Client visual: rotation applied to the model while a manual recall lifts it
    VisualYOffset: number?, -- // Client drawing only: how far the freshly thrown boomerang is still drawn above/below its physics height (eases to 0)

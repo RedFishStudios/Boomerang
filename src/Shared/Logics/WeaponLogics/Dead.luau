@@ -591,10 +591,9 @@ function DeadWeaponLogic.applyRecallChargeEvent(player: Player, action: string, 
 		deadWeaponData.RecallCancelAt = nil
 		deadWeaponData.RecallCancelFromY = nil
 	elseif action == "Cancel" then
-		if deadWeaponData.RecallChargeStart then
-			deadWeaponData.RecallCancelAt = serverTime
-			deadWeaponData.RecallCancelFromY = a
-		end
+		-- // T-093: released before the charge finished. The boomerang never left the ground, so the charge is simply forgotten
+		-- // (the old lifting charge dropped it with RecallCancelAt / RecallCancelFromY; see applyRecallChargeLift_UNUSED)
+		clearChargeFields(deadWeaponData)
 	end
 end
 
@@ -628,9 +627,8 @@ function DeadWeaponLogic.cancelRecallCharge(player: Player, deadWeaponData: Dead
 		return
 	end
 	local now = workspace:GetServerTimeNow()
-	local currentY = getChargeHeight(deadWeaponData, now) or deadWeaponData.RecallRestY or 0
-	DeadWeaponLogic.applyRecallChargeEvent(player, "Cancel", now, currentY)
-	SimpleRemotes.getEvent(RECALL_CHARGE_EVENT):FireAllClients(player.UserId, "Cancel", now, currentY)
+	DeadWeaponLogic.applyRecallChargeEvent(player, "Cancel", now)
+	SimpleRemotes.getEvent(RECALL_CHARGE_EVENT):FireAllClients(player.UserId, "Cancel", now)
 end
 
 -- // T-092 (client feedback): the charge no longer lifts the boomerang; it stays on the ground for GlobalConfig.RecallCharge and then
@@ -649,8 +647,8 @@ local function applyRecallChargeLift_UNUSED(deadWeaponData: DeadWeapons.Data, no
 	end
 end
 
--- // Every frame, on the server and on clients' copy of the data. The server starts a charge for a tapped recall once the boomerang has
--- // landed (a tap can't be undone: RecallHeld is never reset), and starts the return when the charge time is up. Nothing can cancel it.
+-- // Every frame, on the server and on clients' copy of the data. The server starts a charge for a HELD recall once the boomerang has
+-- // landed, and starts the return when the charge time is up. Releasing the button before that cancels the charge (T-093).
 function DeadWeaponLogic.updateRecallCharges(_deltaTime: number)
 	local now = workspace:GetServerTimeNow()
 	for player, deadWeaponData in pairs(DeadWeapons.Data) do

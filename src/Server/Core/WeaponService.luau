@@ -135,13 +135,13 @@ local function getHorizontalDirection(direction: Vector3): Vector3
    return horizontal.Unit
 end
 
--- // T-092: a manual recall charge hinders the player exactly like charging a throw: the same reduced walk speed (AimWalkSpeed), tweened
+-- // T-092/T-093: a manual recall (the charge AND the return flight, i.e. for as long as the button is held) hinders the player exactly like charging a throw: the same reduced walk speed (AimWalkSpeed), tweened
 -- // the same way on the server (so it is authoritative; the client mirrors it), and restored the same way when the charge ends (the
 -- // boomerang starts returning). Dash is blocked meanwhile too (Dash.canActivate). Reconciled every frame, so death or a round
 -- // ending can't leave a player slowed.
 local function reconcileRecallChargeSlowdown()
-   for player, deadWeaponData in pairs(DeadWeapons.Data) do
-      if DeadWeaponLogic.isRecallCharging(deadWeaponData) and not recallSlowed[player] then
+   for _, player in ipairs(Players:GetPlayers()) do
+      if DeadWeaponLogic.isRecallChargeActive(player) and not recallSlowed[player] then
          local character = player.Character
          local humanoid = character and character:FindFirstChildWhichIsA("Humanoid")
          if humanoid then
@@ -163,8 +163,7 @@ local function reconcileRecallChargeSlowdown()
    end
 
    for player in pairs(recallSlowed) do
-      local deadWeaponData = DeadWeapons.Data[player]
-      if deadWeaponData and DeadWeaponLogic.isRecallCharging(deadWeaponData) then
+      if DeadWeaponLogic.isRecallChargeActive(player) then
          continue
       end
       recallSlowed[player] = nil
@@ -568,28 +567,29 @@ function WeaponService.init()
             end
             return
          end
-         -- // A dead boomerang doesn't return on the press: the tap starts a short charge (GlobalConfig.RecallCharge) that can't be
-         -- // interrupted (T-092). Dead.luau starts it once the boomerang is Dead (a Dying one begins charging as soon as it lands)
-         -- // and starts the return when the charge completes.
+         -- // A dead boomerang doesn't return on the press: holding recall charges it (GlobalConfig.RecallCharge). Dead.luau
+         -- // starts the charge once the boomerang is Dead (a Dying one begins charging as soon as it lands while held) and starts the
+         -- // return when the charge completes. The button must stay held for the whole return (T-093).
          local deadWeaponData = DeadWeapons.Data[Player]
          if deadWeaponData then
             deadWeaponData.RecallHeld = true
          end
       end
-      -- // Releasing the button does NOT stop a charged recall: once the dead boomerang has started returning (T-090) it keeps
-      -- // returning until it is caught (or the round ends / the player respawns). Only an uncharged one is cancelled, below.
-
-      -- // T-092: releasing the button does nothing any more (the tap can't be undone). The old behaviour, kept for a possible return of
-      -- // the held, liftable charge: released while charging = the boomerang drops back to the ground.
-      --[[
+      -- // T-093: the recall is HELD. Released while the dead boomerang is still charging: the charge is cancelled. Released while a charged
+      -- // boomerang is flying back to the player: it drops and goes back to the dead state.
       if not isPressed then
          local deadWeaponData = DeadWeapons.Data[Player]
          if deadWeaponData then
             deadWeaponData.RecallHeld = false
             DeadWeaponLogic.cancelRecallCharge(Player, deadWeaponData)
+         elseif thrownWeaponData and thrownWeaponData.RecallFromDead then
+            local toolData = Tools[thrownWeaponData.ToolId]
+            local Logic = toolData and getLogic(toolData.LogicClass)
+            if Logic and Logic.stopRecallFromDead then
+               Logic.stopRecallFromDead(Player, thrownWeaponData)
+            end
          end
       end
-      ]]
    end)
 
    PlayersUtil.CharacterLoaded:Add(function(player: Player, character: Model, humanoid: Humanoid, rootPart: BasePart)

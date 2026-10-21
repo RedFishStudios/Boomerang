@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-093** *(shared by every task list, general and Epic)*
+**Next free ID: T-094** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,25 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-093 · Manual recall is a hold again (client feedback)
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Server / Client / Shared
+- **Files:** `Shared/Logics/WeaponLogics/Dead.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`, `Server/Core/WeaponService.luau`, `Shared/Logics/AbilityLogics/Dash.luau`, `Client/Core/RecallChargeController.luau`
+
+**Done when**
+- [ ] Releasing recall before the 0.3 s charge finishes cancels the charge (the boomerang stays where it is; ring shrinks away)
+- [ ] The player stays in the recall hold state (slowed, no dash, Summon animation) for the whole return flight
+- [ ] Releasing recall while the charged boomerang flies back makes it drop and return to the dead state; the player is released then
+- [ ] Catching it ends the hold state (Summon stops, speed restored, dash works)
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-093-recall-hold`. Edits left uncommitted. Undoes the "can't be interrupted" and "released once it starts returning" parts of T-092.
+- `Boomerang.stopRecallFromDead` is back (as before T-090) and the release branch in `WeaponService.luau` is live again. A cancelled charge now just clears the charge fields (`applyRecallChargeEvent` "Cancel"), since nothing was lifted.
+- The slowdown and the dash block follow `isRecallChargeActive` (charging OR returning from a manual recall).
+- Not syntax-checked or tested (Studio play-testing is Sol's).
+
 
 ### T-092 · Manual recall rework (client feedback): ground charge, no interrupt, slowed, tilt-up return
 - **Priority:** P1
