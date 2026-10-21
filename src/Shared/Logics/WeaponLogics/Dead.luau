@@ -561,8 +561,13 @@ local function getChargeHeight(deadWeaponData: DeadWeapons.Data, now: number): n
 	if not startAt or not startY or not targetY then
 		return nil
 	end
-	local alpha = (now - startAt) / math.max(GlobalConfig.RecallCharge, 0.01)
+	local alpha = (now - startAt) / DeadWeaponLogic.getRecallChargeSeconds(deadWeaponData)
 	return startY + (targetY - startY) * getRiseCurve(alpha)
+end
+
+-- // T-097: how long this boomerang's recall charge lasts (tunable live with `tune recallchargetime`; default GlobalConfig.RecallCharge)
+function DeadWeaponLogic.getRecallChargeSeconds(deadWeaponData: DeadWeapons.Data): number
+	return math.max(BoomerangTuningLibrary.getForAnyTool(deadWeaponData.ToolId, "RecallChargeTime"), 0.01)
 end
 
 local function clearChargeFields(deadWeaponData: DeadWeapons.Data)
@@ -685,7 +690,7 @@ function DeadWeaponLogic.updateRecallCharges(_deltaTime: number)
 
 		applyRecallChargeLift(deadWeaponData, now)
 
-		if isServer and not deadWeaponData.RecallCancelAt and deadWeaponData.RecallChargeStart and now - deadWeaponData.RecallChargeStart >= GlobalConfig.RecallCharge then
+		if isServer and not deadWeaponData.RecallCancelAt and deadWeaponData.RecallChargeStart and now - deadWeaponData.RecallChargeStart >= DeadWeaponLogic.getRecallChargeSeconds(deadWeaponData) then
 			if DeadWeaponLogic.onRecallCharged then
 				DeadWeaponLogic.onRecallCharged(player, deadWeaponData)
 			else

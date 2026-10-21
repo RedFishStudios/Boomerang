@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-96** *(shared by every task list, general and Epic)*
+**Next free ID: T-97** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,22 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-096 · `tune recallchargetime`: live-tunable recall charge duration
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared
+- **Files:** `Shared/Library/BoomerangTuningLibrary.luau`, `Shared/Logics/WeaponLogics/Dead.luau`, `Client/Core/DeadWeaponBeamController.luau`, `Server/Cmdr/Commands/TuneBoomerang.luau`
+
+**Done when**
+- [ ] `tune recallchargetime <seconds>` changes how long a manual recall charges (default `GlobalConfig.RecallCharge`, 0.3 s); `tune recallchargetime` shows it and `resetboomerang` restores it
+- [ ] The rise, the server's completion of the charge and the dead-beam fade all follow the tuned value, on server and clients
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-096-tune-recallcharge`. Edits left uncommitted.
+- New `RecallChargeTime` setting (attribute-replicated like the others). `DeadWeaponLogic.getRecallChargeSeconds` reads it (min 0.01 s) and replaces the three `GlobalConfig.RecallCharge` reads. Changing it mid-charge takes effect immediately.
+- Not syntax-checked or tested (Studio play-testing is Sol's).
+
 
 ### T-095 · Manual recall lifts during the charge again, quick start of the return (client feedback)
 - **Priority:** P1

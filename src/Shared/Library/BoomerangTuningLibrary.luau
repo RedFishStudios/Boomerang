@@ -29,7 +29,7 @@ local ATTRIBUTE_PREFIX = "BT"
 -- TYPES
 -------------------------------------------------------------------------------
 
-export type Setting = "ThrowSpeed" | "MinEnergy" | "MaxEnergy" | "EnergyPerStud" | "RecallEnergy" | "BounceEnergyCost" | "PlayerHitEnergyCost" | "ClashEnergyCost" | "RecallSpeed" | "RecallAcceleration" | "RecallRampTime" | "RecallRampPower" | "RecallBounceRecovery" | "DyingSpeedMultiplier" | "ChargeTime" | "AimWalkSpeed" | "TelekinesisInfluence"
+export type Setting = "ThrowSpeed" | "MinEnergy" | "MaxEnergy" | "EnergyPerStud" | "RecallEnergy" | "BounceEnergyCost" | "PlayerHitEnergyCost" | "ClashEnergyCost" | "RecallSpeed" | "RecallAcceleration" | "RecallRampTime" | "RecallRampPower" | "RecallBounceRecovery" | "DyingSpeedMultiplier" | "ChargeTime" | "AimWalkSpeed" | "RecallChargeTime" | "TelekinesisInfluence"
 
 type SettingInfo = {
 	Description: string,
@@ -41,7 +41,7 @@ type SettingInfo = {
 -------------------------------------------------------------------------------
 
 -- // Every tunable value, in display order. The names are what Cmdr shows (and autocompletes).
-BoomerangTuningLibrary.SETTING_ORDER = { "ThrowSpeed", "MinEnergy", "MaxEnergy", "EnergyPerStud", "RecallEnergy", "BounceEnergyCost", "PlayerHitEnergyCost", "ClashEnergyCost", "RecallSpeed", "RecallAcceleration", "RecallRampTime", "RecallRampPower", "RecallBounceRecovery", "DyingSpeedMultiplier", "ChargeTime", "AimWalkSpeed", "TelekinesisInfluence" } :: { Setting }
+BoomerangTuningLibrary.SETTING_ORDER = { "ThrowSpeed", "MinEnergy", "MaxEnergy", "EnergyPerStud", "RecallEnergy", "BounceEnergyCost", "PlayerHitEnergyCost", "ClashEnergyCost", "RecallSpeed", "RecallAcceleration", "RecallRampTime", "RecallRampPower", "RecallBounceRecovery", "DyingSpeedMultiplier", "ChargeTime", "AimWalkSpeed", "RecallChargeTime", "TelekinesisInfluence" } :: { Setting }
 
 BoomerangTuningLibrary.SETTINGS = {
 	ThrowSpeed = {
@@ -144,6 +144,13 @@ BoomerangTuningLibrary.SETTINGS = {
 		Description = "player walk speed while aiming/charging (studs/s)",
 		getDefault = function(_toolData)
 			return WalkSpeedLibrary.getDefault() * GlobalConfig.AimingWalkSpeedMultiplier
+		end,
+	},
+	-- // T-097: seconds a tapped manual recall charges before the dead boomerang starts returning (Dead.luau; client and server both read it)
+	RecallChargeTime = {
+		Description = "seconds a manual recall charges (boomerang stays down, player slowed) before it starts returning",
+		getDefault = function(_toolData)
+			return GlobalConfig.RecallCharge
 		end,
 	},
 	-- // T-077: how strongly a Telekinesis boomerang turns toward the owner's aim each second (bias, not full control)

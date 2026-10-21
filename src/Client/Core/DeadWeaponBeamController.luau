@@ -202,7 +202,7 @@ local function buildDeadTransparency(opacity: number): NumberSequence
 end
 
 -- // How visible the dead beam should be right now, and whether that value is a smooth countdown that opacity should follow exactly.
--- //   charging a recall: 1 -> 0 over GlobalConfig.RecallCharge, reaching 0 exactly when the charge peaks (server time, so every
+-- //   charging a recall: 1 -> 0 over the recall charge time (GlobalConfig.RecallCharge, tunable), reaching 0 exactly when the charge peaks (server time, so every
 -- //     machine agrees, and releasing or restarting the charge simply changes this value; the beam never jumps)
 -- //   otherwise: 1 while the boomerang rests dead, 0 when the beam shouldn't be shown
 local function getDeadTarget(wanted: boolean): (number, boolean)
@@ -214,7 +214,7 @@ local function getDeadTarget(wanted: boolean): (number, boolean)
 		return 0, false -- // Still dying (sliding to a stop), or flying back to the player: the beam exists but is invisible
 	end
 	if DeadWeaponLogic.isRecallCharging(deadWeaponData) and deadWeaponData.RecallChargeStart then
-		local progress = (workspace:GetServerTimeNow() - deadWeaponData.RecallChargeStart) / math.max(GlobalConfig.RecallCharge, 0.01)
+		local progress = (workspace:GetServerTimeNow() - deadWeaponData.RecallChargeStart) / DeadWeaponLogic.getRecallChargeSeconds(deadWeaponData)
 		return 1 - math.clamp(progress, 0, 1), true
 	end
 	return 1, false
