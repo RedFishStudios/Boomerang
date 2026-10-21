@@ -47,7 +47,8 @@ local CONTAINER_TAG = "DeadWeaponBeamContainer"
 
 -- // Attachment offsets (from the BeamToDeadWeapon / BeamToReturningWeapon references): boomerang (0, 1, 0), player (0, 0, 0)
 -- // (the player one was moved from (0, 2, 0) to the Hitbox's center by Sol, 2026-10-20)
-local WEAPON_ATTACHMENT_OFFSET = Vector3.new(0, 1, 0) -- // In the boomerang part's own space
+local WEAPON_ATTACHMENT_OFFSET = Vector3.new(0, 1, 0) -- // In the boomerang part's own space (the dead beam: a stud above it)
+local RETURNING_WEAPON_ATTACHMENT_OFFSET = Vector3.zero -- // The returning beam attaches directly on the boomerang itself
 local PLAYER_ATTACHMENT_OFFSET = Vector3.zero -- // In WORLD-upright terms, converted to the Hitbox's space (zero = the Hitbox's center)
 
 -- // Look shared by both beams
@@ -101,6 +102,7 @@ type BeamKind = {
 	Tag: string, -- // On everything this kind creates (beam + attachments), used to sweep leftovers
 	BeamName: string,
 	AttachmentName: string,
+	WeaponAttachmentOffset: Vector3, -- // Where this kind's beam attaches, in the boomerang part's own space
 	Active: ActiveBeam?,
 	-- // The boomerang part this kind's beam should point at right now, or nil if it should not exist
 	getWeaponPart: () -> BasePart?,
@@ -221,7 +223,7 @@ local function createBeam(kind: BeamKind, weaponPart: BasePart, hitbox: BasePart
 
 	local weaponAttachment = Instance.new("Attachment")
 	weaponAttachment.Name = kind.AttachmentName
-	weaponAttachment.Position = WEAPON_ATTACHMENT_OFFSET
+	weaponAttachment.Position = kind.WeaponAttachmentOffset
 	weaponAttachment.Visible = false
 	CollectionService:AddTag(weaponAttachment, kind.Tag)
 	weaponAttachment.Parent = weaponPart
@@ -303,6 +305,7 @@ local deadKind: BeamKind = {
 	Tag = "DeadWeaponBeamObject",
 	BeamName = "BeamToDeadWeapon",
 	AttachmentName = "DeadWeaponBeamAttachment",
+	WeaponAttachmentOffset = WEAPON_ATTACHMENT_OFFSET,
 	Active = nil,
 
 	-- // The local player's own boomerang while it is Dead (including while its recall is charging)
@@ -346,6 +349,7 @@ local returningKind: BeamKind = {
 	Tag = "ReturningWeaponBeamObject",
 	BeamName = "BeamToReturningWeapon",
 	AttachmentName = "ReturningWeaponBeamAttachment",
+	WeaponAttachmentOffset = RETURNING_WEAPON_ATTACHMENT_OFFSET,
 	Active = nil,
 
 	-- // The local player's own boomerang while a charged manual recall is moving it back to them, until it is caught
