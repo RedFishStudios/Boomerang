@@ -5,9 +5,10 @@
 	never get a beam.
 
 	  1. "Dead" beam (BeamToDeadWeapon): while the boomerang is Dead, resting on the field, waiting for a manual recall. It
-	     fades in when it appears (GlobalConfig.DeadBeamFadeSeconds), fades out gradually as the recall charges and is completely
-	     invisible exactly when the charge peaks (T-094), and fades back in if the recall is released/cancelled or the boomerang is
-	     dead again. It fades out the same way when it goes away for any other reason, if it can still be drawn (if the boomerang or
+	     is created once, when the boomerang first dies, and destroyed when it is back in the player's hands. In between it is the same
+	     beam: it fades in once the boomerang has landed (GlobalConfig.DeadBeamFadeSeconds), fades out gradually as the recall charges and
+	     is completely invisible exactly when the charge peaks, stays invisible while the boomerang flies back, and fades back in if the
+	     recall is released/cancelled or the boomerang is dead again (T-094). It fades out the same way when it goes away for any other reason, if it can still be drawn (if the boomerang or
 	     the player's character is gone it is removed at once).
 	  2. "Returning" beam (BeamToReturningWeapon): from the moment the charged recall starts moving the boomerang until it is
 	     caught. It fades in over GlobalConfig.RecallReturnBeamFadeInSeconds.
@@ -209,7 +210,10 @@ local function getDeadTarget(wanted: boolean): (number, boolean)
 		return 0, false
 	end
 	local deadWeaponData = DeadWeapons.Data[localPlayer]
-	if deadWeaponData and DeadWeaponLogic.isRecallCharging(deadWeaponData) and deadWeaponData.RecallChargeStart then
+	if not deadWeaponData or deadWeaponData.State ~= DeadWeapons.StateEnum.Dead then
+		return 0, false -- // Still dying (sliding to a stop), or flying back to the player: the beam exists but is invisible
+	end
+	if DeadWeaponLogic.isRecallCharging(deadWeaponData) and deadWeaponData.RecallChargeStart then
 		local progress = (workspace:GetServerTimeNow() - deadWeaponData.RecallChargeStart) / math.max(GlobalConfig.RecallCharge, 0.01)
 		return 1 - math.clamp(progress, 0, 1), true
 	end
@@ -350,11 +354,19 @@ local deadKind: BeamKind = {
 	WeaponAttachmentOffset = WEAPON_ATTACHMENT_OFFSET,
 	Active = nil,
 
-	-- // The local player's own boomerang while it is Dead (including while its recall is charging)
+	-- // The beam's whole life cycle (T-094): ONE beam exists from the moment the local player's boomerang dies until it is back in
+	-- // their hands. It is the same beam through every dead -> recall charge -> returning -> dropped (released) -> dead again round, so
+	-- // it is only built the first time (the boomerang's host part stays the same, so isActiveBeamValid keeps matching it) and it
+	-- // only turns invisible in between (getDeadTarget). It is removed once the boomerang is neither dead nor being recalled
+	-- // from the dead, i.e. caught / removed.
 	getWeaponPart = function(): BasePart?
 		local deadWeaponData = DeadWeapons.Data[localPlayer]
-		if deadWeaponData and deadWeaponData.State == DeadWeapons.StateEnum.Dead then
+		if deadWeaponData then
 			return getWeaponPart(deadWeaponData.Host)
+		end
+		local thrownWeaponData = ThrownWeapons.Data[localPlayer]
+		if thrownWeaponData and thrownWeaponData.RecallFromDead ~= nil then
+			return getWeaponPart(thrownWeaponData.Host)
 		end
 		return nil
 	end,
