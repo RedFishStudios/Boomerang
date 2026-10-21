@@ -461,6 +461,24 @@ local function getWeaponCFrame(thrownWeaponData: ThrownWeapons.Data): CFrame?
    return thrownWeaponData.CFrame
 end
 
+-- // Client drawing only: how far above (+) / below (-) the physics height a freshly thrown boomerang is still DRAWN. It starts at the
+-- // thrower's height and eases to 0 within GlobalConfig.BoomerangVisualHeightSyncSeconds; the simulation never sees it.
+local function getVisualYOffset(thrownWeaponData: ThrownWeapons.Data): number
+   local startOffset = thrownWeaponData.VisualYOffset
+   local startedAt = thrownWeaponData.VisualYOffsetStartedAt
+   if not startOffset or not startedAt then
+      return 0
+   end
+   local alpha = (os.clock() - startedAt) / math.max(GlobalConfig.BoomerangVisualHeightSyncSeconds, 0.01)
+   if alpha >= 1 then
+      thrownWeaponData.VisualYOffset = nil
+      thrownWeaponData.VisualYOffsetStartedAt = nil
+      return 0
+   end
+   local remaining = (1 - alpha) * (1 - alpha) -- // Quick at first, then settles
+   return startOffset * remaining
+end
+
 local function setWeaponCFrame(thrownWeaponData: ThrownWeapons.Data, cframe: CFrame, deltaTime: number?)
    thrownWeaponData.LastPosition = thrownWeaponData.CFrame.Position
    thrownWeaponData.CFrame = cframe
@@ -472,7 +490,7 @@ local function setWeaponCFrame(thrownWeaponData: ThrownWeapons.Data, cframe: CFr
          -- Spin is constant and flat regardless of movement direction, speed, or state
          local visualRotation = (thrownWeaponData.VisualRotation or 0) + (BOOMERANG_SPIN_SPEED * (deltaTime or 0))
          thrownWeaponData.VisualRotation = visualRotation
-         host:PivotTo(CFrame.new(cframe.Position) * CFrame.Angles(0, visualRotation, 0))
+         host:PivotTo(CFrame.new(cframe.Position + Vector3.new(0, getVisualYOffset(thrownWeaponData), 0)) * CFrame.Angles(0, visualRotation, 0))
       else
          host:PivotTo(cframe)
       end
@@ -848,6 +866,15 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    thrownWeaponData.EnergyDepletedHandled = false
 
    local startPosition = (options and options.StartPosition) or (character.PrimaryPart.Position + character.PrimaryPart.CFrame.LookVector * 3)
+   -- // The PHYSICS always runs at the one configured height, wherever the player is (jumping, dashing): every obstruction cast and
+   -- // victim cast uses it (GlobalConfig.BoomerangFlightHeight). Clients only DRAW the boomerang from the thrower's height at first
+   -- // and ease it down/up to the physics height (see getVisualYOffset), so it leaves the hand seamlessly.
+   startPosition = Vector3.new(startPosition.X, GlobalConfig.BoomerangFlightHeight, startPosition.Z)
+   if not isServer then
+      local throwerRoot = character.PrimaryPart
+      thrownWeaponData.VisualYOffset = if throwerRoot then throwerRoot.Position.Y - GlobalConfig.BoomerangFlightHeight else 0
+      thrownWeaponData.VisualYOffsetStartedAt = os.clock()
+   end
    
    --[[if startPosition then
       local StartPartRep = Instance.new("Part")
@@ -1243,7 +1270,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       local alpha = math.clamp(stepAccumulator / FIXED_STEP, 0, 1)
       local drawnPosition = (thrownWeaponData.LastPosition or simCFrame.Position):Lerp(simCFrame.Position, alpha)
       local spin = (thrownWeaponData.VisualRotation or 0) + BOOMERANG_SPIN_SPEED * stepAccumulator
-      host:PivotTo(CFrame.new(drawnPosition) * CFrame.Angles(0, spin, 0))
+      host:PivotTo(CFrame.new(drawnPosition + Vector3.new(0, getVisualYOffset(thrownWeaponData), 0)) * CFrame.Angles(0, spin, 0))
    end
 
    local function stopMovement()
@@ -1632,11 +1659,12 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          return
       end
 
-      -- // Recalled off the ground: keep to the player's hand height while returning, as a thrown boomerang does. The obstruction
-      -- // cast is a thin flat block, so a boomerang left even half a stud above hand height flies over arena walls. A manual
-      -- // recall was lifted there by the recall charge (Dead.luau, T-090); this also follows the player if they moved up or down.
-      if thrownWeaponData.RecallFromDead ~= nil then
-         local heightDelta = rootPart.Position.Y - hostPivot.Position.Y
+      -- // Recovering off the ground by itself (automatic recall, RecallFromDead == false): rise smoothly to GlobalConfig.BoomerangFlightHeight
+      -- // while returning. A manual recall (RecallFromDead == true) was already lifted to it by the recall charge (Dead.luau, T-090)
+      -- // and keeps that exact height all the way back, like a thrown boomerang. Neither depends on the player's height, or a jump
+      -- // would carry the boomerang over the arena walls (the obstruction cast is a thin flat block).
+      if thrownWeaponData.RecallFromDead == false then
+         local heightDelta = GlobalConfig.BoomerangFlightHeight - hostPivot.Position.Y
          if math.abs(heightDelta) > 0.05 then
             hostPivot += Vector3.new(0, heightDelta * math.clamp(deltaTime * liftRate, 0, 1), 0)
          end

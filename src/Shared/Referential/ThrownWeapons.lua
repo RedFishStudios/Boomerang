@@ -44,6 +44,8 @@ export type Data = {
    HitPlayers: {[Player]: number}?,
    HitBots: {[Model]: number}?, -- // When a bot (decoy) was last struck by this boomerang, for the same per-target cooldown as HitPlayers
    RecallFromDead: boolean?, -- // Recalled off the ground: true = the player's charged manual recall (can't be cancelled), false = automatic (recovered)
+   VisualYOffset: number?, -- // Client drawing only: how far the freshly thrown boomerang is still drawn above/below its physics height (eases to 0)
+   VisualYOffsetStartedAt: number?, -- // os.clock() of the throw
    PortalExitAt: number?, -- // os.clock() of the last portal exit (Environment/Portal)
    PortalExitPart: BasePart?, -- // The portal it last came out of
    TrailObject: {
