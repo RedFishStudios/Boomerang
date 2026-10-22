@@ -32,6 +32,7 @@ local PlayerStatsLibrary = require(ReplicatedStorage.Shared.Library.PlayerStatsL
 local GameplayPhaseEnum = require(ReplicatedStorage.Shared.Constants.Enums.GameplayPhases)
 local LobbyController = require(ReplicatedStorage.Client.Core.LobbyController)
 local PlatformController = require(ReplicatedStorage.Client.Core.PlatformController)
+local Telekinesis = require(ReplicatedStorage.Shared.Logics.PickupLogics.Telekinesis)
 
 local ToolLogics = ReplicatedStorage.Shared.Logics.WeaponLogics
 local ToolLogicModules = {}
@@ -61,7 +62,6 @@ local weaponEquipStateEvent = SimpleRemotes.getEvent("WeaponEquipState")
 local thrownBoomerangSpawnedEvent = SimpleRemotes.getEvent("ThrownBoomerangSpawned")
 local thrownBoomerangDespawnedEvent = SimpleRemotes.getEvent("ThrownBoomerangDespawned")
 local thrownWeaponReplicationEvent = SimpleRemotes.getUnreliableEvent("ThrownWeaponReplication")
-local telekinesisSteerEvent = SimpleRemotes.getUnreliableEvent("TelekinesisSteer") -- // T-077
 local recallChargeEvent = SimpleRemotes.getEvent("RecallCharge") -- // T-090: a dead boomerang's recall charge started / was cancelled (any player)
 
 local UNRELIABLE_CODES = RemoteCodes.Weapon.Unreliable
@@ -727,68 +727,16 @@ function WeaponController.startThrownWeapon(forPlayer: Player, toolId: string, t
    logic.throw(forPlayer, toolId, toolData, ThrownWeapons.Data[forPlayer], initOptions)
 end
 
--- // T-077 Telekinesis: while a Telekinesis effect is active and the owner's boomerang is in flight, the owner's aim
--- // feeds a steer direction (a bias, not full control). One provider branch per control scheme keeps the input
--- // swappable later (a console reticle, or a touch-point scheme instead of the thumbstick).
-local STEER_SEND_INTERVAL = 0.05 -- // Seconds between streamed steer updates (caps network traffic)
-local STEER_RESEND_DOT = 0.9995 -- // Also resend when the aim turns by more than ~1.8 degrees
-local telekinesisEffectActive = false
-local telekinesisTouchAngle: number? = nil -- // Touch: live thumbstick drag angle while steering (kept live during flight)
-local lastSteerSent: Vector3? = nil
-local lastSteerSentAt = 0
-
-local function isTelekinesisFlightState(state: number?): boolean
-   -- // Steer while flying out, not during an automatic return (which already pulls it toward the player)
-   return state == ThrownWeapons.StateEnum.Outgoing or state == ThrownWeapons.StateEnum.Exhausted
-end
-
-local function isTelekinesisSteering(): boolean
-   if not telekinesisEffectActive then
-      return false
-   end
-   local data = ThrownWeapons.Data[localPlayer]
-   return data ~= nil and isTelekinesisFlightState(data.State)
-end
-
--- // The owner's desired steer direction (horizontal), or nil. One branch per control scheme (T-077).
-local function getTelekinesisSteerDirection(): Vector3?
-   local scheme = PlatformController.getDominantControlScheme()
-   if scheme == "Touch" then
-      if telekinesisTouchAngle == nil then
-         return nil
-      end
-      local lookVector = CharacterController.getTouchAimLookVector(telekinesisTouchAngle)
-      return if lookVector then getHorizontalDirection(lookVector) else nil
-   elseif scheme == "Console" then
-      return nil -- // TODO: console steering (right stick / reticle) — not wired up yet
-   end
-   -- // PC: the character already faces the mouse cursor during flight, so reuse that facing
-   return getHorizontalDirection(CharacterController.LastCFrame.LookVector)
-end
-
--- // T-077: PickupController calls this (for the local player) when the Telekinesis effect starts/ends
-function WeaponController.setTelekinesisActive(active: boolean)
-   telekinesisEffectActive = active
-   if not active then
-      telekinesisTouchAngle = nil
-      lastSteerSent = nil
-      local data = ThrownWeapons.Data[localPlayer]
-      if data then
-         data.TelekinesisBias = nil
-      end
-   end
-end
-
 function WeaponController.beginThumbstickAim(): boolean
-   if isTelekinesisSteering() then
-      return true -- // Steering a thrown boomerang, not starting a new aim
+   if Telekinesis.isLocalSteering() then
+      return true -- // Steering a thrown boomerang (Telekinesis), not starting a new aim
    end
    return beginEquippedToolAim()
 end
 
 function WeaponController.setThumbstickAimDirection(angle: number?)
-   if isTelekinesisSteering() then
-      telekinesisTouchAngle = angle -- // Feed the steer direction; don't begin aiming
+   if Telekinesis.isLocalSteering() then
+      Telekinesis.setTouchAngle(angle) -- // Feed the steer direction; don't begin aiming
       return
    end
    if typeof(angle) == "number" then
@@ -801,8 +749,8 @@ function WeaponController.setThumbstickAimDirection(angle: number?)
 end
 
 function WeaponController.releaseThumbstickAim(lastAngle: number?): boolean
-   if isTelekinesisSteering() then
-      telekinesisTouchAngle = nil -- // Stop steering; no throw
+   if Telekinesis.isLocalSteering() then
+      Telekinesis.setTouchAngle(nil) -- // Stop steering; no throw
       return false
    end
    if typeof(lastAngle) == "number" then
@@ -822,28 +770,6 @@ end
 function WeaponController.init()
    RunService.Heartbeat:Connect(function(dt)
       syncWeaponStateChanged()
-   end)
-
-   -- // T-077 Telekinesis: while active and in flight, set the local bias (so the predicted boomerang bends the same
-   -- // way the server will, reconciled by the usual snapshots) and stream the direction to the server (throttled).
-   RunService.Heartbeat:Connect(function()
-      local data = ThrownWeapons.Data[localPlayer]
-      if not telekinesisEffectActive or not data or not isTelekinesisFlightState(data.State) then
-         lastSteerSent = nil
-         return
-      end
-      local direction = getTelekinesisSteerDirection()
-      if not direction then
-         data.TelekinesisBias = nil
-         return
-      end
-      data.TelekinesisBias = direction
-      local now = os.clock()
-      if lastSteerSent == nil or (now - lastSteerSentAt) >= STEER_SEND_INTERVAL or direction:Dot(lastSteerSent) < STEER_RESEND_DOT then
-         telekinesisSteerEvent:FireServer(direction)
-         lastSteerSent = direction
-         lastSteerSentAt = now
-      end
    end)
 
    weaponEquipStateEvent.OnClientEvent:Connect(function(playerUserId: number, action: string, value)

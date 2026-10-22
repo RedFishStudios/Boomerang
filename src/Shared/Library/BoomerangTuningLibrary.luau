@@ -29,7 +29,7 @@ local ATTRIBUTE_PREFIX = "BT"
 -- TYPES
 -------------------------------------------------------------------------------
 
-export type Setting = "ThrowSpeed" | "MinEnergy" | "MaxEnergy" | "EnergyPerStud" | "RecallEnergy" | "BounceEnergyCost" | "PlayerHitEnergyCost" | "ClashEnergyCost" | "RecallSpeed" | "RecallAcceleration" | "RecallCurveAcceleration" | "RecallRampPower" | "RecallBounceRecovery" | "DeadWeaponDeceleration" | "ChargeTime" | "AimWalkSpeed" | "RecallChargeTime" | "TelekinesisInfluence"
+export type Setting = "ThrowSpeed" | "MinEnergy" | "MaxEnergy" | "EnergyPerStud" | "RecallEnergy" | "BounceEnergyCost" | "PlayerHitEnergyCost" | "ClashEnergyCost" | "RecallSpeed" | "RecallAcceleration" | "RecallCurveAcceleration" | "RecallRampPower" | "RecallBounceRecovery" | "DeadWeaponDeceleration" | "ChargeTime" | "AimWalkSpeed" | "RecallChargeTime"
 
 type SettingInfo = {
 	Description: string,
@@ -41,7 +41,7 @@ type SettingInfo = {
 -------------------------------------------------------------------------------
 
 -- // Every tunable value, in display order. The names are what Cmdr shows (and autocompletes).
-BoomerangTuningLibrary.SETTING_ORDER = { "ThrowSpeed", "MinEnergy", "MaxEnergy", "EnergyPerStud", "RecallEnergy", "BounceEnergyCost", "PlayerHitEnergyCost", "ClashEnergyCost", "RecallSpeed", "RecallAcceleration", "RecallCurveAcceleration", "RecallRampPower", "RecallBounceRecovery", "DeadWeaponDeceleration", "ChargeTime", "AimWalkSpeed", "RecallChargeTime", "TelekinesisInfluence" } :: { Setting }
+BoomerangTuningLibrary.SETTING_ORDER = { "ThrowSpeed", "MinEnergy", "MaxEnergy", "EnergyPerStud", "RecallEnergy", "BounceEnergyCost", "PlayerHitEnergyCost", "ClashEnergyCost", "RecallSpeed", "RecallAcceleration", "RecallCurveAcceleration", "RecallRampPower", "RecallBounceRecovery", "DeadWeaponDeceleration", "ChargeTime", "AimWalkSpeed", "RecallChargeTime" } :: { Setting }
 
 BoomerangTuningLibrary.SETTINGS = {
 	ThrowSpeed = {
@@ -152,13 +152,6 @@ BoomerangTuningLibrary.SETTINGS = {
 		Description = "seconds a manual recall charges (boomerang stays down, player slowed) before it starts returning",
 		getDefault = function(_toolData)
 			return GlobalConfig.RecallCharge
-		end,
-	},
-	-- // T-077: how strongly a Telekinesis boomerang turns toward the owner's aim each second (bias, not full control)
-	TelekinesisInfluence = {
-		Description = "how strongly a Telekinesis boomerang turns toward the owner's aim (per second; a bias, not full control)",
-		getDefault = function(_toolData)
-			return GlobalConfig.TelekinesisSteerInfluence
 		end,
 	},
 } :: { [Setting]: SettingInfo }

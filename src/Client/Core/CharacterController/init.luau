@@ -189,26 +189,8 @@ local function onPreSimulation(dT: number)
 				end
 			end
 		else
-			local lastInWorld = PlatformController.getLastMousePositionInWorld()
-         --[[local f = Instance.new("Frame")
-         f.Size = UDim2.fromOffset(5, 5)
-         f.Parent = testGui
-         f.Position = UDim2.fromOffset(lastInWorld.X, lastInWorld.Y)]]
-         if lastInWorld then -- // nil until the mouse first moves (Server Authority Epic P2)
-            lastInWorld += Vector3.new(0, -60, 0)
-         end
-
-         local raycastParams = RaycastParams.new()
-         raycastParams.CollisionGroup = CollisionGroupConstants.ArenaFloorDetector
-			local localTarget = RaycastsUtility.getMouseWorldPosition(2048, raycastParams, if lastInWorld then Vector2.new(lastInWorld.X, lastInWorld.Y) else nil)
-
-         if localTarget then
-            --[[local g = Instance.new("Part")
-            g.Size = Vector3.new(0.2, 0.2, 0.2)
-            g.Material = "Neon"
-            g.Position = localTarget
-            g.Anchored = true
-            g.Parent = workspace]]
+			local localTarget = CharacterController.getMouseGroundPosition()
+			if localTarget then
 				localYaw = CharacterLogic.getYawFromLookAt(localOriginPosition, localTarget)
 			end
 		end
@@ -297,6 +279,19 @@ end
 
 function CharacterController.setAiming(nextIsAiming: boolean)
 	isAiming = nextIsAiming
+end
+
+-- // Where the mouse cursor points on the arena floor (nil until the mouse has first moved). The character faces this in the top-down
+-- // camera, and Telekinesis steers a thrown boomerang toward it.
+function CharacterController.getMouseGroundPosition(): Vector3?
+	local lastInWorld = PlatformController.getLastMousePositionInWorld()
+	if lastInWorld then -- // nil until the mouse first moves (Server Authority Epic P2)
+		lastInWorld += Vector3.new(0, -60, 0)
+	end
+
+	local raycastParams = RaycastParams.new()
+	raycastParams.CollisionGroup = CollisionGroupConstants.ArenaFloorDetector
+	return RaycastsUtility.getMouseWorldPosition(2048, raycastParams, if lastInWorld then Vector2.new(lastInWorld.X, lastInWorld.Y) else nil)
 end
 
 function CharacterController.getTouchAimLookVector(angle: number?): Vector3?

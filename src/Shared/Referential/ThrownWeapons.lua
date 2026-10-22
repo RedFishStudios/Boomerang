@@ -37,7 +37,8 @@ export type Data = {
    ReturnRescued: boolean?, -- // A returning boomerang that ran out of energy was already saved from dying once (see Boomerang.canAvoidDying)
    ReturnSpeedMultiplier: number?, -- // Max recall speed multiplier for a returning boomerang (Explosive effect), set by Boomerang.recall
    PendingDirection: Vector3?, -- // A new flight direction to adopt on the next step (set by a clash)
-   TelekinesisBias: Vector3?, -- // T-077: owner's desired steer direction (horizontal unit) while a Telekinesis effect is active; nil = no steering
+   TelekinesisBias: Vector3?, -- // Telekinesis: the direction (horizontal unit) the owner wants this weapon to head; nil = no steering (see Telekinesis.getBias)
+   TelekinesisBiasAt: number?, -- // os.clock() when TelekinesisBias was last set; an old bias expires
    ReuseEquippedHost: boolean?,
    ExistingHost: Model?,
    LastMovementPositions: {Vector3}?,

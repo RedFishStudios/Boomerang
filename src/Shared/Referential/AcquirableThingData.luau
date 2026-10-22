@@ -120,8 +120,8 @@ local AcquirableNotifData: {
       Subtitle = "Weapon leaves a trail of ice",
       Img = 16
    },
-   TelekinesisBoomerang = {
-      Id = "TelekinesisBoomerang",
+   Telekinesis = {
+      Id = "Telekinesis",
       Title = "Telekinesis",
       Subtitle = "Steer your weapon in flight",
       Img = 17

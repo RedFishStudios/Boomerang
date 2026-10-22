@@ -83,7 +83,7 @@ local LISTING_EMOJIS = {
 	IceBoomerang = "❄️",
 	MultiBoomerang = "🔱",
 	Speedup = "👟",
-	TelekinesisBoomerang = "🔮",
+	Telekinesis = "🔮",
 }
 
 local CONTAINER_TWEEN_INFO_IN = TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out)

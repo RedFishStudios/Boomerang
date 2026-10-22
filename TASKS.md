@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-105** *(shared by every task list, general and Epic)*
+**Next free ID: T-107** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -462,6 +462,7 @@ Implement the TelekinesisBoomerang stub. While the effect is active, the owner c
 - New tuning setting `TelekinesisInfluence` in `BoomerangTuningLibrary`; default from `GlobalConfig.TelekinesisSteerInfluence = 2`. The existing `tune` / `reset` Cmdr commands pick it up automatically.
 - No new placeholders added. `AcquirableThingData.TelekinesisBoomerang` already existed with a placeholder `Img = 17` (pre-existing; its real icon is part of T-018).
 - Telekinesis and Homing are mutually exclusive (Sol, 2026-10-09): PickupService `NotCompatible` keeps the other out of the pickup pool while you have one.
+- 2026-10-22: reworked on branch `agent/telekinesis` (lane `Boomerang-lanes/telekinesis`) for the new fixed-step/snapshot movement. Renamed `TelekinesisBoomerang` to `Telekinesis` (pickup id and file `Shared/Logics/PickupLogics/Telekinesis.luau`, which now holds the steering, input and cyan SelectionRing). The strength is `Telekinesis.STEER_STRENGTH` at the top of that file; `GlobalConfig.TelekinesisSteerInfluence` and the `TelekinesisInfluence` tune setting were removed. The notes above describe the first version. PC over-the-shoulder and console steering: T-105, T-106.
 - Couldn't syntax-check here (no Luau/selene/rojo on the device); needs a Studio load to confirm it compiles.
 
 ---
@@ -676,6 +677,48 @@ Sometimes the aim arrow stays visible while the player isn't otherwise aiming: t
 ---
 
 ## Backlog
+
+### T-105 · Telekinesis: steering with the over-the-shoulder camera (PC)
+- **Priority:** P2
+- **Owner:** Sol → Agent
+- **Area:** Client
+- **Files:** `Shared/Logics/PickupLogics/Telekinesis.luau`
+
+**Problem / goal**
+Telekinesis steers a thrown boomerang toward the mouse cursor in the top-down camera on PC, but does nothing in the over-the-shoulder camera (the mouse is locked and hidden there). Decide how the player steers in that camera, then add it to `getLocalSteerDirection` in `Telekinesis.luau` (the marked TODO).
+
+**Open questions (ask Sol first)**
+- What should steer it: the camera's look direction, a point where the camera is aiming, or something else?
+
+**Done when**
+- [ ] With Telekinesis active and the over-the-shoulder camera, the player can steer their thrown boomerang the agreed way.
+
+**Test in Studio**
+- Press C to switch to the over-the-shoulder camera, pick up Telekinesis, throw, and steer.
+
+**Notes**
+Task ID: I used T-105 and bumped `Next free ID` to T-107 in this lane without a reservation commit on `main`; renumber if it clashes.
+
+### T-106 · Telekinesis: console steering
+- **Priority:** P2
+- **Owner:** Sol → Agent
+- **Area:** Client
+- **Files:** `Shared/Logics/PickupLogics/Telekinesis.luau`
+
+**Problem / goal**
+Telekinesis has no steering input on console yet (the marked TODO in `getLocalSteerDirection` returns nothing). Decide the control (for example the right stick) and add it.
+
+**Open questions (ask Sol first)**
+- Which input should steer on console, and should it replace the aim input while a boomerang is in flight, like the mobile aim button does?
+
+**Done when**
+- [ ] With Telekinesis active on console, the player can steer their thrown boomerang the agreed way.
+
+**Test in Studio**
+- Test with a controller: pick up Telekinesis, throw, and steer.
+
+**Notes**
+Task ID: I used T-106 and bumped `Next free ID` to T-107 in this lane without a reservation commit on `main`; renumber if it clashes.
 
 ### T-102 · Boomerang instance id + sequence number on every sync message (desync fix C)
 - **Priority:** P2

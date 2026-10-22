@@ -30,6 +30,7 @@ local CombatLibrary = require(ReplicatedStorage.Shared.Library.CombatLibrary)
 local DynamicCollisionLibrary = require(ReplicatedStorage.Shared.Library.DynamicCollisionLibrary)
 local SharedTasks = require(ReplicatedStorage.Shared.Constants.SharedTasks)
 local HomingBoomerang = require(ReplicatedStorage.Shared.Logics.PickupLogics.HomingBoomerang)
+local Telekinesis = require(ReplicatedStorage.Shared.Logics.PickupLogics.Telekinesis)
 local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
 local Portal = require(ReplicatedStorage.Shared.Logics.Environment.Portal)
 local DeadWeapons = require(ReplicatedStorage.Shared.Referential.DeadWeapons)
@@ -1039,8 +1040,12 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
 
       -- // Client: the server's latest heading and speed replace ours (position is eased separately, see WeaponController), so a bounce,
       -- // a homing or steering turn or a recall that only the server saw can't leave us flying off in another direction
+      -- // (Not while this client is steering the boomerang with Telekinesis: the server's heading is always a little behind the player's input,
+      -- // so it keeps its own and relies on the position corrections.)
       if not isServer and thrownWeaponData.SnapshotDirection then
-         direction = thrownWeaponData.SnapshotDirection
+         if not Telekinesis.getBias(thrownWeaponData) then
+            direction = thrownWeaponData.SnapshotDirection
+         end
          speed = thrownWeaponData.SnapshotSpeed or speed
          thrownWeaponData.SnapshotDirection = nil
          thrownWeaponData.SnapshotSpeed = nil
@@ -1176,13 +1181,13 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          end
       end
 
-      -- // T-077 Telekinesis: steer toward the owner's live aim (streamed from the owning client, or predicted
-      -- // locally on that client). A gentle bias, not full control. Runs on the server (authoritative) and the
-      -- // owner's client (prediction); remote clients never set TelekinesisBias and just follow snapshots.
-      if thrownWeaponData.TelekinesisBias and not isReturning then
-         local telekinesisInfluence = BoomerangTuningLibrary.getForAnyTool(tuningToolId, "TelekinesisInfluence")
-         local telekinesisAlpha = math.clamp(telekinesisInfluence * deltaTime, 0, 1)
-         direction = getHorizontalDirection(direction:Lerp(thrownWeaponData.TelekinesisBias, telekinesisAlpha))
+      -- // Telekinesis: turn toward the direction the owner wants (Telekinesis.lua). The server steers from what the owner's client streamed;
+      -- // the owner's client steers from its own live input (prediction). Remote clients never have a bias and just follow snapshots.
+      if not isReturning then
+         local telekinesisBias = Telekinesis.getBias(thrownWeaponData)
+         if telekinesisBias then
+            direction = getHorizontalDirection(Telekinesis.steer(direction, telekinesisBias, deltaTime))
+         end
       end
 
       local rayDistance = speed * deltaTime
