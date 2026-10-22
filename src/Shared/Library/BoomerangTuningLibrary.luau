@@ -29,7 +29,7 @@ local ATTRIBUTE_PREFIX = "BT"
 -- TYPES
 -------------------------------------------------------------------------------
 
-export type Setting = "ThrowSpeed" | "MinEnergy" | "MaxEnergy" | "EnergyPerStud" | "RecallEnergy" | "BounceEnergyCost" | "PlayerHitEnergyCost" | "ClashEnergyCost" | "RecallSpeed" | "RecallAcceleration" | "RecallRampTime" | "RecallRampPower" | "RecallBounceRecovery" | "DyingSpeedMultiplier" | "ChargeTime" | "AimWalkSpeed" | "RecallChargeTime" | "TelekinesisInfluence"
+export type Setting = "ThrowSpeed" | "MinEnergy" | "MaxEnergy" | "EnergyPerStud" | "RecallEnergy" | "BounceEnergyCost" | "PlayerHitEnergyCost" | "ClashEnergyCost" | "RecallSpeed" | "RecallAcceleration" | "RecallCurveAcceleration" | "RecallRampPower" | "RecallBounceRecovery" | "DyingSpeedMultiplier" | "ChargeTime" | "AimWalkSpeed" | "RecallChargeTime" | "TelekinesisInfluence"
 
 type SettingInfo = {
 	Description: string,
@@ -41,7 +41,7 @@ type SettingInfo = {
 -------------------------------------------------------------------------------
 
 -- // Every tunable value, in display order. The names are what Cmdr shows (and autocompletes).
-BoomerangTuningLibrary.SETTING_ORDER = { "ThrowSpeed", "MinEnergy", "MaxEnergy", "EnergyPerStud", "RecallEnergy", "BounceEnergyCost", "PlayerHitEnergyCost", "ClashEnergyCost", "RecallSpeed", "RecallAcceleration", "RecallRampTime", "RecallRampPower", "RecallBounceRecovery", "DyingSpeedMultiplier", "ChargeTime", "AimWalkSpeed", "RecallChargeTime", "TelekinesisInfluence" } :: { Setting }
+BoomerangTuningLibrary.SETTING_ORDER = { "ThrowSpeed", "MinEnergy", "MaxEnergy", "EnergyPerStud", "RecallEnergy", "BounceEnergyCost", "PlayerHitEnergyCost", "ClashEnergyCost", "RecallSpeed", "RecallAcceleration", "RecallCurveAcceleration", "RecallRampPower", "RecallBounceRecovery", "DyingSpeedMultiplier", "ChargeTime", "AimWalkSpeed", "RecallChargeTime", "TelekinesisInfluence" } :: { Setting }
 
 BoomerangTuningLibrary.SETTINGS = {
 	ThrowSpeed = {
@@ -100,18 +100,19 @@ BoomerangTuningLibrary.SETTINGS = {
 		end,
 	},
 	RecallAcceleration = {
+		Description = "how quickly a manual recall reaches full recall speed and spin (1 = normal, 2 = twice as fast, 0.5 = half as fast)",
+		getDefault = function(_toolData)
+			return GlobalConfig.ManualRecallAcceleration
+		end,
+	},
+	-- // How strongly a manual recall's heading swings toward the player (was called RecallAcceleration before T-097)
+	RecallCurveAcceleration = {
 		Description = "how quickly a manual recall turns toward the player (1 = normal recall)",
 		getDefault = function(_toolData)
 			return GlobalConfig.ManualRecallMomentumMultiplier
 		end,
 	},
-	-- // Manual recall speed-up curve (see GlobalConfig.ManualRecallRampSeconds)
-	RecallRampTime = {
-		Description = "seconds for a manual recall to build up to max speed",
-		getDefault = function(_toolData)
-			return GlobalConfig.ManualRecallRampSeconds
-		end,
-	},
+	-- // Manual recall speed-up curve shape (the time it takes is RecallAcceleration; see MANUAL_RECALL_FULL_SPEED_SECONDS in Boomerang.luau)
 	RecallRampPower = {
 		Description = "manual recall speed-up curve (1 = steady, higher = slower start and sharper surge)",
 		getDefault = function(_toolData)

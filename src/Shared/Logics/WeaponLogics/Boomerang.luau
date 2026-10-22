@@ -93,7 +93,7 @@ local projectileVisualizerEnabled = GlobalConfig.ProjectileHitboxVisualizerEnabl
 -- INTERNAL CONFIG (manual recall of a dead boomerang, T-096)
 -- ============================================================================================================================
 -- // Seconds for a manually recalled boomerang to go from standing still to its full recall movement speed AND full spin rate once it
--- // starts moving toward the player. Both build up gradually but quickly over this time. (Overrides the Cmdr `tune` RecallRampTime.)
+-- // starts moving toward the player. Both build up gradually but quickly over this time. (Cmdr `tune RecallAcceleration` scales it: seconds = this / RecallAcceleration.)
 local MANUAL_RECALL_FULL_SPEED_SECONDS = 0.2
 -- // The charge now lifts the boomerang to flight height before it starts moving (Dead.luau). If true, the older timed rise during the
 -- // flight itself (T-095, GlobalConfig.ManualRecallRiseSeconds, with the tilt toward the player) runs as well: kept in case it returns.
@@ -1627,15 +1627,15 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
    local isManualRecallFromDead = thrownWeaponData.RecallFromDead == true
    local liftRate = if isManualRecallFromDead then GlobalConfig.ManualRecallLiftRate else RECALL_FROM_DEAD_LIFT_RATE
    local maximumSpeed, momentumMultiplier = 0, 1
-   local rampSeconds, rampPower = GlobalConfig.ManualRecallRampSeconds, GlobalConfig.ManualRecallRampPower
+   local rampSeconds, rampPower = MANUAL_RECALL_FULL_SPEED_SECONDS, GlobalConfig.ManualRecallRampPower
    local rampElapsed = 0 -- // Seconds since this recall started (drives the manual recall's speed-up curve)
    local riseStartY: number? = nil -- // Manual recall: the height it started rising from (T-095)
    -- // Tools/GlobalConfig values unless changed with Cmdr; re-read every frame so live changes apply mid-recall (T-054)
    local function updateRecallTuning()
       if isManualRecallFromDead then
          maximumSpeed = BoomerangTuningLibrary.get(tuningToolId, "RecallSpeed") * returnSpeedMultiplier
-         momentumMultiplier = BoomerangTuningLibrary.get(tuningToolId, "RecallAcceleration")
-         rampSeconds = MANUAL_RECALL_FULL_SPEED_SECONDS
+         momentumMultiplier = BoomerangTuningLibrary.get(tuningToolId, "RecallCurveAcceleration")
+         rampSeconds = MANUAL_RECALL_FULL_SPEED_SECONDS / math.max(BoomerangTuningLibrary.get(tuningToolId, "RecallAcceleration"), 0.01)
          rampPower = BoomerangTuningLibrary.get(tuningToolId, "RecallRampPower")
       else
          maximumSpeed = BoomerangTuningLibrary.get(tuningToolId, "ThrowSpeed") * returnSpeedMultiplier

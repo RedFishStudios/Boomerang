@@ -76,11 +76,11 @@ local GlobalConfig = {
    RecallReturnBeamFadeInSeconds = 0.3, -- // The beam to the returning boomerang fades in over this long once the charged recall starts moving it
    SelectionRingGrowSeconds = 0.3, -- // The SelectionRing tweens from nothing to full size (with a small overshoot) over this long
    SelectionRingVanishSeconds = 0.15, -- // ...and shrinks away over this long when the recall is released early
-   ManualRecallMomentumMultiplier = 0.15, -- // How quickly it accelerates/turns toward the player (1 = normal recall)
+   ManualRecallMomentumMultiplier = 0.15, -- // How quickly its heading swings toward the player (1 = normal recall). Tunable live via Cmdr `tune RecallCurveAcceleration`
+   ManualRecallAcceleration = 1, -- // How quickly it reaches full recall speed and spin (1 = the time set by MANUAL_RECALL_FULL_SPEED_SECONDS in Boomerang.luau; 2 = twice as fast). Tunable live via Cmdr `tune RecallAcceleration`
    -- // Manual recall speed-up: the boomerang starts at ManualRecallRampStartFraction of its max recall speed and builds up
-   -- // along a curve that stays slow at first and then climbs steeply, reaching max speed after ManualRecallRampSeconds.
-   -- // speed = max * (StartFraction + (1 - StartFraction) * (t / RampSeconds) ^ RampPower). Tunable live via Cmdr `tune RecallRampTime` / `RecallRampPower`.
-   ManualRecallRampSeconds = 0.7, -- // Seconds from the start of a manual recall until it reaches max speed
+   -- // along a curve that stays slow at first and then climbs steeply, reaching max speed after MANUAL_RECALL_FULL_SPEED_SECONDS / RecallAcceleration.
+   -- // speed = max * (StartFraction + (1 - StartFraction) * (t / RampSeconds) ^ RampPower). Tunable live via Cmdr `tune RecallAcceleration` / `RecallRampPower`.
    ManualRecallRampPower = 3, -- // Curve steepness: 1 = steady speed-up, higher = slower start and a sharper late surge
    ManualRecallRampStartFraction = 0.12, -- // Fraction of max recall speed at the moment the recall starts
    ManualRecallHighlightFadeOutSeconds = 0.6, -- // The dead boomerang's highlight fades this slowly when a manual recall starts (normal fade: 0.1)
