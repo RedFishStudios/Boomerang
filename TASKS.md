@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-98** *(shared by every task list, general and Epic)*
+**Next free ID: T-99** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,26 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-098 · Dying boomerangs slide "on ice" with a winding-down spin (client feedback)
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared
+- **Files:** `Shared/Logics/WeaponLogics/Dead.luau`, `Shared/Referential/DeadWeapons.luau`, `Shared/Constants/GlobalConfig.luau`
+
+**Done when**
+- [ ] A dying boomerang drops to the ground, then keeps gliding and slows gradually; faster boomerangs slide further
+- [ ] Its spin starts at the flight spin rate and winds down gradually (about 1 s), instead of spinning at full rate and stopping dead
+- [ ] `tune DeadWeaponDeceleration` (renamed from `DyingSpeedMultiplier`) still speeds up / slows down the whole dying slide, fall and spin; `tune DyingSpeedMultiplier` no longer exists
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-098-dead-slide-ice`. Edits left uncommitted.
+- Constant 320 studs/s² deceleration replaced by drag (proportional to speed) + small friction, gentler while dropping, and an 80% speed keep on landing. Values in "INTERNAL CONFIG: dying slide" at the top of `Dead.luau`, all x DyingSpeedMultiplier.
+- At default tuning: dying at 75 studs/s travels ~17 studs (was ~9), at 25 ~5 (was ~1). `predictSlidePositions` mirrors the new model (including the drop and landing).
+- Renamed the tuning setting and its config value: `DyingSpeedMultiplier` -> `DeadWeaponDeceleration` (Cmdr `tune DeadWeaponDeceleration`, `GlobalConfig.DeadWeaponDeceleration`).
+- Spin is client visual (`SpinRate`); the client loop keeps running after the slide stops until the spin finishes.
+- Not syntax-checked or tested (Studio play-testing is Sol's).
+
 
 ### T-097 · Recall tuning: `recallramptime` removed, `recallcurveacceleration` added, `recallacceleration` now sets the speed-up
 - **Priority:** P2

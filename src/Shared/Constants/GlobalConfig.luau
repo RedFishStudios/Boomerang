@@ -84,7 +84,7 @@ local GlobalConfig = {
    ManualRecallRampPower = 3, -- // Curve steepness: 1 = steady speed-up, higher = slower start and a sharper late surge
    ManualRecallRampStartFraction = 0.12, -- // Fraction of max recall speed at the moment the recall starts
    ManualRecallHighlightFadeOutSeconds = 0.6, -- // The dead boomerang's highlight fades this slowly when a manual recall starts (normal fade: 0.1)
-   DyingSpeedMultiplier = 4, -- // How much faster a boomerang loses its slide momentum and drops to the ground once it starts dying (1 = the original pace). Tunable live via Cmdr `tuneboomerang DyingSpeedMultiplier`.
+   DeadWeaponDeceleration = 4, -- // How much faster a boomerang loses its slide momentum (and spin) and drops to the ground once it starts dying (1 = the original pace). The slide itself is set up in Dead.luau (INTERNAL CONFIG: dying slide "on ice"). Tunable live via Cmdr `tune DeadWeaponDeceleration`.
    ExplosiveBoomerangReturnSpeedMultiplier = 1.5, -- // While the effect is active: recall speed x this, and the post-explosion weapon lock / this
 
    MyBoomerangTrailColor = Color3.new(0.984314, 0.988235, 0.988235),

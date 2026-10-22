@@ -37,8 +37,24 @@ end
 local Characters = game.Workspace.Characters
 
 local REPLICATION_RATE = 1 / 20
-local DEAD_DECELERATION = 80 -- // Times the DyingSpeedMultiplier tuning value (GlobalConfig.DyingSpeedMultiplier)
-local DEAD_FALL_ACCELERATION = 120 -- // Times the DyingSpeedMultiplier tuning value
+local DEAD_FALL_ACCELERATION = 120 -- // Times the DeadWeaponDeceleration tuning value (default GlobalConfig.DeadWeaponDeceleration)
+
+-- ============================================================================================================================
+-- INTERNAL CONFIG: dying slide "on ice" (T-098)
+-- ============================================================================================================================
+-- // A dying boomerang drops to the ground, then glides on with its momentum, slowing gradually (like sliding on ice), so a fast
+-- // boomerang slides further than a slow one. Its spin winds down gradually too. Each frame the speed loses DRAG x speed (the
+-- // gradual, momentum-based part) plus FRICTION (so it does come to a stop). Every value below is multiplied by the
+-- // DeadWeaponDeceleration tuning value (GlobalConfig.DeadWeaponDeceleration, default 4; Cmdr `tune DeadWeaponDeceleration`), so the
+-- // effective values at the default are 4x these. At the default a boomerang dying at full throw speed (75) travels about 17 studs
+-- // (about 11 of them sliding on the ground, over about 0.8 s); one dying at 25 travels about 5. (Before T-098: about 9 and 1.)
+local DEAD_AIR_DRAG = 0.375 -- // Per second, while still dropping to the ground (effective 1.5)
+local DEAD_AIR_FRICTION = 5 -- // Studs/s per second, while still dropping to the ground (effective 20)
+local DEAD_LANDING_SPEED_KEPT = 0.8 -- // Fraction of its speed kept when it hits the ground (not scaled by the multiplier)
+local DEAD_ICE_DRAG = 1 -- // Per second, while sliding on the ground (effective 4)
+local DEAD_ICE_FRICTION = 2.5 -- // Studs/s per second, while sliding on the ground (effective 10)
+local DEAD_SPIN_DRAG = 0.5 -- // Per second: the spin (starting at the flight spin rate) winds down (effective 2)
+local DEAD_SPIN_FRICTION = math.rad(75) -- // Radians/s per second (effective 300 degrees/s per second); stops in about 1 s at default
 local DEAD_MAX_FALL_SPEED = 80
 local DEAD_GROUND_RAY_DISTANCE = 10
 local DEAD_GROUND_MAX_IGNORE_ITERATIONS = 16
@@ -56,6 +72,19 @@ export type DeathInitOptions = {
 	Speed: number?,
 	Position: Vector3?,
 }
+
+-- // One frame of the dying slow-down (T-098): proportional drag (the gradual "ice" glide) plus a constant friction so it stops.
+-- // Used for the slide speed (air or ground values) and for the visual spin rate.
+local function getSlowedValue(value: number, deltaTime: number, drag: number, friction: number): number
+	return math.max(0, value * math.exp(-drag * deltaTime) - friction * deltaTime)
+end
+
+local function getNextDyingSpeed(speed: number, deltaTime: number, isGrounded: boolean, dyingSpeedMultiplier: number): number
+	if isGrounded then
+		return getSlowedValue(speed, deltaTime, DEAD_ICE_DRAG * dyingSpeedMultiplier, DEAD_ICE_FRICTION * dyingSpeedMultiplier)
+	end
+	return getSlowedValue(speed, deltaTime, DEAD_AIR_DRAG * dyingSpeedMultiplier, DEAD_AIR_FRICTION * dyingSpeedMultiplier)
+end
 
 local function getHorizontalDirection(direction: Vector3): Vector3
 	local horizontal = Vector3.new(direction.X, 0, direction.Z)
@@ -222,7 +251,8 @@ local function setWeaponCFrame(deadWeaponData: DeadWeapons.Data, cframe: CFrame,
 		if not isServer then
 			local direction = deadWeaponData.Direction
 			if direction and direction.Magnitude > 1e-5 then
-				local visualRotation = (deadWeaponData.VisualRotation or 0) + (BOOMERANG_SPIN_SPEED * (deltaTime or 0))
+				-- // T-098: the spin rate winds down while dying (SpinRate, set and slowed in applyDeath)
+				local visualRotation = (deadWeaponData.VisualRotation or 0) + ((deadWeaponData.SpinRate or 0) * (deltaTime or 0))
 				deadWeaponData.VisualRotation = visualRotation
 
 				local faceDirection = getHorizontalDirection(direction)
@@ -362,21 +392,35 @@ function DeadWeaponLogic.predictSlidePositions(position: Vector3, direction: Vec
 	groundParams.IgnoreWater = true
 	groundParams.CollisionGroup = CollisionGroupConstants.Camera
 
-	local dyingSpeedMultiplier = BoomerangTuningLibrary.getForAnyTool(toolId, "DyingSpeedMultiplier")
+	local dyingSpeedMultiplier = BoomerangTuningLibrary.getForAnyTool(toolId, "DeadWeaponDeceleration")
+	local startY = position.Y -- // Ground checks use the starting height (the host isn't moved, so its bounds stay at this height)
 	local currentPosition = position
 	local currentSpeed = speed
+	local fallSpeed = 0
+	local isGrounded = false
 	local elapsed = 0
 	while elapsed + stepSeconds <= lookaheadSeconds + 1e-4 and currentSpeed > 0 do
 		elapsed += stepSeconds
-		local nextSpeed = math.max(0, currentSpeed - DEAD_DECELERATION * dyingSpeedMultiplier * stepSeconds)
+		local nextSpeed = getNextDyingSpeed(currentSpeed, stepSeconds, isGrounded, dyingSpeedMultiplier)
 		local travelDistance = (currentSpeed + nextSpeed) * 0.5 * stepSeconds
 		local nextPosition, nextDirection, isBlocked = resolveHorizontalMovement(currentPosition, slideDirection, travelDistance, obstructionParams)
-		local hasGround = getDeadRestingY({ Host = host } :: any, nextPosition, groundParams) ~= nil
-		if hasGround or isBlocked then
+		local restingY = if isGrounded then nil else getDeadRestingY({ Host = host } :: any, Vector3.new(nextPosition.X, startY, nextPosition.Z), groundParams)
+		if isGrounded or restingY or isBlocked then
 			currentSpeed = nextSpeed
 		else
 			-- // Nothing to land on: it keeps its momentum (as in the real loop)
 			nextPosition, nextDirection = resolveHorizontalMovement(currentPosition, slideDirection, currentSpeed * stepSeconds, obstructionParams)
+		end
+		-- // Drop to the ground as in the real loop; landing costs some speed (T-098)
+		if not isGrounded and restingY then
+			fallSpeed = math.min(DEAD_MAX_FALL_SPEED, fallSpeed + DEAD_FALL_ACCELERATION * dyingSpeedMultiplier * stepSeconds)
+			local nextY = nextPosition.Y - fallSpeed * stepSeconds
+			if nextY <= restingY then
+				nextY = restingY
+				isGrounded = true
+				currentSpeed *= DEAD_LANDING_SPEED_KEPT
+			end
+			nextPosition = Vector3.new(nextPosition.X, nextY, nextPosition.Z)
 		end
 		slideDirection = nextDirection
 		currentPosition = nextPosition
@@ -731,6 +775,7 @@ function DeadWeaponLogic.applyDeath(player: Player, deadWeaponData: DeadWeapons.
 	local obstructionRaycastParams = RaycastsUtility.getProjectileObstructionParams(obstructionFilter)
 
 	deadWeaponData.State = DeadWeapons.StateEnum.Dying
+	deadWeaponData.SpinRate = BOOMERANG_SPIN_SPEED -- // T-098: starts at the flight spin rate and winds down (visual, clients)
 	deadWeaponData.Direction = direction
 	deadWeaponData.Speed = speed
 	deadWeaponData.SyncTargetPosition = nil
@@ -760,14 +805,19 @@ function DeadWeaponLogic.applyDeath(player: Player, deadWeaponData: DeadWeapons.
 			return
 		end
 
-		if not isServer and speed <= 0 and isGrounded then
+		-- // Clients keep running until the spin has also wound down (it can outlast the slide a little)
+		if not isServer and speed <= 0 and isGrounded and (deadWeaponData.SpinRate or 0) <= 0 then
 			updateOwnWeaponHighlight(player, deadWeaponData, currentPivot.Position)
 			return
 		end
 
 		-- // Live tuning: read every frame, on the server and on clients, so both simulate the same dying pace
-		local dyingSpeedMultiplier = BoomerangTuningLibrary.getForAnyTool(deadWeaponData.ToolId, "DyingSpeedMultiplier")
-		local nextSpeed = math.max(0, speed - DEAD_DECELERATION * dyingSpeedMultiplier * deltaTime)
+		local dyingSpeedMultiplier = BoomerangTuningLibrary.getForAnyTool(deadWeaponData.ToolId, "DeadWeaponDeceleration")
+		if not isServer then
+			deadWeaponData.SpinRate = getSlowedValue(deadWeaponData.SpinRate or 0, deltaTime, DEAD_SPIN_DRAG * dyingSpeedMultiplier, DEAD_SPIN_FRICTION * dyingSpeedMultiplier)
+		end
+		-- // T-098: "on ice": a gentle slow-down while dropping, then a gradual glide on the ground (see INTERNAL CONFIG)
+		local nextSpeed = getNextDyingSpeed(speed, deltaTime, isGrounded, dyingSpeedMultiplier)
 		local travelDistance = (speed + nextSpeed) * 0.5 * deltaTime
 		local nextPosition, nextDirection, isBlocked = resolveHorizontalMovement(currentPivot.Position, direction, travelDistance, obstructionRaycastParams)
 
@@ -794,6 +844,7 @@ function DeadWeaponLogic.applyDeath(player: Player, deadWeaponData: DeadWeapons.
 					nextY = restingY
 					fallSpeed = 0
 					isGrounded = true
+					speed *= DEAD_LANDING_SPEED_KEPT -- // T-098: hitting the ground costs a little speed, then it glides on
 					-- // Insertion point: "clunk" when the boomerang hits the ground. Played from the server so every player hears it.
 					local clunkSound = Sounds.Data.BoomerangClunk
 					if isServer and clunkSound and clunkSound.Id ~= 0 then

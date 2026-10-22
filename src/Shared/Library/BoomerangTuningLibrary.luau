@@ -29,7 +29,7 @@ local ATTRIBUTE_PREFIX = "BT"
 -- TYPES
 -------------------------------------------------------------------------------
 
-export type Setting = "ThrowSpeed" | "MinEnergy" | "MaxEnergy" | "EnergyPerStud" | "RecallEnergy" | "BounceEnergyCost" | "PlayerHitEnergyCost" | "ClashEnergyCost" | "RecallSpeed" | "RecallAcceleration" | "RecallCurveAcceleration" | "RecallRampPower" | "RecallBounceRecovery" | "DyingSpeedMultiplier" | "ChargeTime" | "AimWalkSpeed" | "RecallChargeTime" | "TelekinesisInfluence"
+export type Setting = "ThrowSpeed" | "MinEnergy" | "MaxEnergy" | "EnergyPerStud" | "RecallEnergy" | "BounceEnergyCost" | "PlayerHitEnergyCost" | "ClashEnergyCost" | "RecallSpeed" | "RecallAcceleration" | "RecallCurveAcceleration" | "RecallRampPower" | "RecallBounceRecovery" | "DeadWeaponDeceleration" | "ChargeTime" | "AimWalkSpeed" | "RecallChargeTime" | "TelekinesisInfluence"
 
 type SettingInfo = {
 	Description: string,
@@ -41,7 +41,7 @@ type SettingInfo = {
 -------------------------------------------------------------------------------
 
 -- // Every tunable value, in display order. The names are what Cmdr shows (and autocompletes).
-BoomerangTuningLibrary.SETTING_ORDER = { "ThrowSpeed", "MinEnergy", "MaxEnergy", "EnergyPerStud", "RecallEnergy", "BounceEnergyCost", "PlayerHitEnergyCost", "ClashEnergyCost", "RecallSpeed", "RecallAcceleration", "RecallCurveAcceleration", "RecallRampPower", "RecallBounceRecovery", "DyingSpeedMultiplier", "ChargeTime", "AimWalkSpeed", "RecallChargeTime", "TelekinesisInfluence" } :: { Setting }
+BoomerangTuningLibrary.SETTING_ORDER = { "ThrowSpeed", "MinEnergy", "MaxEnergy", "EnergyPerStud", "RecallEnergy", "BounceEnergyCost", "PlayerHitEnergyCost", "ClashEnergyCost", "RecallSpeed", "RecallAcceleration", "RecallCurveAcceleration", "RecallRampPower", "RecallBounceRecovery", "DeadWeaponDeceleration", "ChargeTime", "AimWalkSpeed", "RecallChargeTime", "TelekinesisInfluence" } :: { Setting }
 
 BoomerangTuningLibrary.SETTINGS = {
 	ThrowSpeed = {
@@ -126,11 +126,11 @@ BoomerangTuningLibrary.SETTINGS = {
 			return GlobalConfig.BoomerangRecallBounceRecoverySeconds
 		end,
 	},
-	-- // How fast a dying boomerang stops sliding and falls (Dead.luau; client and server both read it)
-	DyingSpeedMultiplier = {
+	-- // How fast a dying boomerang stops sliding and falls (renamed from DyingSpeedMultiplier in T-098) (Dead.luau; client and server both read it)
+	DeadWeaponDeceleration = {
 		Description = "how much faster a dying boomerang loses its slide and falls (1 = original pace)",
 		getDefault = function(_toolData)
-			return GlobalConfig.DyingSpeedMultiplier
+			return GlobalConfig.DeadWeaponDeceleration
 		end,
 	},
 	-- // T-066: seconds of holding aim until the throw is at max power (also the aim arrow's fill time)

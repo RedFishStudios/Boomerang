@@ -28,6 +28,7 @@ export type Data = {
    ExistingHost: Model?,
    DeathOrigin: Vector3?,
    VisualRotation: number?,
+   SpinRate: number?, -- // T-098: client visual spin rate (radians/s) while dying; winds down from the flight spin rate (Dead.luau)
 
    -- // T-090 recall charge (Dead.luau). Timestamps are server time (workspace:GetServerTimeNow()), replicated by the RecallCharge event
    HasBeenDead: boolean?, -- // Set the moment it fully enters the Dead state and kept for good (it travels with the boomerang through recalls and drops): from then on it can never recall by itself
