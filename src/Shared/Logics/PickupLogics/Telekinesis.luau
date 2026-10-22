@@ -41,8 +41,9 @@ local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons
 -- // How strongly a Telekinesis boomerang turns toward the direction the player wants, per second.
 -- //   Higher = sharper turns: the boomerang swings quickly to point exactly where the player wants.
 -- //   Lower = a gentle nudge: the player only bends its path, without precise control.
--- // (It is the rate at which the remaining turn closes: 2 closes about 86% of it each second, 6 closes almost all of it in a second.)
-Telekinesis.STEER_STRENGTH = 2
+-- // (It is the rate at which the remaining turn closes, so the boomerang needs about 1 / STRENGTH seconds to cover most of a turn:
+-- // 2 = half a second, 8 = an eighth of a second, 15 = nearly instant.)
+Telekinesis.STEER_STRENGTH = 8
 
 local STEER_STALE_SECONDS = 0.35 -- // A steer direction older than this is ignored (the owner let go, or the updates stopped arriving)
 local STEER_SEND_INTERVAL = 0.05 -- // Seconds between streamed steer updates (caps network traffic)
