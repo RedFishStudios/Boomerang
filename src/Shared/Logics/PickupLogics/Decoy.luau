@@ -1,20 +1,17 @@
 --[[
 	Decoy pickup (T-080)
 
-	On the owner's FIRST throw after pickup, spawns one decoy bot and consumes the effect
-	(one pickup = one decoy). The decoy entity + movement live in the bot layer (BotService +
-	the Decoy BotBehavior). Enabled (T-083): spawns from the normal pickup pool like other pickups.
+	T-108: the player spawns the decoy with the on-screen button (UsePickupButtons GUI), at any time; that uses up the
+	effect (one pickup = one decoy). It no longer spawns by itself on the next throw. The decoy entity + movement live in
+	the bot layer (BotService + the Decoy BotBehavior). Enabled (T-083): spawns from the normal pickup pool like other pickups.
 ]]
 
 local Decoy = {}
 
 local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
 local isServer = RunService:IsServer()
-
-local SharedTasks = require(ReplicatedStorage.Shared.Constants.SharedTasks)
 
 local BotService, DecoyBehavior
 if isServer then
@@ -22,41 +19,29 @@ if isServer then
 	DecoyBehavior = require(ServerStorage.Server.Logics.BotBehaviors.Decoy)
 end
 
--- // Per-player remover for the one-shot "spawn on next throw" subscription
-local pendingThrow: { [Player]: () -> () } = {}
+Decoy.UseButton = true
+Decoy.ConsumedOnUse = true
 
-local function clearPending(player: Player)
-	local remove = pendingThrow[player]
-	if remove then
-		remove()
-		pendingThrow[player] = nil
-	end
+-- // T-108: usable at any time while the effect is held
+function Decoy.canUse(_player: Player): boolean
+	return true
 end
 
-function Decoy.onPickup(player: Player, _startedAt: number?): number?
+-- // T-108: the button was pressed: spawn the decoy, then the effect is used up
+function Decoy.onUse(player: Player)
 	if not isServer then
-		return nil
+		return
 	end
-
-	clearPending(player)
-	pendingThrow[player] = SharedTasks.WeaponThrownTasks:Add(function(thrownPlayer: Player)
-		if thrownPlayer ~= player then
-			return
-		end
-		BotService.spawn(player, DecoyBehavior)
-		-- // Consume the effect so one pickup makes exactly one decoy (triggerEnd -> Decoy.onEnd clears us).
-		-- // Required lazily to avoid a load-time cycle (PickupService requires this module).
-		local PickupService = require(ServerStorage.Server.Core.PickupService)
-		PickupService.triggerEnd(player, "Decoy")
-	end)
-
-	return nil -- // no auto-timeout: the effect lasts until the player throws
+	BotService.spawn(player, DecoyBehavior)
+	-- // Required lazily to avoid a load-time cycle (PickupService requires this module)
+	local PickupService = require(ServerStorage.Server.Core.PickupService)
+	PickupService.triggerEnd(player, "Decoy")
 end
 
-function Decoy.onEnd(player: Player)
-	if isServer then
-		clearPending(player)
-	end
+function Decoy.onPickup(_player: Player, _startedAt: number?): number?
+	return nil -- // no auto-timeout: the effect lasts until the player uses it (or loses it: death, round end)
 end
+
+function Decoy.onEnd(_player: Player) end
 
 return Decoy

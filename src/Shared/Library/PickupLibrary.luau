@@ -8,6 +8,8 @@ local Players = game:GetService("Players")
 local isServer = RunService:IsServer()
 
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
+local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
+local DeadWeapons = require(ReplicatedStorage.Shared.Referential.DeadWeapons)
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 local pickupEffectStateChanged = SimpleRemotes.getEvent("PickupEffectStateChanged")
 local PickupLogics = ReplicatedStorage.Shared.Logics.PickupLogics
@@ -56,6 +58,15 @@ export type PickupLogic = {
    canActivate: ((player: Player, ...any) -> boolean)?,
    -- Stub pickups (-- STUD) set this so they are skipped
    Disabled: boolean?,
+   -- // T-108: pickups used with an on-screen button (UsePickupButtons GUI) instead of triggering by themselves
+   UseButton: boolean?,
+   -- // T-108: the effect is used up by one press (the button turns unusable right away, until the server removes the effect)
+   ConsumedOnUse: boolean?,
+   -- // T-108: both sides: can the button be pressed right now (the GUI dims it at 50% and makes it non-interactive when false)
+   canUse: ((player: Player) -> boolean)?,
+   -- // T-108: the button was pressed. Server: does it (PickupService checks the effect and canUse first). Client: optional
+   -- // bookkeeping for the local player's own press (called before the request is sent)
+   onUse: ((player: Player) -> ())?,
 }
 
 -------------------------------------------------------------------------------
@@ -67,6 +78,7 @@ export type PickupLogic = {
 -------------------------------------------------------------------------------
 
 PickupLibrary.PICKUP_DISTANCE = 1.3
+PickupLibrary.USE_PICKUP_BUTTON_EVENT = "PickupButtonUsed" -- // T-108: client -> server, (pickupClassId)
 -- // endsAt is a workspace:GetServerTimeNow() timestamp, or nil if the effect lasts until removed by other means
 PickupLibrary.PickupEffectAddedTasks = TasksList.new() :: TasksList.TasksList<(userId: number, livePickupId: LivePickupId, pickupClassId: PickupClassId, endsAt: number?) -> ()>
 PickupLibrary.PickupEffectRemovedTasks = TasksList.new() :: TasksList.TasksList<(userId: number, livePickupId: LivePickupId, pickupClassId: PickupClassId) -> ()>
@@ -90,6 +102,27 @@ local DATA_ONLY_EFFECTS: {[PickupClassId]: boolean} = {
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
+
+-- // T-108: the player's boomerang that is out of their hand (flying, returning, dying or lying dead on the field): its position
+-- // (physics, flight height while flying) and instance id. nil while it is in their hand, or while a client hides a catch it
+-- // predicted (T-100).
+function PickupLibrary.getWeaponOnField(player: Player): (Vector3?, string?)
+   local thrownWeaponData = ThrownWeapons.Data[player]
+   if thrownWeaponData then
+      if thrownWeaponData.HostHidden then
+         return nil, nil
+      end
+      local cframe = thrownWeaponData.CFrame or (thrownWeaponData.Host and thrownWeaponData.Host.Parent and thrownWeaponData.Host:GetPivot())
+      return if cframe then cframe.Position else nil, thrownWeaponData.InstanceId
+   end
+   local deadWeaponData = DeadWeapons.Data[player]
+   if deadWeaponData then
+      local host = deadWeaponData.Host
+      local cframe = if host and host.Parent then host:GetPivot() else deadWeaponData.CFrame
+      return if cframe then cframe.Position else nil, deadWeaponData.InstanceId
+   end
+   return nil, nil
+end
 
 function PickupLibrary.isDataOnlyEffect(pickupClassId: PickupClassId): boolean
    return DATA_ONLY_EFFECTS[pickupClassId] == true

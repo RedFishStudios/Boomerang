@@ -33,7 +33,7 @@ local AcquirableNotifData: {
    TeleportBoomerang = {
       Id = "TeleportBoomerang",
       Title = "Teleportation",
-      Subtitle = "Teleport to where you throw",
+      Subtitle = "Press its button to teleport to your weapon",
       Img = Icons.TeleportBoomerang
    },
    FireBoomerang = {
@@ -51,7 +51,7 @@ local AcquirableNotifData: {
    ExplosiveBoomerang = {
       Id = "ExplosiveBoomerang",
       Title = "Explosive",
-      Subtitle = "Weapon will make an explosion",
+      Subtitle = "Press its button to blow up your thrown weapon",
       Img = Icons.ExplosiveBoomerang
    },
    HotPotato = {
@@ -81,7 +81,7 @@ local AcquirableNotifData: {
    Decoy = {
       Id = "Decoy",
       Title = "Decoy",
-      Subtitle = "A decoy will spawn to distract enemies",
+      Subtitle = "Press its button to spawn a decoy to distract enemies",
       Img = Icons.DecoyPickup
    },
    Disguise = {

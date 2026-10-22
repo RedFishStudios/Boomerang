@@ -1,4 +1,5 @@
--- // While active, the boomerang explodes at the end of every throw (or on its first kill), and returns faster.
+-- // While active, the player can explode their boomerang with the on-screen button (T-108: UsePickupButtons GUI) while it is out
+-- // of their hand, once per throw, and it returns faster. It no longer explodes by itself (end of the throw / first kill).
 -- // The faster return is applied in WeaponLogics/Boomerang.recall (speed) and below (shorter weapon lock after an explosion).
 
 local ExplosiveBoomerang = {}
@@ -14,8 +15,8 @@ local CombatLibrary = require(ReplicatedStorage:WaitForChild("Shared"):WaitForCh
 local GlobalConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"):WaitForChild("GlobalConfig"))
 local TasksList = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Classes"):WaitForChild("TasksList"))
 local CollisionGroupConstants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"):WaitForChild("CollisionGroupConstants"))
-local SharedTasks = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"):WaitForChild("SharedTasks"))
 local GameTeamLibrary = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Library"):WaitForChild("GameTeamLibrary"))
+local PickupLibrary = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Library"):WaitForChild("PickupLibrary"))
 
 local EFFECT_DURATION_SECONDS = GlobalConfig.GenericEffectTimeout
 local BASE_EXPLOSION_WEAPON_LOCK_SECONDS = 3
@@ -32,28 +33,18 @@ else
    ToolController = require(ReplicatedStorage.Client.Core.ToolController)
 end
 
-local cleanupFunctionsByPlayer: {[Player]: {() -> ()}} = {}
-local explodedThisThrow: {[Player]: boolean} = {} -- // One explosion per throw (a kill and the end point could both trigger)
+-- // T-108: one explosion per throw: the instance id of the boomerang that already exploded (each throw has a new one). Both sides
+-- // keep it (the client marks its own press right away, so the button dims without waiting for the server).
+local explodedInstanceId: {[Player]: string} = {}
 
 ExplosiveBoomerang.ExplosionOccurred = TasksList.new() :: TasksList.TasksList<(player: Player, explosionCFrame: CFrame) -> ()>
 
-local function clearSubscriptions(player: Player)
-   explodedThisThrow[player] = nil
-   local cleanupFunctions = cleanupFunctionsByPlayer[player]
-   if not cleanupFunctions then
-      return
-   end
-   cleanupFunctionsByPlayer[player] = nil
-   for _, cleanup in ipairs(cleanupFunctions) do
-      cleanup()
-   end
-end
+ExplosiveBoomerang.UseButton = true
 
 local function applyExplosion(player: Player, position: Vector3)
-   if not isServer or explodedThisThrow[player] then
+   if not isServer then
       return
    end
-   explodedThisThrow[player] = true
 
    local raycastParams = RaycastParams.new()
    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
@@ -89,31 +80,29 @@ local function applyExplosion(player: Player, position: Vector3)
    -- // The effect stays active until it times out (onEnd); it no longer ends after the first explosion
 end
 
+-- // T-108: usable while the player's boomerang is out of their hand and hasn't exploded yet this throw
+function ExplosiveBoomerang.canUse(player: Player): boolean
+   local position, instanceId = PickupLibrary.getWeaponOnField(player)
+   return position ~= nil and (instanceId == nil or explodedInstanceId[player] ~= instanceId)
+end
+
+-- // T-108: the button was pressed: the boomerang explodes where it is
+function ExplosiveBoomerang.onUse(player: Player)
+   local position, instanceId = PickupLibrary.getWeaponOnField(player)
+   if not position or (instanceId ~= nil and explodedInstanceId[player] == instanceId) then
+      return
+   end
+   if instanceId then
+      explodedInstanceId[player] = instanceId
+   end
+   applyExplosion(player, position)
+end
+
 function ExplosiveBoomerang.onPickup(player: Player, startedAt: number?): number
    local endsAt = (startedAt or workspace:GetServerTimeNow()) + EFFECT_DURATION_SECONDS
 
    if isServer then
-      clearSubscriptions(player) -- // Picking it up again while active refreshes the subscriptions instead of doubling them
-      cleanupFunctionsByPlayer[player] = {
-         SharedTasks.WeaponThrownTasks:Add(function(thrownPlayer: Player)
-            if thrownPlayer == player then
-               explodedThisThrow[player] = nil
-            end
-         end),
-         WeaponService.WeaponKilledPlayer:Add(function(attacker: Player, victim: Player)
-            if attacker == player then
-               local victimCharacter = victim.Character
-               if victimCharacter and victimCharacter.PrimaryPart then
-                  applyExplosion(player, victimCharacter.PrimaryPart.Position)
-               end
-            end
-         end),
-         WeaponService.WeaponReachedEventPoint:Add(function(eventPlayer: Player, _toolId: string, position: Vector3)
-            if eventPlayer == player then
-               applyExplosion(player, position)
-            end
-         end),
-      }
+      explodedInstanceId[player] = nil
    else
       -- Client context
       ToolController.addParticleToTool(player, "ExplosiveBoomerang")
@@ -123,8 +112,9 @@ function ExplosiveBoomerang.onPickup(player: Player, startedAt: number?): number
 end
 
 function ExplosiveBoomerang.onEnd(player: Player)
+   explodedInstanceId[player] = nil
    if isServer then
-      clearSubscriptions(player)
+      return
    else
       -- Client context
       ToolController.removeParticleFromTool(player, "ExplosiveBoomerang")

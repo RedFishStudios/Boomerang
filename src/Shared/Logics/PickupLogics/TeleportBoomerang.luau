@@ -1,3 +1,6 @@
+-- // While active, the player can teleport to their boomerang with the on-screen button (T-108: UsePickupButtons GUI) while it is
+-- // out of their hand. One use: the effect ends when they teleport (or when it times out). It no longer triggers by itself.
+
 local TeleportBoomerang = {}
 
 local RunService = game:GetService("RunService")
@@ -8,76 +11,50 @@ local PICKUP_CLASS_ID = script.Name
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ParticlesLibrary = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Library"):WaitForChild("ParticlesLibrary"))
 local GlobalConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"):WaitForChild("GlobalConfig"))
+local PickupLibrary = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Library"):WaitForChild("PickupLibrary"))
 
 local EFFECT_DURATION_SECONDS = GlobalConfig.GenericEffectTimeout
 
-local WeaponService, PickupService
 local CharacterRenderController
-if isServer then
-   local ServerStorage = game:GetService("ServerStorage")
-   WeaponService = require(ServerStorage.Server.Core.WeaponService)
-   PickupService = require(ServerStorage.Server.Core.PickupService)
-else
+if not isServer then
    CharacterRenderController = require(ReplicatedStorage:WaitForChild("Client"):WaitForChild("Core"):WaitForChild("CharacterRenderController"))
 end
 
 local particles = {} -- {[Player]: Part}
 
-local cleanupFunctionsByPlayer: {[Player]: {() -> ()}} = {}
+TeleportBoomerang.UseButton = true
+TeleportBoomerang.ConsumedOnUse = true
 
-local function clearSubscriptions(player: Player)
-   local cleanupFunctions = cleanupFunctionsByPlayer[player]
-   if not cleanupFunctions then
-      return
-   end
-   cleanupFunctionsByPlayer[player] = nil
-   for _, cleanup in ipairs(cleanupFunctions) do
-      cleanup()
-   end
+-- // T-108: usable while the player's boomerang is out of their hand
+function TeleportBoomerang.canUse(player: Player): boolean
+   return (PickupLibrary.getWeaponOnField(player)) ~= nil
 end
 
-local function applyTeleport(player: Player, position: Vector3)
-   if not isServer or not PickupService or not PickupService.hasPickupEffectActive(player, PICKUP_CLASS_ID) then
+-- // T-108: the button was pressed: teleport to the boomerang, then the effect is used up
+function TeleportBoomerang.onUse(player: Player)
+   if not isServer then
       return
    end
+   local position = PickupLibrary.getWeaponOnField(player)
    local character = player.Character
-   if not character or not character.PrimaryPart then
+   if not position or not character or not character.PrimaryPart then
       return
    end
-
-   character:PivotTo(CFrame.new(position) * character:GetPivot().Rotation)
+   -- // At the boomerang's spot, at flight height (where the boomerang's physics is), like the old end-of-throw teleport
+   local destination = Vector3.new(position.X, GlobalConfig.BoomerangFlightHeight, position.Z)
+   character:PivotTo(CFrame.new(destination) * character:GetPivot().Rotation)
+   -- // Required lazily to avoid a load-time cycle (PickupService requires this module)
+   local PickupService = require(game:GetService("ServerStorage").Server.Core.PickupService)
    PickupService.triggerEnd(player, PICKUP_CLASS_ID)
 end
 
 function TeleportBoomerang.onPickup(player: Player, startedAt: number?): number?
    local endsAt = (startedAt or workspace:GetServerTimeNow()) + EFFECT_DURATION_SECONDS
-   
-   if isServer then
-      clearSubscriptions(player)
-      cleanupFunctionsByPlayer[player] = {
-         WeaponService.WeaponKilledPlayer:Add(function(attacker: Player, victim: Player)
-            if attacker == player then
-               local victimCharacter = victim.Character
-               if victimCharacter and victimCharacter.PrimaryPart then
-                  applyTeleport(player, victimCharacter.PrimaryPart.Position)
-               end
-            end
-         end),
-         --WeaponService.WeaponStruckObject:Add(function(eventPlayer: Player, _toolId: string, raycastResult: RaycastResult)
-         --   if eventPlayer == player then
-         --      applyTeleport(player, raycastResult.Position)
-         --   end
-         --end),
-         WeaponService.WeaponReachedEventPoint:Add(function(eventPlayer: Player, _toolId: string, position: Vector3)
-            if eventPlayer == player then
-               applyTeleport(player, position)
-            end
-         end),
-      }
-   else
+
+   if not isServer then
       local character = CharacterRenderController.getCharacterModel(player)
       if not character then
-         return
+         return endsAt
       end
 
       local particle = ParticlesLibrary.play(`{player.UserId}_Forcefield`, "Forcefield", character.PrimaryPart, 1)
@@ -89,19 +66,18 @@ end
 
 function TeleportBoomerang.onEnd(player: Player)
    if isServer then
-      clearSubscriptions(player)
-   else
-      if particles[player] then
-         particles[player]:Destroy()
-         particles[player] = nil
-      end
-
-      local character = CharacterRenderController.getCharacterModel(player)
-      if not character then
-         return
-      end
-      ParticlesLibrary.emit(`{player.UserId}_ForcefieldBreak`, "ForcefieldBreak", character.PrimaryPart, 1)
+      return
    end
+   if particles[player] then
+      particles[player]:Destroy()
+      particles[player] = nil
+   end
+
+   local character = CharacterRenderController.getCharacterModel(player)
+   if not character then
+      return
+   end
+   ParticlesLibrary.emit(`{player.UserId}_ForcefieldBreak`, "ForcefieldBreak", character.PrimaryPart, 1)
 end
 
 return TeleportBoomerang

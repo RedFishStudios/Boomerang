@@ -19,6 +19,7 @@ local GameplayPhaseEnum = require(ReplicatedStorage.Shared.Constants.Enums.Gamep
 local CommandService = require(game.ServerStorage.Server.Core.CommandService)
 local ChatService = require(game.ServerStorage.Server.Core.ChatService)
 local MapDataConstants = require(ReplicatedStorage.Shared.Constants.MapData)
+local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -401,6 +402,46 @@ function PickupService.init()
          end
       end
       livePickupReplication:FireAllClients(replicationData)
+   end)
+
+   -- // T-108: the on-screen use button (UsePickupButtons GUI). Only for a pickup the player holds, whose logic has a use button,
+   -- // while they are alive in the arena and the pickup says it can be used right now (e.g. their boomerang is out).
+   SimpleRemotes.getEvent(PickupLibrary.USE_PICKUP_BUTTON_EVENT).OnServerEvent:Connect(function(player: Player, pickupClassId: any)
+      if type(pickupClassId) ~= "string" or not PickupLibrary.hasPickupEffectActive(player.UserId, pickupClassId) then
+         return
+      end
+      if PickupLibrary.isDataOnlyEffect(pickupClassId) then
+         return
+      end
+      local logic = getLogic(pickupClassId)
+      if not logic or not logic.UseButton or not logic.onUse then
+         return
+      end
+      if not table.find(gameStateData.LivingPlayersInArena:Get(), player) then
+         return
+      end
+      if logic.canUse and not logic.canUse(player) then
+         return
+      end
+      logic.onUse(player)
+   end)
+
+   -- // T-108: dying loses every pickup the player holds (round end already clears them all: clearAllPickupEffectsActive above).
+   -- // Effects owned by other systems (data-only: OnFire, HotPotato, ...) are left to those systems.
+   PlayersUtil.CharacterDied:Add(function(player: Player)
+      local userEffects = PickupLibrary.UserPickupEffectsActive[player.UserId]
+      if not userEffects then
+         return
+      end
+      local classIdsToEnd = {}
+      for _, activePickupData in pairs(userEffects) do
+         if not PickupLibrary.isDataOnlyEffect(activePickupData.ClassId) then
+            table.insert(classIdsToEnd, activePickupData.ClassId)
+         end
+      end
+      for _, pickupClassId in ipairs(classIdsToEnd) do
+         PickupService.triggerEnd(player, pickupClassId)
+      end
    end)
 
    --requestUsePickup.OnServerEvent:Connect(function(player: Player, livePickupId: LivePickupId, ...)

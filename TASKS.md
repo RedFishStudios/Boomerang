@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-108** *(shared by every task list, general and Epic)*
+**Next free ID: T-109** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,31 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-108 · Use-pickup buttons: Explosive, Teleport and Decoy are used with on-screen buttons
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Client / Shared / Server
+- **Files:** `Client/UI/Gui/UsePickupButtons/` (new: `init.luau`, `UsePickupButtons.rbxmx`, `ButtonTemplate.rbxmx`), `Shared/Library/PickupLibrary.luau`, `Shared/Logics/PickupLogics/ExplosiveBoomerang.luau`, `TeleportBoomerang.luau`, `Decoy.luau`, `Server/Core/PickupService.luau`, `Shared/Referential/AcquirableThingData.luau`
+
+**Done when**
+- [ ] New `UsePickupButtons` GUI: round image buttons (transparent background, the pickup's icon, UICorner) in a centered vertical list on the left of the screen
+- [ ] Explosive: the button explodes the boomerang where it is (once per throw); 50% / non-interactive while no boomerang is out
+- [ ] Teleport: the button teleports the player to the boomerang (used up); 50% / non-interactive while no boomerang is out
+- [ ] Decoy: the button spawns the decoy at any time (used up)
+- [ ] None of the three trigger by themselves any more (end of throw, kill, first throw)
+- [ ] No button for any other pickup
+- [ ] The button appears as soon as the pickup is acquired and disappears when it is lost for any reason (used up, timed out, death, round end)
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-108-use-pickup-buttons`. Edits left uncommitted.
+- Pickup logic API: `UseButton`, `ConsumedOnUse`, `canUse(player)`, `onUse(player)` (PickupLibrary types). Client presses fire `PickupButtonUsed` (classId); PickupService checks the effect is held, the player is alive in the arena and `canUse`, then runs `onUse`.
+- "Boomerang out" = `PickupLibrary.getWeaponOnField`: flying, returning, dying or lying dead on the field (not in hand; not while a predicted catch hides it, T-100).
+- Death now ends all of the player's pickup effects (except data-only ones owned by other systems: OnFire, HotPotato, DashCooldown). Previously only the round end (LobbyVoting) cleared them.
+- Teleport destination: the boomerang's X/Z at flight height (like the old end-of-throw teleport). Explosion: at the boomerang, snapped to the floor (unchanged).
+- Acquired-message subtitles updated to say to press the button.
+- Not syntax-checked or tested (Studio play-testing is Sol's).
+
 
 ### T-107 · Dying boomerang sliding over a gap froze on the server (couldn't pick up / recall it)
 - **Priority:** P1

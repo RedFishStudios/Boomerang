@@ -1,0 +1,28 @@
+<roblox xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4">
+	<Item class="ImageButton" referent="RBXUSEPICKUPBUTTONS0010">
+		<Properties>
+			<string name="Name">ButtonTemplate</string>
+			<bool name="AutoButtonColor">false</bool>
+			<float name="BackgroundTransparency">1</float>
+			<int name="BorderSizePixel">0</int>
+			<Content name="Image"><null></null></Content>
+			<token name="ScaleType">3</token>
+			<UDim2 name="Size">
+				<XS>1</XS>
+				<XO>0</XO>
+				<YS>1</YS>
+				<YO>0</YO>
+			</UDim2>
+			<token name="SizeConstraint">1</token>
+		</Properties>
+		<Item class="UICorner" referent="RBXUSEPICKUPBUTTONS0011">
+			<Properties>
+				<string name="Name">UICorner</string>
+				<UDim name="CornerRadius">
+					<S>0.5</S>
+					<O>0</O>
+				</UDim>
+			</Properties>
+		</Item>
+	</Item>
+</roblox>
