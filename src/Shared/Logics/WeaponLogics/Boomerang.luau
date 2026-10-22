@@ -70,6 +70,13 @@ local RECALL_CATCH_RADIUS_MIN = 1.5
 -- // boomerang orbiting a hair outside the catch radius (it appears to graze the player and circle) while the client
 -- // already caught it; this small server-only bonus closes that gap so the two agree. Tunable.
 local SERVER_RECALL_CATCH_BONUS = 0.5
+local PENDING_CATCH_TIMEOUT = 1.5 -- // T-100: seconds a client waits for the server to confirm a catch it predicted before showing the boomerang again
+local RELEASE_CATCH_GRACE_STUDS = 1 -- // T-100: a manual recall released this close to being caught (plus the ping distance) counts as caught
+local RELEASE_CATCH_GRACE_MAX_PING = 0.3 -- // T-100: cap on the owner's ping used for that grace distance (seconds)
+
+-- // T-100: defined in the CATCHING section below (forward-declared so the movement loops above it can call them)
+local setHostHidden: (thrownWeaponData: ThrownWeapons.Data, hidden: boolean) -> ()
+local catchWeapon: (player: Player, thrownWeaponData: ThrownWeapons.Data) -> boolean
 local RETURN_STEER_TIGHTNESS = 3 -- // How sharply a returning boomerang turns into the player up close (1 = circles them; higher = more direct)
 local DEATH_SPEED_SCALE = 0.5
 local DEATH_MINIMUM_SPEED = 12
@@ -1126,8 +1133,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          local toPlayer = targetPosition - pivot.Position
          local horizontalDistance = getHorizontalDistance(pivot.Position, targetPosition)
          local catchRadius = math.max(RECALL_CATCH_RADIUS_MIN, hitboxRadius * 1.25) + (if isServer then SERVER_RECALL_CATCH_BONUS else 0)
-         if horizontalDistance <= catchRadius then
-            Boomerang.removeFromField(player, thrownWeaponData)
+         if horizontalDistance <= catchRadius and catchWeapon(player, thrownWeaponData) then
             return true
          end
          local targetDirection = getHorizontalDirection(toPlayer)
@@ -1333,6 +1339,92 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
 end
 
 -- // Restore to player / remove from field
+-------------------------------------------------------------------------------
+-- CATCHING (T-100): only the server decides that a boomerang has been caught
+-- A client that sees its returning boomerang reach the player only *predicts* the catch: it hides the boomerang and plays
+-- the catch animation and sound right away (so it feels instant), but keeps the boomerang's data and keeps simulating it
+-- (hidden). Then:
+--   * the server agrees: its Despawned event removes it for real (WeaponController > removeFromField, effects not repeated)
+--   * the server drops it instead (Dying snapshot, e.g. recall released just before the server's catch): Boomerang.die shows
+--     it again where the server says, so it can't become an invisible boomerang only the server has
+--   * no verdict within PENDING_CATCH_TIMEOUT: it is shown again and the client stops predicting catches for it (the server's
+--     own catch will still despawn it)
+-------------------------------------------------------------------------------
+
+-- // Client-side visibility of a thrown boomerang's model (LocalTransparencyModifier, so nothing else's transparency is touched)
+setHostHidden = function(thrownWeaponData: ThrownWeapons.Data, hidden: boolean)
+   if not hidden and not thrownWeaponData.HostHidden then
+      return
+   end
+   thrownWeaponData.HostHidden = if hidden then true else nil
+   local host = thrownWeaponData.Host
+   if isServer or not host or not host.Parent then
+      return
+   end
+   local value = if hidden then 1 else 0
+   if host:IsA("BasePart") then
+      host.LocalTransparencyModifier = value
+   end
+   for _, descendant in ipairs(host:GetDescendants()) do
+      if descendant:IsA("BasePart") or descendant:IsA("Decal") then
+         descendant.LocalTransparencyModifier = value
+      end
+   end
+end
+
+-- // A returning boomerang reached its player. Server: it is caught (removed). Client: the catch is predicted only (see above).
+-- // Returns true if the boomerang was removed (the caller's movement loop must stop).
+catchWeapon = function(player: Player, thrownWeaponData: ThrownWeapons.Data): boolean
+   if isServer then
+      Boomerang.removeFromField(player, thrownWeaponData)
+      return true
+   end
+   if thrownWeaponData.PendingCatchAt or thrownWeaponData.PendingCatchExpired then
+      return false
+   end
+   thrownWeaponData.PendingCatchAt = os.clock()
+   setHostHidden(thrownWeaponData, true)
+   retireTrail(thrownWeaponData)
+   if AnimationController then
+      AnimationController.playCoreAnimation(player, "Catch")
+   end
+   SoundLibrary.play(thrownWeaponData.InstanceId, Sounds.Data.BoomerangCatch.Name, player.Character) -- // Replaces the flight loop
+   thrownWeaponData.CatchEffectsPlayed = true
+   return false
+end
+
+-- // Client: the server didn't take the predicted catch (it dropped the boomerang, or no verdict in time). Show it again.
+-- // expired: no verdict arrived; it also stops predicting catches for this boomerang and resumes its flight sound.
+function Boomerang.cancelPendingCatch(_player: Player, thrownWeaponData: ThrownWeapons.Data, expired: boolean?)
+   if isServer or not thrownWeaponData.PendingCatchAt then
+      return
+   end
+   thrownWeaponData.PendingCatchAt = nil
+   thrownWeaponData.CatchEffectsPlayed = nil
+   setHostHidden(thrownWeaponData, false)
+   if expired then
+      thrownWeaponData.PendingCatchExpired = true
+      warn(`Boomerang: the server never confirmed a predicted catch ({thrownWeaponData.InstanceId}); showing the boomerang again`)
+      local host = thrownWeaponData.Host
+      if host and host.Parent and host.PrimaryPart then
+         SoundLibrary.play(thrownWeaponData.InstanceId, Sounds.Data.BoomerangLoop.Name, host.PrimaryPart, nil, true)
+      end
+   end
+end
+
+-- // Client, every frame (WeaponController): give up on predicted catches the server hasn't answered in time
+function Boomerang.updatePendingCatches()
+   if isServer then
+      return
+   end
+   local now = os.clock()
+   for player, thrownWeaponData in pairs(ThrownWeapons.Data) do
+      if thrownWeaponData.PendingCatchAt and now - thrownWeaponData.PendingCatchAt >= PENDING_CATCH_TIMEOUT then
+         Boomerang.cancelPendingCatch(player, thrownWeaponData, true)
+      end
+   end
+end
+
 function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapons.Data, options: RemoveFromFieldOptions?)
    local returnToPlayer = options == nil or options.ReturnToPlayer ~= false
    local shouldReattachLocally = returnToPlayer and (not isServer) and thrownWeaponData.ReuseEquippedHost == true
@@ -1341,8 +1433,12 @@ function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapo
       ToolController.applyHighlight(false, false)
    end
 
-   if returnToPlayer and AnimationController then
+   -- // T-100: a client that already showed the catch (pending catch) doesn't play the animation/sound a second time
+   if returnToPlayer and AnimationController and not thrownWeaponData.CatchEffectsPlayed then
       AnimationController.playCoreAnimation(player, "Catch")
+   end
+   if shouldReattachLocally then
+      setHostHidden(thrownWeaponData, false) -- // T-100: the hidden host goes back into the hand, visible again
    end
 
    if thrownWeaponData.Host then
@@ -1357,7 +1453,7 @@ function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapo
       if returnToPlayer then
          SharedTasks.WeaponReturnedTasks:Execute("parallel", player, thrownWeaponData.ToolId)
       end
-   elseif returnToPlayer then
+   elseif returnToPlayer and not thrownWeaponData.CatchEffectsPlayed then
       SoundLibrary.play(thrownWeaponData.InstanceId, Sounds.Data.BoomerangCatch.Name, player.Character)
    end
    if thrownWeaponData.MovementConnection then
@@ -1474,6 +1570,21 @@ function Boomerang.stopRecallFromDead(player: Player, thrownWeaponData: ThrownWe
    if ThrownWeapons.Data[player] ~= thrownWeaponData then
       return
    end
+   -- // T-100: the release can arrive just after the owner's client already caught it (the client sees its character a little ahead of
+   -- // the server). If it is about to be caught here too (within the catch radius plus the distance it covers in the owner's ping),
+   -- // count it as caught instead of dropping it next to the player.
+   local toolData = Tools[thrownWeaponData.ToolId]
+   local pivot = getWeaponCFrame(thrownWeaponData)
+   local character = player.Character
+   local rootPart = character and character.PrimaryPart
+   if toolData and toolData.Boomerang and pivot and rootPart then
+      local catchRadius = math.max(RECALL_CATCH_RADIUS_MIN, toolData.Boomerang.HitboxRadius * 1.25) + SERVER_RECALL_CATCH_BONUS
+      local graceDistance = (thrownWeaponData.Speed or 0) * math.clamp(player:GetNetworkPing(), 0, RELEASE_CATCH_GRACE_MAX_PING) + RELEASE_CATCH_GRACE_STUDS
+      if getHorizontalDistance(pivot.Position, rootPart.Position) <= catchRadius + graceDistance then
+         Boomerang.removeFromField(player, thrownWeaponData)
+         return
+      end
+   end
    local direction = thrownWeaponData.Direction
    if not direction or direction.Magnitude < 1e-5 then
       direction = Vector3.new(0, 0, -1)
@@ -1531,6 +1642,8 @@ function Boomerang.die(player: Player, thrownWeaponData: ThrownWeapons.Data, opt
    if DeadWeapons.Data[player] then
       return
    end
+   -- // T-100: the client predicted a catch but the server dropped the boomerang instead: show it again where it drops
+   Boomerang.cancelPendingCatch(player, thrownWeaponData)
 
    local pivot = getWeaponCFrame(thrownWeaponData)
    if not pivot then
@@ -1740,8 +1853,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
 
       local toPlayer = (rootPart.Position - hostPivot.Position)
       local horizontalDistance = getHorizontalDistance(hostPivot.Position, rootPart.Position)
-      if horizontalDistance <= catchRadius then
-         Boomerang.removeFromField(player, thrownWeaponData)
+      if horizontalDistance <= catchRadius and catchWeapon(player, thrownWeaponData) then
          return
       end
       local targetDirection = getHorizontalDirection(toPlayer)
@@ -1902,8 +2014,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       end
 
       local newPivot = getWeaponCFrame(thrownWeaponData)
-      if newPivot and getHorizontalDistance(newPivot.Position, rootPart.Position) <= catchRadius then
-         Boomerang.removeFromField(player, thrownWeaponData)
+      if newPivot and getHorizontalDistance(newPivot.Position, rootPart.Position) <= catchRadius and catchWeapon(player, thrownWeaponData) then
          return
       end
    end)

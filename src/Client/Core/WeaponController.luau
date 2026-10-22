@@ -312,7 +312,9 @@ function WeaponController.endRecallInput()
    -- // boomerang keep flying here for a round trip and then snap back, so drop it right away the same way the server does.
    local localPlayer = Players.LocalPlayer
    local thrownWeaponData = ThrownWeapons.Data[localPlayer]
-   if thrownWeaponData and thrownWeaponData.RecallFromDead == true and thrownWeaponData.State == ThrownWeapons.StateEnum.Returning then
+   -- // T-100: not if this client already predicted the catch: the server decides (it counts a release that close as a catch too)
+   if thrownWeaponData and thrownWeaponData.RecallFromDead == true and thrownWeaponData.State == ThrownWeapons.StateEnum.Returning
+      and not thrownWeaponData.PendingCatchAt then
       local toolData = Tools[thrownWeaponData.ToolId]
       local logic = toolData and getLogic(toolData.LogicClass)
       if logic and logic.die then
@@ -957,6 +959,7 @@ function WeaponController.init()
    RunService.PreSimulation:Connect(function(deltaTime)
       updateSmoothing(deltaTime)
       DeadWeaponLogic.updateSmoothing(deltaTime)
+      getLogic("Boomerang").updatePendingCatches() -- // T-100: show a boomerang again if the server never confirmed the catch this client predicted
       DeadWeaponLogic.updateRecallCharges(deltaTime) -- // T-090: lift / drop charging dead boomerangs (same timestamps as the server)
    end)
 

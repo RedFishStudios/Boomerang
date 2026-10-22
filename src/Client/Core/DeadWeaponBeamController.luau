@@ -412,7 +412,8 @@ local returningKind: BeamKind = {
 	-- // The local player's own boomerang while a charged manual recall is moving it back to them, until it is caught
 	getWeaponPart = function(): BasePart?
 		local thrownWeaponData = ThrownWeapons.Data[localPlayer]
-		if thrownWeaponData and thrownWeaponData.RecallFromDead == true then
+		-- // T-100: a predicted catch hides the boomerang until the server confirms it: the beam goes with it
+		if thrownWeaponData and thrownWeaponData.RecallFromDead == true and not thrownWeaponData.HostHidden then
 			return getWeaponPart(thrownWeaponData.Host)
 		end
 		return nil

@@ -46,6 +46,10 @@ export type Data = {
    RecallFromDead: boolean?, -- // Recalled off the ground: true = the player's charged manual recall (only while recall is held), false = automatic (recovered)
    RecallTiltAngle: number?, -- // Client visual: current manual-recall tilt (radians)
    RecallTilt: CFrame?, -- // Client visual: rotation applied to the model while a manual recall lifts it
+   PendingCatchAt: number?, -- // T-100 (client): os.clock() when this client predicted the catch; hidden until the server confirms (Boomerang.luau CATCHING)
+   PendingCatchExpired: boolean?, -- // T-100 (client): the server never confirmed a predicted catch; this client stops predicting catches for it
+   CatchEffectsPlayed: boolean?, -- // T-100 (client): the catch animation/sound already played for the predicted catch (not repeated on Despawned)
+   HostHidden: boolean?, -- // T-100 (client): the model is hidden (LocalTransparencyModifier) while a predicted catch waits for the server
    HasBeenDead: boolean?, -- // It has been fully Dead at least once (T-093): it never recalls by itself again, only by the owner's manual recall
    RecallSpinScale: number?, -- // 0..1: how much of the full spin rate a manually recalled boomerang has built up (nil = full)
    VisualYOffset: number?, -- // Client drawing only: how far the freshly thrown boomerang is still drawn above/below its physics height (eases to 0)

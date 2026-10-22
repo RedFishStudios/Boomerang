@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-100** *(shared by every task list, general and Epic)*
+**Next free ID: T-104** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,30 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-100 · Only the server decides a boomerang catch (client predicts, server confirms)
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared
+- **Files:** `Shared/Logics/WeaponLogics/Boomerang.luau`, `Shared/Referential/ThrownWeapons.lua`, `Client/Core/WeaponController.luau`, `Client/Core/DeadWeaponBeamController.luau`
+
+**Problem / goal**
+The client and the server each decided on their own that a returning boomerang was caught. A client that caught first deleted its boomerang; if the server then dropped it (e.g. manual recall released just before the server's catch), the server kept an invisible Dead boomerang and the player could never throw again (seen 2026-10-22).
+
+**Done when**
+- [ ] A client reaching its returning boomerang hides it and plays the catch animation/sound right away, but keeps it until the server's Despawned (effects not repeated)
+- [ ] If the server drops it instead (Dying snapshot), the boomerang reappears where the server drops it, and can be picked up / recalled normally
+- [ ] Releasing a manual recall when the boomerang is about to be caught (catch radius + owner's ping x speed + 1 stud) counts as a catch on the server
+- [ ] If the server never answers within 1.5 s, the boomerang is shown again (with a warning in the output) and the server's own catch removes it
+- [ ] Normal throws/catches feel the same as before; other players' boomerangs also wait for the server's despawn
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-100-server-catch`. Edits left uncommitted.
+- New CATCHING section in `Boomerang.luau` (`catchWeapon`, `setHostHidden`, `cancelPendingCatch`, `updatePendingCatches`); the three catch checks call `catchWeapon`. Client hides via `LocalTransparencyModifier`. `endRecallInput` skips its local drop while a catch is pending. The returning beam disappears with the hidden boomerang.
+- Server grace in `stopRecallFromDead` (`RELEASE_CATCH_GRACE_STUDS`, `RELEASE_CATCH_GRACE_MAX_PING`).
+- Trade-off: the boomerang reappears in the hand (reattached model) one network round trip after the catch animation, instead of instantly.
+- Not syntax-checked or tested (Studio play-testing is Sol's).
+
 
 ### T-099 · Dying boomerang: spin sound stops on landing, can be picked up once on the ground
 - **Priority:** P1
@@ -636,6 +660,49 @@ Sometimes the aim arrow stays visible while the player isn't otherwise aiming: t
 ---
 
 ## Backlog
+
+### T-101 · Server snapshots re-create a boomerang the client is missing (desync fix B)
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client
+- **Files:** `Client/Core/WeaponController.luau` (`onSnapshot`), `Shared/Logics/WeaponLogics/Dead.luau` (`applyServerSnapshot`)
+
+**Problem / goal**
+A Dying/Dead (or Returning) snapshot for a player whose boomerang this client doesn't have is silently dropped, so a boomerang only the server has stays invisible. When that happens, build the missing dead (or returning) boomerang from the snapshot (position, direction, speed, state) instead.
+
+**Done when**
+- [ ] A Dying/Dead snapshot with no local boomerang creates a visible dead boomerang at the server's position, which can be picked up / recalled
+- [ ] Stale snapshots for a boomerang that was just despawned don't resurrect it (needs T-102's ids, or a short despawn tombstone)
+
+
+### T-102 · Boomerang instance id + sequence number on every sync message (desync fix C)
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared
+- **Files:** `Shared/Logics/WeaponLogics/Boomerang.luau`, `Shared/Logics/WeaponLogics/Dead.luau`, `Client/Core/WeaponController.luau`, `Shared/Utils/BufferUtil` users
+
+**Problem / goal**
+Snapshots (unreliable) and Spawned/Despawned/RecallCharge (reliable) can arrive out of order. Add the boomerang's id (short counter) and an increasing sequence number to every message; clients drop anything older than what they've applied or for another boomerang. Replaces the timing guesses (`ReleasedAtServerTime` + 2x ping, the portal grace window).
+
+**Done when**
+- [ ] Every spawn / snapshot / recall-charge / despawn carries id + sequence; out-of-order or foreign messages are ignored
+- [ ] The `ReleasedAtServerTime` and portal-grace heuristics are removed or reduced to a fallback
+
+
+### T-103 · Periodic authoritative boomerang state check (desync fix D)
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared
+- **Files:** `Server/Core/WeaponService.luau`, `Client/Core/WeaponController.luau`
+
+**Problem / goal**
+Nothing repairs a client/server disagreement about whether a boomerang exists. Every 1-2 s the server sends each owner (reliable) a heartbeat: none / Flying / Returning / Dying / Dead + id + position; the client compares and fixes any mismatch (create the missing boomerang, remove a ghost, snap the state), so any future desync heals within seconds instead of locking out throwing.
+
+**Done when**
+- [ ] A forced desync (e.g. deleting the client's boomerang data) heals within ~2 s
+- [ ] A ghost boomerang the server doesn't have is removed and the player can throw again
+- [ ] Mismatches are logged (warn) so they show up in play-tests
+
 
 ### T-061 · Replace the placeholder Group Rewards chest with the real model
 - **Priority:** P2
