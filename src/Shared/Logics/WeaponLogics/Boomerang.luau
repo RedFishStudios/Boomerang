@@ -1637,6 +1637,75 @@ function Boomerang.deflect(player: Player, thrownWeaponData: ThrownWeapons.Data,
    thrownWeaponData.PendingDirection = getHorizontalDirection(direction)
 end
 
+-- // T-101 (client): the server sent a Dying/Dead snapshot for a player whose boomerang this client doesn't have (a desync, or a
+-- // player who joined after the throw). Build that dead boomerang from the snapshot so it is visible and can be picked up / recalled.
+-- // options.ExistingHost: the local player's held model to reuse (like a throw), so catching it puts it back in the hand.
+function Boomerang.restoreDeadFromSnapshot(player: Player, toolId: string, options: {
+   Position: Vector3,
+   Direction: Vector3,
+   Speed: number,
+   IsDead: boolean,
+   ExistingHost: Model?,
+})
+   if isServer or ThrownWeapons.Data[player] or DeadWeapons.Data[player] then
+      return
+   end
+   local toolData = Tools[toolId]
+   if not toolData or not toolData.Boomerang then
+      return
+   end
+
+   local boomerangModel = options.ExistingHost
+   local reuseEquippedHost = boomerangModel ~= nil and boomerangModel.Parent ~= nil
+   if not reuseEquippedHost then
+      local modelName = SkinLibrary.getModelName(player)
+      local template = modelName and ReplicatedStorage.Shared.Assets.Tools:FindFirstChild(modelName)
+      if not template then
+         warn(`Boomerang.restoreDeadFromSnapshot: no model for {player.Name}'s skin`)
+         return
+      end
+      boomerangModel = template:Clone()
+   end
+   local host = boomerangModel :: Model
+   host.Name = `Boomerang_{player.Name}`
+   for _, descendant in ipairs(host:GetDescendants()) do
+      if descendant:IsA("BasePart") then
+         descendant.Anchored = true
+      end
+   end
+   local startCFrame = CFrame.new(options.Position)
+   host:PivotTo(startCFrame)
+   host.Parent = WeaponsFolder
+
+   local direction = getHorizontalDirection(options.Direction)
+   local deadWeaponData = {
+      OwnerUserId = player.UserId,
+      ToolId = toolId,
+      State = DeadWeapons.StateEnum.Dying,
+      InstanceId = HttpService:GenerateGUID(false), -- // Local only (the snapshot doesn't carry the server's id); used for sound channels
+      Host = host,
+      LastPosition = options.Position,
+      CFrame = startCFrame,
+      Direction = direction,
+      Speed = options.Speed,
+      ReuseEquippedHost = if reuseEquippedHost then true else nil,
+      ExistingHost = if reuseEquippedHost then host else nil,
+      HasBeenDead = if options.IsDead then true else nil,
+   } :: any
+   DeadWeapons.Data[player] = deadWeaponData
+   warn(`Boomerang: rebuilt {player.Name}'s dead boomerang from a server snapshot (this client didn't have it)`)
+
+   DeadWeaponLogic.applyDeath(player, deadWeaponData, {
+      Direction = direction,
+      Speed = options.Speed,
+      Position = options.Position,
+   })
+   if options.IsDead then
+      deadWeaponData.SpinRate = 0 -- // Already resting: no dying spin
+      DeadWeaponLogic.setDead(player, deadWeaponData, options.Position)
+   end
+end
+
 -- // A thrown boomerang dies: it loses its flight and drops into the dying/dead state (Dead.luau)
 function Boomerang.die(player: Player, thrownWeaponData: ThrownWeapons.Data, options: DieInitOptions)
    if DeadWeapons.Data[player] then

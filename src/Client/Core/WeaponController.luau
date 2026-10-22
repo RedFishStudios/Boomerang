@@ -352,6 +352,37 @@ function WeaponController.handleEquippedToolButton(): string
 end
 
 -- // Register a snapshot of a server-authoritative position
+-- // T-101: players whose boomerang the server has despawned since its last Spawned. A Dying/Dead snapshot for a boomerang this client
+-- // doesn't have rebuilds it (see onSnapshot), but never for one of these: those snapshots are just stale (sent before the despawn).
+-- // Weak keys: entries go away with the Player.
+local despawnedSinceSpawn: { [Player]: boolean } = setmetatable({}, { __mode = "k" }) :: any
+
+-- // T-101: rebuild a dead boomerang this client is missing from the server's snapshot (Boomerang.restoreDeadFromSnapshot)
+local function restoreMissingDeadWeapon(forPlayer: Player, position: Vector3, direction: Vector3, speed: number, state: number)
+   local toolId = SkinLibrary.getWeaponClass(forPlayer)
+   local toolData = toolId and Tools[toolId]
+   if not toolData then
+      return
+   end
+   local logic = getLogic(toolData.LogicClass)
+   if not logic.restoreDeadFromSnapshot then
+      return
+   end
+   local existingHost: Model? = nil
+   if forPlayer == Players.LocalPlayer then
+      existingHost = select(1, ToolController.prepareToolForThrow(forPlayer)) -- // Same as a throw: the held model is what lies on the field
+   else
+      ToolController.setToolVisible(forPlayer, false)
+   end
+   logic.restoreDeadFromSnapshot(forPlayer, toolId, {
+      Position = position,
+      Direction = direction,
+      Speed = speed,
+      IsDead = state == DeadWeapons.StateEnum.Dead,
+      ExistingHost = existingHost,
+   })
+end
+
 local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vector3, speed: number, state: number, serverTime: number, targetPosition: Vector3?)
    local thrownWeaponData = ThrownWeapons.Data[forPlayer]
 
@@ -380,6 +411,12 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
          if deadLogic and deadLogic.recallFromDead then
             deadLogic.recallFromDead(forPlayer, deadWeaponData, true)
          end
+         return
+      end
+      -- // T-101: the server has a dying/dead boomerang this client doesn't (a desync, or this player joined after the throw): rebuild it
+      if not thrownWeaponData and not deadWeaponData and not despawnedSinceSpawn[forPlayer]
+         and (state == DeadWeapons.StateEnum.Dying or state == DeadWeapons.StateEnum.Dead) then
+         restoreMissingDeadWeapon(forPlayer, position, direction, speed, state)
          return
       end
       DeadWeaponLogic.applyServerSnapshot(forPlayer, position, direction, speed, state, serverTime)
@@ -880,6 +917,7 @@ function WeaponController.init()
          warn(`no player source found for userId: {ownerUserId}`)
          return
       end
+      despawnedSinceSpawn[forPlayer] = nil -- // T-101: a new boomerang; its snapshots may rebuild it if this client loses it
 
       local toolData = Tools[toolId]
       if not toolData then
@@ -921,6 +959,7 @@ function WeaponController.init()
       if not forPlayer then
          return
       end
+      despawnedSinceSpawn[forPlayer] = true -- // T-101: snapshots still in flight for this boomerang must not rebuild it
       clearThrownWeapon(forPlayer, returnToPlayer)
    end)
 
