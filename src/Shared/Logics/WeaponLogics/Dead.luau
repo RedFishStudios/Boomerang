@@ -99,6 +99,13 @@ local function getHorizontalDistance(fromPosition: Vector3, toPosition: Vector3)
 	return delta.Magnitude
 end
 
+-- // True if the player is close enough to pick up a boomerang lying at this position (Dead, or Dying once it has hit the ground)
+local function isWithinPickupDistance(player: Player, position: Vector3): boolean
+	local character = player.Character
+	local rootPart = character and character.PrimaryPart
+	return rootPart ~= nil and getHorizontalDistance(position, rootPart.Position) <= DEAD_PICKUP_DISTANCE
+end
+
 local function getWeaponCFrame(deadWeaponData: DeadWeapons.Data): CFrame?
 	local host = deadWeaponData.Host
 	if host and host.Parent then
@@ -845,6 +852,11 @@ function DeadWeaponLogic.applyDeath(player: Player, deadWeaponData: DeadWeapons.
 					fallSpeed = 0
 					isGrounded = true
 					speed *= DEAD_LANDING_SPEED_KEPT -- // T-098: hitting the ground costs a little speed, then it glides on
+					-- // T-099: the flight spin loop (Boomerang.throw, same channel) stops when it hits the ground, not when it comes to
+					-- // rest. SoundLibrary.stop fades it out (0.25 s) on every client, so it never cuts off abruptly.
+					if isServer then
+						SoundLibrary.stop(deadWeaponData.InstanceId)
+					end
 					-- // Insertion point: "clunk" when the boomerang hits the ground. Played from the server so every player hears it.
 					local clunkSound = Sounds.Data.BoomerangClunk
 					if isServer and clunkSound and clunkSound.Id ~= 0 then
@@ -881,6 +893,12 @@ function DeadWeaponLogic.applyDeath(player: Player, deadWeaponData: DeadWeapons.
 		deadWeaponData.Speed = speed
 		updateOwnWeaponHighlight(player, deadWeaponData, nextPosition)
 
+		-- // T-099: once it has hit the ground it can be picked up, even while it is still sliding (not while flying or dropping)
+		if isServer and isGrounded and isWithinPickupDistance(player, nextPosition) then
+			DeadWeaponLogic.removeFromField(player, deadWeaponData)
+			return
+		end
+
 		if isServer and time >= nextReplicationAt then
 			nextReplicationAt = time + REPLICATION_RATE
 			fireSnapshot(player.UserId, nextPosition, direction, speed, deadWeaponData.State)
@@ -910,9 +928,7 @@ function DeadWeaponLogic.applyDeath(player: Player, deadWeaponData: DeadWeapons.
 				end
 
 				local deadPivot = getWeaponCFrame(deadWeaponData)
-				local character = player.Character
-				local rootPart = character and character.PrimaryPart
-				if deadPivot and rootPart and getHorizontalDistance(deadPivot.Position, rootPart.Position) <= DEAD_PICKUP_DISTANCE then
+				if deadPivot and isWithinPickupDistance(player, deadPivot.Position) then
 					DeadWeaponLogic.removeFromField(player, deadWeaponData)
 				end
 			end)

@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-99** *(shared by every task list, general and Epic)*
+**Next free ID: T-100** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,23 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-099 · Dying boomerang: spin sound stops on landing, can be picked up once on the ground
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared
+- **Files:** `Shared/Logics/WeaponLogics/Dead.luau`
+
+**Done when**
+- [ ] The spinning sound fades out (0.25 s) the moment a dying boomerang hits the ground, not when it comes to rest
+- [ ] A dying boomerang can be picked up (walk over it) once it has hit the ground, including while it is still sliding
+- [ ] It still can't be picked up while flying or while dropping before it touches the ground; Dead boomerangs are picked up as before
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-099-ground-pickup`. Edits left uncommitted.
+- Server only: `SoundLibrary.stop(InstanceId)` at the landing in `applyDeath` (its existing fade-out); pickup check (`isWithinPickupDistance`, same 3-stud distance) in the dying loop once `isGrounded`, shared with the Dead pickup.
+- Not syntax-checked or tested (Studio play-testing is Sol's).
+
 
 ### T-098 · Dying boomerangs slide "on ice" with a winding-down spin (client feedback)
 - **Priority:** P1
