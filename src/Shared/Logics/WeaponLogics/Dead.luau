@@ -71,6 +71,7 @@ export type DeathInitOptions = {
 	Direction: Vector3,
 	Speed: number?,
 	Position: Vector3?,
+	SpinRate: number?, -- // T-104: starting visual spin (radians/s); nil = the full flight spin rate
 }
 
 -- // One frame of the dying slow-down (T-098): proportional drag (the gradual "ice" glide) plus a constant friction so it stops.
@@ -576,6 +577,29 @@ local RISE_OVERSHOOT = 0.3 -- // How far past the target it goes at the top, as 
 local RISE_PEAK_AT = 0.62 -- // Fraction of the charge time at which it reaches that top: slow at first, then a fast quart-in climb
 local RISE_SETTLE_BOBS = 1.5 -- // How many half-swings it makes around the target while settling (it dips just under it once, then rests on it)
 
+-- ============================================================================================================================
+-- INTERNAL CONFIG: momentum given when the manual recall is released (T-104)
+-- Releasing the recall drops the boomerang, but it always gets at least this much speed toward its player, so it falls and slides
+-- a few studs their way even if it hadn't moved sideways at all.
+--   * Released during the charge: MinSpeed at the very start of the charge, rising to MaxSpeed at the end (interpolated by how far
+--     the charge got). The boomerang drops from wherever it had risen to and slides toward the player.
+--   * Released while it is already flying back: it keeps its own speed, but never less than MaxSpeed.
+-- Slide distances below are at the default DeadWeaponDeceleration (4); the slide itself is set up in INTERNAL CONFIG: dying slide.
+-- ============================================================================================================================
+local RELEASE_MOMENTUM = {
+	MinSpeed = 15, -- // Studs/s when released right as the charge starts (~2 studs of slide from the ground)
+	MaxSpeed = 20, -- // Studs/s when released at the end of the charge (~4 studs, dropping from flight height); also the floor while returning
+	-- // Reserved for later: easing into that speed instead of getting it at once (e.g. PushSeconds). Everything goes through
+	-- // DeadWeaponLogic.getReleaseMomentum and the release-drop options (applyDeath), so a push-in can be added there.
+}
+
+-- // T-104: the speed (studs/s, toward the player) a manual-recall release gives a boomerang. chargeProgress: 0 = charge just started,
+-- // 1 = fully charged (or already returning).
+function DeadWeaponLogic.getReleaseMomentum(chargeProgress: number): number
+	local alpha = math.clamp(chargeProgress, 0, 1)
+	return RELEASE_MOMENTUM.MinSpeed + (RELEASE_MOMENTUM.MaxSpeed - RELEASE_MOMENTUM.MinSpeed) * alpha
+end
+
 local function smoothstep(alpha: number): number
 	alpha = math.clamp(alpha, 0, 1)
 	return alpha * alpha * (3 - 2 * alpha)
@@ -668,10 +692,22 @@ function DeadWeaponLogic.applyRecallChargeEvent(player: Player, action: string, 
 		deadWeaponData.RecallCancelAt = nil
 		deadWeaponData.RecallCancelFromY = nil
 	elseif action == "Cancel" then
-		-- // Released before the charge finished (T-093): it drops back to where it rested (T-096)
-		if deadWeaponData.RecallChargeStart then
-			deadWeaponData.RecallCancelAt = serverTime
-			deadWeaponData.RecallCancelFromY = a
+		-- // Released before the charge finished (T-093). T-104: instead of dropping straight down, it is pushed toward the player
+		-- // (a = the height it had risen to, b/c = the X/Z direction to the player, from the server) and falls and slides with the
+		-- // normal dying motion; the server's Dying/Dead snapshots keep everyone in step after that.
+		local chargeStart = deadWeaponData.RecallChargeStart
+		if chargeStart then
+			local chargeProgress = (serverTime - chargeStart) / DeadWeaponLogic.getRecallChargeSeconds(deadWeaponData)
+			clearChargeFields(deadWeaponData)
+			deadWeaponData.RecallRestY = nil -- // It will come to rest somewhere else
+			if a then
+				setHeight(deadWeaponData, a)
+			end
+			DeadWeaponLogic.applyDeath(player, deadWeaponData, {
+				Direction = Vector3.new(b or 0, 0, c or 0),
+				Speed = DeadWeaponLogic.getReleaseMomentum(chargeProgress),
+				SpinRate = 0, -- // It wasn't spinning while charging
+			})
 		end
 	end
 end
@@ -700,15 +736,19 @@ function DeadWeaponLogic.beginRecallCharge(player: Player, deadWeaponData: DeadW
 	SimpleRemotes.getEvent(RECALL_CHARGE_EVENT):FireAllClients(player.UserId, "Start", now, startY, targetY, restY)
 end
 
--- // Server only: the owner released recall before the charge finished: it drops back to the ground
+-- // Server only: the owner released recall before the charge finished: it drops and slides toward the player (T-104)
 function DeadWeaponLogic.cancelRecallCharge(player: Player, deadWeaponData: DeadWeapons.Data)
 	if not isServer or DeadWeapons.Data[player] ~= deadWeaponData or not DeadWeaponLogic.isRecallCharging(deadWeaponData) then
 		return
 	end
 	local now = workspace:GetServerTimeNow()
-	local currentY = getChargeHeight(deadWeaponData, now) or deadWeaponData.RecallRestY or 0
-	DeadWeaponLogic.applyRecallChargeEvent(player, "Cancel", now, currentY)
-	SimpleRemotes.getEvent(RECALL_CHARGE_EVENT):FireAllClients(player.UserId, "Cancel", now, currentY)
+	local pivot = getWeaponCFrame(deadWeaponData)
+	local currentY = getChargeHeight(deadWeaponData, now) or (pivot and pivot.Position.Y) or deadWeaponData.RecallRestY or 0
+	-- // T-104: pushed toward the player (the server's view of them; sent along so every machine pushes the same way)
+	local rootPart = player.Character and player.Character.PrimaryPart
+	local towardPlayer = if pivot and rootPart then getHorizontalDirection(rootPart.Position - pivot.Position) else getHorizontalDirection(deadWeaponData.Direction or Vector3.zero)
+	DeadWeaponLogic.applyRecallChargeEvent(player, "Cancel", now, currentY, towardPlayer.X, towardPlayer.Z)
+	SimpleRemotes.getEvent(RECALL_CHARGE_EVENT):FireAllClients(player.UserId, "Cancel", now, currentY, towardPlayer.X, towardPlayer.Z)
 end
 
 -- // The charge lifts the boomerang again (T-096, client feedback; T-092 had kept it on the ground). Moves it to getChargeHeight each frame
@@ -782,7 +822,7 @@ function DeadWeaponLogic.applyDeath(player: Player, deadWeaponData: DeadWeapons.
 	local obstructionRaycastParams = RaycastsUtility.getProjectileObstructionParams(obstructionFilter)
 
 	deadWeaponData.State = DeadWeapons.StateEnum.Dying
-	deadWeaponData.SpinRate = BOOMERANG_SPIN_SPEED -- // T-098: starts at the flight spin rate and winds down (visual, clients)
+	deadWeaponData.SpinRate = if options.SpinRate ~= nil then options.SpinRate else BOOMERANG_SPIN_SPEED -- // T-098: starts at the flight spin rate and winds down (visual, clients)
 	deadWeaponData.Direction = direction
 	deadWeaponData.Speed = speed
 	deadWeaponData.SyncTargetPosition = nil

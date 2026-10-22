@@ -1587,11 +1587,12 @@ function Boomerang.stopRecallFromDead(player: Player, thrownWeaponData: ThrownWe
    end
    local direction = thrownWeaponData.Direction
    if not direction or direction.Magnitude < 1e-5 then
-      direction = Vector3.new(0, 0, -1)
+      direction = if pivot and rootPart then getHorizontalDirection(rootPart.Position - pivot.Position) else Vector3.new(0, 0, -1)
    end
    Boomerang.die(player, thrownWeaponData, {
       Direction = direction,
-      Speed = thrownWeaponData.Speed or 0,
+      -- // T-104: never less than the fully-charged release momentum (Dead.luau INTERNAL CONFIG: RELEASE_MOMENTUM)
+      Speed = math.max(thrownWeaponData.Speed or 0, DeadWeaponLogic.getReleaseMomentum(1)),
    })
 end
 

@@ -324,7 +324,7 @@ function WeaponController.endRecallInput()
          end
          logic.die(localPlayer, thrownWeaponData, {
             Direction = direction,
-            Speed = thrownWeaponData.Speed or 0,
+            Speed = math.max(thrownWeaponData.Speed or 0, DeadWeaponLogic.getReleaseMomentum(1)), -- // T-104: same floor as the server
          })
          local droppedData = DeadWeapons.Data[localPlayer]
          if droppedData then

@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-104** *(shared by every task list, general and Epic)*
+**Next free ID: T-105** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,25 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-104 · Releasing a manual recall pushes the boomerang toward the player (minimum momentum)
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared
+- **Files:** `Shared/Logics/WeaponLogics/Dead.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`, `Client/Core/WeaponController.luau`, `Shared/Constants/GlobalConfig.luau`
+
+**Done when**
+- [ ] Tapping recall (release right after the charge starts) drops the boomerang and it slides ~2 studs toward the player
+- [ ] Releasing at the end of the charge drops it from flight height and it slides ~4 studs toward the player; in between is interpolated
+- [ ] Releasing while it is already flying back drops it with its own speed, but never less than the end-of-charge momentum
+- [ ] Every client sees the same push (direction comes from the server with the Cancel event)
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-104-release-momentum`. Edits left uncommitted.
+- Config: `RELEASE_MOMENTUM` (MinSpeed 15, MaxSpeed 20 studs/s) in `Dead.luau`, read through `DeadWeaponLogic.getReleaseMomentum(chargeProgress)`; a push-in ease (e.g. PushSeconds) is reserved there for later.
+- A released charge now goes back into the Dying state (`applyDeath`, spin 0) instead of the old straight drop (`GlobalConfig.RecallChargeCancelDropSeconds` now unused). Side effects: pressing recall again only starts a new charge once it has stopped sliding (it can still be picked up while sliding, T-099), and the beam fades back in once it rests.
+- Not syntax-checked or tested (Studio play-testing is Sol's).
+
 
 ### T-101 · Server snapshots re-create a boomerang the client is missing (desync fix B)
 - **Priority:** P2
