@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-107** *(shared by every task list, general and Epic)*
+**Next free ID: T-108** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,28 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-107 · Dying boomerang sliding over a gap froze on the server (couldn't pick up / recall it)
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared
+- **Files:** `Shared/Logics/WeaponLogics/Dead.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`
+
+**Problem / goal**
+A boomerang that had already been Dead (e.g. pushed by a recall release, T-104) sliding over a gap for 0.75 s hit the old "sliding away -> auto recall" rule, which no longer applies to it (T-093), and the server's loop returned early every frame: frozen mid-gap in the Dying state forever, while the client kept sliding it onto ground. Not pickable (not grounded on the server), not rechargeable (not Dead).
+
+**Done when**
+- [ ] It keeps sliding over the gap on the server exactly like on the client, lands on the far side, slows and becomes Dead; pickup and recall work
+- [ ] Over nothing for 3 s (`DEAD_NO_GROUND_FAILSAFE_SECONDS`): put down at the last solid spot it passed over; with none recorded, back to the player's hand with a warning in the output
+- [ ] Physics (walls, ground checks, landing) is the same on server and clients and always worked out at `GlobalConfig.BoomerangFlightHeight`; only the drawn height differs on clients
+- [ ] A boomerang that has never been Dead still auto-recalls after 0.75 s over a gap (T-062)
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-107-gap-slide`. Edits left uncommitted.
+- New DYING PHYSICS section in `Dead.luau`: `stepDyingSim` is the single physics step used by `applyDeath` (server and clients) and `predictSlidePositions`. Walls are cast and ground is looked for from flight height; the fall is a separate `PhysicsY` (starts at flight height for a thrown boomerang, at the risen height for a released charge). Ground is checked every step now, so a grounded boomerang sliding onto a gap also keeps its momentum over it. Server position = physics; clients draw the model resting on the ground and falling in step with the physics.
+- Automatic recall off the ground: physics now starts at flight height right away (the model eases up with `VisualYOffset`, like a throw) instead of being lifted gradually (`RECALL_FROM_DEAD_LIFT_RATE` now unused).
+- Not syntax-checked or tested (Studio play-testing is Sol's).
+
 
 ### T-104 · Releasing a manual recall pushes the boomerang toward the player (minimum momentum)
 - **Priority:** P2

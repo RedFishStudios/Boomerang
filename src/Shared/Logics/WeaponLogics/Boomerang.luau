@@ -108,7 +108,7 @@ local MANUAL_RECALL_FULL_SPEED_SECONDS = 0.2
 local MANUAL_RECALL_RISES_DURING_FLIGHT = false
 
 local BOOMERANG_SPIN_SPEED = math.rad(1080)
-local RECALL_FROM_DEAD_LIFT_RATE = 8 -- // How fast a boomerang that recovers by itself (automatic recall off the ground) rises to flight height
+local RECALL_FROM_DEAD_LIFT_RATE = 8 -- // UNUSED since T-107 (physics starts at flight height; the drawn height eases up with VisualYOffset) -- // How fast a boomerang that recovers by itself (automatic recall off the ground) rises to flight height
 local MANUAL_RECALL_TILT_HEIGHT = 2 -- // Height still to rise (studs) at which the manual-recall tilt is at its maximum
 local MANUAL_RECALL_TILT_RESPONSE = 6 -- // How quickly the tilt eases toward its target
 
@@ -1539,14 +1539,17 @@ function Boomerang.recallFromDead(player: Player, deadWeaponData: DeadWeapons.Da
       deadWeaponData.MovementConnection = nil
    end
 
+   -- // T-107: a returning boomerang's physics is always at flight height, whatever height the model is drawn at
+   local physicsCFrame = (pivot - pivot.Position) + Vector3.new(pivot.Position.X, GlobalConfig.BoomerangFlightHeight, pivot.Position.Z)
+
    local thrownWeaponData: ThrownWeapons.Data = {
       ToolId = deadWeaponData.ToolId,
       State = ThrownWeapons.StateEnum.Exhausted, -- // recall() switches it to Returning
       InstanceId = deadWeaponData.InstanceId,
       OwnerUserId = deadWeaponData.OwnerUserId,
       Host = host,
-      LastPosition = pivot.Position,
-      CFrame = pivot,
+      LastPosition = physicsCFrame.Position,
+      CFrame = physicsCFrame,
       Direction = deadWeaponData.Direction,
       Speed = 0,
       ReuseEquippedHost = deadWeaponData.ReuseEquippedHost,
@@ -1554,6 +1557,9 @@ function Boomerang.recallFromDead(player: Player, deadWeaponData: DeadWeapons.Da
       VisualRotation = deadWeaponData.VisualRotation,
       RecallFromDead = isManualRecall,
       HasBeenDead = deadWeaponData.HasBeenDead,
+      -- // Client: drawn where the model is now, easing to the physics height (getVisualYOffset), like a throw leaving the hand
+      VisualYOffset = if isServer then nil else pivot.Position.Y - GlobalConfig.BoomerangFlightHeight,
+      VisualYOffsetStartedAt = if isServer then nil else os.clock(),
    } :: any
 
    DeadWeapons.Data[player] = nil
@@ -1705,6 +1711,7 @@ function Boomerang.restoreDeadFromSnapshot(player: Player, toolId: string, optio
       Direction = direction,
       Speed = options.Speed,
       Position = options.Position,
+      PhysicsY = options.Position.Y, -- // T-107: the server's position is its physics height
    })
    if options.IsDead then
       deadWeaponData.SpinRate = 0 -- // Already resting: no dying spin
@@ -1763,6 +1770,7 @@ function Boomerang.die(player: Player, thrownWeaponData: ThrownWeapons.Data, opt
       Direction = direction,
       Speed = speed,
       Position = options.Position,
+      PhysicsY = GlobalConfig.BoomerangFlightHeight, -- // T-107: a flying boomerang's physics is always at flight height, whatever its drawn height
    })
 end
 
@@ -1813,7 +1821,6 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
    local returnSpeedMultiplier = if PickupLibrary.hasPickupEffectActive(player.UserId, "ExplosiveBoomerang") then GlobalConfig.ExplosiveBoomerangReturnSpeedMultiplier else 1
    -- // Held manual recall of a dying/dead boomerang: capped speed and heavy momentum
    local isManualRecallFromDead = thrownWeaponData.RecallFromDead == true
-   local liftRate = if isManualRecallFromDead then GlobalConfig.ManualRecallLiftRate else RECALL_FROM_DEAD_LIFT_RATE
    local maximumSpeed, momentumMultiplier = 0, 1
    local rampSeconds, rampPower = MANUAL_RECALL_FULL_SPEED_SECONDS, GlobalConfig.ManualRecallRampPower
    local rampElapsed = 0 -- // Seconds since this recall started (drives the manual recall's speed-up curve)
@@ -1897,10 +1904,8 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
             local risenY = riseStartY + (GlobalConfig.BoomerangFlightHeight - riseStartY) * easedRise
             hostPivot = (hostPivot - hostPivot.Position) + Vector3.new(hostPivot.Position.X, risenY, hostPivot.Position.Z)
          else
-            local heightDelta = GlobalConfig.BoomerangFlightHeight - hostPivot.Position.Y
-            if math.abs(heightDelta) > 0.05 then
-               hostPivot += Vector3.new(0, heightDelta * math.clamp(deltaTime * liftRate, 0, 1), 0)
-            end
+            -- // T-107: an automatic recall's physics is already at flight height (Boomerang.recallFromDead); clients ease the drawn
+            -- // height up to it with VisualYOffset, so nothing to lift here
          end
 
          -- // Visual only: tilt up toward the player while still being dragged up, easing flat as it reaches flight height

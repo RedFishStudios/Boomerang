@@ -54,6 +54,9 @@ local DEAD_LANDING_SPEED_KEPT = 0.8 -- // Fraction of its speed kept when it hit
 local DEAD_ICE_DRAG = 1 -- // Per second, while sliding on the ground (effective 4)
 local DEAD_ICE_FRICTION = 2.5 -- // Studs/s per second, while sliding on the ground (effective 10)
 local DEAD_SPIN_DRAG = 0.5 -- // Per second: the spin (starting at the flight spin rate) winds down (effective 2)
+-- // T-107: a boomerang that has already been Dead (so it never recalls by itself) and keeps sliding with nothing below it for this
+-- // long is put down at the last solid spot it passed over (or, with none recorded, back in its player's hand, with a warning)
+local DEAD_NO_GROUND_FAILSAFE_SECONDS = 3
 local DEAD_SPIN_FRICTION = math.rad(75) -- // Radians/s per second (effective 300 degrees/s per second); stops in about 1 s at default
 local DEAD_MAX_FALL_SPEED = 80
 local DEAD_GROUND_RAY_DISTANCE = 10
@@ -72,6 +75,7 @@ export type DeathInitOptions = {
 	Speed: number?,
 	Position: Vector3?,
 	SpinRate: number?, -- // T-104: starting visual spin (radians/s); nil = the full flight spin rate
+	PhysicsY: number?, -- // T-107: the height its fall starts from in the physics (thrown: GlobalConfig.BoomerangFlightHeight); nil = its current height
 }
 
 -- // One frame of the dying slow-down (T-098): proportional drag (the gradual "ice" glide) plus a constant friction so it stops.
@@ -381,6 +385,106 @@ function DeadWeaponLogic.hasGroundBelow(position: Vector3, host: Instance?): boo
 	return getDeadRestingY({ Host = host } :: any, position, raycastParams) ~= nil
 end
 
+-- ============================================================================================================================
+-- DYING PHYSICS (T-107): one step, shared by the real loop (applyDeath, server AND clients) and the prediction below, so they can't
+-- drift apart. Physics is always worked out at GlobalConfig.BoomerangFlightHeight (walls, ground checks), whatever height the model
+-- is drawn at; the fall to the ground is tracked as a separate number (PhysicsY), and clients draw the model from it (applyDeath).
+-- ============================================================================================================================
+export type DyingSim = {
+	Position: Vector3, -- // X/Z of the boomerang; Y is always GlobalConfig.BoomerangFlightHeight
+	Direction: Vector3,
+	Speed: number,
+	PhysicsY: number, -- // Height of the fall (lands when it reaches GroundY)
+	FallSpeed: number,
+	IsGrounded: boolean,
+	NoGroundTime: number, -- // Seconds in a row with nothing below to land on (blocked by a wall also resets it)
+	GroundY: number?, -- // Resting height of the ground under Position this step (nil = nothing to land on)
+	LastSolid: Vector3?, -- // The last position it passed over that had ground (flight height)
+}
+
+local NO_HOST = { Host = nil } :: any -- // Ground checks for the physics: the plain ground height, no model offset
+
+local function getPhysicsGroundY(position: Vector3, groundParams: RaycastParams): number?
+	return getDeadRestingY(NO_HOST, Vector3.new(position.X, GlobalConfig.BoomerangFlightHeight, position.Z), groundParams)
+end
+
+-- // Advances sim by deltaTime. Returns true if it hit the ground this step.
+local function stepDyingSim(sim: DyingSim, deltaTime: number, dyingSpeedMultiplier: number, obstructionParams: RaycastParams, groundParams: RaycastParams): boolean
+	local fromPosition = Vector3.new(sim.Position.X, GlobalConfig.BoomerangFlightHeight, sim.Position.Z)
+	local nextSpeed = getNextDyingSpeed(sim.Speed, deltaTime, sim.IsGrounded, dyingSpeedMultiplier)
+	local travelDistance = (sim.Speed + nextSpeed) * 0.5 * deltaTime
+	local nextPosition, nextDirection, isBlocked = resolveHorizontalMovement(fromPosition, sim.Direction, travelDistance, obstructionParams)
+	local groundY = getPhysicsGroundY(nextPosition, groundParams)
+
+	if groundY or isBlocked then
+		sim.Speed = nextSpeed
+		sim.NoGroundTime = 0
+	else
+		-- // Nothing to land on: it keeps its momentum (no slowing, no falling) until there is ground again
+		nextPosition, nextDirection = resolveHorizontalMovement(fromPosition, sim.Direction, sim.Speed * deltaTime, obstructionParams)
+		sim.NoGroundTime += deltaTime
+	end
+	sim.Position = nextPosition
+	sim.Direction = nextDirection
+	sim.GroundY = groundY
+
+	local landed = false
+	if groundY then
+		sim.LastSolid = nextPosition
+		if sim.IsGrounded then
+			sim.PhysicsY = groundY -- // Sliding along the ground (follows steps up/down)
+		else
+			sim.FallSpeed = math.min(DEAD_MAX_FALL_SPEED, sim.FallSpeed + DEAD_FALL_ACCELERATION * dyingSpeedMultiplier * deltaTime)
+			local nextY = sim.PhysicsY - sim.FallSpeed * deltaTime
+			if nextY <= groundY then
+				nextY = groundY
+				sim.FallSpeed = 0
+				sim.IsGrounded = true
+				sim.Speed *= DEAD_LANDING_SPEED_KEPT -- // T-098: hitting the ground costs a little speed, then it glides on
+				landed = true
+			end
+			sim.PhysicsY = nextY
+		end
+	else
+		-- // Over a gap: it stays at its height and is no longer on the ground
+		sim.IsGrounded = false
+		sim.FallSpeed = 0
+	end
+	return landed
+end
+
+local function newDyingSim(position: Vector3, direction: Vector3, speed: number, physicsY: number): DyingSim
+	return {
+		Position = Vector3.new(position.X, GlobalConfig.BoomerangFlightHeight, position.Z),
+		Direction = getHorizontalDirection(direction),
+		Speed = speed,
+		PhysicsY = physicsY,
+		FallSpeed = 0,
+		IsGrounded = false,
+		NoGroundTime = 0,
+		GroundY = nil,
+		LastSolid = nil,
+	}
+end
+
+-- // Client: how far the model's pivot sits above its lowest point (so it rests ON the ground, not in it)
+local function getHostPivotToBottom(host: Instance?): number
+	if not host or not host.Parent then
+		return 0
+	end
+	local pivotY, boundsCFrame, boundsSize
+	if host:IsA("Model") then
+		pivotY = host:GetPivot().Position.Y
+		boundsCFrame, boundsSize = host:GetBoundingBox()
+	elseif host:IsA("BasePart") then
+		pivotY = host.Position.Y
+		boundsCFrame, boundsSize = host.CFrame, host.Size
+	else
+		return 0
+	end
+	return math.max(0, pivotY - (boundsCFrame.Position.Y - boundsSize.Y * 0.5))
+end
+
 -- // Where a boomerang dying right now would be over the next lookaheadSeconds, one position per stepSeconds. Runs the same
 -- // deceleration and wall sliding as the real dying loop (applyDeath) so a prediction can't drift from what would happen.
 -- // Used by Boomerang before it commits to dying, to see if the player would be in sight and in range along the slide.
@@ -401,38 +505,13 @@ function DeadWeaponLogic.predictSlidePositions(position: Vector3, direction: Vec
 	groundParams.CollisionGroup = CollisionGroupConstants.Camera
 
 	local dyingSpeedMultiplier = BoomerangTuningLibrary.getForAnyTool(toolId, "DeadWeaponDeceleration")
-	local startY = position.Y -- // Ground checks use the starting height (the host isn't moved, so its bounds stay at this height)
-	local currentPosition = position
-	local currentSpeed = speed
-	local fallSpeed = 0
-	local isGrounded = false
+	-- // T-107: the very same physics step as applyDeath; positions are at flight height (where the physics is worked out)
+	local sim = newDyingSim(position, slideDirection, speed, position.Y)
 	local elapsed = 0
-	while elapsed + stepSeconds <= lookaheadSeconds + 1e-4 and currentSpeed > 0 do
+	while elapsed + stepSeconds <= lookaheadSeconds + 1e-4 and sim.Speed > 0 do
 		elapsed += stepSeconds
-		local nextSpeed = getNextDyingSpeed(currentSpeed, stepSeconds, isGrounded, dyingSpeedMultiplier)
-		local travelDistance = (currentSpeed + nextSpeed) * 0.5 * stepSeconds
-		local nextPosition, nextDirection, isBlocked = resolveHorizontalMovement(currentPosition, slideDirection, travelDistance, obstructionParams)
-		local restingY = if isGrounded then nil else getDeadRestingY({ Host = host } :: any, Vector3.new(nextPosition.X, startY, nextPosition.Z), groundParams)
-		if isGrounded or restingY or isBlocked then
-			currentSpeed = nextSpeed
-		else
-			-- // Nothing to land on: it keeps its momentum (as in the real loop)
-			nextPosition, nextDirection = resolveHorizontalMovement(currentPosition, slideDirection, currentSpeed * stepSeconds, obstructionParams)
-		end
-		-- // Drop to the ground as in the real loop; landing costs some speed (T-098)
-		if not isGrounded and restingY then
-			fallSpeed = math.min(DEAD_MAX_FALL_SPEED, fallSpeed + DEAD_FALL_ACCELERATION * dyingSpeedMultiplier * stepSeconds)
-			local nextY = nextPosition.Y - fallSpeed * stepSeconds
-			if nextY <= restingY then
-				nextY = restingY
-				isGrounded = true
-				currentSpeed *= DEAD_LANDING_SPEED_KEPT
-			end
-			nextPosition = Vector3.new(nextPosition.X, nextY, nextPosition.Z)
-		end
-		slideDirection = nextDirection
-		currentPosition = nextPosition
-		table.insert(positions, currentPosition)
+		stepDyingSim(sim, stepSeconds, dyingSpeedMultiplier, obstructionParams, groundParams)
+		table.insert(positions, sim.Position)
 	end
 	return positions
 end
@@ -707,6 +786,7 @@ function DeadWeaponLogic.applyRecallChargeEvent(player: Player, action: string, 
 				Direction = Vector3.new(b or 0, 0, c or 0),
 				Speed = DeadWeaponLogic.getReleaseMomentum(chargeProgress),
 				SpinRate = 0, -- // It wasn't spinning while charging
+				PhysicsY = a, -- // T-107: falls from the height it had risen to (the same number on the server and every client)
 			})
 		end
 	end
@@ -805,9 +885,6 @@ function DeadWeaponLogic.applyDeath(player: Player, deadWeaponData: DeadWeapons.
 	local direction = getHorizontalDirection(options.Direction)
 	local speed = options.Speed or deadWeaponData.Speed or 0
 	local nextReplicationAt = 0
-	local fallSpeed = 0
-	local isGrounded = false
-	local noGroundSlideTime = 0 -- // How long it has kept sliding with nothing to land on (T-062)
 	local nextRecallCheckAt = 0 -- // Next time the dying boomerang looks for its player (see checkRecallWhileDying)
 	local groundRaycastParams = RaycastParams.new()
 	groundRaycastParams.FilterType = Enum.RaycastFilterType.Exclude
@@ -834,6 +911,16 @@ function DeadWeaponLogic.applyDeath(player: Player, deadWeaponData: DeadWeapons.
 
 	deadWeaponData.DeathOrigin = options.Position or pivot.Position
 
+	-- // T-107: the physics (identical on the server and every client: stepDyingSim) is worked out at flight height; PhysicsY is the
+	-- // height of the fall. The server's position IS the physics; a client draws its model from it (visual height below).
+	local startPivot = getWeaponCFrame(deadWeaponData) or pivot
+	local sim = newDyingSim(startPivot.Position, direction, speed, options.PhysicsY or startPivot.Position.Y)
+	local pivotToBottom = if isServer then 0 else getHostPivotToBottom(deadWeaponData.Host)
+	-- // Client visual fall: from the model's height when a fall starts to resting on the ground, in step with the physics fall
+	local isFalling = false
+	local fallStartPhysicsY = sim.PhysicsY
+	local fallStartVisualY = startPivot.Position.Y
+
 	local deathPivot = getWeaponCFrame(deadWeaponData)
 	if deathPivot then
 		updateOwnWeaponHighlight(player, deadWeaponData, deathPivot.Position)
@@ -852,8 +939,28 @@ function DeadWeaponLogic.applyDeath(player: Player, deadWeaponData: DeadWeapons.
 			return
 		end
 
+		-- // Client: once the server says it is Dead, it doesn't move any more (the Dead snapshot already put it where the server has it).
+		-- // Resting on the ground it only finishes its spin, leaving the height alone (a recall charge may be lifting it).
+		if not isServer and deadWeaponData.State == DeadWeapons.StateEnum.Dead then
+			sim.Speed = 0
+			-- // The Dead snapshot moved it somewhere else (e.g. the failsafe put it down at the last solid spot): settle onto the ground there
+			local horizontalShift = Vector3.new(currentPivot.Position.X - sim.Position.X, 0, currentPivot.Position.Z - sim.Position.Z)
+			if horizontalShift.Magnitude > 0.5 then
+				sim.IsGrounded = false
+			end
+			if sim.IsGrounded then
+				if (deadWeaponData.SpinRate or 0) > 0 then
+					local dyingSpeedMultiplier = BoomerangTuningLibrary.getForAnyTool(deadWeaponData.ToolId, "DeadWeaponDeceleration")
+					deadWeaponData.SpinRate = getSlowedValue(deadWeaponData.SpinRate or 0, deltaTime, DEAD_SPIN_DRAG * dyingSpeedMultiplier, DEAD_SPIN_FRICTION * dyingSpeedMultiplier)
+					setWeaponCFrame(deadWeaponData, currentPivot, deltaTime)
+				end
+				updateOwnWeaponHighlight(player, deadWeaponData, currentPivot.Position)
+				return
+			end
+		end
+
 		-- // Clients keep running until the spin has also wound down (it can outlast the slide a little)
-		if not isServer and speed <= 0 and isGrounded and (deadWeaponData.SpinRate or 0) <= 0 then
+		if not isServer and sim.Speed <= 0 and sim.IsGrounded and (deadWeaponData.SpinRate or 0) <= 0 then
 			updateOwnWeaponHighlight(player, deadWeaponData, currentPivot.Position)
 			return
 		end
@@ -863,55 +970,34 @@ function DeadWeaponLogic.applyDeath(player: Player, deadWeaponData: DeadWeapons.
 		if not isServer then
 			deadWeaponData.SpinRate = getSlowedValue(deadWeaponData.SpinRate or 0, deltaTime, DEAD_SPIN_DRAG * dyingSpeedMultiplier, DEAD_SPIN_FRICTION * dyingSpeedMultiplier)
 		end
-		-- // T-098: "on ice": a gentle slow-down while dropping, then a gradual glide on the ground (see INTERNAL CONFIG)
-		local nextSpeed = getNextDyingSpeed(speed, deltaTime, isGrounded, dyingSpeedMultiplier)
-		local travelDistance = (speed + nextSpeed) * 0.5 * deltaTime
-		local nextPosition, nextDirection, isBlocked = resolveHorizontalMovement(currentPivot.Position, direction, travelDistance, obstructionRaycastParams)
 
-		local restingY = if isGrounded then nil else getDeadRestingY(deadWeaponData, nextPosition, groundRaycastParams)
-
-		if isGrounded or restingY or isBlocked then
-			speed = nextSpeed
-			noGroundSlideTime = 0
-		else
-			-- Nothing to land on: keep the frame's momentum instead of decelerating or falling
-			nextPosition, nextDirection =
-				resolveHorizontalMovement(currentPivot.Position, direction, speed * deltaTime, obstructionRaycastParams)
-			noGroundSlideTime += deltaTime
-		end
-
-		direction = nextDirection
+		-- // Clients: snapshot corrections move the model sideways (DeadWeaponLogic.updateSmoothing), so the physics starts from it
+		sim.Position = Vector3.new(currentPivot.Position.X, GlobalConfig.BoomerangFlightHeight, currentPivot.Position.Z)
+		local wasGrounded = sim.IsGrounded
+		local previousPhysicsY = sim.PhysicsY
+		local landed = stepDyingSim(sim, deltaTime, dyingSpeedMultiplier, obstructionRaycastParams, groundRaycastParams)
+		speed = sim.Speed
+		direction = sim.Direction
 		deadWeaponData.Direction = direction
 
-		if not isGrounded then
-			if restingY then
-				fallSpeed = math.min(DEAD_MAX_FALL_SPEED, fallSpeed + DEAD_FALL_ACCELERATION * dyingSpeedMultiplier * deltaTime)
-				local nextY = nextPosition.Y - fallSpeed * deltaTime
-				if nextY <= restingY then
-					nextY = restingY
-					fallSpeed = 0
-					isGrounded = true
-					speed *= DEAD_LANDING_SPEED_KEPT -- // T-098: hitting the ground costs a little speed, then it glides on
-					-- // T-099: the flight spin loop (Boomerang.throw, same channel) stops when it hits the ground, not when it comes to
-					-- // rest. SoundLibrary.stop fades it out (0.25 s) on every client, so it never cuts off abruptly.
-					if isServer then
-						SoundLibrary.stop(deadWeaponData.InstanceId)
-					end
-					-- // Insertion point: "clunk" when the boomerang hits the ground. Played from the server so every player hears it.
-					local clunkSound = Sounds.Data.BoomerangClunk
-					if isServer and clunkSound and clunkSound.Id ~= 0 then
-						SoundLibrary.play(`{deadWeaponData.InstanceId}_Clunk`, clunkSound.Name, Vector3.new(nextPosition.X, nextY, nextPosition.Z))
-					end
-				end
-				nextPosition = Vector3.new(nextPosition.X, nextY, nextPosition.Z)
-			else
-				fallSpeed = 0
+		if landed then
+			-- // T-099: the flight spin loop (Boomerang.throw, same channel) stops when it hits the ground, not when it comes to
+			-- // rest. SoundLibrary.stop fades it out (0.25 s) on every client, so it never cuts off abruptly.
+			if isServer then
+				SoundLibrary.stop(deadWeaponData.InstanceId)
+			end
+			-- // Insertion point: "clunk" when the boomerang hits the ground. Played from the server so every player hears it.
+			local clunkSound = Sounds.Data.BoomerangClunk
+			if isServer and clunkSound and clunkSound.Id ~= 0 then
+				SoundLibrary.play(`{deadWeaponData.InstanceId}_Clunk`, clunkSound.Name, Vector3.new(sim.Position.X, sim.PhysicsY, sim.Position.Z))
 			end
 		end
 
 		-- // T-062: it keeps sliding with nowhere to land: instead of snapping back to the player, it flies back on its own
 		-- // (automatic recall). Based on time only, never on distance. Server decides; clients follow its Returning snapshot.
-		if noGroundSlideTime >= GlobalConfig.DyingBoomerangNoGroundRecallSeconds and isServer then
+		-- // T-107: not for a boomerang that has already been Dead (it never recalls by itself, T-093): that one keeps sliding like
+		-- // on the clients until it finds ground; see the failsafe below.
+		if isServer and not deadWeaponData.HasBeenDead and sim.NoGroundTime >= GlobalConfig.DyingBoomerangNoGroundRecallSeconds then
 			if DeadWeaponLogic.onSlidingAway then
 				DeadWeaponLogic.onSlidingAway(player, deadWeaponData)
 			else
@@ -920,14 +1006,59 @@ function DeadWeaponLogic.applyDeath(player: Player, deadWeaponData: DeadWeapons.
 			return
 		end
 
+		-- // T-107 failsafe: still no ground after DEAD_NO_GROUND_FAILSAFE_SECONDS: put it down at the last solid spot it passed over.
+		-- // With no such spot it goes back to the player's hand (warning, so it shows up in testing). Clients follow the Dead snapshot.
+		if isServer and deadWeaponData.HasBeenDead and sim.NoGroundTime >= DEAD_NO_GROUND_FAILSAFE_SECONDS then
+			local lastSolid = sim.LastSolid
+			local lastSolidGroundY = lastSolid and getPhysicsGroundY(lastSolid, groundRaycastParams)
+			if lastSolid and lastSolidGroundY then
+				sim.Position = lastSolid
+				sim.PhysicsY = lastSolidGroundY
+				sim.GroundY = lastSolidGroundY
+				sim.Speed = 0
+				sim.FallSpeed = 0
+				sim.IsGrounded = true
+				sim.NoGroundTime = 0
+				speed = 0
+			else
+				warn(`DeadWeaponLogic: {player.Name}'s dying boomerang slid over nothing for {DEAD_NO_GROUND_FAILSAFE_SECONDS} s with no solid spot recorded; returning it to the player's hand`)
+				DeadWeaponLogic.removeFromField(player, deadWeaponData)
+				return
+			end
+		end
+
 		-- // Still dying: keep checking whether the player is in sight and close. If so the recall resumes even at 0 energy
 		-- // (the hook decides and starts the recall; clients follow its Returning snapshot). Server only, throttled.
 		if isServer and DeadWeaponLogic.checkRecallWhileDying and time >= nextRecallCheckAt then
 			nextRecallCheckAt = time + GlobalConfig.DyingBoomerangRecallCheckSeconds
-			if DeadWeaponLogic.checkRecallWhileDying(player, deadWeaponData, nextPosition) then
+			if DeadWeaponLogic.checkRecallWhileDying(player, deadWeaponData, sim.Position) then
 				return
 			end
 		end
+
+		-- // Height of the model. Server: the physics height. Client: rests ON the ground (pivotToBottom) and falls in step with the physics.
+		local drawnY = sim.PhysicsY
+		if not isServer then
+			if sim.GroundY and sim.IsGrounded then
+				drawnY = sim.GroundY + pivotToBottom
+				isFalling = false
+			elseif sim.GroundY then
+				if not isFalling or wasGrounded then
+					isFalling = true
+					fallStartPhysicsY = previousPhysicsY
+					fallStartVisualY = currentPivot.Position.Y
+				end
+				local fallSpan = fallStartPhysicsY - sim.GroundY
+				local fallAlpha = if fallSpan > 1e-3 then math.clamp((fallStartPhysicsY - sim.PhysicsY) / fallSpan, 0, 1) else 1
+				drawnY = fallStartVisualY + (sim.GroundY + pivotToBottom - fallStartVisualY) * fallAlpha
+			else
+				drawnY = currentPivot.Position.Y -- // Over a gap: it keeps its height
+				isFalling = false
+			end
+		end
+		local nextPosition = Vector3.new(sim.Position.X, drawnY, sim.Position.Z)
+		local isGrounded = sim.IsGrounded
+		local restingY = sim.GroundY
 
 		setWeaponCFrame(deadWeaponData, (currentPivot - currentPivot.Position) + nextPosition, deltaTime)
 		deadWeaponData.Speed = speed
