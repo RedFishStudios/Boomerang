@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-109** *(shared by every task list, general and Epic)*
+**Next free ID: T-110** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,24 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-109 · Number keys for the use-pickup buttons (slots)
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client
+- **Files:** `Client/UI/Gui/UsePickupButtons/init.luau`, `Client/UI/Gui/UsePickupButtons/ButtonTemplate.rbxmx`
+
+**Done when**
+- [ ] Keys 1-9 use the button in that slot; a new usable pickup takes the lowest free slot and a pickup keeps its slot until it is lost
+- [ ] Example: A gets 1, B gets 2, A times out (B stays 2), C is acquired and gets 1 and is listed first
+- [ ] Buttons are listed by slot number; each shows its number in a small label on its right (black, partly transparent, rounded, white text)
+- [ ] Keys do nothing while typing in chat / a text box, or outside a round
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-109-pickup-hotkeys`. Edits left uncommitted.
+- The label (`KeyLabel` in ButtonTemplate) only shows on devices with a keyboard (`UserInputService.KeyboardEnabled`); a 10th+ simultaneous pickup gets a button with no key.
+- Not syntax-checked or tested (Studio play-testing is Sol's).
+
 
 ### T-108 · Use-pickup buttons: Explosive, Teleport and Decoy are used with on-screen buttons
 - **Priority:** P1

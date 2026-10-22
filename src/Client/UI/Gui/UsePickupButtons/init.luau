@@ -9,6 +9,9 @@
 	  timed out, death, round end): it follows PickupLibrary's effect added/removed tasks, like the Effects HUD.
 	- Each frame the logic's canUse decides whether it can be pressed; when it can't, the icon is at 50% and non-interactive.
 	- A pickup that is used up by one press (ConsumedOnUse) stays non-interactive after the press until the server removes it.
+	- T-109: each button gets a slot number, also its keyboard key (1-9): a new pickup takes the lowest free slot, and a pickup
+	  keeps its slot until it is lost (so slots can have gaps, and a later pickup can fill slot 1 again). Buttons are listed by
+	  slot, and show their number in a small label on their right (only on devices with a keyboard).
 ]]
 
 local UsePickupButtonsGui = {}
@@ -18,6 +21,7 @@ UsePickupButtonsGui.SupercededBy = {}
 
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
 
 local Player = Players.LocalPlayer
 
@@ -43,15 +47,21 @@ local ButtonTemplate = script:WaitForChild("ButtonTemplate") :: ImageButton
 local UNUSABLE_IMAGE_TRANSPARENCY = 0.5
 local USED_PENDING_TIMEOUT_SECONDS = 2 -- // A used-up press the server never answered becomes pressable again after this long
 
+-- // T-109: number keys for slots 1-9 (a 10th+ pickup at once still gets a button, just no key)
+local SLOT_KEYS: { Enum.KeyCode } = {
+	Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four, Enum.KeyCode.Five,
+	Enum.KeyCode.Six, Enum.KeyCode.Seven, Enum.KeyCode.Eight, Enum.KeyCode.Nine,
+}
+
 type UseButton = {
 	Button: ImageButton,
 	ClassId: PickupLibrary.PickupClassId,
 	Logic: PickupLibrary.PickupLogic,
+	Slot: number, -- // T-109: 1 = top of the list and key 1
 	UsedAt: number?, -- // os.clock() of a ConsumedOnUse press still waiting for the server to remove the pickup
 }
 
 local buttons: { [PickupLibrary.LivePickupId]: UseButton } = {}
-local nextLayoutOrder = 0 -- // Acquisition order, top to bottom
 local logicCache: { [string]: PickupLibrary.PickupLogic | false } = {}
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -120,6 +130,28 @@ local function onButtonPressed(useButton: UseButton)
 	updateButton(useButton)
 end
 
+-- // T-109: the lowest slot no current button holds
+local function getFreeSlot(): number
+	local taken: { [number]: boolean } = {}
+	for _, useButton in pairs(buttons) do
+		taken[useButton.Slot] = true
+	end
+	local slot = 1
+	while taken[slot] do
+		slot += 1
+	end
+	return slot
+end
+
+local function getButtonInSlot(slot: number): UseButton?
+	for _, useButton in pairs(buttons) do
+		if useButton.Slot == slot then
+			return useButton
+		end
+	end
+	return nil
+end
+
 local function addButton(livePickupId: PickupLibrary.LivePickupId, pickupClassId: PickupLibrary.PickupClassId)
 	if buttons[livePickupId] then
 		return
@@ -130,16 +162,22 @@ local function addButton(livePickupId: PickupLibrary.LivePickupId, pickupClassId
 	end
 	local thingData = AcquirableThingData[pickupClassId]
 
+	local slot = getFreeSlot()
 	local button = ButtonTemplate:Clone()
 	button.Name = pickupClassId
 	button.Image = if thingData then `rbxassetid://{thingData.Img}` else ""
-	nextLayoutOrder += 1
-	button.LayoutOrder = nextLayoutOrder
+	button.LayoutOrder = slot -- // Listed by slot, not by when it was picked up
+	local keyLabel = button:FindFirstChild("KeyLabel") :: TextLabel?
+	if keyLabel then
+		keyLabel.Text = tostring(slot)
+		keyLabel.Visible = SLOT_KEYS[slot] ~= nil and UserInputService.KeyboardEnabled
+	end
 
 	local useButton: UseButton = {
 		Button = button,
 		ClassId = pickupClassId,
 		Logic = logic,
+		Slot = slot,
 		UsedAt = nil,
 	}
 	buttons[livePickupId] = useButton
@@ -215,6 +253,21 @@ function UsePickupButtonsGui.start()
 	end
 
 	RunService.Heartbeat:Connect(updateAllButtons)
+
+	-- // T-109: number keys use the button in that slot (not while typing in chat or a text box)
+	UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessedEvent: boolean)
+		if gameProcessedEvent or input.UserInputType ~= Enum.UserInputType.Keyboard then
+			return
+		end
+		local slot = table.find(SLOT_KEYS, input.KeyCode)
+		if not slot or not Gui.Enabled then
+			return
+		end
+		local useButton = getButtonInSlot(slot)
+		if useButton then
+			onButtonPressed(useButton)
+		end
+	end)
 
 	GameStateLibrary.GameStateSnapshotLoadedTasks:Add(function(_snapshot, _reason)
 		refreshUiFromGameState()
