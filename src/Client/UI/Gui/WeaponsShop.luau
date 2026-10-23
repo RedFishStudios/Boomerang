@@ -21,13 +21,13 @@ return ShopBuilder.create({
 	BackgroundImage = BACKGROUND_IMAGE,
 	AspectRatio = ASPECT_RATIO,
 	TestKey = Enum.KeyCode.B,
-	-- // Fitted to the new frame art: the listings fill the parchment panel, one row of three crates
+	-- // Fitted to the new frame art: the listings fill the parchment panel, a 3 x 2 grid (scrolls past 6 crates)
 	Layout = {
 		HideTabs = true,
 		ListingsPosition = UDim2.fromScale(0.12, 0.2),
 		ListingsSize = UDim2.fromScale(0.76, 0.6),
 		GridColumns = 3,
-		GridRows = 1,
+		GridRows = 2,
 	},
 	Tabs = {
 		{

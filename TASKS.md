@@ -92,6 +92,7 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 **Done when**
 - [ ] The Weapons Shop is one window (no tabs) on the new frame art (125528869499843) with three crate listings: Boomerang, Shuriken, Fan Crate, each showing the GenericCrate model
+- [ ] The crates are in a 3 x 2 grid (3 columns, 2 rows; scrolls past 6), like the other shops (T-112 follow-up, Sol 2026-10-23)
 - [ ] Buying a crate spends its price and gives a random weapon of that category, weighted by `Tools[...].CrateWeight`
 - [ ] A new weapon shows "New skin acquired!"; one already owned shows "Duplicate weapon" (and gives nothing else for now)
 
