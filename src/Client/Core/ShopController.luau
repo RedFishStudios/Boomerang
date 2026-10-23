@@ -53,15 +53,10 @@ function ShopController.requestPurchaseItem(itemId: string, listingType: string?
    return requestPurchaseRemoteFunction:InvokeServer(itemId, listingType or "Item")
 end
 
--- // T-112: buys a weapon crate. A new weapon shows "New skin acquired!" (SkinController, when it replicates); a weapon the
--- // player already owns is shown here as a duplicate. Returns success.
+-- // T-112 / T-114: buys a weapon crate. The crate is put in the world next to the player, who opens it by clicking it
+-- // (CrateService, CrateOpeningController shows what was inside). Returns success.
 function ShopController.requestPurchaseCrate(crateId: string): boolean
-   local success, skinId, isNew = requestPurchaseRemoteFunction:InvokeServer(crateId, "Crate")
-   if success and type(skinId) == "string" and not isNew then
-      local skin = SkinLibrary.getSkin(skinId)
-      ItemAcquiredGui.acquiredModelItem(skin and skin.Model, "Duplicate weapon", if skin then skin.Name else skinId)
-   end
-   return success == true
+   return requestPurchaseRemoteFunction:InvokeServer(crateId, "Crate") == true
 end
 
 -- // listingType is the ShopItems listing Type ("Item" by default, "Skin" or "ChargeUpEffect")

@@ -71,7 +71,7 @@ function ShopService.init()
          return EmoteService.purchaseEmote(player, itemId)
       end
       if listingType == "Crate" then
-         -- // T-112: also returns the skin id rolled and whether it was new
+         -- // T-114: the weapon is given when the crate placed next to the player is opened
          return CrateService.purchaseCrate(player, itemId)
       end
       return ShopService.purchaseItem(player, itemId)

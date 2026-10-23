@@ -614,8 +614,11 @@ function ShopBuilder.create(config: ShopConfig)
 					end
 					purchaseInFlight[display.Id] = true
 					task.spawn(function()
-						ShopController.requestPurchaseCrate(display.Id)
+						local bought = ShopController.requestPurchaseCrate(display.Id)
 						purchaseInFlight[display.Id] = nil
+						if bought and ShopGui.Open then
+							ShopGui.close() -- // T-114: the crate is waiting next to the player, to be clicked open
+						end
 					end)
 					return
 				end

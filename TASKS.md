@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-113** *(shared by every task list, general and Epic)*
+**Next free ID: T-115** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,25 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-114 · Opening a bought crate: it appears next to the player and is clicked open
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Server / Client
+- **Files:** `Server/Core/CrateService.luau`, `Client/Core/CrateOpeningController.luau` (new), `Client/Core/ShopController.luau`, `Client/UI/ShopCommon/ShopBuilder.luau`, `Server/Core/ShopService.luau`, `Shared/Constants/GlobalConfig.luau`
+
+**Done when**
+- [ ] Buying a crate closes the shop and puts the crate model in the world next to the player: in front if that spot is open and level with them, otherwise another open, level spot around them (closest height / in front as fallbacks)
+- [ ] It shows "Click/Tap to open!" and the clicks left (owner only); every click bounces it; after `GlobalConfig.CrateClicksToOpen` (30) it pops open and the weapon is given ("New skin acquired!" / "Duplicate weapon")
+- [ ] Only the owner's clicks count; the weapon isn't owned before the crate is opened
+- [ ] A crate never opened is still given when the player leaves
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-114-crate-opening`. Edits left uncommitted.
+- Server places the crate (`workspace.PlacedCrates`, anchored, no collision) with a ClickDetector and counts clicks (max 25/s); `CrateOpened` event to the owner. Spot search: rays down from 8 studs above the player's floor at 6/8/4.5/10 studs x 12 angles (front first); open = no solid environment part in the crate's box and no wall between the player and the spot; level = within 2 studs of the player's floor; characters are ignored.
+- The roll happens at purchase (refunded if the crate can't be placed); the grant at opening.
+- Agent test in Studio (2026-10-23): a crate bought on the server was placed 6 studs in front of the player, standing on their floor, with its ClickDetector and 30 clicks; the owner's client showed "Click to open!" / 30. Clicking it open and the pop/popup were not tested (Studio didn't accept input / screenshots at the time).
+
 
 ### T-112 · Weapons Shop sells crates (one per category, weighted random weapon)
 - **Priority:** P1
