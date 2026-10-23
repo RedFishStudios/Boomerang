@@ -2,7 +2,7 @@
 	<Meta name="ExplicitAutoJoints">true</Meta>
 	<External>null</External>
 	<External>nil</External>
-	<Item class="Model" referent="RBX530FBF29DBF945BBA4CFFCB4850C6F39">
+	<Item class="Model" referent="RBXP30FBF29DBF945BBA4CFFCB4850C6F39">
 		<Properties>
 			<token name="LevelOfDetail">0</token>
 			<CoordinateFrame name="ModelMeshCFrame">
@@ -27,7 +27,7 @@
 			</Vector3>
 			<token name="ModelStreamingMode">0</token>
 			<bool name="NeedsPivotMigration">false</bool>
-			<Ref name="PrimaryPart">RBX942A05C344CC459C913CB90A85E158C8</Ref>
+			<Ref name="PrimaryPart">RBXP42A05C344CC459C913CB90A85E158C8</Ref>
 			<float name="ScaleFactor">1</float>
 			<SharedString name="SlimHash">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			<OptionalCoordinateFrame name="WorldPivotData">
@@ -50,11 +50,11 @@
 G0S/33dlPW7tIz8=]]></BinaryString>
 			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
 			<bool name="DefinesCapabilities">false</bool>
-			<string name="Name">BasicShuriken</string>
+			<string name="Name">PlaceholderShuriken</string>
 			<int64 name="SourceAssetId">-1</int64>
 			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 		</Properties>
-		<Item class="MeshPart" referent="RBX942A05C344CC459C913CB90A85E158C8">
+		<Item class="MeshPart" referent="RBXP42A05C344CC459C913CB90A85E158C8">
 			<Properties>
 				<bool name="DoubleSided">false</bool>
 				<bool name="HasJointOffset">false</bool>
@@ -188,7 +188,7 @@ G0S/33dlPW7tIz8=]]></BinaryString>
 				<int64 name="SourceAssetId">-1</int64>
 				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			</Properties>
-			<Item class="SurfaceAppearance" referent="RBXA613A97BE2BF4BEBB3D6E1266CD9D964">
+			<Item class="SurfaceAppearance" referent="RBXP613A97BE2BF4BEBB3D6E1266CD9D964">
 				<Properties>
 					<token name="AlphaMode">0</token>
 					<Color3 name="Color">

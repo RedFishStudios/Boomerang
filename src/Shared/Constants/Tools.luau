@@ -21,6 +21,9 @@ export type Tool = {
 }
 
 local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
+   -- // Each tool id is also the name of its model in Shared/Assets/Tools; its Category picks the Weapons Shop tab.
+   -- // The "Placeholder..." tools are copies (same model and stats) standing in for a second weapon per category (T-110).
+
    -- // Boomerangs // --
    ClassicBoomerang = {
       Id = "Boomerang",
@@ -34,8 +37,22 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
          ManualRecallSpeed = 90
       }
    },
-   BasicShuriken = {
-      Id = "BasicShuriken",
+   PlaceholderBoomerang = { -- TODO:RELEASE placeholder (copy of ClassicBoomerang)
+      Id = "PlaceholderBoomerang",
+      Category = "Boomerang",
+      LogicClass = "Boomerang",
+      Rarity = "Common", -- TODO:RELEASE placeholder
+      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(25)) * CFrame.Angles(math.rad(75), 0, 0) },
+      Boomerang = {
+         HitboxRadius = 2,
+         Speed = 75,
+         ManualRecallSpeed = 90
+      }
+   },
+
+   -- // Shurikens // --
+   ClassicShuriken = {
+      Id = "ClassicShuriken",
       Category = "Shuriken",
       LogicClass = "Boomerang",
       Rarity = "Common", -- TODO:RELEASE placeholder
@@ -46,8 +63,34 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
          ManualRecallSpeed = 90
       }
    },
-   BasicFan = {
-      Id = "BasicFan",
+   PlaceholderShuriken = { -- TODO:RELEASE placeholder (copy of ClassicShuriken)
+      Id = "PlaceholderShuriken",
+      Category = "Shuriken",
+      LogicClass = "Boomerang",
+      Rarity = "Common", -- TODO:RELEASE placeholder
+      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(15)) * CFrame.Angles(math.rad(75), 0, 0), Zoom = 1.2 },
+      Boomerang = {
+         HitboxRadius = 1,
+         Speed = 75,
+         ManualRecallSpeed = 90
+      }
+   },
+
+   -- // Fans // --
+   ClassicFan = {
+      Id = "ClassicFan",
+      Category = "Fan",
+      LogicClass = "Boomerang",
+      Rarity = "Common", -- TODO:RELEASE placeholder
+      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) },
+      Boomerang = {
+         HitboxRadius = 3,
+         Speed = 75,
+         ManualRecallSpeed = 90
+      }
+   },
+   PlaceholderFan = { -- TODO:RELEASE placeholder (copy of ClassicFan)
+      Id = "PlaceholderFan",
       Category = "Fan",
       LogicClass = "Boomerang",
       Rarity = "Common", -- TODO:RELEASE placeholder

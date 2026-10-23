@@ -39,19 +39,41 @@ local Skins: { [SkinId]: Skin } = {
 		Default = true,
 		OffSale = true,
 	},
-	BasicShuriken = {
-		Name = "Basic Shuriken",
-		Model = "BasicShuriken",
+	ClassicShuriken = {
+		Name = "Classic Shuriken",
+		Model = "ClassicShuriken",
 		WeaponClass = "ClassicBoomerang", -- TODO:RELEASE placeholder (every skin uses the Classic stats for now)
 		Price = 500, -- TODO:RELEASE placeholder
 		Order = 2,
 	},
-	BasicFan = {
-		Name = "Basic Fan",
-		Model = "BasicFan",
+	ClassicFan = {
+		Name = "Classic Fan",
+		Model = "ClassicFan",
 		WeaponClass = "ClassicBoomerang", -- TODO:RELEASE placeholder (every skin uses the Classic stats for now)
 		Price = 1000, -- TODO:RELEASE placeholder
 		Order = 3,
+	},
+	-- // T-110: TODO:RELEASE placeholder second weapon per category (copies of the Classic models), for the gacha shop work
+	PlaceholderBoomerang = {
+		Name = "Placeholder Boomerang",
+		Model = "PlaceholderBoomerang",
+		WeaponClass = "ClassicBoomerang", -- TODO:RELEASE placeholder (every skin uses the Classic stats for now)
+		Price = 500, -- TODO:RELEASE placeholder
+		Order = 4,
+	},
+	PlaceholderShuriken = {
+		Name = "Placeholder Shuriken",
+		Model = "PlaceholderShuriken",
+		WeaponClass = "ClassicBoomerang", -- TODO:RELEASE placeholder (every skin uses the Classic stats for now)
+		Price = 500, -- TODO:RELEASE placeholder
+		Order = 5,
+	},
+	PlaceholderFan = {
+		Name = "Placeholder Fan",
+		Model = "PlaceholderFan",
+		WeaponClass = "ClassicBoomerang", -- TODO:RELEASE placeholder (every skin uses the Classic stats for now)
+		Price = 1000, -- TODO:RELEASE placeholder
+		Order = 6,
 	},
 }
 

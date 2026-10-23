@@ -30,7 +30,7 @@ return {
       },
       [3] = {
          Type = "Skin",
-         Value = "BasicShuriken",
+         Value = "ClassicShuriken",
          FallbackCurrency = 250 -- TODO:RELEASE placeholder
       },
       [4] = {
@@ -47,7 +47,7 @@ return {
       },
       [7] = {
          Type = "Skin",
-         Value = "BasicFan",
+         Value = "ClassicFan",
          FallbackCurrency = 500 -- TODO:RELEASE placeholder
       },
    }
