@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-111** *(shared by every task list, general and Epic)*
+**Next free ID: T-112** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,22 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-111 · Recall SelectionRing stays on the boomerang (no drift on release)
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client
+- **Files:** `Client/Core/RecallChargeController.luau`
+
+**Done when**
+- [ ] The ring stays centred on the boomerang while charging and while it flies back, without trailing behind it
+- [ ] Releasing the recall: the ring shrinks away while still following the boomerang as it drops and slides
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-111-ring-follow`. Edits left uncommitted.
+- Cause: a released ring stopped following (it shrank in place while the boomerang was pushed away, T-104), and the ring was placed in RenderStepped, before the boomerang moved that frame (one frame behind). Now shrinking rings keep following, and placement runs on Heartbeat, after the frame's movement.
+- Not syntax-checked or tested (Studio play-testing is Sol's).
+
 
 ### T-110 · Weapon categories: Classic names + a placeholder second weapon per category (gacha prep)
 - **Priority:** P2

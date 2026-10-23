@@ -54,6 +54,8 @@ type RingEntry = {
 -------------------------------------------------------------------------------
 
 local rings: { [Player]: RingEntry } = {}
+-- // T-111: rings shrinking away after an early release, still following their player's boomerang until they are gone
+local vanishingRings: { [MeshPart]: Player } = {}
 local summonPlaying: { [Player]: boolean } = {}
 local container: Folder? = nil
 local ringTemplate: MeshPart? = nil
@@ -78,6 +80,17 @@ local function getContainer(): Folder
 	folder.Parent = workspace
 	container = folder
 	return folder
+end
+
+-- // Where the player's boomerang model is drawn right now (dead or dying, or flying back), whatever the recall state
+local function getAnyWeaponPosition(player: Player): Vector3?
+	local deadWeaponData = DeadWeapons.Data[player]
+	local thrownWeaponData = ThrownWeapons.Data[player]
+	local host: Instance? = if deadWeaponData then deadWeaponData.Host elseif thrownWeaponData then thrownWeaponData.Host else nil
+	if host and host.Parent and (host:IsA("Model") or host:IsA("BasePart")) then
+		return host:GetPivot().Position
+	end
+	return nil
 end
 
 -- // The part the ring follows: the boomerang's pivot (dead boomerang, or the charged one flying back)
@@ -149,7 +162,9 @@ local function removeRing(player: Player, immediate: boolean)
 	local vanishSeconds = GlobalConfig.SelectionRingVanishSeconds
 	local info = TweenInfo.new(vanishSeconds, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 	local vanishTween = TweenService:Create(ring, info, { Size = RING_START_SIZE, Transparency = 1 })
+	vanishingRings[ring] = player -- // T-111: keeps clinging to the boomerang as it drops and slides after the release
 	vanishTween.Completed:Once(function()
+		vanishingRings[ring] = nil
 		ring:Destroy()
 	end)
 	vanishTween:Play()
@@ -195,6 +210,17 @@ local function reconcile()
 	for _, player in Players:GetPlayers() do
 		reconcilePlayer(player)
 	end
+	-- // T-111: shrinking rings follow the boomerang too, until they are gone
+	for ring, player in vanishingRings do
+		if not ring.Parent then
+			vanishingRings[ring] = nil
+			continue
+		end
+		local position = getAnyWeaponPosition(player)
+		if position then
+			ring.CFrame = CFrame.new(position) * ringRotation
+		end
+	end
 end
 
 local function cleanupPlayer(player: Player)
@@ -217,7 +243,9 @@ function RecallChargeController.start()
 		ringTemplate = template
 		ringFullSize = template.Size
 		ringRotation = template.CFrame.Rotation
-		RunService.RenderStepped:Connect(reconcile)
+		-- // T-111: after the frame's movement (boomerangs move in Stepped / PreSimulation), so the ring is placed on where the
+		-- // boomerang is drawn this frame instead of lagging a frame behind it (RenderStepped runs before they move)
+		RunService.Heartbeat:Connect(reconcile)
 	end)
 end
 
