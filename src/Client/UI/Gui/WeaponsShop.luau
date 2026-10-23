@@ -2,17 +2,17 @@
 	WeaponsShop
 
 	Description:
-	The Weapons Shop, opened from the Shop button in the left lobby menu (MenuButtons). Tabs: Boomerangs, Fans and
-	Shurikens; a weapon's tab is the Category of its tool in Shared/Constants/Tools (the tab lists the skins on sale whose
-	model has that Category, see ShopCommon/Tabs/WeaponCategory). Built by ShopCommon/ShopBuilder.
+	The Weapons Shop, opened from the Shop button in the left lobby menu (MenuButtons). T-112: a single window (no tabs)
+	selling weapon crates, one per category (Shared/Referential/Crates, ShopCommon/Tabs/Crates): buying one gives a random
+	weapon of that category (CrateService on the server). Built by ShopCommon/ShopBuilder.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local ShopBuilder = require(ReplicatedStorage.Client.UI.ShopCommon.ShopBuilder)
-local WeaponCategory = require(ReplicatedStorage.Client.UI.ShopCommon.Tabs.WeaponCategory)
+local CratesTab = require(ReplicatedStorage.Client.UI.ShopCommon.Tabs.Crates)
 
-local BACKGROUND_IMAGE = 95152882623490 -- // 1024 x 696
+local BACKGROUND_IMAGE = 125528869499843 -- // 1024 x 696, no tab strip
 local ASPECT_RATIO = 1024 / 696
 
 return ShopBuilder.create({
@@ -21,25 +21,21 @@ return ShopBuilder.create({
 	BackgroundImage = BACKGROUND_IMAGE,
 	AspectRatio = ASPECT_RATIO,
 	TestKey = Enum.KeyCode.B,
+	-- // Fitted to the new frame art: the listings fill the parchment panel, one row of three crates
+	Layout = {
+		HideTabs = true,
+		ListingsPosition = UDim2.fromScale(0.12, 0.2),
+		ListingsSize = UDim2.fromScale(0.76, 0.6),
+		GridColumns = 3,
+		GridRows = 1,
+	},
 	Tabs = {
 		{
-			Id = "Boomerangs",
-			Name = "Boomerangs",
-			Icon = "🪃", -- // PLACEHOLDER emoji, replace with an image later
+			Id = "Crates",
+			Name = "Crates",
+			Icon = "",
 			AutoSelect = true,
-			Tab = WeaponCategory.create("Boomerang"),
-		},
-		{
-			Id = "Fans",
-			Name = "Fans",
-			Icon = "🪭", -- // PLACEHOLDER emoji, replace with an image later
-			Tab = WeaponCategory.create("Fan"),
-		},
-		{
-			Id = "Shurikens",
-			Name = "Shurikens",
-			Icon = "⭐", -- // PLACEHOLDER emoji, replace with an image later
-			Tab = WeaponCategory.create("Shuriken"),
+			Tab = CratesTab,
 		},
 	},
 })

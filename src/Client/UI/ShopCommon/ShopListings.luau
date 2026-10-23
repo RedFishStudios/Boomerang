@@ -20,6 +20,7 @@ local ChargeUpEffectController = require(ReplicatedStorage.Client.Core.ChargeUpE
 local EmoteLibrary = require(ReplicatedStorage.Shared.Library.EmoteLibrary)
 local EmoteController = require(ReplicatedStorage.Client.Core.EmoteController)
 local RarityStyles = require(script.Parent.RarityStyles)
+local CrateLibrary = require(ReplicatedStorage.Shared.Library.CrateLibrary)
 
 -------------------------------------------------------------------------------
 -- TYPES
@@ -27,12 +28,15 @@ local RarityStyles = require(script.Parent.RarityStyles)
 
 export type ListingDisplay = {
 	Id: string,
-	Type: string, -- // "Item" | "Skin" | "ChargeUpEffect" | "Emote"
+	Type: string, -- // "Item" | "Skin" | "ChargeUpEffect" | "Emote" | "Crate"
 	Name: string,
 	ModelName: string?, -- // Model in Shared/Assets/Tools shown in the listing's viewport
 	IconImage: number?, -- // Charge up effects: GUI image asset id shown instead of a model
 	IconGlyph: string?, -- // Charge up effects: placeholder label shown while there is no image yet
 	EmoteAnimationId: string?, -- // Emotes: animation asset id played by the EmotesRig in the listing's viewport
+	CrateModelName: string?, -- // Crates (T-112): model in Shared/Assets/Crates shown in the listing's viewport
+	CrateViewportRotation: CFrame?,
+	Subtitle: string?, -- // Shown instead of the rarity name (crates)
 	Rarity: string,
 	Price: number, -- // Currency price
 	ProductId: number?, -- // Robux developer product, if it can be bought with Robux
@@ -90,6 +94,26 @@ function ShopListings.getDisplay(listing: { Type: string, Id: string }): Listing
 			Price = chargeUpEffect.Price,
 			ProductId = chargeUpEffect.ProductId,
 			Owned = ChargeUpEffectController.ownsChargeUpEffect(listing.Id),
+		}
+	end
+
+	-- // T-112: a weapon crate (gives a random weapon of its category); can be bought again and again
+	if listing.Type == "Crate" then
+		local crate = CrateLibrary.getCrate(listing.Id)
+		if not crate or crate.OffSale then
+			return nil
+		end
+		return {
+			Id = listing.Id,
+			Type = listing.Type,
+			Name = crate.Name,
+			CrateModelName = crate.Model,
+			CrateViewportRotation = crate.ViewportRotation,
+			Subtitle = "Random weapon",
+			Rarity = RarityStyles.DEFAULT_RARITY,
+			Price = crate.Price,
+			IsPaidRandomItem = true, -- // Hidden where paid random items are restricted (PolicyLibrary)
+			Owned = false,
 		}
 	end
 

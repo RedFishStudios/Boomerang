@@ -16,6 +16,7 @@ local PlayerDataService = require(ServerStorage.Server.Core.PlayerDataService)
 local SkinService = require(ServerStorage.Server.Core.SkinService)
 local ChargeUpEffectService = require(ServerStorage.Server.Core.ChargeUpEffectService)
 local EmoteService = require(ServerStorage.Server.Core.EmoteService)
+local CrateService = require(ServerStorage.Server.Core.CrateService)
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
@@ -55,7 +56,7 @@ end
 -------------------------------------------------------------------------------
 
 function ShopService.init()
-   -- // listingType is a ShopItems listing Type: "Item" (default), "Skin", "ChargeUpEffect" or "Emote"
+   -- // listingType is a ShopItems listing Type: "Item" (default), "Skin", "ChargeUpEffect", "Emote" or "Crate"
    requestPurchaseRemoteFunction.OnServerInvoke = function(player: Player, itemId: unknown, listingType: unknown)
       if type(itemId) ~= "string" then
          return false
@@ -68,6 +69,10 @@ function ShopService.init()
       end
       if listingType == "Emote" then
          return EmoteService.purchaseEmote(player, itemId)
+      end
+      if listingType == "Crate" then
+         -- // T-112: also returns the skin id rolled and whether it was new
+         return CrateService.purchaseCrate(player, itemId)
       end
       return ShopService.purchaseItem(player, itemId)
    end

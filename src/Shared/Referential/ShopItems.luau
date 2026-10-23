@@ -6,7 +6,7 @@ local Emotes = require(script.Parent.Emotes)
 -- // A shop listing points at an item (Shared/Referential/Items), a skin (Shared/Referential/Skins), a charge up effect
 -- // (Shared/Referential/ChargeUpEffects) or an emote (Shared/Referential/Emotes)
 export type ShopListing = {
-   Type: "Item" | "Skin" | "ChargeUpEffect" | "Emote",
+   Type: "Item" | "Skin" | "ChargeUpEffect" | "Emote" | "Crate", -- // Crate: Shared/Referential/Crates (T-112)
    Id: Items.ItemClassId | Skins.SkinId | ChargeUpEffects.ChargeUpEffectId | Emotes.EmoteId
 }
 

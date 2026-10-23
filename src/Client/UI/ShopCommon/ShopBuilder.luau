@@ -56,6 +56,15 @@ export type ShopTabDefinition = {
 	Tab: ShopTab?, -- // Its content; nil opens blank (placeholder until the feature exists)
 }
 
+-- // T-112: optional layout overrides for a frame art that differs from the default (tabbed) one. Scales are of the Container.
+export type ShopLayout = {
+	HideTabs: boolean?, -- // No tab row (a single-tab shop); the first / AutoSelect tab is shown
+	ListingsPosition: UDim2?,
+	ListingsSize: UDim2?,
+	GridColumns: number?, -- // Default 3
+	GridRows: number?, -- // Rows visible at once; default 2
+}
+
 export type ShopConfig = {
 	Name: string, -- // Gui name (UIController id), e.g. "WeaponsShop"
 	Title: string, -- // Shown on the title plank
@@ -63,6 +72,7 @@ export type ShopConfig = {
 	AspectRatio: number, -- // Width / height of the frame art
 	Tabs: { ShopTabDefinition }, -- // In display order
 	TestKey: Enum.KeyCode?, -- // Studio-only shortcut that toggles the shop
+	Layout: ShopLayout?,
 }
 
 type ListingState = {
@@ -90,9 +100,9 @@ local OWNED_BUTTON_COLOR = Color3.fromRGB(150, 150, 150)
 local OWNED_TEXT = "Owned"
 local FREE_TEXT = "Free"
 
--- // Layout (all scales; the grid's pixel sizes are measured in layoutGrid)
-local GRID_COLUMNS = 3
-local GRID_ROWS = 2 -- // Rows visible at once
+-- // Layout (all scales; the grid's pixel sizes are measured in layoutGrid). Columns / rows: config.Layout (T-112), default 3 x 2.
+local DEFAULT_GRID_COLUMNS = 3
+local DEFAULT_GRID_ROWS = 2 -- // Rows visible at once
 local GRID_GAP_FRACTION = 0.012 -- // Gap between listings, as a fraction of the grid's width
 local SCROLLBAR_FRACTION = 0.022 -- // Scroll bar thickness, as a fraction of the grid's width
 local BUTTONS_SIZE = UDim2.fromScale(0.88, 0.215) -- // The price / gift / Robux row under a listing, in its listing
@@ -123,6 +133,11 @@ function ShopBuilder.create(config: ShopConfig)
 	-------------------------------------------------------------------------------
 
 	local player = Players.LocalPlayer
+	local layout: ShopLayout = config.Layout or {}
+	local GRID_COLUMNS = layout.GridColumns or DEFAULT_GRID_COLUMNS
+	local GRID_ROWS = layout.GridRows or DEFAULT_GRID_ROWS
+	local crateAssetsFolder = ReplicatedStorage.Shared:WaitForChild("Assets"):FindFirstChild("Crates")
+	local purchaseInFlight: { [string]: boolean } = {} -- // T-112: one crate purchase at a time per crate (no double charges)
 
 	local ShopScreenGui: ScreenGui
 	local Container: ImageLabel
@@ -248,6 +263,7 @@ function ShopBuilder.create(config: ShopConfig)
 			Position = UDim2.fromScale(0.5, 0.202), -- // Centered in the tab strip of the frame art
 			Size = UDim2.fromScale(0.83, 0.095),
 			ZIndex = 2,
+			Visible = not layout.HideTabs,
 		}, {
 			new("UIListLayout", {
 				FillDirection = Enum.FillDirection.Horizontal,
@@ -269,8 +285,8 @@ function ShopBuilder.create(config: ShopConfig)
 			Name = "Listings",
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
-			Position = UDim2.fromScale(0.101, 0.243),
-			Size = UDim2.fromScale(0.824, 0.616),
+			Position = layout.ListingsPosition or UDim2.fromScale(0.101, 0.243),
+			Size = layout.ListingsSize or UDim2.fromScale(0.824, 0.616),
 			ZIndex = 2,
 			ClipsDescendants = true,
 			CanvasSize = UDim2.new(),
@@ -427,6 +443,14 @@ function ShopBuilder.create(config: ShopConfig)
 		elseif display.EmoteAnimationId then
 			-- // Emotes: the EmotesRig playing the emote
 			ItemViewport.renderEmote(viewport, display.EmoteAnimationId)
+		elseif display.CrateModelName then
+			-- // Crates (T-112): the crate model from Shared/Assets/Crates
+			local crateModel = crateAssetsFolder and crateAssetsFolder:FindFirstChild(display.CrateModelName)
+			if crateModel and crateModel:IsA("Model") then
+				ItemViewport.renderModel(viewport, crateModel, display.CrateViewportRotation)
+			else
+				warn(`ShopBuilder: crate model {display.CrateModelName} not found in Shared.Assets.Crates`)
+			end
 		end
 
 		local giftButton = new("ImageButton", {
@@ -481,7 +505,7 @@ function ShopBuilder.create(config: ShopConfig)
 			}, { createStroke(OUTLINE_COLOR) }),
 			createLabel({
 				Name = "Rarity",
-				Text = display.Rarity,
+				Text = display.Subtitle or display.Rarity,
 				TextColor3 = style.TextColor,
 				AnchorPoint = Vector2.new(0.5, 0),
 				Position = UDim2.fromScale(0.5, 0.18),
@@ -583,6 +607,18 @@ function ShopBuilder.create(config: ShopConfig)
 			setPriceButton(currencyButton, if display.Price <= 0 then FREE_TEXT else formatAmount(display.Price), display.Price > 0)
 			setupButtonHover(currencyButton)
 			currencyButton.MouseButton1Click:Connect(function()
+				if display.Type == "Crate" then
+					-- // T-112: one at a time; the result popup is shown by ShopController / SkinController
+					if purchaseInFlight[display.Id] then
+						return
+					end
+					purchaseInFlight[display.Id] = true
+					task.spawn(function()
+						ShopController.requestPurchaseCrate(display.Id)
+						purchaseInFlight[display.Id] = nil
+					end)
+					return
+				end
 				-- // The listing refreshes as Owned through the tab's subscribe once the purchase replicates
 				ShopController.requestPurchaseItem(display.Id, display.Type)
 			end)

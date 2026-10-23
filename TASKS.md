@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-112** *(shared by every task list, general and Epic)*
+**Next free ID: T-113** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,27 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-112 · Weapons Shop sells crates (one per category, weighted random weapon)
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Client / Shared / Server
+- **Files:** `Client/UI/Gui/WeaponsShop.luau`, `Client/UI/ShopCommon/ShopBuilder.luau`, `ShopListings.luau`, `Tabs/Crates.luau` (new), `Client/Core/ShopController.luau`, `Shared/Referential/Crates.luau` (new), `Shared/Library/CrateLibrary.luau` (new), `Shared/Constants/Tools.luau`, `Shared/Referential/ShopItems.luau`, `Server/Core/CrateService.luau` (new), `Server/Core/ShopService.luau`
+
+**Done when**
+- [ ] The Weapons Shop is one window (no tabs) on the new frame art (125528869499843) with three crate listings: Boomerang, Shuriken, Fan Crate, each showing the GenericCrate model
+- [ ] Buying a crate spends its price and gives a random weapon of that category, weighted by `Tools[...].CrateWeight`
+- [ ] A new weapon shows "New skin acquired!"; one already owned shows "Duplicate weapon" (and gives nothing else for now)
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-112-weapon-crates`. Edits left uncommitted.
+- Placeholders (`TODO:RELEASE placeholder`): crate prices 250; weights Classic 70 / Placeholder 30 in each category; every crate uses `Shared.Assets.Crates.GenericCrate`.
+- `ShopBuilder` config gained an optional `Layout` (HideTabs, ListingsPosition/Size, GridColumns/Rows); the Cosmetics Shop is unchanged. `Tabs/WeaponCategory.luau` is no longer used by the Weapons Shop.
+- Crates are flagged as paid random items: hidden where PolicyService restricts them.
+- `GenericCrate` exists only in Studio (`ReplicatedStorage.Shared.Assets.Crates`), not in the repo yet.
+- Play-tested in Studio by the agent (2026-10-23): layout fits the frame, purchase deducts 250 and grants / reports duplicates.
+- TODO: duplicate rewards, crate odds display, opening animation.
+
 
 ### T-111 · Recall SelectionRing stays on the boomerang (no drift on release)
 - **Priority:** P2
