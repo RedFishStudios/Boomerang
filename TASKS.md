@@ -84,24 +84,18 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
-### T-116 · Touch controls show on laptops with a touchscreen
-- **Priority:** P1
+### T-116 · Touch controls: aim thumbstick knob uses the new image
+- **Priority:** P2
 - **Owner:** Agent
-- **Area:** Client
-- **Files:** `Client/Core/PlatformController.luau`
-
-**Problem / goal**
-On a laptop with keyboard + touchscreen, touching the screen didn't show the touch controls (CustomTouchscreen).
+- **Area:** Client (GUI)
+- **Files:** `Client/UI/Gui/CustomTouchscreen/CustomTouchscreen.rbxmx`, `Shared/Constants/Icons.luau`
 
 **Done when**
-- [ ] Touching the screen of a touchscreen laptop shows the touch controls, and they stay while touch is being used
-- [ ] Using the real mouse or the keyboard afterwards switches back to the PC controls
-- [ ] Phones / tablets and plain PCs behave as before
+- [ ] The aim thumbstick's knob shows image 118487572306150 (transparent background) instead of the white circle, and drags / aims as before
 
 **Notes**
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-116-touch-controls`. Edits left uncommitted.
-- Likely cause: Windows also sends mouse input (movement / clicks) for every touch, which flipped the control scheme from Touch straight back to PC. Mouse input within 0.6 s of the latest touch (`MOUSE_AFTER_TOUCH_IGNORE_SECONDS`) now counts as part of the touch and doesn't switch the scheme.
-- Not tested (needs a touchscreen device; Studio's device emulator doesn't send the OS's mouse input). If it still doesn't show, the next thing to check is whether touches arrive as `UserInputType.Touch` at all on that laptop.
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`. The `Thumbstick` button keeps its size and input (background now transparent) with a `ThumbstickImage` ImageLabel filling it (ScaleType Fit). Also listed as `Icons.AimThumbstick`.
+- Checked in a Studio play-test with the touch controls shown (2026-10-23).
 
 
 ### T-115 · Placed crates at half size; lobby time between rounds doubled

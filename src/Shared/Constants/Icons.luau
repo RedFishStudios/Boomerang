@@ -9,6 +9,7 @@ return {
    ListingFrameButtonGreen = 115489178458642,
    ListingFrameButtonTeal = 137310124184905,
    CloseButton = 83841981001141,
+   AimThumbstick = 118487572306150, -- // Touch controls: the aim thumbstick knob (transparent background; used in CustomTouchscreen.rbxmx)
 
    -- Inventory
    InventoryFrame = 79347675065715, -- // Primary content area (frame with the title plank)
