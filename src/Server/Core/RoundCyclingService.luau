@@ -33,9 +33,10 @@ local GamemodeLogicModules = {}
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
-local INTERMISSION_DURATION = 10
-local VOTE_DURATION = 30
-local PRE_INTERMISSION_DURATION = 5
+-- // T-115: lobby time between rounds doubled (was 10 / 30 / 5)
+local INTERMISSION_DURATION = 20
+local VOTE_DURATION = 60
+local PRE_INTERMISSION_DURATION = 10
 
 -------------------------------------------------------------------------------
 -- TYPES

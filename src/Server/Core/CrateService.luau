@@ -45,6 +45,7 @@ local SPOT_CLEARANCE = 0.25 -- // Extra room checked around the crate
 local CLICK_DETECTOR_DISTANCE = 60
 local MIN_CLICK_INTERVAL = 1 / 25 -- // Faster clicks are ignored (auto-clickers)
 local OPENED_REMOVE_DELAY = 0.6 -- // The opened crate stays this long so clients can play the pop
+local WORLD_SCALE = 0.5 -- // T-115: the crate placed in the world is this size of the Shared/Assets/Crates model
 
 -------------------------------------------------------------------------------
 -- TYPES / PRIVATE VARIABLES
@@ -243,6 +244,7 @@ local function placeCrate(player: Player, crateId: string, skinId: string): bool
 	end
 
 	local model = template:Clone()
+	model:ScaleTo(model:GetScale() * WORLD_SCALE)
 	local boundsCFrame, size = model:GetBoundingBox()
 	local pivotToBottom = model:GetPivot().Position.Y - (boundsCFrame.Position.Y - size.Y / 2)
 	local ground, towardSpot = findCrateSpot(player, size)

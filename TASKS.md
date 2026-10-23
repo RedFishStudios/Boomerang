@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-115** *(shared by every task list, general and Epic)*
+**Next free ID: T-116** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,23 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-115 · Placed crates at half size; lobby time between rounds doubled
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Server
+- **Files:** `Server/Core/CrateService.luau`, `Server/Core/RoundCyclingService.luau`
+
+**Done when**
+- [ ] A bought crate placed in the world is 50% the size of the GenericCrate asset (still placed on the floor, label above it)
+- [ ] The round-end screen (PreIntermission) lasts 10 s and the vote 60 s (were 5 s / 30 s)
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-115-crate-size-lobby-time`. Edits left uncommitted.
+- `WORLD_SCALE = 0.5` in CrateService (Model:ScaleTo, before placement, so the spot search uses the smaller size). Shop listings are unchanged.
+- RoundCyclingService: PRE_INTERMISSION_DURATION 5 -> 10, VOTE_DURATION 30 -> 60, INTERMISSION_DURATION 10 -> 20 (the post-vote LobbyEnded wait is INTERMISSION - VOTE, negative = none, unchanged). The vote still ends as soon as every player has voted.
+- Not play-tested.
+
 
 ### T-114 · Opening a bought crate: it appears next to the player and is clicked open
 - **Priority:** P1
