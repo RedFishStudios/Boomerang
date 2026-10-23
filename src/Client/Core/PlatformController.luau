@@ -45,6 +45,11 @@ local dominantControlScheme: "PC" | "Console" | "Touch" | nil = nil
 -- Last position of touch or mouse movement which was not obstructed by a gui
 local lastValidMousePositionInWorld: Vector3? = nil
 
+-- // T-116: on a laptop with a touchscreen (and on some tablets), the OS turns every touch into mouse input as well: a touch is
+-- // followed right away by mouse movement / clicks at the same spot. Without this, the scheme switched to Touch and straight back
+-- // to PC, so the touch controls never stayed visible. Mouse input this soon after a touch is treated as part of that touch.
+local MOUSE_AFTER_TOUCH_IGNORE_SECONDS = 0.6
+
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Local
 
@@ -138,11 +143,20 @@ local function _init()
 		if not gadget then
 			return
 		end
-		GadgetsUsed[gadget] = os.clock()
+		local now = os.clock()
+		-- // T-116: mouse events the OS makes from a touch (see MOUSE_AFTER_TOUCH_IGNORE_SECONDS) neither count as mouse use nor
+		-- // switch the controls back to PC; they extend the touch instead
+		local lastTouchAt = GadgetsUsed["Touchscreen" :: Gadget]
+		local isMouseFromTouch = gadget == "Mouse" and lastTouchAt ~= nil and now - lastTouchAt < MOUSE_AFTER_TOUCH_IGNORE_SECONDS
+		if isMouseFromTouch then
+			GadgetsUsed["Touchscreen" :: Gadget] = now
+		else
+			GadgetsUsed[gadget] = now
+		end
 
 		-- // Typing into a TextBox (e.g. the on-screen keyboard in chat) shouldn't hide the touch controls
 		local isTyping = gadget == "Keyboard" and (gameProcessedEvent or UserInputService:GetFocusedTextBox() ~= nil)
-		if not isTyping then
+		if not isTyping and not isMouseFromTouch then
 			setControlScheme(gadgetToScheme(gadget))
 		end
 

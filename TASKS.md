@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-116** *(shared by every task list, general and Epic)*
+**Next free ID: T-117** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,26 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-116 · Touch controls show on laptops with a touchscreen
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Client
+- **Files:** `Client/Core/PlatformController.luau`
+
+**Problem / goal**
+On a laptop with keyboard + touchscreen, touching the screen didn't show the touch controls (CustomTouchscreen).
+
+**Done when**
+- [ ] Touching the screen of a touchscreen laptop shows the touch controls, and they stay while touch is being used
+- [ ] Using the real mouse or the keyboard afterwards switches back to the PC controls
+- [ ] Phones / tablets and plain PCs behave as before
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-116-touch-controls`. Edits left uncommitted.
+- Likely cause: Windows also sends mouse input (movement / clicks) for every touch, which flipped the control scheme from Touch straight back to PC. Mouse input within 0.6 s of the latest touch (`MOUSE_AFTER_TOUCH_IGNORE_SECONDS`) now counts as part of the touch and doesn't switch the scheme.
+- Not tested (needs a touchscreen device; Studio's device emulator doesn't send the OS's mouse input). If it still doesn't show, the next thing to check is whether touches arrive as `UserInputType.Touch` at all on that laptop.
+
 
 ### T-115 · Placed crates at half size; lobby time between rounds doubled
 - **Priority:** P2
