@@ -9,6 +9,7 @@ return {
    ListingFrameButtonGreen = 115489178458642,
    ListingFrameButtonTeal = 137310124184905,
    CloseButton = 83841981001141,
+   StabButton = 70946537634521, -- // Touch controls: the Stab (slash) button (used in CustomTouchscreen.rbxmx)
    AimThumbstick = 118487572306150, -- // Touch controls: the aim thumbstick knob (transparent background; used in CustomTouchscreen.rbxmx)
 
    -- Inventory

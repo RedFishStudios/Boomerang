@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-117** *(shared by every task list, general and Epic)*
+**Next free ID: T-118** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,20 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-117 · Touch controls: Stab (slash) button uses the new image
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client (GUI)
+- **Files:** `Client/UI/Gui/CustomTouchscreen/CustomTouchscreen.rbxmx`, `Shared/Constants/Icons.luau`
+
+**Done when**
+- [ ] The Stab button shows image 70946537634521 instead of the white circle with "Stab", and still stabs when pressed
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-117-stab-button`. The `Stab` button keeps its size and input (background now transparent); its "Stab" TextLabel was replaced by a `StabImage` ImageLabel filling it (ScaleType Fit). Also listed as `Icons.StabButton`.
+- Checked in a Studio play-test with the touch controls shown (2026-10-23).
+
 
 ### T-116 · Touch controls: aim thumbstick knob uses the new image
 - **Priority:** P2
