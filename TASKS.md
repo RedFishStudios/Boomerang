@@ -92,12 +92,12 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 **Done when**
 - [ ] A bought crate placed in the world is 50% the size of the GenericCrate asset (still placed on the floor, label above it)
-- [ ] The round-end screen (PreIntermission) lasts 10 s and the vote 60 s (were 5 s / 30 s)
+- [ ] The vote in the lobby lasts 60 s (was 30 s); the end-of-round time in the arena (PreIntermission) stays 5 s
 
 **Notes**
 - Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-115-crate-size-lobby-time`. Edits left uncommitted.
 - `WORLD_SCALE = 0.5` in CrateService (Model:ScaleTo, before placement, so the spot search uses the smaller size). Shop listings are unchanged.
-- RoundCyclingService: PRE_INTERMISSION_DURATION 5 -> 10, VOTE_DURATION 30 -> 60, INTERMISSION_DURATION 10 -> 20 (the post-vote LobbyEnded wait is INTERMISSION - VOTE, negative = none, unchanged). The vote still ends as soon as every player has voted.
+- RoundCyclingService: VOTE_DURATION 30 -> 60 (PRE_INTERMISSION_DURATION was briefly 10, back to 5: it's arena time, Sol 2026-10-23), INTERMISSION_DURATION 10 -> 20 (the post-vote LobbyEnded wait is INTERMISSION - VOTE, negative = none, unchanged). The vote still ends as soon as every player has voted.
 - Not play-tested.
 
 
