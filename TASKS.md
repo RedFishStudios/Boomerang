@@ -109,7 +109,7 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 **Done when**
 - [ ] Buying a crate closes the shop and puts the crate model in the world next to the player: in front if that spot is open and level with them, otherwise another open, level spot around them (closest height / in front as fallbacks)
-- [ ] It shows "Click/Tap to open!" and the clicks left (owner only); every click bounces it; after `GlobalConfig.CrateClicksToOpen` (30) it pops open and the weapon is given ("New skin acquired!" / "Duplicate weapon")
+- [ ] It shows "Click/Tap to open!" and the clicks left (owner only); every click bounces it; after `GlobalConfig.CrateClicksToOpen` (20; was 30) it pops open and the weapon is given ("New skin acquired!" / "Duplicate weapon")
 - [ ] Only the owner's clicks count; the weapon isn't owned before the crate is opened
 - [ ] A crate never opened is still given when the player leaves
 

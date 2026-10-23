@@ -65,7 +65,7 @@ local GlobalConfig = {
    -- // within range at any point of it, the boomerang keeps returning instead of dying (no die-then-revive flicker).
    DyingBoomerangRecallLookaheadSeconds = 0.4,
    -- // Manual recall of a dying/dead boomerang (held recall): slower and heavier. It must first be charged (RecallCharge below)
-   CrateClicksToOpen = 30, -- // T-114: clicks / taps it takes to open a bought weapon crate (CrateService). TODO:RELEASE placeholder
+   CrateClicksToOpen = 20, -- // T-114: clicks / taps it takes to open a bought weapon crate (CrateService). TODO:RELEASE placeholder
    RecallCharge = 0.3, -- // T-092: seconds a tapped manual recall charges (boomerang stays on the ground, player slowed, no dash, can't be interrupted) before it starts returning
    ManualRecallRiseSeconds = 0.8, -- // T-095 (only if Boomerang.luau's MANUAL_RECALL_RISES_DURING_FLIGHT is on; the charge lifts it now): a manual recall rises from the ground to BoomerangFlightHeight over this long (eased start and finish)
    ManualRecallLiftRate = 2.5, -- // UNUSED for manual recalls since T-095 -- // How quickly a manually recalled boomerang rises to flight height while returning (the automatic from-ground lift is 8)
