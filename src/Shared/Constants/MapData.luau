@@ -22,7 +22,7 @@ local MapData = {
       },
       DisguiseAssets = {},
    },
-   --[[["GenericA"] = {
+   ["GenericA"] = {
       Id = "GenericA",
       ForGamemodes = {
          Gamemodes.Classic.Id,
@@ -33,8 +33,8 @@ local MapData = {
          Gamemodes.Assassin.Id
       },
       DisguiseAssets = {},
-   },]]
-   ["GenericB"] = {
+   },
+   --[[["GenericB"] = {
       Id = "GenericB",
       ForGamemodes = {
          Gamemodes.Classic.Id,
@@ -45,7 +45,7 @@ local MapData = {
          Gamemodes.Assassin.Id
       },
       DisguiseAssets = {},
-   },
+   },]]
    ["GenericC"] = {
       Id = "GenericC",
       ForGamemodes = {
