@@ -50,6 +50,14 @@ local lastValidMousePositionInWorld: Vector3? = nil
 -- // to PC, so the touch controls never stayed visible. Mouse input this soon after a touch is treated as part of that touch.
 local MOUSE_AFTER_TOUCH_IGNORE_SECONDS = 0.6
 
+-- // TEMPORARY DEBUG (T-116, touchscreen laptop): prints the input the client sees, prefixed [TOUCHDBG]. Remove once solved.
+local TOUCH_DEBUG = true
+local function touchDebug(message: string)
+	if TOUCH_DEBUG then
+		print(`[TOUCHDBG] {message}`)
+	end
+end
+
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Local
 
@@ -124,6 +132,7 @@ local function setControlScheme(newScheme: "PC" | "Console" | "Touch")
 	if newScheme == dominantControlScheme then
 		return
 	end
+	touchDebug(`control scheme {tostring(dominantControlScheme)} -> {newScheme}`)
 	dominantControlScheme = newScheme
 	PlatformController.NewInputGadget:Execute("serial", newScheme)
 	PlatformController.DominantControlSchemeChanged:Execute("serial", newScheme)
@@ -137,6 +146,10 @@ local function _init()
 
 	local function registerDetectedInputObject(input: InputObject, gameProcessedEvent: boolean)
 		local inputType = input.UserInputType
+		-- // TEMPORARY DEBUG: every input except plain mouse movement (too many), with the state it is in
+		if TOUCH_DEBUG and inputType ~= Enum.UserInputType.MouseMovement then
+			touchDebug(`input {inputType.Name} {input.UserInputState.Name} key={input.KeyCode.Name} gameProcessed={tostring(gameProcessedEvent)} scheme={tostring(dominantControlScheme)}`)
+		end
 
 		-- // Only real device input switches the scheme (not Focus, TextInput, etc.)
 		local gadget = InputsToGadget[inputType]
@@ -149,6 +162,7 @@ local function _init()
 		local lastTouchAt = GadgetsUsed["Touchscreen" :: Gadget]
 		local isMouseFromTouch = gadget == "Mouse" and lastTouchAt ~= nil and now - lastTouchAt < MOUSE_AFTER_TOUCH_IGNORE_SECONDS
 		if isMouseFromTouch then
+			touchDebug(`mouse input {inputType.Name} treated as part of a touch`)
 			GadgetsUsed["Touchscreen" :: Gadget] = now
 		else
 			GadgetsUsed[gadget] = now
@@ -170,6 +184,23 @@ local function _init()
 
 	UserInputService.InputBegan:Connect(registerDetectedInputObject)
 	UserInputService.InputChanged:Connect(registerDetectedInputObject)
+
+	-- // TEMPORARY DEBUG: what the device reports, and the touch-specific signals (fire even if touches don't come through InputBegan)
+	touchDebug(`device: TouchEnabled={tostring(UserInputService.TouchEnabled)} KeyboardEnabled={tostring(UserInputService.KeyboardEnabled)} MouseEnabled={tostring(UserInputService.MouseEnabled)} GamepadEnabled={tostring(UserInputService.GamepadEnabled)} PreferredInput={UserInputService.PreferredInput.Name} LastInputType={UserInputService:GetLastInputType().Name} initialScheme={tostring(dominantControlScheme)}`)
+	UserInputService:GetPropertyChangedSignal("PreferredInput"):Connect(function()
+		touchDebug(`PreferredInput -> {UserInputService.PreferredInput.Name}`)
+	end)
+	UserInputService.LastInputTypeChanged:Connect(function(lastInputType)
+		if lastInputType ~= Enum.UserInputType.MouseMovement then
+			touchDebug(`LastInputType -> {lastInputType.Name}`)
+		end
+	end)
+	UserInputService.TouchStarted:Connect(function(_touch, gameProcessedEvent)
+		touchDebug(`TouchStarted gameProcessed={tostring(gameProcessedEvent)}`)
+	end)
+	UserInputService.TouchTap:Connect(function()
+		touchDebug("TouchTap")
+	end)
 end
 _init()
 
