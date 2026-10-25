@@ -46,9 +46,10 @@ end
 
 local drag
 
--- // T-118: InputObject positions leave out the top bar inset; this GUI ignores it (AbsolutePosition includes it)
+-- // T-118: the circle's center in the same space as the touch positions. Touch positions already line up with this GUI's
+-- // AbsolutePosition (it ignores the top bar inset), so no inset correction: subtracting it put the thumbstick below the finger.
 local function getContainerCenterInInputSpace(): Vector3
-	local center = aimThumbstickContainer.AbsolutePosition + aimThumbstickContainer.AbsoluteSize / 2 - GuiService:GetGuiInset()
+	local center = aimThumbstickContainer.AbsolutePosition + aimThumbstickContainer.AbsoluteSize / 2
 	return Vector3.new(center.X, center.Y, 0)
 end
 

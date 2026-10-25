@@ -110,7 +110,7 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 **Notes**
 - Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-118-aim-thumbstick`. Edits left uncommitted.
-- The drag is now measured from the circle's center (so the knob is centered on the finger, also when the knob itself is touched off-center). Touch positions are converted with GuiService:GetGuiInset (the GUI ignores the inset). The circle frame is now Active so touches in it don't also turn the camera. Removed a leftover `warn(angle)` debug print.
+- The drag is now measured from the circle's center (so the knob is centered on the finger, also when the knob itself is touched off-center). Touch positions are used as they are (they already match the GUI's AbsolutePosition; an inset correction first put the knob below the finger, fixed after Sol's test 2026-10-25). The circle frame is now Active so touches in it don't also turn the camera. Removed a leftover `warn(angle)` debug print.
 - Not tested with real touch input (Studio can't send touches through the tools).
 
 
