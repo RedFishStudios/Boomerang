@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-119** *(shared by every task list, general and Epic)*
+**Next free ID: T-120** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,19 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-119 · Touch controls: Dash button uses the Dash icon
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client (GUI)
+- **Files:** `Client/UI/Gui/CustomTouchscreen/CustomTouchscreen.rbxmx`
+
+**Done when**
+- [ ] The touch Dash button shows the Dash icon (`Icons.DashCooldown`, the one AcquirableThingData uses for the Dash Cooldown effect) instead of the white circle with "Dash", and still dashes when pressed
+
+**Notes**
+- Same build as the Stab button (T-117): background transparent, "Dash" TextLabel replaced by a `DashImage` ImageLabel filling the button (ScaleType Fit). Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-118-aim-thumbstick`.
+
 
 ### T-118 · Touch controls: bigger aim thumbstick; touching its circle starts aiming
 - **Priority:** P2
