@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-118** *(shared by every task list, general and Epic)*
+**Next free ID: T-119** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,23 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-118 · Touch controls: bigger aim thumbstick; touching its circle starts aiming
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client (GUI)
+- **Files:** `Client/UI/Gui/CustomTouchscreen/CustomTouchscreen.rbxmx`, `Client/UI/Gui/CustomTouchscreen/init.luau`
+
+**Done when**
+- [ ] The aim thumbstick (knob) is 80% larger (0.3 -> 0.54 of its circle)
+- [ ] Touching anywhere inside the circle around it starts aiming, with the thumbstick jumping under the finger and aiming that way; dragging and releasing (throw) work as before
+- [ ] Touches outside the circle, or on the Stab / Dash buttons, don't start aiming
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-118-aim-thumbstick`. Edits left uncommitted.
+- The drag is now measured from the circle's center (so the knob is centered on the finger, also when the knob itself is touched off-center). Touch positions are converted with GuiService:GetGuiInset (the GUI ignores the inset). The circle frame is now Active so touches in it don't also turn the camera. Removed a leftover `warn(angle)` debug print.
+- Not tested with real touch input (Studio can't send touches through the tools).
+
 
 ### T-117 · Touch controls: Stab (slash) button uses the new image
 - **Priority:** P2

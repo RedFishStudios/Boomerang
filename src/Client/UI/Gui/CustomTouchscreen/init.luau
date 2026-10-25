@@ -44,8 +44,23 @@ local function ensureThumbstickOrigin()
 	THUMBSTICK_ORIGIN = aimThumbstick.AbsolutePosition
 end
 
--- // Touch has started on the thumbstick
+local drag
+
+-- // T-118: InputObject positions leave out the top bar inset; this GUI ignores it (AbsolutePosition includes it)
+local function getContainerCenterInInputSpace(): Vector3
+	local center = aimThumbstickContainer.AbsolutePosition + aimThumbstickContainer.AbsoluteSize / 2 - GuiService:GetGuiInset()
+	return Vector3.new(center.X, center.Y, 0)
+end
+
+-- // Touch has started on the thumbstick, or (T-118) anywhere in the circle around it: aiming starts and the thumbstick
+-- // jumps under the finger (its offset from the circle's center is the aim direction, as when dragging)
 local function touchStarted(input, gameProcessed)
+	if input.UserInputType ~= Enum.UserInputType.Touch and input.UserInputType ~= Enum.UserInputType.MouseButton1 then
+		return
+	end
+	if draggingAimThumbstick then
+		return
+	end
 	local GuisAtPosition = Player.PlayerGui:GetGuiObjectsAtPosition(input.Position.X, input.Position.Y)
 	for _, o in pairs(GuisAtPosition) do
 		if (o:IsA("TextButton") or o:IsA("ImageButton")) and o ~= aimThumbstick then
@@ -53,21 +68,27 @@ local function touchStarted(input, gameProcessed)
 		end
 	end
 
+	-- // Only inside the circle (the container is a square frame with round corners)
+	local center = getContainerCenterInInputSpace()
+	local radius = math.min(aimThumbstickContainer.AbsoluteSize.X, aimThumbstickContainer.AbsoluteSize.Y) / 2
+	if (Vector2.new(input.Position.X, input.Position.Y) - Vector2.new(center.X, center.Y)).Magnitude > radius then
+		return
+	end
+
 	-- Presume that they are draggingAimThumbstick it
 	-- If they aren't (have only tapped it), there is no consequence
 	ensureThumbstickOrigin()
-	if not draggingAimThumbstick then
-		draggingAimThumbstick = true
-		DragInput = input
-		dragStart = input.Position
-		startPos = aimThumbstick.Position
-		aimThumbstickDragAngle = 0
-		WeaponController.beginThumbstickAim()
-		WeaponController.setThumbstickAimDirection(aimThumbstickDragAngle)
-	end
+	draggingAimThumbstick = true
+	DragInput = input
+	dragStart = center -- // Measured from the circle's center, so the thumbstick sits under the finger
+	startPos = aimThumbstickDefaultPosition
+	aimThumbstickDragAngle = 0
+	WeaponController.beginThumbstickAim()
+	WeaponController.setThumbstickAimDirection(aimThumbstickDragAngle)
+	drag(input, gameProcessed) -- // Jump to the touch (and aim that way right away)
 end
 
-local function drag(input, gameProcessed)
+function drag(input, gameProcessed)
 	if input == DragInput and draggingAimThumbstick then
 		if THUMBSTICK_ORIGIN == nil then
 			return
@@ -85,7 +106,6 @@ local function drag(input, gameProcessed)
 		local angle = -math.atan2(moveVector.X, -moveVector.Y)
 		if typeof(angle) == "number" and angle > -3.15 and angle < 3.15 then
 			aimThumbstickDragAngle = angle
-         warn(angle)
 			WeaponController.setThumbstickAimDirection(angle)
 		end
 	end
@@ -125,6 +145,9 @@ local function setupFunctionality()
    end)
 
 	aimThumbstick.InputBegan:Connect(touchStarted)
+	-- // T-118: touching anywhere in the circle around the thumbstick starts aiming too (and doesn't reach the world/camera)
+	aimThumbstickContainer.Active = true
+	aimThumbstickContainer.InputBegan:Connect(touchStarted)
 	UserInputService.TouchMoved:Connect(drag)
 	UserInputService.TouchEnded:Connect(touchEnded)
 end

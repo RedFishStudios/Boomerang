@@ -221,9 +221,9 @@
 					<Ref name="SelectionImageObject">null</Ref>
 					<int name="SelectionOrder">0</int>
 					<UDim2 name="Size">
-						<XS>0.300000012</XS>
+						<XS>0.540000021</XS>
 						<XO>0</XO>
-						<YS>0.300000012</YS>
+						<YS>0.540000021</YS>
 						<YO>0</YO>
 					</UDim2>
 					<token name="SizeConstraint">2</token>
