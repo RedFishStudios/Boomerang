@@ -7,7 +7,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
-local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
+local RaycastsUtility = require(ReplicatedStorage.Shared.Utils.RaycastsUtility)
+local LagCompensationLibrary = require(ReplicatedStorage.Shared.Library.LagCompensationLibrary)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local SoundLibrary = require(ReplicatedStorage.Shared.Library.SoundLibrary)
 local Sounds = require(ReplicatedStorage.Shared.Constants.Sounds)
@@ -43,14 +44,20 @@ end
 
 local STAB_COOLDOWN = .5
 
-local HITBOX_SIZE = Vector3.new(2, 2, 2)
-local HITBOX_DURATION = .2
-local HITBOX_DELAY = .08
-local HITBOX_DISTANCE = 3
-local HITBOX_VERTICAL_OFFSET = -2
+-- // T-125: the swing is ONE check, at the moment the blade lands (IMPACT_DELAY after the click), of a wedge in front of the player:
+-- // anyone whose Hitbox (a 10-stud-tall cylinder) reaches into it, with no wall in between, is hit. It is checked against where everyone
+-- // is now AND where the swinging player saw them (LagCompensationLibrary rewind: their ping plus the interpolation delay), so a swing
+-- // that looked like a hit on their screen counts. The client sends where it was facing and where it will be at impact.
+local IMPACT_DELAY = .08 -- // Seconds from the click to the hit check (the blade landing in the animation)
+local SWING_DURATION = .2 -- // Seconds a swing counts as "in progress" for parries (another swing landing on it in that time is a parry)
+local SWING_RANGE = 5 -- // Studs from the swinging player's centre to the edge of a target's Hitbox
+local SWING_HALF_ANGLE = math.rad(55) -- // Half the wedge's width: 55 degrees to each side of where they face (110 total)
+local SWING_HALF_HEIGHT = 2.5 -- // The wedge's half height around the swinging player's centre (a target's Hitbox adds its own)
+local SWING_ORIGIN_TOLERANCE = 8 -- // The most the client's reported impact position may be from where the server has the player
+local SWING_MAX_DIRECTION_DEVIATION = math.rad(120) -- // The most the client's reported facing may turn from the server's last known one
+local SWING_CLICK_TIME_TOLERANCE = 1 -- // Seconds: a reported click time older than this (or in the future) is clamped
 local STAB_KILL_DAMAGE = 100000
-local STAB_DISTANCE = 2 + HITBOX_DISTANCE
-local PARRY_DISTANCE = 3 + HITBOX_DISTANCE
+local PARRY_DISTANCE = 8 -- // Centre to centre; beyond any reach of a swing (SWING_RANGE plus a Hitbox radius)
 
 local PARRY_STAGGER_INITIAL_SPEED = 48
 local PARRY_STAGGER_DECELERATION_DURATION = .25
@@ -58,8 +65,9 @@ local PARRY_STAGGER_TOTAL_DURATION = .3
 local PARRY_STAGGER_MIN_DIRECTION_DISTANCE = .05
 local PARRY_FACING_DOT_THRESHOLD = .4
 
-local HITBOX_VISUALIZER_COLOR = Color3.new(0.164706, 0.960784, 0.007843)
-local HITBOX_CHECK_INTERVAL = 1 / 20
+local SWING_VISUALIZER_COLOR = Color3.new(0.164706, 0.960784, 0.007843)
+local SWING_VISUALIZER_LIFETIME = .4
+local SWING_VISUALIZER_ARC_SEGMENTS = 10
 
 local Cooldowns: {[Player]: number} = {}
 local ActiveStabs: {
@@ -67,8 +75,6 @@ local ActiveStabs: {
       RunId: number,
       StartedAt: number,
       EndsAt: number,
-      Connection: RBXScriptConnection?,
-      Visualizer: BasePart?
    }
 } = {}
 
@@ -148,73 +154,127 @@ local function arePlayersFacingEachOtherForParry(stabberPlayer: Player, stabberR
    return stabberFacingVictim and victimFacingStabber
 end
 
-local function getHitboxCFrame(player: Player, rootPart: BasePart, forwardExtension: number?): CFrame
-   local lookDirection = getLookDirection(player, rootPart)
-   local extension = forwardExtension or 0
-   local forwardOffset = HITBOX_DISTANCE + (extension * .5)
-   local center = rootPart.Position + lookDirection * forwardOffset + Vector3.new(0, HITBOX_VERTICAL_OFFSET, 0)
-   return CFrame.lookAt(center, center + lookDirection)
-end
+-- // Draws the swing's wedge for a moment (debug: GlobalConfig.ParryVisualizersEnabled)
+local function showSwingVisualizer(origin: Vector3, direction: Vector3)
+   local folder = Instance.new("Folder")
+   folder.Name = "SwingVisualizer"
 
-local function createHitboxVisualizer(cframe: CFrame, size: Vector3, color: Color3)
-   local visualizer = Instance.new("Part")
-   visualizer.Name = "StabHitboxVisualizer"
-   visualizer.Anchored = true
-   visualizer.CanCollide = false
-   visualizer.CanTouch = false
-   visualizer.CanQuery = false
-   visualizer.Transparency = .5
-   visualizer.Color = color
-   visualizer.Size = size
-   visualizer.CFrame = cframe
-   visualizer.Parent = workspace
-
-   return visualizer
-end
-
-local function updateHitboxVisualizer(visualizer: BasePart?, cframe: CFrame)
-   if not visualizer or not visualizer.Parent then
-      return
+   local function addLine(fromPoint: Vector3, toPoint: Vector3)
+      local length = (toPoint - fromPoint).Magnitude
+      if length <= 1e-3 then
+         return
+      end
+      local line = Instance.new("Part")
+      line.Anchored = true
+      line.CanCollide = false
+      line.CanTouch = false
+      line.CanQuery = false
+      line.Material = Enum.Material.Neon
+      line.Color = SWING_VISUALIZER_COLOR
+      line.Transparency = .3
+      line.Size = Vector3.new(.15, SWING_HALF_HEIGHT * 2, length)
+      line.CFrame = CFrame.lookAt((fromPoint + toPoint) * .5, toPoint)
+      line.Parent = folder
    end
 
-   visualizer.CFrame = cframe
-end
-
-local function destroyHitboxVisualizer(visualizer: BasePart?)
-   if visualizer and visualizer.Parent then
-      visualizer:Destroy()
+   local previousPoint: Vector3? = nil
+   for index = 0, SWING_VISUALIZER_ARC_SEGMENTS do
+      local angle = -SWING_HALF_ANGLE + (SWING_HALF_ANGLE * 2) * (index / SWING_VISUALIZER_ARC_SEGMENTS)
+      local point = origin + (CFrame.Angles(0, angle, 0) * direction) * SWING_RANGE
+      if index == 0 or index == SWING_VISUALIZER_ARC_SEGMENTS then
+         addLine(origin, point)
+      end
+      if previousPoint then
+         addLine(previousPoint, point)
+      end
+      previousPoint = point
    end
+
+   folder.Parent = workspace
+   task.delay(SWING_VISUALIZER_LIFETIME, function()
+      folder:Destroy()
+   end)
 end
 
-local function getHitPlayers(player: Player, character: Model, cframe: CFrame, size: Vector3, overlapParams: OverlapParams): {Player}
-   local hitPlayers = {}
-   local seenPlayers = {}
-   local parts = workspace:GetPartBoundsInBox(cframe, size, overlapParams)
+-- // A target's Hitbox is a vertical cylinder centred on its root: Size is (height, diameter, diameter)
+local function getHitboxShape(hitbox: BasePart): (number, number)
+   return math.min(hitbox.Size.Y, hitbox.Size.Z) / 2, hitbox.Size.X / 2
+end
 
-   for _, part in ipairs(parts) do
-      local hitCharacter = part:FindFirstAncestorOfClass("Model")
-      if hitCharacter and hitCharacter ~= character then
-         local hitPlayer = game.Players:GetPlayerFromCharacter(hitCharacter)
-         if hitPlayer and hitPlayer ~= player and not seenPlayers[hitPlayer] then
-            seenPlayers[hitPlayer] = true
-            table.insert(hitPlayers, hitPlayer)
+-- // Whether a Hitbox (centre `targetPosition`) reaches into the swing's wedge
+local function isInSwing(origin: Vector3, direction: Vector3, targetPosition: Vector3, targetRadius: number, targetHalfHeight: number): boolean
+   if math.abs(targetPosition.Y - origin.Y) > targetHalfHeight + SWING_HALF_HEIGHT then
+      return false
+   end
+
+   local offset = Vector3.new(targetPosition.X - origin.X, 0, targetPosition.Z - origin.Z)
+   local distance = offset.Magnitude
+   if distance <= targetRadius then
+      return true -- // Overlapping the swinging player: hit whichever way they face
+   end
+   if distance - targetRadius > SWING_RANGE then
+      return false
+   end
+
+   -- // Inside the wedge if any part of the cylinder is: the angle to its centre, less the angle its radius covers from here
+   local angleToCentre = math.acos(math.clamp(direction:Dot(offset / distance), -1, 1))
+   local angleCovered = math.asin(math.clamp(targetRadius / distance, 0, 1))
+   return angleToCentre - angleCovered <= SWING_HALF_ANGLE
+end
+
+-- // No wall between the swinging player and the near edge of the target's Hitbox
+local function hasLineOfSight(origin: Vector3, targetPosition: Vector3, targetRadius: number, raycastParams: RaycastParams): boolean
+   local offset = Vector3.new(targetPosition.X - origin.X, targetPosition.Y - origin.Y, targetPosition.Z - origin.Z)
+   local horizontalDistance = Vector3.new(offset.X, 0, offset.Z).Magnitude
+   if horizontalDistance <= targetRadius then
+      return true
+   end
+   local reach = offset * ((horizontalDistance - targetRadius) / horizontalDistance)
+   if reach.Magnitude <= 1e-3 then
+      return true
+   end
+   return RaycastsUtility.raycastProjectileObstruction(origin, reach.Unit, reach.Magnitude, raycastParams) == nil
+end
+
+-- // Server: the swing the client reported (impact position, facing, click time), checked against the server's own view.
+-- // Anything missing or implausible falls back to the server's values.
+local function readSwingParams(player: Player, rootPart: BasePart, params: any): (Vector3, Vector3, number)
+   local now = workspace:GetServerTimeNow()
+   local serverDirection = getLookDirection(player, rootPart)
+   local origin = rootPart.Position
+   local direction = serverDirection
+   local clickTime = now
+
+   if type(params) == "table" then
+      local reportedOrigin = params.Origin
+      if typeof(reportedOrigin) == "Vector3" and reportedOrigin == reportedOrigin
+         and (reportedOrigin - rootPart.Position).Magnitude <= SWING_ORIGIN_TOLERANCE
+      then
+         origin = reportedOrigin
+      end
+
+      local reportedDirection = params.Direction
+      if typeof(reportedDirection) == "Vector3" then
+         local horizontal = Vector3.new(reportedDirection.X, 0, reportedDirection.Z)
+         if horizontal == horizontal and horizontal.Magnitude > .5 then
+            horizontal = horizontal.Unit
+            local deviation = math.acos(math.clamp(horizontal:Dot(serverDirection), -1, 1))
+            if deviation <= SWING_MAX_DIRECTION_DEVIATION then
+               direction = horizontal
+            end
          end
+      end
+
+      local reportedTime = params.Time
+      if type(reportedTime) == "number" and reportedTime == reportedTime then
+         clickTime = math.clamp(reportedTime, now - SWING_CLICK_TIME_TOLERANCE, now)
       end
    end
 
-   return hitPlayers
+   return origin, direction, clickTime
 end
 
 local function disconnect(player: Player)
-   local stabState = ActiveStabs[player]
-   if stabState and stabState.Connection then
-      stabState.Connection:Disconnect()
-   end
-
-   if stabState and stabState.Visualizer then
-      destroyHitboxVisualizer(stabState.Visualizer)
-   end
-
    ActiveStabs[player] = nil
 end
 
@@ -383,7 +443,7 @@ function Stab.onPickup(userId: number, timestamp: number)
       return
    end
 
-   local endsAt = timestamp + HITBOX_DURATION
+   local endsAt = timestamp + SWING_DURATION
    if workspace:GetServerTimeNow() >= endsAt then
       return
    end
@@ -406,8 +466,6 @@ function Stab.onPickup(userId: number, timestamp: number)
       RunId = runId,
       StartedAt = timestamp,
       EndsAt = endsAt,
-      Connection = nil,
-      Visualizer = nil,
    }
 
    scheduleStabCleanup(player, runId, endsAt)
@@ -477,8 +535,98 @@ function Stab.canActivate(player: Player): boolean
    return true
 end
 
-function Stab.activate(player: Player)
-   print(player)
+-- // Client: what the swing looked like from here, sent with the click (Stab.activate checks it). Where this player will be when the
+-- // blade lands (moving on at their current speed), where they face, and when they clicked (server clock).
+function Stab.getParams()
+   local player = Players.LocalPlayer
+   local character = player and player.Character
+   local rootPart = character and character.PrimaryPart
+   if not rootPart then
+      return nil
+   end
+   local velocity = rootPart.AssemblyLinearVelocity
+   local horizontalVelocity = Vector3.new(velocity.X, 0, velocity.Z)
+   return {
+      Origin = rootPart.Position + horizontalVelocity * IMPACT_DELAY,
+      Direction = getLookDirection(player, rootPart),
+      Time = workspace:GetServerTimeNow(),
+   }
+end
+
+-- // Server: the blade lands. One check of the wedge against everyone now and where the swinging player saw them (rewound).
+local function resolveSwing(player: Player, character: Model, origin: Vector3, direction: Vector3)
+   local rootPart = character.PrimaryPart
+   local humanoid = character:FindFirstChildOfClass("Humanoid")
+   if player.Character ~= character or not rootPart or not humanoid or humanoid.Health <= 0 then
+      return
+   end
+
+   if GlobalConfig.ParryVisualizersEnabled then
+      showSwingVisualizer(origin, direction)
+   end
+
+   local filter: { Instance } = { character }
+   local charactersFolder = workspace:FindFirstChild("Characters")
+   if charactersFolder then
+      table.insert(filter, charactersFolder)
+   end
+   local raycastParams = RaycastsUtility.getProjectileObstructionParams(filter)
+
+   local hitPlayers: { Player } = {}
+   local seen: { [Player]: boolean } = {}
+   local function tryTarget(victimPlayer: Player, hitbox: BasePart, position: Vector3)
+      if seen[victimPlayer] then
+         return
+      end
+      local radius, halfHeight = getHitboxShape(hitbox)
+      if isInSwing(origin, direction, position, radius, halfHeight) and hasLineOfSight(origin, position, radius, raycastParams) then
+         seen[victimPlayer] = true
+         table.insert(hitPlayers, victimPlayer)
+      end
+   end
+
+   -- // Where everyone is now
+   for _, victimPlayer in ipairs(Players:GetPlayers()) do
+      local victimCharacter = victimPlayer.Character
+      local hitbox = victimCharacter and victimCharacter:FindFirstChild("Hitbox")
+      if victimPlayer ~= player and hitbox and hitbox:IsA("BasePart") then
+         tryTarget(victimPlayer, hitbox, hitbox.Position)
+      end
+   end
+
+   -- // Where the swinging player saw them
+   local rewindSeconds = LagCompensationLibrary.getRewindSeconds(player)
+   if rewindSeconds > 0 then
+      for _, target in ipairs(LagCompensationLibrary.getRewoundTargets(player, rewindSeconds)) do
+         if target.Player.Character == target.Character then
+            tryTarget(target.Player, target.Hitbox, target.Position)
+         end
+      end
+   end
+
+   for _, victimPlayer in ipairs(hitPlayers) do
+      local victimCharacter = victimPlayer.Character
+      local victimRootPart = victimCharacter and victimCharacter.PrimaryPart
+      local victimHumanoid = victimCharacter and victimCharacter:FindFirstChildOfClass("Humanoid")
+      if not victimRootPart or not victimHumanoid or victimHumanoid.Health <= 0 then
+         continue
+      end
+
+      local victimIsStabbing = ActiveStabs[victimPlayer] ~= nil
+      local shouldParry = victimIsStabbing
+         and getHorizontalDistance(rootPart, victimRootPart) <= PARRY_DISTANCE
+         and arePlayersFacingEachOtherForParry(player, rootPart, victimPlayer, victimRootPart)
+
+      if shouldParry then
+         applyParry(player, rootPart, victimPlayer, victimRootPart)
+      else
+         -- // The slash and kill sound come from CombatLibrary.attackHitPlayer, only when the hit is accepted
+         CombatLibrary.attackHitPlayer(player, "Stab", victimPlayer, victimHumanoid, STAB_KILL_DAMAGE)
+      end
+   end
+end
+
+function Stab.activate(player: Player, _activatedAt: number?, params: any)
    local character = player.Character
    if not character then
       return
@@ -492,103 +640,30 @@ function Stab.activate(player: Player)
    Cooldowns[player] = os.clock() + STAB_COOLDOWN
    stabCount[player] = (stabCount[player] or 0) + 1
 
+   -- // In progress for SWING_DURATION (another swing landing on this player in that time is a parry)
    local previousRunId = ActiveStabs[player] and ActiveStabs[player].RunId or 0
    local runId = previousRunId + 1
-   local shouldShowVisualizer = isServer and GlobalConfig.ParryVisualizersEnabled
-
-   local overlapParams = OverlapParams.new()
-   overlapParams.FilterType = Enum.RaycastFilterType.Exclude
-   overlapParams.FilterDescendantsInstances = {character}
-   overlapParams.CollisionGroup = CollisionGroupConstants.HandWeapons
-
-   local registeredKillHits: {[Player]: boolean} = {}
-
    local startedAt = os.clock()
-   local stabState = {
+   ActiveStabs[player] = {
       RunId = runId,
       StartedAt = startedAt,
-      EndsAt = startedAt + HITBOX_DURATION,
-      Connection = nil :: RBXScriptConnection?,
-      Visualizer = nil :: BasePart?
+      EndsAt = startedAt + SWING_DURATION,
    }
-   ActiveStabs[player] = stabState
-
-   local checkAccumulator = 0
-
-   local function everyFrame(_dt)
-      if not ActiveStabs[player] or ActiveStabs[player].RunId ~= runId then
-         return
-      end
-
-      local elapsed = os.clock() - startedAt
-      if elapsed < HITBOX_DELAY then
-         return
-      end
-
-      if elapsed > HITBOX_DURATION then
+   task.delay(SWING_DURATION, function()
+      local stabState = ActiveStabs[player]
+      if stabState and stabState.RunId == runId then
          disconnect(player)
-         return
       end
+   end)
 
-      local latestCharacter = player.Character
-      local latestRootPart = latestCharacter and latestCharacter.PrimaryPart
-      if not latestCharacter or not latestRootPart then
-         disconnect(player)
-         return
-      end
-
-      overlapParams.FilterDescendantsInstances = {latestCharacter}
-
-      local hitboxCFrame = getHitboxCFrame(player, latestRootPart)
-
-      if shouldShowVisualizer then
-         if not stabState.Visualizer or not stabState.Visualizer.Parent then
-            stabState.Visualizer = createHitboxVisualizer(hitboxCFrame, HITBOX_SIZE, HITBOX_VISUALIZER_COLOR)
-         else
-            updateHitboxVisualizer(stabState.Visualizer, hitboxCFrame)
-         end
-      else
-         destroyHitboxVisualizer(stabState.Visualizer)
-         stabState.Visualizer = nil
-      end
-
-      checkAccumulator += _dt
-      if checkAccumulator < HITBOX_CHECK_INTERVAL then
-         return
-      end
-      checkAccumulator = 0
-
-      local hitTargets = getHitPlayers(player, latestCharacter, hitboxCFrame, HITBOX_SIZE, overlapParams)
-      for _, victimPlayer in ipairs(hitTargets) do
-         local victimCharacter = victimPlayer.Character
-         local victimRootPart = victimCharacter and victimCharacter.PrimaryPart
-         if not victimRootPart then
-            continue
-         end
-
-         local targetDistance = getHorizontalDistance(latestRootPart, victimRootPart)
-         local victimIsStabbing = ActiveStabs[victimPlayer] ~= nil
-
-         local shouldParry = victimIsStabbing
-            and targetDistance <= PARRY_DISTANCE
-            and arePlayersFacingEachOtherForParry(player, latestRootPart, victimPlayer, victimRootPart)
-
-         if shouldParry then
-            print("[Stab] Hit player to parry:", player.Name, "<->", victimPlayer.Name)
-            applyParry(player, latestRootPart, victimPlayer, victimRootPart)
-         elseif targetDistance <= STAB_DISTANCE and not registeredKillHits[victimPlayer] then
-            registeredKillHits[victimPlayer] = true
-
-            -- // The slash and kill sound come from CombatLibrary.attackHitPlayer, only when the hit is accepted
-            local victimHumanoid = victimCharacter:FindFirstChildOfClass("Humanoid")
-            if victimHumanoid and victimHumanoid.Health > 0 then
-               CombatLibrary.attackHitPlayer(player, "Stab", victimPlayer, victimHumanoid, STAB_KILL_DAMAGE)
-            end
-         end
-      end
+   -- // The blade lands IMPACT_DELAY after the click. A click that took longer than that to arrive is checked straight away.
+   local origin, direction, clickTime = readSwingParams(player, rootPart, params)
+   local secondsUntilImpact = math.max(0, clickTime + IMPACT_DELAY - workspace:GetServerTimeNow())
+   if secondsUntilImpact > 0 then
+      task.delay(secondsUntilImpact, resolveSwing, player, character, origin, direction)
+   else
+      resolveSwing(player, character, origin, direction)
    end
-
-   stabState.Connection = RunService.Heartbeat:Connect(everyFrame)
 end
 
 -------------------------------------------------------------------------------

@@ -6,6 +6,7 @@
 	a boomerang's hit sweep runs, it also asks this library which players the sweep would have hit if they were where the
 	thrower SAW them (a bit in the past: the thrower's ping plus a little interpolation delay), so a hit that looks like a hit on the
 	thrower's screen counts. It only ever adds hits to the normal (live) check; flight, bounces and recalls are never rewound.
+	The slash (Stab ability, T-125) uses the same rewind: its swing is checked against where the swinging player saw everyone too.
 
 	The setting is one number, in milliseconds: the most the server will rewind. 200 by default (GlobalConfig.LagCompensationMilliseconds).
 	0 turns lag compensation off completely (nothing is recorded, hits are exactly as before). Cmdr `setlagcompensation` changes it live
@@ -194,6 +195,39 @@ function LagCompensationLibrary.getRewoundHitModels(thrower: Player, rewindSecon
 		end
 	end
 	return hitModels
+end
+
+export type RewoundTarget = {
+	Player: Player,
+	Character: Model,
+	Hitbox: BasePart, -- // The live Hitbox (for its size; its position is Position below)
+	Position: Vector3, -- // Where the Hitbox's centre was at the rewound moment
+}
+
+-- // Every other living player as `viewer` saw them `rewindSeconds` ago (T-125: the slash checks its swing against these). Leaves out
+-- // anyone who was immune around that moment (same dash rule as boomerang hits), and anyone the history doesn't reach back for.
+function LagCompensationLibrary.getRewoundTargets(viewer: Player, rewindSeconds: number): { RewoundTarget }
+	local targets: { RewoundTarget } = {}
+	if not isServer or rewindSeconds <= 0 then
+		return targets
+	end
+
+	local pastTime = os.clock() - rewindSeconds
+	for player, history in pairs(histories) do
+		if player == viewer then
+			continue
+		end
+		local character, hitbox = getAliveHitbox(player)
+		if not character or not hitbox or history.Character ~= character then
+			continue
+		end
+		local pastPosition, wasImmune = getSampleAt(history, pastTime)
+		if not pastPosition or isDodgingRewoundHit(wasImmune) then
+			continue
+		end
+		table.insert(targets, { Player = player, Character = character, Hitbox = hitbox, Position = pastPosition })
+	end
+	return targets
 end
 
 -------------------------------------------------------------------------------

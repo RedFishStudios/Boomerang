@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-125** *(shared by every task list, general and Epic)*
+**Next free ID: T-126** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,25 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-125 · Slash: one forgiving, lag-compensated hit check
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared (server decides)
+- **Files:** `Shared/Logics/AbilityLogics/Stab.luau`, `Shared/Library/LagCompensationLibrary.luau`
+
+**Done when**
+- [ ] A swing hits anyone whose Hitbox reaches into a wedge in front of the player (5 studs to the Hitbox edge, about 6.6 centre to centre; 110 degrees wide; full height), not a 2-stud box
+- [ ] A wall between the players blocks the hit
+- [ ] The client sends where it faced, where it will be at impact and when it clicked; the server uses them when plausible (otherwise its own values)
+- [ ] The swing is checked once, when the blade lands (0.08 s after the click), against where everyone is now AND where the swinging player saw them (the boomerangs' lag-compensation rewind: ping + 0.1 s, capped by `setlagcompensation`)
+- [ ] Dashing players can't slip between checks any more; with lag, a swing that looked like a hit counts
+- [ ] Parries still work (a swing landing on a player who is mid-swing, both facing each other)
+
+**Notes**
+- New `LagCompensationLibrary.getRewoundTargets`. Tunables at the top of Stab.luau (`SWING_RANGE`, `SWING_HALF_ANGLE`, `SWING_HALF_HEIGHT`, `IMPACT_DELAY`). `GlobalConfig.ParryVisualizersEnabled` draws the wedge on the server.
+- Checked in Studio: the wedge/line-of-sight maths with test positions and a test wall, and server swings with good, bad and missing client data (no errors). Not tested with two players. Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-125-slash-rework`.
+- Follow-ups from the analysis (not in this task): a slash trail on every swing, always showing other players' swings, parry by click times, server cooldown grace, removing debug prints, the stagger's server ownership.
 
 ### T-124 · Dying boomerangs are stopped by the same walls as flying ones, and never climb
 - **Priority:** P2
