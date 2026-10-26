@@ -43,6 +43,9 @@ end
 -------------------------------------------------------------------------------
 
 local STAB_COOLDOWN = .5
+local SERVER_COOLDOWN_GRACE = .1 -- // The server accepts a swing this much before its cooldown ends (the player's game may have ended it a moment sooner)
+local SWING_STALE_SECONDS = 1 -- // Clients: another player's swing heard about later than this isn't shown at all (e.g. after the game was in the background)
+local SWEEP_MAX_SKIP_FRACTION = .5 -- // Clients: a late swing's sweep skips ahead at most this much of itself, so it always shows
 
 -- // T-125: the swing is ONE check, at the moment the blade lands (IMPACT_DELAY after the click), of a wedge in front of the player:
 -- // anyone whose Hitbox (a 10-stud-tall cylinder) reaches into it, with no wall in between, is hit. It is checked against where everyone
@@ -50,7 +53,7 @@ local STAB_COOLDOWN = .5
 -- // that looked like a hit on their screen counts. The client sends where it was facing; where the player is comes only from the server
 -- // (server authority: the server's character is the truth, and the player's own game predicts the same position).
 local IMPACT_DELAY = .08 -- // Seconds from the click to the hit check (the blade landing in the animation)
-local SWING_DURATION = .2 -- // Seconds a swing lasts on clients (another player's swing heard about later than this isn't shown)
+local SWING_DURATION = .2 -- // Seconds a swing lasts on clients
 local SWING_RANGE = 5 -- // Studs from the swinging player's centre to the edge of a target's Hitbox
 local SWING_HALF_ANGLE = math.rad(55) -- // Half the wedge's width: 55 degrees to each side of where they face (110 total)
 local SWING_HALF_HEIGHT = 2.5 -- // The wedge's half height around the swinging player's centre (a target's Hitbox adds its own)
@@ -523,25 +526,30 @@ function Stab.onPickup(userId: number, timestamp: number)
    end
 
    local player = Players:GetPlayerByUserId(userId)
-   if not player then
+   local character = player and player.Character
+   local rootPart = character and character.PrimaryPart
+   if not player or not rootPart then
       return
    end
 
-   local endsAt = timestamp + SWING_DURATION
-   if workspace:GetServerTimeNow() >= endsAt then
+   -- // Every swing is shown, even one heard about late (another player's, sent over the reliable AbilityReplication event): the
+   -- // animation and sound play now, and the sweep skips ahead a little so it ends about when it would have
+   local lateness = math.max(0, workspace:GetServerTimeNow() - timestamp)
+   if lateness > SWING_STALE_SECONDS then
       return
    end
+   local endsAt = workspace:GetServerTimeNow() + SWING_DURATION
 
    Cooldowns[player] = os.clock() + STAB_COOLDOWN
 
    local activationSoundChannelId = `{player.UserId}_stab`
-   SoundLibrary.play(activationSoundChannelId, Sounds.Data.Stab.Name, player.Character.PrimaryPart, nil, true)
+   SoundLibrary.play(activationSoundChannelId, Sounds.Data.Stab.Name, rootPart, nil, true)
 
    if AnimationController then
       AnimationController.playCoreAnimation(player, "Stab")
    end
 
-   playSwingSweep(player, math.max(0, workspace:GetServerTimeNow() - timestamp))
+   playSwingSweep(player, math.min(lateness, SWEEP_DURATION * SWEEP_MAX_SKIP_FRACTION))
 
    disconnect(player)
 
@@ -612,8 +620,11 @@ function Stab.canActivate(player: Player): boolean
       return false
    end
 
+   -- // The server forgives a swing that arrives just before its cooldown ends (SERVER_COOLDOWN_GRACE), so a swing the player's game
+   -- // allowed isn't thrown away over a tiny timing difference. The player's own game stays strict.
    local cooldown = Cooldowns[player]
-   if cooldown and os.clock() < cooldown then
+   local grace = if isServer then SERVER_COOLDOWN_GRACE else 0
+   if cooldown and os.clock() < cooldown - grace then
       return false
    end
    
@@ -737,7 +748,8 @@ function Stab.activate(player: Player, _activatedAt: number?, params: any)
       return
    end
 
-   Cooldowns[player] = os.clock() + STAB_COOLDOWN
+   -- // From the end of the previous cooldown if this swing was let in a little early (the grace never adds up to faster swinging)
+   Cooldowns[player] = math.max(os.clock(), Cooldowns[player] or 0) + STAB_COOLDOWN
    stabCount[player] = (stabCount[player] or 0) + 1
 
    -- // When they clicked, by the server's estimate (parries compare these)

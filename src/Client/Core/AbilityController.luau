@@ -27,7 +27,7 @@ local AbilityLogicModules = {}
 -------------------------------------------------------------------------------
 
 local abilityUsed = SimpleRemotes.getEvent("AbilityUsed")
-local abilityReplication = SimpleRemotes.getUnreliableEvent("AbilityReplication")
+local abilityReplication = SimpleRemotes.getEvent("AbilityReplication") -- // Reliable: another player's ability use is never lost
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES

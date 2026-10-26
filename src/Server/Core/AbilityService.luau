@@ -21,7 +21,7 @@ local SharedTasks = require(ReplicatedStorage.Shared.Constants.SharedTasks)
 -------------------------------------------------------------------------------
 
 local abilityUsed = SimpleRemotes.getEvent("AbilityUsed")
-local abilityReplication = SimpleRemotes.getUnreliableEvent("AbilityReplication")
+local abilityReplication = SimpleRemotes.getEvent("AbilityReplication") -- // Reliable: every client always hears about every ability use
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
