@@ -81,7 +81,7 @@ local PARRY_FACING_DOT_THRESHOLD = .4
 -- // forward in front of the player and fading out. Purely visual: the kill effect (Slash particle) is only ever played by the server.
 local SWEEP_ASSET_NAME = "SlashAbility"
 local SWEEP_DURATION = .2 -- // Seconds the crescent sweeps and fades
-local SWEEP_SCALE = 0.35 -- // Size relative to the asset
+local SWEEP_SCALE = 0.56 -- // Size relative to the asset
 local SWEEP_START_DISTANCE = 0.5 -- // Studs in front of the player's centre the crescent's centre starts
 local SWEEP_END_DISTANCE = 1.5 -- // ...and ends (its front edge then reaches about as far as a swing hits)
 local SWEEP_HEIGHT_ABOVE_HAND = 1 -- // Studs above where the weapon is held in the player's hand (when the swing starts)
