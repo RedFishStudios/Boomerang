@@ -2,6 +2,7 @@ local Stab = {}
 
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -92,7 +93,7 @@ local SWEEP_START_TRANSPARENCY = .2
 local swingVisualizerEnabled = GlobalConfig.ParryVisualizersEnabled -- // Server: draw each swing's hit wedge; Cmdr `viewhitbox` changes it live
 
 local SWING_VISUALIZER_COLOR = Color3.new(0.164706, 0.960784, 0.007843)
-local SWING_VISUALIZER_LIFETIME = .4
+local SWING_VISUALIZER_LIFETIME = .15 -- // Seconds the wedge takes to fade out: a flash marking the instant the swing was checked
 local SWING_VISUALIZER_ARC_SEGMENTS = 10
 
 local Cooldowns: {[Player]: number} = {}
@@ -218,6 +219,11 @@ local function showSwingVisualizer(origin: Vector3, direction: Vector3)
    end
 
    folder.Parent = workspace
+   -- // It only marks the one instant the swing was checked (the hit area doesn't stay), so it fades straight away
+   local fadeInfo = TweenInfo.new(SWING_VISUALIZER_LIFETIME, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+   for _, line in ipairs(folder:GetChildren()) do
+      TweenService:Create(line, fadeInfo, { Transparency = 1 }):Play()
+   end
    task.delay(SWING_VISUALIZER_LIFETIME, function()
       folder:Destroy()
    end)
