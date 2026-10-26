@@ -81,7 +81,8 @@ local PARRY_FACING_DOT_THRESHOLD = .4
 -- // forward in front of the player and fading out. Purely visual: the kill effect (Slash particle) is only ever played by the server.
 local SWEEP_ASSET_NAME = "SlashAbility"
 local SWEEP_DURATION = .2 -- // Seconds the crescent sweeps and fades
-local SWEEP_SCALE = 0.56 -- // Size relative to the asset
+local SWEEP_DELAY = .08 -- // Seconds after the click before the crescent appears (in step with the swing animation)
+local SWEEP_SCALE = 0.616 -- // Size relative to the asset
 local SWEEP_START_DISTANCE = 0.5 -- // Studs in front of the player's centre the crescent's centre starts
 local SWEEP_END_DISTANCE = 1.5 -- // ...and ends (its front edge then reaches about as far as a swing hits)
 local SWEEP_HEIGHT_ABOVE_HAND = 1 -- // Studs above where the weapon is held in the player's hand (when the swing starts)
@@ -302,7 +303,8 @@ end
 -- // Client: the SlashAbility crescent sweeping out in front of `player`, facing where they swung. `elapsed` skips ahead when the
 -- // swing was heard about late (another player's swing), so it ends when it would have.
 local sweepTemplate: BasePart? = nil
-local function playSwingSweep(player: Player, elapsed: number)
+-- // `direction` and `heightOffset` are taken when the swing starts (the click), even though the crescent appears SWEEP_DELAY later.
+local function playSwingSweep(player: Player, elapsed: number, direction: Vector3, heightOffset: number)
    if isServer or elapsed >= SWEEP_DURATION then
       return
    end
@@ -336,13 +338,6 @@ local function playSwingSweep(player: Player, elapsed: number)
    sweep.CastShadow = false
    sweep.Size *= SWEEP_SCALE
 
-   local direction = getLookDirection(player, rootPart) -- // Where they swung; it doesn't turn with them during the sweep
-   -- // At the height of the weapon in their hand (plus a little), kept relative to them while they move during the sweep
-   local heightOffset = SWEEP_HEIGHT_OFFSET
-   local heldWeaponPosition = ToolController and ToolController.getToolPivotPosition(player)
-   if heldWeaponPosition then
-      heightOffset = heldWeaponPosition.Y - rootPart.Position.Y + SWEEP_HEIGHT_ABOVE_HAND
-   end
    local function place(alpha: number)
       local eased = 1 - (1 - alpha) ^ 2 -- // Fast out, slowing at the end
       local currentRoot = character.PrimaryPart or rootPart
@@ -561,7 +556,20 @@ function Stab.onPickup(userId: number, timestamp: number)
       AnimationController.playCoreAnimation(player, "Stab")
    end
 
-   playSwingSweep(player, math.min(lateness, SWEEP_DURATION * SWEEP_MAX_SKIP_FRACTION))
+   -- // The crescent: facing where they swung (it doesn't turn with them), at the height of the weapon in their hand plus a little
+   -- // (kept relative to them while they move), both taken now; it appears SWEEP_DELAY after the click
+   local sweepDirection = getLookDirection(player, rootPart)
+   local sweepHeightOffset = SWEEP_HEIGHT_OFFSET
+   local heldWeaponPosition = ToolController and ToolController.getToolPivotPosition(player)
+   if heldWeaponPosition then
+      sweepHeightOffset = heldWeaponPosition.Y - rootPart.Position.Y + SWEEP_HEIGHT_ABOVE_HAND
+   end
+   local sweepLateness = lateness - SWEEP_DELAY
+   if sweepLateness < 0 then
+      task.delay(-sweepLateness, playSwingSweep, player, 0, sweepDirection, sweepHeightOffset)
+   else
+      playSwingSweep(player, math.min(sweepLateness, SWEEP_DURATION * SWEEP_MAX_SKIP_FRACTION), sweepDirection, sweepHeightOffset)
+   end
 
    disconnect(player)
 
