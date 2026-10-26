@@ -50,12 +50,15 @@ local STAB_COOLDOWN = .5
 -- // that looked like a hit on their screen counts. The client sends where it was facing; where the player is comes only from the server
 -- // (server authority: the server's character is the truth, and the player's own game predicts the same position).
 local IMPACT_DELAY = .08 -- // Seconds from the click to the hit check (the blade landing in the animation)
-local SWING_DURATION = .2 -- // Seconds a swing counts as "in progress" for parries (another swing landing on it in that time is a parry)
+local SWING_DURATION = .2 -- // Seconds a swing lasts on clients (another player's swing heard about later than this isn't shown)
 local SWING_RANGE = 5 -- // Studs from the swinging player's centre to the edge of a target's Hitbox
 local SWING_HALF_ANGLE = math.rad(55) -- // Half the wedge's width: 55 degrees to each side of where they face (110 total)
 local SWING_HALF_HEIGHT = 2.5 -- // The wedge's half height around the swinging player's centre (a target's Hitbox adds its own)
 local SWING_MAX_DIRECTION_DEVIATION = math.rad(120) -- // The most the client's reported facing may turn from the server's last known one
-local SWING_CLICK_TIME_TOLERANCE = 1 -- // Seconds: a reported click time older than this (or in the future) is clamped
+-- // Server authority: no client clock is trusted. When a player clicked is estimated by the server: the click's arrival less half their
+-- // ping (the trip from them to the server), and the impact and parries are timed from that.
+local SWING_MAX_ONE_WAY_LATENCY = .3 -- // The most the server takes off a click's arrival time (half the ping, capped)
+local PARRY_WINDOW = .2 -- // Two swings clicked this close together (server-estimated) clash: a parry, if they face each other
 local STAB_KILL_DAMAGE = 100000
 local PARRY_DISTANCE = 8 -- // Centre to centre; beyond any reach of a swing (SWING_RANGE plus a Hitbox radius)
 
@@ -70,6 +73,7 @@ local SWING_VISUALIZER_LIFETIME = .4
 local SWING_VISUALIZER_ARC_SEGMENTS = 10
 
 local Cooldowns: {[Player]: number} = {}
+local SwingClickTimes: {[Player]: number} = {} -- // Server: when each player's latest swing was clicked (server clock, estimated)
 local ActiveStabs: {
    [Player]: {
       RunId: number,
@@ -236,13 +240,11 @@ local function hasLineOfSight(origin: Vector3, targetPosition: Vector3, targetRa
    return RaycastsUtility.raycastProjectileObstruction(origin, reach.Unit, reach.Magnitude, raycastParams) == nil
 end
 
--- // Server: the swing the client reported (facing, click time), checked against the server's own view.
--- // Anything missing or implausible falls back to the server's values. Where the player is is never taken from the client.
-local function readSwingParams(player: Player, rootPart: BasePart, params: any): (Vector3, number)
-   local now = workspace:GetServerTimeNow()
+-- // Server: the facing the client reported with the swing, checked against the server's own view (falls back to it if missing or
+-- // implausible). Where the player is and when they clicked are never taken from the client.
+local function readSwingParams(player: Player, rootPart: BasePart, params: any): Vector3
    local serverDirection = getLookDirection(player, rootPart)
    local direction = serverDirection
-   local clickTime = now
 
    if type(params) == "table" then
       local reportedDirection = params.Direction
@@ -256,18 +258,25 @@ local function readSwingParams(player: Player, rootPart: BasePart, params: any):
             end
          end
       end
-
-      local reportedTime = params.Time
-      if type(reportedTime) == "number" and reportedTime == reportedTime then
-         clickTime = math.clamp(reportedTime, now - SWING_CLICK_TIME_TOLERANCE, now)
-      end
    end
 
-   return direction, clickTime
+   return direction
+end
+
+-- // Server: how long a message from this player takes to get here (half their ping), capped
+local function getOneWayLatency(player: Player): number
+   return math.clamp(player:GetNetworkPing() * .5, 0, SWING_MAX_ONE_WAY_LATENCY)
+end
+
+-- // Server: whether `player`'s latest swing was clicked within PARRY_WINDOW of `clickTime` (both server-estimated)
+local function swungNear(player: Player, clickTime: number): boolean
+   local swingClickTime = SwingClickTimes[player]
+   return swingClickTime ~= nil and math.abs(swingClickTime - clickTime) <= PARRY_WINDOW
 end
 
 local function disconnect(player: Player)
    ActiveStabs[player] = nil
+   SwingClickTimes[player] = nil
 end
 
 local function scheduleStabCleanup(player: Player, runId: number, endsAt: number)
@@ -527,8 +536,7 @@ function Stab.canActivate(player: Player): boolean
    return true
 end
 
--- // Client: what the swing looked like from here, sent with the click (Stab.activate checks it): where they face, and when they
--- // clicked (server clock).
+-- // Client: where this player faced as they swung, sent with the click (Stab.activate checks it)
 function Stab.getParams()
    local player = Players.LocalPlayer
    local character = player and player.Character
@@ -538,12 +546,47 @@ function Stab.getParams()
    end
    return {
       Direction = getLookDirection(player, rootPart),
-      Time = workspace:GetServerTimeNow(),
    }
 end
 
+-- // Server: a swing clicked at `clickTime` reached `victimPlayer`. If the victim also swung within PARRY_WINDOW of it, and they are close
+-- // and facing each other, it's a parry; otherwise the victim is hit. A victim who could still have swung in time (close and facing, but
+-- // their click not here yet because of their ping) is waited for, until their latest possible click would have arrived.
+local function settleHit(player: Player, character: Model, victimPlayer: Player, clickTime: number)
+   local victimCharacter = victimPlayer.Character
+   local deadline = clickTime + PARRY_WINDOW + getOneWayLatency(victimPlayer)
+
+   task.spawn(function()
+      while true do
+         local rootPart = character.PrimaryPart
+         local humanoid = character:FindFirstChildOfClass("Humanoid")
+         local victimRootPart = victimCharacter and victimCharacter.PrimaryPart
+         local victimHumanoid = victimCharacter and victimCharacter:FindFirstChildOfClass("Humanoid")
+         if player.Character ~= character or victimPlayer.Character ~= victimCharacter
+            or not rootPart or not humanoid or humanoid.Health <= 0
+            or not victimRootPart or not victimHumanoid or victimHumanoid.Health <= 0
+         then
+            return -- // One of them died or left in the meantime (e.g. the victim's own swing landed first)
+         end
+
+         local canClash = getHorizontalDistance(rootPart, victimRootPart) <= PARRY_DISTANCE
+            and arePlayersFacingEachOtherForParry(player, rootPart, victimPlayer, victimRootPart)
+         if canClash and swungNear(victimPlayer, clickTime) then
+            applyParry(player, rootPart, victimPlayer, victimRootPart)
+            return
+         end
+         if not canClash or workspace:GetServerTimeNow() >= deadline then
+            -- // The slash and kill sound come from CombatLibrary.attackHitPlayer, only when the hit is accepted
+            CombatLibrary.attackHitPlayer(player, "Stab", victimPlayer, victimHumanoid, STAB_KILL_DAMAGE)
+            return
+         end
+         RunService.Heartbeat:Wait()
+      end
+   end)
+end
+
 -- // Server: the blade lands. One check of the wedge against everyone now and where the swinging player saw them (rewound).
-local function resolveSwing(player: Player, character: Model, direction: Vector3)
+local function resolveSwing(player: Player, character: Model, direction: Vector3, clickTime: number)
    local rootPart = character.PrimaryPart
    local humanoid = character:FindFirstChildOfClass("Humanoid")
    if player.Character ~= character or not rootPart or not humanoid or humanoid.Health <= 0 then
@@ -595,24 +638,7 @@ local function resolveSwing(player: Player, character: Model, direction: Vector3
    end
 
    for _, victimPlayer in ipairs(hitPlayers) do
-      local victimCharacter = victimPlayer.Character
-      local victimRootPart = victimCharacter and victimCharacter.PrimaryPart
-      local victimHumanoid = victimCharacter and victimCharacter:FindFirstChildOfClass("Humanoid")
-      if not victimRootPart or not victimHumanoid or victimHumanoid.Health <= 0 then
-         continue
-      end
-
-      local victimIsStabbing = ActiveStabs[victimPlayer] ~= nil
-      local shouldParry = victimIsStabbing
-         and getHorizontalDistance(rootPart, victimRootPart) <= PARRY_DISTANCE
-         and arePlayersFacingEachOtherForParry(player, rootPart, victimPlayer, victimRootPart)
-
-      if shouldParry then
-         applyParry(player, rootPart, victimPlayer, victimRootPart)
-      else
-         -- // The slash and kill sound come from CombatLibrary.attackHitPlayer, only when the hit is accepted
-         CombatLibrary.attackHitPlayer(player, "Stab", victimPlayer, victimHumanoid, STAB_KILL_DAMAGE)
-      end
+      settleHit(player, character, victimPlayer, clickTime)
    end
 end
 
@@ -630,29 +656,17 @@ function Stab.activate(player: Player, _activatedAt: number?, params: any)
    Cooldowns[player] = os.clock() + STAB_COOLDOWN
    stabCount[player] = (stabCount[player] or 0) + 1
 
-   -- // In progress for SWING_DURATION (another swing landing on this player in that time is a parry)
-   local previousRunId = ActiveStabs[player] and ActiveStabs[player].RunId or 0
-   local runId = previousRunId + 1
-   local startedAt = os.clock()
-   ActiveStabs[player] = {
-      RunId = runId,
-      StartedAt = startedAt,
-      EndsAt = startedAt + SWING_DURATION,
-   }
-   task.delay(SWING_DURATION, function()
-      local stabState = ActiveStabs[player]
-      if stabState and stabState.RunId == runId then
-         disconnect(player)
-      end
-   end)
+   -- // When they clicked, by the server's estimate (parries compare these)
+   local clickTime = workspace:GetServerTimeNow() - getOneWayLatency(player)
+   SwingClickTimes[player] = clickTime
 
    -- // The blade lands IMPACT_DELAY after the click. A click that took longer than that to arrive is checked straight away.
-   local direction, clickTime = readSwingParams(player, rootPart, params)
+   local direction = readSwingParams(player, rootPart, params)
    local secondsUntilImpact = math.max(0, clickTime + IMPACT_DELAY - workspace:GetServerTimeNow())
    if secondsUntilImpact > 0 then
-      task.delay(secondsUntilImpact, resolveSwing, player, character, direction)
+      task.delay(secondsUntilImpact, resolveSwing, player, character, direction, clickTime)
    else
-      resolveSwing(player, character, direction)
+      resolveSwing(player, character, direction, clickTime)
    end
 end
 
