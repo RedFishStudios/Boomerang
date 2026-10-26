@@ -19,6 +19,7 @@ local CombatLibrary = require(ReplicatedStorage.Shared.Library.CombatLibrary)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local SharedTasks = require(ReplicatedStorage.Shared.Constants.SharedTasks)
 local LeaderboardConstants = require(ReplicatedStorage.Shared.Constants.LeaderboardConstants)
+local PlayerStatAttributes = require(ReplicatedStorage.Shared.Constants.PlayerStatAttributes)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -76,6 +77,22 @@ local function incrementMonthly(data: PlayerDataService.Data, field: "Elims" | "
 	monthly[field] += 1
 end
 
+-- // T-130: copy the player's lifetime totals onto their Player attributes, so every client's Stats panel can show them
+local function publishLifetimeStats(player: Player)
+	local data = PlayerDataService.get(player)
+	if not data or player.Parent ~= Players then
+		return
+	end
+	player:SetAttribute(PlayerStatAttributes.Elims, data.Elims)
+	player:SetAttribute(PlayerStatAttributes.Defeats, data.Defeats)
+	player:SetAttribute(PlayerStatAttributes.Wins, data.Wins)
+	player:SetAttribute(PlayerStatAttributes.Losses, math.max(0, data.RoundsPlayed - data.Wins))
+end
+
+local function addRoundStat(player: Player, attribute: string)
+	player:SetAttribute(attribute, (player:GetAttribute(attribute) or 0) + 1)
+end
+
 local function flushTimePlayed(player: Player)
 	local since = timeCountedSince[player]
 	local data = PlayerDataService.get(player)
@@ -89,6 +106,7 @@ local function flushTimePlayed(player: Player)
 end
 
 local function onRoundFinished(winner: Player?, winningTeam: Team?, isTie: boolean?)
+	local participants = table.clone(roundParticipants)
 	for player in roundParticipants do
 		if player.Parent == Players then
 			local data = PlayerDataService.get(player)
@@ -100,6 +118,9 @@ local function onRoundFinished(winner: Player?, winningTeam: Team?, isTie: boole
 	table.clear(roundParticipants)
 
 	if isTie then
+		for player in participants do
+			publishLifetimeStats(player)
+		end
 		return
 	end
 
@@ -113,6 +134,9 @@ local function onRoundFinished(winner: Player?, winningTeam: Team?, isTie: boole
 	for _, player in winners do
 		LifetimeStatsService.addWin(player)
 	end
+	for player in participants do
+		publishLifetimeStats(player)
+	end
 end
 
 -------------------------------------------------------------------------------
@@ -124,6 +148,7 @@ function LifetimeStatsService.addWin(player: Player)
 	if data then
 		data.Wins += 1
 		incrementMonthly(data, "Wins")
+		publishLifetimeStats(player)
 	end
 end
 
@@ -165,6 +190,10 @@ function LifetimeStatsService.init()
 		if victimData then
 			victimData.Defeats += 1
 		end
+		addRoundStat(killer, PlayerStatAttributes.RoundElims)
+		addRoundStat(victim, PlayerStatAttributes.RoundDefeats)
+		publishLifetimeStats(killer)
+		publishLifetimeStats(victim)
 	end)
 
 	-- // Every successful throw (fired by WeaponService after the throw is accepted)
@@ -187,12 +216,16 @@ function LifetimeStatsService.init()
 		table.clear(roundParticipants)
 		for _, player in Players:GetPlayers() do
 			roundParticipants[player] = true
+			-- // T-130: a new round's elims and defeats start from 0 (the last round's stay shown until then)
+			player:SetAttribute(PlayerStatAttributes.RoundElims, 0)
+			player:SetAttribute(PlayerStatAttributes.RoundDefeats, 0)
 		end
 	end)
 	GameStateLibrary.RoundFinishedTasks:Add(onRoundFinished)
 
 	PlayerDataService.ProfileAddedTasks:Add(function(player: Player)
 		timeCountedSince[player] = os.clock()
+		publishLifetimeStats(player)
 	end)
 	-- // Runs before the profile session ends, so the last stretch of time played is saved
 	PlayerDataService.ProfileRemovingTasks:Add(function(player: Player)

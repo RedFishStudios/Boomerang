@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-130** *(shared by every task list, general and Epic)*
+**Next free ID: T-131** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,24 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-130 · In-game Stats panel replaces the player list
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client UI + Server (stats replication)
+- **Files:** `Client/UI/Gui/StatsPanel/init.luau`, `Shared/Constants/PlayerStatAttributes.luau`, `Server/Core/LifetimeStatsService.luau`, `Client/Core/StarterGuiController.luau`
+
+**Done when**
+- [ ] A panel (frame image 127212661618035) sits on the right edge: centred on PC, top-right corner on touch. Closed, only its arrow tab sticks out; clicking the tab or pressing Tab slides it out and back. Header "Stats"
+- [ ] Roblox's player list is off; Tab opens this panel instead
+- [ ] Top: this round's Name / Elims / Defeats for every player (labelled columns), most elims first
+- [ ] A divider, then all-time Elims / Defeats / Wins / Losses for every player (two lines per listing: name, then the numbers under labelled columns), the local player first, then the best elims-to-defeats ratio
+- [ ] Numbers come from the server: Player attributes (PlayerStatAttributes) set by LifetimeStatsService (round counts reset when a round starts; lifetime totals mirror the profile; Losses = rounds played - wins)
+- [ ] Scales with the screen (Scale sizes, text capped relative to the panel's height); lists scroll past 5 (round) / 3 (all-time) listings
+
+**Notes**
+- Round elims/defeats count only eliminations by another player, the same rule as the lifetime totals. Checked in a Studio play test (layout, Tab, sliding); not tested with several players or on a phone.
+
 
 ### T-128 · Slashes knock away enemy weapons in flight
 - **Priority:** P2
