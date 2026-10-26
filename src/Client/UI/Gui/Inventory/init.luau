@@ -24,6 +24,7 @@ local TweenService = game:GetService("TweenService")
 local UIController = require(ReplicatedStorage.Client.UI.UIController)
 local ItemViewport = require(ReplicatedStorage.Client.UI.ItemViewport)
 local GuiColors = require(ReplicatedStorage.Shared.Referential.GuiColors)
+local Icons = require(ReplicatedStorage.Shared.Constants.Icons)
 
 -------------------------------------------------------------------------------
 -- TYPES
@@ -53,10 +54,11 @@ export type InventoryTab = {
 -------------------------------------------------------------------------------
 
 -- // The tab column, top to bottom. A tab's content is Tabs/<Id>; tabs without a module aren't set up yet.
+-- // Icon: image for the tab's ICON label (tabs without one keep the empty placeholder)
 local TABS = {
-	{ Id = "Skins", Text = "Weapons", Color = Color3.fromRGB(165, 95, 200) },
+	{ Id = "Skins", Text = "Weapons", Color = Color3.fromRGB(165, 95, 200), Icon = Icons.InventoryButton }, -- // Same boomerang icon as the Inventory HUD button
 	{ Id = "Emotes", Text = "Emotes", Color = Color3.fromRGB(55, 170, 180) },
-	{ Id = "Arrows", Text = "Arrows", Color = Color3.fromRGB(240, 165, 50) },
+	{ Id = "Arrows", Text = "Charges", Color = Color3.fromRGB(240, 165, 50) }, -- // Charge up effects (module id stays "Arrows")
 	{ Id = "Effects", Text = "Effects", Color = Color3.fromRGB(215, 70, 70) },
 }
 local DEFAULT_TAB = "Skins"
@@ -279,6 +281,9 @@ local function buildTabs()
 		button.Name = tabInfo.Id
 		button.LayoutOrder = order
 		button.Label.Text = tabInfo.Text
+		if tabInfo.Icon then
+			button.ICON.Image = `rbxassetid://{tabInfo.Icon}`
+		end
 		button.Parent = TabsFrame
 		tabButtons[tabInfo.Id] = button
 

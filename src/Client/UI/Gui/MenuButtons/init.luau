@@ -30,6 +30,7 @@ local RunService = game:GetService("RunService")
 local UIController = require(ReplicatedStorage.Client.UI.UIController)
 local EconomyController = require(ReplicatedStorage.Client.Core.EconomyController)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
+local Icons = require(ReplicatedStorage.Shared.Constants.Icons)
 
 local LocalPlayer = Players.LocalPlayer
 
@@ -77,7 +78,7 @@ local CURRENCY_HEIGHT = math.round(CURRENCY_WIDTH * BAR_CONTENT.Height / BAR_CON
 local BUTTONS = {
 	{ Id = "Shop", Text = "Shop", Icon = "rbxassetid://95884415147706", Color = Color3.fromRGB(255, 120, 95), Enabled = true },
 	{ Id = "Daily", Text = "Daily", Icon = "rbxassetid://126765785652910", Color = Color3.fromRGB(205, 130, 255), Enabled = true },
-	{ Id = "Skins", Text = "Inventory", Icon = "rbxassetid://123566439013193", Color = Color3.fromRGB(110, 175, 255), Enabled = true }, -- // T-072
+	{ Id = "Skins", Text = "Inventory", Icon = `rbxassetid://{Icons.InventoryButton}`, Color = Color3.fromRGB(110, 175, 255), Enabled = true }, -- // T-072
 	{ Id = "Stats", Text = "Stats", Icon = "rbxassetid://124985088272789", Color = Color3.fromRGB(100, 255, 225), Enabled = true }, -- // T-074
 	-- // T-087: no gui behind these yet; give one a click action with setButtonEnabled(id, true, callback)
 	{ Id = "Quests", Text = "Quests", Icon = "rbxassetid://83981048085676", Color = Color3.fromRGB(255, 215, 90), Enabled = true },

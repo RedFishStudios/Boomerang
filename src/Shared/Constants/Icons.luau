@@ -13,6 +13,7 @@ return {
    AimThumbstick = 118487572306150, -- // Touch controls: the aim thumbstick knob (transparent background; used in CustomTouchscreen.rbxmx)
 
    -- Inventory
+   InventoryButton = 123566439013193, -- // Boomerang icon: the Inventory HUD button (MenuButtons) and the Inventory's Weapons tab
    InventoryFrame = 79347675065715, -- // Primary content area (frame with the title plank)
    InventoryItemListingFrame = 112976197760413, -- // Grayscale: tint with ImageColor3. Has transparent padding: to make the visible frame fill its parent, use Size (1.5181, 0, 1.2294, 0) and Position (-0.2596, 0, -0.1397, 0) (visible aspect 0.876)
    InventoryTabFrame = 106475010092350, -- // Grayscale: tint with ImageColor3

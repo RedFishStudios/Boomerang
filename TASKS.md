@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-120** *(shared by every task list, general and Epic)*
+**Next free ID: T-121** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -84,813 +84,21 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
-### T-119 · Touch controls: Dash button uses the Dash icon
+### T-120 · Inventory: Weapons tab icon, Arrows tab renamed Charges
 - **Priority:** P2
 - **Owner:** Agent
 - **Area:** Client (GUI)
-- **Files:** `Client/UI/Gui/CustomTouchscreen/CustomTouchscreen.rbxmx`
+- **Files:** `Client/UI/Gui/Inventory/init.luau`, `Client/UI/Gui/MenuButtons/init.luau`, `Shared/Constants/Icons.luau`
 
 **Done when**
-- [ ] The touch Dash button shows the Dash icon (`Icons.DashCooldown`, the one AcquirableThingData uses for the Dash Cooldown effect) instead of the white circle with "Dash", and still dashes when pressed
+- [ ] The Inventory's Weapons tab shows the same boomerang icon as the Inventory HUD button
+- [ ] The Arrows tab is labelled "Charges"
 
 **Notes**
-- Same build as the Stab button (T-117): background transparent, "Dash" TextLabel replaced by a `DashImage` ImageLabel filling the button (ScaleType Fit). Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-118-aim-thumbstick`.
-
-
-### T-118 · Touch controls: bigger aim thumbstick; touching its circle starts aiming
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Client (GUI)
-- **Files:** `Client/UI/Gui/CustomTouchscreen/CustomTouchscreen.rbxmx`, `Client/UI/Gui/CustomTouchscreen/init.luau`
-
-**Done when**
-- [ ] The aim thumbstick (knob) is 80% larger (0.3 -> 0.54 of its circle)
-- [ ] Touching anywhere inside the circle around it starts aiming, with the thumbstick jumping under the finger and aiming that way; dragging and releasing (throw) work as before
-- [ ] Touches outside the circle, or on the Stab / Dash buttons, don't start aiming
-
-**Notes**
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-118-aim-thumbstick`. Edits left uncommitted.
-- The drag is now measured from the circle's center (so the knob is centered on the finger, also when the knob itself is touched off-center). Touch positions are used as they are (they already match the GUI's AbsolutePosition; an inset correction first put the knob below the finger, fixed after Sol's test 2026-10-25). The circle frame is now Active so touches in it don't also turn the camera. Removed a leftover `warn(angle)` debug print.
-- Not tested with real touch input (Studio can't send touches through the tools).
-
-
-### T-117 · Touch controls: Stab (slash) button uses the new image
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Client (GUI)
-- **Files:** `Client/UI/Gui/CustomTouchscreen/CustomTouchscreen.rbxmx`, `Shared/Constants/Icons.luau`
-
-**Done when**
-- [ ] The Stab button shows image 70946537634521 instead of the white circle with "Stab", and still stabs when pressed
-
-**Notes**
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-117-stab-button`. The `Stab` button keeps its size and input (background now transparent); its "Stab" TextLabel was replaced by a `StabImage` ImageLabel filling it (ScaleType Fit). Also listed as `Icons.StabButton`.
-- Checked in a Studio play-test with the touch controls shown (2026-10-23).
-
-
-### T-116 · Touch controls: aim thumbstick knob uses the new image
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Client (GUI)
-- **Files:** `Client/UI/Gui/CustomTouchscreen/CustomTouchscreen.rbxmx`, `Shared/Constants/Icons.luau`
-
-**Done when**
-- [ ] The aim thumbstick's knob shows image 118487572306150 (transparent background) instead of the white circle, and drags / aims as before
-
-**Notes**
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`. The `Thumbstick` button keeps its size and input (background now transparent) with a `ThumbstickImage` ImageLabel filling it (ScaleType Fit). Also listed as `Icons.AimThumbstick`.
-- Checked in a Studio play-test with the touch controls shown (2026-10-23).
-
-
-### T-115 · Placed crates at half size; lobby time between rounds doubled
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Server
-- **Files:** `Server/Core/CrateService.luau`, `Server/Core/RoundCyclingService.luau`
-
-**Done when**
-- [ ] A bought crate placed in the world is 50% the size of the GenericCrate asset (still placed on the floor, label above it)
-- [ ] The vote in the lobby lasts 60 s (was 30 s); the end-of-round time in the arena (PreIntermission) stays 5 s
-
-**Notes**
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-115-crate-size-lobby-time`. Edits left uncommitted.
-- `WORLD_SCALE = 0.5` in CrateService (Model:ScaleTo, before placement, so the spot search uses the smaller size). Shop listings are unchanged.
-- RoundCyclingService: VOTE_DURATION 30 -> 60 (PRE_INTERMISSION_DURATION was briefly 10, back to 5: it's arena time, Sol 2026-10-23), INTERMISSION_DURATION 10 -> 20 (the post-vote LobbyEnded wait is INTERMISSION - VOTE, negative = none, unchanged). The vote still ends as soon as every player has voted.
+- New `Icons.InventoryButton` (123566439013193), used by both the HUD button and the tab (TABS entries can now have an Icon). The tab module id stays `Arrows`.
 - Not play-tested.
 
 
-### T-114 · Opening a bought crate: it appears next to the player and is clicked open
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Server / Client
-- **Files:** `Server/Core/CrateService.luau`, `Client/Core/CrateOpeningController.luau` (new), `Client/Core/ShopController.luau`, `Client/UI/ShopCommon/ShopBuilder.luau`, `Server/Core/ShopService.luau`, `Shared/Constants/GlobalConfig.luau`
-
-**Done when**
-- [ ] Buying a crate closes the shop and puts the crate model in the world next to the player: in front if that spot is open and level with them, otherwise another open, level spot around them (closest height / in front as fallbacks)
-- [ ] It shows "Click/Tap to open!" and the clicks left (owner only); every click bounces it; after `GlobalConfig.CrateClicksToOpen` (20; was 30) it pops open and the weapon is given ("New skin acquired!" / "Duplicate weapon")
-- [ ] Only the owner's clicks count; the weapon isn't owned before the crate is opened
-- [ ] A crate never opened is still given when the player leaves
-
-**Notes**
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-114-crate-opening`. Edits left uncommitted.
-- Server places the crate (`workspace.PlacedCrates`, anchored, no collision) with a ClickDetector and counts clicks (max 25/s); `CrateOpened` event to the owner. Spot search: rays down from 8 studs above the player's floor at 6/8/4.5/10 studs x 12 angles (front first); open = no solid environment part in the crate's box and no wall between the player and the spot; level = within 2 studs of the player's floor; characters are ignored.
-- The roll happens at purchase (refunded if the crate can't be placed); the grant at opening.
-- Agent test in Studio (2026-10-23): a crate bought on the server was placed 6 studs in front of the player, standing on their floor, with its ClickDetector and 30 clicks; the owner's client showed "Click to open!" / 30. Clicking it open and the pop/popup were not tested (Studio didn't accept input / screenshots at the time).
-
-
-### T-112 · Weapons Shop sells crates (one per category, weighted random weapon)
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Client / Shared / Server
-- **Files:** `Client/UI/Gui/WeaponsShop.luau`, `Client/UI/ShopCommon/ShopBuilder.luau`, `ShopListings.luau`, `Tabs/Crates.luau` (new), `Client/Core/ShopController.luau`, `Shared/Referential/Crates.luau` (new), `Shared/Library/CrateLibrary.luau` (new), `Shared/Constants/Tools.luau`, `Shared/Referential/ShopItems.luau`, `Server/Core/CrateService.luau` (new), `Server/Core/ShopService.luau`
-
-**Done when**
-- [ ] The Weapons Shop is one window (no tabs) on the new frame art (125528869499843) with three crate listings: Boomerang, Shuriken, Fan Crate, each showing the GenericCrate model
-- [ ] The crates are in a 3 x 2 grid (3 columns, 2 rows; scrolls past 6), like the other shops (T-112 follow-up, Sol 2026-10-23)
-- [ ] Buying a crate spends its price and gives a random weapon of that category, weighted by `Tools[...].CrateWeight`
-- [ ] A new weapon shows "New skin acquired!"; one already owned shows "Duplicate weapon" (and gives nothing else for now)
-
-**Notes**
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-112-weapon-crates`. Edits left uncommitted.
-- Placeholders (`TODO:RELEASE placeholder`): crate prices 250; weights Classic 70 / Placeholder 30 in each category; every crate uses `Shared.Assets.Crates.GenericCrate`.
-- `ShopBuilder` config gained an optional `Layout` (HideTabs, ListingsPosition/Size, GridColumns/Rows); the Cosmetics Shop is unchanged. `Tabs/WeaponCategory.luau` is no longer used by the Weapons Shop.
-- Crates are flagged as paid random items: hidden where PolicyService restricts them.
-- `GenericCrate` exists only in Studio (`ReplicatedStorage.Shared.Assets.Crates`), not in the repo yet.
-- Play-tested in Studio by the agent (2026-10-23): layout fits the frame, purchase deducts 250 and grants / reports duplicates.
-- TODO: duplicate rewards, crate odds display, opening animation.
-
-
-### T-111 · Recall SelectionRing stays on the boomerang (no drift on release)
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Client
-- **Files:** `Client/Core/RecallChargeController.luau`
-
-**Done when**
-- [ ] The ring stays centred on the boomerang while charging and while it flies back, without trailing behind it
-- [ ] Releasing the recall: the ring shrinks away while still following the boomerang as it drops and slides
-
-**Notes**
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-111-ring-follow`. Edits left uncommitted.
-- Cause: a released ring stopped following (it shrank in place while the boomerang was pushed away, T-104), and the ring was placed in RenderStepped, before the boomerang moved that frame (one frame behind). Now shrinking rings keep following, and placement runs on Heartbeat, after the frame's movement.
-- Not syntax-checked or tested (Studio play-testing is Sol's).
-
-
-### T-110 · Weapon categories: Classic names + a placeholder second weapon per category (gacha prep)
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Shared
-- **Files:** `Shared/Constants/Tools.luau`, `Shared/Referential/Skins.luau`, `Shared/Referential/DailyRewards.luau`, `Shared/Assets/Tools/*.rbxmx`, `CLAUDE.md`
-
-**Done when**
-- [ ] Three categories, two weapons each: Boomerangs (ClassicBoomerang, PlaceholderBoomerang), Shurikens (ClassicShuriken, PlaceholderShuriken), Fans (ClassicFan, PlaceholderFan)
-- [ ] Weapons Shop tabs list each under its own category; the placeholders use the same model as their Classic weapon
-- [ ] Daily rewards still grant the shuriken / fan (now ClassicShuriken / ClassicFan)
-
-**Notes**
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-110-weapon-categories`. Edits left uncommitted.
-- Renamed ids (tool, skin and model): BasicShuriken -> ClassicShuriken, BasicFan -> ClassicFan. Saved data with the old skin ids (owned/equipped) is no longer recognised (fine: developer-only testing, per Sol).
-- New `TODO:RELEASE placeholder` tools + skins + model copies (`PlaceholderBoomerang`, `PlaceholderShuriken`, `PlaceholderFan`; on sale at placeholder prices, Order 4-6).
-- Unchanged: every skin still uses the ClassicBoomerang weapon class (stats); `ClassicBoomerang.Id` is still "Boomerang".
-- Not syntax-checked or tested (Studio play-testing is Sol's).
-
-
-### T-109 · Number keys for the use-pickup buttons (slots)
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Client
-- **Files:** `Client/UI/Gui/UsePickupButtons/init.luau`, `Client/UI/Gui/UsePickupButtons/ButtonTemplate.rbxmx`
-
-**Done when**
-- [ ] Keys 1-9 use the button in that slot; a new usable pickup takes the lowest free slot and a pickup keeps its slot until it is lost
-- [ ] Example: A gets 1, B gets 2, A times out (B stays 2), C is acquired and gets 1 and is listed first
-- [ ] Buttons are listed by slot number; each shows its number in a small label on its right (black, partly transparent, rounded, white text)
-- [ ] Keys do nothing while typing in chat / a text box, or outside a round
-
-**Notes**
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-109-pickup-hotkeys`. Edits left uncommitted.
-- The label (`KeyLabel` in ButtonTemplate) only shows on devices with a keyboard (`UserInputService.KeyboardEnabled`); a 10th+ simultaneous pickup gets a button with no key.
-- Not syntax-checked or tested (Studio play-testing is Sol's).
-
-
-### T-108 · Use-pickup buttons: Explosive, Teleport and Decoy are used with on-screen buttons
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Client / Shared / Server
-- **Files:** `Client/UI/Gui/UsePickupButtons/` (new: `init.luau`, `UsePickupButtons.rbxmx`, `ButtonTemplate.rbxmx`), `Shared/Library/PickupLibrary.luau`, `Shared/Logics/PickupLogics/ExplosiveBoomerang.luau`, `TeleportBoomerang.luau`, `Decoy.luau`, `Server/Core/PickupService.luau`, `Shared/Referential/AcquirableThingData.luau`
-
-**Done when**
-- [ ] New `UsePickupButtons` GUI: round image buttons (transparent background, the pickup's icon, UICorner) in a centered vertical list on the left of the screen
-- [ ] Explosive: the button explodes the boomerang where it is (once per throw); 50% / non-interactive while no boomerang is out
-- [ ] Teleport: the button teleports the player to the boomerang (used up); 50% / non-interactive while no boomerang is out
-- [ ] Decoy: the button spawns the decoy at any time (used up)
-- [ ] None of the three trigger by themselves any more (end of throw, kill, first throw)
-- [ ] No button for any other pickup
-- [ ] The button appears as soon as the pickup is acquired and disappears when it is lost for any reason (used up, timed out, death, round end)
-
-**Notes**
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-108-use-pickup-buttons`. Edits left uncommitted.
-- Pickup logic API: `UseButton`, `ConsumedOnUse`, `canUse(player)`, `onUse(player)` (PickupLibrary types). Client presses fire `PickupButtonUsed` (classId); PickupService checks the effect is held, the player is alive in the arena and `canUse`, then runs `onUse`.
-- "Boomerang out" = `PickupLibrary.getWeaponOnField`: flying, returning, dying or lying dead on the field (not in hand; not while a predicted catch hides it, T-100).
-- Death now ends all of the player's pickup effects (except data-only ones owned by other systems: OnFire, HotPotato, DashCooldown). Previously only the round end (LobbyVoting) cleared them.
-- Teleport destination: the boomerang's X/Z at flight height (like the old end-of-throw teleport). Explosion: at the boomerang, snapped to the floor (unchanged).
-- Acquired-message subtitles updated to say to press the button.
-- Not syntax-checked or tested (Studio play-testing is Sol's).
-
-
-### T-107 · Dying boomerang sliding over a gap froze on the server (couldn't pick up / recall it)
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Shared
-- **Files:** `Shared/Logics/WeaponLogics/Dead.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`
-
-**Problem / goal**
-A boomerang that had already been Dead (e.g. pushed by a recall release, T-104) sliding over a gap for 0.75 s hit the old "sliding away -> auto recall" rule, which no longer applies to it (T-093), and the server's loop returned early every frame: frozen mid-gap in the Dying state forever, while the client kept sliding it onto ground. Not pickable (not grounded on the server), not rechargeable (not Dead).
-
-**Done when**
-- [ ] It keeps sliding over the gap on the server exactly like on the client, lands on the far side, slows and becomes Dead; pickup and recall work
-- [ ] Over nothing for 3 s (`DEAD_NO_GROUND_FAILSAFE_SECONDS`): put down at the last solid spot it passed over; with none recorded, back to the player's hand with a warning in the output
-- [ ] Physics (walls, ground checks, landing) is the same on server and clients and always worked out at `GlobalConfig.BoomerangFlightHeight`; only the drawn height differs on clients
-- [ ] A boomerang that has never been Dead still auto-recalls after 0.75 s over a gap (T-062)
-
-**Notes**
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-107-gap-slide`. Edits left uncommitted.
-- New DYING PHYSICS section in `Dead.luau`: `stepDyingSim` is the single physics step used by `applyDeath` (server and clients) and `predictSlidePositions`. Walls are cast and ground is looked for from flight height; the fall is a separate `PhysicsY` (starts at flight height for a thrown boomerang, at the risen height for a released charge). Ground is checked every step now, so a grounded boomerang sliding onto a gap also keeps its momentum over it. Server position = physics; clients draw the model resting on the ground and falling in step with the physics.
-- Automatic recall off the ground: physics now starts at flight height right away (the model eases up with `VisualYOffset`, like a throw) instead of being lifted gradually (`RECALL_FROM_DEAD_LIFT_RATE` now unused).
-- Not syntax-checked or tested (Studio play-testing is Sol's).
-
-
-### T-104 · Releasing a manual recall pushes the boomerang toward the player (minimum momentum)
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Shared
-- **Files:** `Shared/Logics/WeaponLogics/Dead.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`, `Client/Core/WeaponController.luau`, `Shared/Constants/GlobalConfig.luau`
-
-**Done when**
-- [ ] Tapping recall (release right after the charge starts) drops the boomerang and it slides ~2 studs toward the player
-- [ ] Releasing at the end of the charge drops it from flight height and it slides ~4 studs toward the player; in between is interpolated
-- [ ] Releasing while it is already flying back drops it with its own speed, but never less than the end-of-charge momentum
-- [ ] Every client sees the same push (direction comes from the server with the Cancel event)
-
-**Notes**
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-104-release-momentum`. Edits left uncommitted.
-- Config: `RELEASE_MOMENTUM` (MinSpeed 15, MaxSpeed 20 studs/s) in `Dead.luau`, read through `DeadWeaponLogic.getReleaseMomentum(chargeProgress)`; a push-in ease (e.g. PushSeconds) is reserved there for later.
-- A released charge now goes back into the Dying state (`applyDeath`, spin 0) instead of the old straight drop (`GlobalConfig.RecallChargeCancelDropSeconds` now unused). Side effects: pressing recall again only starts a new charge once it has stopped sliding (it can still be picked up while sliding, T-099), and the beam fades back in once it rests.
-- Not syntax-checked or tested (Studio play-testing is Sol's).
-
-
-### T-101 · Server snapshots re-create a boomerang the client is missing (desync fix B)
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Client
-- **Files:** `Client/Core/WeaponController.luau` (`onSnapshot`), `Shared/Logics/WeaponLogics/Dead.luau` (`applyServerSnapshot`)
-
-**Problem / goal**
-A Dying/Dead (or Returning) snapshot for a player whose boomerang this client doesn't have is silently dropped, so a boomerang only the server has stays invisible. When that happens, build the missing dead (or returning) boomerang from the snapshot (position, direction, speed, state) instead.
-
-**Done when**
-- [ ] A Dying/Dead snapshot with no local boomerang creates a visible dead boomerang at the server's position, which can be picked up / recalled
-- [ ] Stale snapshots for a boomerang that was just despawned don't resurrect it (needs T-102's ids, or a short despawn tombstone)
-
-**Notes**
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-101-snapshot-recreate`. Edits left uncommitted.
-- `WeaponController.onSnapshot`: a Dying/Dead snapshot for a player with no thrown or dead boomerang on this client calls `restoreMissingDeadWeapon` -> `Boomerang.restoreDeadFromSnapshot` (model from the player's skin, or the local player's held model like a throw; dead data; `applyDeath`, then `setDead` for a Dead snapshot). A warning is printed each time it happens.
-- Stale snapshots: no ids yet (T-102), so a "despawned since the last Spawned" flag per player blocks rebuilding a boomerang the server already despawned.
-- Only Dying/Dead are rebuilt. A missing flying/returning boomerang (e.g. a player joining mid-throw) is not; that's left to T-103.
-- Not syntax-checked or tested (Studio play-testing is Sol's).
-
-
-### T-099 · Dying boomerang: spin sound stops on landing, can be picked up once on the ground
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Shared
-- **Files:** `Shared/Logics/WeaponLogics/Dead.luau`
-
-**Done when**
-- [ ] The spinning sound fades out (0.25 s) the moment a dying boomerang hits the ground, not when it comes to rest
-- [ ] A dying boomerang can be picked up (walk over it) once it has hit the ground, including while it is still sliding
-- [ ] It still can't be picked up while flying or while dropping before it touches the ground; Dead boomerangs are picked up as before
-
-**Notes**
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-099-ground-pickup`. Edits left uncommitted.
-- Server only: `SoundLibrary.stop(InstanceId)` at the landing in `applyDeath` (its existing fade-out); pickup check (`isWithinPickupDistance`, same 3-stud distance) in the dying loop once `isGrounded`, shared with the Dead pickup.
-- Not syntax-checked or tested (Studio play-testing is Sol's).
-
-
-### T-098 · Dying boomerangs slide "on ice" with a winding-down spin (client feedback)
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Shared
-- **Files:** `Shared/Logics/WeaponLogics/Dead.luau`, `Shared/Referential/DeadWeapons.luau`, `Shared/Constants/GlobalConfig.luau`
-
-**Done when**
-- [ ] A dying boomerang drops to the ground, then keeps gliding and slows gradually; faster boomerangs slide further
-- [ ] Its spin starts at the flight spin rate and winds down gradually (about 1 s), instead of spinning at full rate and stopping dead
-- [ ] `tune DeadWeaponDeceleration` (renamed from `DyingSpeedMultiplier`) still speeds up / slows down the whole dying slide, fall and spin; `tune DyingSpeedMultiplier` no longer exists
-
-**Notes**
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-098-dead-slide-ice`. Edits left uncommitted.
-- Constant 320 studs/s² deceleration replaced by drag (proportional to speed) + small friction, gentler while dropping, and an 80% speed keep on landing. Values in "INTERNAL CONFIG: dying slide" at the top of `Dead.luau`, all x DyingSpeedMultiplier.
-- At default tuning: dying at 75 studs/s travels ~17 studs (was ~9), at 25 ~5 (was ~1). `predictSlidePositions` mirrors the new model (including the drop and landing).
-- Renamed the tuning setting and its config value: `DyingSpeedMultiplier` -> `DeadWeaponDeceleration` (Cmdr `tune DeadWeaponDeceleration`, `GlobalConfig.DeadWeaponDeceleration`).
-- Spin is client visual (`SpinRate`); the client loop keeps running after the slide stops until the spin finishes.
-- Not syntax-checked or tested (Studio play-testing is Sol's).
-
-
-### T-097 · Recall tuning: `recallramptime` removed, `recallcurveacceleration` added, `recallacceleration` now sets the speed-up
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Shared
-- **Files:** `Shared/Library/BoomerangTuningLibrary.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`, `Shared/Constants/GlobalConfig.luau`, `Server/Cmdr/Commands/TuneBoomerang.luau`
-
-**Done when**
-- [ ] `tune recallramptime` no longer exists
-- [ ] `tune recallcurveacceleration` does what `recallacceleration` used to (turn rate toward the player, default 0.15)
-- [ ] `tune recallacceleration <n>` scales how quickly a manual recall reaches full speed and spin (1 = 0.2 s, 2 = 0.1 s, 0.5 = 0.4 s)
-
-**Notes**
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-097-recall-tuning`. Edits left uncommitted.
-- Ramp time = `MANUAL_RECALL_FULL_SPEED_SECONDS / RecallAcceleration` (min divisor 0.01). New default `GlobalConfig.ManualRecallAcceleration = 1`; `ManualRecallRampSeconds` removed (unused).
-- Not syntax-checked or tested (Studio play-testing is Sol's).
-
-
-### T-096 · `tune recallchargetime`: live-tunable recall charge duration
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Shared
-- **Files:** `Shared/Library/BoomerangTuningLibrary.luau`, `Shared/Logics/WeaponLogics/Dead.luau`, `Client/Core/DeadWeaponBeamController.luau`, `Server/Cmdr/Commands/TuneBoomerang.luau`
-
-**Done when**
-- [ ] `tune recallchargetime <seconds>` changes how long a manual recall charges (default `GlobalConfig.RecallCharge`, 0.3 s); `tune recallchargetime` shows it and `resetboomerang` restores it
-- [ ] The rise, the server's completion of the charge and the dead-beam fade all follow the tuned value, on server and clients
-
-**Notes**
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-096-tune-recallcharge`. Edits left uncommitted.
-- New `RecallChargeTime` setting (attribute-replicated like the others). `DeadWeaponLogic.getRecallChargeSeconds` reads it (min 0.01 s) and replaces the three `GlobalConfig.RecallCharge` reads. Changing it mid-charge takes effect immediately.
-- Not syntax-checked or tested (Studio play-testing is Sol's).
-
-
-### T-095 · Manual recall lifts during the charge again, quick start of the return (client feedback)
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Shared
-- **Files:** `Shared/Logics/WeaponLogics/Dead.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`, `Shared/Referential/ThrownWeapons.lua`, `Shared/Constants/GlobalConfig.luau`
-
-**Done when**
-- [ ] When the recall is held, the dead boomerang rises to `GlobalConfig.BoomerangFlightHeight`: slow at first, fast (quart-in), overshoots the height a little, then bobs down onto it exactly when the charge completes
-- [ ] Releasing during the charge drops it back to the ground; the beam, ring, Summon, slowdown and hold rules are unchanged
-- [ ] When the return begins it reaches full recall speed and full spin rate within 0.2 s (`MANUAL_RECALL_FULL_SPEED_SECONDS`, top of `Boomerang.luau`)
-
-**Notes**
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-096-recall-lift`. Edits left uncommitted.
-- Re-enabled `applyRecallChargeLift` (was `_UNUSED`) with a new rise curve (`getRiseCurve`, internal config at the top of the charge section in `Dead.luau`: `RISE_OVERSHOOT`, `RISE_PEAK_AT`, `RISE_SETTLE_BOBS`). The in-flight timed rise (T-095) is kept behind `MANUAL_RECALL_RISES_DURING_FLIGHT = false`. The Cmdr `tune` RecallRampTime no longer affects manual recalls.
-- Not syntax-checked or tested (Studio play-testing is Sol's).
-
-
-### T-094 · Dead-boomerang beam fades in and out
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Client
-- **Files:** `Client/Core/DeadWeaponBeamController.luau`, `Shared/Constants/GlobalConfig.luau`
-
-**Done when**
-- [ ] The beam to a dead boomerang fades in when it appears (0.4 s, `DeadBeamFadeSeconds`) instead of popping in
-- [ ] While the recall charges the beam fades gradually and is completely invisible exactly when the charge peaks
-- [ ] Releasing/cancelling the charge, or the boomerang dropping back to dead, fades it back in
-- [ ] Pressing again after a release picks up smoothly (never jumps); dying or the round ending removes it without errors at any point
-
-**Notes**
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-094-beam-fade`. Edits left uncommitted.
-- The dead beam has its own opacity value stepped each frame: while charging it only goes down (following `1 - progress` from the server-time charge start), otherwise it moves at `1 / DeadBeamFadeSeconds` per second. A beam whose boomerang goes away keeps fading out if its parts still exist, and is removed immediately if they don't (player died / boomerang destroyed). `RecallChargeBeamOpacity` is no longer used.
-- Not syntax-checked or tested (Studio play-testing is Sol's).
-
-
-### T-093 · Manual recall is a hold again (client feedback)
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Server / Client / Shared
-- **Files:** `Shared/Logics/WeaponLogics/Dead.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`, `Server/Core/WeaponService.luau`, `Shared/Logics/AbilityLogics/Dash.luau`, `Client/Core/RecallChargeController.luau`
-
-**Done when**
-- [ ] Releasing recall before the 0.3 s charge finishes cancels the charge (the boomerang stays where it is; ring shrinks away)
-- [ ] The player stays in the recall hold state (slowed, no dash, Summon animation) for the whole return flight
-- [ ] Releasing recall while the charged boomerang flies back makes it drop and return to the dead state; the player is released then
-- [ ] Catching it ends the hold state (Summon stops, speed restored, dash works)
-
-**Notes**
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-093-recall-hold`. Edits left uncommitted. Undoes the "can't be interrupted" and "released once it starts returning" parts of T-092.
-- `Boomerang.stopRecallFromDead` is back (as before T-090) and the release branch in `WeaponService.luau` is live again. A cancelled charge now just clears the charge fields (`applyRecallChargeEvent` "Cancel"), since nothing was lifted.
-- The slowdown and the dash block follow `isRecallChargeActive` (charging OR returning from a manual recall).
-- Not syntax-checked or tested (Studio play-testing is Sol's).
-
-
-### T-092 · Manual recall rework (client feedback): ground charge, no interrupt, slowed, tilt-up return
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Server / Client / Shared
-- **Files:** `Shared/Logics/WeaponLogics/Dead.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`, `Shared/Logics/AbilityLogics/Dash.luau`, `Server/Core/WeaponService.luau`, `Client/Core/RecallChargeController.luau`, `Shared/Constants/GlobalConfig.luau`, `Shared/Referential/ThrownWeapons.lua`
-
-**Done when**
-- [ ] Tapping recall on a dead boomerang starts a `GlobalConfig.RecallCharge` (0.3 s) charge; the boomerang stays on the ground, the ring appears and the Summon animation plays
-- [ ] The charge can't be interrupted: releasing the button does nothing
-- [ ] While charging the player is slowed like when aiming a throw (server-authoritative) and can't dash
-- [ ] When the charge completes the boomerang rises to `BoomerangFlightHeight`, tilted toward the player, and speeds up toward them (old manual-recall return); the player is released at that moment (Summon stops, speed restored, can dash)
-- [ ] Ring and beams behave as before (stay until caught)
-
-**Notes**
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-092-recall-rework`. Edits left uncommitted.
-- Old lifting charge kept but unused: `applyRecallChargeLift_UNUSED` in `Dead.luau`, the release/cancel block commented out in `WeaponService.luau`, `RecallChargeCancelDropSeconds` unused. The lift-and-tilt on the return (`ManualRecallLiftRate`, `ManualRecallMaxTiltDegrees`, `RecallTilt`) is restored from before T-090, now rising to `BoomerangFlightHeight`.
-- Slowdown: `reconcileRecallChargeSlowdown` in `WeaponService.luau` uses the same `tweenWalkSpeed` / `tweenWalkSpeedInverse` and `AimWalkSpeed` as aiming. Dash: `Dash.canActivate` (both sides) refuses during a charge.
-- Not syntax-checked or tested (Studio play-testing is Sol's).
-
-
-### T-091 · Dash cooldown shown in the effects bar
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Client / Shared
-- **Files:** `Shared/Logics/AbilityLogics/Dash.luau`, `Shared/Referential/AcquirableThingData.luau`, `Shared/Library/PickupLibrary.luau`, `Shared/Constants/Icons.luau`
-
-**Problem / goal**
-After dashing, the cooldown until the next dash shows along the bottom of the screen like pickups and On Fire: an icon (`Icons.DashCooldown`) and a countdown timer. It is display-only: no item-acquired notification, and the server doesn't know about it.
-
-**Done when**
-- [ ] Dashing shows the Dash Cooldown icon with a timer in the bottom effects bar; it disappears when the cooldown ends (1 s)
-- [ ] No "item acquired" notification appears for it
-- [ ] Dying clears it; other players never see it
-
-**Notes**
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-091-dash-cooldown`. Edits left uncommitted.
-- The countdown is only `cooldowns` inside `Dash.luau`. Each client frame it mirrors that into the effects gui as a data-only effect `DashCooldown` through `PickupLibrary.setPickupEffectActive` / `removePickupEffectActive(..., doNotReplicate)` (client only; nothing reaches the server). No `ItemAcquired` call anywhere.
-- **`Icons.DashCooldown` is a placeholder (`0`, blank icon):** I had no asset id. Put the real id in `Shared/Constants/Icons.luau`.
-- Not syntax-checked or tested (Studio play-testing is Sol's).
-
-
-### T-090 · Dead boomerang recall must be charged (lift, SelectionRing, Summon animation)
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Server / Client / Shared
-- **Files:** `Shared/Logics/WeaponLogics/Dead.luau` (charge logic), `Shared/Logics/WeaponLogics/Boomerang.luau`, `Server/Core/WeaponService.luau`, `Client/Core/WeaponController.luau`, `Client/Core/RecallChargeController.luau` (new), `Client/Core/DeadWeaponBeamController.luau`, `Client/Core/AnimationController.luau`, `Shared/Utils/BoomerangColorUtil.luau` (new), `Shared/Constants/GlobalConfig.luau`, `Shared/Referential/DeadWeapons.luau`
-
-**Problem / goal**
-A dead boomerang no longer lifts lazily and flies to the player on the recall press. The player must hold the manual recall for `GlobalConfig.RecallCharge` (1 s). During that time the boomerang rises straight up to hand height (Y only), the player plays the Summon animation, a SelectionRing appears around the boomerang and the beam to it dims to 20% opacity. When the charge completes it flies to the player with the existing manual-recall physics (speed ramp), without any lift. Releasing early drops it back, the ring shrinks away and the beam returns to normal. When it is caught the ring and beam are destroyed and Summon stops. The beam is local only; the lift, animation and ring are seen by every client.
-
-**Done when**
-- [ ] Holding recall (E / the recall button) on a Dead boomerang lifts it to hand height over `GlobalConfig.RecallCharge` (1 s), with no sideways movement; at the end of the charge it starts flying to the player
-- [ ] Releasing before the charge completes drops it back to its resting spot; pressing again restarts the charge
-- [ ] The Summon animation plays on the charging player (visible to other players) and stops on release / catch
-- [ ] The SelectionRing (from `ReplicatedStorage.Shared.Assets.SelectionRing`, its size = 100%) grows from nothing to full size over 0.3 s with a small overshoot, stays while the boomerang returns, shrinks away on an early release, and is destroyed on catch; its color matches the boomerang trail (white = you, red = free-for-all enemies, team color for teams)
-- [ ] The beam to the dead boomerang dims to 20% opacity during the charge and goes back to normal if released early; when the recall starts moving the boomerang that beam stays (dimmed) and a second beam (BeamToReturningWeapon) fades in on top of it; both stay until the boomerang is in your hands; neither beam is ever seen by other players
-- [ ] Once the charge is complete, releasing the button does NOT stop the recall: the boomerang keeps flying to you (ring and both beams stay) until you catch it, the round ends or you respawn
-- [ ] Holding recall on a Dying boomerang does nothing until it lands, then the charge starts (still holding)
-
-**Test in Studio**
-- `setnextgamemode classic`, throw so the boomerang dies out of sight (rest on the ground). Hold E: it should rise straight up over about 1 s while you play Summon, a ring pops in around it, and the beam dims. At 1 s it should fly to you with the usual slow start and surge, at constant height.
-- Release E at about 0.5 s: it falls back to where it was, the ring shrinks, the beam brightens again; hold again to retry.
-- Release E after the charge is complete (while it flies): nothing changes, it keeps flying to you with the ring and both beams until caught. Also try dying/respawning mid-return: everything should clean up.
-- `tune`-style testing of the time: change `GlobalConfig.RecallCharge` (e.g. 3) and hold again.
-- Second client (or Studio server with 2 players): the other player should see the boomerang lift, the Summon animation and the ring (in their own color rule: red if enemy in free-for-all, team color in teams), but NOT the beam.
-- Catch it: the ring, beam and Summon should all be gone.
-
-**Notes**
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-090-recall-charge`. Edits left uncommitted.
-- **How it works:** the server owns the charge (`Dead.luau`: `beginRecallCharge` / `cancelRecallCharge` / `updateRecallCharges`). The press only sets `RecallHeld`; once the boomerang is Dead the server broadcasts a reliable `RecallCharge` event (`Start` with the start time and the start / target / resting heights, or `Cancel` with the current height), all stamped in server time. Every machine (server and clients) derives the boomerang's height from those stamps each frame (smoothstep up over `RecallCharge`, a quadratic drop back over `RecallChargeCancelDropSeconds`), so the lift is smooth without streaming positions. When the charge completes the server calls `Boomerang.recallFromDead(..., true)` through the `DeadWeaponLogic.onRecallCharged` hook, and clients follow the Returning snapshot as before.
-- **Removed:** the manual recall's lazy lift and visual tilt (`ManualRecallLiftRate`, `ManualRecallMaxTiltDegrees`, the tilt code and the `RecallTilt` fields). The automatic recall of a dying boomerang that slides off by itself (`RecallFromDead == false`) keeps its lift.
-- **Visuals** are derived every frame from `DeadWeaponLogic.isRecallChargeActive(player)` (no event handlers), like the beam: `RecallChargeController` handles the ring and the Summon animation for every player; `DeadWeaponBeamController` now also keeps the beam while the charged boomerang flies back and dims it.
-- **Color rule** moved to the new `Shared/Utils/BoomerangColorUtil.getColor(ownerPlayer)` (the thrown trail in `Boomerang.luau` uses it too): own = `MyBoomerangTrailColor`, free-for-all or friendly-fire team = `EnemyBoomerangTrailColor`, otherwise the team color. Allies on your own team get their team color (the existing trail behaviour).
-- New `GlobalConfig` values: `RecallCharge = 1`, `RecallChargeCancelDropSeconds = 0.25`, `RecallChargeBeamOpacity = 0.2`, `SelectionRingGrowSeconds = 0.3`, `SelectionRingVanishSeconds = 0.15`.
-- The `SelectionRing` asset exists only in the place (`ReplicatedStorage.Shared.Assets.SelectionRing`, not under `ReplicatedStorage.Assets`, and not in the repo); the controller waits for it there. It is a flat Neon disc (4.26 x 4.26 studs), kept in its own orientation and recolored per player.
-- Decisions I made: holding recall on a Dying boomerang starts the charge when it lands; a boomerang being caught mid-return destroys the ring at once; once the charge is complete the recall can't be cancelled (`Boomerang.stopRecallFromDead` removed). Interpretation: "same recall logic as the automatic recall" = I kept the existing manual-recall flight (ramped speed, no lift); ask if the automatic physics was meant.
-- Fix (2026-10-20): the table-driven beam controller with the returning beam had never actually been committed (f776a7c held an older controller), so the returning beam did not exist in the build; it is restored now.
-- Follow-up (Sol, 2026-10-20): `RecallCharge` is now 1. Returning beam: the dead beam now stays through the return (dimmed) until the boomerang is caught; the new BeamToReturningWeapon beam fades in (0.3 s, `RecallReturnBeamFadeInSeconds`, from fully transparent to the reference's number sequence). It is built from the reference's values (no texture, Wrap, TextureLength 1, width 1, not the dead beam's width 6) and uses the same attachment points as the dead beam, but its own attachment instances. Local player and own boomerang only.
-- Not syntax-checked or tested (no Luau tooling on the device; Studio play-testing is Sol's). Task ID: I used T-090 and bumped `Next free ID` to T-091 in this lane without a reservation commit; renumber if it clashes.
-
-### T-089 · Beam between the player and their dead boomerang
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Client
-- **Files:** `Client/Core/DeadWeaponBeamController.luau` (new)
-
-**Problem / goal**
-While the local player's own boomerang is Dead (resting on the field, waiting for a manual recall), a beam connects the player to it so it's easy to find. Only the local player sees it; other players' dead boomerangs get no beam. The beam is destroyed when the boomerang is picked up or recalled.
-
-**Done when**
-- [ ] A beam appears between you and your own Dead boomerang, and only then (not while Dying, thrown or returning)
-- [ ] The beam disappears when the boomerang is picked up, recalled, or the round ends
-- [ ] Other players never see a beam, and you never see one for another player's boomerang
-- [ ] Never more than one beam at a time
-
-**Test in Studio**
-- Start a round (`setnextgamemode classic`), throw a boomerang so it dies out of line of sight (or any way you normally get a Dead one).
-- When it comes to rest (Dead), a white textured beam should run from above your character to the boomerang. Walk around: it follows you.
-- Hold recall (E) or walk over the boomerang: the beam disappears the moment it starts coming back / is picked up.
-- Repeat several times quickly (throw, die, recall, throw again), and die/respawn while it is Dead: there should never be two beams, and none left behind.
-- Second client: should never see your beam.
-- For debugging, set `DEBUG = true` at the top of the controller: it prints every create/destroy and warns if a second beam ever exists. In the command bar (client), `require(game.ReplicatedStorage.Client.Core.DeadWeaponBeamController).getBeamCount()` should return 0 or 1.
-
-**Notes**
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/dead-weapon-beam`. Edits left uncommitted.
-- New auto-loaded client controller. The beam is built entirely in code (the `BeamToDeadWeapon` instance in the workspace is only a reference). Copied from it: texture `rbxassetid://75521069157462`, width 1/1, FaceCamera, TextureMode Wrap, TextureLength 1, TextureSpeed 1, Segments 100, white color, Brightness 1, LightEmission 0, LightInfluence 1, ZOffset 0, no curve, transparency sequence 1 → 0.506 → 0.494 → 1 (keypoints 0, 0.101, 0.899, 1).
-- Attachments: on the boomerang's PrimaryPart (or the first BasePart found in the model) at (0, 1, 0), and on the local character's `Hitbox` (HitboxService) at (0, 0, 0). `PLAYER_ATTACHMENT_OFFSET` is in world-upright terms and converted into the Hitbox's space (it is a cylinder rotated 90 degrees), so a non-zero value would still mean straight up.
-- One-beam safety: the controller never reacts to events. Every frame it derives whether a beam should exist from `DeadWeapons.Data[LocalPlayer]` (State == Dead, host and Hitbox valid) and fixes any difference. The beam is rebuilt if the weapon data, weapon part or Hitbox changes (e.g. respawn). Everything it creates is tagged (`DeadWeaponBeamObject`), and the tracked beam plus every tagged leftover is destroyed before building a new one and whenever it tears down. The beam lives in a client-only `workspace.DeadWeaponBeams` folder.
-- Player attachment offset is now (0, 0, 0), the center of the Hitbox (Sol, 2026-10-20; it was 2 studs up). `PLAYER_ATTACHMENT_OFFSET` still adjusts it.
-- Visual update (Sol, 2026-10-20): TextureMode `Static`, Width0/Width1 = 6. `TextureLength` is the length of one texture tile in studs in Static mode (checked with test beams in Studio edit mode: 6 gave 6-stud tiles, 10 gave 10-stud tiles). So it is a fixed 6 (width 6 x the image's 1:1 aspect), no matter how far the player is from the boomerang; the pattern repeats along the beam and the last tile is cut off. (First attempt set it to distance / 6, which made one tile span the whole beam, so it looked stretched.) `getTileLength()` computes it from `BEAM_WIDTH`.
-- Not syntax-checked or tested (no Luau tooling on the device; Studio play-testing is Sol's). Task ID: I used T-089 and bumped `Next free ID` to T-090 in this lane without a reservation commit on `main`; if another lane took T-089 meanwhile, renumber when merging.
-
-### T-087 · Stats frame art and Quests / Settings HUD buttons
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** GUI
-- **Files:** `Client/UI/Gui/Stats/init.luau`, `Client/UI/Gui/MenuButtons/init.luau`
-
-**Problem / goal**
-The Stats menu uses new main container art (107079429198573). Two new square buttons sit under the left HUD grid: Quests (83981048085676) and Settings (118835487029221). They open nothing yet.
-
-**Done when**
-- [ ] The Stats container shows the new frame image.
-- [ ] Quests and Settings buttons show in the lobby menu, under Skins/Stats, and do nothing when clicked.
-
-**Test in Studio**
-- Open Stats: check the new frame fits and the title, exit button, cards and listings still sit inside it.
-- Lobby: check the two square buttons under the grid look right at different screen sizes.
-
-**Notes**
-- Branch `agent/T-087-stats-frame-hud-buttons`, lane `Boomerang-lanes/T-085-aim-arrows`. Not tested in Studio.
-- Only the image id changed in Stats; `CONTAINER_ASPECT_RATIO` (1.4619) and the title/exit/card positions still match the old art. If the new image has different proportions or layout, those need adjusting (I can't read the image's size from here; tell me or adjust the constant).
-- Quests and Settings are entries in the `BUTTONS` table like the other four (frame + name board, icon inside the frame window), so the grid is now 2 columns x 3 rows. Quests is tinted gold, Settings gray-blue (my picks; change the `Color` in `BUTTONS`). They have no click action. To wire one later: `MenuButtonsGui.setButtonEnabled("Quests", true, callback)`.
-
-### T-086 · HUD menu button icons
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** GUI
-- **Files:** `Client/UI/Gui/MenuButtons/init.luau`
-
-**Problem / goal**
-The left HUD menu buttons (Shop, Daily, Skins/inventory, Stats) used emoji placeholders. Use Sol's icon images.
-
-**Done when**
-- [ ] Each button shows its image: Shop 95884415147706, Daily 126765785652910, Inventory (Skins) 123566439013193, Stats 124985088272789.
-
-**Test in Studio**
-- In the lobby, check the four left buttons show the new icons, centered in the frame window and not stretched, and still open their menus.
-
-**Notes**
-- Branch `agent/T-086-hud-button-icons`, lane `Boomerang-lanes/T-085-aim-arrows`. Not tested in Studio. Icons use `ScaleType.Fit` in the same window the emoji used.
-
-### T-085 · Aim arrow customization (own, buy and equip aim arrows)
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Server / Client / Shared / Data / GUI
-- **Files:** `Shared/Referential/AimArrows.luau`, `Shared/Library/AimArrowLibrary.luau`, `Shared/Library/CosmeticLibrary.luau`, `Server/Core/AimArrowService.luau`, `Client/Core/AimArrowController.luau`, `Client/Core/WeaponController.luau`, Shop and Inventory `Tabs/Arrows.luau`
-
-**Problem / goal**
-Players can own, buy (Shop > Arrows) and equip (Inventory > Arrows) different aim arrows, and see each other's equipped arrows. Same approach as boomerang skins.
-
-**Done when**
-- [ ] Shop Arrows tab lists the arrows on sale; buying one with Currency adds it to the Inventory Arrows tab.
-- [ ] Equipping an arrow in the Inventory changes the arrow shown while the player aims, for that player and for every other player.
-- [ ] The equipped arrow is saved (`OwnedAimArrows` / `EquippedAimArrow`).
-
-**Test in Studio**
-- Make sure `DefaultAimArrow` and `RedAimArrow` are in `ReplicatedStorage.Shared.Assets.Gui` (see Notes).
-- Cmdr: `grantaimarrow <player> RedAimArrow`, or buy it in Shop > Arrows (250 Currency placeholder; `givecurrency` to afford it).
-- Inventory > Arrows: Equip Red. Aim a throw: the arrow is red. With 2+ players (Studio Test, 2 players) each sees the other's arrow color; equip while the other player is mid-lobby and aim again to check it updates.
-- Rejoin: the equipped arrow is kept.
-
-**Notes**
-- Branch `agent/T-085-aim-arrows`, lane `Boomerang-lanes/T-085-aim-arrows`. Not tested in Studio; no syntax checker (luau/selene) was available in the session.
-- Design: aim arrows mirror skins (`AimArrows` data, `AimArrowLibrary`, `AimArrowService`, `AimArrowController`, Cmdr `grantaimarrow`). Shop listing Type `"AimArrow"`.
-- Shared cosmetics: new `CosmeticLibrary` holds the per-category `Equipped*` Player attribute names (Skin, AimArrow). The server writes them and Roblox replicates them to every client, so each client reads any player's equipped cosmetic from one place (late joiners included, no extra remote). Readers validate against the category data and fall back to the default. `SkinLibrary.ATTRIBUTE_NAME` now comes from it; skin behaviour is unchanged. I did not add a separate client-side cache table: the replicated attributes already are one.
-- `WeaponController` picks the template when a player starts aiming (`AimArrowLibrary.getTemplateFor`) and keeps it for that aim; changing arrows mid-aim applies from the next aim.
-- Assets: code expects `DefaultAimArrow` and `RedAimArrow` in `Shared/Assets/Gui`. They are **not in the repo yet** (only `AimArrow.rbxmx` is). Until they are, `AimArrowLibrary.getTemplate` warns and falls back to the old `AimArrow` template. Add the two `.rbxmx` files (and remove `AimArrow.rbxmx`) when you export them.
-- Placeholders (`-- TODO:RELEASE placeholder`): `AimArrows.Icon` is nil for both (the Shop/Inventory show a placeholder label with an emoji until a GUI image id is set); `RedAimArrow.Price = 250`; no `ProductId`.
-- New profile fields `OwnedAimArrows` and `EquippedAimArrow` (filled in by Reconcile).
-
-### T-077 · Telekinesis pickup: steer your thrown boomerang
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Shared / Client / Server
-- **Files:** `Shared/Logics/PickupLogics/TelekinesisBoomerang.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`, `Shared/Referential/ThrownWeapons.lua`, `Shared/Library/BoomerangTuningLibrary.luau`, `Shared/Library/PickupLibrary.luau`, `Shared/Constants/GlobalConfig.luau`, `Client/Core/WeaponController.luau`, `Server/Core/WeaponService.luau`
-
-**Problem / goal** (split from T-010)
-Implement the TelekinesisBoomerang stub. While the effect is active, the owner can nudge their thrown boomerang toward their aim — a gentle bias, not full control, so it slowly turns toward the cursor (PC) or the direction the aim thumbstick is dragged (touch).
-
-**Done when**
-- [ ] Pickup enabled and spawnable; effect lasts `GenericEffectTimeout`.
-- [ ] The owner's aim bends the thrown boomerang (server-authoritative, client-predicted, reconciled by the usual snapshots).
-- [ ] Input sits behind one provider function per control scheme (PC mouse, touch thumbstick, console stubbed) so it's easy to change later.
-- [ ] Steering strength tunable live via Cmdr `tune TelekinesisInfluence <n>`.
-
-**Test in Studio**
-- Get the pickup (spawn one / force it), throw, then:
-  - PC: move the mouse while it flies — it should slowly curve toward the cursor, not snap.
-  - Touch: after throwing, drag the aim thumbstick — the boomerang should bias that way; releasing stops steering and must NOT throw again.
-- `tune TelekinesisInfluence 5`, throw: it should turn faster. `reset TelekinesisInfluence` restores the default (2).
-- Confirm it only steers your own boomerang, not other players'.
-
-**Open questions (for Sol)**
-- Steering applies while the boomerang is flying out (Outgoing/Exhausted), not during its automatic return — confirm that feels right.
-- Default influence is 2 (Homing is 3). Tune to taste.
-
-**Notes**
-- Branch `agent/T-077-telekinesis`, lane `Boomerang-lanes/T-077-telekinesis`.
-- Added `TelekinesisBias` to `ThrownWeapons.Data`; the flight loop lerps `direction` toward it (`Boomerang.luau`, next to Homing), on server and the owner's client.
-- Client (`WeaponController`) streams the aim direction over a new unreliable remote `TelekinesisSteer` (throttled ~20 Hz) and predicts locally; server (`WeaponService`) validates (effect active + thrown weapon) and sets the bias. Added `PickupLibrary.isEffectActive`.
-- New tuning setting `TelekinesisInfluence` in `BoomerangTuningLibrary`; default from `GlobalConfig.TelekinesisSteerInfluence = 2`. The existing `tune` / `reset` Cmdr commands pick it up automatically.
-- No new placeholders added. `AcquirableThingData.TelekinesisBoomerang` already existed with a placeholder `Img = 17` (pre-existing; its real icon is part of T-018).
-- Telekinesis and Homing are mutually exclusive (Sol, 2026-10-09): PickupService `NotCompatible` keeps the other out of the pickup pool while you have one.
-- 2026-10-22: reworked on branch `agent/telekinesis` (lane `Boomerang-lanes/telekinesis`) for the new fixed-step/snapshot movement. Renamed `TelekinesisBoomerang` to `Telekinesis` (pickup id and file `Shared/Logics/PickupLogics/Telekinesis.luau`, which now holds the steering, input and cyan SelectionRing). The strength is `Telekinesis.STEER_STRENGTH` at the top of that file; `GlobalConfig.TelekinesisSteerInfluence` and the `TelekinesisInfluence` tune setting were removed. The notes above describe the first version. PC over-the-shoulder and console steering: T-105, T-106.
-- Couldn't syntax-check here (no Luau/selene/rojo on the device); needs a Studio load to confirm it compiles.
-
----
-
-### T-076 · Shop GUI (new art, tabs, rarity)
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** GUI / Client
-- **Files:** `Client/UI/Gui/Shop/` (`init.luau`, `RarityStyles.luau`, `ShopListings.luau`, `Tabs/`), `Client/Core/ShopController.luau`, `Shared/Referential/ShopItems.luau`, `Shared/Constants/Icons.luau`
-
-**Problem / goal**
-Build the Shop menu from Sol's new art (frame, tab button, listing base, balance plank, square and wide buttons) following Sol's reference image. Tabs: Featured, Skins, Emotes, Arrows, Effects. Featured and Skins work; the other tabs are selectable but blank. The grid shows 3x2 listings; Featured never scrolls, Skins scrolls past 6.
-
-**Done when**
-- [ ] The Shop opens from the lobby Shop button (and B in Studio) with the new art, red X, tab row and balance plank
-- [ ] Featured shows the hand-picked skins; Skins lists every skin on sale (same system as the Inventory's Skins tab)
-- [ ] Buying a skin with Currency updates the listing to "Owned" and the balance
-
-**Test in Studio**
-- Open the Shop: purple Featured tab selected, the other tabs brown; Featured shows Shuriken and Fan (Common, gray frames) with their 3D models and coin prices; balance at the bottom matches your Currency.
-- Click Skins, Emotes, Arrows, Effects: Skins lists the skins on sale; the other three open blank.
-- To see the scroll bar: temporarily add more `Skins` entries (more than 6 on sale) and open the Skins tab; the cells should shrink slightly to make room for the bar. Resize the Studio window to check it scales.
-- Your Studio profile already owns Shuriken and Fan, so both show a gray "Owned" button. To test a purchase you need a profile that doesn't own one (remove it from `OwnedSkins`, or use a fresh Studio store key), then F2 → `givecurrency me 5000` and click the price: the button turns gray "Owned" and the balance drops.
-- Check that the whole menu covers the screen without a gap at the top (IgnoreGuiInset) and the close X works.
-- The Robux price button and the gift button aren't visible yet: no skin has a `ProductId`, and gifting is off (`GIFTING_ENABLED` in `Shop/init.luau`).
-
-**Notes**
-- Branch `agent/T-076-shop-gui`, lane `Github/Boomerang-lanes/T-076-shop-gui`.
-- Built entirely in code with `CreateElement` (like Stats); the old `Shop.rbxmx`, `ItemListingTemplate.rbxmx` and `TabButtonTemplate.rbxmx` were removed, and so was the old Topbar Shop button (MenuButtons opens the Shop). The ScreenGui has `IgnoreGuiInset = true` and `ScreenInsets = None` (no safe areas).
-- Tabs are declared in `ShopItems.Tabs` (name, order, emoji icon). A tab's content is `Shop/Tabs/<Id>.luau` (shape `ShopTab` in `Shop/init.luau`: `Scrollable`, `MaxListings?`, `getListings`, `subscribe`). Tabs without a module (Emotes, Arrows, Effects) open blank: add a module to set one up.
-- Listings come from `ShopListings.getDisplay` (skins via `SkinLibrary` / `SkinController`, items via `Items`); the model is shown with `ItemViewport`.
-- Rarity: a listing's rarity is the `Rarity` of its model's entry in `Tools.luau`; `RarityStyles.luau` maps a rarity to the frame tint and name color (insertion point). Every tool is still the `Common` placeholder, so every listing is gray for now.
-- Layout is all scale, except the grid's cell size and scroll bar width, which are measured from the grid and recomputed when it resizes (a ScrollingFrame's children can't use scale for this). 
-- Placeholders: tab emoji (`ICON_EmojiPlaceholder` labels, in their own label so they can become images later). The Skins tab uses 🎨 because the boomerang emoji doesn't draw in Roblox's font.
-- `Icons.luau`: added `ShopFrame`, `ShopTabButton`, `ShopListingBase`, `ShopBalanceFrame`, `ShopSquareButton`, `ShopWideButton`, `GiftIcon`, `RobuxIcon`. `TODO:` Sol gave the same asset id for the square and wide buttons; check it's the wide art.
-- `ShopController.requestRobuxPurchaseItem` now takes the listing type, so skins with a `ProductId` can be bought with Robux (the server-side grant for a skin product isn't set up: no skin has a product yet).
-- Not tested in Studio: the lane couldn't be served through Rojo from here. Everything in this task needs a Studio check.
-
-### T-075 · Inventory GUI (new art, tabs)
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** GUI / Client
-- **Files:** `Client/UI/Gui/Inventory/` (was `Gui/Skins/`), `Client/UI/Gui/MenuButtons/init.luau`, `Shared/Constants/Icons.luau`
-
-**Problem / goal**
-Apply Sol's Inventory art (primary frame, item listing frame, tab frame) to the Skins menu, following Sol's reference image. No separate Equip button: each listing is the button; the equipped one is green and shown in the large panel on the right. Tab column (Skins, Emotes, Arrows, Effects) set up modularly; only Skins works for now.
-
-**Done when**
-- [ ] Inventory opens from the lobby Skins button with the new art and the tab column
-- [ ] Clicking an owned skin equips it; its listing turns green and it shows in the Detail panel
-
-**Test in Studio**
-- Open Skins (left menu): frame, "Your Skins" title, 4 tabs on the left, Classic listing green and shown on the right.
-- F2 → `grantskin me Shuriken` → Shuriken appears (tan); click it → Detail panel shows Shuriken, "Common" and an Equip button; click Equip → listing turns green, "Equipped" shows, held boomerang swaps. Check the 3D models fit inside each listing and the Detail panel.
-- Emotes / Arrows / Effects tabs show (darker) and do nothing yet.
-- Check the layout of `Inventory.rbxmx`, `InventoryListingTemplate.rbxmx`, `InventoryTabTemplate.rbxmx` in Studio (positions were set by hand from the reference; tweak freely).
-
-**Notes**
-- Branch `agent/T-075-inventory-gui`, lane `Github/Boomerang-lanes/T-075-inventory-gui`.
-- `Gui/Skins` renamed to `Gui/Inventory` (UIController name "Inventory"; MenuButtons' Skins button opens it). The old Shop-style `.rbxmx` files were removed.
-- Tabs: `TABS` in `Inventory/init.luau`; a tab's content is `Inventory/Tabs/<Id>.luau` (shape `InventoryTab`: `Title`, `getItems`, `selectItem`, `subscribe`). Tabs without a module are shown darker and do nothing.
-- All listings and tabs have an empty `ICON` ImageLabel placeholder (the 3D ViewportFrame previews were dropped). `InventoryItem.Icon` fills it once icons exist.
-- The item listing art has transparent padding: listings and the Detail panel are transparent and hold an oversized `Art` ImageLabel (scale-only values in `Icons.luau`), so the visible frame fills the cell. Listing colors are set on `Art`. (First version cropped with ImageRectOffset in pixels, which broke because Roblox downscales uploads over 1024px.) No Offset values in the Inventory .rbxmx files; text strokes use ScaledSize.
-- Follow-up (Sol, 2026-10-06): only owned skins are listed; the Detail panel uses the item listing art tinted brown (panel widened to 42% of the content to limit stretching); `Rarity` added to `Tools.luau` (skins read it through their model's tool entry) and shown under the name in the Detail panel.
-- `TODO:RELEASE placeholder`: `Rarity = "Common"` on ClassicBoomerang, Shuriken and Fan in `Tools.luau`.
-- Follow-up 2 (Sol, 2026-10-06): clicking a listing only selects it (lighter tint) and shows it in the Detail panel; the panel shows an Equip button (ListingFrameButtonGreen) when the selected skin isn't equipped, and "Equipped" when it is. Listings and the Detail panel show the 3D tool model (same asset as the character holds) via the new reusable `Client/UI/ItemViewport.luau` (`renderTool` / `renderModel`), which fits the model into a square camera automatically. Per-model pose: `Viewport = { Rotation, Zoom? }` in `Tools.luau` (angles picked with a test viewport GUI, `StarterGui.ViewportTest`, left disabled in the place; delete it whenever).
-- Icons.luau: added `InventoryFrame`, `InventoryItemListingFrame`, `InventoryTabFrame`.
-
-### T-074 · Stats menu
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Client / GUI / Server / Data
-- **Files:** `Client/UI/Gui/Stats/`, `Client/UI/Gui/MenuButtons/init.luau`, `Server/Core/LifetimeStatsService.luau`, `Shared/Data/ProfileTemplate.luau`, `Server/Cmdr/Commands/ShowStatsServer.luau`
-
-**Problem / goal**
-A Stats button in the left lobby menu opens a Stats menu showing the player's lifetime stats. Left: six cards, in order Time Played, Eliminations, Defeats, Games Played, Games Won, Throws. Right: the smaller stats (times each ability was used, times each pickup was collected) as placeholder rows with a count, no fill bar. Layout sized after Sol's reference screenshot, without its "Personal Stats" / "Ability Usage Comparison" labels. Uses the DailyClaims base frame (title centered, no streak number), its X button and its card frame for now.
-
-**Decisions (Sol, 2026-10-05)**
-- 5th card is Games Won (the request listed Eliminations twice).
-- The right list has abilities and pickups.
-- New saved stat `Throws`: every successful weapon throw.
-
-**Done when**
-- [ ] The Stats button opens/closes the menu; the X closes it.
-- [ ] The six cards and the list show the player's saved values, and Throws counts up.
-
-**Test in Studio**
-- Open Stats from the left menu. New profile: cards show 0 Min / 0, and the list shows Dash, Stab and the enabled pickups with 0.
-- Throw a few times, dash/stab, grab a pickup, then reopen: Throws and the counts went up (F2 `showstats me` shows the same values, incl. Throws). Time played shows minutes under an hour, hours after (saved every minute).
-- Check `Stats.rbxmx` / `StatListingTemplate.rbxmx` in Studio: card sizes, text positions, row height (rows scale to the list's width, 7:1), and the list scrolls when rows overflow.
-
-**Notes**
-- Branch `agent/T-074-stats-gui`, lane `Github/Boomerang-lanes/T-074-stats-gui`.
-- Card icons and row icons are the Roblox placeholder image; the rows are plain code-colored frames (placeholders for Sol's art). Menu button uses placeholder emoji art like the others.
-- Pickup rows skip stub pickups (`Disabled = true`). Row names use the item-acquired notification titles (`AcquirableThingData`); ids without an entry (Dash, Stab) are spaced out from the id. Each group is sorted most-used first.
-- The `.rbxmx` files are Sol's Studio saves (Rojo hadn't synced the hand-written ones); card number/label moved closer, list text slimmer (Sol, 2026-10-05).
-- `Throws` counts through `SharedTasks.WeaponThrownTasks` (fired once per accepted throw). With the debug switch `SyncAbilitiesToEveryPlayer` on, the copied throws count for every player.
-
----
-
-### T-073 · Returning boomerang circles the player instead of reaching them
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Shared
-- **Files:** `Shared/Logics/WeaponLogics/Boomerang.luau`
-
-**Problem / goal**
-A returning boomerang (mostly the held manual recall of a dead boomerang, sometimes a normal return) can miss the player and keep curving around them; moving in circles keeps it orbiting. It should turn into the player more directly.
-
-**Done when**
-- [ ] A manual recall of a dead boomerang reaches the player instead of orbiting, even while they run in circles
-- [ ] Normal returns still feel the same from a distance and no longer curve around the player up close
-
-**Notes**
-- Branch `agent/T-073-return-accuracy`, lane `Github/Boomerang-lanes/T-073-return-accuracy`.
-- Cause: in `Boomerang.recall` the whole velocity eased toward the player at `5 × RecallAcceleration` per second. Manual recall uses `ManualRecallMomentumMultiplier = 0.15`, so it turned at ~0.75/s; at 80 studs/s that's a turning circle of roughly 100 studs, wider than the distance to the player.
-- Fix: the velocity is split into the part heading at the player and the sideways part. The forward part still builds up at the old (heavy) rate. The sideways part is removed at least `RETURN_STEER_TIGHTNESS × speed / distance` per second (constant at the top of the file, default 3; 1 would be a perfect circle). Far away nothing changes; up close it turns in hard enough to always spiral inward.
-- Test in Studio: manual recall a dead boomerang from various angles and run circles around it; normal throws from max range while strafing. If it now looks too snappy up close, lower `RETURN_STEER_TIGHTNESS` (try 2); if it still curves, raise it.
-
-### T-072 · Boomerang skins (equip, shop, daily rewards)
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Server / Client / Shared / GUI / Data
-- **Files:** `Shared/Referential/Skins.luau`, `Shared/Library/SkinLibrary.luau`, `Server/Core/SkinService.luau`, `Client/Core/SkinController.luau`, `Client/UI/Gui/Skins/`, `Client/UI/Gui/MenuButtons/init.luau`, `ShopItems.luau`, `DailyRewards.luau`, `Items.luau`, `ProfileTemplate.luau`, `WeaponService`, `ToolService`, `WeaponController`, `WeaponLogics/Boomerang.luau`, Shop + DailyClaims GUIs, `Server/Cmdr/Commands/GrantSkin*.luau`, `Server/Cmdr/Types/SkinType.luau`
-
-**Problem / goal**
-Equippable boomerang skins with identical stats (every skin uses the `ClassicBoomerang` weapon class for now; the weapon-class concept stays). Skins button in the left lobby menu, Skins GUI, owned/equipped skins saved, granted via Shop, Daily Rewards and Cmdr. Starting skins: Shuriken, Fan (Classic is the default, always owned).
-
-**Done when**
-- [ ] A skin can be obtained from the shop, daily rewards and `grantskin`
-- [ ] Skins menu opens from the lobby menu, equips owned skins, and the held + thrown boomerang use the skin's model
-- [ ] Owned and equipped skins persist across rejoins
-
-**Test in Studio**
-- F2 → `grantskin me Shuriken` → "New skin acquired!" popup. Open Skins (left menu) → Shuriken shows Equip, Fan shows Locked → Equip → held model swaps; throw it: the thrown model is the Shuriken too (check from a second client as well).
-- Rejoin: Shuriken still owned and equipped.
-- Shop → Skins tab lists Shuriken/Fan; `givecurrency me 2000`, buy Fan → shows Owned, appears in Skins.
-- `resetdaily me true` and claim up to day 3 (`resetdaily me` between claims): day 3 grants Shuriken, or +250 Currency if already owned. Day 7 = Fan.
-- Check `Skins.rbxmx` / `SkinListingTemplate.rbxmx` in Studio (copied from the Shop panel/card; ViewportFrame preview angle may need tuning).
-
-**Notes**
-- Branch `agent/T-072-skins`, lane `Github/Boomerang-lanes/T-072-skins`.
-- Profile: new `OwnedSkins` (default skins aren't stored) and `EquippedSkin`. The server sets an `EquippedSkin` Player attribute; the server now decides the throw/aim weapon class instead of trusting the client.
-- Shop: `ShopTab.Items` became `Listings` (`{Type = "Item" | "Skin", Id}`); Example items and the Weapons tab removed; `CurrentDeal` is nil. `ProductLogics/Placeholder.luau` kept with `NotActive = true` (Sol's choice).
-- `TODO:RELEASE placeholder`: Shuriken/Fan prices (500/1000) and `WeaponClass`, all daily currency amounts and skin `FallbackCurrency` (250/500).
-- Skins GUI uses the Shop panel/card assets; no title label yet. Sol may want to restyle.
-- Follow-up (Sol's feedback): skin cards are shorter to fit their content (bigger preview, cell height 0.25 → 0.205); the Fan's `MotorC0` attribute was moved so it's held by its handle in the hand instead of up the arm (rotation unchanged).
-
-### T-037 · Player HUD buttons
-- **Priority:** P1
-- **Owner:** Sol → Agent
-- **Area:** GUI / Client
-- **Files:** `Client/UI/Gui/MenuButtons/init.luau` (new), `Client/UI/Gui/DailyClaims/init.luau`
-
-**Problem / goal**
-The player needs a HUD with buttons. Known so far:
-- **Currency**: shows the player's Currency; clicking opens a Robux shop tab to buy more Currency.
-- **Shop**: opens the shop.
-- **Quests**: opens quests (feature: T-038).
-- **Achievements**: opens achievements (feature: T-039).
-**Sol:** decide the full button list and make the assets. **Agent:** wire each button (Currency display via `EconomyController.CurrencyChangedTasks`, opening GUIs via `UIController`). Buttons for features that don't exist yet stay hidden.
-
-
-**Decisions (Sol, 2026-10-03)**
-- Buttons: Currency, Shop, Quests, Achievements, Daily (Daily moves off the top bar). Quests/Achievements hidden until T-038/T-039 exist.
-- Layout from Sol's mockup (sizes/layout only, not its buttons): left side, vertical; Currency on top, two buttons wide, with room for a boomerang icon; below it a 2-column grid of square-ish buttons with a name plate.
-- Placeholder art for now (Sol's assets later). Clicking Currency will open a Robux shop for buying Currency; that shop comes later, so the click is a stub for now.
-
-**Notes**
-- Branch `agent/T-037-hud-menu-buttons`, lane `Github/Boomerang-lanes/maintenance`.
-- New code-built `MenuButtons` gui (no `.rbxmx`): placeholder colored tiles with emoji icons (🪃 currency, 🛒 Shop, 🎁 Daily, 📜 Quests, 🏆 Achievements) and FredokaOne labels. Sizes, colors, icons and position are constants at the top of the module; it scales with screen height (UIScale) and sits at 42% height so it stays clear of the mobile thumbstick.
-- Currency shows `EconomyController` balance with thousands separators and updates live. Click: `openCurrencyShop()` stub (prints in Studio only).
-- Shop toggles the Shop gui; Daily toggles Daily Rewards. The top bar's Daily button was removed (DailyClaims no longer registers it; the Topbar module stays for future buttons).
-- Quests/Achievements: `MenuButtonsGui.setButtonEnabled("Quests", true, QuestsGui.toggle)` turns one on when its feature exists; hidden buttons don't leave gaps.
-- Hidden while you're alive in the arena (lobby menu); say if it should show during rounds too.
-- Didn't use `HudButtons/Hud.rbxmx` (that's the in-round Throw/Dash/Stab buttons).
-- Not lint-checked.
-- **Art pass (2026-10-06, branch `agent/hud-left-art`, lane `Github/Boomerang-lanes/hud-left-art`):** `MenuButtons` now uses Sol's assets. Buttons = grayscale interior `138558379535634` (cropped with `ImageRectOffset`/`ImageRectSize`, tinted per button with `ImageColor3`; 9-slice rendered wrongly in Studio) under the wooden frame `78059494085912`; currency bar = `97631724752812`. Icon and name text sit in the frame's free window and name board; the art's free-space rectangles are constants (`FRAME_ICON_AREA`, `FRAME_BOARD_TEXT`, `BAR_COIN_AREA`, `BAR_TEXT_AREA`) converted to Scale. Icons and the currency coin are still emoji placeholders. Button size is now 100x90 (the frame art's proportions).
-- **Update (2026-10-06, branch `agent/hud-left-currency-icon`):** the currency bar now shows Sol's coin image `110596837298294` (`CURRENCY_ICON`: left 5%, centered vertically, 70% of the bar height, square). Quests and Achievements were removed from the left bar (Sol: only Currency, Shop, Daily, Skins, Stats); `setButtonEnabled` stays for any later button.
-- **Test in Studio:** the tint only multiplies the grayscale (average ~50% gray), so button colors come out darker than a bright mockup; adjust the `Color` tints in `BUTTONS`, or lighten the grayscale asset. Check the text fits on the name board ("Achievements" is the longest, hidden for now), and the balance on the bar with big numbers.
-
----
-
-### T-060 · Bug: aim arrow stays visible while not aiming
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Client / Weapons
-- **Files:** `Client/Core/WeaponController.luau` (aim arrow), `Shared/Library/PlayerStatsLibrary.luau` (`CurrentMovementState` "Aiming"), `Server/Core/WeaponService.luau`
-
-**Problem / goal**
-Sometimes the aim arrow stays visible while the player isn't otherwise aiming: they walk at normal speed instead of the slow aiming speed. Often happens after throwing a boomerang. Likely the arrow's visibility and the aiming movement state are cleared by different paths (e.g. throw, release, recall, weapon lock, death, the stats reset on `LobbyVoting`) and one of them misses the other. Find the cause and make both follow one source of truth.
-
-**Done when**
-- [ ] The arrow is only visible while the player is in the aiming state, including after throws, recalls, deaths and round changes.
-
-**Test in Studio**
-- Throw repeatedly (fast taps, hold-and-release, throw right as the boomerang returns, throw during weapon lock): the arrow never stays without the slow aiming walk.
-
-**Notes**
-- Branch `agent/T-060-aim-arrow-race`, lane `Github/Boomerang-lanes/T-060-aim-arrow-race` (first fix: `agent/T-060-aim-arrow-visibility`, shipped).
-- **Review 2 (2026-10-05): failed** - Sol: the arrow alone still sometimes stays (walk speed and the rest are fine), rare race.
-  - Cause: `beginAiming` waits for the character model (`getCharacterModel(player, true)` can yield up to 5 s while the model is being built, e.g. right after a respawn or a ragdoll rebuild). If the throw/cancel happened during that wait, `stopAiming` found no arrow to remove, then `beginAiming` resumed and created one that nothing ever removed. Affected other players' arrows too.
-  - Fix: a per-player arrow generation counter (bumped by every begin/stop); a `beginAiming` that was overtaken while waiting no longer creates the arrow. Backstop: the render loop removes the local arrow on any frame where the local player isn't aiming.
-- Causes found (client and server aim could disagree, and the arrow only listened to the server):
-  - When the client dropped its aim without throwing (weapon locked mid-aim, throw refused while locked, round change to LobbyVoting), the server was never told, so it kept the player "aiming".
-  - A "stop aiming" from the server was dropped while the weapon was locked, so the arrow stayed.
-  - LobbyVoting cleared the local aim but not the arrow.
-  - A late "aiming" confirmation from the server could re-create the arrow after the player had already released.
-- Fix: the local arrow now follows the local aim (`setLocalAimState(false)` always removes it). A new `WeaponAimCancel` remote tells the server when the client leaves aim without a throw; the server's new `cancelAiming` (also called by `applyLockOnWeapon`) clears its aim, restores walk speed and tells every client to hide the arrow. A late aim confirmation for an aim the player already left is answered with a cancel instead of an arrow.
-- Not lint-checked.
-
----
 
 ## Backlog
 
@@ -1105,21 +313,6 @@ The file headers say "TODO: figure out how teams should work" (HitboxService has
 
 ---
 
-### T-017 · Hot Potato "bomb will explode" GUI (replace the placeholder)
-- **Priority:** P2
-- **Owner:** Sol
-- **Area:** GUI
-- **Files:** `Shared/Logics/GamemodeLogics/HotPotato/HotPotatoGui.rbxmx`, `HotPotato/init.luau`
-
-**Problem / goal**
-The Hot Potato "bomb will explode" GUI is a placeholder. Sol creates the final image assets and layout; an agent can wire up any behaviour changes afterwards.
-
-> Update (branch `agent/hotpotato-pickup-timer`, lane `hotpotato-pickup-timer`): the placeholder "Bomb will explode in" text and `HotPotatoGui.rbxmx` were removed. The bomb countdown now shows as the HotPotato pickup effect timer in the Effects HUD.
-
-**Notes**
-
----
-
 ### T-018 · Icons for every pickup effect
 - **Priority:** P2
 - **Owner:** Sol
@@ -1132,52 +325,6 @@ Every pickup effect needs an icon, shown both in the pickup notification (ItemAc
 **Notes**
 
 ---
-
-### T-020 · ItemAcquired: show 3D models in a ViewportFrame
-- **Priority:** P2
-- **Owner:** Sol → Agent
-- **Area:** GUI / Client
-- **Files:** `Client/UI/Gui/ItemAcquired/` (`init.luau`, `Template.rbxmx`)
-
-**Problem / goal**
-ItemAcquired can only show images. When a tool/model is acquired (e.g. a new boomerang), it should show the model in a ViewportFrame instead.
-- **Sol:** add a ViewportFrame (and camera framing preferences) to the ItemAcquired template.
-- **Agent:** clone the item's model into it, frame it automatically (bounding box), optionally spin it slowly, and clean it up when the popup closes. Images stay supported.
-
-**Open questions (ask Sol first)**
-- Where does each item's model come from (e.g. `Shared/Assets/Tools/<ToolId>`)? Should `Items` entries get a `Model` field?
-
-**Notes**
-
----
-
-### T-021 · Login rewards (Daily Claims) GUI assets
-- **Priority:** P2
-- **Owner:** Sol
-- **Area:** GUI
-- **Files:** `Client/UI/Gui/DailyClaims/DailyClaims.rbxmx`
-
-**Problem / goal**
-The Daily Claims GUI uses placeholder visuals. Sol creates the final assets.
-
-**Notes**
-
----
-
-### T-022 · Finish the shop GUI assets
-- **Priority:** P2
-- **Owner:** Sol
-- **Area:** GUI
-- **Files:** `Client/UI/Gui/Shop/` (`Shop.rbxmx`, `ItemListingTemplate.rbxmx`, `TabButtonTemplate.rbxmx`)
-
-**Problem / goal**
-The shop GUI still has placeholder/progress visuals. Sol finishes the assets.
-
-**Notes**
-- T-076 rebuilt the Shop GUI in code with Sol's new art; the three `.rbxmx` files listed above were removed.
-
----
-
 
 ### T-049 · Redeem codes system
 - **Priority:** P2
@@ -1202,6 +349,915 @@ Players enter a code to receive a reward. Server: validates the code (case-insen
 ---
 
 ## Done
+
+### T-022 · Finish the shop GUI assets
+- **Priority:** P2
+- **Owner:** Sol
+- **Area:** GUI
+- **Files:** `Client/UI/Gui/Shop/` (`Shop.rbxmx`, `ItemListingTemplate.rbxmx`, `TabButtonTemplate.rbxmx`)
+
+**Problem / goal**
+The shop GUI still has placeholder/progress visuals. Sol finishes the assets.
+
+**Notes**
+- T-076 rebuilt the Shop GUI in code with Sol's new art; the three `.rbxmx` files listed above were removed.
+- Done and passed Sol's review (2026-10-25).
+
+
+### T-021 · Login rewards (Daily Claims) GUI assets
+- **Priority:** P2
+- **Owner:** Sol
+- **Area:** GUI
+- **Files:** `Client/UI/Gui/DailyClaims/DailyClaims.rbxmx`
+
+**Problem / goal**
+The Daily Claims GUI uses placeholder visuals. Sol creates the final assets.
+
+**Notes**
+- Done and passed Sol's review (2026-10-25).
+
+
+### T-020 · ItemAcquired: show 3D models in a ViewportFrame
+- **Priority:** P2
+- **Owner:** Sol → Agent
+- **Area:** GUI / Client
+- **Files:** `Client/UI/Gui/ItemAcquired/` (`init.luau`, `Template.rbxmx`)
+
+**Problem / goal**
+ItemAcquired can only show images. When a tool/model is acquired (e.g. a new boomerang), it should show the model in a ViewportFrame instead.
+- **Sol:** add a ViewportFrame (and camera framing preferences) to the ItemAcquired template.
+- **Agent:** clone the item's model into it, frame it automatically (bounding box), optionally spin it slowly, and clean it up when the popup closes. Images stay supported.
+
+**Open questions (ask Sol first)**
+- Where does each item's model come from (e.g. `Shared/Assets/Tools/<ToolId>`)? Should `Items` entries get a `Model` field?
+
+**Notes**
+- Done and passed Sol's review (2026-10-25).
+
+
+### T-119 · Touch controls: Dash button uses the Dash icon
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client (GUI)
+- **Files:** `Client/UI/Gui/CustomTouchscreen/CustomTouchscreen.rbxmx`
+
+**Done when**
+- [x] The touch Dash button shows the Dash icon (`Icons.DashCooldown`, the one AcquirableThingData uses for the Dash Cooldown effect) instead of the white circle with "Dash", and still dashes when pressed
+
+**Notes**
+- Same build as the Stab button (T-117): background transparent, "Dash" TextLabel replaced by a `DashImage` ImageLabel filling the button (ScaleType Fit). Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-118-aim-thumbstick`.
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-118 · Touch controls: bigger aim thumbstick; touching its circle starts aiming
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client (GUI)
+- **Files:** `Client/UI/Gui/CustomTouchscreen/CustomTouchscreen.rbxmx`, `Client/UI/Gui/CustomTouchscreen/init.luau`
+
+**Done when**
+- [x] The aim thumbstick (knob) is 80% larger (0.3 -> 0.54 of its circle)
+- [x] Touching anywhere inside the circle around it starts aiming, with the thumbstick jumping under the finger and aiming that way; dragging and releasing (throw) work as before
+- [x] Touches outside the circle, or on the Stab / Dash buttons, don't start aiming
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-118-aim-thumbstick`. Edits left uncommitted.
+- The drag is now measured from the circle's center (so the knob is centered on the finger, also when the knob itself is touched off-center). Touch positions are used as they are (they already match the GUI's AbsolutePosition; an inset correction first put the knob below the finger, fixed after Sol's test 2026-10-25). The circle frame is now Active so touches in it don't also turn the camera. Removed a leftover `warn(angle)` debug print.
+- Not tested with real touch input (Studio can't send touches through the tools).
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-117 · Touch controls: Stab (slash) button uses the new image
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client (GUI)
+- **Files:** `Client/UI/Gui/CustomTouchscreen/CustomTouchscreen.rbxmx`, `Shared/Constants/Icons.luau`
+
+**Done when**
+- [x] The Stab button shows image 70946537634521 instead of the white circle with "Stab", and still stabs when pressed
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-117-stab-button`. The `Stab` button keeps its size and input (background now transparent); its "Stab" TextLabel was replaced by a `StabImage` ImageLabel filling it (ScaleType Fit). Also listed as `Icons.StabButton`.
+- Checked in a Studio play-test with the touch controls shown (2026-10-23).
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-116 · Touch controls: aim thumbstick knob uses the new image
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client (GUI)
+- **Files:** `Client/UI/Gui/CustomTouchscreen/CustomTouchscreen.rbxmx`, `Shared/Constants/Icons.luau`
+
+**Done when**
+- [x] The aim thumbstick's knob shows image 118487572306150 (transparent background) instead of the white circle, and drags / aims as before
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`. The `Thumbstick` button keeps its size and input (background now transparent) with a `ThumbstickImage` ImageLabel filling it (ScaleType Fit). Also listed as `Icons.AimThumbstick`.
+- Checked in a Studio play-test with the touch controls shown (2026-10-23).
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-115 · Placed crates at half size; lobby time between rounds doubled
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Server
+- **Files:** `Server/Core/CrateService.luau`, `Server/Core/RoundCyclingService.luau`
+
+**Done when**
+- [x] A bought crate placed in the world is 50% the size of the GenericCrate asset (still placed on the floor, label above it)
+- [x] The vote in the lobby lasts 60 s (was 30 s); the end-of-round time in the arena (PreIntermission) stays 5 s
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-115-crate-size-lobby-time`. Edits left uncommitted.
+- `WORLD_SCALE = 0.5` in CrateService (Model:ScaleTo, before placement, so the spot search uses the smaller size). Shop listings are unchanged.
+- RoundCyclingService: VOTE_DURATION 30 -> 60 (PRE_INTERMISSION_DURATION was briefly 10, back to 5: it's arena time, Sol 2026-10-23), INTERMISSION_DURATION 10 -> 20 (the post-vote LobbyEnded wait is INTERMISSION - VOTE, negative = none, unchanged). The vote still ends as soon as every player has voted.
+- Not play-tested.
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-114 · Opening a bought crate: it appears next to the player and is clicked open
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Server / Client
+- **Files:** `Server/Core/CrateService.luau`, `Client/Core/CrateOpeningController.luau` (new), `Client/Core/ShopController.luau`, `Client/UI/ShopCommon/ShopBuilder.luau`, `Server/Core/ShopService.luau`, `Shared/Constants/GlobalConfig.luau`
+
+**Done when**
+- [x] Buying a crate closes the shop and puts the crate model in the world next to the player: in front if that spot is open and level with them, otherwise another open, level spot around them (closest height / in front as fallbacks)
+- [x] It shows "Click/Tap to open!" and the clicks left (owner only); every click bounces it; after `GlobalConfig.CrateClicksToOpen` (20; was 30) it pops open and the weapon is given ("New skin acquired!" / "Duplicate weapon")
+- [x] Only the owner's clicks count; the weapon isn't owned before the crate is opened
+- [x] A crate never opened is still given when the player leaves
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-114-crate-opening`. Edits left uncommitted.
+- Server places the crate (`workspace.PlacedCrates`, anchored, no collision) with a ClickDetector and counts clicks (max 25/s); `CrateOpened` event to the owner. Spot search: rays down from 8 studs above the player's floor at 6/8/4.5/10 studs x 12 angles (front first); open = no solid environment part in the crate's box and no wall between the player and the spot; level = within 2 studs of the player's floor; characters are ignored.
+- The roll happens at purchase (refunded if the crate can't be placed); the grant at opening.
+- Agent test in Studio (2026-10-23): a crate bought on the server was placed 6 studs in front of the player, standing on their floor, with its ClickDetector and 30 clicks; the owner's client showed "Click to open!" / 30. Clicking it open and the pop/popup were not tested (Studio didn't accept input / screenshots at the time).
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-112 · Weapons Shop sells crates (one per category, weighted random weapon)
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Client / Shared / Server
+- **Files:** `Client/UI/Gui/WeaponsShop.luau`, `Client/UI/ShopCommon/ShopBuilder.luau`, `ShopListings.luau`, `Tabs/Crates.luau` (new), `Client/Core/ShopController.luau`, `Shared/Referential/Crates.luau` (new), `Shared/Library/CrateLibrary.luau` (new), `Shared/Constants/Tools.luau`, `Shared/Referential/ShopItems.luau`, `Server/Core/CrateService.luau` (new), `Server/Core/ShopService.luau`
+
+**Done when**
+- [x] The Weapons Shop is one window (no tabs) on the new frame art (125528869499843) with three crate listings: Boomerang, Shuriken, Fan Crate, each showing the GenericCrate model
+- [x] The crates are in a 3 x 2 grid (3 columns, 2 rows; scrolls past 6), like the other shops (T-112 follow-up, Sol 2026-10-23)
+- [x] Buying a crate spends its price and gives a random weapon of that category, weighted by `Tools[...].CrateWeight`
+- [x] A new weapon shows "New skin acquired!"; one already owned shows "Duplicate weapon" (and gives nothing else for now)
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-112-weapon-crates`. Edits left uncommitted.
+- Placeholders (`TODO:RELEASE placeholder`): crate prices 250; weights Classic 70 / Placeholder 30 in each category; every crate uses `Shared.Assets.Crates.GenericCrate`.
+- `ShopBuilder` config gained an optional `Layout` (HideTabs, ListingsPosition/Size, GridColumns/Rows); the Cosmetics Shop is unchanged. `Tabs/WeaponCategory.luau` is no longer used by the Weapons Shop.
+- Crates are flagged as paid random items: hidden where PolicyService restricts them.
+- `GenericCrate` exists only in Studio (`ReplicatedStorage.Shared.Assets.Crates`), not in the repo yet.
+- Play-tested in Studio by the agent (2026-10-23): layout fits the frame, purchase deducts 250 and grants / reports duplicates.
+- TODO: duplicate rewards, crate odds display, opening animation.
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-111 · Recall SelectionRing stays on the boomerang (no drift on release)
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client
+- **Files:** `Client/Core/RecallChargeController.luau`
+
+**Done when**
+- [x] The ring stays centred on the boomerang while charging and while it flies back, without trailing behind it
+- [x] Releasing the recall: the ring shrinks away while still following the boomerang as it drops and slides
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-111-ring-follow`. Edits left uncommitted.
+- Cause: a released ring stopped following (it shrank in place while the boomerang was pushed away, T-104), and the ring was placed in RenderStepped, before the boomerang moved that frame (one frame behind). Now shrinking rings keep following, and placement runs on Heartbeat, after the frame's movement.
+- Not syntax-checked or tested (Studio play-testing is Sol's).
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-110 · Weapon categories: Classic names + a placeholder second weapon per category (gacha prep)
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared
+- **Files:** `Shared/Constants/Tools.luau`, `Shared/Referential/Skins.luau`, `Shared/Referential/DailyRewards.luau`, `Shared/Assets/Tools/*.rbxmx`, `CLAUDE.md`
+
+**Done when**
+- [x] Three categories, two weapons each: Boomerangs (ClassicBoomerang, PlaceholderBoomerang), Shurikens (ClassicShuriken, PlaceholderShuriken), Fans (ClassicFan, PlaceholderFan)
+- [x] Weapons Shop tabs list each under its own category; the placeholders use the same model as their Classic weapon
+- [x] Daily rewards still grant the shuriken / fan (now ClassicShuriken / ClassicFan)
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-110-weapon-categories`. Edits left uncommitted.
+- Renamed ids (tool, skin and model): BasicShuriken -> ClassicShuriken, BasicFan -> ClassicFan. Saved data with the old skin ids (owned/equipped) is no longer recognised (fine: developer-only testing, per Sol).
+- New `TODO:RELEASE placeholder` tools + skins + model copies (`PlaceholderBoomerang`, `PlaceholderShuriken`, `PlaceholderFan`; on sale at placeholder prices, Order 4-6).
+- Unchanged: every skin still uses the ClassicBoomerang weapon class (stats); `ClassicBoomerang.Id` is still "Boomerang".
+- Not syntax-checked or tested (Studio play-testing is Sol's).
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-109 · Number keys for the use-pickup buttons (slots)
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client
+- **Files:** `Client/UI/Gui/UsePickupButtons/init.luau`, `Client/UI/Gui/UsePickupButtons/ButtonTemplate.rbxmx`
+
+**Done when**
+- [x] Keys 1-9 use the button in that slot; a new usable pickup takes the lowest free slot and a pickup keeps its slot until it is lost
+- [x] Example: A gets 1, B gets 2, A times out (B stays 2), C is acquired and gets 1 and is listed first
+- [x] Buttons are listed by slot number; each shows its number in a small label on its right (black, partly transparent, rounded, white text)
+- [x] Keys do nothing while typing in chat / a text box, or outside a round
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-109-pickup-hotkeys`. Edits left uncommitted.
+- The label (`KeyLabel` in ButtonTemplate) only shows on devices with a keyboard (`UserInputService.KeyboardEnabled`); a 10th+ simultaneous pickup gets a button with no key.
+- Not syntax-checked or tested (Studio play-testing is Sol's).
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-108 · Use-pickup buttons: Explosive, Teleport and Decoy are used with on-screen buttons
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Client / Shared / Server
+- **Files:** `Client/UI/Gui/UsePickupButtons/` (new: `init.luau`, `UsePickupButtons.rbxmx`, `ButtonTemplate.rbxmx`), `Shared/Library/PickupLibrary.luau`, `Shared/Logics/PickupLogics/ExplosiveBoomerang.luau`, `TeleportBoomerang.luau`, `Decoy.luau`, `Server/Core/PickupService.luau`, `Shared/Referential/AcquirableThingData.luau`
+
+**Done when**
+- [x] New `UsePickupButtons` GUI: round image buttons (transparent background, the pickup's icon, UICorner) in a centered vertical list on the left of the screen
+- [x] Explosive: the button explodes the boomerang where it is (once per throw); 50% / non-interactive while no boomerang is out
+- [x] Teleport: the button teleports the player to the boomerang (used up); 50% / non-interactive while no boomerang is out
+- [x] Decoy: the button spawns the decoy at any time (used up)
+- [x] None of the three trigger by themselves any more (end of throw, kill, first throw)
+- [x] No button for any other pickup
+- [x] The button appears as soon as the pickup is acquired and disappears when it is lost for any reason (used up, timed out, death, round end)
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-108-use-pickup-buttons`. Edits left uncommitted.
+- Pickup logic API: `UseButton`, `ConsumedOnUse`, `canUse(player)`, `onUse(player)` (PickupLibrary types). Client presses fire `PickupButtonUsed` (classId); PickupService checks the effect is held, the player is alive in the arena and `canUse`, then runs `onUse`.
+- "Boomerang out" = `PickupLibrary.getWeaponOnField`: flying, returning, dying or lying dead on the field (not in hand; not while a predicted catch hides it, T-100).
+- Death now ends all of the player's pickup effects (except data-only ones owned by other systems: OnFire, HotPotato, DashCooldown). Previously only the round end (LobbyVoting) cleared them.
+- Teleport destination: the boomerang's X/Z at flight height (like the old end-of-throw teleport). Explosion: at the boomerang, snapped to the floor (unchanged).
+- Acquired-message subtitles updated to say to press the button.
+- Not syntax-checked or tested (Studio play-testing is Sol's).
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-107 · Dying boomerang sliding over a gap froze on the server (couldn't pick up / recall it)
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared
+- **Files:** `Shared/Logics/WeaponLogics/Dead.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`
+
+**Problem / goal**
+A boomerang that had already been Dead (e.g. pushed by a recall release, T-104) sliding over a gap for 0.75 s hit the old "sliding away -> auto recall" rule, which no longer applies to it (T-093), and the server's loop returned early every frame: frozen mid-gap in the Dying state forever, while the client kept sliding it onto ground. Not pickable (not grounded on the server), not rechargeable (not Dead).
+
+**Done when**
+- [x] It keeps sliding over the gap on the server exactly like on the client, lands on the far side, slows and becomes Dead; pickup and recall work
+- [x] Over nothing for 3 s (`DEAD_NO_GROUND_FAILSAFE_SECONDS`): put down at the last solid spot it passed over; with none recorded, back to the player's hand with a warning in the output
+- [x] Physics (walls, ground checks, landing) is the same on server and clients and always worked out at `GlobalConfig.BoomerangFlightHeight`; only the drawn height differs on clients
+- [x] A boomerang that has never been Dead still auto-recalls after 0.75 s over a gap (T-062)
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-107-gap-slide`. Edits left uncommitted.
+- New DYING PHYSICS section in `Dead.luau`: `stepDyingSim` is the single physics step used by `applyDeath` (server and clients) and `predictSlidePositions`. Walls are cast and ground is looked for from flight height; the fall is a separate `PhysicsY` (starts at flight height for a thrown boomerang, at the risen height for a released charge). Ground is checked every step now, so a grounded boomerang sliding onto a gap also keeps its momentum over it. Server position = physics; clients draw the model resting on the ground and falling in step with the physics.
+- Automatic recall off the ground: physics now starts at flight height right away (the model eases up with `VisualYOffset`, like a throw) instead of being lifted gradually (`RECALL_FROM_DEAD_LIFT_RATE` now unused).
+- Not syntax-checked or tested (Studio play-testing is Sol's).
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-104 · Releasing a manual recall pushes the boomerang toward the player (minimum momentum)
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared
+- **Files:** `Shared/Logics/WeaponLogics/Dead.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`, `Client/Core/WeaponController.luau`, `Shared/Constants/GlobalConfig.luau`
+
+**Done when**
+- [x] Tapping recall (release right after the charge starts) drops the boomerang and it slides ~2 studs toward the player
+- [x] Releasing at the end of the charge drops it from flight height and it slides ~4 studs toward the player; in between is interpolated
+- [x] Releasing while it is already flying back drops it with its own speed, but never less than the end-of-charge momentum
+- [x] Every client sees the same push (direction comes from the server with the Cancel event)
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-104-release-momentum`. Edits left uncommitted.
+- Config: `RELEASE_MOMENTUM` (MinSpeed 15, MaxSpeed 20 studs/s) in `Dead.luau`, read through `DeadWeaponLogic.getReleaseMomentum(chargeProgress)`; a push-in ease (e.g. PushSeconds) is reserved there for later.
+- A released charge now goes back into the Dying state (`applyDeath`, spin 0) instead of the old straight drop (`GlobalConfig.RecallChargeCancelDropSeconds` now unused). Side effects: pressing recall again only starts a new charge once it has stopped sliding (it can still be picked up while sliding, T-099), and the beam fades back in once it rests.
+- Not syntax-checked or tested (Studio play-testing is Sol's).
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-101 · Server snapshots re-create a boomerang the client is missing (desync fix B)
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client
+- **Files:** `Client/Core/WeaponController.luau` (`onSnapshot`), `Shared/Logics/WeaponLogics/Dead.luau` (`applyServerSnapshot`)
+
+**Problem / goal**
+A Dying/Dead (or Returning) snapshot for a player whose boomerang this client doesn't have is silently dropped, so a boomerang only the server has stays invisible. When that happens, build the missing dead (or returning) boomerang from the snapshot (position, direction, speed, state) instead.
+
+**Done when**
+- [x] A Dying/Dead snapshot with no local boomerang creates a visible dead boomerang at the server's position, which can be picked up / recalled
+- [x] Stale snapshots for a boomerang that was just despawned don't resurrect it (needs T-102's ids, or a short despawn tombstone)
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-101-snapshot-recreate`. Edits left uncommitted.
+- `WeaponController.onSnapshot`: a Dying/Dead snapshot for a player with no thrown or dead boomerang on this client calls `restoreMissingDeadWeapon` -> `Boomerang.restoreDeadFromSnapshot` (model from the player's skin, or the local player's held model like a throw; dead data; `applyDeath`, then `setDead` for a Dead snapshot). A warning is printed each time it happens.
+- Stale snapshots: no ids yet (T-102), so a "despawned since the last Spawned" flag per player blocks rebuilding a boomerang the server already despawned.
+- Only Dying/Dead are rebuilt. A missing flying/returning boomerang (e.g. a player joining mid-throw) is not; that's left to T-103.
+- Not syntax-checked or tested (Studio play-testing is Sol's).
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-099 · Dying boomerang: spin sound stops on landing, can be picked up once on the ground
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared
+- **Files:** `Shared/Logics/WeaponLogics/Dead.luau`
+
+**Done when**
+- [x] The spinning sound fades out (0.25 s) the moment a dying boomerang hits the ground, not when it comes to rest
+- [x] A dying boomerang can be picked up (walk over it) once it has hit the ground, including while it is still sliding
+- [x] It still can't be picked up while flying or while dropping before it touches the ground; Dead boomerangs are picked up as before
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-099-ground-pickup`. Edits left uncommitted.
+- Server only: `SoundLibrary.stop(InstanceId)` at the landing in `applyDeath` (its existing fade-out); pickup check (`isWithinPickupDistance`, same 3-stud distance) in the dying loop once `isGrounded`, shared with the Dead pickup.
+- Not syntax-checked or tested (Studio play-testing is Sol's).
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-098 · Dying boomerangs slide "on ice" with a winding-down spin (client feedback)
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared
+- **Files:** `Shared/Logics/WeaponLogics/Dead.luau`, `Shared/Referential/DeadWeapons.luau`, `Shared/Constants/GlobalConfig.luau`
+
+**Done when**
+- [x] A dying boomerang drops to the ground, then keeps gliding and slows gradually; faster boomerangs slide further
+- [x] Its spin starts at the flight spin rate and winds down gradually (about 1 s), instead of spinning at full rate and stopping dead
+- [x] `tune DeadWeaponDeceleration` (renamed from `DyingSpeedMultiplier`) still speeds up / slows down the whole dying slide, fall and spin; `tune DyingSpeedMultiplier` no longer exists
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-098-dead-slide-ice`. Edits left uncommitted.
+- Constant 320 studs/s² deceleration replaced by drag (proportional to speed) + small friction, gentler while dropping, and an 80% speed keep on landing. Values in "INTERNAL CONFIG: dying slide" at the top of `Dead.luau`, all x DyingSpeedMultiplier.
+- At default tuning: dying at 75 studs/s travels ~17 studs (was ~9), at 25 ~5 (was ~1). `predictSlidePositions` mirrors the new model (including the drop and landing).
+- Renamed the tuning setting and its config value: `DyingSpeedMultiplier` -> `DeadWeaponDeceleration` (Cmdr `tune DeadWeaponDeceleration`, `GlobalConfig.DeadWeaponDeceleration`).
+- Spin is client visual (`SpinRate`); the client loop keeps running after the slide stops until the spin finishes.
+- Not syntax-checked or tested (Studio play-testing is Sol's).
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-097 · Recall tuning: `recallramptime` removed, `recallcurveacceleration` added, `recallacceleration` now sets the speed-up
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared
+- **Files:** `Shared/Library/BoomerangTuningLibrary.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`, `Shared/Constants/GlobalConfig.luau`, `Server/Cmdr/Commands/TuneBoomerang.luau`
+
+**Done when**
+- [x] `tune recallramptime` no longer exists
+- [x] `tune recallcurveacceleration` does what `recallacceleration` used to (turn rate toward the player, default 0.15)
+- [x] `tune recallacceleration <n>` scales how quickly a manual recall reaches full speed and spin (1 = 0.2 s, 2 = 0.1 s, 0.5 = 0.4 s)
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-097-recall-tuning`. Edits left uncommitted.
+- Ramp time = `MANUAL_RECALL_FULL_SPEED_SECONDS / RecallAcceleration` (min divisor 0.01). New default `GlobalConfig.ManualRecallAcceleration = 1`; `ManualRecallRampSeconds` removed (unused).
+- Not syntax-checked or tested (Studio play-testing is Sol's).
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-096 · `tune recallchargetime`: live-tunable recall charge duration
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared
+- **Files:** `Shared/Library/BoomerangTuningLibrary.luau`, `Shared/Logics/WeaponLogics/Dead.luau`, `Client/Core/DeadWeaponBeamController.luau`, `Server/Cmdr/Commands/TuneBoomerang.luau`
+
+**Done when**
+- [x] `tune recallchargetime <seconds>` changes how long a manual recall charges (default `GlobalConfig.RecallCharge`, 0.3 s); `tune recallchargetime` shows it and `resetboomerang` restores it
+- [x] The rise, the server's completion of the charge and the dead-beam fade all follow the tuned value, on server and clients
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-096-tune-recallcharge`. Edits left uncommitted.
+- New `RecallChargeTime` setting (attribute-replicated like the others). `DeadWeaponLogic.getRecallChargeSeconds` reads it (min 0.01 s) and replaces the three `GlobalConfig.RecallCharge` reads. Changing it mid-charge takes effect immediately.
+- Not syntax-checked or tested (Studio play-testing is Sol's).
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-095 · Manual recall lifts during the charge again, quick start of the return (client feedback)
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared
+- **Files:** `Shared/Logics/WeaponLogics/Dead.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`, `Shared/Referential/ThrownWeapons.lua`, `Shared/Constants/GlobalConfig.luau`
+
+**Done when**
+- [x] When the recall is held, the dead boomerang rises to `GlobalConfig.BoomerangFlightHeight`: slow at first, fast (quart-in), overshoots the height a little, then bobs down onto it exactly when the charge completes
+- [x] Releasing during the charge drops it back to the ground; the beam, ring, Summon, slowdown and hold rules are unchanged
+- [x] When the return begins it reaches full recall speed and full spin rate within 0.2 s (`MANUAL_RECALL_FULL_SPEED_SECONDS`, top of `Boomerang.luau`)
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-096-recall-lift`. Edits left uncommitted.
+- Re-enabled `applyRecallChargeLift` (was `_UNUSED`) with a new rise curve (`getRiseCurve`, internal config at the top of the charge section in `Dead.luau`: `RISE_OVERSHOOT`, `RISE_PEAK_AT`, `RISE_SETTLE_BOBS`). The in-flight timed rise (T-095) is kept behind `MANUAL_RECALL_RISES_DURING_FLIGHT = false`. The Cmdr `tune` RecallRampTime no longer affects manual recalls.
+- Not syntax-checked or tested (Studio play-testing is Sol's).
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-094 · Dead-boomerang beam fades in and out
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client
+- **Files:** `Client/Core/DeadWeaponBeamController.luau`, `Shared/Constants/GlobalConfig.luau`
+
+**Done when**
+- [x] The beam to a dead boomerang fades in when it appears (0.4 s, `DeadBeamFadeSeconds`) instead of popping in
+- [x] While the recall charges the beam fades gradually and is completely invisible exactly when the charge peaks
+- [x] Releasing/cancelling the charge, or the boomerang dropping back to dead, fades it back in
+- [x] Pressing again after a release picks up smoothly (never jumps); dying or the round ending removes it without errors at any point
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-094-beam-fade`. Edits left uncommitted.
+- The dead beam has its own opacity value stepped each frame: while charging it only goes down (following `1 - progress` from the server-time charge start), otherwise it moves at `1 / DeadBeamFadeSeconds` per second. A beam whose boomerang goes away keeps fading out if its parts still exist, and is removed immediately if they don't (player died / boomerang destroyed). `RecallChargeBeamOpacity` is no longer used.
+- Not syntax-checked or tested (Studio play-testing is Sol's).
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-093 · Manual recall is a hold again (client feedback)
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Server / Client / Shared
+- **Files:** `Shared/Logics/WeaponLogics/Dead.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`, `Server/Core/WeaponService.luau`, `Shared/Logics/AbilityLogics/Dash.luau`, `Client/Core/RecallChargeController.luau`
+
+**Done when**
+- [x] Releasing recall before the 0.3 s charge finishes cancels the charge (the boomerang stays where it is; ring shrinks away)
+- [x] The player stays in the recall hold state (slowed, no dash, Summon animation) for the whole return flight
+- [x] Releasing recall while the charged boomerang flies back makes it drop and return to the dead state; the player is released then
+- [x] Catching it ends the hold state (Summon stops, speed restored, dash works)
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-093-recall-hold`. Edits left uncommitted. Undoes the "can't be interrupted" and "released once it starts returning" parts of T-092.
+- `Boomerang.stopRecallFromDead` is back (as before T-090) and the release branch in `WeaponService.luau` is live again. A cancelled charge now just clears the charge fields (`applyRecallChargeEvent` "Cancel"), since nothing was lifted.
+- The slowdown and the dash block follow `isRecallChargeActive` (charging OR returning from a manual recall).
+- Not syntax-checked or tested (Studio play-testing is Sol's).
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-092 · Manual recall rework (client feedback): ground charge, no interrupt, slowed, tilt-up return
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Server / Client / Shared
+- **Files:** `Shared/Logics/WeaponLogics/Dead.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`, `Shared/Logics/AbilityLogics/Dash.luau`, `Server/Core/WeaponService.luau`, `Client/Core/RecallChargeController.luau`, `Shared/Constants/GlobalConfig.luau`, `Shared/Referential/ThrownWeapons.lua`
+
+**Done when**
+- [x] Tapping recall on a dead boomerang starts a `GlobalConfig.RecallCharge` (0.3 s) charge; the boomerang stays on the ground, the ring appears and the Summon animation plays
+- [x] The charge can't be interrupted: releasing the button does nothing
+- [x] While charging the player is slowed like when aiming a throw (server-authoritative) and can't dash
+- [x] When the charge completes the boomerang rises to `BoomerangFlightHeight`, tilted toward the player, and speeds up toward them (old manual-recall return); the player is released at that moment (Summon stops, speed restored, can dash)
+- [x] Ring and beams behave as before (stay until caught)
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-092-recall-rework`. Edits left uncommitted.
+- Old lifting charge kept but unused: `applyRecallChargeLift_UNUSED` in `Dead.luau`, the release/cancel block commented out in `WeaponService.luau`, `RecallChargeCancelDropSeconds` unused. The lift-and-tilt on the return (`ManualRecallLiftRate`, `ManualRecallMaxTiltDegrees`, `RecallTilt`) is restored from before T-090, now rising to `BoomerangFlightHeight`.
+- Slowdown: `reconcileRecallChargeSlowdown` in `WeaponService.luau` uses the same `tweenWalkSpeed` / `tweenWalkSpeedInverse` and `AimWalkSpeed` as aiming. Dash: `Dash.canActivate` (both sides) refuses during a charge.
+- Not syntax-checked or tested (Studio play-testing is Sol's).
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-091 · Dash cooldown shown in the effects bar
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client / Shared
+- **Files:** `Shared/Logics/AbilityLogics/Dash.luau`, `Shared/Referential/AcquirableThingData.luau`, `Shared/Library/PickupLibrary.luau`, `Shared/Constants/Icons.luau`
+
+**Problem / goal**
+After dashing, the cooldown until the next dash shows along the bottom of the screen like pickups and On Fire: an icon (`Icons.DashCooldown`) and a countdown timer. It is display-only: no item-acquired notification, and the server doesn't know about it.
+
+**Done when**
+- [x] Dashing shows the Dash Cooldown icon with a timer in the bottom effects bar; it disappears when the cooldown ends (1 s)
+- [x] No "item acquired" notification appears for it
+- [x] Dying clears it; other players never see it
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-091-dash-cooldown`. Edits left uncommitted.
+- The countdown is only `cooldowns` inside `Dash.luau`. Each client frame it mirrors that into the effects gui as a data-only effect `DashCooldown` through `PickupLibrary.setPickupEffectActive` / `removePickupEffectActive(..., doNotReplicate)` (client only; nothing reaches the server). No `ItemAcquired` call anywhere.
+- **`Icons.DashCooldown` is a placeholder (`0`, blank icon):** I had no asset id. Put the real id in `Shared/Constants/Icons.luau`.
+- Not syntax-checked or tested (Studio play-testing is Sol's).
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-090 · Dead boomerang recall must be charged (lift, SelectionRing, Summon animation)
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Server / Client / Shared
+- **Files:** `Shared/Logics/WeaponLogics/Dead.luau` (charge logic), `Shared/Logics/WeaponLogics/Boomerang.luau`, `Server/Core/WeaponService.luau`, `Client/Core/WeaponController.luau`, `Client/Core/RecallChargeController.luau` (new), `Client/Core/DeadWeaponBeamController.luau`, `Client/Core/AnimationController.luau`, `Shared/Utils/BoomerangColorUtil.luau` (new), `Shared/Constants/GlobalConfig.luau`, `Shared/Referential/DeadWeapons.luau`
+
+**Problem / goal**
+A dead boomerang no longer lifts lazily and flies to the player on the recall press. The player must hold the manual recall for `GlobalConfig.RecallCharge` (1 s). During that time the boomerang rises straight up to hand height (Y only), the player plays the Summon animation, a SelectionRing appears around the boomerang and the beam to it dims to 20% opacity. When the charge completes it flies to the player with the existing manual-recall physics (speed ramp), without any lift. Releasing early drops it back, the ring shrinks away and the beam returns to normal. When it is caught the ring and beam are destroyed and Summon stops. The beam is local only; the lift, animation and ring are seen by every client.
+
+**Done when**
+- [x] Holding recall (E / the recall button) on a Dead boomerang lifts it to hand height over `GlobalConfig.RecallCharge` (1 s), with no sideways movement; at the end of the charge it starts flying to the player
+- [x] Releasing before the charge completes drops it back to its resting spot; pressing again restarts the charge
+- [x] The Summon animation plays on the charging player (visible to other players) and stops on release / catch
+- [x] The SelectionRing (from `ReplicatedStorage.Shared.Assets.SelectionRing`, its size = 100%) grows from nothing to full size over 0.3 s with a small overshoot, stays while the boomerang returns, shrinks away on an early release, and is destroyed on catch; its color matches the boomerang trail (white = you, red = free-for-all enemies, team color for teams)
+- [x] The beam to the dead boomerang dims to 20% opacity during the charge and goes back to normal if released early; when the recall starts moving the boomerang that beam stays (dimmed) and a second beam (BeamToReturningWeapon) fades in on top of it; both stay until the boomerang is in your hands; neither beam is ever seen by other players
+- [x] Once the charge is complete, releasing the button does NOT stop the recall: the boomerang keeps flying to you (ring and both beams stay) until you catch it, the round ends or you respawn
+- [x] Holding recall on a Dying boomerang does nothing until it lands, then the charge starts (still holding)
+
+**Test in Studio**
+- `setnextgamemode classic`, throw so the boomerang dies out of sight (rest on the ground). Hold E: it should rise straight up over about 1 s while you play Summon, a ring pops in around it, and the beam dims. At 1 s it should fly to you with the usual slow start and surge, at constant height.
+- Release E at about 0.5 s: it falls back to where it was, the ring shrinks, the beam brightens again; hold again to retry.
+- Release E after the charge is complete (while it flies): nothing changes, it keeps flying to you with the ring and both beams until caught. Also try dying/respawning mid-return: everything should clean up.
+- `tune`-style testing of the time: change `GlobalConfig.RecallCharge` (e.g. 3) and hold again.
+- Second client (or Studio server with 2 players): the other player should see the boomerang lift, the Summon animation and the ring (in their own color rule: red if enemy in free-for-all, team color in teams), but NOT the beam.
+- Catch it: the ring, beam and Summon should all be gone.
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-090-recall-charge`. Edits left uncommitted.
+- **How it works:** the server owns the charge (`Dead.luau`: `beginRecallCharge` / `cancelRecallCharge` / `updateRecallCharges`). The press only sets `RecallHeld`; once the boomerang is Dead the server broadcasts a reliable `RecallCharge` event (`Start` with the start time and the start / target / resting heights, or `Cancel` with the current height), all stamped in server time. Every machine (server and clients) derives the boomerang's height from those stamps each frame (smoothstep up over `RecallCharge`, a quadratic drop back over `RecallChargeCancelDropSeconds`), so the lift is smooth without streaming positions. When the charge completes the server calls `Boomerang.recallFromDead(..., true)` through the `DeadWeaponLogic.onRecallCharged` hook, and clients follow the Returning snapshot as before.
+- **Removed:** the manual recall's lazy lift and visual tilt (`ManualRecallLiftRate`, `ManualRecallMaxTiltDegrees`, the tilt code and the `RecallTilt` fields). The automatic recall of a dying boomerang that slides off by itself (`RecallFromDead == false`) keeps its lift.
+- **Visuals** are derived every frame from `DeadWeaponLogic.isRecallChargeActive(player)` (no event handlers), like the beam: `RecallChargeController` handles the ring and the Summon animation for every player; `DeadWeaponBeamController` now also keeps the beam while the charged boomerang flies back and dims it.
+- **Color rule** moved to the new `Shared/Utils/BoomerangColorUtil.getColor(ownerPlayer)` (the thrown trail in `Boomerang.luau` uses it too): own = `MyBoomerangTrailColor`, free-for-all or friendly-fire team = `EnemyBoomerangTrailColor`, otherwise the team color. Allies on your own team get their team color (the existing trail behaviour).
+- New `GlobalConfig` values: `RecallCharge = 1`, `RecallChargeCancelDropSeconds = 0.25`, `RecallChargeBeamOpacity = 0.2`, `SelectionRingGrowSeconds = 0.3`, `SelectionRingVanishSeconds = 0.15`.
+- The `SelectionRing` asset exists only in the place (`ReplicatedStorage.Shared.Assets.SelectionRing`, not under `ReplicatedStorage.Assets`, and not in the repo); the controller waits for it there. It is a flat Neon disc (4.26 x 4.26 studs), kept in its own orientation and recolored per player.
+- Decisions I made: holding recall on a Dying boomerang starts the charge when it lands; a boomerang being caught mid-return destroys the ring at once; once the charge is complete the recall can't be cancelled (`Boomerang.stopRecallFromDead` removed). Interpretation: "same recall logic as the automatic recall" = I kept the existing manual-recall flight (ramped speed, no lift); ask if the automatic physics was meant.
+- Fix (2026-10-20): the table-driven beam controller with the returning beam had never actually been committed (f776a7c held an older controller), so the returning beam did not exist in the build; it is restored now.
+- Follow-up (Sol, 2026-10-20): `RecallCharge` is now 1. Returning beam: the dead beam now stays through the return (dimmed) until the boomerang is caught; the new BeamToReturningWeapon beam fades in (0.3 s, `RecallReturnBeamFadeInSeconds`, from fully transparent to the reference's number sequence). It is built from the reference's values (no texture, Wrap, TextureLength 1, width 1, not the dead beam's width 6) and uses the same attachment points as the dead beam, but its own attachment instances. Local player and own boomerang only.
+- Not syntax-checked or tested (no Luau tooling on the device; Studio play-testing is Sol's). Task ID: I used T-090 and bumped `Next free ID` to T-091 in this lane without a reservation commit; renumber if it clashes.
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-089 · Beam between the player and their dead boomerang
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Client
+- **Files:** `Client/Core/DeadWeaponBeamController.luau` (new)
+
+**Problem / goal**
+While the local player's own boomerang is Dead (resting on the field, waiting for a manual recall), a beam connects the player to it so it's easy to find. Only the local player sees it; other players' dead boomerangs get no beam. The beam is destroyed when the boomerang is picked up or recalled.
+
+**Done when**
+- [x] A beam appears between you and your own Dead boomerang, and only then (not while Dying, thrown or returning)
+- [x] The beam disappears when the boomerang is picked up, recalled, or the round ends
+- [x] Other players never see a beam, and you never see one for another player's boomerang
+- [x] Never more than one beam at a time
+
+**Test in Studio**
+- Start a round (`setnextgamemode classic`), throw a boomerang so it dies out of line of sight (or any way you normally get a Dead one).
+- When it comes to rest (Dead), a white textured beam should run from above your character to the boomerang. Walk around: it follows you.
+- Hold recall (E) or walk over the boomerang: the beam disappears the moment it starts coming back / is picked up.
+- Repeat several times quickly (throw, die, recall, throw again), and die/respawn while it is Dead: there should never be two beams, and none left behind.
+- Second client: should never see your beam.
+- For debugging, set `DEBUG = true` at the top of the controller: it prints every create/destroy and warns if a second beam ever exists. In the command bar (client), `require(game.ReplicatedStorage.Client.Core.DeadWeaponBeamController).getBeamCount()` should return 0 or 1.
+
+**Notes**
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/dead-weapon-beam`. Edits left uncommitted.
+- New auto-loaded client controller. The beam is built entirely in code (the `BeamToDeadWeapon` instance in the workspace is only a reference). Copied from it: texture `rbxassetid://75521069157462`, width 1/1, FaceCamera, TextureMode Wrap, TextureLength 1, TextureSpeed 1, Segments 100, white color, Brightness 1, LightEmission 0, LightInfluence 1, ZOffset 0, no curve, transparency sequence 1 → 0.506 → 0.494 → 1 (keypoints 0, 0.101, 0.899, 1).
+- Attachments: on the boomerang's PrimaryPart (or the first BasePart found in the model) at (0, 1, 0), and on the local character's `Hitbox` (HitboxService) at (0, 0, 0). `PLAYER_ATTACHMENT_OFFSET` is in world-upright terms and converted into the Hitbox's space (it is a cylinder rotated 90 degrees), so a non-zero value would still mean straight up.
+- One-beam safety: the controller never reacts to events. Every frame it derives whether a beam should exist from `DeadWeapons.Data[LocalPlayer]` (State == Dead, host and Hitbox valid) and fixes any difference. The beam is rebuilt if the weapon data, weapon part or Hitbox changes (e.g. respawn). Everything it creates is tagged (`DeadWeaponBeamObject`), and the tracked beam plus every tagged leftover is destroyed before building a new one and whenever it tears down. The beam lives in a client-only `workspace.DeadWeaponBeams` folder.
+- Player attachment offset is now (0, 0, 0), the center of the Hitbox (Sol, 2026-10-20; it was 2 studs up). `PLAYER_ATTACHMENT_OFFSET` still adjusts it.
+- Visual update (Sol, 2026-10-20): TextureMode `Static`, Width0/Width1 = 6. `TextureLength` is the length of one texture tile in studs in Static mode (checked with test beams in Studio edit mode: 6 gave 6-stud tiles, 10 gave 10-stud tiles). So it is a fixed 6 (width 6 x the image's 1:1 aspect), no matter how far the player is from the boomerang; the pattern repeats along the beam and the last tile is cut off. (First attempt set it to distance / 6, which made one tile span the whole beam, so it looked stretched.) `getTileLength()` computes it from `BEAM_WIDTH`.
+- Not syntax-checked or tested (no Luau tooling on the device; Studio play-testing is Sol's). Task ID: I used T-089 and bumped `Next free ID` to T-090 in this lane without a reservation commit on `main`; if another lane took T-089 meanwhile, renumber when merging.
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-087 · Stats frame art and Quests / Settings HUD buttons
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** GUI
+- **Files:** `Client/UI/Gui/Stats/init.luau`, `Client/UI/Gui/MenuButtons/init.luau`
+
+**Problem / goal**
+The Stats menu uses new main container art (107079429198573). Two new square buttons sit under the left HUD grid: Quests (83981048085676) and Settings (118835487029221). They open nothing yet.
+
+**Done when**
+- [x] The Stats container shows the new frame image.
+- [x] Quests and Settings buttons show in the lobby menu, under Skins/Stats, and do nothing when clicked.
+
+**Test in Studio**
+- Open Stats: check the new frame fits and the title, exit button, cards and listings still sit inside it.
+- Lobby: check the two square buttons under the grid look right at different screen sizes.
+
+**Notes**
+- Branch `agent/T-087-stats-frame-hud-buttons`, lane `Boomerang-lanes/T-085-aim-arrows`. Not tested in Studio.
+- Only the image id changed in Stats; `CONTAINER_ASPECT_RATIO` (1.4619) and the title/exit/card positions still match the old art. If the new image has different proportions or layout, those need adjusting (I can't read the image's size from here; tell me or adjust the constant).
+- Quests and Settings are entries in the `BUTTONS` table like the other four (frame + name board, icon inside the frame window), so the grid is now 2 columns x 3 rows. Quests is tinted gold, Settings gray-blue (my picks; change the `Color` in `BUTTONS`). They have no click action. To wire one later: `MenuButtonsGui.setButtonEnabled("Quests", true, callback)`.
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-086 · HUD menu button icons
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** GUI
+- **Files:** `Client/UI/Gui/MenuButtons/init.luau`
+
+**Problem / goal**
+The left HUD menu buttons (Shop, Daily, Skins/inventory, Stats) used emoji placeholders. Use Sol's icon images.
+
+**Done when**
+- [x] Each button shows its image: Shop 95884415147706, Daily 126765785652910, Inventory (Skins) 123566439013193, Stats 124985088272789.
+
+**Test in Studio**
+- In the lobby, check the four left buttons show the new icons, centered in the frame window and not stretched, and still open their menus.
+
+**Notes**
+- Branch `agent/T-086-hud-button-icons`, lane `Boomerang-lanes/T-085-aim-arrows`. Not tested in Studio. Icons use `ScaleType.Fit` in the same window the emoji used.
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-085 · Aim arrow customization (own, buy and equip aim arrows)
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Server / Client / Shared / Data / GUI
+- **Files:** `Shared/Referential/AimArrows.luau`, `Shared/Library/AimArrowLibrary.luau`, `Shared/Library/CosmeticLibrary.luau`, `Server/Core/AimArrowService.luau`, `Client/Core/AimArrowController.luau`, `Client/Core/WeaponController.luau`, Shop and Inventory `Tabs/Arrows.luau`
+
+**Problem / goal**
+Players can own, buy (Shop > Arrows) and equip (Inventory > Arrows) different aim arrows, and see each other's equipped arrows. Same approach as boomerang skins.
+
+**Done when**
+- [x] Shop Arrows tab lists the arrows on sale; buying one with Currency adds it to the Inventory Arrows tab.
+- [x] Equipping an arrow in the Inventory changes the arrow shown while the player aims, for that player and for every other player.
+- [x] The equipped arrow is saved (`OwnedAimArrows` / `EquippedAimArrow`).
+
+**Test in Studio**
+- Make sure `DefaultAimArrow` and `RedAimArrow` are in `ReplicatedStorage.Shared.Assets.Gui` (see Notes).
+- Cmdr: `grantaimarrow <player> RedAimArrow`, or buy it in Shop > Arrows (250 Currency placeholder; `givecurrency` to afford it).
+- Inventory > Arrows: Equip Red. Aim a throw: the arrow is red. With 2+ players (Studio Test, 2 players) each sees the other's arrow color; equip while the other player is mid-lobby and aim again to check it updates.
+- Rejoin: the equipped arrow is kept.
+
+**Notes**
+- Branch `agent/T-085-aim-arrows`, lane `Boomerang-lanes/T-085-aim-arrows`. Not tested in Studio; no syntax checker (luau/selene) was available in the session.
+- Design: aim arrows mirror skins (`AimArrows` data, `AimArrowLibrary`, `AimArrowService`, `AimArrowController`, Cmdr `grantaimarrow`). Shop listing Type `"AimArrow"`.
+- Shared cosmetics: new `CosmeticLibrary` holds the per-category `Equipped*` Player attribute names (Skin, AimArrow). The server writes them and Roblox replicates them to every client, so each client reads any player's equipped cosmetic from one place (late joiners included, no extra remote). Readers validate against the category data and fall back to the default. `SkinLibrary.ATTRIBUTE_NAME` now comes from it; skin behaviour is unchanged. I did not add a separate client-side cache table: the replicated attributes already are one.
+- `WeaponController` picks the template when a player starts aiming (`AimArrowLibrary.getTemplateFor`) and keeps it for that aim; changing arrows mid-aim applies from the next aim.
+- Assets: code expects `DefaultAimArrow` and `RedAimArrow` in `Shared/Assets/Gui`. They are **not in the repo yet** (only `AimArrow.rbxmx` is). Until they are, `AimArrowLibrary.getTemplate` warns and falls back to the old `AimArrow` template. Add the two `.rbxmx` files (and remove `AimArrow.rbxmx`) when you export them.
+- Placeholders (`-- TODO:RELEASE placeholder`): `AimArrows.Icon` is nil for both (the Shop/Inventory show a placeholder label with an emoji until a GUI image id is set); `RedAimArrow.Price = 250`; no `ProductId`.
+- New profile fields `OwnedAimArrows` and `EquippedAimArrow` (filled in by Reconcile).
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-077 · Telekinesis pickup: steer your thrown boomerang
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared / Client / Server
+- **Files:** `Shared/Logics/PickupLogics/TelekinesisBoomerang.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`, `Shared/Referential/ThrownWeapons.lua`, `Shared/Library/BoomerangTuningLibrary.luau`, `Shared/Library/PickupLibrary.luau`, `Shared/Constants/GlobalConfig.luau`, `Client/Core/WeaponController.luau`, `Server/Core/WeaponService.luau`
+
+**Problem / goal** (split from T-010)
+Implement the TelekinesisBoomerang stub. While the effect is active, the owner can nudge their thrown boomerang toward their aim — a gentle bias, not full control, so it slowly turns toward the cursor (PC) or the direction the aim thumbstick is dragged (touch).
+
+**Done when**
+- [x] Pickup enabled and spawnable; effect lasts `GenericEffectTimeout`.
+- [x] The owner's aim bends the thrown boomerang (server-authoritative, client-predicted, reconciled by the usual snapshots).
+- [x] Input sits behind one provider function per control scheme (PC mouse, touch thumbstick, console stubbed) so it's easy to change later.
+- [x] Steering strength tunable live via Cmdr `tune TelekinesisInfluence <n>`.
+
+**Test in Studio**
+- Get the pickup (spawn one / force it), throw, then:
+  - PC: move the mouse while it flies — it should slowly curve toward the cursor, not snap.
+  - Touch: after throwing, drag the aim thumbstick — the boomerang should bias that way; releasing stops steering and must NOT throw again.
+- `tune TelekinesisInfluence 5`, throw: it should turn faster. `reset TelekinesisInfluence` restores the default (2).
+- Confirm it only steers your own boomerang, not other players'.
+
+**Open questions (for Sol)**
+- Steering applies while the boomerang is flying out (Outgoing/Exhausted), not during its automatic return — confirm that feels right.
+- Default influence is 2 (Homing is 3). Tune to taste.
+
+**Notes**
+- Branch `agent/T-077-telekinesis`, lane `Boomerang-lanes/T-077-telekinesis`.
+- Added `TelekinesisBias` to `ThrownWeapons.Data`; the flight loop lerps `direction` toward it (`Boomerang.luau`, next to Homing), on server and the owner's client.
+- Client (`WeaponController`) streams the aim direction over a new unreliable remote `TelekinesisSteer` (throttled ~20 Hz) and predicts locally; server (`WeaponService`) validates (effect active + thrown weapon) and sets the bias. Added `PickupLibrary.isEffectActive`.
+- New tuning setting `TelekinesisInfluence` in `BoomerangTuningLibrary`; default from `GlobalConfig.TelekinesisSteerInfluence = 2`. The existing `tune` / `reset` Cmdr commands pick it up automatically.
+- No new placeholders added. `AcquirableThingData.TelekinesisBoomerang` already existed with a placeholder `Img = 17` (pre-existing; its real icon is part of T-018).
+- Telekinesis and Homing are mutually exclusive (Sol, 2026-10-09): PickupService `NotCompatible` keeps the other out of the pickup pool while you have one.
+- 2026-10-22: reworked on branch `agent/telekinesis` (lane `Boomerang-lanes/telekinesis`) for the new fixed-step/snapshot movement. Renamed `TelekinesisBoomerang` to `Telekinesis` (pickup id and file `Shared/Logics/PickupLogics/Telekinesis.luau`, which now holds the steering, input and cyan SelectionRing). The strength is `Telekinesis.STEER_STRENGTH` at the top of that file; `GlobalConfig.TelekinesisSteerInfluence` and the `TelekinesisInfluence` tune setting were removed. The notes above describe the first version. PC over-the-shoulder and console steering: T-105, T-106.
+- Couldn't syntax-check here (no Luau/selene/rojo on the device); needs a Studio load to confirm it compiles.
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-076 · Shop GUI (new art, tabs, rarity)
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** GUI / Client
+- **Files:** `Client/UI/Gui/Shop/` (`init.luau`, `RarityStyles.luau`, `ShopListings.luau`, `Tabs/`), `Client/Core/ShopController.luau`, `Shared/Referential/ShopItems.luau`, `Shared/Constants/Icons.luau`
+
+**Problem / goal**
+Build the Shop menu from Sol's new art (frame, tab button, listing base, balance plank, square and wide buttons) following Sol's reference image. Tabs: Featured, Skins, Emotes, Arrows, Effects. Featured and Skins work; the other tabs are selectable but blank. The grid shows 3x2 listings; Featured never scrolls, Skins scrolls past 6.
+
+**Done when**
+- [x] The Shop opens from the lobby Shop button (and B in Studio) with the new art, red X, tab row and balance plank
+- [x] Featured shows the hand-picked skins; Skins lists every skin on sale (same system as the Inventory's Skins tab)
+- [x] Buying a skin with Currency updates the listing to "Owned" and the balance
+
+**Test in Studio**
+- Open the Shop: purple Featured tab selected, the other tabs brown; Featured shows Shuriken and Fan (Common, gray frames) with their 3D models and coin prices; balance at the bottom matches your Currency.
+- Click Skins, Emotes, Arrows, Effects: Skins lists the skins on sale; the other three open blank.
+- To see the scroll bar: temporarily add more `Skins` entries (more than 6 on sale) and open the Skins tab; the cells should shrink slightly to make room for the bar. Resize the Studio window to check it scales.
+- Your Studio profile already owns Shuriken and Fan, so both show a gray "Owned" button. To test a purchase you need a profile that doesn't own one (remove it from `OwnedSkins`, or use a fresh Studio store key), then F2 → `givecurrency me 5000` and click the price: the button turns gray "Owned" and the balance drops.
+- Check that the whole menu covers the screen without a gap at the top (IgnoreGuiInset) and the close X works.
+- The Robux price button and the gift button aren't visible yet: no skin has a `ProductId`, and gifting is off (`GIFTING_ENABLED` in `Shop/init.luau`).
+
+**Notes**
+- Branch `agent/T-076-shop-gui`, lane `Github/Boomerang-lanes/T-076-shop-gui`.
+- Built entirely in code with `CreateElement` (like Stats); the old `Shop.rbxmx`, `ItemListingTemplate.rbxmx` and `TabButtonTemplate.rbxmx` were removed, and so was the old Topbar Shop button (MenuButtons opens the Shop). The ScreenGui has `IgnoreGuiInset = true` and `ScreenInsets = None` (no safe areas).
+- Tabs are declared in `ShopItems.Tabs` (name, order, emoji icon). A tab's content is `Shop/Tabs/<Id>.luau` (shape `ShopTab` in `Shop/init.luau`: `Scrollable`, `MaxListings?`, `getListings`, `subscribe`). Tabs without a module (Emotes, Arrows, Effects) open blank: add a module to set one up.
+- Listings come from `ShopListings.getDisplay` (skins via `SkinLibrary` / `SkinController`, items via `Items`); the model is shown with `ItemViewport`.
+- Rarity: a listing's rarity is the `Rarity` of its model's entry in `Tools.luau`; `RarityStyles.luau` maps a rarity to the frame tint and name color (insertion point). Every tool is still the `Common` placeholder, so every listing is gray for now.
+- Layout is all scale, except the grid's cell size and scroll bar width, which are measured from the grid and recomputed when it resizes (a ScrollingFrame's children can't use scale for this). 
+- Placeholders: tab emoji (`ICON_EmojiPlaceholder` labels, in their own label so they can become images later). The Skins tab uses 🎨 because the boomerang emoji doesn't draw in Roblox's font.
+- `Icons.luau`: added `ShopFrame`, `ShopTabButton`, `ShopListingBase`, `ShopBalanceFrame`, `ShopSquareButton`, `ShopWideButton`, `GiftIcon`, `RobuxIcon`. `TODO:` Sol gave the same asset id for the square and wide buttons; check it's the wide art.
+- `ShopController.requestRobuxPurchaseItem` now takes the listing type, so skins with a `ProductId` can be bought with Robux (the server-side grant for a skin product isn't set up: no skin has a product yet).
+- Not tested in Studio: the lane couldn't be served through Rojo from here. Everything in this task needs a Studio check.
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-075 · Inventory GUI (new art, tabs)
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** GUI / Client
+- **Files:** `Client/UI/Gui/Inventory/` (was `Gui/Skins/`), `Client/UI/Gui/MenuButtons/init.luau`, `Shared/Constants/Icons.luau`
+
+**Problem / goal**
+Apply Sol's Inventory art (primary frame, item listing frame, tab frame) to the Skins menu, following Sol's reference image. No separate Equip button: each listing is the button; the equipped one is green and shown in the large panel on the right. Tab column (Skins, Emotes, Arrows, Effects) set up modularly; only Skins works for now.
+
+**Done when**
+- [x] Inventory opens from the lobby Skins button with the new art and the tab column
+- [x] Clicking an owned skin equips it; its listing turns green and it shows in the Detail panel
+
+**Test in Studio**
+- Open Skins (left menu): frame, "Your Skins" title, 4 tabs on the left, Classic listing green and shown on the right.
+- F2 → `grantskin me Shuriken` → Shuriken appears (tan); click it → Detail panel shows Shuriken, "Common" and an Equip button; click Equip → listing turns green, "Equipped" shows, held boomerang swaps. Check the 3D models fit inside each listing and the Detail panel.
+- Emotes / Arrows / Effects tabs show (darker) and do nothing yet.
+- Check the layout of `Inventory.rbxmx`, `InventoryListingTemplate.rbxmx`, `InventoryTabTemplate.rbxmx` in Studio (positions were set by hand from the reference; tweak freely).
+
+**Notes**
+- Branch `agent/T-075-inventory-gui`, lane `Github/Boomerang-lanes/T-075-inventory-gui`.
+- `Gui/Skins` renamed to `Gui/Inventory` (UIController name "Inventory"; MenuButtons' Skins button opens it). The old Shop-style `.rbxmx` files were removed.
+- Tabs: `TABS` in `Inventory/init.luau`; a tab's content is `Inventory/Tabs/<Id>.luau` (shape `InventoryTab`: `Title`, `getItems`, `selectItem`, `subscribe`). Tabs without a module are shown darker and do nothing.
+- All listings and tabs have an empty `ICON` ImageLabel placeholder (the 3D ViewportFrame previews were dropped). `InventoryItem.Icon` fills it once icons exist.
+- The item listing art has transparent padding: listings and the Detail panel are transparent and hold an oversized `Art` ImageLabel (scale-only values in `Icons.luau`), so the visible frame fills the cell. Listing colors are set on `Art`. (First version cropped with ImageRectOffset in pixels, which broke because Roblox downscales uploads over 1024px.) No Offset values in the Inventory .rbxmx files; text strokes use ScaledSize.
+- Follow-up (Sol, 2026-10-06): only owned skins are listed; the Detail panel uses the item listing art tinted brown (panel widened to 42% of the content to limit stretching); `Rarity` added to `Tools.luau` (skins read it through their model's tool entry) and shown under the name in the Detail panel.
+- `TODO:RELEASE placeholder`: `Rarity = "Common"` on ClassicBoomerang, Shuriken and Fan in `Tools.luau`.
+- Follow-up 2 (Sol, 2026-10-06): clicking a listing only selects it (lighter tint) and shows it in the Detail panel; the panel shows an Equip button (ListingFrameButtonGreen) when the selected skin isn't equipped, and "Equipped" when it is. Listings and the Detail panel show the 3D tool model (same asset as the character holds) via the new reusable `Client/UI/ItemViewport.luau` (`renderTool` / `renderModel`), which fits the model into a square camera automatically. Per-model pose: `Viewport = { Rotation, Zoom? }` in `Tools.luau` (angles picked with a test viewport GUI, `StarterGui.ViewportTest`, left disabled in the place; delete it whenever).
+- Icons.luau: added `InventoryFrame`, `InventoryItemListingFrame`, `InventoryTabFrame`.
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-074 · Stats menu
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Client / GUI / Server / Data
+- **Files:** `Client/UI/Gui/Stats/`, `Client/UI/Gui/MenuButtons/init.luau`, `Server/Core/LifetimeStatsService.luau`, `Shared/Data/ProfileTemplate.luau`, `Server/Cmdr/Commands/ShowStatsServer.luau`
+
+**Problem / goal**
+A Stats button in the left lobby menu opens a Stats menu showing the player's lifetime stats. Left: six cards, in order Time Played, Eliminations, Defeats, Games Played, Games Won, Throws. Right: the smaller stats (times each ability was used, times each pickup was collected) as placeholder rows with a count, no fill bar. Layout sized after Sol's reference screenshot, without its "Personal Stats" / "Ability Usage Comparison" labels. Uses the DailyClaims base frame (title centered, no streak number), its X button and its card frame for now.
+
+**Decisions (Sol, 2026-10-05)**
+- 5th card is Games Won (the request listed Eliminations twice).
+- The right list has abilities and pickups.
+- New saved stat `Throws`: every successful weapon throw.
+
+**Done when**
+- [x] The Stats button opens/closes the menu; the X closes it.
+- [x] The six cards and the list show the player's saved values, and Throws counts up.
+
+**Test in Studio**
+- Open Stats from the left menu. New profile: cards show 0 Min / 0, and the list shows Dash, Stab and the enabled pickups with 0.
+- Throw a few times, dash/stab, grab a pickup, then reopen: Throws and the counts went up (F2 `showstats me` shows the same values, incl. Throws). Time played shows minutes under an hour, hours after (saved every minute).
+- Check `Stats.rbxmx` / `StatListingTemplate.rbxmx` in Studio: card sizes, text positions, row height (rows scale to the list's width, 7:1), and the list scrolls when rows overflow.
+
+**Notes**
+- Branch `agent/T-074-stats-gui`, lane `Github/Boomerang-lanes/T-074-stats-gui`.
+- Card icons and row icons are the Roblox placeholder image; the rows are plain code-colored frames (placeholders for Sol's art). Menu button uses placeholder emoji art like the others.
+- Pickup rows skip stub pickups (`Disabled = true`). Row names use the item-acquired notification titles (`AcquirableThingData`); ids without an entry (Dash, Stab) are spaced out from the id. Each group is sorted most-used first.
+- The `.rbxmx` files are Sol's Studio saves (Rojo hadn't synced the hand-written ones); card number/label moved closer, list text slimmer (Sol, 2026-10-05).
+- `Throws` counts through `SharedTasks.WeaponThrownTasks` (fired once per accepted throw). With the debug switch `SyncAbilitiesToEveryPlayer` on, the copied throws count for every player.
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-073 · Returning boomerang circles the player instead of reaching them
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared
+- **Files:** `Shared/Logics/WeaponLogics/Boomerang.luau`
+
+**Problem / goal**
+A returning boomerang (mostly the held manual recall of a dead boomerang, sometimes a normal return) can miss the player and keep curving around them; moving in circles keeps it orbiting. It should turn into the player more directly.
+
+**Done when**
+- [x] A manual recall of a dead boomerang reaches the player instead of orbiting, even while they run in circles
+- [x] Normal returns still feel the same from a distance and no longer curve around the player up close
+
+**Notes**
+- Branch `agent/T-073-return-accuracy`, lane `Github/Boomerang-lanes/T-073-return-accuracy`.
+- Cause: in `Boomerang.recall` the whole velocity eased toward the player at `5 × RecallAcceleration` per second. Manual recall uses `ManualRecallMomentumMultiplier = 0.15`, so it turned at ~0.75/s; at 80 studs/s that's a turning circle of roughly 100 studs, wider than the distance to the player.
+- Fix: the velocity is split into the part heading at the player and the sideways part. The forward part still builds up at the old (heavy) rate. The sideways part is removed at least `RETURN_STEER_TIGHTNESS × speed / distance` per second (constant at the top of the file, default 3; 1 would be a perfect circle). Far away nothing changes; up close it turns in hard enough to always spiral inward.
+- Test in Studio: manual recall a dead boomerang from various angles and run circles around it; normal throws from max range while strafing. If it now looks too snappy up close, lower `RETURN_STEER_TIGHTNESS` (try 2); if it still curves, raise it.
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-072 · Boomerang skins (equip, shop, daily rewards)
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Server / Client / Shared / GUI / Data
+- **Files:** `Shared/Referential/Skins.luau`, `Shared/Library/SkinLibrary.luau`, `Server/Core/SkinService.luau`, `Client/Core/SkinController.luau`, `Client/UI/Gui/Skins/`, `Client/UI/Gui/MenuButtons/init.luau`, `ShopItems.luau`, `DailyRewards.luau`, `Items.luau`, `ProfileTemplate.luau`, `WeaponService`, `ToolService`, `WeaponController`, `WeaponLogics/Boomerang.luau`, Shop + DailyClaims GUIs, `Server/Cmdr/Commands/GrantSkin*.luau`, `Server/Cmdr/Types/SkinType.luau`
+
+**Problem / goal**
+Equippable boomerang skins with identical stats (every skin uses the `ClassicBoomerang` weapon class for now; the weapon-class concept stays). Skins button in the left lobby menu, Skins GUI, owned/equipped skins saved, granted via Shop, Daily Rewards and Cmdr. Starting skins: Shuriken, Fan (Classic is the default, always owned).
+
+**Done when**
+- [x] A skin can be obtained from the shop, daily rewards and `grantskin`
+- [x] Skins menu opens from the lobby menu, equips owned skins, and the held + thrown boomerang use the skin's model
+- [x] Owned and equipped skins persist across rejoins
+
+**Test in Studio**
+- F2 → `grantskin me Shuriken` → "New skin acquired!" popup. Open Skins (left menu) → Shuriken shows Equip, Fan shows Locked → Equip → held model swaps; throw it: the thrown model is the Shuriken too (check from a second client as well).
+- Rejoin: Shuriken still owned and equipped.
+- Shop → Skins tab lists Shuriken/Fan; `givecurrency me 2000`, buy Fan → shows Owned, appears in Skins.
+- `resetdaily me true` and claim up to day 3 (`resetdaily me` between claims): day 3 grants Shuriken, or +250 Currency if already owned. Day 7 = Fan.
+- Check `Skins.rbxmx` / `SkinListingTemplate.rbxmx` in Studio (copied from the Shop panel/card; ViewportFrame preview angle may need tuning).
+
+**Notes**
+- Branch `agent/T-072-skins`, lane `Github/Boomerang-lanes/T-072-skins`.
+- Profile: new `OwnedSkins` (default skins aren't stored) and `EquippedSkin`. The server sets an `EquippedSkin` Player attribute; the server now decides the throw/aim weapon class instead of trusting the client.
+- Shop: `ShopTab.Items` became `Listings` (`{Type = "Item" | "Skin", Id}`); Example items and the Weapons tab removed; `CurrentDeal` is nil. `ProductLogics/Placeholder.luau` kept with `NotActive = true` (Sol's choice).
+- `TODO:RELEASE placeholder`: Shuriken/Fan prices (500/1000) and `WeaponClass`, all daily currency amounts and skin `FallbackCurrency` (250/500).
+- Skins GUI uses the Shop panel/card assets; no title label yet. Sol may want to restyle.
+- Follow-up (Sol's feedback): skin cards are shorter to fit their content (bigger preview, cell height 0.25 → 0.205); the Fan's `MotorC0` attribute was moved so it's held by its handle in the hand instead of up the arm (rotation unchanged).
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-037 · Player HUD buttons
+- **Priority:** P1
+- **Owner:** Sol → Agent
+- **Area:** GUI / Client
+- **Files:** `Client/UI/Gui/MenuButtons/init.luau` (new), `Client/UI/Gui/DailyClaims/init.luau`
+
+**Problem / goal**
+The player needs a HUD with buttons. Known so far:
+- **Currency**: shows the player's Currency; clicking opens a Robux shop tab to buy more Currency.
+- **Shop**: opens the shop.
+- **Quests**: opens quests (feature: T-038).
+- **Achievements**: opens achievements (feature: T-039).
+**Sol:** decide the full button list and make the assets. **Agent:** wire each button (Currency display via `EconomyController.CurrencyChangedTasks`, opening GUIs via `UIController`). Buttons for features that don't exist yet stay hidden.
+
+
+**Decisions (Sol, 2026-10-03)**
+- Buttons: Currency, Shop, Quests, Achievements, Daily (Daily moves off the top bar). Quests/Achievements hidden until T-038/T-039 exist.
+- Layout from Sol's mockup (sizes/layout only, not its buttons): left side, vertical; Currency on top, two buttons wide, with room for a boomerang icon; below it a 2-column grid of square-ish buttons with a name plate.
+- Placeholder art for now (Sol's assets later). Clicking Currency will open a Robux shop for buying Currency; that shop comes later, so the click is a stub for now.
+
+**Notes**
+- Branch `agent/T-037-hud-menu-buttons`, lane `Github/Boomerang-lanes/maintenance`.
+- New code-built `MenuButtons` gui (no `.rbxmx`): placeholder colored tiles with emoji icons (🪃 currency, 🛒 Shop, 🎁 Daily, 📜 Quests, 🏆 Achievements) and FredokaOne labels. Sizes, colors, icons and position are constants at the top of the module; it scales with screen height (UIScale) and sits at 42% height so it stays clear of the mobile thumbstick.
+- Currency shows `EconomyController` balance with thousands separators and updates live. Click: `openCurrencyShop()` stub (prints in Studio only).
+- Shop toggles the Shop gui; Daily toggles Daily Rewards. The top bar's Daily button was removed (DailyClaims no longer registers it; the Topbar module stays for future buttons).
+- Quests/Achievements: `MenuButtonsGui.setButtonEnabled("Quests", true, QuestsGui.toggle)` turns one on when its feature exists; hidden buttons don't leave gaps.
+- Hidden while you're alive in the arena (lobby menu); say if it should show during rounds too.
+- Didn't use `HudButtons/Hud.rbxmx` (that's the in-round Throw/Dash/Stab buttons).
+- Not lint-checked.
+- **Art pass (2026-10-06, branch `agent/hud-left-art`, lane `Github/Boomerang-lanes/hud-left-art`):** `MenuButtons` now uses Sol's assets. Buttons = grayscale interior `138558379535634` (cropped with `ImageRectOffset`/`ImageRectSize`, tinted per button with `ImageColor3`; 9-slice rendered wrongly in Studio) under the wooden frame `78059494085912`; currency bar = `97631724752812`. Icon and name text sit in the frame's free window and name board; the art's free-space rectangles are constants (`FRAME_ICON_AREA`, `FRAME_BOARD_TEXT`, `BAR_COIN_AREA`, `BAR_TEXT_AREA`) converted to Scale. Icons and the currency coin are still emoji placeholders. Button size is now 100x90 (the frame art's proportions).
+- **Update (2026-10-06, branch `agent/hud-left-currency-icon`):** the currency bar now shows Sol's coin image `110596837298294` (`CURRENCY_ICON`: left 5%, centered vertically, 70% of the bar height, square). Quests and Achievements were removed from the left bar (Sol: only Currency, Shop, Daily, Skins, Stats); `setButtonEnabled` stays for any later button.
+- **Test in Studio:** the tint only multiplies the grayscale (average ~50% gray), so button colors come out darker than a bright mockup; adjust the `Color` tints in `BUTTONS`, or lighten the grayscale asset. Check the text fits on the name board ("Achievements" is the longest, hidden for now), and the balance on the bar with big numbers.
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-060 · Bug: aim arrow stays visible while not aiming
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Client / Weapons
+- **Files:** `Client/Core/WeaponController.luau` (aim arrow), `Shared/Library/PlayerStatsLibrary.luau` (`CurrentMovementState` "Aiming"), `Server/Core/WeaponService.luau`
+
+**Problem / goal**
+Sometimes the aim arrow stays visible while the player isn't otherwise aiming: they walk at normal speed instead of the slow aiming speed. Often happens after throwing a boomerang. Likely the arrow's visibility and the aiming movement state are cleared by different paths (e.g. throw, release, recall, weapon lock, death, the stats reset on `LobbyVoting`) and one of them misses the other. Find the cause and make both follow one source of truth.
+
+**Done when**
+- [x] The arrow is only visible while the player is in the aiming state, including after throws, recalls, deaths and round changes.
+
+**Test in Studio**
+- Throw repeatedly (fast taps, hold-and-release, throw right as the boomerang returns, throw during weapon lock): the arrow never stays without the slow aiming walk.
+
+**Notes**
+- Branch `agent/T-060-aim-arrow-race`, lane `Github/Boomerang-lanes/T-060-aim-arrow-race` (first fix: `agent/T-060-aim-arrow-visibility`, shipped).
+- **Review 2 (2026-10-05): failed** - Sol: the arrow alone still sometimes stays (walk speed and the rest are fine), rare race.
+  - Cause: `beginAiming` waits for the character model (`getCharacterModel(player, true)` can yield up to 5 s while the model is being built, e.g. right after a respawn or a ragdoll rebuild). If the throw/cancel happened during that wait, `stopAiming` found no arrow to remove, then `beginAiming` resumed and created one that nothing ever removed. Affected other players' arrows too.
+  - Fix: a per-player arrow generation counter (bumped by every begin/stop); a `beginAiming` that was overtaken while waiting no longer creates the arrow. Backstop: the render loop removes the local arrow on any frame where the local player isn't aiming.
+- Causes found (client and server aim could disagree, and the arrow only listened to the server):
+  - When the client dropped its aim without throwing (weapon locked mid-aim, throw refused while locked, round change to LobbyVoting), the server was never told, so it kept the player "aiming".
+  - A "stop aiming" from the server was dropped while the weapon was locked, so the arrow stayed.
+  - LobbyVoting cleared the local aim but not the arrow.
+  - A late "aiming" confirmation from the server could re-create the arrow after the player had already released.
+- Fix: the local arrow now follows the local aim (`setLocalAimState(false)` always removes it). A new `WeaponAimCancel` remote tells the server when the client leaves aim without a throw; the server's new `cancelAiming` (also called by `applyLockOnWeapon`) clears its aim, restores walk speed and tells every client to hide the arrow. A late aim confirmation for an aim the player already left is answered with a cancel instead of an arrow.
+- Not lint-checked.
+- Passed Sol's Studio test (2026-10-25).
+
+
+### T-017 · Hot Potato "bomb will explode" GUI (replace the placeholder)
+- **Priority:** P2
+- **Owner:** Sol
+- **Area:** GUI
+- **Files:** `Shared/Logics/GamemodeLogics/HotPotato/HotPotatoGui.rbxmx`, `HotPotato/init.luau`
+
+**Problem / goal**
+The Hot Potato "bomb will explode" GUI is a placeholder. Sol creates the final image assets and layout; an agent can wire up any behaviour changes afterwards.
+
+> Update (branch `agent/hotpotato-pickup-timer`, lane `hotpotato-pickup-timer`): the placeholder "Bomb will explode in" text and `HotPotatoGui.rbxmx` were removed. The bomb countdown now shows as the HotPotato pickup effect timer in the Effects HUD.
+
+**Notes**
+- Done outside this task (2026-10-25, per Sol): the Hot Potato bomb timer is shown as one of the status effects at the bottom of the screen (Effects HUD).
+
 
 ### T-100 · Only the server decides a boomerang catch (client predicts, server confirms)
 - **Priority:** P1
