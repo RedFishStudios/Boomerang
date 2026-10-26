@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-124** *(shared by every task list, general and Epic)*
+**Next free ID: T-125** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,19 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-124 · Dying boomerangs are stopped by the same walls as flying ones, and never climb
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared (server decides)
+- **Files:** `Shared/Logics/WeaponLogics/Dead.luau`, `Shared/Library/ObstructionCastLibrary.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`
+
+**Done when**
+- [ ] A dying/sliding boomerang is stopped by every wall a flying boomerang bounces off (same hitbox-wide, cast-height block at flight height), including the low TerrainTest walls (tops 158.35 / 158.46)
+- [ ] A sliding boomerang never climbs onto higher ground: a step more than 0.1 studs above it blocks it like a wall (it can still drop down steps, and a still-falling boomerang can land on anything below it)
+
+**Notes**
+- The block cast now lives in `ObstructionCastLibrary.blockcast` (used by flying and dying weapons); the dying slide along a wall uses the half-width block, as in flight. `DEAD_MAX_STEP_UP = 0.1` in Dead.luau. Checked with test walls in a Studio play session (server physics); not hand-play-tested. Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-124-dying-box-check`.
 
 ### T-123 · No automatic recall once a dying boomerang has hit the ground
 - **Priority:** P2

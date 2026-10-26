@@ -81,9 +81,7 @@ local catchWeapon: (player: Player, thrownWeaponData: ThrownWeapons.Data) -> boo
 local RETURN_STEER_TIGHTNESS = 3 -- // How sharply a returning boomerang turns into the player up close (1 = circles them; higher = more direct)
 local DEATH_SPEED_SCALE = 0.5
 local DEATH_MINIMUM_SPEED = 12
-local OBSTRUCTION_BLOCKCAST_DEPTH = 0.2
-local OBSTRUCTION_BLOCKCAST_WIDTH_SCALE = 1.4
-local OBSTRUCTION_BLOCKCAST_SKIN = 1
+local OBSTRUCTION_BLOCKCAST_SKIN = ObstructionCastLibrary.BLOCKCAST_SKIN
 local BLOCKCAST_VISUALIZER_LIFETIME = 0.05
 local RECALL_BOUNCE_MIN_SPEED_FRACTION = 0.5 -- // A returning boomerang that bounces leaves the wall at no less than this fraction of its max recall speed
 local LOS_VISUALIZER_LIFETIME = 3 -- // Seconds a line-of-sight cast stays drawn (it is only made once, at 0 energy)
@@ -334,13 +332,13 @@ end
 
 -- // CFrame for a flat, horizontal blockcast oriented towards the travel direction
 local function getObstructionBlockcastCFrame(rayOrigin: Vector3, direction: Vector3): CFrame
-   return CFrame.lookAt(rayOrigin, rayOrigin + direction, UP_VECTOR)
+   return ObstructionCastLibrary.getCastCFrame(rayOrigin, direction)
 end
 
 -- // The flat block every obstruction cast uses: bounce detection in flight and the line-of-sight cast. Its height is the one
 -- // shared cast height (GlobalConfig.BoomerangRaycastHeight, tunable with Cmdr `setboomerangcastheight`).
 local function getObstructionCastSize(hitboxRadius: number): Vector3
-   return Vector3.new(hitboxRadius * OBSTRUCTION_BLOCKCAST_WIDTH_SCALE, ObstructionCastLibrary.getHeight(), OBSTRUCTION_BLOCKCAST_DEPTH)
+   return ObstructionCastLibrary.getCastSize(hitboxRadius)
 end
 
 -- // The part that stands for a player's position in line-of-sight checks: the Hitbox HitboxService puts in their character
@@ -618,14 +616,7 @@ local function blockcastWithHorizontalHitbox(
    hitboxRadius: number,
    raycastParams: RaycastParams
 ): RaycastResult?
-   rayDistance = math.max(rayDistance, hitboxRadius)
-
-   local castOrigin = rayOrigin - direction * OBSTRUCTION_BLOCKCAST_SKIN
-   local castDistance = rayDistance + OBSTRUCTION_BLOCKCAST_SKIN
-   local castCFrame = getObstructionBlockcastCFrame(castOrigin, direction)
-   local castSize = getObstructionCastSize(hitboxRadius)
-
-   local result = RaycastsUtility.blockcastProjectileObstruction(castCFrame, castSize, direction, castDistance, raycastParams)
+   local result, castCFrame, castSize, castDistance = ObstructionCastLibrary.blockcast(rayOrigin, direction, rayDistance, hitboxRadius, raycastParams)
    updateRaycastVisualizers(castCFrame, castSize, castDistance, result)
    return result
 end

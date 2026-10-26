@@ -18,6 +18,8 @@ local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local SoundLibrary = require(ReplicatedStorage.Shared.Library.SoundLibrary)
 local Sounds = require(ReplicatedStorage.Shared.Constants.Sounds)
 local RaycastsUtility = require(ReplicatedStorage.Shared.Utils.RaycastsUtility)
+local ObstructionCastLibrary = require(ReplicatedStorage.Shared.Library.ObstructionCastLibrary)
+local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local AuthorityViewLibrary = require(ReplicatedStorage.Shared.Library.AuthorityViewLibrary)
 local BoomerangTuningLibrary = require(ReplicatedStorage.Shared.Library.BoomerangTuningLibrary)
@@ -62,7 +64,8 @@ local DEAD_MAX_FALL_SPEED = 80
 local DEAD_GROUND_RAY_DISTANCE = 10
 local DEAD_GROUND_MAX_IGNORE_ITERATIONS = 16
 local DEAD_GROUND_EPSILON = 0.02
-local DEAD_OBSTRUCTION_RADIUS = 2
+local DEAD_OBSTRUCTION_RADIUS = 2 -- // How far from a wall it stops; also the hitbox radius for a tool without one
+local DEAD_MAX_STEP_UP = 0.1 -- // T-124: ground ahead higher than this above it is a wall face, not floor (it never climbs)
 local DEAD_PICKUP_DISTANCE = 3
 local DEAD_OVERLAP_CHECK_SIZE = Vector3.new(0.01, 0.01, 0.01)
 local SNAPSHOT_PACKET_SIZE = 1 + 8 + 12 + 12 + 4 + 1 + 8
@@ -176,10 +179,21 @@ end
 
 -- // Moves horizontally without entering obstructions, sliding along the struck face
 --    Returns the new position, the direction to keep travelling in, and whether the weapon is blocked head-on
+-- // T-124: the same hitbox-wide, cast-height block flying weapons bounce off (ObstructionCastLibrary.blockcast), not a thin ray.
+--    Returns how far ahead (along direction) the block meets an obstruction, or nil.
+local function castObstruction(position: Vector3, direction: Vector3, distance: number, hitboxRadius: number, raycastParams: RaycastParams): (RaycastResult?, number)
+	local result = ObstructionCastLibrary.blockcast(position, direction, distance, hitboxRadius, raycastParams)
+	if not result then
+		return nil, 0
+	end
+	return result, math.max(0, (result.Position - position):Dot(direction))
+end
+
 local function resolveHorizontalMovement(
 	position: Vector3,
 	direction: Vector3,
 	travelDistance: number,
+	hitboxRadius: number,
 	raycastParams: RaycastParams
 ): (Vector3, Vector3, boolean)
 	if travelDistance <= 0 then
@@ -187,12 +201,12 @@ local function resolveHorizontalMovement(
 	end
 
 	local rayDistance = travelDistance + DEAD_OBSTRUCTION_RADIUS
-	local obstruction = RaycastsUtility.raycastProjectileObstruction(position, direction, rayDistance, raycastParams)
+	local obstruction, obstructionDistance = castObstruction(position, direction, rayDistance, hitboxRadius, raycastParams)
 	if not obstruction then
 		return position + direction * travelDistance, direction, false
 	end
 
-	local approachDistance = math.clamp((obstruction.Position - position).Magnitude - DEAD_OBSTRUCTION_RADIUS, 0, travelDistance)
+	local approachDistance = math.clamp(obstructionDistance - DEAD_OBSTRUCTION_RADIUS, 0, travelDistance)
 	local nextPosition = position + direction * approachDistance
 	local remainingDistance = travelDistance - approachDistance
 
@@ -209,15 +223,17 @@ local function resolveHorizontalMovement(
 	slideDirection = slideDirection.Unit
 
 	if remainingDistance > 0 then
-		local slideObstruction = RaycastsUtility.raycastProjectileObstruction(
+		-- // Half-width along the wall, like a flying weapon's wall slide (the full block would scrape the wall it slides along)
+		local slideObstruction, slideObstructionDistance = castObstruction(
 			nextPosition,
 			slideDirection,
 			remainingDistance + DEAD_OBSTRUCTION_RADIUS,
+			hitboxRadius * 0.5,
 			raycastParams
 		)
 		if slideObstruction then
 			remainingDistance = math.clamp(
-				(slideObstruction.Position - nextPosition).Magnitude - DEAD_OBSTRUCTION_RADIUS,
+				slideObstructionDistance - DEAD_OBSTRUCTION_RADIUS,
 				0,
 				remainingDistance
 			)
@@ -400,6 +416,7 @@ export type DyingSim = {
 	NoGroundTime: number, -- // Seconds in a row with nothing below to land on (blocked by a wall also resets it)
 	GroundY: number?, -- // Resting height of the ground under Position this step (nil = nothing to land on)
 	LastSolid: Vector3?, -- // The last position it passed over that had ground (flight height)
+	HitboxRadius: number, -- // Width of its obstruction block (the tool's HitboxRadius, same as in flight)
 }
 
 local NO_HOST = { Host = nil } :: any -- // Ground checks for the physics: the plain ground height, no model offset
@@ -413,15 +430,24 @@ local function stepDyingSim(sim: DyingSim, deltaTime: number, dyingSpeedMultipli
 	local fromPosition = Vector3.new(sim.Position.X, GlobalConfig.BoomerangFlightHeight, sim.Position.Z)
 	local nextSpeed = getNextDyingSpeed(sim.Speed, deltaTime, sim.IsGrounded, dyingSpeedMultiplier)
 	local travelDistance = (sim.Speed + nextSpeed) * 0.5 * deltaTime
-	local nextPosition, nextDirection, isBlocked = resolveHorizontalMovement(fromPosition, sim.Direction, travelDistance, obstructionParams)
+	local nextPosition, nextDirection, isBlocked = resolveHorizontalMovement(fromPosition, sim.Direction, travelDistance, sim.HitboxRadius, obstructionParams)
 	local groundY = getPhysicsGroundY(nextPosition, groundParams)
+
+	-- // T-124: it never climbs. Ground ahead that is higher than it is (a wall top under the obstruction block) is a wall it
+	-- // runs into: it stays where it is, blocked, and loses speed like against any other wall.
+	if groundY and groundY > sim.PhysicsY + DEAD_MAX_STEP_UP then
+		nextPosition = fromPosition
+		nextDirection = sim.Direction
+		isBlocked = true
+		groundY = getPhysicsGroundY(fromPosition, groundParams)
+	end
 
 	if groundY or isBlocked then
 		sim.Speed = nextSpeed
 		sim.NoGroundTime = 0
 	else
 		-- // Nothing to land on: it keeps its momentum (no slowing, no falling) until there is ground again
-		nextPosition, nextDirection = resolveHorizontalMovement(fromPosition, sim.Direction, sim.Speed * deltaTime, obstructionParams)
+		nextPosition, nextDirection = resolveHorizontalMovement(fromPosition, sim.Direction, sim.Speed * deltaTime, sim.HitboxRadius, obstructionParams)
 		sim.NoGroundTime += deltaTime
 	end
 	sim.Position = nextPosition
@@ -453,7 +479,9 @@ local function stepDyingSim(sim: DyingSim, deltaTime: number, dyingSpeedMultipli
 	return landed
 end
 
-local function newDyingSim(position: Vector3, direction: Vector3, speed: number, physicsY: number): DyingSim
+local function newDyingSim(position: Vector3, direction: Vector3, speed: number, physicsY: number, toolId: string?): DyingSim
+	local toolData = toolId and Tools[toolId]
+	local boomerangData = toolData and toolData.Boomerang
 	return {
 		Position = Vector3.new(position.X, GlobalConfig.BoomerangFlightHeight, position.Z),
 		Direction = getHorizontalDirection(direction),
@@ -464,6 +492,7 @@ local function newDyingSim(position: Vector3, direction: Vector3, speed: number,
 		NoGroundTime = 0,
 		GroundY = nil,
 		LastSolid = nil,
+		HitboxRadius = if boomerangData then boomerangData.HitboxRadius else DEAD_OBSTRUCTION_RADIUS,
 	}
 end
 
@@ -506,7 +535,7 @@ function DeadWeaponLogic.predictSlidePositions(position: Vector3, direction: Vec
 
 	local dyingSpeedMultiplier = BoomerangTuningLibrary.getForAnyTool(toolId, "DeadWeaponDeceleration")
 	-- // T-107: the very same physics step as applyDeath; positions are at flight height (where the physics is worked out)
-	local sim = newDyingSim(position, slideDirection, speed, position.Y)
+	local sim = newDyingSim(position, slideDirection, speed, position.Y, toolId)
 	local elapsed = 0
 	while elapsed + stepSeconds <= lookaheadSeconds + 1e-4 and sim.Speed > 0 do
 		elapsed += stepSeconds
@@ -917,7 +946,7 @@ function DeadWeaponLogic.applyDeath(player: Player, deadWeaponData: DeadWeapons.
 	-- // T-107: the physics (identical on the server and every client: stepDyingSim) is worked out at flight height; PhysicsY is the
 	-- // height of the fall. The server's position IS the physics; a client draws its model from it (visual height below).
 	local startPivot = getWeaponCFrame(deadWeaponData) or pivot
-	local sim = newDyingSim(startPivot.Position, direction, speed, options.PhysicsY or startPivot.Position.Y)
+	local sim = newDyingSim(startPivot.Position, direction, speed, options.PhysicsY or startPivot.Position.Y, deadWeaponData.ToolId)
 	local pivotToBottom = if isServer then 0 else getHostPivotToBottom(deadWeaponData.Host)
 	-- // Client visual fall: from the model's height when a fall starts to resting on the ground, in step with the physics fall
 	local isFalling = false
