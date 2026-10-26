@@ -47,13 +47,13 @@ local STAB_COOLDOWN = .5
 -- // T-125: the swing is ONE check, at the moment the blade lands (IMPACT_DELAY after the click), of a wedge in front of the player:
 -- // anyone whose Hitbox (a 10-stud-tall cylinder) reaches into it, with no wall in between, is hit. It is checked against where everyone
 -- // is now AND where the swinging player saw them (LagCompensationLibrary rewind: their ping plus the interpolation delay), so a swing
--- // that looked like a hit on their screen counts. The client sends where it was facing and where it will be at impact.
+-- // that looked like a hit on their screen counts. The client sends where it was facing; where the player is comes only from the server
+-- // (server authority: the server's character is the truth, and the player's own game predicts the same position).
 local IMPACT_DELAY = .08 -- // Seconds from the click to the hit check (the blade landing in the animation)
 local SWING_DURATION = .2 -- // Seconds a swing counts as "in progress" for parries (another swing landing on it in that time is a parry)
 local SWING_RANGE = 5 -- // Studs from the swinging player's centre to the edge of a target's Hitbox
 local SWING_HALF_ANGLE = math.rad(55) -- // Half the wedge's width: 55 degrees to each side of where they face (110 total)
 local SWING_HALF_HEIGHT = 2.5 -- // The wedge's half height around the swinging player's centre (a target's Hitbox adds its own)
-local SWING_ORIGIN_TOLERANCE = 8 -- // The most the client's reported impact position may be from where the server has the player
 local SWING_MAX_DIRECTION_DEVIATION = math.rad(120) -- // The most the client's reported facing may turn from the server's last known one
 local SWING_CLICK_TIME_TOLERANCE = 1 -- // Seconds: a reported click time older than this (or in the future) is clamped
 local STAB_KILL_DAMAGE = 100000
@@ -236,23 +236,15 @@ local function hasLineOfSight(origin: Vector3, targetPosition: Vector3, targetRa
    return RaycastsUtility.raycastProjectileObstruction(origin, reach.Unit, reach.Magnitude, raycastParams) == nil
 end
 
--- // Server: the swing the client reported (impact position, facing, click time), checked against the server's own view.
--- // Anything missing or implausible falls back to the server's values.
-local function readSwingParams(player: Player, rootPart: BasePart, params: any): (Vector3, Vector3, number)
+-- // Server: the swing the client reported (facing, click time), checked against the server's own view.
+-- // Anything missing or implausible falls back to the server's values. Where the player is is never taken from the client.
+local function readSwingParams(player: Player, rootPart: BasePart, params: any): (Vector3, number)
    local now = workspace:GetServerTimeNow()
    local serverDirection = getLookDirection(player, rootPart)
-   local origin = rootPart.Position
    local direction = serverDirection
    local clickTime = now
 
    if type(params) == "table" then
-      local reportedOrigin = params.Origin
-      if typeof(reportedOrigin) == "Vector3" and reportedOrigin == reportedOrigin
-         and (reportedOrigin - rootPart.Position).Magnitude <= SWING_ORIGIN_TOLERANCE
-      then
-         origin = reportedOrigin
-      end
-
       local reportedDirection = params.Direction
       if typeof(reportedDirection) == "Vector3" then
          local horizontal = Vector3.new(reportedDirection.X, 0, reportedDirection.Z)
@@ -271,7 +263,7 @@ local function readSwingParams(player: Player, rootPart: BasePart, params: any):
       end
    end
 
-   return origin, direction, clickTime
+   return direction, clickTime
 end
 
 local function disconnect(player: Player)
@@ -535,8 +527,8 @@ function Stab.canActivate(player: Player): boolean
    return true
 end
 
--- // Client: what the swing looked like from here, sent with the click (Stab.activate checks it). Where this player will be when the
--- // blade lands (moving on at their current speed), where they face, and when they clicked (server clock).
+-- // Client: what the swing looked like from here, sent with the click (Stab.activate checks it): where they face, and when they
+-- // clicked (server clock).
 function Stab.getParams()
    local player = Players.LocalPlayer
    local character = player and player.Character
@@ -544,22 +536,20 @@ function Stab.getParams()
    if not rootPart then
       return nil
    end
-   local velocity = rootPart.AssemblyLinearVelocity
-   local horizontalVelocity = Vector3.new(velocity.X, 0, velocity.Z)
    return {
-      Origin = rootPart.Position + horizontalVelocity * IMPACT_DELAY,
       Direction = getLookDirection(player, rootPart),
       Time = workspace:GetServerTimeNow(),
    }
 end
 
 -- // Server: the blade lands. One check of the wedge against everyone now and where the swinging player saw them (rewound).
-local function resolveSwing(player: Player, character: Model, origin: Vector3, direction: Vector3)
+local function resolveSwing(player: Player, character: Model, direction: Vector3)
    local rootPart = character.PrimaryPart
    local humanoid = character:FindFirstChildOfClass("Humanoid")
    if player.Character ~= character or not rootPart or not humanoid or humanoid.Health <= 0 then
       return
    end
+   local origin = rootPart.Position -- // Where the server has them as the blade lands
 
    if GlobalConfig.ParryVisualizersEnabled then
       showSwingVisualizer(origin, direction)
@@ -657,12 +647,12 @@ function Stab.activate(player: Player, _activatedAt: number?, params: any)
    end)
 
    -- // The blade lands IMPACT_DELAY after the click. A click that took longer than that to arrive is checked straight away.
-   local origin, direction, clickTime = readSwingParams(player, rootPart, params)
+   local direction, clickTime = readSwingParams(player, rootPart, params)
    local secondsUntilImpact = math.max(0, clickTime + IMPACT_DELAY - workspace:GetServerTimeNow())
    if secondsUntilImpact > 0 then
-      task.delay(secondsUntilImpact, resolveSwing, player, character, origin, direction)
+      task.delay(secondsUntilImpact, resolveSwing, player, character, direction)
    else
-      resolveSwing(player, character, origin, direction)
+      resolveSwing(player, character, direction)
    end
 end
 
