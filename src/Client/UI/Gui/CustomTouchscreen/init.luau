@@ -131,6 +131,24 @@ local function touchEnded(input, gameProcessed, shouldThrow: boolean?)
 	end
 end
 
+-- // T-121: the Dash and Stab buttons sit in a row to the left of the aim circle with a gap between each. Their sizes follow the
+-- // screen height but their old positions followed its width, so on some screens they overlapped. Laid out here in pixels from
+-- // the aim circle, so the spacing is the same on every screen shape (their Y position still comes from the rbxmx).
+local ACTION_BUTTON_GAP = 0.035 -- // Gap between the aim circle, Dash and Stab, as a fraction of the screen height
+
+local function layoutActionButtons()
+	local screenHeight = Gui.AbsoluteSize.Y
+	if screenHeight <= 0 then
+		return
+	end
+	local gap = screenHeight * ACTION_BUTTON_GAP
+	local aimLeft = aimThumbstickContainer.AbsolutePosition.X - Gui.AbsolutePosition.X
+	local dash, stab = Gui.Dash, Gui.Stab
+	-- // Both are anchored at their right edge (AnchorPoint X = 1)
+	dash.Position = UDim2.new(0, aimLeft - gap, dash.Position.Y.Scale, dash.Position.Y.Offset)
+	stab.Position = UDim2.new(0, aimLeft - gap - dash.AbsoluteSize.X - gap, stab.Position.Y.Scale, stab.Position.Y.Offset)
+end
+
 local function setupFunctionality()
    if setupDone then
       return
@@ -162,6 +180,7 @@ function TouchscreenGui.open()
    setupFunctionality()
    TouchscreenGui.Open = true	
 	Gui.Enabled = true
+	layoutActionButtons()
 end
 
 function TouchscreenGui.close(Instant: boolean?)
@@ -176,6 +195,9 @@ local function _init()
    Gui.ClipToDeviceSafeArea = false
    Gui.IgnoreGuiInset = true
 	ensureThumbstickOrigin()
+	Gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layoutActionButtons)
+	aimThumbstickContainer:GetPropertyChangedSignal("AbsolutePosition"):Connect(layoutActionButtons)
+	layoutActionButtons()
 
    GuiService.MenuOpened:Connect(function()
       if draggingAimThumbstick then

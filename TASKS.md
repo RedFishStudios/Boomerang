@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-121** *(shared by every task list, general and Epic)*
+**Next free ID: T-122** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,20 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-121 · Touch controls: Dash and Stab buttons no longer overlap
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client (GUI)
+- **Files:** `Client/UI/Gui/CustomTouchscreen/init.luau`
+
+**Done when**
+- [ ] Dash and Stab sit in a row left of the aim circle with an even gap (3.5% of the screen height) between the circle, Dash and Stab, on every screen shape
+
+**Notes**
+- Cause: their sizes follow the screen height (RelativeYY) but their positions were fractions of the screen width, so the spacing depended on the screen's shape (overlapping in Studio's phone view). `layoutActionButtons` now places them in pixels from the aim circle whenever the screen size changes; their Y still comes from the rbxmx, their X in the rbxmx is overridden.
+- Checked in a Studio play-test (phone emulation, 801x413) with the touch controls shown (2026-10-25). Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-121-touch-button-spacing`.
+
 
 ### T-120 · Inventory: Weapons tab icon, Arrows tab renamed Charges
 - **Priority:** P2
