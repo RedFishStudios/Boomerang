@@ -73,7 +73,6 @@ function AbilityController.activate(abilityId: string, ...)
       return
    end
    if logic.canActivate and not logic.canActivate(localPlayer, ...) then
-      print("cancelling ability; cannot activate")
       return
    end
    local params = nil
