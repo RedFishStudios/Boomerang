@@ -43,5 +43,6 @@ return {
 	HotPotato = 90914469539086,
 	ShieldPickup = 91847330548907,
 	DecoyPickup = 72162085547970,
+	Speedup = 114680422222699,
 
 }

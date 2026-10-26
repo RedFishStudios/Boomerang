@@ -70,7 +70,7 @@ local AcquirableNotifData: {
       Id = "Speedup",
       Title = "Speed Boost",
       Subtitle = "Move faster for a short time",
-      Img = 8
+      Img = Icons.Speedup
    },
    DashNoclip = {
       Id = "DashNoclip",
