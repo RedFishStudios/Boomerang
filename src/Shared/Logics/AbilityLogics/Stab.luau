@@ -24,6 +24,7 @@ local isServer = RunService:IsServer()
 
 local CameraController
 local CharacterRenderController
+local ToolController
 local AnimationController
 local WeaponController
 local WeaponService
@@ -39,6 +40,7 @@ else
    WeaponController = require(ReplicatedStorage.Client.Core.WeaponController)
    CameraController = require(ReplicatedStorage.Client.Core.CustomCameraController)
    CharacterRenderController = require(ReplicatedStorage.Client.Core.CharacterRenderController)
+   ToolController = require(ReplicatedStorage.Client.Core.ToolController)
 end
 
 -------------------------------------------------------------------------------
@@ -57,7 +59,7 @@ local SWEEP_MAX_SKIP_FRACTION = .5 -- // Clients: a late swing's sweep skips ahe
 -- // (server authority: the server's character is the truth, and the player's own game predicts the same position).
 local IMPACT_DELAY = .08 -- // Seconds from the click to the hit check (the blade landing in the animation)
 local SWING_DURATION = .2 -- // Seconds a swing lasts on clients
-local SWING_RANGE = 5 -- // Studs from the swinging player's centre to the edge of a target's Hitbox
+local SWING_RANGE = 3 -- // Studs from the swinging player's centre to the edge of a target's Hitbox
 local SWING_HALF_ANGLE = math.rad(55) -- // Half the wedge's width: 55 degrees to each side of where they face (110 total)
 local SWING_HALF_HEIGHT = 2.5 -- // The wedge's half height around the swinging player's centre (a target's Hitbox adds its own)
 local SWING_MAX_DIRECTION_DEVIATION = math.rad(120) -- // The most the client's reported facing may turn from the server's last known one
@@ -66,7 +68,7 @@ local SWING_MAX_DIRECTION_DEVIATION = math.rad(120) -- // The most the client's 
 local SWING_MAX_ONE_WAY_LATENCY = .3 -- // The most the server takes off a click's arrival time (half the ping, capped)
 local PARRY_WINDOW = .2 -- // Two swings clicked this close together (server-estimated) clash: a parry, if they face each other
 local STAB_KILL_DAMAGE = 100000
-local PARRY_DISTANCE = 8 -- // Centre to centre; beyond any reach of a swing (SWING_RANGE plus a Hitbox radius)
+local PARRY_DISTANCE = 6 -- // Centre to centre; beyond any reach of a swing (SWING_RANGE plus a Hitbox radius)
 
 local PARRY_STAGGER_INITIAL_SPEED = 48
 local PARRY_STAGGER_DECELERATION_DURATION = .25
@@ -79,10 +81,11 @@ local PARRY_FACING_DOT_THRESHOLD = .4
 -- // forward in front of the player and fading out. Purely visual: the kill effect (Slash particle) is only ever played by the server.
 local SWEEP_ASSET_NAME = "SlashAbility"
 local SWEEP_DURATION = .2 -- // Seconds the crescent sweeps and fades
-local SWEEP_SCALE = 1.4 -- // Size relative to the asset (1.4 lines its tips up with the 110 degree hit wedge's edges)
-local SWEEP_START_DISTANCE = 1 -- // Studs in front of the player's centre the crescent's centre starts
-local SWEEP_END_DISTANCE = 3 -- // ...and ends (its front edge then reaches about as far as a swing hits)
-local SWEEP_HEIGHT_OFFSET = 0 -- // Studs above the player's centre
+local SWEEP_SCALE = 0.35 -- // Size relative to the asset
+local SWEEP_START_DISTANCE = 0.5 -- // Studs in front of the player's centre the crescent's centre starts
+local SWEEP_END_DISTANCE = 1.5 -- // ...and ends (its front edge then reaches about as far as a swing hits)
+local SWEEP_HEIGHT_ABOVE_HAND = 1 -- // Studs above where the weapon is held in the player's hand (when the swing starts)
+local SWEEP_HEIGHT_OFFSET = 0 -- // Studs above the player's centre, if the held weapon can't be found
 local SWEEP_START_TRANSPARENCY = .2
 
 local SWING_VISUALIZER_COLOR = Color3.new(0.164706, 0.960784, 0.007843)
@@ -334,10 +337,16 @@ local function playSwingSweep(player: Player, elapsed: number)
    sweep.Size *= SWEEP_SCALE
 
    local direction = getLookDirection(player, rootPart) -- // Where they swung; it doesn't turn with them during the sweep
+   -- // At the height of the weapon in their hand (plus a little), kept relative to them while they move during the sweep
+   local heightOffset = SWEEP_HEIGHT_OFFSET
+   local heldWeaponPosition = ToolController and ToolController.getToolPivotPosition(player)
+   if heldWeaponPosition then
+      heightOffset = heldWeaponPosition.Y - rootPart.Position.Y + SWEEP_HEIGHT_ABOVE_HAND
+   end
    local function place(alpha: number)
       local eased = 1 - (1 - alpha) ^ 2 -- // Fast out, slowing at the end
       local currentRoot = character.PrimaryPart or rootPart
-      local base = currentRoot.Position + Vector3.new(0, SWEEP_HEIGHT_OFFSET, 0)
+      local base = currentRoot.Position + Vector3.new(0, heightOffset, 0)
       local centre = base + direction * (SWEEP_START_DISTANCE + (SWEEP_END_DISTANCE - SWEEP_START_DISTANCE) * eased)
       sweep.CFrame = CFrame.lookAt(centre, centre + direction) -- // The asset's crescent faces its -Z (front)
       sweep.Transparency = SWEEP_START_TRANSPARENCY + (1 - SWEEP_START_TRANSPARENCY) * eased
