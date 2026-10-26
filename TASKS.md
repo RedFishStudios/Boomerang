@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-126** *(shared by every task list, general and Epic)*
+**Next free ID: T-127** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,22 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-126 · Slash: crescent sweep effect on every swing
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client (visual only)
+- **Files:** `Shared/Logics/AbilityLogics/Stab.luau`, `Shared/Assets/Particles/SlashAbility.rbxmx` (Sol's asset)
+
+**Done when**
+- [ ] Every swing shows the SlashAbility crescent sweeping forward in front of the player and fading out over 0.2 s, with its tip trails, facing where they swung
+- [ ] You see your own swing's sweep at the click; other players' sweeps show when your game hears about the swing (skipping ahead if it's late)
+- [ ] The crescent never collides or gets pushed by physics (its BodyVelocity is removed; code moves it)
+- [ ] The kill effect (`Slash` particle on the victim) is still only ever played by the server: no client-side hit prediction
+
+**Notes**
+- Tunables at the top of Stab.luau (`SWEEP_DURATION`, `SWEEP_SCALE` 1.4, `SWEEP_START_DISTANCE` / `SWEEP_END_DISTANCE`, `SWEEP_HEIGHT_OFFSET`, `SWEEP_START_TRANSPARENCY`). A replacement asset works without code changes if it is one part facing -Z with its trail attachments as children.
+- Built on T-125 (branch `agent/T-126-slash-sweep` from `agent/T-125-slash-rework`). Not play-tested. SlashAbility.rbxmx is also untracked in the home repo; it has to be moved out of the way there before this ships (the merge would otherwise refuse to overwrite it).
 
 ### T-125 · Slash: one forgiving, lag-compensated hit check
 - **Priority:** P1

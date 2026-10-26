@@ -68,6 +68,17 @@ local PARRY_STAGGER_TOTAL_DURATION = .3
 local PARRY_STAGGER_MIN_DIRECTION_DISTANCE = .05
 local PARRY_FACING_DOT_THRESHOLD = .4
 
+-- // T-126: the swing's look. Every swing (yours at the click, others' when the server tells this client) shows the SlashAbility
+-- // crescent (Shared/Assets/Particles/SlashAbility: one part, attachments "1" and "2" at its tips carrying the trails) sweeping
+-- // forward in front of the player and fading out. Purely visual: the kill effect (Slash particle) is only ever played by the server.
+local SWEEP_ASSET_NAME = "SlashAbility"
+local SWEEP_DURATION = .2 -- // Seconds the crescent sweeps and fades
+local SWEEP_SCALE = 1.4 -- // Size relative to the asset (1.4 lines its tips up with the 110 degree hit wedge's edges)
+local SWEEP_START_DISTANCE = 1 -- // Studs in front of the player's centre the crescent's centre starts
+local SWEEP_END_DISTANCE = 3 -- // ...and ends (its front edge then reaches about as far as a swing hits)
+local SWEEP_HEIGHT_OFFSET = 0 -- // Studs above the player's centre
+local SWEEP_START_TRANSPARENCY = .2
+
 local SWING_VISUALIZER_COLOR = Color3.new(0.164706, 0.960784, 0.007843)
 local SWING_VISUALIZER_LIFETIME = .4
 local SWING_VISUALIZER_ARC_SEGMENTS = 10
@@ -279,6 +290,80 @@ local function disconnect(player: Player)
    SwingClickTimes[player] = nil
 end
 
+-- // Client: the SlashAbility crescent sweeping out in front of `player`, facing where they swung. `elapsed` skips ahead when the
+-- // swing was heard about late (another player's swing), so it ends when it would have.
+local sweepTemplate: BasePart? = nil
+local function playSwingSweep(player: Player, elapsed: number)
+   if isServer or elapsed >= SWEEP_DURATION then
+      return
+   end
+   local character = player.Character
+   local rootPart = character and character.PrimaryPart
+   if not rootPart then
+      return
+   end
+
+   if not sweepTemplate then
+      local asset = ReplicatedStorage.Shared.Assets.Particles:FindFirstChild(SWEEP_ASSET_NAME)
+      if not asset or not asset:IsA("BasePart") then
+         warn(`Stab: swing effect {SWEEP_ASSET_NAME} not found in Shared/Assets/Particles`)
+         return
+      end
+      sweepTemplate = asset
+   end
+
+   local sweep = (sweepTemplate :: BasePart):Clone()
+   for _, descendant in ipairs(sweep:GetDescendants()) do
+      if descendant:IsA("BodyMover") or descendant:IsA("Constraint") then
+         descendant:Destroy() -- // Moved by this code, not by physics
+      elseif descendant:IsA("Attachment") then
+         descendant.Position *= SWEEP_SCALE -- // Attachments don't scale with the part: keep the trails on the tips
+      end
+   end
+   sweep.Anchored = true
+   sweep.CanCollide = false
+   sweep.CanQuery = false
+   sweep.CanTouch = false
+   sweep.CastShadow = false
+   sweep.Size *= SWEEP_SCALE
+
+   local direction = getLookDirection(player, rootPart) -- // Where they swung; it doesn't turn with them during the sweep
+   local function place(alpha: number)
+      local eased = 1 - (1 - alpha) ^ 2 -- // Fast out, slowing at the end
+      local currentRoot = character.PrimaryPart or rootPart
+      local base = currentRoot.Position + Vector3.new(0, SWEEP_HEIGHT_OFFSET, 0)
+      local centre = base + direction * (SWEEP_START_DISTANCE + (SWEEP_END_DISTANCE - SWEEP_START_DISTANCE) * eased)
+      sweep.CFrame = CFrame.lookAt(centre, centre + direction) -- // The asset's crescent faces its -Z (front)
+      sweep.Transparency = SWEEP_START_TRANSPARENCY + (1 - SWEEP_START_TRANSPARENCY) * eased
+   end
+
+   place(elapsed / SWEEP_DURATION)
+   sweep.Parent = workspace:FindFirstChild("Particles") or workspace
+
+   local trailLifetime = 0
+   for _, descendant in ipairs(sweep:GetDescendants()) do
+      if descendant:IsA("Trail") then
+         trailLifetime = math.max(trailLifetime, descendant.Lifetime)
+      end
+   end
+
+   local startedAt = os.clock() - elapsed
+   local connection: RBXScriptConnection? = nil
+   connection = RunService.RenderStepped:Connect(function()
+      local alpha = (os.clock() - startedAt) / SWEEP_DURATION
+      if alpha >= 1 or not sweep.Parent then
+         (connection :: RBXScriptConnection):Disconnect()
+         sweep.Transparency = 1
+         -- // It stops moving, so the trails stop growing and fade out on their own before it goes
+         task.delay(trailLifetime, function()
+            sweep:Destroy()
+         end)
+         return
+      end
+      place(alpha)
+   end)
+end
+
 local function scheduleStabCleanup(player: Player, runId: number, endsAt: number)
    task.delay(math.max(0, endsAt - workspace:GetServerTimeNow()), function()
       local stabState = ActiveStabs[player]
@@ -458,6 +543,8 @@ function Stab.onPickup(userId: number, timestamp: number)
       print("play core animation")
       AnimationController.playCoreAnimation(player, "Stab")
    end
+
+   playSwingSweep(player, math.max(0, workspace:GetServerTimeNow() - timestamp))
 
    disconnect(player)
 
