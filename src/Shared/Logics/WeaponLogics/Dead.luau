@@ -510,8 +510,11 @@ function DeadWeaponLogic.predictSlidePositions(position: Vector3, direction: Vec
 	local elapsed = 0
 	while elapsed + stepSeconds <= lookaheadSeconds + 1e-4 and sim.Speed > 0 do
 		elapsed += stepSeconds
-		stepDyingSim(sim, stepSeconds, dyingSpeedMultiplier, obstructionParams, groundParams)
+		local landed = stepDyingSim(sim, stepSeconds, dyingSpeedMultiplier, obstructionParams, groundParams)
 		table.insert(positions, sim.Position)
+		if landed then
+			break -- // T-123: once it has hit the ground it can't recall by itself any more, so the rest of the slide doesn't count
+		end
 	end
 	return positions
 end
@@ -918,6 +921,7 @@ function DeadWeaponLogic.applyDeath(player: Player, deadWeaponData: DeadWeapons.
 	local pivotToBottom = if isServer then 0 else getHostPivotToBottom(deadWeaponData.Host)
 	-- // Client visual fall: from the model's height when a fall starts to resting on the ground, in step with the physics fall
 	local isFalling = false
+	local hasLanded = false -- // T-123: once it has hit the ground it never recalls by itself (it stays dead, even if it slides into view)
 	local fallStartPhysicsY = sim.PhysicsY
 	local fallStartVisualY = startPivot.Position.Y
 
@@ -981,6 +985,7 @@ function DeadWeaponLogic.applyDeath(player: Player, deadWeaponData: DeadWeapons.
 		deadWeaponData.Direction = direction
 
 		if landed then
+			hasLanded = true
 			-- // T-099: the flight spin loop (Boomerang.throw, same channel) stops when it hits the ground, not when it comes to
 			-- // rest. SoundLibrary.stop fades it out (0.25 s) on every client, so it never cuts off abruptly.
 			if isServer then
@@ -997,7 +1002,8 @@ function DeadWeaponLogic.applyDeath(player: Player, deadWeaponData: DeadWeapons.
 		-- // (automatic recall). Based on time only, never on distance. Server decides; clients follow its Returning snapshot.
 		-- // T-107: not for a boomerang that has already been Dead (it never recalls by itself, T-093): that one keeps sliding like
 		-- // on the clients until it finds ground; see the failsafe below.
-		if isServer and not deadWeaponData.HasBeenDead and sim.NoGroundTime >= GlobalConfig.DyingBoomerangNoGroundRecallSeconds then
+		-- // T-123: and not once it has hit the ground (it keeps sliding like an already-Dead one, with the same failsafe)
+		if isServer and not deadWeaponData.HasBeenDead and not hasLanded and sim.NoGroundTime >= GlobalConfig.DyingBoomerangNoGroundRecallSeconds then
 			if DeadWeaponLogic.onSlidingAway then
 				DeadWeaponLogic.onSlidingAway(player, deadWeaponData)
 			else
@@ -1008,7 +1014,7 @@ function DeadWeaponLogic.applyDeath(player: Player, deadWeaponData: DeadWeapons.
 
 		-- // T-107 failsafe: still no ground after DEAD_NO_GROUND_FAILSAFE_SECONDS: put it down at the last solid spot it passed over.
 		-- // With no such spot it goes back to the player's hand (warning, so it shows up in testing). Clients follow the Dead snapshot.
-		if isServer and deadWeaponData.HasBeenDead and sim.NoGroundTime >= DEAD_NO_GROUND_FAILSAFE_SECONDS then
+		if isServer and (deadWeaponData.HasBeenDead or hasLanded) and sim.NoGroundTime >= DEAD_NO_GROUND_FAILSAFE_SECONDS then
 			local lastSolid = sim.LastSolid
 			local lastSolidGroundY = lastSolid and getPhysicsGroundY(lastSolid, groundRaycastParams)
 			if lastSolid and lastSolidGroundY then
@@ -1029,7 +1035,8 @@ function DeadWeaponLogic.applyDeath(player: Player, deadWeaponData: DeadWeapons.
 
 		-- // Still dying: keep checking whether the player is in sight and close. If so the recall resumes even at 0 energy
 		-- // (the hook decides and starts the recall; clients follow its Returning snapshot). Server only, throttled.
-		if isServer and DeadWeaponLogic.checkRecallWhileDying and time >= nextRecallCheckAt then
+		-- // T-123: only until it hits the ground; sliding into view afterwards doesn't bring it back
+		if isServer and not hasLanded and DeadWeaponLogic.checkRecallWhileDying and time >= nextRecallCheckAt then
 			nextRecallCheckAt = time + GlobalConfig.DyingBoomerangRecallCheckSeconds
 			if DeadWeaponLogic.checkRecallWhileDying(player, deadWeaponData, sim.Position) then
 				return

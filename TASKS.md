@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-123** *(shared by every task list, general and Epic)*
+**Next free ID: T-124** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,21 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-123 · No automatic recall once a dying boomerang has hit the ground
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared (server decides)
+- **Files:** `Shared/Logics/WeaponLogics/Dead.luau`
+
+**Done when**
+- [ ] A dying boomerang can still recall by itself while it is dropping (player in sight and in range), but not after it has hit the ground: sliding into the player's view afterwards leaves it to die
+- [ ] After landing, sliding off over a gap doesn't auto-recall either: it keeps sliding until ground, with the 3 s "last solid spot" failsafe (as for already-Dead boomerangs, T-107)
+- [ ] The "about to die" check (would it be back in sight along its slide?) only looks at the slide until it lands
+
+**Notes**
+- `hasLanded` in `applyDeath` gates `checkRecallWhileDying` and the sliding-away recall; `predictSlidePositions` stops at the landing step. Not play-tested. Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-123-no-auto-recall-after-landing`.
+
 
 ### T-122 · Automatic recall shows no SelectionRing or beams
 - **Priority:** P2
