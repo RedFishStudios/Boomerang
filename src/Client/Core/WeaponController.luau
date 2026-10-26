@@ -409,7 +409,11 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
          local deadToolData = Tools[deadWeaponData.ToolId]
          local deadLogic = deadToolData and getLogic(deadToolData.LogicClass)
          if deadLogic and deadLogic.recallFromDead then
-            deadLogic.recallFromDead(forPlayer, deadWeaponData, true)
+            -- // T-122: a manual recall is always the end of a charge (the RecallCharge event started one on this client too);
+            -- // otherwise the server is recalling it by itself (sliding away, player back in sight...): an automatic recall, which
+            -- // has no SelectionRing, Summon animation or beams. This used to always say "manual", so automatic recalls showed them.
+            local isManualRecall = DeadWeaponLogic.isRecallCharging(deadWeaponData)
+            deadLogic.recallFromDead(forPlayer, deadWeaponData, isManualRecall)
          end
          return
       end

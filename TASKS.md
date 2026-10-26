@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-122** *(shared by every task list, general and Epic)*
+**Next free ID: T-123** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,21 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-122 · Automatic recall shows no SelectionRing or beams
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client
+- **Files:** `Client/Core/WeaponController.luau`, `Client/Core/DeadWeaponBeamController.luau`
+
+**Done when**
+- [ ] A boomerang recalling by itself (sliding away over nothing, player back in sight while it is dying, out-of-bounds failsafe) shows no SelectionRing, no Summon animation and no beam to the player
+- [ ] The manual (charged, held) recall still shows the ring, the Summon animation and the returning beam
+
+**Notes**
+- Cause: clients started every recall of a dying/dead boomerang as a manual one (`recallFromDead(..., true)` on the Returning snapshot), so automatic recalls got the manual-recall visuals on clients. Now a client treats it as manual only if it was charging that boomerang (`DeadWeaponLogic.isRecallCharging`: the server's RecallCharge Start event reached it and no Cancel); otherwise automatic (`RecallFromDead = false`). The dead beam's life cycle now ends on an automatic recall instead of staying (invisible) until the catch.
+- Not play-tested. Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-122-auto-recall-visuals`.
+
 
 ### T-121 · Touch controls: Dash and Stab buttons no longer overlap
 - **Priority:** P2

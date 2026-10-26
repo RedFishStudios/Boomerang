@@ -365,7 +365,9 @@ local deadKind: BeamKind = {
 			return getWeaponPart(deadWeaponData.Host)
 		end
 		local thrownWeaponData = ThrownWeapons.Data[localPlayer]
-		if thrownWeaponData and thrownWeaponData.RecallFromDead ~= nil then
+		-- // T-122: only a manual (charged) recall keeps the dead beam (invisible while it flies back, in case it is dropped again).
+		-- // An automatic recall (RecallFromDead == false) has no beam: it fades out and is removed.
+		if thrownWeaponData and thrownWeaponData.RecallFromDead == true then
 			return getWeaponPart(thrownWeaponData.Host)
 		end
 		return nil
