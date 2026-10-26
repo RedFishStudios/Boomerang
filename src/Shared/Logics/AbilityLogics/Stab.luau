@@ -20,6 +20,7 @@ local WeaponLibrary = require(ReplicatedStorage.Shared.Library.WeaponLibrary)
 local ThrownWeaponsData = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
 local DeadWeaponsData = require(ReplicatedStorage.Shared.Referential.DeadWeapons)
 local GameTeamLibrary = require(ReplicatedStorage.Shared.Library.GameTeamLibrary)
+local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
 
 local isServer = RunService:IsServer()
 
@@ -89,6 +90,14 @@ local SWEEP_END_DISTANCE = 1.5 -- // ...and ends (its front edge then reaches ab
 local SWEEP_HEIGHT_ABOVE_HAND = 1 -- // Studs above where the weapon is held in the player's hand (when the swing starts)
 local SWEEP_HEIGHT_OFFSET = 0 -- // Studs above the player's centre, if the held weapon can't be found
 local SWEEP_START_TRANSPARENCY = .2
+
+-- // T-128: a slash also knocks away an enemy's weapon in flight (outgoing or returning; never a dying/dead one, nor your own): a clash
+-- // (same energy cost and Deflected snapshot as two weapons colliding), straight away from the slasher. The weapon is caught if its path
+-- // through the wedge comes within its own HitboxRadius. Clients run thrown weapons ahead to the server's present, so no rewind is
+-- // needed; a click that arrived after its impact moment checks the weapon's path back to where it was at that moment.
+local DEFLECT_PATH_STEP = .5 -- // Studs between the points tested along a weapon's path
+local DEFLECT_MAX_PATH_POINTS = 24
+local DEFLECT_MARKER_SIZE = 1.5 -- // viewhitbox: the ball marking where a weapon was knocked away
 
 local swingVisualizerEnabled = GlobalConfig.ParryVisualizersEnabled -- // Server: draw each swing's hit wedge; Cmdr `viewhitbox` changes it live
 
@@ -226,6 +235,27 @@ local function showSwingVisualizer(origin: Vector3, direction: Vector3)
    end
    task.delay(SWING_VISUALIZER_LIFETIME, function()
       folder:Destroy()
+   end)
+end
+
+-- // Marks where a slash knocked a weapon away, for a moment (debug: Cmdr `viewhitbox`)
+local function showDeflectMarker(position: Vector3)
+   local marker = Instance.new("Part")
+   marker.Name = "SwingDeflectVisualizer"
+   marker.Shape = Enum.PartType.Ball
+   marker.Size = Vector3.new(DEFLECT_MARKER_SIZE, DEFLECT_MARKER_SIZE, DEFLECT_MARKER_SIZE)
+   marker.Anchored = true
+   marker.CanCollide = false
+   marker.CanTouch = false
+   marker.CanQuery = false
+   marker.Material = Enum.Material.Neon
+   marker.Color = SWING_VISUALIZER_COLOR
+   marker.Transparency = .3
+   marker.Position = position
+   marker.Parent = workspace
+   TweenService:Create(marker, TweenInfo.new(SWING_VISUALIZER_LIFETIME * 2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Transparency = 1 }):Play()
+   task.delay(SWING_VISUALIZER_LIFETIME * 2, function()
+      marker:Destroy()
    end)
 end
 
@@ -677,6 +707,63 @@ function Stab.getParams()
    }
 end
 
+-- // Server: the first point along a weapon's path (from -> to) where it reaches into the swing's wedge, or nil. Height is ignored
+-- // (weapons fly at a fixed height); the wall check is made from the slasher at their own height.
+local function getWeaponContact(origin: Vector3, direction: Vector3, from: Vector3, to: Vector3, radius: number, raycastParams: RaycastParams): Vector3?
+   local path = Vector3.new(to.X - from.X, 0, to.Z - from.Z)
+   local points = math.clamp(math.ceil(path.Magnitude / DEFLECT_PATH_STEP), 1, DEFLECT_MAX_PATH_POINTS)
+   for index = 0, points do
+      local point = from + path * (index / points)
+      local flatPoint = Vector3.new(point.X, origin.Y, point.Z)
+      if isInSwing(origin, direction, flatPoint, radius, 0) then
+         if hasLineOfSight(origin, flatPoint, radius, raycastParams) then
+            return Vector3.new(point.X, to.Y, point.Z)
+         end
+         return nil -- // Behind a wall from here on
+      end
+   end
+   return nil
+end
+
+-- // Server: knock away every enemy weapon in flight that the swing reaches (T-128)
+local function deflectWeapons(player: Player, origin: Vector3, direction: Vector3, clickTime: number, raycastParams: RaycastParams)
+   if not WeaponService or not player.Team then
+      return
+   end
+   -- // How long after its impact moment this swing is being checked (its click arrived late): look back along the path that far
+   local lateness = math.clamp(workspace:GetServerTimeNow() - (clickTime + IMPACT_DELAY), 0, SWING_MAX_ONE_WAY_LATENCY)
+
+   for owner, weaponData in pairs(ThrownWeaponsData.Data) do
+      if owner == player or not weaponData.CFrame or not owner.Team or not GameTeamLibrary.areEnemies(player, owner) then
+         continue
+      end
+      local toolData = Tools[weaponData.ToolId]
+      local radius = if toolData and toolData.Boomerang then toolData.Boomerang.HitboxRadius else 1
+
+      local current = weaponData.CFrame.Position
+      local from = weaponData.LastPosition or current
+      if lateness > 0 and weaponData.Direction and weaponData.Speed then
+         local lookedBack = current - weaponData.Direction * weaponData.Speed * lateness
+         if (lookedBack - current).Magnitude > (from - current).Magnitude then
+            from = lookedBack
+         end
+      end
+
+      local contact = getWeaponContact(origin, direction, from, current, radius, raycastParams)
+      if contact then
+         local away = Vector3.new(contact.X - origin.X, 0, contact.Z - origin.Z)
+         if away.Magnitude <= 1e-3 then
+            away = direction
+         end
+         WeaponService.clashWeapon(owner, weaponData, away.Unit, contact)
+         SoundLibrary.play(`{weaponData.InstanceId}-SlashDeflect-{clickTime}`, Sounds.Data.BoomerangClash.Name, contact)
+         if swingVisualizerEnabled then
+            showDeflectMarker(contact)
+         end
+      end
+   end
+end
+
 -- // Server: a swing clicked at `clickTime` reached `victimPlayer`. If the victim also swung within PARRY_WINDOW of it, and they are close
 -- // and facing each other, it's a parry; otherwise the victim is hit. A victim who could still have swung in time (close and facing, but
 -- // their click not here yet because of their ping) is waited for, until their latest possible click would have arrived.
@@ -768,6 +855,8 @@ local function resolveSwing(player: Player, character: Model, direction: Vector3
    for _, victimPlayer in ipairs(hitPlayers) do
       settleHit(player, character, victimPlayer, clickTime)
    end
+
+   deflectWeapons(player, origin, direction, clickTime, raycastParams)
 
    -- // T-127: bots (e.g. decoys) are slashed the same way: now and where the swinging player saw them
    local hitBots: { Model } = {}

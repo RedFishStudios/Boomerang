@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-128** *(shared by every task list, general and Epic)*
+**Next free ID: T-130** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,23 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-128 · Slashes knock away enemy weapons in flight
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared (server decides)
+- **Files:** `Shared/Logics/AbilityLogics/Stab.luau`
+
+**Done when**
+- [ ] A slash whose wedge reaches an enemy's weapon in flight (outgoing or returning) knocks it straight away from the slasher, so the slasher can aim it by the angle they hit it from
+- [ ] Only weapons of players the slasher could damage (enemy team, or teammate with friendly fire on); never their own; never dying or dead boomerangs
+- [ ] It is a clash: same energy cost (`ClashEnergyCost`), Deflected snapshot to every client, the clash sound at the contact point; a returning weapon is knocked off course and then steers home
+- [ ] A weapon is caught if its path through the wedge comes within its own HitboxRadius (fast weapons can't slip between frames), with no wall between
+- [ ] `viewhitbox` marks the contact point
+
+**Notes**
+- No rewind needed: clients run thrown weapons ahead to the server's present. A click that reached the server after its impact moment checks the weapon's path back to where it was then (up to 0.3 s). Not play-tested.
+
 
 ### T-127 · Slashes pop decoys and other bots
 - **Priority:** P2
@@ -208,6 +225,18 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 
 ## Backlog
+
+### T-129 · Use-ability buttons blocked while your boomerang is dying or dead
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared + Client UI
+
+**Done when**
+- [ ] Usable abilities (UsePickupButtons, number keys) can't be used while the player's own boomerang is dying or dead (bug: they currently can)
+- [ ] The use-ability buttons on the left of the screen show reduced transparency in those states, so it's clear they can't be used
+
+**Notes**
+- Registered by Sol 2026-10-26; to be done after T-128.
 
 ### T-105 · Telekinesis: steering with the over-the-shoulder camera (PC)
 - **Priority:** P2
