@@ -2,7 +2,7 @@
 	<Meta name="ExplicitAutoJoints">true</Meta>
 	<External>null</External>
 	<External>nil</External>
-	<Item class="UnionOperation" referent="RBXF4D1EBBEB0B444D58B804283076D6526">
+	<Item class="UnionOperation" referent="RBXE83FE6096FF349DEA9EDD50307695C8B">
 		<Properties>
 			<Content name="AssetId"><url>https://www.roblox.com//asset/?id=6578018213</url></Content>
 			<BinaryString name="ChildData"></BinaryString>
@@ -133,139 +133,11 @@
 			<BinaryString name="AttributesSerialize"></BinaryString>
 			<SecurityCapabilities name="Capabilities">17996771963439872</SecurityCapabilities>
 			<bool name="DefinesCapabilities">true</bool>
-			<string name="Name">Slash</string>
+			<string name="Name">SlashAbility</string>
 			<BinaryString name="SerializedOverrides"></BinaryString>
 			<int64 name="SourceAssetId">9319352105</int64>
 			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 		</Properties>
-		<Item class="Attachment" referent="RBXCC87443D4EA542CE917B4172546E6430">
-			<Properties>
-				<CoordinateFrame name="CFrame">
-					<X>3.76304698</X>
-					<Y>0.373823702</Y>
-					<Z>1.8477205</Z>
-					<R00>1</R00>
-					<R01>0</R01>
-					<R02>0</R02>
-					<R10>0</R10>
-					<R11>1</R11>
-					<R12>-1.54838199e-14</R12>
-					<R20>0</R20>
-					<R21>1.54838199e-14</R21>
-					<R22>1</R22>
-				</CoordinateFrame>
-				<bool name="Visible">false</bool>
-				<BinaryString name="AttributesSerialize"></BinaryString>
-				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
-				<bool name="DefinesCapabilities">false</bool>
-				<string name="Name">1</string>
-				<BinaryString name="SerializedOverrides"></BinaryString>
-				<int64 name="SourceAssetId">-1</int64>
-				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
-			</Properties>
-		</Item>
-		<Item class="Trail" referent="RBX38032813DBFE48038F06534ECC75E1D7">
-			<Properties>
-				<Ref name="Attachment0">RBXCC87443D4EA542CE917B4172546E6430</Ref>
-				<Ref name="Attachment1">RBX674A2430053D44EF974827B84E684773</Ref>
-				<float name="Brightness">1</float>
-				<ColorSequence name="Color">0 0 1 0 0 1 0 1 0 0 </ColorSequence>
-				<bool name="Enabled">true</bool>
-				<bool name="FaceCamera">false</bool>
-				<float name="Lifetime">0.300000012</float>
-				<float name="LightEmission">0</float>
-				<float name="LightInfluence">1</float>
-				<float name="MaxLength">0</float>
-				<float name="MinLength">0</float>
-				<Content name="Texture"><url>http://www.roblox.com/asset/?id=6577412255</url></Content>
-				<float name="TextureLength">1</float>
-				<token name="TextureMode">0</token>
-				<NumberSequence name="Transparency">0 0.5 0 0.5 1 0 1 1 0 </NumberSequence>
-				<NumberSequence name="WidthScale">0 1 0 1 1 0 </NumberSequence>
-				<BinaryString name="AttributesSerialize"></BinaryString>
-				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
-				<bool name="DefinesCapabilities">false</bool>
-				<string name="Name">Trail1</string>
-				<BinaryString name="SerializedOverrides"></BinaryString>
-				<int64 name="SourceAssetId">-1</int64>
-				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
-			</Properties>
-		</Item>
-		<Item class="Trail" referent="RBX7E301283847346DD83255213217F9189">
-			<Properties>
-				<Ref name="Attachment0">RBX674A2430053D44EF974827B84E684773</Ref>
-				<Ref name="Attachment1">RBXCC87443D4EA542CE917B4172546E6430</Ref>
-				<float name="Brightness">1</float>
-				<ColorSequence name="Color">0 0 1 0 0 1 0 1 0 0 </ColorSequence>
-				<bool name="Enabled">true</bool>
-				<bool name="FaceCamera">false</bool>
-				<float name="Lifetime">0.300000012</float>
-				<float name="LightEmission">0</float>
-				<float name="LightInfluence">1</float>
-				<float name="MaxLength">0</float>
-				<float name="MinLength">0</float>
-				<Content name="Texture"><url>http://www.roblox.com/asset/?id=6577412255</url></Content>
-				<float name="TextureLength">1</float>
-				<token name="TextureMode">0</token>
-				<NumberSequence name="Transparency">0 0.5 0 0.5 1 0 1 1 0 </NumberSequence>
-				<NumberSequence name="WidthScale">0 1 0 1 1 0 </NumberSequence>
-				<BinaryString name="AttributesSerialize"></BinaryString>
-				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
-				<bool name="DefinesCapabilities">false</bool>
-				<string name="Name">Trail2</string>
-				<BinaryString name="SerializedOverrides"></BinaryString>
-				<int64 name="SourceAssetId">-1</int64>
-				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
-			</Properties>
-		</Item>
-		<Item class="Attachment" referent="RBX674A2430053D44EF974827B84E684773">
-			<Properties>
-				<CoordinateFrame name="CFrame">
-					<X>-3.82213378</X>
-					<Y>0.373823702</Y>
-					<Z>1.8477205</Z>
-					<R00>1</R00>
-					<R01>0</R01>
-					<R02>0</R02>
-					<R10>0</R10>
-					<R11>1</R11>
-					<R12>-1.88017818e-14</R12>
-					<R20>0</R20>
-					<R21>1.88017818e-14</R21>
-					<R22>1</R22>
-				</CoordinateFrame>
-				<bool name="Visible">false</bool>
-				<BinaryString name="AttributesSerialize"></BinaryString>
-				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
-				<bool name="DefinesCapabilities">false</bool>
-				<string name="Name">2</string>
-				<BinaryString name="SerializedOverrides"></BinaryString>
-				<int64 name="SourceAssetId">-1</int64>
-				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
-			</Properties>
-		</Item>
-		<Item class="BodyVelocity" referent="RBX74EB048F4F0C427099EF288C67BE0194">
-			<Properties>
-				<Vector3 name="MaxForce">
-					<X>4000</X>
-					<Y>4000</Y>
-					<Z>4000</Z>
-				</Vector3>
-				<float name="P">1250</float>
-				<Vector3 name="Velocity">
-					<X>0</X>
-					<Y>2</Y>
-					<Z>0</Z>
-				</Vector3>
-				<BinaryString name="AttributesSerialize"></BinaryString>
-				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
-				<bool name="DefinesCapabilities">false</bool>
-				<string name="Name">BodyVelocity</string>
-				<BinaryString name="SerializedOverrides"></BinaryString>
-				<int64 name="SourceAssetId">-1</int64>
-				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
-			</Properties>
-		</Item>
 	</Item>
 	<SharedStrings>
 		<SharedString md5="yuZpQdnvvUBOTYh1jqZ2cA=="></SharedString>
