@@ -46,6 +46,7 @@ type History = {
 }
 
 local histories: { [Player]: History } = {}
+local botHistories: { [Model]: History } = {} -- // Bots (e.g. decoys), keyed by their model; same samples, never immune
 local maxRewindSeconds: number = math.clamp(GlobalConfig.LagCompensationMilliseconds, 0, MAX_REWIND_MILLISECONDS) / 1000
 
 -------------------------------------------------------------------------------
@@ -81,6 +82,33 @@ local function record()
 		history.Immune[slot] = HitboxLibrary.isImmunized(player)
 		history.Next = slot % SAMPLE_CAPACITY + 1
 		history.Count = math.min(history.Count + 1, SAMPLE_CAPACITY)
+	end
+
+	-- // Bots: the models in workspace.Bots with a Hitbox (T-127: the slash rewinds them like players)
+	for model in pairs(botHistories) do
+		if not model.Parent then
+			botHistories[model] = nil
+		end
+	end
+	local botsFolder = workspace:FindFirstChild("Bots")
+	if botsFolder then
+		for _, model in ipairs(botsFolder:GetChildren()) do
+			local hitbox = model:FindFirstChild("Hitbox")
+			if not model:IsA("Model") or not hitbox or not hitbox:IsA("BasePart") then
+				continue
+			end
+			local history = botHistories[model]
+			if not history then
+				history = { Character = model, Next = 1, Count = 0, Times = {}, Positions = {}, Immune = {} }
+				botHistories[model] = history
+			end
+			local slot = history.Next
+			history.Times[slot] = now
+			history.Positions[slot] = hitbox.Position
+			history.Immune[slot] = false
+			history.Next = slot % SAMPLE_CAPACITY + 1
+			history.Count = math.min(history.Count + 1, SAMPLE_CAPACITY)
+		end
 	end
 end
 
@@ -152,6 +180,7 @@ function LagCompensationLibrary.setRewindMilliseconds(milliseconds: number)
 	maxRewindSeconds = math.clamp(milliseconds, 0, MAX_REWIND_MILLISECONDS) / 1000
 	if maxRewindSeconds <= 0 then
 		table.clear(histories)
+		table.clear(botHistories)
 	end
 end
 
@@ -226,6 +255,33 @@ function LagCompensationLibrary.getRewoundTargets(viewer: Player, rewindSeconds:
 			continue
 		end
 		table.insert(targets, { Player = player, Character = character, Hitbox = hitbox, Position = pastPosition })
+	end
+	return targets
+end
+
+export type RewoundBot = {
+	Model: Model,
+	Hitbox: BasePart, -- // The live Hitbox (for its size; its position is Position below)
+	Position: Vector3, -- // Where the Hitbox's centre was at the rewound moment
+}
+
+-- // Every bot (e.g. a decoy) as `viewer` saw it `rewindSeconds` ago. Bots the history doesn't reach back for are left out.
+function LagCompensationLibrary.getRewoundBots(rewindSeconds: number): { RewoundBot }
+	local targets: { RewoundBot } = {}
+	if not isServer or rewindSeconds <= 0 then
+		return targets
+	end
+
+	local pastTime = os.clock() - rewindSeconds
+	for model, history in pairs(botHistories) do
+		local hitbox = model.Parent and model:FindFirstChild("Hitbox")
+		if not hitbox or not hitbox:IsA("BasePart") then
+			continue
+		end
+		local pastPosition = getSampleAt(history, pastTime)
+		if pastPosition then
+			table.insert(targets, { Model = model, Hitbox = hitbox, Position = pastPosition })
+		end
 	end
 	return targets
 end

@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-127** *(shared by every task list, general and Epic)*
+**Next free ID: T-128** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,21 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-127 · Slashes pop decoys and other bots
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared (server decides)
+- **Files:** `Shared/Logics/AbilityLogics/Stab.luau`, `Shared/Library/LagCompensationLibrary.luau`
+
+**Done when**
+- [ ] A slash pops a decoy (or any bot) whose Hitbox reaches into the swing's wedge, with no wall in between, if its owner is on an enemy team or on the same team with friendly fire on
+- [ ] Your own decoy follows the decoy's rule (`GlobalConfig.CanHitSelfDecoy`); teammates' decoys are safe without friendly fire
+- [ ] Popping uses the existing bot path (`BotService.onWeaponHit`: the bot's own hit rule, despawn with its smoke poof)
+- [ ] Bots are checked where they are now and where the swinging player saw them (lag compensation now also records bots: `LagCompensationLibrary.getRewoundBots`)
+
+**Notes**
+- Not play-tested. Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-126-slash-sweep`.
 
 ### T-126 · Slash: crescent sweep effect on every swing
 - **Priority:** P2

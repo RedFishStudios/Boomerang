@@ -18,6 +18,7 @@ local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
 local WeaponLibrary = require(ReplicatedStorage.Shared.Library.WeaponLibrary)
 local ThrownWeaponsData = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
 local DeadWeaponsData = require(ReplicatedStorage.Shared.Referential.DeadWeapons)
+local GameTeamLibrary = require(ReplicatedStorage.Shared.Library.GameTeamLibrary)
 
 local isServer = RunService:IsServer()
 
@@ -27,10 +28,12 @@ local AnimationController
 local WeaponController
 local WeaponService
 local CharacterService
+local BotService
 
 if isServer then
    WeaponService = require(game.ServerStorage.Server.Core.WeaponService)
    CharacterService = require(game.ServerStorage.Server.Core.CharacterService)
+   BotService = require(game.ServerStorage.Server.Core.BotService)
 else
    AnimationController = require(ReplicatedStorage.Client.Core.AnimationController)
    WeaponController = require(ReplicatedStorage.Client.Core.WeaponController)
@@ -734,6 +737,48 @@ local function resolveSwing(player: Player, character: Model, direction: Vector3
 
    for _, victimPlayer in ipairs(hitPlayers) do
       settleHit(player, character, victimPlayer, clickTime)
+   end
+
+   -- // T-127: bots (e.g. decoys) are slashed the same way: now and where the swinging player saw them
+   local hitBots: { Model } = {}
+   local seenBots: { [Model]: boolean } = {}
+   local function tryBot(model: Model, hitbox: BasePart, position: Vector3)
+      if seenBots[model] then
+         return
+      end
+      local radius, halfHeight = getHitboxShape(hitbox)
+      if isInSwing(origin, direction, position, radius, halfHeight) and hasLineOfSight(origin, position, radius, raycastParams) then
+         seenBots[model] = true
+         table.insert(hitBots, model)
+      end
+   end
+
+   local botsFolder = workspace:FindFirstChild("Bots")
+   if botsFolder then
+      for _, model in ipairs(botsFolder:GetChildren()) do
+         local hitbox = model:FindFirstChild("Hitbox")
+         if model:IsA("Model") and hitbox and hitbox:IsA("BasePart") then
+            tryBot(model, hitbox, hitbox.Position)
+         end
+      end
+   end
+   if rewindSeconds > 0 then
+      for _, target in ipairs(LagCompensationLibrary.getRewoundBots(rewindSeconds)) do
+         tryBot(target.Model, target.Hitbox, target.Position)
+      end
+   end
+
+   for _, model in ipairs(hitBots) do
+      -- // Only a bot whose owner is an enemy (another team, or the same team with friendly fire on). The owner's own bot is left to
+      -- // the bot's rules (a decoy: GlobalConfig.CanHitSelfDecoy). BotService pops it (despawn, with its vanish effect).
+      local ownerUserId = model:GetAttribute("OwnerUserId")
+      local owner = if typeof(ownerUserId) == "number" then Players:GetPlayerByUserId(ownerUserId) else nil
+      if owner and owner ~= player and not GameTeamLibrary.areEnemies(player, owner) then
+         continue
+      end
+      if BotService and model.Parent then
+         BotService.onWeaponHit(player, model)
+      end
    end
 end
 
