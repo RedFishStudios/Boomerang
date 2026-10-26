@@ -103,11 +103,11 @@ local GlobalConfig = {
 
    -- Use for debugging
    -- Enabling these can greatly increase lag or network traffic
-   RaycastVisualizersEnabled = false,
+   RaycastVisualizersEnabled = false, -- // Default for drawing each boomerang's hit sweep. Cmdr `viewhitbox` changes it live (server).
    ProjectileHitboxVisualizerEnabled = false, -- // Default for the red server-position part on thrown boomerangs. Cmdr `toggleprojectilevisualizer` changes it live (affects boomerangs thrown afterwards).
    LineOfSightVisualizerEnabled = false, -- // Default for the line-of-sight visualizer: when a boomerang runs out of energy the server draws the LOS cast (green = clear, red = blocked + hit marker) for a few seconds. Cmdr `togglelosvisualizer` changes it live.
    ToggleAuthorityView = false, -- // Default for the authority view: a neon red ball at the position the SERVER has for each thrown boomerang (AuthorityViewLibrary; Cmdr `toggleauthorityview` changes it live)
-   ParryVisualizersEnabled = false,
+   ParryVisualizersEnabled = false, -- // Default for drawing each slash's hit wedge (server). Cmdr `viewhitbox` changes it live, with the other hit visualizers.
    VisualizeElectricChainRadius = true, -- // Client-only red cylinder showing the chain radius around every Electric boomerang elimination
    SyncAbilitiesToEveryPlayer = false, -- // Testing: every player does any player's ability or throw (AbilityService, WeaponService). Cmdr `togglesyncabilities` changes it live.
    -- // Cmdr developer console (F2): true = every player can use it in live servers (for client review builds).

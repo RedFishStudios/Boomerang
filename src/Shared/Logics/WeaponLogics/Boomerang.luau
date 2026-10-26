@@ -92,7 +92,7 @@ local WEAPON_RAYCAST_COLLISION_GROUP = CollisionGroupConstants.ThrownWeapons
 local SPAWN_PACKET_SIZE = 8 + 12 + 12 + 4 + 8
 local DESPAWN_PACKET_SIZE = 8 + 1
 local SNAPSHOT_PACKET_SIZE = 1 + 8 + 12 + 12 + 4 + 1 + 8 + 12 -- // ... + the thrower's position (Dead.luau's snapshots omit it)
-local RAYCAST_VISUALIZERS_ENABLED = GlobalConfig.RaycastVisualizersEnabled
+local raycastVisualizersEnabled = GlobalConfig.RaycastVisualizersEnabled -- // The boomerang's hit sweep drawn each step; Cmdr `viewhitbox` changes it live (server)
 local projectileVisualizerEnabled = GlobalConfig.ProjectileHitboxVisualizerEnabled -- // Server only; Cmdr `toggleprojectilevisualizer` changes it live. Read when a boomerang is thrown
 
 -- ============================================================================================================================
@@ -521,7 +521,7 @@ end
 
 -- // Spawns temporary parts showing the swept blockcast volume and, if any, the hit position; both self-destruct after a frame
 local function updateRaycastVisualizers(castCFrame: CFrame, castSize: Vector3, rayDistance: number, result: RaycastResult?)
-   if not RAYCAST_VISUALIZERS_ENABLED then
+   if not raycastVisualizersEnabled then
       return
    end
 
@@ -2140,6 +2140,12 @@ DeadWeaponLogic.checkRecallWhileDying = function(player: Player, deadWeaponData:
 end
 
 -- // Server only. Boomerangs thrown from now on get (or no longer get) the red server-position part; ones already in flight are unchanged.
+-- // Server: draw (or stop drawing) every boomerang's hit sweep as it flies (Cmdr `viewhitbox`)
+function Boomerang.setRaycastVisualizersEnabled(value: boolean)
+   assert(isServer, "Boomerang.setRaycastVisualizersEnabled is server only")
+   raycastVisualizersEnabled = value
+end
+
 function Boomerang.setProjectileVisualizerEnabled(value: boolean)
    assert(isServer, "Boomerang.setProjectileVisualizerEnabled is server only")
    projectileVisualizerEnabled = value

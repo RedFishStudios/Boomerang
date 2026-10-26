@@ -89,6 +89,8 @@ local SWEEP_HEIGHT_ABOVE_HAND = 1 -- // Studs above where the weapon is held in 
 local SWEEP_HEIGHT_OFFSET = 0 -- // Studs above the player's centre, if the held weapon can't be found
 local SWEEP_START_TRANSPARENCY = .2
 
+local swingVisualizerEnabled = GlobalConfig.ParryVisualizersEnabled -- // Server: draw each swing's hit wedge; Cmdr `viewhitbox` changes it live
+
 local SWING_VISUALIZER_COLOR = Color3.new(0.164706, 0.960784, 0.007843)
 local SWING_VISUALIZER_LIFETIME = .4
 local SWING_VISUALIZER_ARC_SEGMENTS = 10
@@ -179,7 +181,7 @@ local function arePlayersFacingEachOtherForParry(stabberPlayer: Player, stabberR
    return stabberFacingVictim and victimFacingStabber
 end
 
--- // Draws the swing's wedge for a moment (debug: GlobalConfig.ParryVisualizersEnabled)
+-- // Draws the swing's wedge for a moment (debug: Cmdr `viewhitbox`, default GlobalConfig.ParryVisualizersEnabled)
 local function showSwingVisualizer(origin: Vector3, direction: Vector3)
    local folder = Instance.new("Folder")
    folder.Name = "SwingVisualizer"
@@ -651,6 +653,11 @@ function Stab.canActivate(player: Player): boolean
    return true
 end
 
+-- // Server: draw (or stop drawing) each swing's hit wedge (Cmdr `viewhitbox`)
+function Stab.setSwingVisualizerEnabled(enabled: boolean)
+   swingVisualizerEnabled = enabled
+end
+
 -- // Client: where this player faced as they swung, sent with the click (Stab.activate checks it)
 function Stab.getParams()
    local player = Players.LocalPlayer
@@ -709,7 +716,7 @@ local function resolveSwing(player: Player, character: Model, direction: Vector3
    end
    local origin = rootPart.Position -- // Where the server has them as the blade lands
 
-   if GlobalConfig.ParryVisualizersEnabled then
+   if swingVisualizerEnabled then
       showSwingVisualizer(origin, direction)
    end
 

@@ -74,6 +74,8 @@ export type BotBehavior = {
 -------------------------------------------------------------------------------
 
 local bots: { [string]: Bot } = {}
+local hitboxesVisible = false -- // Cmdr `viewhitbox` shows bot hitboxes like player hitboxes
+local HITBOX_VISIBLE_TRANSPARENCY = 0.6
 local botsFolder: Folder? = nil
 local botDespawnedEvent = SimpleRemotes.getEvent("BotDespawned")
 
@@ -137,7 +139,7 @@ local function buildRig(ownerUserId: number, botId: string, spawnCFrame: CFrame,
 	hitbox.Size = HITBOX_SIZE
 	hitbox.Shape = Enum.PartType.Cylinder
 	hitbox.Massless = true
-	hitbox.Transparency = 1
+	hitbox.Transparency = if hitboxesVisible then HITBOX_VISIBLE_TRANSPARENCY else 1
 	hitbox.CanCollide = false
 	hitbox.CanQuery = true -- // T-081: weapon spherecasts detect the bot through this hitbox
 	hitbox.CanTouch = false
@@ -200,6 +202,16 @@ function BotService.spawn(ownerPlayer: Player, behavior: BotBehavior, options: B
 		behavior.start(bot)
 	end
 	return bot
+end
+
+-- // Shows or hides every bot's Hitbox (Cmdr `viewhitbox`); bots spawned later follow it too
+function BotService.setHitboxesVisible(visible: boolean)
+	hitboxesVisible = visible
+	for _, bot in pairs(bots) do
+		if bot.Hitbox and bot.Hitbox.Parent then
+			bot.Hitbox.Transparency = if visible then HITBOX_VISIBLE_TRANSPARENCY else 1
+		end
+	end
 end
 
 function BotService.getBot(botId: string): Bot?
