@@ -74,12 +74,12 @@ local LISTING_ICONS = {
 	Decoy = Icons.DecoyPickup,
 	Speedup = Icons.Speedup,
 	Telekinesis = Icons.TelekinesisBoomerang,
+	Stab = Icons.StabButton, -- // Same art as the touchscreen Stab button
+	Dash = Icons.DashCooldown, -- // Same art as the Dash cooldown in the effects bar
 }
 
 -- // Emoji shown as the icon on each right-hand row when it has no LISTING_ICONS entry, keyed by ability / pickup id (no entry = blank icon)
 local LISTING_EMOJIS = {
-	Stab = "🗡️",
-	Dash = "💨",
 	BattleRoyale = "👑",
 	DashNoclip = "👻",
 	ExtraBoomerang = "➕",
