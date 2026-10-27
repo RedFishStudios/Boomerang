@@ -65,11 +65,11 @@ local DIVIDER_COLOR = Color3.fromRGB(150, 95, 45)
 local FONT = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
 
 -- // Text sizes, as a share of the panel's height (cells shrink below this only when their text doesn't fit)
-local ROW_TEXT_SIZE = 0.042
+local ROW_TEXT_SIZE = 0.034
 local HEADER_TEXT_SIZE = 0.032
 
-local ROUND_VISIBLE_ROWS = 5 -- // Listings that fit in a list before it scrolls (each is this share of the list's height)
-local ALL_TIME_VISIBLE_ROWS = 3 -- // All-time listings are two lines each (name, then the numbers)
+local ROUND_VISIBLE_ROWS = 10 -- // Listings that fit in a list before it scrolls (each is this share of the list's height)
+local ALL_TIME_VISIBLE_ROWS = 6 -- // All-time listings are two lines each (name, then the numbers)
 local REFRESH_INTERVAL = 0.2 -- // Seconds: changes are gathered and the lists rebuilt at most this often
 
 -- // Columns: the name column takes what the numbers leave
@@ -154,7 +154,7 @@ local function createRow(columns, values: { string }, order: number, isHeader: b
 			Text = nameLine,
 			Position = UDim2.fromScale(0, 0.05),
 			Size = UDim2.fromScale(1, 0.42),
-			TextXAlignment = Enum.TextXAlignment.Left,
+			TextXAlignment = if isHeader then Enum.TextXAlignment.Left else Enum.TextXAlignment.Center, -- // A listing's name is centred
 			TextTransparency = if isHeader then 0.15 else 0,
 		}, if isHeader then "Header" else "Row"))
 		addCells(cells, columns, values, 0.53, 0.42, isHeader, false)
@@ -303,6 +303,11 @@ end
 -- LISTS
 -------------------------------------------------------------------------------
 
+-- // How a player is named in the lists: "DisplayName (@Username)"
+local function getListingName(player: Player): string
+	return `{player.DisplayName} (@{player.Name})`
+end
+
 local function getStat(player: Player, attribute: string): number
 	local value = player:GetAttribute(attribute)
 	return if type(value) == "number" then value else 0
@@ -347,7 +352,7 @@ local function rebuild()
 	local roundRows = {}
 	for index, player in ipairs(byRound) do
 		table.insert(roundRows, createRow(ROUND_COLUMNS, {
-			player.DisplayName,
+			getListingName(player),
 			tostring(getStat(player, PlayerStatAttributes.RoundElims)),
 			tostring(getStat(player, PlayerStatAttributes.RoundDefeats)),
 		}, index, false, player == Player))
@@ -377,7 +382,7 @@ local function rebuild()
 			tostring(getStat(player, PlayerStatAttributes.Defeats)),
 			tostring(getStat(player, PlayerStatAttributes.Wins)),
 			tostring(getStat(player, PlayerStatAttributes.Losses)),
-		}, index, false, player == Player, player.DisplayName))
+		}, index, false, player == Player, getListingName(player)))
 	end
 	setRows(allTimeList, allTimeRows, ALL_TIME_VISIBLE_ROWS)
 end
