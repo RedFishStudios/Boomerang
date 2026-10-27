@@ -124,7 +124,7 @@ local AcquirableNotifData: {
       Id = "Telekinesis",
       Title = "Telekinesis",
       Subtitle = "Steer your weapon in flight",
-      Img = 17
+      Img = Icons.TelekinesisBoomerang
    },
 }
 

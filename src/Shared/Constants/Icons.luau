@@ -44,6 +44,7 @@ return {
 	ShieldPickup = 91847330548907,
 	DecoyPickup = 72162085547970,
 	Speedup = 114680422222699,
+	TelekinesisBoomerang = 108476389206870,
 
 	-- Stats menu cards (Client/UI/Gui/Stats)
 	StatsTimePlayed = 75548773167800, -- // A clock
