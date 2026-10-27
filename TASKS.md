@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-132** *(shared by every task list, general and Epic)*
+**Next free ID: T-133** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -84,7 +84,7 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
-### T-131 · Moving platforms under server authority (no more clipping)
+### T-131 · Moving platforms under server authority (no more clipping), geometric crush
 - **Priority:** P1
 - **Owner:** Agent
 - **Area:** Shared (server authority)
@@ -96,10 +96,11 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 - [ ] The platform is anchored and moved inside RunService:BindToSimulation on the server and every client, as a pure function of time() from its start time (attribute MovingPlatformStartTime); clients force prediction on for it, so its position matches the server's on every frame, including replays
 - [ ] Clients find platforms in the live map's Functional folder themselves (the old lookup used a "Dynamics" folder that doesn't exist, so clients never moved it); the NewMovingPlatform / MovingPlatformSnapshot remotes are gone
 - [ ] A platform is a single part in the map's Functional folder (ClassName MovingPlatform; Speed, StartPivot, EndPivot, optional RestTime), not a folder with a Platform part and crush volumes
+- [ ] Crush (server only, CRUSH section): attributes StartCrush / EndCrush (booleans). While closing in on a crushing end, a player inside the platform's footprint between its leading face and that end dies ("Crushed") once the gap left is smaller than their Hitbox's width (minus CRUSH_GAP_TOLERANCE). The end must have a wall (map rule). Immunity doesn't save them (for now: see T-132)
 - [ ] Boomerangs still pick up the platform's velocity when they hit it (DynamicCollisionLibrary, now timed with time())
 
 **Notes**
-- PartsTest's platform (Functional/MovingPlatform) already matches this layout: Speed 10, RestTime 2.
+- PartsTest's platform (Functional/MovingPlatform) already matches this layout: StartCrush and EndCrush both true, Speed 10, RestTime 2.
 - Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-131-moving-platform`.
 
 
@@ -262,6 +263,18 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 
 ## Backlog
+
+### T-132 · Crushed while immune: a "fake" death
+- **Priority:** P3
+- **Owner:** Agent
+- **Area:** Server
+
+**Done when**
+- [ ] A player crushed by a moving platform while immune (dashing, spawn protection) isn't eliminated: they instantly reappear at the nearest spawn point with the same shield remaining
+- [ ] It doesn't count as a defeat in their stats (perhaps their character doesn't die at all)
+
+**Notes**
+- From Sol, 2026-10-27. Until then, crushing eliminates immune players like anyone else (T-131).
 
 ### T-129 · Use-ability buttons blocked while your boomerang is dying or dead
 - **Priority:** P2
