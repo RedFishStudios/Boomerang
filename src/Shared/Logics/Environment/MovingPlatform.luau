@@ -1,357 +1,279 @@
+--[[
+	MovingPlatform (environment logic, T-131)
+
+	A platform that travels back and forth between two pivots, at Speed studs per second, resting RestTime seconds at each end,
+	eased in and out (easeInOutQuint). The platform is a single part directly in the map's Functional folder, with attributes
+	ClassName = "MovingPlatform", Speed, StartPivot, EndPivot, and optionally RestTime.
+
+	SERVER AUTHORITY (Workspace.AuthorityMode = Server):
+	- The platform is anchored and its position is a pure function of the synced simulation clock, time(). It is moved inside
+	  RunService:BindToSimulation() on the server AND on every client (this module is initialised by EnvironmentService and by
+	  EnvironmentController). Clients force prediction on for it (RunService:SetPredictionMode), so each client computes the
+	  same position the server has for every simulation frame, including frames replayed after a rollback. Characters are
+	  therefore always predicted against the platform where it really is, and the platform itself never mispredicts.
+	- The server stamps the platform with the time it started (attribute MovingPlatformStartTime); clients read it from the
+	  replicated part. Clients find platforms by watching the live arena map (they can stream in and out).
+	- CARRY (separate section below): the platform's velocity is also written each step, so players standing on it are
+	  carried along and players in its way are pushed rather than overlapped. CARRY_ENABLED turns the riding part off.
+]]
+
 local MovingPlatform = {}
 
 local RunService = game:GetService("RunService")
-local GameStateLibrary = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Library"):WaitForChild("GameStateLibrary"))
-local SimpleRemotes = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Networking"):WaitForChild("SimpleRemotes"))
-local DynamicCollisionLibrary = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Library"):WaitForChild("DynamicCollisionLibrary"))
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local NewMovingPlatform = SimpleRemotes.getEvent("NewMovingPlatform")
-local _MovingPlatformSnapshot = SimpleRemotes.getUnreliableEvent("MovingPlatformSnapshot")
-local CollisionGroupConstants = require(game.ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
-local CombatLibrary = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Library"):WaitForChild("CombatLibrary"))
-local CollisionGroupConstants = require(game.ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
+local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
+local DynamicCollisionLibrary = require(ReplicatedStorage.Shared.Library.DynamicCollisionLibrary)
+local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
+
+-------------------------------------------------------------------------------
+-- CONSTANTS
+-------------------------------------------------------------------------------
+
+local START_TIME_ATTRIBUTE = "MovingPlatformStartTime" -- // Set by the server on the platform part: time() it started moving
+local CLASS_NAME = "MovingPlatform"
+
+local CARRY_ENABLED = true -- // Players standing on a platform ride along with it (see CARRY)
+
+-------------------------------------------------------------------------------
+-- TYPES
+-------------------------------------------------------------------------------
 
 type MovingPlatformAttributes = {
-   Speed: number,
-   StartPivot: CFrame,
-   EndPivot: CFrame,
-   RestTime: number?, -- How long it should rest at start or end position before resuming
+	Speed: number,
+	StartPivot: CFrame,
+	EndPivot: CFrame,
+	RestTime: number?, -- // Seconds it rests at each end before going back
 }
 
-type PlatformMoverData = {
-	Attachment: Attachment,
-	AlignPosition: AlignPosition,
-	AlignOrientation: AlignOrientation,
+type PlatformData = {
+	Part: BasePart,
+	Speed: number,
+	StartPivot: CFrame,
+	EndPivot: CFrame,
+	RestTime: number,
+	StartTime: number, -- // time() it started moving (the same value on the server and every client)
 }
 
-local platforms: {
-   {
-      Part: Part,
-      Speed: number,
-      CurrentSpeed: number,
-      StartPivot: CFrame,
-      EndPivot: CFrame,
-      CurrentPivot: CFrame,
-      RestTime: number?,
-      StartedAt: number, -- GetServerTimeNow
+-------------------------------------------------------------------------------
+-- PRIVATE VARIABLES
+-------------------------------------------------------------------------------
 
-      StartCrushAlpha: number?,
-      EndCrushAlpha: number?,
-      EndCrush: Part?,
-      StartCrush: Part?,
-      Mover: PlatformMoverData,
-   }
-} = {}
-
-local connections: {RBXScriptConnection} = {}
-local _snapshotFrequency = 5/60
 local isServer = RunService:IsServer()
-local CRUSH_DAMAGE = 1000000
-local CRUSH_CAUSE_LABEL = "Crushed"
 
-local function reset()
-   for _, platformData in pairs(platforms) do
-      DynamicCollisionLibrary.unregister(platformData.Part)
-      if platformData.Mover then
-         if platformData.Mover.AlignPosition then
-            platformData.Mover.AlignPosition:Destroy()
-         end
-         if platformData.Mover.AlignOrientation then
-            platformData.Mover.AlignOrientation:Destroy()
-         end
-         if platformData.Mover.Attachment then
-            platformData.Mover.Attachment:Destroy()
-         end
-      end
-   end
+local platforms: { [BasePart]: PlatformData } = {}
+local simulationConnection: RBXScriptConnection? = nil
 
-   table.clear(platforms)
-   for _, connection in pairs(connections) do
-      connection:Disconnect()
-   end
-   table.clear(connections)
-end
-
-local function createMoverConstraint(part: Part): PlatformMoverData
-   local attachment = Instance.new("Attachment")
-   attachment.Name = "MovingPlatformMoverAttachment"
-   attachment.Parent = part
-
-   local alignPosition = Instance.new("AlignPosition")
-   alignPosition.Name = "MovingPlatformAlignPosition"
-   alignPosition.Mode = Enum.PositionAlignmentMode.OneAttachment
-   alignPosition.Attachment0 = attachment
-   alignPosition.RigidityEnabled = true
-   alignPosition.ApplyAtCenterOfMass = true
-   alignPosition.MaxForce = math.huge
-   alignPosition.MaxVelocity = math.huge
-   alignPosition.Responsiveness = 200
-   alignPosition.Parent = part
-
-   local alignOrientation = Instance.new("AlignOrientation")
-   alignOrientation.Name = "MovingPlatformAlignOrientation"
-   alignOrientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
-   alignOrientation.Attachment0 = attachment
-   alignOrientation.RigidityEnabled = true
-   alignOrientation.MaxTorque = math.huge
-   alignOrientation.Responsiveness = 200
-   alignOrientation.Parent = part
-
-   return {
-      Attachment = attachment,
-      AlignPosition = alignPosition,
-      AlignOrientation = alignOrientation,
-   }
-end
-
-local function setMoverConstraintTarget(platformData, pivot: CFrame)
-   platformData.Mover.AlignPosition.Position = pivot.Position
-   platformData.Mover.AlignOrientation.CFrame = pivot
-end
-
-local function easeInOutCube(alpha: number): number
-   if alpha < 0.5 then
-      return 4 * alpha * alpha * alpha
-   end
-
-   return 1 - ((-2 * alpha + 2) ^ 3) / 2
-end
-
-local function easeInOutQuart(alpha: number): number
-   if alpha < 0.5 then
-      return 8 * alpha ^ 4
-   end
-
-   return 1 - ((-2 * alpha + 2) ^ 4) / 2
-end
+-------------------------------------------------------------------------------
+-- PATH (pure functions of time: identical on the server and every client)
+-------------------------------------------------------------------------------
 
 local function easeInOutQuint(x: number): number
-    x = math.clamp(x, 0, 1)
-    if x < 0.5 then
-        return 16 * x * x * x * x * x
-    else
-        return 1 - (-2 * x + 2)^5 / 2
-    end
+	x = math.clamp(x, 0, 1)
+	if x < 0.5 then
+		return 16 * x * x * x * x * x
+	end
+	return 1 - (-2 * x + 2) ^ 5 / 2
 end
 
-local function findPlatformById(name: string): Folder?
-   local map = game.Workspace.Arena:FindFirstChildWhichIsA("Model")
-   if not map then
-      return nil
-   end
-   local dynamicsFolder = map:FindFirstChild("Dynamics")
-   if not dynamicsFolder then
-      return nil
-   end
-   return dynamicsFolder:FindFirstChild(name)
-end
-
-local function getPivot(endPivot: CFrame, startPivot: CFrame, speed: number, restTime: number, serverTime: number, startedAt: number)
-   local distance = (endPivot.Position - startPivot.Position).Magnitude
-   if distance <= 1e-5 or speed <= 1e-5 then
-      return startPivot, 0, true
-   end
-	local travelTime = distance / speed
-	local cycleTime = restTime + travelTime + restTime + travelTime
-
-	local elapsed = serverTime - startedAt
-	local cycle = elapsed % cycleTime
-
-	-- Resting at start
-	if cycle < restTime then
-      return startPivot, 0, true
+-- // Where the platform is at simulation time `now`; also whether it is heading for the end pivot and whether it is travelling
+local function getPivotAt(platformData: PlatformData, now: number): (CFrame, boolean, boolean)
+	local startPivot, endPivot = platformData.StartPivot, platformData.EndPivot
+	local distance = (endPivot.Position - startPivot.Position).Magnitude
+	if distance <= 1e-5 or platformData.Speed <= 1e-5 then
+		return startPivot, true, false
 	end
 
+	local restTime = platformData.RestTime
+	local travelTime = distance / platformData.Speed
+	local cycleTime = 2 * (restTime + travelTime)
+	local cycle = (now - platformData.StartTime) % cycleTime
+
+	if cycle < restTime then -- // Resting at the start
+		return startPivot, true, false
+	end
 	cycle -= restTime
-
-	-- Moving start -> end
-	if cycle < travelTime then
-      local alpha = easeInOutQuint(cycle / travelTime)
-      return startPivot:Lerp(endPivot, alpha), alpha, true
+	if cycle < travelTime then -- // Start -> end
+		return startPivot:Lerp(endPivot, easeInOutQuint(cycle / travelTime)), true, true
 	end
-
 	cycle -= travelTime
-
-	-- Resting at end
-	if cycle < restTime then
-      return endPivot, 1, false
+	if cycle < restTime then -- // Resting at the end
+		return endPivot, false, false
 	end
-
 	cycle -= restTime
-
-	-- Moving end -> start
-	local alpha = cycle / travelTime
-   alpha = easeInOutQuint(alpha)
-   return endPivot:Lerp(startPivot, alpha), alpha, false
+	return endPivot:Lerp(startPivot, easeInOutQuint(cycle / travelTime)), false, true -- // End -> start
 end
 
-local function beginRendering()
-   if #connections > 0 then
-      return
-   end
-   table.insert(connections, RunService.PreSimulation:Connect(function()
-      for _, platformData in pairs(platforms) do
-         local serverTime = game.Workspace:GetServerTimeNow()
-         DynamicCollisionLibrary.capturePreviousTransform(platformData.Part, serverTime)
-         local pivot, alpha, fromStart = getPivot(platformData.EndPivot, platformData.StartPivot, platformData.CurrentSpeed, platformData.RestTime or 0, serverTime, platformData.StartedAt)
-         local previousPivot = platformData.CurrentPivot
-         local newPosition = pivot.Position
-         local lastPosition = previousPivot.Position
-         if (newPosition - lastPosition).Magnitude > 0.0001 then
-            platformData.CurrentPivot = pivot
-            setMoverConstraintTarget(platformData, pivot)
-            DynamicCollisionLibrary.recordCurrentTransform(platformData.Part, pivot, serverTime)
+-------------------------------------------------------------------------------
+-- CARRY (riding along / being pushed). Kept separate: if riding misbehaves, look here (or set CARRY_ENABLED = false).
+-------------------------------------------------------------------------------
 
-            if fromStart then
-               if platformData.EndCrushAlpha and alpha > platformData.EndCrushAlpha then
-                  print("END CRUSH")
-                  -- TODO: why does this list of parts include the map model?
-                  -- this should only detect player hitboxes.
-                  local endCrushHitbox = platformData.EndCrush
-                  local CrushOverlapParams = OverlapParams.new()
-                  CrushOverlapParams.FilterType = Enum.RaycastFilterType.Exclude
-                  CrushOverlapParams.CollisionGroup = CollisionGroupConstants.Players
-                  local parts = workspace:GetPartBoundsInBox(endCrushHitbox.CFrame, endCrushHitbox.Size, CrushOverlapParams)
-                  for _, part in ipairs(parts) do
-                     local hitCharacter = part:FindFirstAncestorOfClass("Model")
-                     print(hitCharacter)
-                     if hitCharacter then
-                        local humanoid = hitCharacter:FindFirstChildWhichIsA("Humanoid")
-                        if not humanoid or humanoid.Health <= 0 then
-                           continue
-                        end
-                        local hitPlayer = game.Players:GetPlayerFromCharacter(hitCharacter)
-                        if isServer and hitPlayer then
-                           CombatLibrary.applyDamageToHumanoid(hitPlayer, humanoid, CRUSH_DAMAGE, nil, CRUSH_CAUSE_LABEL)
-                        end
-                     end
-                  end
-               end
-            else
-               if platformData.StartCrushAlpha and alpha > platformData.StartCrushAlpha then
-                  print("START CRUSH")
-                  local startCrushHitbox = platformData.StartCrush
-                  local CrushOverlapParams = OverlapParams.new()
-                  CrushOverlapParams.FilterType = Enum.RaycastFilterType.Exclude
-                  CrushOverlapParams.CollisionGroup = CollisionGroupConstants.Players
-                  local parts = workspace:GetPartBoundsInBox(startCrushHitbox.CFrame, startCrushHitbox.Size, CrushOverlapParams)
-                  for _, part in ipairs(parts) do
-                     local hitCharacter = part:FindFirstAncestorOfClass("Model")
-                     print(hitCharacter)
-                      if hitCharacter then
-                        local humanoid = hitCharacter:FindFirstChildWhichIsA("Humanoid")
-                         if not humanoid or humanoid.Health <= 0 then
-                           continue
-                        end
-                        local hitPlayer = game.Players:GetPlayerFromCharacter(hitCharacter)
-                        if isServer and hitPlayer then
-                           CombatLibrary.applyDamageToHumanoid(hitPlayer, humanoid, CRUSH_DAMAGE, nil, CRUSH_CAUSE_LABEL)
-                        end
-                     end
-                  end
-               end
-            end
-         end
-      end
-   end))
+-- // An anchored part's velocity is what physics uses for contacts with it: characters standing on it move with it, and
+-- // characters in its way are pushed at its speed. Called inside the simulation step (both properties have simulation access).
+local function applyCarryVelocity(part: BasePart, velocity: Vector3)
+	part.AssemblyLinearVelocity = if CARRY_ENABLED then velocity else Vector3.zero
+	part.AssemblyAngularVelocity = Vector3.zero
 end
+
+-------------------------------------------------------------------------------
+-- SIMULATION (server and clients)
+-------------------------------------------------------------------------------
+
+local function stepPlatforms(deltaTime: number)
+	local now = time()
+	-- // Only simulation-synced members in here (CFrame, velocities, time()); platforms that left the workspace are
+	-- // unregistered outside the simulation (see register)
+	for part, platformData in pairs(platforms) do
+		local pivot = getPivotAt(platformData, now)
+
+		DynamicCollisionLibrary.capturePreviousTransform(part, now)
+		part.CFrame = pivot
+		DynamicCollisionLibrary.recordCurrentTransform(part, pivot, now)
+
+		local previousPivot = getPivotAt(platformData, now - math.max(deltaTime, 1e-3))
+		applyCarryVelocity(part, (pivot.Position - previousPivot.Position) / math.max(deltaTime, 1e-3))
+	end
+end
+
+-------------------------------------------------------------------------------
+-- REGISTRATION
+-------------------------------------------------------------------------------
+
+local function ensureRunning()
+	if not simulationConnection then
+		simulationConnection = RunService:BindToSimulation(stepPlatforms)
+	end
+end
+
+local function unregister(part: BasePart)
+	if platforms[part] then
+		platforms[part] = nil
+		DynamicCollisionLibrary.unregister(part)
+	end
+end
+
+local function reset()
+	for part in pairs(platforms) do
+		DynamicCollisionLibrary.unregister(part)
+	end
+	table.clear(platforms)
+	if simulationConnection then
+		simulationConnection:Disconnect()
+		simulationConnection = nil
+	end
+end
+
+local function register(part: BasePart, startTime: number)
+	if platforms[part] then
+		return
+	end
+	local attributes: MovingPlatformAttributes = part:GetAttributes() :: any
+	local startPivot = attributes.StartPivot or part:GetPivot()
+	platforms[part] = {
+		Part = part,
+		Speed = attributes.Speed or 5,
+		StartPivot = startPivot,
+		EndPivot = attributes.EndPivot or startPivot,
+		RestTime = attributes.RestTime or 0,
+		StartTime = startTime,
+	}
+	DynamicCollisionLibrary.register(part, startPivot, startTime)
+
+	if not isServer then
+		-- // This client simulates the platform itself (from time()), ahead of the replicated server state like its own character
+		RunService:SetPredictionMode(part, Enum.PredictionMode.On)
+	end
+	-- // Destroyed, or streamed out on a client (it registers again if it streams back in)
+	local ancestryConnection
+	ancestryConnection = part.AncestryChanged:Connect(function()
+		if not part:IsDescendantOf(workspace) then
+			ancestryConnection:Disconnect()
+			unregister(part)
+		end
+	end)
+	ensureRunning()
+end
+
+-- // Client: a MovingPlatform part in the live arena map (it may stream in after the map loads)
+local function tryRegisterClientPart(part: Instance)
+	if not part:IsA("BasePart") or part:GetAttribute("ClassName") ~= CLASS_NAME or part:GetAttribute("Invalid") then
+		return
+	end
+	local startTime = part:GetAttribute(START_TIME_ATTRIBUTE)
+	if type(startTime) == "number" then
+		register(part, startTime)
+		return
+	end
+	-- // The server hasn't started it yet: wait for its start time
+	local connection
+	connection = part:GetAttributeChangedSignal(START_TIME_ATTRIBUTE):Connect(function()
+		local value = part:GetAttribute(START_TIME_ATTRIBUTE)
+		if type(value) == "number" then
+			connection:Disconnect()
+			register(part, value)
+		end
+	end)
+end
+
+-------------------------------------------------------------------------------
+-- PUBLIC FUNCTIONS (environment logic interface)
+-------------------------------------------------------------------------------
 
 function MovingPlatform.validate(functionalChild: Instance): boolean
-   if not functionalChild:IsA("Folder") then
-      warn(`Functional child of class 'MovingPlatform' is not a folder: {functionalChild.Name}`)
-      return false
-   end
+	if not functionalChild:IsA("BasePart") then
+		warn(`Functional child of class 'MovingPlatform' is not a part (the platform itself): {functionalChild.Name}`)
+		return false
+	end
+	local platform = functionalChild
 
-   local platform = functionalChild:FindFirstChild("Platform")
-   if not platform or not platform:IsA("BasePart") then
-      warn(`Moving platform missing Platform part to represent the moving platform itself: {functionalChild.Name}`)
-      return false
-   end
-
-   local attributes: MovingPlatformAttributes = platform:GetAttributes()
-   if not attributes.Speed or not attributes.StartPivot or not attributes.EndPivot then
-      warn(`Moving platform missing required attributes: {functionalChild.Name}`)
-      warn(`Possessed attributes: {attributes.Speed}, {attributes.StartPivot}, {attributes.EndPivot}`)
-      return false
-   end
-   
-   platform.CollisionGroup = CollisionGroupConstants.ArenaWalls
-
-   return true
-end
-
-function MovingPlatform.onObjectAdded(platformFolder: Folder, _birth: number?)
-   if platformFolder:GetAttribute("Invalid") then
-      warn(`skipping invalid moving platform folder: {platformFolder.Name}`)
-      return
-   end
-   local platform = platformFolder:FindFirstChild("Platform")
-   for _, data in pairs(platforms) do
-      if data.Part == platform then
-         warn(`Moving platform attempted duplicate registration: {platform.Name}`)
-         return
-      end
-   end
-
-   local attributes: MovingPlatformAttributes = platform:GetAttributes()
-   local speed = attributes.Speed or 5
-   local startPosition = attributes.StartPivot or platform:GetPivot()
-   local endPosition = attributes.EndPivot or platform:GetPivot()
-   
-   platform:PivotTo(startPosition)
-   if isServer then
-		platform.Anchored = false
+	local attributes: MovingPlatformAttributes = platform:GetAttributes() :: any
+	if not attributes.Speed or not attributes.StartPivot or not attributes.EndPivot then
+		warn(`Moving platform missing required attributes: {functionalChild.Name}`)
+		warn(`Possessed attributes: {attributes.Speed}, {attributes.StartPivot}, {attributes.EndPivot}`)
+		return false
 	end
 
-	local mover = createMoverConstraint(platform)
-	setMoverConstraintTarget({Mover = mover}, startPosition)
+	platform.CollisionGroup = CollisionGroupConstants.ArenaWalls
+	return true
+end
 
-   local startCrush = platformFolder:FindFirstChild("StartCrush")
-   local endCrush = platformFolder:FindFirstChild("EndCrush")
+-- // Server: the live map's platform starts moving now (EnvironmentService, when a map is placed)
+function MovingPlatform.onObjectAdded(platform: Instance)
+	if not isServer then
+		return
+	end
+	if platform:GetAttribute("Invalid") then
+		warn(`skipping invalid moving platform: {platform.Name}`)
+		return
+	end
+	if not platform:IsA("BasePart") then
+		return
+	end
 
-   local birth = _birth or game.Workspace:GetServerTimeNow()
-   table.insert(platforms, {
-      Part = platform,
-      Speed = speed,
-      CurrentSpeed = speed,
-      StartPivot = startPosition,
-      EndPivot = endPosition,
-      CurrentPivot = startPosition,
-      RestTime = attributes.RestTime,
-      StartedAt = birth,
-      StartCrushAlpha = if startCrush then startCrush:GetAttribute("AtAlpha") else nil,
-      EndCrushAlpha = if endCrush then endCrush:GetAttribute("AtAlpha") else nil,
-      StartCrush = startCrush,
-      EndCrush = endCrush,
-		Mover = mover,
-   })
-   DynamicCollisionLibrary.register(platform, startPosition, birth)
-
-   if isServer then
-      NewMovingPlatform:FireAllClients(platform.Name, birth)
-   end
-
-   beginRendering()
+	-- // Moved by setting its CFrame each simulation step (kinematic), never by physics
+	platform.Anchored = true
+	local startTime = time()
+	platform:SetAttribute(START_TIME_ATTRIBUTE, startTime)
+	register(platform, startTime)
 end
 
 function MovingPlatform.init()
-   local gameStateData = GameStateLibrary.getGameStateData()
+	GameStateLibrary.getGameStateData().CurrentRoundData:Subscribe(function(currentRoundData)
+		if currentRoundData == nil then
+			reset()
+		end
+	end)
 
-   gameStateData.CurrentRoundData:Subscribe(function(currentRoundData)
-      if currentRoundData == nil then
-         reset()
-      end
-   end)
-
-   if isServer then
-   else
-      NewMovingPlatform.onClientEvent:Connect(function(platformFolderId: string, birth)
-         local platformFolder = findPlatformById(platformFolderId)
-         if platformFolder and platformFolder:IsA("Folder") then
-            MovingPlatform.onObjectAdded(platformFolder, birth)
-         end
-      end)
-   end
+	if not isServer then
+		-- // Clients find platforms in the live arena map as its parts arrive
+		task.spawn(function()
+			local arena = workspace:WaitForChild("Arena")
+			arena.DescendantAdded:Connect(tryRegisterClientPart)
+			for _, descendant in ipairs(arena:GetDescendants()) do
+				tryRegisterClientPart(descendant)
+			end
+		end)
+	end
 end
 
 return MovingPlatform

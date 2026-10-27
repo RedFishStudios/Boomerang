@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-131** *(shared by every task list, general and Epic)*
+**Next free ID: T-132** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,25 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-131 · Moving platforms under server authority (no more clipping)
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared (server authority)
+- **Files:** `Shared/Logics/Environment/MovingPlatform.luau`
+
+**Done when**
+- [ ] A moving platform pushes players instead of passing through them (no clipping out the far side), with lag
+- [ ] Players standing on a platform ride along with it (CARRY section, switch CARRY_ENABLED)
+- [ ] The platform is anchored and moved inside RunService:BindToSimulation on the server and every client, as a pure function of time() from its start time (attribute MovingPlatformStartTime); clients force prediction on for it, so its position matches the server's on every frame, including replays
+- [ ] Clients find platforms in the live map's Functional folder themselves (the old lookup used a "Dynamics" folder that doesn't exist, so clients never moved it); the NewMovingPlatform / MovingPlatformSnapshot remotes are gone
+- [ ] A platform is a single part in the map's Functional folder (ClassName MovingPlatform; Speed, StartPivot, EndPivot, optional RestTime), not a folder with a Platform part and crush volumes
+- [ ] Boomerangs still pick up the platform's velocity when they hit it (DynamicCollisionLibrary, now timed with time())
+
+**Notes**
+- PartsTest's platform (Functional/MovingPlatform) already matches this layout: Speed 10, RestTime 2.
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-131-moving-platform`.
+
 
 ### T-130 · In-game Stats panel replaces the player list
 - **Priority:** P2
