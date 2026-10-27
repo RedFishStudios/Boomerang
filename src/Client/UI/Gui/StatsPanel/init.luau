@@ -266,7 +266,7 @@ Gui = create("ScreenGui", {
 	Name = "StatsPanel",
 	ResetOnSpawn = false,
 	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-	ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets,
+	IgnoreGuiInset = true, -- // Uses the whole screen, including behind Roblox's top bar (this also sets ScreenInsets to None)
 	Enabled = false,
 }, { holder }) :: ScreenGui
 
