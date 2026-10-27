@@ -324,9 +324,10 @@ local function createGui(): ScreenGui
 
 	local title = createLabel({
 		Name = "Title",
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.fromScale(0.5, 0.053),
-		Size = UDim2.fromScale(0.44, 0.085),
+		-- // Centred on the header plank of the frame image
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.128),
+		Size = UDim2.fromScale(0.36, 0.095),
 		ZIndex = 2,
 		Text = "STATS",
 		TextColor3 = Color3.new(1, 1, 1),
