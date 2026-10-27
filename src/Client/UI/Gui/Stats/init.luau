@@ -187,8 +187,8 @@ local function createCard(def, order: number): Instance
 		CreateElement("ImageLabel", {
 			Name = "Icon",
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.3),
-			Size = UDim2.fromScale(0.6, 0.34),
+			Position = UDim2.fromScale(0.5, 0.29),
+			Size = UDim2.fromScale(0.75, 0.46),
 			BackgroundTransparency = 1,
 			Image = `rbxassetid://{def.Icon}`,
 			ScaleType = Enum.ScaleType.Fit,
@@ -272,8 +272,8 @@ end
 local function createGui(): ScreenGui
 	local cardChildren: { Instance } = {
 		CreateElement("UIGridLayout", {
-			CellPadding = UDim2.fromScale(0.03, 0.03),
-			CellSize = UDim2.fromScale(0.31, 0.485),
+			CellPadding = UDim2.fromScale(0.03, 0.04),
+			CellSize = UDim2.fromScale(0.31, 0.47),
 			HorizontalAlignment = Enum.HorizontalAlignment.Center,
 			VerticalAlignment = Enum.VerticalAlignment.Center,
 			SortOrder = Enum.SortOrder.LayoutOrder,
@@ -317,8 +317,9 @@ local function createGui(): ScreenGui
 
 	local content = CreateElement("Frame", {
 		Name = "Content",
-		Position = UDim2.fromScale(0.105, 0.2),
-		Size = UDim2.fromScale(0.79, 0.61),
+		-- // The parchment inside the brick border of the frame image (fractions of the container)
+		Position = UDim2.fromScale(0.118, 0.24),
+		Size = UDim2.fromScale(0.765, 0.548),
 		BackgroundTransparency = 1,
 	}, { Cards, Listings })
 
