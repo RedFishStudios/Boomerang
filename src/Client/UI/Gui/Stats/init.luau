@@ -6,7 +6,7 @@
 	Left: six cards with the player's main lifetime stats (time played, eliminations, defeats, games played,
 	games won, throws). Right: a scrolling list of smaller stats (times each ability was used, times each pickup was collected).
 	Built entirely in code with CreateElement (no GUI instances stored under this script); the card art and frame
-	are image assets. Card icons are emoji TextLabels (CARD_DEFS); row icons are image assets from Icons (LISTING_ICONS)
+	are image assets. Card icons are image assets from Icons (CARD_DEFS); row icons are image assets from Icons (LISTING_ICONS)
 	where one exists, otherwise an emoji TextLabel (LISTING_EMOJIS).
 	Reads the replicated profile (PlayerDataController); the stats are written by LifetimeStatsService on the server.
 ]]
@@ -48,12 +48,13 @@ local CONTAINER_ASPECT_RATIO = 1.46190941
 
 -- // The six cards on the left, in display order. Field = profile field shown; Name = card instance name
 local CARD_DEFS = {
-	{ Name = "TimePlayed", Field = "TimePlayed", Label = "Time Played", Emoji = "⏱️" },
-	{ Name = "Elims", Field = "Elims", Label = "Eliminations", Emoji = "☠️" },
-	{ Name = "Defeats", Field = "Defeats", Label = "Defeats", Emoji = "😵" },
-	{ Name = "RoundsPlayed", Field = "RoundsPlayed", Label = "Games Played", Emoji = "🎮" },
-	{ Name = "Wins", Field = "Wins", Label = "Games Won", Emoji = "🏆" },
-	{ Name = "Throws", Field = "Throws", Label = "Throws", Emoji = "🪃" },
+	-- // Icon: image asset id from Icons (change it there, not here)
+	{ Name = "TimePlayed", Field = "TimePlayed", Label = "Time Played", Icon = Icons.StatsTimePlayed },
+	{ Name = "Elims", Field = "Elims", Label = "Eliminations", Icon = Icons.StatsElims },
+	{ Name = "Defeats", Field = "Defeats", Label = "Defeats", Icon = Icons.StatsLosses },
+	{ Name = "RoundsPlayed", Field = "RoundsPlayed", Label = "Games Played", Icon = Icons.StatsGamesPlayed },
+	{ Name = "Wins", Field = "Wins", Label = "Games Won", Icon = Icons.StatsWins },
+	{ Name = "Throws", Field = "Throws", Label = "Throws", Icon = Icons.StatsThrows },
 }
 
 local LISTING_ASPECT_RATIO = 7 -- // Row width / height
@@ -183,13 +184,14 @@ local function createCard(def, order: number): Instance
 		LayoutOrder = order,
 		Image = CARD_IMAGE,
 	}, {
-		createLabel({
+		CreateElement("ImageLabel", {
 			Name = "Icon",
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5, 0.3),
 			Size = UDim2.fromScale(0.6, 0.34),
-			Text = def.Emoji,
-			TextColor3 = Color3.new(1, 1, 1),
+			BackgroundTransparency = 1,
+			Image = `rbxassetid://{def.Icon}`,
+			ScaleType = Enum.ScaleType.Fit,
 		}, { CreateElement("UIAspectRatioConstraint", {}) }),
 		createLabel({
 			Name = "Value",

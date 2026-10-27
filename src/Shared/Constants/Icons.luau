@@ -45,4 +45,12 @@ return {
 	DecoyPickup = 72162085547970,
 	Speedup = 114680422222699,
 
+	-- Stats menu cards (Client/UI/Gui/Stats)
+	StatsTimePlayed = 75548773167800, -- // A clock
+	StatsElims = 83734925557673, -- // A slash (Eliminations)
+	StatsLosses = 114162819745915, -- // A gravestone (the Defeats card)
+	StatsGamesPlayed = 94651215928976, -- // A red flag
+	StatsWins = 130336707658047, -- // A trophy (Games Won)
+	StatsThrows = 70708834417199, -- // A boomerang being thrown
+
 }
