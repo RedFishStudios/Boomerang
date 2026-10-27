@@ -59,7 +59,7 @@ local TABS = {
 	{ Id = "Skins", Text = "Weapons", Color = Color3.fromRGB(165, 95, 200), Icon = Icons.InventoryButton }, -- // Same boomerang icon as the Inventory HUD button
 	{ Id = "Emotes", Text = "Emotes", Color = Color3.fromRGB(55, 170, 180) },
 	{ Id = "Arrows", Text = "Charges", Color = Color3.fromRGB(240, 165, 50) }, -- // Charge up effects (module id stays "Arrows")
-	{ Id = "Effects", Text = "Effects", Color = Color3.fromRGB(215, 70, 70) },
+	{ Id = "Eliminations", Text = "Eliminations", Color = Color3.fromRGB(215, 70, 70), Icon = Icons.Eliminations }, -- // Elimination cosmetics (was "Effects"); same icon as the Stats menu's Eliminations card
 }
 local DEFAULT_TAB = "Skins"
 local INACTIVE_TAB_DARKEN = 0.25 -- // How much darker the tabs that aren't open are

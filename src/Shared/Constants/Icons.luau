@@ -48,7 +48,7 @@ return {
 
 	-- Stats menu cards (Client/UI/Gui/Stats)
 	StatsTimePlayed = 75548773167800, -- // A clock
-	StatsElims = 83734925557673, -- // A slash (Eliminations)
+	Eliminations = 83734925557673, -- // A slash: Eliminations (the Stats menu card and the Inventory's Eliminations tab)
 	StatsLosses = 114162819745915, -- // A gravestone (the Defeats card)
 	StatsGamesPlayed = 94651215928976, -- // A red flag
 	StatsWins = 130336707658047, -- // A trophy (Games Won)

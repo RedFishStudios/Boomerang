@@ -50,7 +50,7 @@ local CONTAINER_ASPECT_RATIO = 1.46190941
 local CARD_DEFS = {
 	-- // Icon: image asset id from Icons (change it there, not here)
 	{ Name = "TimePlayed", Field = "TimePlayed", Label = "Time Played", Icon = Icons.StatsTimePlayed },
-	{ Name = "Elims", Field = "Elims", Label = "Eliminations", Icon = Icons.StatsElims },
+	{ Name = "Elims", Field = "Elims", Label = "Eliminations", Icon = Icons.Eliminations },
 	{ Name = "Defeats", Field = "Defeats", Label = "Defeats", Icon = Icons.StatsLosses },
 	{ Name = "RoundsPlayed", Field = "RoundsPlayed", Label = "Games Played", Icon = Icons.StatsGamesPlayed },
 	{ Name = "Wins", Field = "Wins", Label = "Games Won", Icon = Icons.StatsWins },
