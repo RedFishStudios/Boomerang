@@ -51,7 +51,8 @@ export type ShopTab = {
 export type ShopTabDefinition = {
 	Id: string,
 	Name: string,
-	Icon: string, -- // Emoji placeholder shown beside the name; replace with an image when icon art exists
+	Icon: string, -- // Emoji placeholder shown beside the name, for tabs without IconImage
+	IconImage: number?, -- // Image asset id shown beside the name instead of the emoji (from Icons)
 	AutoSelect: boolean?, -- // Whether this tab is the one selected when the gui is opened
 	Tab: ShopTab?, -- // Its content; nil opens blank (placeholder until the feature exists)
 }
@@ -370,15 +371,25 @@ function ShopBuilder.create(config: ShopConfig)
 			ZIndex = 2,
 		}, {
 			new("UIScale", {}),
-			-- // ICON PLACEHOLDER: an emoji in its own label (separate from the text). Replace this label with an ImageLabel
-			-- // (Image = the tab's icon) once icon art exists.
-			createLabel({
-				Name = "ICON_EmojiPlaceholder",
-				Text = tabInfo.Icon,
-				AnchorPoint = Vector2.new(0, 0.5),
-				Position = UDim2.fromScale(0.07, 0.48),
-				Size = UDim2.fromScale(0.16, 0.7),
-			}, { new("UIAspectRatioConstraint", {}) }),
+			-- // The tab's icon: its image (IconImage) or, until it has one, an emoji in its own label (ICON PLACEHOLDER)
+			if tabInfo.IconImage then
+				new("ImageLabel", {
+					Name = "ICON",
+					Image = `rbxassetid://{tabInfo.IconImage}`,
+					ScaleType = Enum.ScaleType.Fit,
+					BackgroundTransparency = 1,
+					AnchorPoint = Vector2.new(0, 0.5),
+					Position = UDim2.fromScale(0.07, 0.48),
+					Size = UDim2.fromScale(0.16, 0.7),
+				}, { new("UIAspectRatioConstraint", {}) })
+			else
+				createLabel({
+					Name = "ICON_EmojiPlaceholder",
+					Text = tabInfo.Icon,
+					AnchorPoint = Vector2.new(0, 0.5),
+					Position = UDim2.fromScale(0.07, 0.48),
+					Size = UDim2.fromScale(0.16, 0.7),
+				}, { new("UIAspectRatioConstraint", {}) }),
 			createLabel({
 				Name = "Label",
 				Text = tabInfo.Name,

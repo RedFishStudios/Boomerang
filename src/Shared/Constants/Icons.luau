@@ -48,6 +48,7 @@ return {
 
 	-- Stats menu cards (Client/UI/Gui/Stats)
 	StatsTimePlayed = 75548773167800, -- // A clock
+	ChargeUpEffects = 73254302045553, -- // An arrow: Charge up effects (the Inventory's Charges tab and the Cosmetics Shop's Charge Effects tab)
 	Eliminations = 83734925557673, -- // A slash: Eliminations (the Stats menu card and the Inventory's Eliminations tab)
 	StatsLosses = 114162819745915, -- // A gravestone (the Defeats card)
 	StatsGamesPlayed = 94651215928976, -- // A red flag

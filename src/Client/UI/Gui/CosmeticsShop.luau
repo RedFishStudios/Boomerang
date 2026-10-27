@@ -11,6 +11,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local ShopBuilder = require(ReplicatedStorage.Client.UI.ShopCommon.ShopBuilder)
+local Icons = require(ReplicatedStorage.Shared.Constants.Icons)
 local ChargeEffectsTab = require(ReplicatedStorage.Client.UI.ShopCommon.Tabs.ChargeEffects)
 local EmotesTab = require(ReplicatedStorage.Client.UI.ShopCommon.Tabs.Emotes)
 
@@ -27,7 +28,8 @@ return ShopBuilder.create({
 		{
 			Id = "ChargeEffects",
 			Name = "Charge Effects",
-			Icon = "⬆️", -- // PLACEHOLDER emoji, replace with an image later
+			Icon = "⬆️", -- // Only shown if IconImage is removed
+			IconImage = Icons.ChargeUpEffects, -- // Same icon as the Inventory's Charges tab
 			AutoSelect = true,
 			Tab = ChargeEffectsTab,
 		},
