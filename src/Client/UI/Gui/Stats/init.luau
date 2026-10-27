@@ -71,6 +71,8 @@ local LISTING_ICONS = {
 	Disguise = Icons.DisguisePickup,
 	HomingBoomerang = Icons.HomingBoomerang,
 	Shield = Icons.ShieldPickup,
+	Decoy = Icons.DecoyPickup,
+	Speedup = Icons.Speedup,
 }
 
 -- // Emoji shown as the icon on each right-hand row when it has no LISTING_ICONS entry, keyed by ability / pickup id (no entry = blank icon)
@@ -79,11 +81,9 @@ local LISTING_EMOJIS = {
 	Dash = "💨",
 	BattleRoyale = "👑",
 	DashNoclip = "👻",
-	Decoy = Icons.DecoyPickup,
 	ExtraBoomerang = "➕",
 	IceBoomerang = "❄️",
 	MultiBoomerang = "🔱",
-	Speedup = "👟",
 	Telekinesis = "🔮",
 }
 
