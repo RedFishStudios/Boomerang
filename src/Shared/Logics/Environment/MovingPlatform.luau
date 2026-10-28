@@ -1,21 +1,26 @@
 --[[
-	MovingPlatform (environment logic, T-131)
+	MovingPlatform (environment logic, T-131, T-133, T-134)
 
 	A platform that travels back and forth between two pivots, at Speed studs per second, resting RestTime seconds at each end,
 	eased in and out (easeInOutQuint). The platform is a single part directly in the map's Functional folder, with attributes
 	ClassName = "MovingPlatform", Speed, StartPivot, EndPivot, and optionally RestTime, StartCrush, EndCrush.
 
 	SERVER AUTHORITY (Workspace.AuthorityMode = Server):
-	- The platform is anchored and its position is a pure function of the synced simulation clock, time(). It is moved inside
+	- Where the platform should be is a pure function of the synced simulation clock, time(). It is driven inside
 	  RunService:BindToSimulation() on the server AND on every client (this module is initialised by EnvironmentService and by
-	  EnvironmentController). Clients force prediction on for it (RunService:SetPredictionMode), so each client computes the
-	  same position the server has for every simulation frame, including frames replayed after a rollback. Characters are
-	  therefore always predicted against the platform where it really is, and the platform itself never mispredicts.
+	  EnvironmentController). Clients force prediction on for it (RunService:SetPredictionMode), so each client drives it the
+	  same way the server does for every simulation frame, including frames replayed after a rollback. Characters are
+	  therefore always predicted against the platform where it really is.
+	- DRIVE (PHYSICS_DRIVEN, T-134): the platform is an unanchored, heavy body held to that path by a rigid AlignPosition and
+	  AlignOrientation (created by the server; each client drives its own local copy); each step only their targets are set. Roblox physics moves it
+	  through its substeps with a real velocity, so it pushes characters in its way and carries characters standing on it
+	  itself. PHYSICS_DRIVEN = false goes back to the anchored platform moved by setting its CFrame each step, which needs
+	  CARRY and PUSH below (those two sections only run in that mode).
 	- The server stamps the platform with the time it started (attribute MovingPlatformStartTime); clients read it from the
 	  replicated part. Clients find platforms by watching the live arena map (they can stream in and out).
-	- CARRY (separate section below): the platform's velocity is also written each step, so players standing on it are
-	  carried along. CARRY_ENABLED turns the riding part off.
-	- PUSH (separate section below): physics alone can't push characters out of the way of an anchored part that jumps
+	- CARRY (separate section below, anchored mode only): the platform's velocity is also written each step, so players
+	  standing on it are carried along. CARRY_ENABLED turns the riding part off.
+	- PUSH (separate section below, anchored mode only): physics alone can't push characters out of the way of an anchored part that jumps
 	  forward each step (at full speed the platform moves further per step than half a torso, so characters were popped
 	  out the far side). So each step, every character (players and bots) caught by the leading face is moved forward,
 	  just clear of it. Only their position along the travel is changed, never their velocity, so they keep moving
@@ -43,9 +48,15 @@ local CombatLibrary = require(ReplicatedStorage.Shared.Library.CombatLibrary)
 local START_TIME_ATTRIBUTE = "MovingPlatformStartTime" -- // Set by the server on the platform part: time() it started moving
 local CLASS_NAME = "MovingPlatform"
 
-local CARRY_ENABLED = true -- // Players standing on a platform ride along with it (see CARRY)
+local PHYSICS_DRIVEN = true -- // Unanchored and held to its path by rigid constraints, so Roblox physics does the pushing and carrying (see DRIVE)
+local PLATFORM_DENSITY = 100 -- // Maximum density: characters can't shove the platform off its path
+local ALIGN_POSITION_NAME = "MovingPlatformAlignPosition"
+local ALIGN_ORIENTATION_NAME = "MovingPlatformAlignOrientation"
+local DRIVE_ATTACHMENT_NAME = "MovingPlatformAttachment"
 
-local PUSH_ENABLED = true -- // Characters in the way are moved clear of the leading face (see PUSH)
+local CARRY_ENABLED = true -- // Players standing on a platform ride along with it (see CARRY; anchored mode only)
+
+local PUSH_ENABLED = true -- // Characters in the way are moved clear of the leading face (see PUSH; anchored mode only)
 local PUSH_BODY_HALF_SIZE = Vector3.new(1, 1, 0.5) -- // Half the collidable torso (2 x 2 x 1, R6 and bots), in the root's space
 local PUSH_SKIN = 0.05 -- // Studs left between the face and a pushed torso
 local PUSH_CATCH_DEPTH = 0.3 -- // Studs a torso may already be into the face (its own walking into it) and still be pushed out
@@ -79,6 +90,8 @@ type PlatformData = {
 	RestTime: number,
 	StartTime: number, -- // time() it started moving (the same value on the server and every client)
 	Size: Vector3, -- // Read once at registration (only simulation-synced members are read inside the simulation step)
+	AlignPosition: AlignPosition?, -- // PHYSICS_DRIVEN: the constraints the step retargets
+	AlignOrientation: AlignOrientation?,
 	CrushAtStart: boolean,
 	CrushAtEnd: boolean,
 	-- // Updated every simulation step (read by the crush check)
@@ -223,6 +236,51 @@ local function pushCharacters(platformData: PlatformData, previousPivot: CFrame,
 end
 
 -------------------------------------------------------------------------------
+-- DRIVE (PHYSICS_DRIVEN). Kept separate: if the physics-driven platform misbehaves, look here (or set PHYSICS_DRIVEN = false).
+-------------------------------------------------------------------------------
+
+-- // Server: turns the platform into a heavy unanchored body held to its path by rigid constraints (they replicate to clients)
+local function setUpPhysicsDrive(part: BasePart, startPivot: CFrame)
+	part.Anchored = true -- // Placed exactly before physics takes over
+	part:PivotTo(startPivot)
+	local properties = part.CurrentPhysicalProperties
+	part.CustomPhysicalProperties = PhysicalProperties.new(PLATFORM_DENSITY, properties.Friction, properties.Elasticity,
+		properties.FrictionWeight, properties.ElasticityWeight)
+
+	local attachment = Instance.new("Attachment")
+	attachment.Name = DRIVE_ATTACHMENT_NAME
+	attachment.Parent = part
+
+	local alignPosition = Instance.new("AlignPosition")
+	alignPosition.Name = ALIGN_POSITION_NAME
+	alignPosition.Mode = Enum.PositionAlignmentMode.OneAttachment
+	alignPosition.Attachment0 = attachment
+	alignPosition.RigidityEnabled = true
+	alignPosition.ApplyAtCenterOfMass = true
+	alignPosition.Position = startPivot.Position
+	alignPosition.Parent = part
+
+	local alignOrientation = Instance.new("AlignOrientation")
+	alignOrientation.Name = ALIGN_ORIENTATION_NAME
+	alignOrientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
+	alignOrientation.Attachment0 = attachment
+	alignOrientation.RigidityEnabled = true
+	alignOrientation.CFrame = startPivot.Rotation
+	alignOrientation.Parent = part
+
+	part.Anchored = false
+end
+
+-- // Inside the simulation step: aim the constraints at where the platform should be now; physics moves it there
+local function drivePlatform(platformData: PlatformData, pivot: CFrame)
+	local alignPosition, alignOrientation = platformData.AlignPosition, platformData.AlignOrientation
+	if alignPosition and alignOrientation then
+		alignPosition.Position = pivot.Position
+		alignOrientation.CFrame = pivot.Rotation
+	end
+end
+
+-------------------------------------------------------------------------------
 -- SIMULATION (server and clients)
 -------------------------------------------------------------------------------
 
@@ -236,6 +294,13 @@ local function stepPlatforms(deltaTime: number)
 		platformData.Moving = moving
 
 		DynamicCollisionLibrary.capturePreviousTransform(part, now)
+		if PHYSICS_DRIVEN then
+			drivePlatform(platformData, pivot)
+			DynamicCollisionLibrary.recordCurrentTransform(part, pivot, now)
+			continue
+		end
+
+		-- // Anchored mode: move it ourselves, then carry riders and push characters in the way
 		part.CFrame = pivot
 		DynamicCollisionLibrary.recordCurrentTransform(part, pivot, now)
 
@@ -367,6 +432,26 @@ local function reset()
 	end
 end
 
+-- // The constraint the simulation step retargets. On a client, the server's copy is switched off locally and replaced by a
+-- // local one: the server keeps retargeting its copy, and those writes would arrive late and drag the predicted platform back
+-- // (measured in Studio: the platform jittered back and forth every few frames until this)
+local function getDriveConstraint(part: BasePart, name: string): Instance?
+	local replicated = part:FindFirstChild(name)
+	if isServer or not replicated then
+		return replicated
+	end
+	local localName = name .. "Local"
+	local existing = part:FindFirstChild(localName)
+	if existing then
+		return existing
+	end
+	local localConstraint = replicated:Clone()
+	localConstraint.Name = localName
+	localConstraint.Parent = part;
+	(replicated :: any).Enabled = false
+	return localConstraint
+end
+
 local function register(part: BasePart, startTime: number)
 	if platforms[part] then
 		return
@@ -381,6 +466,8 @@ local function register(part: BasePart, startTime: number)
 		RestTime = attributes.RestTime or 0,
 		StartTime = startTime,
 		Size = part.Size,
+		AlignPosition = getDriveConstraint(part, ALIGN_POSITION_NAME) :: AlignPosition?,
+		AlignOrientation = getDriveConstraint(part, ALIGN_ORIENTATION_NAME) :: AlignOrientation?,
 		CrushAtStart = attributes.StartCrush == true,
 		CrushAtEnd = attributes.EndCrush == true,
 		MovingToEnd = true,
@@ -474,18 +561,18 @@ local function tryRegisterClientPart(part: Instance)
 	if not part:IsA("BasePart") or part:GetAttribute("ClassName") ~= CLASS_NAME or part:GetAttribute("Invalid") then
 		return
 	end
-	local startTime = part:GetAttribute(START_TIME_ATTRIBUTE)
-	if type(startTime) == "number" then
-		register(part, startTime)
-		return
-	end
-	-- // The server hasn't started it yet: wait for its start time
-	local connection
-	connection = part:GetAttributeChangedSignal(START_TIME_ATTRIBUTE):Connect(function()
-		local value = part:GetAttribute(START_TIME_ATTRIBUTE)
-		if type(value) == "number" then
-			connection:Disconnect()
-			register(part, value)
+	task.spawn(function()
+		-- // The server may not have started it yet: wait for its start time
+		while part.Parent and type(part:GetAttribute(START_TIME_ATTRIBUTE)) ~= "number" do
+			part:GetAttributeChangedSignal(START_TIME_ATTRIBUTE):Wait()
+		end
+		if PHYSICS_DRIVEN then
+			-- // Its constraints replicate with it, but may arrive a moment later
+			part:WaitForChild(ALIGN_POSITION_NAME, 10)
+			part:WaitForChild(ALIGN_ORIENTATION_NAME, 10)
+		end
+		if part:IsDescendantOf(workspace) then
+			register(part, part:GetAttribute(START_TIME_ATTRIBUTE))
 		end
 	end)
 end
@@ -525,8 +612,13 @@ function MovingPlatform.onObjectAdded(platform: Instance)
 		return
 	end
 
-	-- // Moved by setting its CFrame each simulation step (kinematic), never by physics
-	platform.Anchored = true
+	local startPivot = platform:GetAttribute("StartPivot") or platform:GetPivot()
+	if PHYSICS_DRIVEN then
+		setUpPhysicsDrive(platform, startPivot)
+	else
+		-- // Moved by setting its CFrame each simulation step (kinematic), never by physics
+		platform.Anchored = true
+	end
 	local startTime = time()
 	platform:SetAttribute(START_TIME_ATTRIBUTE, startTime)
 	register(platform, startTime)

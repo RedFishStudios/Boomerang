@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-134** *(shared by every task list, general and Epic)*
+**Next free ID: T-135** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,23 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-134 · Moving platforms driven by physics (body movers) instead of set CFrames
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared (server authority)
+- **Files:** `Shared/Logics/Environment/MovingPlatform.luau`
+
+**Done when**
+- [ ] Walking or dashing toward an oncoming platform doesn't pass through it (T-133's code push only caught characters the face reached, not ones that walked into it during physics)
+- [ ] DRIVE section (PHYSICS_DRIVEN): the server makes the platform an unanchored, maximum-density body held by a rigid AlignPosition and AlignOrientation; every simulation step (server and clients) only sets their targets from the same time() path, so Roblox physics moves it and does the pushing and carrying
+- [ ] Each client switches the server's constraints off locally and drives its own copy (otherwise the server's late target writes drag the predicted platform back and it jitters)
+- [ ] PHYSICS_DRIVEN = false restores the anchored platform with CARRY and PUSH (kept as the fallback)
+- [ ] Crushing still works at both ends (the crush check reads where the platform really is)
+
+**Notes**
+- From Sol, 2026-10-28. Tested in Studio on PartsTest: bot-style rigs running into the oncoming platform at 16, 60 and 100 studs/s were all pushed, never through; the player pushed as seen from the client stays just ahead of the face; the platform moves smoothly on the client (1 direction flip in 12 s, against 228 before the local-constraint fix). Still for Sol: the player walking/dashing into it, riding on top, and crushing at both ends.
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-134-physics-platform`.
 
 ### T-133 · Moving platforms push characters in code (no tunnelling)
 - **Priority:** P1
