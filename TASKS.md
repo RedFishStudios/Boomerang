@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-133** *(shared by every task list, general and Epic)*
+**Next free ID: T-134** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -84,6 +84,23 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
+### T-133 · Moving platforms push characters in code (no tunnelling)
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared (server authority)
+- **Files:** `Shared/Logics/Environment/MovingPlatform.luau`
+
+**Done when**
+- [ ] A character in front of a moving platform is pushed ahead of it at any speed, instead of being popped out the far side (at full speed the anchored platform moves further per simulation step than half a torso, so physics couldn't push)
+- [ ] PUSH section, inside the simulation step on the server and every client: characters whose torso the leading face caught this step are moved forward along the travel, just clear of the face (PUSH_SKIN). Only their position along the travel changes, never their velocity, height or sideways position, so they keep their own movement and don't stick to the platform; nothing pulls them back
+- [ ] The server pushes every player's character and every bot (decoys, workspace.Bots); each client pushes only its own predicted character, so it matches the server, replays included
+- [ ] Characters standing on top aren't pushed (they ride, CARRY); lifts (steep travel) don't push; toward an end that doesn't crush, pushing stops when there's no room left
+- [ ] Pushed into a crushing end, a player is still crushed (T-131)
+
+**Notes**
+- From Sol, 2026-10-28. Tested in Studio on PartsTest (server-driven): pushed at full speed both on the server and as seen by the client, bot-style rig pushed, rider carried and not pushed. Walking away / sideways / jumping while being pushed still needs Sol's hands-on check (the test tools can't send movement input).
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-131-crush-fix`.
+
 ### T-131 · Moving platforms under server authority (no more clipping), geometric crush
 - **Priority:** P1
 - **Owner:** Agent
@@ -101,6 +118,7 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 **Notes**
 - PartsTest's platform (Functional/MovingPlatform) already matches this layout: StartCrush and EndCrush both true, Speed 10, RestTime 2.
+- Fix (2026-10-28): the crush used applyDamageToHumanoid, whose TakeDamage does nothing while the character has a ForceField (spawn protection); it now sets Health to 0 itself (as Water does) and sends the "Crushed" reason.
 - Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-131-moving-platform`.
 
 

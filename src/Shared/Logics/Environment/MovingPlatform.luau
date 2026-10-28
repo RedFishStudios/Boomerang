@@ -14,7 +14,12 @@
 	- The server stamps the platform with the time it started (attribute MovingPlatformStartTime); clients read it from the
 	  replicated part. Clients find platforms by watching the live arena map (they can stream in and out).
 	- CARRY (separate section below): the platform's velocity is also written each step, so players standing on it are
-	  carried along and players in its way are pushed rather than overlapped. CARRY_ENABLED turns the riding part off.
+	  carried along. CARRY_ENABLED turns the riding part off.
+	- PUSH (separate section below): physics alone can't push characters out of the way of an anchored part that jumps
+	  forward each step (at full speed the platform moves further per step than half a torso, so characters were popped
+	  out the far side). So each step, every character (players and bots) caught by the leading face is moved forward,
+	  just clear of it. Only their position along the travel is changed, never their velocity, so they keep moving
+	  normally and never stick to the platform.
 	- CRUSH (separate section below, server only): the attributes StartCrush / EndCrush (booleans) make that end crush. While the platform closes in on a crushing end, a player inside its footprint, between its leading face and that
 	  end, is crushed once the gap left is too small for their Hitbox. The end must have a wall to crush against (map rule).
 	  Runs right after each server simulation step (eliminations can't be applied inside one); clients never predict it.
@@ -40,7 +45,16 @@ local CLASS_NAME = "MovingPlatform"
 
 local CARRY_ENABLED = true -- // Players standing on a platform ride along with it (see CARRY)
 
-local CRUSH_DAMAGE = 1000000
+local PUSH_ENABLED = true -- // Characters in the way are moved clear of the leading face (see PUSH)
+local PUSH_BODY_HALF_SIZE = Vector3.new(1, 1, 0.5) -- // Half the collidable torso (2 x 2 x 1, R6 and bots), in the root's space
+local PUSH_SKIN = 0.05 -- // Studs left between the face and a pushed torso
+local PUSH_CATCH_DEPTH = 0.3 -- // Studs a torso may already be into the face (its own walking into it) and still be pushed out
+local PUSH_BODY_BELOW_ROOT = 3 -- // Feet are this far below the root (R6 and bots)
+local PUSH_BODY_ABOVE_ROOT = 2.5 -- // Top of the head is this far above the root
+local PUSH_STEP_TOLERANCE = 0.25 -- // Feet within this of the platform's top count as standing on it (riding, not pushed)
+local PUSH_MAX_VERTICAL_TRAVEL = 0.7 -- // Platforms travelling more steeply than this (|direction.Y|) aren't pushers: lifts carry instead
+local BOTS_FOLDER_NAME = "Bots" -- // BotService's folder in the workspace (decoys and other bots)
+
 local CRUSH_CAUSE_LABEL = "Crushed"
 local CRUSH_GAP_TOLERANCE = 0.3 -- // Studs: a gap this much smaller than a Hitbox's width still counts as fitting (brushing the face is safe)
 
@@ -64,6 +78,7 @@ type PlatformData = {
 	EndPivot: CFrame,
 	RestTime: number,
 	StartTime: number, -- // time() it started moving (the same value on the server and every client)
+	Size: Vector3, -- // Read once at registration (only simulation-synced members are read inside the simulation step)
 	CrushAtStart: boolean,
 	CrushAtEnd: boolean,
 	-- // Updated every simulation step (read by the crush check)
@@ -78,6 +93,7 @@ type PlatformData = {
 local isServer = RunService:IsServer()
 
 local platforms: { [BasePart]: PlatformData } = {}
+local pushableRoots: { [BasePart]: true } = {} -- // Root parts of characters platforms push (see PUSH)
 local simulationConnection: RBXScriptConnection? = nil
 local crushConnection: RBXScriptConnection? = nil
 
@@ -133,6 +149,80 @@ local function applyCarryVelocity(part: BasePart, velocity: Vector3)
 end
 
 -------------------------------------------------------------------------------
+-- PUSH (characters in the way). Kept separate: if pushing misbehaves, look here (or set PUSH_ENABLED = false).
+-------------------------------------------------------------------------------
+
+-- // How far a box of `size` (in its own space) reaches along `localDirection` (a unit vector in that space)
+local function getHalfExtentAlong(size: Vector3, localDirection: Vector3): number
+	return (math.abs(localDirection.X) * size.X + math.abs(localDirection.Y) * size.Y + math.abs(localDirection.Z) * size.Z) / 2
+end
+
+-- // Moves characters caught by the platform's leading face (it went from previousPivot to pivot this step) forward along
+-- // the travel, just clear of the face. Only their position along the travel changes: velocity, height and sideways
+-- // position are left alone, so pushed characters keep their own movement and nothing pulls them back afterwards.
+-- // Runs inside the simulation step (root CFrames have simulation access), so a client pushes its own predicted character
+-- // exactly as the server does, replays included.
+local function pushCharacters(platformData: PlatformData, previousPivot: CFrame, pivot: CFrame)
+	local travel = pivot.Position - previousPivot.Position
+	local stepDistance = travel.Magnitude
+	if stepDistance <= 1e-5 then
+		return
+	end
+	local direction = travel / stepDistance
+	if math.abs(direction.Y) > PUSH_MAX_VERTICAL_TRAVEL then
+		return
+	end
+
+	local size = platformData.Size
+	local faceDistance = getHalfExtentAlong(size, pivot:VectorToObjectSpace(direction)) -- // Leading face, from the centre
+	local lateral = direction:Cross(Vector3.yAxis).Unit
+	local halfWidth = getHalfExtentAlong(size, pivot:VectorToObjectSpace(lateral))
+	local halfHeight = getHalfExtentAlong(size, pivot:VectorToObjectSpace(Vector3.yAxis))
+	local top = pivot.Position.Y + halfHeight
+	local bottom = pivot.Position.Y - halfHeight
+
+	-- // An end that doesn't crush may still have a wall: stop pushing once there's no room left before it (physics takes over)
+	local targetPivot = if platformData.MovingToEnd then platformData.EndPivot else platformData.StartPivot
+	local crushes = if platformData.MovingToEnd then platformData.CrushAtEnd else platformData.CrushAtStart
+	local roomLeft = (targetPivot.Position - pivot.Position):Dot(direction)
+
+	for root in pairs(pushableRoots) do
+		local rootCFrame = root.CFrame
+		local rootPosition = rootCFrame.Position
+
+		-- // Height: overlaps the platform, and isn't standing on top of it (riders are CARRY's)
+		local feet = rootPosition.Y - PUSH_BODY_BELOW_ROOT
+		if feet >= top - PUSH_STEP_TOLERANCE or rootPosition.Y + PUSH_BODY_ABOVE_ROOT <= bottom then
+			continue
+		end
+
+		-- // Across the travel: the torso overlaps the face
+		local offset = rootPosition - pivot.Position
+		local bodyHalfWidth = getHalfExtentAlong(PUSH_BODY_HALF_SIZE * 2, rootCFrame:VectorToObjectSpace(lateral))
+		if math.abs(offset:Dot(lateral)) >= halfWidth + bodyHalfWidth then
+			continue
+		end
+
+		-- // Along the travel: the torso's back was in front of the face before this step (allowing for it having walked a
+		-- // little into it), and is now short of being clear of it
+		local bodyHalfDepth = getHalfExtentAlong(PUSH_BODY_HALF_SIZE * 2, rootCFrame:VectorToObjectSpace(direction))
+		local clearAlong = faceDistance + bodyHalfDepth + PUSH_SKIN
+		local along = offset:Dot(direction)
+		if along >= clearAlong then
+			continue -- // Not reached yet
+		end
+		if along - bodyHalfDepth < faceDistance - stepDistance - PUSH_CATCH_DEPTH then
+			continue -- // Already behind the face (or inside the platform) before this step: not in the way
+		end
+		if not crushes and roomLeft < bodyHalfDepth * 2 then
+			continue
+		end
+
+		root.CFrame = rootCFrame + direction * (clearAlong - along)
+	end
+end
+
+-------------------------------------------------------------------------------
 -- SIMULATION (server and clients)
 -------------------------------------------------------------------------------
 
@@ -151,17 +241,15 @@ local function stepPlatforms(deltaTime: number)
 
 		local previousPivot = getPivotAt(platformData, now - math.max(deltaTime, 1e-3))
 		applyCarryVelocity(part, (pivot.Position - previousPivot.Position) / math.max(deltaTime, 1e-3))
+		if PUSH_ENABLED and moving then
+			pushCharacters(platformData, previousPivot, pivot)
+		end
 	end
 end
 
 -------------------------------------------------------------------------------
 -- CRUSH (server only, right after each simulation step). Kept separate from the movement.
 -------------------------------------------------------------------------------
-
--- // How far a box of `size` (in its own space) reaches along `localDirection` (a unit vector in that space)
-local function getHalfExtentAlong(size: Vector3, localDirection: Vector3): number
-	return (math.abs(localDirection.X) * size.X + math.abs(localDirection.Y) * size.Y + math.abs(localDirection.Z) * size.Z) / 2
-end
 
 -- // A player's Hitbox: a vertical cylinder centred on their root, Size = (height, diameter, diameter)
 local function getAliveHitbox(player: Player): (BasePart?, Humanoid?)
@@ -218,6 +306,13 @@ local function isCrushed(platformData: PlatformData, hitbox: BasePart): boolean
 	return true
 end
 
+-- // Crushing ignores shields: TakeDamage does nothing while the character has a ForceField (spawn protection), so set Health
+-- // directly and send the death reason ourselves (same as applyDamageToHumanoid, and as Water does)
+local function crushPlayer(player: Player, humanoid: Humanoid)
+	humanoid.Health = 0
+	CombatLibrary.notifyDeathReason(player, nil, CRUSH_CAUSE_LABEL)
+end
+
 local function checkCrushes()
 	for _, platformData in pairs(platforms) do
 		-- // Only while travelling toward an end that crushes: most frames cost nothing
@@ -231,7 +326,7 @@ local function checkCrushes()
 		for _, player in ipairs(Players:GetPlayers()) do
 			local hitbox, humanoid = getAliveHitbox(player)
 			if hitbox and humanoid and isCrushed(platformData, hitbox) then
-				CombatLibrary.applyDamageToHumanoid(player, humanoid, CRUSH_DAMAGE, nil, CRUSH_CAUSE_LABEL)
+				crushPlayer(player, humanoid)
 			end
 		end
 	end
@@ -285,6 +380,7 @@ local function register(part: BasePart, startTime: number)
 		EndPivot = attributes.EndPivot or startPivot,
 		RestTime = attributes.RestTime or 0,
 		StartTime = startTime,
+		Size = part.Size,
 		CrushAtStart = attributes.StartCrush == true,
 		CrushAtEnd = attributes.EndCrush == true,
 		MovingToEnd = true,
@@ -305,6 +401,72 @@ local function register(part: BasePart, startTime: number)
 		end
 	end)
 	ensureRunning()
+end
+
+-- // A character (or bot) root that platforms push, until it leaves the workspace
+local function trackPushableRoot(root: Instance?)
+	if not root or not root:IsA("BasePart") or pushableRoots[root] then
+		return
+	end
+	pushableRoots[root] = true
+	local connection
+	connection = root.AncestryChanged:Connect(function()
+		if not root:IsDescendantOf(workspace) then
+			connection:Disconnect()
+			pushableRoots[root] = nil
+		end
+	end)
+end
+
+local function trackCharacter(character: Model)
+	task.spawn(function()
+		trackPushableRoot(character:WaitForChild("HumanoidRootPart", 10))
+	end)
+end
+
+local function trackPlayer(player: Player)
+	player.CharacterAdded:Connect(trackCharacter)
+	if player.Character then
+		trackCharacter(player.Character)
+	end
+end
+
+-- // Server: every player's character and every bot. Client: only its own character (the one it predicts; everyone else
+-- // is shown where the server has them)
+local function startTrackingPushables()
+	if not isServer then
+		trackPlayer(Players.LocalPlayer)
+		return
+	end
+	Players.PlayerAdded:Connect(trackPlayer)
+	for _, player in ipairs(Players:GetPlayers()) do
+		trackPlayer(player)
+	end
+
+	local function trackBotsFolder(folder: Instance)
+		folder.ChildAdded:Connect(function(bot)
+			if bot:IsA("Model") then
+				trackCharacter(bot)
+			end
+		end)
+		for _, bot in ipairs(folder:GetChildren()) do
+			if bot:IsA("Model") then
+				trackCharacter(bot)
+			end
+		end
+	end
+	local botsFolder = workspace:FindFirstChild(BOTS_FOLDER_NAME)
+	if botsFolder then
+		trackBotsFolder(botsFolder)
+	else
+		local connection
+		connection = workspace.ChildAdded:Connect(function(child)
+			if child.Name == BOTS_FOLDER_NAME and child:IsA("Folder") then
+				connection:Disconnect()
+				trackBotsFolder(child)
+			end
+		end)
+	end
 end
 
 -- // Client: a MovingPlatform part in the live arena map (it may stream in after the map loads)
@@ -371,6 +533,8 @@ function MovingPlatform.onObjectAdded(platform: Instance)
 end
 
 function MovingPlatform.init()
+	startTrackingPushables()
+
 	GameStateLibrary.getGameStateData().CurrentRoundData:Subscribe(function(currentRoundData)
 		if currentRoundData == nil then
 			reset()
