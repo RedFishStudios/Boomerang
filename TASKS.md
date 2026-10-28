@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-135** *(shared by every task list, general and Epic)*
+**Next free ID: T-136** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,20 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-135 · Players' torsos collide on the server too (moving platforms "popped" players back)
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Server (server authority)
+- **Files:** `Server/Core/CharacterService/init.luau`
+
+**Done when**
+- [ ] Standing in a moving platform's path, the player is pushed by it and stays pushed (no popping back to where they stood)
+- [ ] CharacterService keeps each character's Torso collidable on the server (every other part stays non-collidable, and CanTouch/CanQuery stay off), matching the player's own client, where the Humanoid switches the Torso's collision on
+
+**Notes**
+- From Sol, 2026-10-28. Found in Studio: the server set every character part CanCollide = false, but the player's client has the Torso collidable. So the server simulated the character as a ghost: the platform passed straight through it on the server while the client was pushed, and the server's correction popped the client back. Measured on the server with the platform at speed: Torso not collidable, pushed 0 studs and passed through; collidable, pushed and never passed through. A server-side teleport (as the earlier Studio tests used) makes the Humanoid switch it on, which is why those tests didn't show it.
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-135-server-torso-collision`.
 
 ### T-134 · Moving platforms driven by physics (body movers) instead of set CFrames
 - **Priority:** P1
