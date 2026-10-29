@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-146** *(shared by every task list, general and Epic)*
+**Next free ID: T-147** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -141,6 +141,25 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 
 ## Review
+
+### T-146 · MarketplaceLibrary rework: caching, gamepass ownership, receipt protection
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared (client + server) monetization
+- **Files:** `Shared/Library/MarketplaceLibrary.luau`, `Shared/Referential/MarketplaceItems.luau`, `Server/Core/ProductService/init.luau`, `Shared/Data/ProfileTemplate.luau`
+
+**Done when**
+- [ ] One shared wrapper for client and server with the same cache shapes; prices and prompts stay on the client (no server round trip)
+- [ ] Separate product / gamepass info caches; one web call per key at a time (others wait for its answer, no polling); failed lookups not retried for a few seconds
+- [ ] Gamepass ownership cached for the whole session, cleared on leave; every known gamepass looked up in parallel when the player's data loads (server: every player, client: itself)
+- [ ] GamepassOwnershipChangedTasks on purchase / gift / refresh; giftGamepass (server), refreshGamepassOwnership, getGamepassAccess; admins (CmdrAdmin) own every gamepass while ADMINS_OWN_ALL_GAMEPASSES is on
+- [ ] MarketplaceItems lists products and gamepasses with a Type
+- [ ] Developer product receipts are never granted twice (ProcessedReceipts in the profile, latest 50)
+
+**Notes**
+- From Sol, 2026-10-29. Fixed on the way: playerCanPurchaseItem passed a UserId to PolicyLibrary (expects a Player); PromptProductPurchaseFinished passes a UserId, not a Player, so waiting for a product prompt's answer always timed out.
+- Studio: no errors; 5 simultaneous price lookups made one call (0.28 s), the cached lookup was instant.
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-146-marketplace`.
 
 ### T-142 · Aim arrow lines up under the boomerang's path
 - **Priority:** P3

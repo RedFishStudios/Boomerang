@@ -58,6 +58,7 @@ export type Template = {
          Slots: { { Id: string, Progress: number, Claimed: boolean } },
       }
    },
+   ProcessedReceipts: { string }, -- T-146: PurchaseIds of the latest developer product receipts granted (ProductService), so one is never granted twice
    GiftedPasses: {
       number -- Gamepass id
    }
@@ -97,6 +98,7 @@ function ProfileTemplate.get()
       OwnedEmotes = {},
       EquippedEmote = "DefaultEmote",
       Quests = {},
+      ProcessedReceipts = {},
       GiftedPasses = {},
    }
 
