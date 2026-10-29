@@ -575,11 +575,7 @@ function CustomCameraController.start()
          end
       end
    end, false, Enum.KeyCode.C)
-   game:GetService("ContextActionService"):BindAction("ParryTest", function(actionName, inputState, inputObject)
-      if inputState == Enum.UserInputState.Begin then
-         CustomCameraController.parryEffect()
-      end
-   end, false, Enum.KeyCode.P)
+   -- // T-140: P used to test the parry camera shake here; it now only switches control schemes (ControlSchemeController)
 
    if not cameraShakeConnection then
       cameraShakeConnection = RunService:BindToRenderStep("CustomCameraParryShake", Enum.RenderPriority.Camera.Value + 1, updateCameraShake)
