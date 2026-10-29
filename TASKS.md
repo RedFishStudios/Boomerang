@@ -157,6 +157,7 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 - From Sol, 2026-10-29. BillboardGui on the rendered head: StudsOffsetWorldSpace just above the head + SizeOffset (0, 0.5) (bottom edge on that point in screen space); its stud size is recomputed every frame from the camera distance and FOV (SCREEN_HEIGHT_FRACTION of the screen).
 - Console had no recall button: added ButtonY (WeaponController.RECALL_GAMEPAD_KEY) alongside E (RECALL_KEY); the prompt shows the platform's own button image on console.
 - Studio: checked visually in both camera modes (above the head, readable); holding E hid it.
+- Follow-up (Sol): it bobbed with the walk animation, so it now hangs from the physics character's Hitbox (doesn't animate); the head's height above it is measured once per pop-in.
 - Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-149-recall-popup`.
 
 ### T-148 · Quests: "Use <pickup> N times"

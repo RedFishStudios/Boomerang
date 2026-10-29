@@ -6,9 +6,10 @@
 	pops up above their head, telling them to hold the recall key. It goes away (pop out) once they start recalling, when
 	the boomerang is back, or when they switch to touch (touch players have the Manual Recall button instead).
 
-	- A BillboardGui on the local player's rendered character: StudsOffsetWorldSpace puts its anchor just above the head,
-	  and SizeOffset (0, 0.5) raises the prompt by half its height in SCREEN space, so its bottom edge sits on that point
-	  and it reads as "above the head" from the top-down camera (looking down at the head) and the over-the-shoulder
+	- A BillboardGui on the local player's Hitbox (part of the physics character, so it doesn't bob with the walk
+	  animation like the rendered head does): StudsOffsetWorldSpace puts its anchor just above the head (the head's height
+	  over the hitbox is measured once each time it pops in), and SizeOffset (0, 0.5) raises the prompt by half its
+	  height in SCREEN space, so its bottom edge sits on that point and it reads as "above the head" from the top-down camera (looking down at the head) and the over-the-shoulder
 	  camera alike.
 	- Its size is in studs (Scale), recomputed every frame from the camera's distance and field of view, so it's the same
 	  size on screen in both camera modes (SCREEN_HEIGHT_FRACTION of the screen's height).
@@ -45,6 +46,7 @@ local TEXT_COLOR = Color3.fromRGB(255, 255, 255)
 local PROMPT_ASPECT_RATIO = 2.7 -- // Width / height
 local SCREEN_HEIGHT_FRACTION = 0.065 -- // The prompt's height as a fraction of the screen's height
 local HEAD_CLEARANCE = 0.6 -- // Studs between the top of the head and the prompt's bottom edge
+local DEFAULT_HEAD_TOP_ABOVE_ANCHOR = 2.3 -- // Head top over the hitbox's centre when the rendered head can't be measured
 
 -- // Pop in: from MIN_SCALE and invisible, overshoot to POP_IN_OVERSHOOT_SCALE while fading in fast, settle to 1
 local MIN_SCALE = 0.8
@@ -72,6 +74,7 @@ local keyImage: ImageLabel
 local isShown = false
 local animationToken = 0
 local shownScheme: string? = nil
+local headTopAboveAnchor = DEFAULT_HEAD_TOP_ABOVE_ANCHOR
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -185,21 +188,31 @@ local function updateKeyDisplay(scheme: string)
 	end
 end
 
--- // The part the prompt floats over (the rendered character's head, else its root), and the head's top above it
-local function getAnchor(): (BasePart?, number)
-	local character = CharacterRenderController.getCharacterModel(localPlayer, false) or localPlayer.Character
+-- // The part the prompt floats over: the physics character's Hitbox (else its root), which doesn't animate
+local function getAnchor(): BasePart?
+	local character = localPlayer.Character
 	if not character then
-		return nil, 0
+		return nil
 	end
-	local head = character:FindFirstChild("Head")
-	if head and head:IsA("BasePart") then
-		return head, head.Size.Y / 2
+	local hitbox = character:FindFirstChild("Hitbox")
+	if hitbox and hitbox:IsA("BasePart") then
+		return hitbox
 	end
 	local root = character:FindFirstChild("HumanoidRootPart")
-	if root and root:IsA("BasePart") then
-		return root, 2.5
+	return if root and root:IsA("BasePart") then root else nil
+end
+
+-- // How far the top of the (rendered) head is above the anchor; measured once per pop-in, so the walk bob doesn't move it
+local function measureHeadTop(anchor: BasePart): number
+	local rendered = CharacterRenderController.getCharacterModel(localPlayer, false)
+	local head = rendered and rendered:FindFirstChild("Head")
+	if head and head:IsA("BasePart") then
+		local above = head.Position.Y + head.Size.Y / 2 - anchor.Position.Y
+		if above > 0 and above < 10 then
+			return above
+		end
 	end
-	return nil, 0
+	return DEFAULT_HEAD_TOP_ABOVE_ANCHOR
 end
 
 local function shouldShow(scheme: string): boolean
@@ -256,7 +269,7 @@ end
 local function update()
 	local scheme = PlatformController.getDominantControlScheme()
 	local show = shouldShow(scheme)
-	local anchor, headTop = getAnchor()
+	local anchor = getAnchor()
 	if show and not anchor then
 		show = false
 	end
@@ -265,6 +278,7 @@ local function update()
 		isShown = show
 		if show then
 			updateKeyDisplay(scheme)
+			headTopAboveAnchor = measureHeadTop(anchor :: BasePart)
 			popIn()
 		else
 			popOut()
@@ -279,7 +293,7 @@ local function update()
 	if billboard.Adornee ~= anchor then
 		billboard.Adornee = anchor
 	end
-	billboard.StudsOffsetWorldSpace = Vector3.new(0, headTop + HEAD_CLEARANCE, 0)
+	billboard.StudsOffsetWorldSpace = Vector3.new(0, headTopAboveAnchor + HEAD_CLEARANCE, 0)
 
 	-- // Same size on screen at any camera distance (top-down is far away, over-the-shoulder is close)
 	local camera = workspace.CurrentCamera
