@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-140** *(shared by every task list, general and Epic)*
+**Next free ID: T-141** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,24 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-140 · Experimental PC control scheme, toggled with P (client test)
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client input
+- **Files:** `Client/Core/ControlSchemeController.luau` (new), `Client/Core/WeaponController.luau`, `Client/Core/AbilityController.luau`
+
+**Done when**
+- [ ] P switches every player between Classic and Experimental PC controls (not saved: each session starts on Classic), with a short "Classic controls" / "Experimental controls" message (HUD text style)
+- [ ] Experimental: WASD move, Space dash, right click Stab, hold left click to charge, release to throw; E recall as before
+- [ ] While charging (Experimental), the player stands still and WASD aims (8 directions, relative to the camera) instead of moving; movement is back once the boomerang is thrown, and keys still held keep moving
+- [ ] Standing still is done through input (a local input context with higher priority that sinks WASD/arrows), so the replicated MoveAction is zero on the server and in the client's prediction alike (no correction)
+- [ ] Switching scheme mid-aim drops the aim without a throw; touch and gamepad controls are unchanged
+
+**Notes**
+- From Sol (for the client), 2026-10-28. The charge uses the same aim/throw path as the touch thumbstick (WeaponController.beginThumbstickAim / setThumbstickAimDirection / releaseThumbstickAim); the aim starts the way the character faces; the mouse doesn't aim while charging.
+- Tested in Studio: P shows the message and fades; with the sink context on, held D gave no movement and the aim input read it; after switching it off, handing the held keys to the MoveAction resumed movement. Not tested: an actual left-click charge (Studio's test input sends mouse clicks as touches), so it needs Sol's hands-on check.
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-140-control-scheme`.
 
 ### T-139 · Touch: "Recall" label under the Manual Recall button
 - **Priority:** P3
