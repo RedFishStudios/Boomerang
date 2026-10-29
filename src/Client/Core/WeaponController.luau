@@ -23,6 +23,7 @@ local SkinLibrary = require(ReplicatedStorage.Shared.Library.SkinLibrary)
 local ChargeUpEffectLibrary = require(ReplicatedStorage.Shared.Library.ChargeUpEffectLibrary)
 local BoomerangTuningLibrary = require(ReplicatedStorage.Shared.Library.BoomerangTuningLibrary)
 local CharacterController = require(ReplicatedStorage.Client.Core.CharacterController)
+local ControlSchemeController = require(ReplicatedStorage.Client.Core.ControlSchemeController)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local AnimationController = require(ReplicatedStorage.Client.Core.AnimationController)
 local ToolController = require(ReplicatedStorage.Client.Core.ToolController)
@@ -768,6 +769,66 @@ function WeaponController.releaseThumbstickAim(lastAngle: number?): boolean
 end
 
 -------------------------------------------------------------------------------
+-- EXPERIMENTAL CHARGE (T-140, ControlSchemeController's Experimental scheme)
+--
+-- // Hold left click to charge, release to throw. It goes through the same aim/throw path as the touch thumbstick, with the
+-- // aim angle (0 = up/forward, negative = right, positive = left) starting as the way the character faces.
+-------------------------------------------------------------------------------
+
+-- // A world direction as a thumbstick aim angle (see CharacterController's getTouchAimLookVectorFromAngle)
+local function getAimAngleFromDirection(direction: Vector3): number?
+   local flat = Vector3.new(direction.X, 0, direction.Z)
+   if flat.Magnitude <= 1e-5 then
+      return nil
+   end
+   flat = flat.Unit
+   return math.atan2(-flat.X, -flat.Z)
+end
+
+local isExperimentalCharging = false
+local experimentalChargeAngle: number? = nil
+
+local function getFacingAimAngle(): number
+   local lastCFrame = CharacterController.LastCFrame
+   return (lastCFrame and getAimAngleFromDirection(lastCFrame.LookVector)) or 0
+end
+
+local function beginExperimentalCharge()
+   if isExperimentalCharging then
+      return
+   end
+   if not WeaponController.beginThumbstickAim() then
+      return
+   end
+   isExperimentalCharging = true
+   experimentalChargeAngle = getFacingAimAngle()
+   WeaponController.setThumbstickAimDirection(experimentalChargeAngle)
+end
+
+local function releaseExperimentalCharge()
+   if not isExperimentalCharging then
+      return
+   end
+   isExperimentalCharging = false
+   local angle = experimentalChargeAngle
+   experimentalChargeAngle = nil
+   WeaponController.releaseThumbstickAim(angle)
+end
+
+-- // Leaving the charge without a throw (the scheme was switched mid-charge)
+local function cancelExperimentalCharge()
+   if not isExperimentalCharging then
+      return
+   end
+   isExperimentalCharging = false
+   experimentalChargeAngle = nil
+   WeaponController.setThumbstickAimDirection(nil)
+   if isAiming then
+      setLocalAimState(false, true)
+   end
+end
+
+-------------------------------------------------------------------------------
 -- CORE FUNCTIONS
 -------------------------------------------------------------------------------
 
@@ -954,9 +1015,13 @@ function WeaponController.init()
 			return
 		end
 
-      if input.UserInputType == Enum.UserInputType.MouseButton2 then
+      -- // T-140: Classic aims with right click; Experimental charges with left click (ControlSchemeController)
+      if input.UserInputType == Enum.UserInputType.MouseButton2 and not ControlSchemeController.isExperimental() then
          beginEquippedToolAim()
 		end
+      if input.UserInputType == Enum.UserInputType.MouseButton1 and ControlSchemeController.isExperimental() then
+         beginExperimentalCharge()
+      end
 
       if input.KeyCode == Enum.KeyCode.E then
 			WeaponController.beginRecallInput()
@@ -970,12 +1035,24 @@ function WeaponController.init()
       if input.KeyCode == Enum.KeyCode.E then
          WeaponController.endRecallInput()
       end
+      -- // T-140: likewise the Experimental charge's release (so a charge can't get stuck)
+      if input.UserInputType == Enum.UserInputType.MouseButton1 then
+         releaseExperimentalCharge()
+      end
       if gameProcessed then
          return
       end 
 
-      if input.UserInputType == Enum.UserInputType.MouseButton2 then
+      if input.UserInputType == Enum.UserInputType.MouseButton2 and not ControlSchemeController.isExperimental() then
        throwEquippedTool(nil)
+      end
+   end)
+
+   -- // T-140: switching scheme mid-aim drops the aim (no throw), so no input is left held in the other scheme
+   ControlSchemeController.SchemeChanged:Add(function()
+      cancelExperimentalCharge()
+      if isAiming then
+         setLocalAimState(false, true)
       end
    end)
 
