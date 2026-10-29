@@ -51,6 +51,13 @@ export type Template = {
       [string]: boolean -- Emote id (Shared/Referential/Emotes) : true. The default emote is owned without an entry
    },
    EquippedEmote: string, -- Emote id the player's avatar performs on the winner pedestal
+   Quests: {
+      -- // T-143: quest pool name (Shared/Referential/Quests) : its current quests (QuestLibrary.PoolData). Written only by QuestService
+      [string]: {
+         PeriodKey: string, -- QuestLibrary.getPeriodKey of the period the quests were drawn in ("" = never resets)
+         Slots: { { Id: string, Progress: number, Claimed: boolean } },
+      }
+   },
    GiftedPasses: {
       number -- Gamepass id
    }
@@ -89,6 +96,7 @@ function ProfileTemplate.get()
       EquippedChargeUpEffect = "DefaultChargeUpEffect",
       OwnedEmotes = {},
       EquippedEmote = "DefaultEmote",
+      Quests = {},
       GiftedPasses = {},
    }
 
