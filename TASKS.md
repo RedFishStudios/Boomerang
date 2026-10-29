@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-139** *(shared by every task list, general and Epic)*
+**Next free ID: T-140** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,20 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-139 · Touch: "Recall" label under the Manual Recall button
+- **Priority:** P3
+- **Owner:** Agent
+- **Area:** Client UI (touch)
+- **Files:** `Client/UI/Gui/CustomTouchscreen/init.luau`
+
+**Done when**
+- [ ] The "Recall" text label under ThumbstickImage shows only while the thumbstick is the Manual Recall button (T-138), appearing (and popping) with the icon
+- [ ] Styled like the HUD's other text: Fredoka One (regular), white, dark brown (60, 35, 15) UIStroke outline; its size and position are kept as placed in Studio
+
+**Notes**
+- From Sol, 2026-10-28. The label was added in Studio (not in CustomTouchscreen.rbxmx), so the code uses it if it's there and otherwise makes one with the same size and position (Size {2, 0}, {0.3, 0}; Position {0.5, 0}, {0.8, 0}; AnchorPoint 0.5, 0).
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-139-recall-label`.
 
 ### T-138 · Touch: the aim thumbstick becomes the Manual Recall button while the boomerang is dead
 - **Priority:** P2

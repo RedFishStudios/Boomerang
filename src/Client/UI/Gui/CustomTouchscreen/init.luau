@@ -59,11 +59,47 @@ local POP_SCALE = 1.25 -- // How much bigger the knob pops out when it switches
 local POP_OUT_SECONDS = 0.08
 local POP_BACK_SECONDS = 0.18
 
+-- // The "Recall" label under the knob in recall mode, in the HUD's text style (MenuButtons: Fredoka One, white, dark brown outline)
+local RECALL_LABEL_NAME = "RecallLabel"
+local RECALL_LABEL_TEXT = "Recall"
+local RECALL_LABEL_FONT = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+local RECALL_LABEL_COLOR = Color3.fromRGB(255, 255, 255)
+local RECALL_LABEL_STROKE_COLOR = Color3.fromRGB(60, 35, 15)
+local RECALL_LABEL_STROKE_THICKNESS = 2
+
 local recallMode = false
 local recallInput: InputObject? = nil -- // The touch holding the recall (another finger lifting doesn't end it)
 local knobScale = Instance.new("UIScale")
 knobScale.Parent = aimThumbstick
 local popTween: Tween? = nil
+
+-- // The label under the knob (Sol's TextLabel under ThumbstickImage if it's there, else made here with the same layout)
+local function getRecallLabel(): TextLabel
+	local label = aimThumbstickImage:FindFirstChild(RECALL_LABEL_NAME) or aimThumbstickImage:FindFirstChildWhichIsA("TextLabel")
+	if not label then
+		label = Instance.new("TextLabel")
+		label.AnchorPoint = Vector2.new(0.5, 0)
+		label.Position = UDim2.fromScale(0.5, 0.8)
+		label.Size = UDim2.fromScale(2, 0.3)
+		label.Parent = aimThumbstickImage
+	end
+	label.Name = RECALL_LABEL_NAME
+	label.BackgroundTransparency = 1
+	label.Text = RECALL_LABEL_TEXT
+	label.FontFace = RECALL_LABEL_FONT
+	label.TextColor3 = RECALL_LABEL_COLOR
+	label.TextScaled = true
+	label.TextStrokeTransparency = 1 -- // The UIStroke below draws the outline
+	local stroke = label:FindFirstChildWhichIsA("UIStroke") or Instance.new("UIStroke")
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
+	stroke.Color = RECALL_LABEL_STROKE_COLOR
+	stroke.Thickness = RECALL_LABEL_STROKE_THICKNESS
+	stroke.LineJoinMode = Enum.LineJoinMode.Round
+	stroke.Parent = label
+	return label
+end
+local recallLabel = getRecallLabel()
+recallLabel.Visible = false
 
 local function toImage(assetId: number): string
 	return `rbxassetid://{assetId}`
@@ -218,6 +254,7 @@ local function setRecallMode(enabled: boolean)
 	end
 	aimThumbstick.Position = aimThumbstickDefaultPosition
 	aimThumbstickImage.Image = toImage(if enabled then Icons.ManualRecall else Icons.AimThumbstick)
+	recallLabel.Visible = enabled -- // Pops with the knob (it's inside it)
 	popKnob()
 end
 
