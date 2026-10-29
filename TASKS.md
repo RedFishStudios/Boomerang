@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-143** *(shared by every task list, general and Epic)*
+**Next free ID: T-146** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -82,20 +82,41 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## In Progress
 
-### T-142 · Aim arrow lines up under the boomerang's path
-- **Priority:** P3
+### T-143 · Quest system: 3 daily + 3 weekly quests, shared rewards
+- **Priority:** P2
 - **Owner:** Agent
-- **Area:** Client visuals (charge up effects)
-- **Files:** `Shared/Logics/ChargeUpEffects/ArrowEffect.luau`, `Shared/Library/ChargeUpEffectLibrary.luau`, `Client/Core/WeaponController.luau`
+- **Area:** Server + Shared (data, progress, rewards)
+- **Files:** `Shared/Referential/Quests.luau` (new), `Shared/Library/QuestLibrary.luau` (new), `Shared/Library/RewardLibrary.luau` (new), `Server/Core/QuestService.luau` (new), `Server/Core/RewardService.luau` (new), `Shared/Data/ProfileTemplate.luau`, `Server/Core/BotService.luau`, `Server/Logics/BotBehaviors/Decoy.luau`, `Server/Cmdr/Commands/ResetQuests*.luau` / `QuestProgress*.luau` (new)
 
 **Done when**
-- [ ] The aim arrow sits under the line the boomerang leaves along (the held boomerang's side of the character), not under the character's centre
-- [ ] Both arrow skins (GenericAimArrow, RedAimArrow) get it, through the shared ArrowEffect
-- [ ] Other players' arrows line up the same way; a stale tool position (too far from the character) falls back to the centre, like the throw does
+- [ ] Every player has 3 Daily quests (new ones at UTC midnight) and 3 Weekly quests (new ones Monday 00:00 UTC), drawn at random from each pool, preferring different objective types
+- [ ] Objectives: eliminations, round wins, rounds played, minutes played, throws, dashes / stabs, pickups (any or one kind); eliminations / wins / rounds can be limited to a gamemode
+- [ ] Eliminating another player or a bot counts as an elimination; popping a decoy doesn't
+- [ ] Throws, abilities and minutes only count while alive in the arena (no lobby farming)
+- [ ] A finished quest is claimed from the server (ClaimQuest); Daily pays 100, Weekly pays 500 Currency
+- [ ] Rewards go through the shared RewardService / RewardLibrary, which also supports skins (weapons), aim arrows, emotes and items, with currency for duplicates; daily/weekly quests only use Currency (cosmetics are for event quests)
+- [ ] Saved in the profile (`Quests`); progress replicates to the player
+- [ ] Cmdr: `resetquests <players> [pool]`, `questprogress <players> [amount]` (no amount = finish them)
 
 **Notes**
-- From Sol, 2026-10-29. The charge frame now carries ThrowOrigin (the held boomerang's position, the same point the throw is released from); ArrowEffect shifts the arrow sideways onto that line, eased so the charge animation doesn't make it jitter (THROW_LINE_FOLLOW_RATE).
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-142-aim-arrow-origin`.
+- From Sol, 2026-10-29: general tasks, not an Epic. Bot eliminations count, decoys don't. Rewards: Currency only for now.
+- A new pool (e.g. an event) = an entry in `Quests.Pools` (ResetPeriod "Never" for events) and its quests in `Quests.List`.
+- Unclaimed finished quests are lost when their pool resets.
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-143-quests`.
+
+### T-144 · Quests menu (placeholder look)
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client UI
+- **Files:** `Client/UI/Gui/Quests/init.luau` (new), `Client/Core/QuestController.luau` (new), `Client/UI/Gui/MenuButtons/init.luau`
+
+**Done when**
+- [ ] The Quests button in the left lobby menu opens and closes the Quests menu
+- [ ] One column per pool (Daily, Weekly) with a "New in ..." countdown and a card per quest: what to do, a progress bar with x / goal, the reward, and a Claim button (green when finished, "Claimed" after)
+- [ ] Updates live as progress replicates; claiming asks the server
+
+**Notes**
+- No quests art yet (Sol): it borrows the Stats menu's frame and exit button; everything else is plain frames. The layout is a first draft so Sol can decide the art.
 
 ### T-141 · Thrown boomerangs curve (stage 1: PC mouse aim)
 - **Priority:** P2
@@ -117,7 +138,23 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 - Stage 1 sends the mouse's floor point only for PC top-down aim; other aim modes (and bots) send none, and the server curves through a point at the throw's full range.
 - Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-141-boomerang-curve`.
 
+
 ## Review
+
+### T-142 · Aim arrow lines up under the boomerang's path
+- **Priority:** P3
+- **Owner:** Agent
+- **Area:** Client visuals (charge up effects)
+- **Files:** `Shared/Logics/ChargeUpEffects/ArrowEffect.luau`, `Shared/Library/ChargeUpEffectLibrary.luau`, `Client/Core/WeaponController.luau`
+
+**Done when**
+- [ ] The aim arrow sits under the line the boomerang leaves along (the held boomerang's side of the character), not under the character's centre
+- [ ] Both arrow skins (GenericAimArrow, RedAimArrow) get it, through the shared ArrowEffect
+- [ ] Other players' arrows line up the same way; a stale tool position (too far from the character) falls back to the centre, like the throw does
+
+**Notes**
+- From Sol, 2026-10-29. The charge frame now carries ThrowOrigin (the held boomerang's position, the same point the throw is released from); ArrowEffect shifts the arrow sideways onto that line, eased so the charge animation doesn't make it jitter (THROW_LINE_FOLLOW_RATE).
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-142-aim-arrow-origin`.
 
 ### T-139 · Touch: "Recall" label under the Manual Recall button
 - **Priority:** P3
@@ -400,6 +437,14 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 
 ## Backlog
+
+### T-145 · Quests: later options
+- **Priority:** P3
+- **Owner:** Sol → Agent
+- **Area:** Quests
+
+**Problem / goal**
+Approved by Sol (2026-10-29) for later: reroll a quest (e.g. once a day, or paid), a Robux skip, event quest pools with cosmetic/weapon rewards (the reward code already supports them), a "finished quest" notification / badge on the Quests button, and deciding whether Achievements share the quest system.
 
 ### T-132 · Crushed while immune: a "fake" death
 - **Priority:** P3

@@ -5,7 +5,7 @@
 		[      Currency      ]   <- as wide as two buttons: boomerang icon + balance; click = Currency shop (later)
 		[ Shop ] [ Daily ]
 		[ Skins] [ Stats]
-		[Quests] [Settings]   <- no gui behind them yet (clicking does nothing)
+		[Quests] [Settings]   <- Settings has no gui behind it yet (clicking does nothing)
 	Buttons sit in a 2-column grid; hidden buttons are skipped, so the grid closes up.
 	Only these buttons exist in the left bar. A later feature that needs one adds it to the BUTTONS table.
 
@@ -80,7 +80,7 @@ local BUTTONS = {
 	{ Id = "Daily", Text = "Daily", Icon = "rbxassetid://126765785652910", Color = Color3.fromRGB(205, 130, 255), Enabled = true },
 	{ Id = "Skins", Text = "Inventory", Icon = `rbxassetid://{Icons.InventoryButton}`, Color = Color3.fromRGB(110, 175, 255), Enabled = true }, -- // T-072
 	{ Id = "Stats", Text = "Stats", Icon = "rbxassetid://124985088272789", Color = Color3.fromRGB(100, 255, 225), Enabled = true }, -- // T-074
-	-- // T-087: no gui behind these yet; give one a click action with setButtonEnabled(id, true, callback)
+	-- // T-087: Settings has no gui behind it yet; give it a click action with setButtonEnabled(id, true, callback). Quests opens the Quests menu (T-143)
 	{ Id = "Quests", Text = "Quests", Icon = "rbxassetid://83981048085676", Color = Color3.fromRGB(255, 215, 90), Enabled = true },
 	{ Id = "Settings", Text = "Settings", Icon = "rbxassetid://118835487029221", Color = Color3.fromRGB(190, 200, 215), Enabled = true },
 }
@@ -344,6 +344,9 @@ function MenuButtonsGui.start()
 	end
 	buttonCallbacks.Stats = buttonCallbacks.Stats or function()
 		toggleGui("Stats")
+	end
+	buttonCallbacks.Quests = buttonCallbacks.Quests or function()
+		toggleGui("Quests") -- // T-143
 	end
 
 	currencyLabel.Text = formatNumber(EconomyController.getBalance())
