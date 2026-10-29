@@ -12,6 +12,8 @@
 	- Progress comes from the same server events the lifetime stats use (see Shared/Referential/Quests for what each
 	  objective type counts). Actions only count while the player is alive in the arena, so the lobby can't be farmed.
 	- Rewards are granted with RewardService (shared by everything that gives rewards).
+	- Reroll (T-147, "RerollQuest" remote function): swaps one unclaimed quest, in its place, for another from the same
+	  pool that the player doesn't have. FREE FOR NOW (testing): a developer product will pay for it later (REROLL_IS_FREE).
 ]]
 
 local QuestService = {}
@@ -38,6 +40,9 @@ local RewardService = require(ServerStorage.Server.Core.RewardService)
 
 local RESET_CHECK_INTERVAL = 30 -- // Seconds between checks for a pool reset (so quests refresh at midnight for players online)
 local MINUTES_TICK = 5 -- // Seconds between MinutesPlayed checks
+-- // T-147: rerolls cost nothing while this is on (testing). When the developer product exists, the reroll is granted
+-- // from its receipt instead (ProductService) and this goes off.
+local REROLL_IS_FREE = true
 local SECONDS_IN_MINUTE = 60
 
 -------------------------------------------------------------------------------
@@ -52,6 +57,7 @@ type ObjectiveMatcher = (objective: Quests.Objective) -> boolean
 -------------------------------------------------------------------------------
 
 local claimQuestFunction = SimpleRemotes.getFunction("ClaimQuest")
+local rerollQuestFunction = SimpleRemotes.getFunction("RerollQuest")
 
 local random = Random.new()
 local roundParticipants: { [Player]: true } = {} -- // Players in the server when the current round started
@@ -245,6 +251,49 @@ end
 -- PUBLIC FUNCTIONS (also used by the Cmdr commands in Server/Cmdr/Commands)
 -------------------------------------------------------------------------------
 
+-- // T-147: swaps one of the player's quests, in the same place, for another quest from that pool they don't have
+-- // (preferring a kind of objective their other quests in the pool don't use). Not for a quest whose reward was claimed.
+-- // Returns whether it was swapped.
+function QuestService.rerollQuest(player: Player, poolName: string, slotIndex: number): boolean
+	local data = refreshPools(player)
+	local poolData = data and data.Quests[poolName]
+	if not poolData then
+		return false
+	end
+	local rawSlots = (poolData.Slots :: any)() :: { QuestLibrary.QuestSlot }
+	local rawSlot = rawSlots[slotIndex]
+	if not rawSlot or not QuestLibrary.canReroll(rawSlot) then
+		return false
+	end
+
+	local heldIds: { [string]: true } = {}
+	local otherTypes: { [string]: true } = {}
+	for index, slot in rawSlots do
+		heldIds[slot.Id] = true
+		local quest = QuestLibrary.getQuest(slot.Id)
+		if quest and index ~= slotIndex then
+			otherTypes[quest.Objective.Type] = true
+		end
+	end
+	local candidates: { Quests.Quest } = {}
+	local freshCandidates: { Quests.Quest } = {}
+	for _, quest in QuestLibrary.getQuestsInPool(poolName) do
+		if not heldIds[quest.Id] then
+			table.insert(candidates, quest)
+			if not otherTypes[quest.Objective.Type] then
+				table.insert(freshCandidates, quest)
+			end
+		end
+	end
+	local pickFrom = if #freshCandidates > 0 then freshCandidates else candidates
+	if #pickFrom == 0 then
+		return false -- // The pool has no other quest to give
+	end
+	local quest = pickFrom[random:NextInteger(1, #pickFrom)]
+	poolData.Slots[slotIndex] = { Id = quest.Id, Progress = 0, Claimed = false } -- // Through the proxy, so it replicates
+	return true
+end
+
 -- // Draws new quests for the player now, in one pool or all of them. Returns false if their data isn't loaded.
 function QuestService.resetQuests(player: Player, poolName: string?): boolean
 	local data = PlayerDataService.get(player)
@@ -284,6 +333,18 @@ end
 
 function QuestService.init()
 	claimQuestFunction.OnServerInvoke = claimQuest
+	rerollQuestFunction.OnServerInvoke = function(player: Player, poolName: any, slotIndex: any): boolean
+		if type(poolName) ~= "string" or type(slotIndex) ~= "number" or claiming[player] then
+			return false
+		end
+		if not REROLL_IS_FREE then
+			return false -- // Paid rerolls are granted from the developer product's receipt, not this remote
+		end
+		claiming[player] = true -- // One claim or reroll at a time per player
+		local rerolled = QuestService.rerollQuest(player, poolName, slotIndex)
+		claiming[player] = nil
+		return rerolled
+	end
 
 	PlayerDataService.ProfileAddedTasks:Add(function(player: Player)
 		refreshPools(player)

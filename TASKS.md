@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-147** *(shared by every task list, general and Epic)*
+**Next free ID: T-148** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -141,6 +141,21 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 
 ## Review
+
+### T-147 · Quests: reward becomes the claim button, Reroll button
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Quests (client UI + server)
+- **Files:** `Client/UI/Gui/Quests/init.luau`, `Client/Core/QuestController.luau`, `Server/Core/QuestService.luau`, `Shared/Library/QuestLibrary.luau`, `Shared/Constants/Icons.luau`
+
+**Done when**
+- [ ] No separate Claim button: the reward (coin + amount) is a plain label until the quest is finished, then becomes a green button that claims it
+- [ ] A blue Reroll button (Icons.QuestReroll, 90107008743164) on the right of each unclaimed quest swaps that exact quest for another from the same pool, in the same place (the order of the others is kept)
+- [ ] The server picks the new quest (one the player doesn't have, preferring a different kind); claimed quests can't be rerolled
+- [ ] Free for now (QuestService REROLL_IS_FREE) so it can be tested; a developer product will pay for it later
+
+**Notes**
+- From Sol, 2026-10-29. Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-147-quest-reroll`.
 
 ### T-146 · MarketplaceLibrary rework: caching, gamepass ownership, receipt protection
 - **Priority:** P2

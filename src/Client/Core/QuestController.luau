@@ -20,6 +20,7 @@ local PlayerDataController = require(ReplicatedStorage.Client.Core.PlayerDataCon
 -------------------------------------------------------------------------------
 
 local claimQuestFunction = SimpleRemotes.getFunction("ClaimQuest")
+local rerollQuestFunction = SimpleRemotes.getFunction("RerollQuest")
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -55,6 +56,11 @@ end
 --- Asks the server for a finished quest's reward. Yields; returns whether it was granted.
 function QuestController.claim(poolName: string, slotIndex: number): boolean
 	return claimQuestFunction:InvokeServer(poolName, slotIndex) == true
+end
+
+--- T-147: asks the server to swap this quest (in place) for another. Free for now. Yields; returns whether it was swapped.
+function QuestController.reroll(poolName: string, slotIndex: number): boolean
+	return rerollQuestFunction:InvokeServer(poolName, slotIndex) == true
 end
 
 -------------------------------------------------------------------------------

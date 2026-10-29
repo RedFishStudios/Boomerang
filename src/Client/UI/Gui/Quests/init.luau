@@ -4,7 +4,8 @@
 	Description:
 	The Quests menu, opened from the Quests button in the left lobby menu (MenuButtons). A vertical scrolling list: each
 	quest pool in order (Daily, then Weekly) gets a header with its name and reset countdown, then one full-width card
-	per quest: what to do, a progress bar, the reward and a Claim button.
+	per quest: what to do, a progress bar, the reward and a Reroll button. The reward itself becomes a green button
+	once the quest is finished: clicking it claims the reward. Reroll swaps that quest (in its place) for a new one.
 	PLACEHOLDER LOOK: there's no quests art yet, so it borrows the Stats menu's frame and exit button and draws
 	everything else as plain frames. The layout is a first draft to decide the real art from.
 	Built entirely in code with CreateElement. Reads the replicated profile through QuestController; claiming asks the
@@ -43,7 +44,8 @@ local CARD_DONE_COLOR = Color3.fromRGB(215, 240, 190)
 local BAR_BACK_COLOR = Color3.fromRGB(200, 170, 130)
 local BAR_FILL_COLOR = Color3.fromRGB(110, 200, 90)
 local CLAIM_COLOR = Color3.fromRGB(90, 190, 70)
-local DISABLED_COLOR = Color3.fromRGB(170, 160, 150)
+local REROLL_COLOR = Color3.fromRGB(70, 140, 235)
+local CLAIMED_TEXT_TRANSPARENCY = 0.4
 local FONT = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
 local CONTAINER_IMAGE = "rbxassetid://107079429198573" -- // Borrowed from the Stats menu (placeholder)
 local EXIT_IMAGE = "rbxassetid://83841981001141"
@@ -70,9 +72,10 @@ type Card = {
 	Description: TextLabel,
 	Fill: Frame,
 	ProgressText: TextLabel,
+	Reward: TextButton, -- // The reward; a green button while it can be claimed
 	RewardText: TextLabel,
 	RewardIcon: ImageLabel,
-	Claim: TextButton,
+	Reroll: ImageButton,
 }
 
 type Section = {
@@ -96,7 +99,7 @@ local containerGoalPosition: UDim2
 local containerOffscreenPosition: UDim2
 local activeTween: Tween?
 local refreshQueued = false
-local claimingSlot: string? = nil -- // "<pool>/<index>" while its claim request is out
+local busySlot: string? = nil -- // "<pool>/<index>" while its claim or reroll request is out
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -128,30 +131,38 @@ local function formatTimeLeft(seconds: number): string
 	return `{math.floor(seconds / SECONDS_IN_MINUTE)}m {seconds % SECONDS_IN_MINUTE}s`
 end
 
-local function onClaimClicked(poolName: string, slotIndex: number)
-	local key = `{poolName}/{slotIndex}`
-	if claimingSlot then
+-- // Sends a claim or reroll request for one quest (one request at a time), then redraws
+local function requestForSlot(poolName: string, slotIndex: number, canRequest: (slot: QuestLibrary.QuestSlot) -> boolean, request: (poolName: string, slotIndex: number) -> boolean)
+	if busySlot then
 		return
 	end
 	local poolData = QuestController.getPoolData(poolName)
 	local slot = poolData and poolData.Slots[slotIndex]
-	if not slot or not QuestLibrary.isClaimable(slot) then
+	if not slot or not canRequest(slot) then
 		return
 	end
-	claimingSlot = key
+	busySlot = `{poolName}/{slotIndex}`
+	QuestsGui.refresh()
 	task.spawn(function()
-		QuestController.claim(poolName, slotIndex)
-		claimingSlot = nil
+		request(poolName, slotIndex)
+		busySlot = nil
 		QuestsGui.refresh()
 	end)
-	QuestsGui.refresh()
+end
+
+local function onRewardClicked(poolName: string, slotIndex: number)
+	requestForSlot(poolName, slotIndex, QuestLibrary.isClaimable, QuestController.claim)
+end
+
+local function onRerollClicked(poolName: string, slotIndex: number)
+	requestForSlot(poolName, slotIndex, QuestLibrary.canReroll, QuestController.reroll)
 end
 
 local function createCard(poolName: string, slotIndex: number): Card
 	local description = createLabel({
 		Name = "Description",
 		Position = UDim2.fromScale(0.03, 0.1),
-		Size = UDim2.fromScale(0.55, 0.4),
+		Size = UDim2.fromScale(0.6, 0.4),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Text = "",
 	})
@@ -176,7 +187,7 @@ local function createCard(poolName: string, slotIndex: number): Card
 	local bar = CreateElement("Frame", {
 		Name = "ProgressBar",
 		Position = UDim2.fromScale(0.03, 0.58),
-		Size = UDim2.fromScale(0.55, 0.3),
+		Size = UDim2.fromScale(0.6, 0.3),
 		BackgroundColor3 = BAR_BACK_COLOR,
 		BorderSizePixel = 0,
 	}, {
@@ -188,8 +199,8 @@ local function createCard(poolName: string, slotIndex: number): Card
 	local rewardIcon = CreateElement("ImageLabel", {
 		Name = "RewardIcon",
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.fromScale(0.61, 0.5),
-		Size = UDim2.fromScale(0.06, 0.45),
+		Position = UDim2.fromScale(0.08, 0.5),
+		Size = UDim2.fromScale(0.3, 0.75),
 		BackgroundTransparency = 1,
 		Image = `rbxassetid://{Icons.CurrencyIcon}`,
 		ScaleType = Enum.ScaleType.Fit,
@@ -198,31 +209,56 @@ local function createCard(poolName: string, slotIndex: number): Card
 	local rewardText = createLabel({
 		Name = "RewardText",
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.fromScale(0.675, 0.5),
-		Size = UDim2.fromScale(0.13, 0.42),
+		Position = UDim2.fromScale(0.4, 0.5),
+		Size = UDim2.fromScale(0.55, 0.7),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Text = "",
 	})
 
-	local claim = CreateElement("TextButton", {
-		Name = "Claim",
+	-- // The reward: a plain label until the quest is finished, then a green button that claims it
+	local reward = CreateElement("TextButton", {
+		Name = "Reward",
 		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.fromScale(0.97, 0.5),
-		Size = UDim2.fromScale(0.17, 0.6),
-		BackgroundColor3 = DISABLED_COLOR,
+		Position = UDim2.fromScale(0.855, 0.5),
+		Size = UDim2.fromScale(0.2, 0.62),
+		BackgroundColor3 = CLAIM_COLOR,
+		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
-		AutoButtonColor = true,
-		FontFace = FONT,
-		TextScaled = true,
-		TextColor3 = Color3.new(1, 1, 1),
-		Text = "Claim",
+		AutoButtonColor = false,
+		Text = "",
 		MouseButton1Click = function()
-			onClaimClicked(poolName, slotIndex)
+			onRewardClicked(poolName, slotIndex)
 		end,
 	}, {
 		CreateElement("UICorner", { CornerRadius = UDim.new(0.3, 0) }),
+		CreateElement("UIStroke", { Name = "Stroke", Color = TEXT_COLOR, Thickness = 1.5, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Enabled = false }),
+		rewardIcon,
+		rewardText,
+	})
+
+	local reroll = CreateElement("ImageButton", {
+		Name = "Reroll",
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.fromScale(0.975, 0.5),
+		Size = UDim2.fromScale(0.1, 0.62),
+		BackgroundColor3 = REROLL_COLOR,
+		BorderSizePixel = 0,
+		AutoButtonColor = true,
+		Image = `rbxassetid://{Icons.QuestReroll}`,
+		ScaleType = Enum.ScaleType.Fit,
+		MouseButton1Click = function()
+			onRerollClicked(poolName, slotIndex)
+		end,
+	}, {
+		CreateElement("UIAspectRatioConstraint", {}),
+		CreateElement("UICorner", { CornerRadius = UDim.new(0.3, 0) }),
 		CreateElement("UIStroke", { Color = TEXT_COLOR, Thickness = 1.5, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }),
-		CreateElement("UIPadding", { PaddingTop = UDim.new(0.12, 0), PaddingBottom = UDim.new(0.12, 0) }),
+		CreateElement("UIPadding", {
+			PaddingTop = UDim.new(0.15, 0),
+			PaddingBottom = UDim.new(0.15, 0),
+			PaddingLeft = UDim.new(0.15, 0),
+			PaddingRight = UDim.new(0.15, 0),
+		}),
 	})
 
 	local frame = CreateElement("Frame", {
@@ -235,9 +271,8 @@ local function createCard(poolName: string, slotIndex: number): Card
 		CreateElement("UIStroke", { Color = TEXT_COLOR, Thickness = 2 }),
 		description,
 		bar,
-		rewardIcon,
-		rewardText,
-		claim,
+		reward,
+		reroll,
 	})
 
 	return {
@@ -245,9 +280,10 @@ local function createCard(poolName: string, slotIndex: number): Card
 		Description = description,
 		Fill = fill,
 		ProgressText = progressText,
+		Reward = reward,
 		RewardText = rewardText,
 		RewardIcon = rewardIcon,
-		Claim = claim,
+		Reroll = reroll,
 	}
 end
 
@@ -390,27 +426,28 @@ local function updateCard(card: Card, poolName: string, slotIndex: number, slot:
 	card.ProgressText.Text = `{progress} / {goal}`
 
 	local reward = QuestLibrary.getReward(quest)
-	card.RewardText.Text = RewardLibrary.getText(reward)
-	card.RewardIcon.Visible = reward.Type == "Currency"
-
 	local isComplete = progress >= goal
+	local isBusy = busySlot == `{poolName}/{slotIndex}`
+	local canClaim = QuestLibrary.isClaimable(slot)
 	card.Frame.BackgroundColor3 = if isComplete then CARD_DONE_COLOR else CARD_COLOR
-	if slot.Claimed then
-		card.Claim.Text = "Claimed"
-		card.Claim.BackgroundColor3 = DISABLED_COLOR
-		card.Claim.Active = false
-		card.Claim.AutoButtonColor = false
-	elseif isComplete then
-		card.Claim.Text = if claimingSlot == `{poolName}/{slotIndex}` then "..." else "Claim"
-		card.Claim.BackgroundColor3 = CLAIM_COLOR
-		card.Claim.Active = true
-		card.Claim.AutoButtonColor = true
-	else
-		card.Claim.Text = "Claim"
-		card.Claim.BackgroundColor3 = DISABLED_COLOR
-		card.Claim.Active = false
-		card.Claim.AutoButtonColor = false
+
+	-- // Reward: green button only while it can be claimed
+	card.Reward.Active = canClaim and not isBusy
+	card.Reward.BackgroundTransparency = if canClaim then 0 else 1
+	card.Reward.AutoButtonColor = canClaim
+	local stroke = card.Reward:FindFirstChild("Stroke")
+	if stroke then
+		(stroke :: UIStroke).Enabled = canClaim
 	end
+	card.RewardIcon.Visible = reward.Type == "Currency" and not slot.Claimed
+	card.RewardText.Text = if slot.Claimed then "Claimed" elseif isBusy and canClaim then "..." else RewardLibrary.getText(reward)
+	card.RewardText.TextColor3 = if canClaim then Color3.new(1, 1, 1) else TEXT_COLOR
+	card.RewardText.TextTransparency = if slot.Claimed then CLAIMED_TEXT_TRANSPARENCY else 0
+
+	-- // Reroll: not for a quest whose reward was already claimed
+	card.Reroll.Visible = QuestLibrary.canReroll(slot)
+	card.Reroll.Active = not isBusy
+	card.Reroll.ImageTransparency = if isBusy then 0.5 else 0
 end
 
 local function updateTimers()

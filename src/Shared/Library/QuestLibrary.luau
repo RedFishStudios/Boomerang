@@ -151,6 +151,11 @@ function QuestLibrary.isClaimable(slot: QuestSlot): boolean
 	return not slot.Claimed and QuestLibrary.isComplete(slot)
 end
 
+-- // Whether a quest can be swapped for another (T-147): any quest whose reward hasn't been claimed yet
+function QuestLibrary.canReroll(slot: QuestSlot): boolean
+	return not slot.Claimed
+end
+
 -- // Which period a time falls in, for a reset period: quests drawn in another period are replaced.
 -- // Day: "D20390" (days since 1970-01-01 UTC). Week: "W2913" (Monday-to-Sunday weeks, UTC). Never: "".
 function QuestLibrary.getPeriodKey(resetPeriod: Quests.ResetPeriod, now: number?): string

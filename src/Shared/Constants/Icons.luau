@@ -21,6 +21,7 @@ return {
 
    -- Currency
    CurrencyIcon = 110596837298294, -- // The coin: shown for currency amounts (Shop buttons, Daily Rewards)
+   QuestReroll = 90107008743164, -- // T-147: the Reroll button on each quest in the Quests menu
    RobuxIcon = 108754684100527, -- // The Robux hexagon (Shop Robux price buttons)
 
    -- Shop
