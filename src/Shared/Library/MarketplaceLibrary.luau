@@ -16,6 +16,11 @@
 	  A failed lookup isn't retried for FAILED_LOOKUP_RETRY_SECONDS.
 	- Gamepass ownership: GamepassAccessCache[userId][gamepassId], kept for the whole session (a purchase in this game
 	  updates it at once; gifts come from the profile's GiftedPasses). Cleared when the player leaves.
+	  Every gamepass in MarketplaceItems is looked up once, in parallel, when the player's data loads: the server for
+	  every player, the client for the local player. After that, checks are answered from the cache without yielding.
+	  GamepassOwnershipChangedTasks fires when a player gets a gamepass mid-session (purchase, gift, refresh).
+	- Admins (the "CmdrAdmin" player attribute, set by CmdrService) count as owning every gamepass while
+	  ADMINS_OWN_ALL_GAMEPASSES is on (GamepassAccess.Privileged), for testing.
 ]]
 
 local MarketplaceService = game:GetService("MarketplaceService")
@@ -37,6 +42,8 @@ local MarketplaceLibrary = {}
 local INFO_CACHE_SECONDS = 600 -- // Product / gamepass info (name, price, icon) is kept this long
 local FAILED_LOOKUP_RETRY_SECONDS = 10 -- // After a failed web call, the same lookup answers "unknown" this long instead of calling again
 local PROMPT_ANSWER_TIMEOUT = 60 -- // promptX(..., yieldForAnswer): seconds to wait for the player to finish the prompt
+local ADMINS_OWN_ALL_GAMEPASSES = true -- // Admins (CmdrAdmin attribute) count as owning every gamepass (testing)
+local ADMIN_ATTRIBUTE = "CmdrAdmin" -- // Set on the player by CmdrService (replicated, so both sides see it)
 
 local isServer = RunService:IsServer()
 
@@ -97,6 +104,9 @@ local promptWaiters: { [string]: { thread } } = {}
 
 MarketplaceLibrary.ProductPurchasePromptFinishedTasks = TasksList.new() :: TasksList.TasksList<(player: Player, productId: number, wasPurchased: boolean) -> ()>
 MarketplaceLibrary.GamepassPurchasePromptFinishedTasks = TasksList.new() :: TasksList.TasksList<(player: Player, gamepassId: number, wasPurchased: boolean) -> ()>
+-- // A player got a gamepass during the session (purchase, gift or refresh). Server: any player. Client: the local player.
+-- // access is the GamepassAccess value (Owns / Gifted). Use it to switch a gamepass's benefit on without polling.
+MarketplaceLibrary.GamepassOwnershipChangedTasks = TasksList.new() :: TasksList.TasksList<(player: Player, gamepassId: number, access: number) -> ()>
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -186,16 +196,32 @@ local function getPlayerProfileData(player: Player)
 	return PlayerDataController.get()
 end
 
-local function setCachedGamepassAccess(userId: number, gamepassId: number, access: number)
+-- // Caches a player's access to a gamepass. announce: fire GamepassOwnershipChangedTasks if they didn't have it before
+-- // (a gain during the session; the first lookup when they join isn't announced).
+local function setCachedGamepassAccess(userId: number, gamepassId: number, access: number, announce: boolean?)
 	local userCache = GamepassAccessCache[userId]
 	if not userCache then
 		userCache = {}
 		GamepassAccessCache[userId] = userCache
 	end
+	local previous = userCache[gamepassId]
 	userCache[gamepassId] = access
+	if announce and access ~= GamepassAccess.NoAccess and (previous == nil or previous == GamepassAccess.NoAccess) then
+		local player = Players:GetPlayerByUserId(userId)
+		if player then
+			MarketplaceLibrary.GamepassOwnershipChangedTasks:Execute("parallel", player, gamepassId, access)
+		end
+	end
+end
+
+local function isPrivileged(player: Player): boolean
+	return ADMINS_OWN_ALL_GAMEPASSES and player:GetAttribute(ADMIN_ATTRIBUTE) == true
 end
 
 local function getGamepassAccess(player: Player, gamepassId: number): number
+	if isPrivileged(player) then
+		return GamepassAccess.Privileged
+	end
 	local userId = player.UserId
 	local userCache = GamepassAccessCache[userId]
 	local cached = userCache and userCache[gamepassId]
@@ -375,9 +401,93 @@ function MarketplaceLibrary.playerOwnsGamepass(player: Player, gamepass: string 
 	return getGamepassAccess(player, gamepassId) ~= GamepassAccess.NoAccess
 end
 
+-- // MAY YIELD (first check only). The player's GamepassAccess value for a gamepass (NoAccess / Owns / Gifted / Privileged).
+function MarketplaceLibrary.getGamepassAccess(player: Player, gamepass: string | number): number
+	local gamepassId = resolveId(gamepass, "Gamepass")
+	if not gamepassId then
+		return GamepassAccess.NoAccess
+	end
+	return getGamepassAccess(player, gamepassId)
+end
+
+-- // SERVER. Gives the player a gamepass as a gift: saved in their profile (GiftedPasses, which also tells their client)
+-- // and counted as owned at once. Returns false if their data isn't loaded or the gamepass is unknown.
+function MarketplaceLibrary.giftGamepass(player: Player, gamepass: string | number): boolean
+	assert(isServer, "MarketplaceLibrary.giftGamepass is server only")
+	local gamepassId = resolveId(gamepass, "Gamepass")
+	if not gamepassId then
+		return false
+	end
+	local PlayerDataService = require(game:GetService("ServerStorage").Server.Core.PlayerDataService)
+	local data = PlayerDataService.get(player)
+	if not data then
+		return false
+	end
+	local giftedPasses = (data.GiftedPasses :: any)() :: { number }
+	if not table.find(giftedPasses, gamepassId) then
+		data.GiftedPasses[#giftedPasses + 1] = gamepassId -- // Through the proxy, so it replicates
+	end
+	local userCache = GamepassAccessCache[player.UserId]
+	if not (userCache and userCache[gamepassId] == GamepassAccess.Owns) then
+		setCachedGamepassAccess(player.UserId, gamepassId, GamepassAccess.Gifted, true)
+	end
+	return true
+end
+
+-- // MAY YIELD. Forgets the cached ownership and asks Roblox again (e.g. a purchase made on the website during the
+-- // session). One gamepass, or all of MarketplaceItems' gamepasses. A newly owned one fires GamepassOwnershipChangedTasks.
+function MarketplaceLibrary.refreshGamepassOwnership(player: Player, gamepass: (string | number)?)
+	local gamepassIds: { number } = {}
+	if gamepass ~= nil then
+		local gamepassId = resolveId(gamepass, "Gamepass")
+		if gamepassId then
+			table.insert(gamepassIds, gamepassId)
+		end
+	else
+		for gamepassId in MarketplaceItems.GamepassesById do
+			table.insert(gamepassIds, gamepassId)
+		end
+	end
+	local userCache = GamepassAccessCache[player.UserId]
+	for _, gamepassId in gamepassIds do
+		local previous = userCache and userCache[gamepassId]
+		if userCache then
+			userCache[gamepassId] = nil
+		end
+		local access = getGamepassAccess(player, gamepassId)
+		local gained = access ~= GamepassAccess.NoAccess and access ~= GamepassAccess.Privileged
+			and (previous == nil or previous == GamepassAccess.NoAccess)
+		if gained then
+			MarketplaceLibrary.GamepassOwnershipChangedTasks:Execute("parallel", player, gamepassId, access)
+		end
+	end
+end
+
 -------------------------------------------------------------------------------
 -- CORE FUNCTIONS
 -------------------------------------------------------------------------------
+
+-- // Looks up every known gamepass for the player at once (in parallel), so later checks don't yield
+local function prefetchGamepasses(player: Player)
+	for gamepassId in MarketplaceItems.GamepassesById do
+		task.spawn(getGamepassAccess, player, gamepassId)
+	end
+end
+
+-- // Client: gifts arrive through the replicated profile (GiftedPasses); count them as owned and announce them
+local function watchLocalGifts()
+	local PlayerDataController = require(ReplicatedStorage.Client.Core.PlayerDataController)
+	local localPlayer = Players.LocalPlayer
+	PlayerDataController.UpdatedTasks:Add(function(_index, value, path)
+		if path[1] ~= "GiftedPasses" or typeof(value) ~= "number" then
+			return
+		end
+		local userCache = GamepassAccessCache[localPlayer.UserId]
+		if not (userCache and userCache[value] == GamepassAccess.Owns) then
+			setCachedGamepassAccess(localPlayer.UserId, value, GamepassAccess.Gifted, true)
+		end
+	end)
+end
 
 function MarketplaceLibrary.init()
 	Players.PlayerRemoving:Connect(function(player: Player)
@@ -395,11 +505,23 @@ function MarketplaceLibrary.init()
 
 	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player: Player, gamepassId: number, wasPurchased: boolean)
 		if wasPurchased then
-			setCachedGamepassAccess(player.UserId, gamepassId, GamepassAccess.Owns)
+			setCachedGamepassAccess(player.UserId, gamepassId, GamepassAccess.Owns, true)
 		end
 		answerPromptWaiters("Gamepass", player.UserId, gamepassId, wasPurchased)
 		MarketplaceLibrary.GamepassPurchasePromptFinishedTasks:Execute("parallel", player, gamepassId, wasPurchased)
 	end)
+
+	-- // Look up every gamepass once the player's data has loaded (so gifts are checked too)
+	if isServer then
+		local PlayerDataService = require(game:GetService("ServerStorage").Server.Core.PlayerDataService)
+		PlayerDataService.ProfileAddedTasks:Add(prefetchGamepasses)
+	else
+		local PlayerDataController = require(ReplicatedStorage.Client.Core.PlayerDataController)
+		PlayerDataController.getAsync(function()
+			prefetchGamepasses(Players.LocalPlayer)
+		end)
+		watchLocalGifts()
+	end
 end
 
 return MarketplaceLibrary
