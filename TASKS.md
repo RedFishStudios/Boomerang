@@ -84,24 +84,6 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
-### T-140 · Experimental PC control scheme, toggled with P (client test)
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Client input
-- **Files:** `Client/Core/ControlSchemeController.luau` (new), `Shared/Library/ChargeHoldLibrary.luau` (new), `Client/Core/WeaponController.luau`, `Client/Core/AbilityController.luau`
-
-**Done when**
-- [ ] P switches every player between Classic and Experimental PC controls (not saved: each session starts on Classic), with a short "Classic controls" / "Experimental controls" message (HUD text style)
-- [ ] Experimental: WASD move, Space dash, right click Stab, hold left click to charge, release to throw; E recall as before
-- [ ] While charging (Experimental), the player stands still and WASD aims (8 directions, relative to the camera) instead of moving; movement is back once the boomerang is thrown, and keys still held keep moving
-- [ ] Standing still is done through a replicated input (ChargeHoldLibrary: a server-made ChargeHoldAction the client holds while charging), and the move input is cancelled inside the simulation step on the server and in the client's prediction alike, so both hold the player still and release them on the same frame
-- [ ] Switching scheme mid-aim drops the aim without a throw; touch and gamepad controls are unchanged
-
-**Notes**
-- From Sol (for the client), 2026-10-28. The charge uses the same aim/throw path as the touch thumbstick (WeaponController.beginThumbstickAim / setThumbstickAimDirection / releaseThumbstickAim); the aim starts the way the character faces; the mouse doesn't aim while charging.
-- Tested in Studio: P shows the message and fades. Hold: with ChargeHoldAction held and D down, server and client both stayed put (0 studs in 1 s); let go with D still down, both moved again at once. The first version (a local input context that sank WASD) kept the server from ever seeing movement again: a client-made context breaks the replicated input, and keys it sank weren't re-sent afterwards. Not tested: an actual left-click charge (Studio's test input sends mouse clicks as touches).
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-140-control-scheme`.
-
 ### T-139 · Touch: "Recall" label under the Manual Recall button
 - **Priority:** P3
 - **Owner:** Agent
@@ -655,6 +637,25 @@ Players enter a code to receive a reward. Server: validates the code (case-insen
 ---
 
 ## Done
+
+### T-140 · Experimental PC control scheme, toggled with P (client test)
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client input
+- **Files:** `Client/Core/ControlSchemeController.luau` (new), `Shared/Library/ChargeHoldLibrary.luau` (new), `Client/Core/WeaponController.luau`, `Client/Core/AbilityController.luau`
+
+**Done when**
+- [ ] P switches every player between Classic and Experimental PC controls (not saved: each session starts on Classic), with a short "Classic controls" / "Experimental controls" message (HUD text style)
+- [ ] Experimental: WASD move, Space dash, right click Stab, hold left click to charge, release to throw; E recall as before
+- [ ] While charging (Experimental), the player stands still and WASD aims (8 directions, relative to the camera) instead of moving; movement is back once the boomerang is thrown, and keys still held keep moving
+- [ ] Standing still is done through a replicated input (ChargeHoldLibrary: a server-made ChargeHoldAction the client holds while charging), and the move input is cancelled inside the simulation step on the server and in the client's prediction alike, so both hold the player still and release them on the same frame
+- [ ] Switching scheme mid-aim drops the aim without a throw; touch and gamepad controls are unchanged
+
+**Notes**
+- From Sol (for the client), 2026-10-28. The charge uses the same aim/throw path as the touch thumbstick (WeaponController.beginThumbstickAim / setThumbstickAimDirection / releaseThumbstickAim); the aim starts the way the character faces; the mouse doesn't aim while charging.
+- Tested in Studio: P shows the message and fades. Hold: with ChargeHoldAction held and D down, server and client both stayed put (0 studs in 1 s); let go with D still down, both moved again at once. The first version (a local input context that sank WASD) kept the server from ever seeing movement again: a client-made context breaks the replicated input, and keys it sank weren't re-sent afterwards. Not tested: an actual left-click charge (Studio's test input sends mouse clicks as touches).
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-140-control-scheme`.
+- Removed 2026-10-29: the client confirmed the default (Classic) controls are preferred, so the Experimental scheme, its P toggle and ChargeHoldLibrary were taken out. (P no longer plays the parry camera-shake test either.)
 
 ### T-137 · Dash predicted on the client (no more glitchy jump when dashing)
 - **Priority:** P1

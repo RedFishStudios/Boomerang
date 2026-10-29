@@ -8,7 +8,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local SharedTasks = require(ReplicatedStorage.Shared.Constants.SharedTasks)
 local LobbyController = require(ReplicatedStorage.Client.Core.LobbyController)
-local ControlSchemeController = require(ReplicatedStorage.Client.Core.ControlSchemeController)
 
 local localPlayer = Players.LocalPlayer
 
@@ -121,9 +120,7 @@ function AbilityController.init()
          AbilityController.useMovementInput()
 		end
 
-      -- // T-140: Stab is left click in the Classic scheme, right click in the Experimental one (ControlSchemeController)
-      local stabButton = if ControlSchemeController.isExperimental() then Enum.UserInputType.MouseButton2 else Enum.UserInputType.MouseButton1
-      if input.UserInputType == stabButton then
+      if input.UserInputType == Enum.UserInputType.MouseButton1 then
          AbilityController.activate("Stab")
       end
 	end)

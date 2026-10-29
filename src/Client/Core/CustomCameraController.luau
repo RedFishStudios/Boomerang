@@ -575,7 +575,6 @@ function CustomCameraController.start()
          end
       end
    end, false, Enum.KeyCode.C)
-   -- // T-140: P used to test the parry camera shake here; it now only switches control schemes (ControlSchemeController)
 
    if not cameraShakeConnection then
       cameraShakeConnection = RunService:BindToRenderStep("CustomCameraParryShake", Enum.RenderPriority.Camera.Value + 1, updateCameraShake)
