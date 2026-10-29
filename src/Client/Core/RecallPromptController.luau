@@ -45,6 +45,7 @@ local FRAME_COLOR = Color3.fromRGB(80, 190, 70)
 local OUTLINE_COLOR = Color3.fromRGB(60, 35, 15) -- // The HUD's dark brown outline
 local KEY_BOX_COLOR = Color3.fromRGB(55, 140, 50)
 local TEXT_COLOR = Color3.fromRGB(255, 255, 255)
+local RECALLING_TEXT_COLOR = Color3.fromRGB(255, 228, 150) -- // Light gold: the text turns this as the player starts recalling
 local PROMPT_ASPECT_RATIO = 2.7 -- // Width / height
 local SCREEN_HEIGHT_FRACTION = 0.065 -- // The prompt's height as a fraction of the screen's height
 local HEAD_CLEARANCE = 0.6 -- // Studs between the top of the head and the prompt's bottom edge
@@ -57,12 +58,12 @@ local RENDER_PRIORITY = Enum.RenderPriority.Last.Value -- // After the camera an
 
 -- // Pop in: from MIN_SCALE and invisible, overshoot to POP_IN_OVERSHOOT_SCALE while fading in fast, settle to 1
 local MIN_SCALE = 0.8
-local POP_IN_OVERSHOOT_SCALE = 1.15
+local POP_IN_OVERSHOOT_SCALE = 1.3
 local POP_IN_GROW = TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local POP_IN_SETTLE = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
 local POP_IN_FADE = TweenInfo.new(0.1, Enum.EasingStyle.Linear)
 -- // Pop out: expand to POP_OUT_EXPAND_SCALE, then shrink to MIN_SCALE, fading out the whole time
-local POP_OUT_EXPAND_SCALE = 1.12
+local POP_OUT_EXPAND_SCALE = 1.25
 local POP_OUT_EXPAND = TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local POP_OUT_SHRINK = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 local POP_OUT_FADE = TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
@@ -79,6 +80,7 @@ local hostY: number? = nil -- // Its smoothed height (nil = jump straight to the
 local canvas: CanvasGroup
 local uiScale: UIScale
 local keyLabel: TextLabel
+local recallLabel: TextLabel
 local keyImage: ImageLabel
 local isShown = false
 local animationToken = 0
@@ -127,7 +129,7 @@ local function build()
 		keyImage,
 	})
 
-	local recallText = CreateElement("TextLabel", {
+	recallLabel = CreateElement("TextLabel", {
 		Name = "RecallText",
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.fromScale(0.93, 0.5),
@@ -149,7 +151,7 @@ local function build()
 		CreateElement("UICorner", { CornerRadius = UDim.new(0.3, 0) }),
 		CreateElement("UIStroke", { Color = OUTLINE_COLOR, Thickness = 2.5, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }),
 		keyBox,
-		recallText,
+		recallLabel,
 	})
 
 	uiScale = CreateElement("UIScale", { Scale = MIN_SCALE }) :: UIScale
@@ -266,7 +268,13 @@ local function shouldShow(scheme: string): boolean
 	return humanoid ~= nil and humanoid.Health > 0
 end
 
+local function setTextColor(color: Color3)
+	keyLabel.TextColor3 = color
+	recallLabel.TextColor3 = color
+end
+
 local function popIn()
+	setTextColor(TEXT_COLOR)
 	animationToken += 1
 	local token = animationToken
 	billboard.Enabled = true
@@ -318,6 +326,11 @@ local function update(deltaTime: number)
 			hostY = nil -- // Start level with the player
 			popIn()
 		else
+			-- // Hidden because they started recalling: the text turns gold as it pops out
+			local deadWeaponData = DeadWeapons.Data[localPlayer]
+			if WeaponController.isRecallHeld() or (deadWeaponData and DeadWeaponLogic.isRecallCharging(deadWeaponData)) then
+				setTextColor(RECALLING_TEXT_COLOR)
+			end
 			popOut()
 		end
 	elseif show then
