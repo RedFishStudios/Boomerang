@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-141** *(shared by every task list, general and Epic)*
+**Next free ID: T-142** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -81,6 +81,26 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ---
 
 ## In Progress
+
+### T-141 · Thrown boomerangs curve (stage 1: PC mouse aim)
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared weapon logic, server + client
+- **Files:** `Shared/Library/BoomerangCurveLibrary.luau` (new), `Shared/Logics/WeaponLogics/Boomerang.luau`, `Server/Core/WeaponService.luau`, `Client/Core/WeaponController.luau`, `Shared/Referential/ThrownWeapons.lua`
+
+**Done when**
+- [ ] A thrown boomerang flies a gentle arc (up to ~19 degrees off the aim line) that still passes through the point aimed at, and keeps turning the same way past it
+- [ ] Standing still: the side (left/right) and the amount are random. Moving sideways while aiming: it bows toward the movement, more for more sideways movement
+- [ ] The aim arrow stays straight
+- [ ] Server authority: only the server decides the curve (from the thrower's movement on the server); it is replicated with the spawn and every snapshot, and the server and clients turn it in the same fixed step
+- [ ] Lag compensation: a late spawn or snapshot is advanced along the arc (position and heading), not a straight line
+- [ ] A bounce, clash, homing or Telekinesis steering straightens it out (configurable)
+- [ ] Later stages (separate commits): gamepad and touch auto-targeting (a very slim cone in front, extendable to other target kinds), over-the-shoulder camera aim
+
+**Notes**
+- From Sol, 2026-10-29. Tunables at the top of BoomerangCurveLibrary (INTERNAL CONFIG).
+- Stage 1 sends the mouse's floor point only for PC top-down aim; other aim modes (and bots) send none, and the server curves through a point at the throw's full range.
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-141-boomerang-curve`.
 
 ## Review
 

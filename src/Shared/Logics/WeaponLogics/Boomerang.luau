@@ -14,6 +14,7 @@ local AuthorityViewLibrary = require(ReplicatedStorage.Shared.Library.AuthorityV
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local SkinLibrary = require(ReplicatedStorage.Shared.Library.SkinLibrary)
 local BoomerangTuningLibrary = require(ReplicatedStorage.Shared.Library.BoomerangTuningLibrary)
+local BoomerangCurveLibrary = require(ReplicatedStorage.Shared.Library.BoomerangCurveLibrary)
 local ObstructionCastLibrary = require(ReplicatedStorage.Shared.Library.ObstructionCastLibrary)
 local LagCompensationLibrary = require(ReplicatedStorage.Shared.Library.LagCompensationLibrary)
 local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
@@ -89,9 +90,9 @@ local LOS_VISUALIZER_LIFETIME = 3 -- // Seconds a line-of-sight cast stays drawn
 local WEAPON_UNRELIABLE_CODES = RemoteCodes.Weapon.Unreliable
 local WEAPON_RAYCAST_COLLISION_GROUP = CollisionGroupConstants.ThrownWeapons
 
-local SPAWN_PACKET_SIZE = 8 + 12 + 12 + 4 + 8
+local SPAWN_PACKET_SIZE = 8 + 12 + 12 + 4 + 8 + 4 -- // ... + the curvature (T-141)
 local DESPAWN_PACKET_SIZE = 8 + 1
-local SNAPSHOT_PACKET_SIZE = 1 + 8 + 12 + 12 + 4 + 1 + 8 + 12 -- // ... + the thrower's position (Dead.luau's snapshots omit it)
+local SNAPSHOT_PACKET_SIZE = 1 + 8 + 12 + 12 + 4 + 1 + 8 + 12 + 4 -- // ... + the thrower's position + the curvature (T-141) (Dead.luau's snapshots omit both)
 local raycastVisualizersEnabled = GlobalConfig.RaycastVisualizersEnabled -- // The boomerang's hit sweep drawn each step; Cmdr `viewhitbox` changes it live (server)
 local projectileVisualizerEnabled = GlobalConfig.ProjectileHitboxVisualizerEnabled -- // Server only; Cmdr `toggleprojectilevisualizer` changes it live. Read when a boomerang is thrown
 
@@ -118,7 +119,9 @@ type ThrowInitOptions = {
    ThrowServerTime: number?,
    TimeSinceAiming: number?,
    AimStrengthAlpha: number?,
-   ExistingHost: Model?
+   ExistingHost: Model?,
+   TargetPosition: Vector3?, -- // T-141 (server): the point the player aimed at (clamped; only sets how far ahead the curve crosses the aim line)
+   Curvature: number?, -- // T-141 (client): the curve the server decided, from the spawn event
 }
 
 type RecallInitOptions = {
@@ -557,7 +560,7 @@ local function updateRaycastVisualizers(castCFrame: CFrame, castSize: Vector3, r
 end
 
 -- // Notify all users of a boomerang spawn
-local function fireSpawned(ownerUserId: number, boomerangId: string, instanceId: string, position: Vector3, direction: Vector3, speed: number, throwServerTime: number)
+local function fireSpawned(ownerUserId: number, boomerangId: string, instanceId: string, position: Vector3, direction: Vector3, speed: number, throwServerTime: number, curvature: number)
    if not isServer then
       return
    end
@@ -568,7 +571,8 @@ local function fireSpawned(ownerUserId: number, boomerangId: string, instanceId:
    offset = BufferUtil.writeVector3_96(payload, offset, position)
    offset = BufferUtil.writeVector3_96(payload, offset, direction)
    offset = BufferUtil.writef32(payload, offset, speed)
-   BufferUtil.writef64(payload, offset, throwServerTime)
+   offset = BufferUtil.writef64(payload, offset, throwServerTime)
+   BufferUtil.writef32(payload, offset, curvature) -- // T-141: the curve the server decided (BoomerangCurveLibrary)
 
    thrownBoomerangSpawnedRemote:FireAllClients(boomerangId, payload, instanceId)
 end
@@ -585,7 +589,7 @@ local function fireDespawned(ownerUserId: number, returnToPlayer: boolean)
 end
 
 -- // Notify all users of a boomerang simulation snapshot
-local function fireSnapshot(ownerUserId: number, position: Vector3, direction: Vector3, speed: number, state: number)
+local function fireSnapshot(ownerUserId: number, position: Vector3, direction: Vector3, speed: number, state: number, curvature: number?)
    if not isServer then
       return
    end
@@ -602,7 +606,8 @@ local function fireSnapshot(ownerUserId: number, position: Vector3, direction: V
    -- // Where the thrower is: remote clients see them slightly in the past, so a returning boomerang steers toward this instead
    local ownerPlayer = Players:GetPlayerByUserId(ownerUserId)
    local ownerRoot = ownerPlayer and ownerPlayer.Character and ownerPlayer.Character.PrimaryPart
-   BufferUtil.writeVector3_96(payload, offset, if ownerRoot then ownerRoot.Position else position)
+   offset = BufferUtil.writeVector3_96(payload, offset, if ownerRoot then ownerRoot.Position else position)
+   BufferUtil.writef32(payload, offset, curvature or 0) -- // T-141: the current curve (0 once straightened by a bounce, homing, Telekinesis...)
 
    thrownWeaponReplicationRemote:FireAllClients(payload)
 end
@@ -882,6 +887,28 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    -- // victim cast uses it (GlobalConfig.BoomerangFlightHeight). Clients only DRAW the boomerang from the thrower's height at first
    -- // and ease it down/up to the physics height (see getVisualYOffset), so it leaves the hand seamlessly.
    startPosition = Vector3.new(startPosition.X, GlobalConfig.BoomerangFlightHeight, startPosition.Z)
+
+   -- // T-141: the curve. The server decides it (side and angle from the thrower's movement on the server, the arc through the
+   -- // aimed point) and turns the launch direction off the aim line; clients fly the curve the spawn event carries.
+   if isServer then
+      local aimDistance: number? = nil
+      local targetPosition = options and options.TargetPosition
+      if typeof(targetPosition) == "Vector3" and targetPosition == targetPosition then -- // (NaN check)
+         local toTarget = Vector3.new(targetPosition.X - startPosition.X, 0, targetPosition.Z - startPosition.Z)
+         aimDistance = toTarget:Dot(direction)
+      end
+      local humanoid = character:FindFirstChildOfClass("Humanoid")
+      local energyPerStud = BoomerangTuningLibrary.get(tuningToolId, "EnergyPerStud")
+      local maxDistance = if energyPerStud > 1e-3 then thrownWeaponData.Energy / energyPerStud else math.huge
+      local launchDirection, curvature = BoomerangCurveLibrary.decide(direction, aimDistance, humanoid and humanoid.MoveDirection, maxDistance)
+      direction = launchDirection
+      thrownWeaponData.Curvature = curvature
+   else
+      local maxCurvature = BoomerangCurveLibrary.getMaxCurvature()
+      local curvature = (options and options.Curvature) or 0
+      thrownWeaponData.Curvature = if curvature == curvature then math.clamp(curvature, -maxCurvature, maxCurvature) else 0
+   end
+
    if not isServer then
       local throwerRoot = character.PrimaryPart
       thrownWeaponData.VisualYOffset = if throwerRoot then throwerRoot.Position.Y - GlobalConfig.BoomerangFlightHeight else 0
@@ -922,7 +949,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    OriginRep.Position = throwOrigin]]
 
    if isServer then
-      fireSpawned(player.UserId, boomerangId, boomerangInstanceId, startPosition, direction, speed, throwServerTime)
+      fireSpawned(player.UserId, boomerangId, boomerangInstanceId, startPosition, direction, speed, throwServerTime, thrownWeaponData.Curvature or 0)
       thrownWeaponData.State = ThrownWeapons.StateEnum.Outgoing
       if projectileVisualizerEnabled then
          -- Server creates and monitors a simple representation part for debugging.
@@ -1022,6 +1049,9 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       if thrownWeaponData.PendingDirection then
          direction = thrownWeaponData.PendingDirection
          thrownWeaponData.PendingDirection = nil
+         if not BoomerangCurveLibrary.KEEP_CURVE_AFTER_BOUNCE then
+            thrownWeaponData.Curvature = 0 -- // T-141: a clash straightens it out
+         end
          if isReturning then
             -- // Knocked off course by a clash while returning: same as a bounce, the knock overrides the steering for a moment
             speed = math.max(speed, returnMaxSpeed * RECALL_BOUNCE_MIN_SPEED_FRACTION)
@@ -1164,11 +1194,13 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       local dynamicDisplacement = getDynamicDisplacement(rayOrigin, hitboxRadius, deltaTime)
       rayOrigin += dynamicDisplacement
 
+      local steeredThisStep = false -- // T-141: homing or Telekinesis took over the heading (the curve stops)
       if isServer and thrownWeaponData.Homing and not isReturning then
          local targetDirection = getNearestEnemyDirection(player, rayOrigin)
          if targetDirection then
             local homingAlpha = math.clamp(HomingBoomerang.HOMING_INFLUENCE * deltaTime, 0, 1)
             direction = getHorizontalDirection(direction:Lerp(targetDirection, homingAlpha))
+            steeredThisStep = true
          end
       end
 
@@ -1178,6 +1210,18 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          local telekinesisBias = Telekinesis.getBias(thrownWeaponData)
          if telekinesisBias then
             direction = getHorizontalDirection(Telekinesis.steer(direction, telekinesisBias, deltaTime))
+            steeredThisStep = true
+         end
+      end
+
+      -- // T-141: the throw's curve (BoomerangCurveLibrary): a constant turn per stud flown out, the same on the server and every
+      -- // client. Homing or Telekinesis steering ends it for good (the server's next snapshot tells the other clients).
+      local curvature = thrownWeaponData.Curvature
+      if curvature and curvature ~= 0 and not isReturning then
+         if steeredThisStep then
+            thrownWeaponData.Curvature = 0
+         else
+            direction = BoomerangCurveLibrary.rotate(direction, curvature * speed * deltaTime)
          end
       end
 
@@ -1204,7 +1248,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          thrownWeaponData.Direction = direction
          thrownWeaponData.Speed = speed
          if isServer then
-            fireSnapshot(player.UserId, portalExit.Position, direction, speed, thrownWeaponData.State) -- // Keyframe: clients come out at the same spot
+            fireSnapshot(player.UserId, portalExit.Position, direction, speed, thrownWeaponData.State, thrownWeaponData.Curvature) -- // Keyframe: clients come out at the same spot
          end
          return true
       end
@@ -1237,6 +1281,9 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
             direction = direction - 2 * direction:Dot(obstructionRaycastResult.Normal) * obstructionRaycastResult.Normal
             direction = getHorizontalDirection(direction)
          end
+         if not BoomerangCurveLibrary.KEEP_CURVE_AFTER_BOUNCE then
+            thrownWeaponData.Curvature = 0 -- // T-141: a bounce straightens it out
+         end
          if isReturning then
             -- // The bounce momentum takes over from the steering toward the player, then fades back into it (see above)
             speed = math.max(speed, returnMaxSpeed * RECALL_BOUNCE_MIN_SPEED_FRACTION)
@@ -1247,7 +1294,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          thrownWeaponData.Direction = direction
          thrownWeaponData.Speed = speed
          if isServer then
-            fireSnapshot(player.UserId, pivot.Position, direction, speed, thrownWeaponData.State) -- // Keyframe: clients bounce at the same spot
+            fireSnapshot(player.UserId, pivot.Position, direction, speed, thrownWeaponData.State, thrownWeaponData.Curvature) -- // Keyframe: clients bounce at the same spot
          end
          return true
       end
@@ -1269,7 +1316,10 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    if not isServer and options and options.ThrowServerTime then
       local catchup = math.clamp(workspace:GetServerTimeNow() - options.ThrowServerTime, 0, MAX_SPAWN_CATCHUP)
       if catchup > 0 then
-         thrownWeaponData.SyncCorrection = direction * speed * catchup
+         -- // T-141: along the arc it has been flying, and turned as far as the server has turned it meanwhile
+         local displacement, caughtUpDirection = BoomerangCurveLibrary.advanceAlongArc(direction, thrownWeaponData.Curvature or 0, speed * catchup)
+         thrownWeaponData.SyncCorrection = displacement
+         direction = caughtUpDirection
          thrownWeaponData.Energy = (thrownWeaponData.Energy or 0) - speed * catchup * BoomerangTuningLibrary.get(tuningToolId, "EnergyPerStud")
       end
    end
@@ -1329,7 +1379,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
 
       if isServer and time >= nextReplicationAt and currentPivot then
          nextReplicationAt = time + REPLICATION_RATE
-         fireSnapshot(player.UserId, currentPivot.Position, direction, speed, thrownWeaponData.State)
+         fireSnapshot(player.UserId, currentPivot.Position, direction, speed, thrownWeaponData.State, thrownWeaponData.Curvature)
       end
    end)
 end

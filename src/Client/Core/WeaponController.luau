@@ -22,6 +22,7 @@ local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local SkinLibrary = require(ReplicatedStorage.Shared.Library.SkinLibrary)
 local ChargeUpEffectLibrary = require(ReplicatedStorage.Shared.Library.ChargeUpEffectLibrary)
 local BoomerangTuningLibrary = require(ReplicatedStorage.Shared.Library.BoomerangTuningLibrary)
+local BoomerangCurveLibrary = require(ReplicatedStorage.Shared.Library.BoomerangCurveLibrary)
 local CharacterController = require(ReplicatedStorage.Client.Core.CharacterController)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local AnimationController = require(ReplicatedStorage.Client.Core.AnimationController)
@@ -383,7 +384,7 @@ local function restoreMissingDeadWeapon(forPlayer: Player, position: Vector3, di
    })
 end
 
-local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vector3, speed: number, state: number, serverTime: number, targetPosition: Vector3?)
+local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vector3, speed: number, state: number, serverTime: number, targetPosition: Vector3?, curvature: number?)
    local thrownWeaponData = ThrownWeapons.Data[forPlayer]
 
    -- // The server says this boomerang clashed with another one and was knocked onto a new direction (it keeps flying)
@@ -431,6 +432,18 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
 
    local catchup = math.clamp(workspace:GetServerTimeNow() - serverTime, 0, MAX_SNAPSHOT_CATCHUP)
    local authoritativePosition = position + direction * speed * catchup
+   -- // T-141: a curving boomerang has kept turning since the server sent this: advance it along its arc instead (position and
+   -- // heading), so the prediction lines up with where the server has it now
+   if curvature and state ~= ThrownWeapons.StateEnum.Returning then
+      local maxCurvature = BoomerangCurveLibrary.getMaxCurvature()
+      curvature = if curvature == curvature then math.clamp(curvature, -maxCurvature, maxCurvature) else 0
+      thrownWeaponData.Curvature = curvature
+      if curvature ~= 0 then
+         local displacement
+         displacement, direction = BoomerangCurveLibrary.advanceAlongArc(direction, curvature, speed * catchup)
+         authoritativePosition = position + displacement
+      end
+   end
 
    -- // Just went through a portal locally: snapshots sent before the server's own crossing are stale (still on the
    -- // entry side). Skip them briefly instead of snapping the boomerang back through the portal.
@@ -841,6 +854,10 @@ function WeaponController.init()
       speed, offset = BufferUtil.readf32(payload, offset)
       local throwServerTime
       throwServerTime, offset = BufferUtil.readf64(payload, offset)
+      local curvature = 0 -- // T-141: the curve the server decided for this throw
+      if buffer.len(payload) >= offset + 4 then
+         curvature = BufferUtil.readf32(payload, offset)
+      end
 
       local forPlayer = Players:GetPlayerByUserId(ownerUserId)
       if not forPlayer then
@@ -861,6 +878,7 @@ function WeaponController.init()
          Speed = speed,
          InstanceId = instanceId,
          ThrowServerTime = throwServerTime,
+         Curvature = curvature,
       }
 
       if forPlayer == Players.LocalPlayer then
@@ -914,7 +932,12 @@ function WeaponController.init()
       -- // The thrower's position follows the time (the dead-weapon snapshots don't carry it)
       local targetPosition: Vector3? = nil
       if buffer.len(payload) >= offset + 12 then
-         targetPosition = BufferUtil.readVector3_96(payload, offset)
+         targetPosition, offset = BufferUtil.readVector3_96(payload, offset)
+      end
+      -- // T-141: the boomerang's current curve (the dead-weapon snapshots don't carry it)
+      local curvature: number? = nil
+      if buffer.len(payload) >= offset + 4 then
+         curvature = BufferUtil.readf32(payload, offset)
       end
 
       local forPlayer = Players:GetPlayerByUserId(ownerUserId)
@@ -922,7 +945,7 @@ function WeaponController.init()
          return
       end
 
-      onSnapshot(forPlayer, position, getHorizontalDirection(direction), speed, state, serverTime, targetPosition)
+      onSnapshot(forPlayer, position, getHorizontalDirection(direction), speed, state, serverTime, targetPosition, curvature)
    end)
 
    RunService.PreSimulation:Connect(function(deltaTime)
