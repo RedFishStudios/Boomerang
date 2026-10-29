@@ -112,11 +112,12 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 **Done when**
 - [ ] The Quests button in the left lobby menu opens and closes the Quests menu
-- [ ] One column per pool (Daily, Weekly) with a "New in ..." countdown and a card per quest: what to do, a progress bar with x / goal, the reward, and a Claim button (green when finished, "Claimed" after)
+- [ ] A vertical scrolling list: Daily quests first, then a header with the Weekly countdown and the Weekly quests; each pool has a header with its "New in ..." countdown and one full-width card per quest (what to do, a progress bar with x / goal, the reward, and a Claim button: green when finished, "Claimed" after)
 - [ ] Updates live as progress replicates; claiming asks the server
 
 **Notes**
 - No quests art yet (Sol): it borrows the Stats menu's frame and exit button; everything else is plain frames. The layout is a first draft so Sol can decide the art.
+- Layout changed from two side-by-side columns to the scrolling list (Sol, 2026-10-29). Throw quests read "Throw x times".
 
 ### T-141 · Thrown boomerangs curve (stage 1: PC mouse aim)
 - **Priority:** P2

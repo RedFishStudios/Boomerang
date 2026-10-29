@@ -124,7 +124,7 @@ function QuestLibrary.getText(quest: Quests.Quest): string
 	elseif objective.Type == "MinutesPlayed" then
 		return `Play for {goal} {plural(goal, "minute")}`
 	elseif objective.Type == "Throws" then
-		return `Throw your boomerang {goal} {plural(goal, "time")}`
+		return `Throw {goal} {plural(goal, "time")}`
 	elseif objective.Type == "AbilityUses" then
 		local abilityId = objective.AbilityId or "an ability"
 		if abilityId == "Dash" then

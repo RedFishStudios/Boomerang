@@ -2,10 +2,11 @@
 	Quests (T-143)
 
 	Description:
-	The Quests menu, opened from the Quests button in the left lobby menu (MenuButtons). One column per quest pool
-	(Daily, Weekly), each with its reset countdown and a card per quest: what to do, a progress bar, the reward and a
-	Claim button. PLACEHOLDER LOOK: there's no quests art yet, so it borrows the Stats menu's frame and exit button and
-	draws everything else as plain frames. The layout is a first draft to decide the real art from.
+	The Quests menu, opened from the Quests button in the left lobby menu (MenuButtons). A vertical scrolling list: each
+	quest pool in order (Daily, then Weekly) gets a header with its name and reset countdown, then one full-width card
+	per quest: what to do, a progress bar, the reward and a Claim button.
+	PLACEHOLDER LOOK: there's no quests art yet, so it borrows the Stats menu's frame and exit button and draws
+	everything else as plain frames. The layout is a first draft to decide the real art from.
 	Built entirely in code with CreateElement. Reads the replicated profile through QuestController; claiming asks the
 	server (QuestService), which decides.
 ]]
@@ -47,7 +48,11 @@ local FONT = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWeig
 local CONTAINER_IMAGE = "rbxassetid://107079429198573" -- // Borrowed from the Stats menu (placeholder)
 local EXIT_IMAGE = "rbxassetid://83841981001141"
 local CONTAINER_ASPECT_RATIO = 1.46190941
-local CARDS_PER_POOL = 3 -- // Card slots drawn per column (a pool with more quests shows its first ones)
+local CARDS_PER_POOL = 3 -- // Card slots drawn per pool (a pool with more quests shows its first ones)
+local CARD_ASPECT_RATIO = 6.5 -- // Card width / height (cards span the list's width)
+local HEADER_ASPECT_RATIO = 13 -- // Pool header width / height
+local LIST_PADDING_PIXELS = 6 -- // Gap between rows in the list
+local SCROLLBAR_THICKNESS = 6
 
 local CONTAINER_TWEEN_INFO_IN = TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 local CONTAINER_TWEEN_INFO_OUT = TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In)
@@ -70,8 +75,9 @@ type Card = {
 	Claim: TextButton,
 }
 
-type Column = {
+type Section = {
 	PoolName: string,
+	Header: Frame,
 	Timer: TextLabel,
 	Cards: { Card },
 }
@@ -84,7 +90,8 @@ local player = Players.LocalPlayer
 
 local QuestsScreenGui: ScreenGui
 local Container: GuiObject
-local columns: { Column } = {}
+local sections: { Section } = {}
+local List: ScrollingFrame
 local containerGoalPosition: UDim2
 local containerOffscreenPosition: UDim2
 local activeTween: Tween?
@@ -143,8 +150,8 @@ end
 local function createCard(poolName: string, slotIndex: number): Card
 	local description = createLabel({
 		Name = "Description",
-		Position = UDim2.fromScale(0.04, 0.08),
-		Size = UDim2.fromScale(0.62, 0.38),
+		Position = UDim2.fromScale(0.03, 0.1),
+		Size = UDim2.fromScale(0.55, 0.4),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Text = "",
 	})
@@ -168,8 +175,8 @@ local function createCard(poolName: string, slotIndex: number): Card
 
 	local bar = CreateElement("Frame", {
 		Name = "ProgressBar",
-		Position = UDim2.fromScale(0.04, 0.56),
-		Size = UDim2.fromScale(0.62, 0.32),
+		Position = UDim2.fromScale(0.03, 0.58),
+		Size = UDim2.fromScale(0.55, 0.3),
 		BackgroundColor3 = BAR_BACK_COLOR,
 		BorderSizePixel = 0,
 	}, {
@@ -180,8 +187,9 @@ local function createCard(poolName: string, slotIndex: number): Card
 
 	local rewardIcon = CreateElement("ImageLabel", {
 		Name = "RewardIcon",
-		Position = UDim2.fromScale(0.7, 0.08),
-		Size = UDim2.fromScale(0.08, 0.38),
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.fromScale(0.61, 0.5),
+		Size = UDim2.fromScale(0.06, 0.45),
 		BackgroundTransparency = 1,
 		Image = `rbxassetid://{Icons.CurrencyIcon}`,
 		ScaleType = Enum.ScaleType.Fit,
@@ -189,16 +197,18 @@ local function createCard(poolName: string, slotIndex: number): Card
 
 	local rewardText = createLabel({
 		Name = "RewardText",
-		Position = UDim2.fromScale(0.79, 0.08),
-		Size = UDim2.fromScale(0.18, 0.38),
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.fromScale(0.675, 0.5),
+		Size = UDim2.fromScale(0.13, 0.42),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Text = "",
 	})
 
 	local claim = CreateElement("TextButton", {
 		Name = "Claim",
-		Position = UDim2.fromScale(0.7, 0.52),
-		Size = UDim2.fromScale(0.27, 0.4),
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.fromScale(0.97, 0.5),
+		Size = UDim2.fromScale(0.17, 0.6),
 		BackgroundColor3 = DISABLED_COLOR,
 		BorderSizePixel = 0,
 		AutoButtonColor = true,
@@ -216,9 +226,8 @@ local function createCard(poolName: string, slotIndex: number): Card
 	})
 
 	local frame = CreateElement("Frame", {
-		Name = `Quest{slotIndex}`,
-		LayoutOrder = slotIndex,
-		Size = UDim2.fromScale(1, 0.3),
+		Name = `{poolName}Quest{slotIndex}`,
+		Size = UDim2.new(1, 0, 0, 40), -- // Height is set by resizeList
 		BackgroundColor3 = CARD_COLOR,
 		BorderSizePixel = 0,
 	}, {
@@ -242,74 +251,83 @@ local function createCard(poolName: string, slotIndex: number): Card
 	}
 end
 
-local function createColumn(poolName: string, order: number): (Frame, Column)
+-- // A pool's header row and its cards, laid out in the list from `order` (headers and cards share the list's LayoutOrder)
+local function createSection(poolName: string, order: number): Section
 	local pool = QuestLibrary.getPool(poolName)
 	local cards: { Card } = {}
-	local cardFrames: { Instance } = {
-		CreateElement("UIListLayout", {
-			Padding = UDim.new(0.04, 0),
-			SortOrder = Enum.SortOrder.LayoutOrder,
-			HorizontalAlignment = Enum.HorizontalAlignment.Center,
-		}),
-	}
-	for slotIndex = 1, CARDS_PER_POOL do
-		local card = createCard(poolName, slotIndex)
-		cards[slotIndex] = card
-		table.insert(cardFrames, card.Frame)
-	end
 
 	local title = createLabel({
 		Name = "Title",
-		Size = UDim2.fromScale(0.6, 0.11),
+		Size = UDim2.fromScale(0.6, 1),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Text = if pool then pool.DisplayName else poolName,
 	})
 	local timer = createLabel({
 		Name = "Timer",
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.fromScale(1, 0.015),
-		Size = UDim2.fromScale(0.4, 0.08),
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.fromScale(1, 0.5),
+		Size = UDim2.fromScale(0.38, 0.75),
 		TextXAlignment = Enum.TextXAlignment.Right,
 		Text = "",
 	})
-	local list = CreateElement("Frame", {
-		Name = "List",
-		Position = UDim2.fromScale(0, 0.14),
-		Size = UDim2.fromScale(1, 0.86),
+	local header = CreateElement("Frame", {
+		Name = `{poolName}Header`,
+		LayoutOrder = order * 100,
+		Size = UDim2.new(1, 0, 0, 20), -- // Height is set by resizeList
 		BackgroundTransparency = 1,
-	}, cardFrames)
+	}, { title, timer })
+	header.Parent = List
 
-	local frame = CreateElement("Frame", {
-		Name = poolName,
-		LayoutOrder = order,
-		Size = UDim2.fromScale(0.485, 1),
-		BackgroundTransparency = 1,
-	}, { title, timer, list })
+	for slotIndex = 1, CARDS_PER_POOL do
+		local card = createCard(poolName, slotIndex)
+		card.Frame.LayoutOrder = order * 100 + slotIndex
+		card.Frame.Parent = List
+		cards[slotIndex] = card
+	end
 
-	return frame, { PoolName = poolName, Timer = timer, Cards = cards }
+	return { PoolName = poolName, Header = header, Timer = timer, Cards = cards }
+end
+
+-- // Rows have pixel heights (a scrolling list can't size them by scale): kept in proportion to the list's width
+local function resizeList()
+	local width = List.AbsoluteSize.X - SCROLLBAR_THICKNESS * 2
+	for _, section in sections do
+		section.Header.Size = UDim2.new(1, 0, 0, math.floor(width / HEADER_ASPECT_RATIO))
+		for _, card in section.Cards do
+			card.Frame.Size = UDim2.new(1, 0, 0, math.floor(width / CARD_ASPECT_RATIO))
+		end
+	end
 end
 
 local function createGui(): ScreenGui
-	local columnFrames: { Instance } = {
-		CreateElement("UIListLayout", {
-			FillDirection = Enum.FillDirection.Horizontal,
-			Padding = UDim.new(0.03, 0),
-			SortOrder = Enum.SortOrder.LayoutOrder,
-		}),
-	}
-	for order, poolName in QuestLibrary.getPoolNames() do
-		local frame, column = createColumn(poolName, order)
-		table.insert(columnFrames, frame)
-		table.insert(columns, column)
-	end
-
-	local content = CreateElement("Frame", {
-		Name = "Content",
-		-- // The parchment inside the brick border of the (borrowed) frame image, as in the Stats menu
+	-- // The parchment inside the brick border of the (borrowed) frame image, as in the Stats menu
+	List = CreateElement("ScrollingFrame", {
+		Name = "List",
 		Position = UDim2.fromScale(0.118, 0.24),
 		Size = UDim2.fromScale(0.765, 0.548),
 		BackgroundTransparency = 1,
-	}, columnFrames)
+		BorderSizePixel = 0,
+		CanvasSize = UDim2.new(),
+		ScrollBarThickness = SCROLLBAR_THICKNESS,
+		ScrollBarImageColor3 = TEXT_COLOR,
+		ScrollingDirection = Enum.ScrollingDirection.Y,
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+	}, {
+		CreateElement("UIListLayout", {
+			Padding = UDim.new(0, LIST_PADDING_PIXELS),
+			HorizontalAlignment = Enum.HorizontalAlignment.Center,
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}),
+		CreateElement("UIPadding", {
+			PaddingTop = UDim.new(0, 3),
+			PaddingBottom = UDim.new(0, 3),
+			PaddingLeft = UDim.new(0, 3),
+			PaddingRight = UDim.new(0, SCROLLBAR_THICKNESS * 2),
+		}),
+	})
+	for order, poolName in QuestLibrary.getPoolNames() do
+		table.insert(sections, createSection(poolName, order))
+	end
 
 	local title = createLabel({
 		Name = "Title",
@@ -346,7 +364,7 @@ local function createGui(): ScreenGui
 		CreateElement("UIAspectRatioConstraint", { AspectRatio = CONTAINER_ASPECT_RATIO }),
 		title,
 		exit,
-		content,
+		List,
 	})
 
 	return CreateElement("ScreenGui", {
@@ -397,10 +415,10 @@ end
 
 local function updateTimers()
 	local now = os.time()
-	for _, column in columns do
-		local pool = QuestLibrary.getPool(column.PoolName)
+	for _, section in sections do
+		local pool = QuestLibrary.getPool(section.PoolName)
 		local periodEnd = pool and QuestLibrary.getPeriodEnd(pool.ResetPeriod, now)
-		column.Timer.Text = if periodEnd then `New in {formatTimeLeft(periodEnd - now)}` else ""
+		section.Timer.Text = if periodEnd then `New in {formatTimeLeft(periodEnd - now)}` else ""
 	end
 end
 
@@ -417,11 +435,11 @@ end
 -------------------------------------------------------------------------------
 
 function QuestsGui.refresh()
-	for _, column in columns do
-		local poolData = QuestController.getPoolData(column.PoolName)
+	for _, section in sections do
+		local poolData = QuestController.getPoolData(section.PoolName)
 		local slots = (poolData and poolData.Slots) or {}
-		for slotIndex, card in column.Cards do
-			updateCard(card, column.PoolName, slotIndex, slots[slotIndex])
+		for slotIndex, card in section.Cards do
+			updateCard(card, section.PoolName, slotIndex, slots[slotIndex])
 		end
 	end
 	updateTimers()
@@ -431,6 +449,7 @@ function QuestsGui.open()
 	QuestsGui.Open = true
 	QuestsScreenGui.Enabled = true
 	QuestsGui.refresh()
+	resizeList()
 	Container.Position = containerOffscreenPosition
 	playContainerTween(CONTAINER_TWEEN_INFO_IN, containerGoalPosition)
 	UIController.supercede("Quests", "GamemodeHud")
@@ -466,6 +485,8 @@ local function _init()
 
 	containerGoalPosition = Container.Position
 	containerOffscreenPosition = containerGoalPosition - UDim2.fromScale(0, 1)
+
+	List:GetPropertyChangedSignal("AbsoluteSize"):Connect(resizeList)
 end
 
 function QuestsGui.start()
