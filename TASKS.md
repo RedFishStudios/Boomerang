@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-136** *(shared by every task list, general and Epic)*
+**Next free ID: T-137** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,28 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-136 · Dash avoids landing the player somewhere deadly (water, open air)
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared (Dash ability, server authority)
+- **Files:** `Shared/Logics/AbilityLogics/Dash.luau`
+
+**Done when**
+- [ ] When the player dashes, the dash module tries to prevent them from dashing into a spot that would kill them (over water that would kill them, or air they'd fall through)
+- [ ] One shapecast checks the dash's full length for obstructions; the end point is the full distance, or as far as it gets before an obstruction. Only that end point is checked for stable ground (no sampling along the way)
+- [ ] If the end is stable ground, the full dash happens (dashing straight over a gap and landing on stable ground still works)
+- [ ] If the end would leave the player over open air (or deadly water), check for a safe dash: if the player can dash 50% or more of the dash distance and end on stable ground (the most stable spot next to the gap), the dash goes there instead
+- [ ] If they can't dash at least 50% of the dash distance and end on stable ground, they dash the full distance and fall over the gap
+- [ ] The safe-dash behaviour is its own clearly separated section in the Dash module, and the 50% is a clearly labelled internal config there, so it's easy to change or remove entirely
+
+**Notes**
+- From Sol, 2026-10-28 (worded as given): "When the player dashes, the dash module should try to prevent them from dashing into a spot that would kill them (over water that would kill them or air that they'd fall through). The player should be able to dash towards an open air gap from as much as 50% of the gap's total distance coverage and the dash instead automatically brings them to the most stable position adjacent to the gap instead of teleporting them over the gap. This should not interfere with the ability to dash directly over a gap--the player will still dash towards the direction of a gap if the full distance of the dash would cross over the gap and land them on stable ground."
+- Clarified by Sol, 2026-10-28: the 50% is half of the dash's distance. Approach agreed: one shapecast for the full length, then check the end point directly; to find the stable spot next to the gap, one more cast back toward the start just below the floor surface finds the gap's near edge.
+- Built (SAFE DASH section in Dash.luau; config SAFE_DASH_ENABLED / SAFE_DASH_MIN_FRACTION at the top). Also: a dash's leftover speed is now cut to walking speed when it ends (DASH_END_CLAMPS_SPEED), otherwise the 80 studs/s momentum slid players several studs past the planned end (off the very edge the dash had stopped short of).
+- Tested in Studio on PartsTest (11-stud pits), dashing toward a pit: 8 studs from the edge, the dash stopped 0.9 studs short of it (planned 1); 4.2 studs from the edge (too little dash left), the full dash went over and the player fell; ending on solid ground short of the edge, the full dash happened; with a temporary floor narrowing the gap to 6 studs, the dash crossed it.
+- Still server-only: Dash sets the character's velocity on the server (Heartbeat), so the player's client doesn't predict it and is corrected to the server's result under server authority. Making the dash a predicted movement on both sides (likely through the replicated JumpAction input, which is what Space is bound to) is a bigger change and is left for its own task.
+- If the player keeps holding toward the gap, they walk off the edge right after a shortened dash (their own input; their input reaches the server a moment late too).
 
 ### T-135 · Players' torsos collide on the server too (moving platforms "popped" players back)
 - **Priority:** P1
