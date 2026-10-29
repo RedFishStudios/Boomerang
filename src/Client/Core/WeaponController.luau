@@ -773,7 +773,25 @@ end
 --
 -- // Hold left click to charge, release to throw. It goes through the same aim/throw path as the touch thumbstick, with the
 -- // aim angle (0 = up/forward, negative = right, positive = left) starting as the way the character faces.
+-- // While charging, the player stands still and WASD aims instead (8 directions, relative to the camera): a higher-priority
+-- // input context that sinks WASD and the arrow keys is switched on, so the character's (replicated) MoveAction gets no input
+-- // and the server and this client's prediction both see no movement on the same frame. It's switched off once the boomerang
+-- // is thrown (or the charge ends any other way), and movement keys still held carry on moving.
 -------------------------------------------------------------------------------
+
+local CHARGE_AIM_CONTEXT_NAME = "ChargeAimContext"
+local CHARGE_AIM_CONTEXT_PRIORITY = 400 -- // Above every PlayerModule context (CharacterContext is 150), so it takes WASD first
+
+local AIM_KEYS: { [Enum.KeyCode]: Vector2 } = { -- // X = right, Y = forward (used to restore movement after the charge)
+   [Enum.KeyCode.W] = Vector2.new(0, 1),
+   [Enum.KeyCode.Up] = Vector2.new(0, 1),
+   [Enum.KeyCode.S] = Vector2.new(0, -1),
+   [Enum.KeyCode.Down] = Vector2.new(0, -1),
+   [Enum.KeyCode.D] = Vector2.new(1, 0),
+   [Enum.KeyCode.Right] = Vector2.new(1, 0),
+   [Enum.KeyCode.A] = Vector2.new(-1, 0),
+   [Enum.KeyCode.Left] = Vector2.new(-1, 0),
+}
 
 -- // A world direction as a thumbstick aim angle (see CharacterController's getTouchAimLookVectorFromAngle)
 local function getAimAngleFromDirection(direction: Vector3): number?
@@ -787,6 +805,107 @@ end
 
 local isExperimentalCharging = false
 local experimentalChargeAngle: number? = nil
+
+local chargeAimContext: InputContext? = nil
+local chargeAimAction: InputAction? = nil
+
+local function getMoveAction(): InputAction?
+   local inputContexts = Players.LocalPlayer:FindFirstChild("InputContexts")
+   local characterContext = inputContexts and inputContexts:FindFirstChild("CharacterContext")
+   local moveAction = characterContext and characterContext:FindFirstChild("MoveAction")
+   return if moveAction and moveAction:IsA("InputAction") then moveAction else nil
+end
+
+local function addAimBinding(action: InputAction, up: Enum.KeyCode, down: Enum.KeyCode, left: Enum.KeyCode, right: Enum.KeyCode)
+   local binding = Instance.new("InputBinding")
+   binding.Up, binding.Down, binding.Left, binding.Right = up, down, left, right
+   binding.Parent = action
+end
+
+-- // The local-only context that takes WASD while charging (made once, next to the PlayerModule's contexts)
+local function getChargeAimAction(): InputAction?
+   if chargeAimContext and chargeAimContext.Parent and chargeAimAction then
+      return chargeAimAction
+   end
+   local inputContexts = Players.LocalPlayer:FindFirstChild("InputContexts")
+   if not inputContexts then
+      return nil
+   end
+   local context = Instance.new("InputContext")
+   context.Name = CHARGE_AIM_CONTEXT_NAME
+   context.Priority = CHARGE_AIM_CONTEXT_PRIORITY
+   context.Sink = true
+   context.Enabled = false
+   local action = Instance.new("InputAction")
+   action.Name = "ChargeAimAction"
+   action.Type = Enum.InputActionType.Direction2D
+   addAimBinding(action, Enum.KeyCode.W, Enum.KeyCode.S, Enum.KeyCode.A, Enum.KeyCode.D)
+   addAimBinding(action, Enum.KeyCode.Up, Enum.KeyCode.Down, Enum.KeyCode.Left, Enum.KeyCode.Right)
+   action.Parent = context
+   context.Parent = inputContexts
+   chargeAimContext, chargeAimAction = context, action
+   return action
+end
+
+-- // Stand still while charging (see the section comment)
+local function setMovementInputEnabled(enabled: boolean)
+   getChargeAimAction()
+   if chargeAimContext then
+      chargeAimContext.Enabled = not enabled
+   end
+   if enabled then
+      -- // Movement keys held through the charge: the MoveAction only hears about them on their next press, so hand it
+      -- // their state now (otherwise the player stays put until they press again)
+      local held = Vector2.zero
+      for keyCode, offset in pairs(AIM_KEYS) do
+         if UserInputService:IsKeyDown(keyCode) then
+            held += offset
+         end
+      end
+      local moveAction = getMoveAction()
+      if moveAction and held.Magnitude > 1e-3 then
+         pcall(function()
+            moveAction:Fire(if held.Magnitude > 1 then held.Unit else held)
+         end)
+      end
+   end
+end
+
+-- // The way WASD points (the charge context's aim input), relative to the camera, or nil when none is held
+local function getAimKeysDirection(): Vector3?
+   local input: Vector2 = if chargeAimAction then chargeAimAction:GetState() else Vector2.zero
+   if typeof(input) ~= "Vector2" or input.Magnitude <= 1e-3 then
+      return nil
+   end
+   local camera = workspace.CurrentCamera
+   local look = if camera then camera.CFrame.LookVector else Vector3.new(0, 0, -1)
+   local forward = Vector3.new(look.X, 0, look.Z)
+   if forward.Magnitude <= 1e-4 then
+      forward = Vector3.new(0, 0, -1)
+   end
+   forward = forward.Unit
+   local right = forward:Cross(Vector3.yAxis).Unit
+   return forward * input.Y + right * input.X
+end
+
+local function updateExperimentalAim()
+   if not isExperimentalCharging then
+      return
+   end
+   if not isAiming and not Telekinesis.isLocalSteering() then
+      -- // The charge ended some other way (thrown by something else, cancelled, died): move again
+      isExperimentalCharging = false
+      experimentalChargeAngle = nil
+      setMovementInputEnabled(true)
+      return
+   end
+   local direction = getAimKeysDirection()
+   local angle = direction and getAimAngleFromDirection(direction)
+   if angle and angle ~= experimentalChargeAngle then
+      experimentalChargeAngle = angle
+      WeaponController.setThumbstickAimDirection(angle)
+   end
+end
 
 local function getFacingAimAngle(): number
    local lastCFrame = CharacterController.LastCFrame
@@ -803,6 +922,8 @@ local function beginExperimentalCharge()
    isExperimentalCharging = true
    experimentalChargeAngle = getFacingAimAngle()
    WeaponController.setThumbstickAimDirection(experimentalChargeAngle)
+   setMovementInputEnabled(false)
+   updateExperimentalAim() -- // Already holding a direction
 end
 
 local function releaseExperimentalCharge()
@@ -813,6 +934,7 @@ local function releaseExperimentalCharge()
    local angle = experimentalChargeAngle
    experimentalChargeAngle = nil
    WeaponController.releaseThumbstickAim(angle)
+   setMovementInputEnabled(true)
 end
 
 -- // Leaving the charge without a throw (the scheme was switched mid-charge)
@@ -826,6 +948,7 @@ local function cancelExperimentalCharge()
    if isAiming then
       setLocalAimState(false, true)
    end
+   setMovementInputEnabled(true)
 end
 
 -------------------------------------------------------------------------------
@@ -1047,6 +1170,9 @@ function WeaponController.init()
        throwEquippedTool(nil)
       end
    end)
+
+   -- // T-140: WASD aims while charging (Experimental scheme)
+   RunService.RenderStepped:Connect(updateExperimentalAim)
 
    -- // T-140: switching scheme mid-aim drops the aim (no throw), so no input is left held in the other scheme
    ControlSchemeController.SchemeChanged:Add(function()
