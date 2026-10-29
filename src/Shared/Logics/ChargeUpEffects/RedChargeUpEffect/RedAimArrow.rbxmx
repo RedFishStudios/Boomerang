@@ -155,7 +155,7 @@
 			</Properties>
 			<Item class="SurfaceGui" referent="RBX1D30917591F04684841CFCC8FED71668">
 				<Properties>
-					<bool name="AlwaysOnTop">false</bool>
+					<bool name="AlwaysOnTop">true</bool>
 					<float name="Brightness">1.46500003</float>
 					<Vector2 name="CanvasSize">
 						<X>800</X>
