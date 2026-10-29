@@ -1,8 +1,9 @@
 local Dash = {}
 
--- TODO: Clientside implement timestamp to account for lag
 -- TODO: the animation clashes badly with authoritative run animation, causing the character to wiggle around
 --       address as either an animation issue or a propulsion issue
+-- // Server authority (T-137): the dash is started and moved inside the simulation step on the server and on the player's own
+-- // client, from the replicated jump input, so the client's prediction matches the server. See PREDICTED DASH below.
 
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
@@ -20,6 +21,7 @@ local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
 local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 local LobbyLibrary = require(ReplicatedStorage.Shared.Library.LobbyLibrary)
 local DeadWeapons = require(ReplicatedStorage.Shared.Referential.DeadWeapons)
+local SharedTasks = require(ReplicatedStorage.Shared.Constants.SharedTasks)
 local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
 
 local PlayDash = SimpleRemotes.getEvent("PlayDash")
@@ -64,26 +66,24 @@ local OBSTRUCTION_MARGIN = 0.1 -- // Studs a dash stops short of a wall
 local DASH_END_CLAMPS_SPEED = true
 
 local COOLDOWN_EFFECT_ID = "DashCooldown"
+local ABILITY_ID = "Dash"
 
-local activeDashConnections: {[Model]: RBXScriptConnection} = {}
-
--- The timestamp every player's dash wears off at
+-- // Client only: the os.clock timestamp the local player's dash cooldown shows until (display only; the real cooldown is the
+-- // DashReadyAt attribute, see PREDICTED DASH)
 local cooldowns: {[Player]: number} = {}
 
 -------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS
 -------------------------------------------------------------------------------
 
-local function stopDash(player: Player, character: Model)
-   local connection = activeDashConnections[character]
-   if connection then
-      connection:Disconnect()
-      activeDashConnections[character] = nil
+-- // A dash's side effects end (immunity on the server, the animation on clients)
+local function endDashEffects(player: Player)
+   if isServer then
+      HitboxLibrary.unImmunize(player, "Dash", 0)
    end
-   HitboxLibrary.unImmunize(player, "Dash", 0)
-	if AnimationController then
-		AnimationController.stopCoreAnimation(player, "Dash")
-	end
+   if AnimationController then
+      AnimationController.stopCoreAnimation(player, "Dash")
+   end
 end
 
 -- // Client only: the dash cooldown is shown in the effects bar (the same gui as pickups / On Fire) as a display-only effect.
@@ -267,16 +267,288 @@ local function planDash(rootPosition: Vector3, direction: Vector3, character: Mo
 end
 
 -------------------------------------------------------------------------------
+-- PREDICTED DASH (T-137)
+--
+-- // Under server authority the server simulates every character and a player's own client only predicts its own. So the dash
+-- // is started and moved inside the simulation step (RunService:BindToSimulation), on the server for every player and on each
+-- // client for its own character, from the same replicated input: the moment the player's JumpAction is pressed (Space,
+-- // gamepad, or the dash buttons, which press it). Both sides start it on the same simulation frame, plan it from the same
+-- // state and move it the same way, and replays after a correction re-run it identically.
+-- // Its state is kept in attributes on the HumanoidRootPart (a predicted instance, so they are rolled back and replayed with
+-- // it), never in Lua tables. What can't happen inside the simulation (immunity, effects, stats, telling the other clients)
+-- // follows those attributes afterwards (see EFFECTS).
+-------------------------------------------------------------------------------
+
+local ATTRIBUTE_INPUT_HELD = "DashInputHeld" -- // The jump input's state last step (a dash starts when it goes from up to down)
+local ATTRIBUTE_STARTED_AT = "DashStartedAt" -- // time() the latest dash started
+local ATTRIBUTE_ENDS_AT = "DashEndsAt" -- // time() the current dash ends; 0 when not dashing
+local ATTRIBUTE_READY_AT = "DashReadyAt" -- // time() the cooldown ends
+local ATTRIBUTE_DIRECTION = "DashDirection"
+local ATTRIBUTE_START = "DashStart" -- // Root position the dash started from
+local ATTRIBUTE_DISTANCE = "DashDistance" -- // Planned distance (SAFE DASH)
+local ATTRIBUTE_SHORTENED = "DashShortened"
+
+-- // Why each player can't dash right now (aiming, in the lobby, ...), or nil. Worked out outside the simulation each frame
+-- // (those checks read game state the simulation can't), read inside it
+local blockReasons: {[Player]: string?} = {}
+
+local function getJumpAction(player: Player): InputAction?
+   local inputContexts = player:FindFirstChild("InputContexts")
+   local characterContext = inputContexts and inputContexts:FindFirstChild("CharacterContext")
+   local jumpAction = characterContext and characterContext:FindFirstChild("JumpAction")
+   return if jumpAction and jumpAction:IsA("InputAction") then jumpAction else nil
+end
+
+-- // Everything that stops a dash except its cooldown
+local function getBlockReason(player: Player): string?
+   if isPlayerAiming(player) then
+      return "is aiming"
+   end
+   -- // T-092/T-093: holding a manual recall of a dead boomerang (charging it, or while it flies back) hinders the player like aiming does
+   local deadWeaponData = DeadWeapons.Data[player]
+   local thrownWeaponData = ThrownWeapons.Data[player]
+   if (deadWeaponData and deadWeaponData.RecallChargeStart ~= nil) or (thrownWeaponData and thrownWeaponData.RecallFromDead == true) then
+      return "holding a recall"
+   end
+
+   local currentRoundData = GameStateLibrary.getGameStateData().CurrentRoundData:Get()
+   local currentGameMode = if currentRoundData then currentRoundData.Gamemode else nil
+   if currentGameMode then
+      local gameModeData = Gamemodes[currentGameMode]
+      if gameModeData and gameModeData.DashDisabled then
+         return "dash disabled in this gamemode"
+      end
+   end
+
+   local character = player.Character
+   local humanoidRootPart = character and character:FindFirstChild("HumanoidRootPart")
+   if not character or not humanoidRootPart then
+      return "no character"
+   end
+   -- // Jump replaces dash in the lobby (see LobbyController / AbilityController.useMovementInput)
+   if LobbyLibrary.isCharacterInLobby(character) then
+      return "in the lobby"
+   end
+
+   local raycastParams = RaycastParams.new()
+   raycastParams.FilterDescendantsInstances = {character}
+   raycastParams.CollisionGroup = CollisionGroupConstants.ArenaFloorDetector
+   raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+   if not workspace:Raycast(humanoidRootPart.Position, Vector3.new(0, -5, 0), raycastParams) then
+      return "not grounded"
+   end
+   return nil
+end
+
+-- // The direction the player is steering (the same maths as the ControlModule's move input), else the way they face
+local function getDashDirection(player: Player, humanoidRootPart: BasePart): Vector3?
+   local inputContexts = player:FindFirstChild("InputContexts")
+   local characterContext = inputContexts and inputContexts:FindFirstChild("CharacterContext")
+   local moveAction = characterContext and characterContext:FindFirstChild("MoveAction")
+   local move: Vector2 = if moveAction then moveAction:GetState() else Vector2.zero
+
+   local cameraLook: Vector3? = nil
+   local success, cameraState = pcall(function()
+      return (player :: any):GetCameraState()
+   end)
+   if success and cameraState and cameraState.CFrame ~= CFrame.identity then
+      cameraLook = cameraState.CFrame.LookVector
+   else
+      local cameraContext = inputContexts and inputContexts:FindFirstChild("CameraContext")
+      local cameraAction = cameraContext and cameraContext:FindFirstChild("CameraAction")
+      if cameraAction then
+         cameraLook = cameraAction:GetState()
+      end
+   end
+
+   local direction = Vector3.zero
+   if cameraLook and move.Magnitude > 1e-3 then
+      local flatLook = Vector3.new(cameraLook.X, 0, cameraLook.Z)
+      if flatLook.Magnitude > 1e-4 then
+         flatLook = flatLook.Unit
+         local right = flatLook:Cross(Vector3.yAxis).Unit
+         direction = flatLook * move.Y + right * move.X
+      end
+   end
+   if direction.Magnitude <= 1e-4 then
+      direction = humanoidRootPart.CFrame.LookVector
+   end
+   direction = Vector3.new(direction.X, 0, direction.Z)
+   if direction.Magnitude <= 1e-5 then
+      return nil
+   end
+   return direction.Unit
+end
+
+-- // One simulation step of one player's dash: start it on the press, move it, end it
+local function stepPlayerDash(player: Player, now: number, deltaTime: number)
+   local character = player.Character
+   local humanoidRootPart = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+   local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+   if not character or not humanoidRootPart or not humanoid or humanoid.Health <= 0 then
+      return
+   end
+
+   local jumpAction = getJumpAction(player)
+   local held = jumpAction ~= nil and jumpAction:GetState() == true
+   local wasHeld = humanoidRootPart:GetAttribute(ATTRIBUTE_INPUT_HELD) == true
+   if held ~= wasHeld then
+      humanoidRootPart:SetAttribute(ATTRIBUTE_INPUT_HELD, held)
+   end
+
+   local endsAt = humanoidRootPart:GetAttribute(ATTRIBUTE_ENDS_AT) or 0
+   local readyAt = humanoidRootPart:GetAttribute(ATTRIBUTE_READY_AT) or 0
+   if held and not wasHeld and endsAt == 0 and now >= readyAt and not blockReasons[player] then
+      local direction = getDashDirection(player, humanoidRootPart)
+      if direction then
+         -- // Where it ends: the full dash, up to a wall, or stopped at the edge of a gap/water (SAFE DASH)
+         local plan = planDash(humanoidRootPart.Position, direction, character)
+         endsAt = now + DASH_DURATION_SECONDS
+         humanoidRootPart:SetAttribute(ATTRIBUTE_STARTED_AT, now)
+         humanoidRootPart:SetAttribute(ATTRIBUTE_ENDS_AT, endsAt)
+         humanoidRootPart:SetAttribute(ATTRIBUTE_READY_AT, now + DASH_COOLDOWN_SECONDS)
+         humanoidRootPart:SetAttribute(ATTRIBUTE_DIRECTION, plan.Direction)
+         humanoidRootPart:SetAttribute(ATTRIBUTE_START, humanoidRootPart.Position)
+         humanoidRootPart:SetAttribute(ATTRIBUTE_DISTANCE, plan.Distance)
+         humanoidRootPart:SetAttribute(ATTRIBUTE_SHORTENED, plan.Shortened)
+      end
+   end
+   if endsAt == 0 then
+      return
+   end
+
+   local direction: Vector3 = humanoidRootPart:GetAttribute(ATTRIBUTE_DIRECTION) or Vector3.zAxis
+   local start: Vector3 = humanoidRootPart:GetAttribute(ATTRIBUTE_START) or humanoidRootPart.Position
+   local distance: number = humanoidRootPart:GetAttribute(ATTRIBUTE_DISTANCE) or DASH_DISTANCE
+   local shortened = humanoidRootPart:GetAttribute(ATTRIBUTE_SHORTENED) == true
+
+   local velocity = humanoidRootPart.AssemblyLinearVelocity
+   local travelled = (humanoidRootPart.Position - start) * Vector3.new(1, 0, 1)
+   local remaining = distance - travelled:Dot(direction)
+   if now >= endsAt or remaining <= 0.05 then
+      if shortened then
+         -- // Stopped at the edge: no momentum left to carry the player over it
+         humanoidRootPart.AssemblyLinearVelocity = Vector3.new(0, velocity.Y, 0)
+      elseif DASH_END_CLAMPS_SPEED then
+         local horizontal = Vector3.new(velocity.X, 0, velocity.Z)
+         if horizontal.Magnitude > humanoid.WalkSpeed then
+            horizontal = horizontal.Unit * humanoid.WalkSpeed
+         end
+         humanoidRootPart.AssemblyLinearVelocity = Vector3.new(horizontal.X, velocity.Y, horizontal.Z)
+      end
+      humanoidRootPart:SetAttribute(ATTRIBUTE_ENDS_AT, 0)
+      return
+   end
+
+   -- // The last step slows so the dash lands exactly on its planned spot
+   local speed = math.min(DASH_SPEED, remaining / math.max(deltaTime, 1 / 240))
+   humanoidRootPart.AssemblyLinearVelocity = Vector3.new(direction.X * speed, velocity.Y, direction.Z * speed)
+end
+
+local function stepDashes(deltaTime: number)
+   local now = time()
+   if isServer then
+      for _, player in ipairs(Players:GetPlayers()) do
+         stepPlayerDash(player, now, deltaTime)
+      end
+   else
+      stepPlayerDash(Players.LocalPlayer, now, deltaTime)
+   end
+end
+
+-------------------------------------------------------------------------------
+-- EFFECTS (outside the simulation, following the PREDICTED DASH attributes)
+-------------------------------------------------------------------------------
+
+local seenDashStarts: {[Player]: number} = {} -- // The DashStartedAt each player's effects were last started for
+local dashEffectsActive: {[Player]: boolean} = {}
+
+-- // Client: the dash animation and trail for any player
+local function playDashEffects(player: Player)
+   local character = player.Character
+   local humanoidRootPart = character and character:FindFirstChild("HumanoidRootPart")
+   local humanoid = character and character:FindFirstChildWhichIsA("Humanoid")
+   if not humanoidRootPart or not humanoid then
+      return
+   end
+   if AnimationController then
+      AnimationController.playCoreAnimation(player, "Dash")
+   end
+   local particle = ParticlesLibrary.play(math.random(1000), "Dash", humanoidRootPart:GetPivot().Position, 3, DASH_DURATION_SECONDS*.5)
+   task.spawn(function()
+      while particle and particle.Parent do
+         local dir = humanoid.MoveDirection
+         dir = Vector3.new(dir.X, 0, dir.Z)
+         if dir.Magnitude > 0 then
+               particle:PivotTo(
+                  CFrame.lookAt(
+                     humanoidRootPart.Position,
+                     humanoidRootPart.Position + dir
+                  ) * CFrame.Angles(0, math.rad(-90), 0)
+               )
+         end
+         task.wait()
+      end
+   end)
+   task.delay(DASH_DURATION_SECONDS, function()
+      if AnimationController then
+         AnimationController.stopCoreAnimation(player, "Dash")
+      end
+   end)
+end
+
+-- // A dash this player's simulation started: immunity, stats and the other clients (server); effects and cooldown (own client)
+local function onDashStarted(player: Player)
+   dashEffectsActive[player] = true
+   if isServer then
+      HitboxLibrary.immunize(player, "Dash", 0)
+      local timestamp = workspace:GetServerTimeNow()
+      for _, otherPlayer in ipairs(Players:GetPlayers()) do
+         if otherPlayer ~= player then
+            PlayDash:FireClient(otherPlayer, player.UserId, timestamp)
+         end
+      end
+   else
+      cooldowns[player] = os.clock() + DASH_COOLDOWN_SECONDS
+      playDashEffects(player)
+   end
+   SharedTasks.PlayerUsedAbility:Execute("parallel", player, ABILITY_ID)
+end
+
+local function followDashes()
+   local tracked = if isServer then Players:GetPlayers() else { Players.LocalPlayer }
+   for _, player in ipairs(tracked) do
+      blockReasons[player] = getBlockReason(player)
+
+      local character = player.Character
+      local humanoidRootPart = character and character:FindFirstChild("HumanoidRootPart")
+      if not humanoidRootPart then
+         continue
+      end
+      local startedAt = humanoidRootPart:GetAttribute(ATTRIBUTE_STARTED_AT)
+      if type(startedAt) == "number" and startedAt ~= seenDashStarts[player] then
+         seenDashStarts[player] = startedAt
+         onDashStarted(player)
+      end
+      if dashEffectsActive[player] and (humanoidRootPart:GetAttribute(ATTRIBUTE_ENDS_AT) or 0) == 0 then
+         dashEffectsActive[player] = nil
+         endDashEffects(player)
+      end
+   end
+end
+
+-------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
+-- // Client: another player dashed (PlayDash / AbilityReplication): show it. The movement itself comes from the server.
 function Dash.onPickup(userId: number, timestamp: number)
    if isServer or typeof(timestamp) ~= "number" then
       return
    end
 
    local player = Players:GetPlayerByUserId(userId)
-   if not player then
+   if not player or player == Players.LocalPlayer then
       return
    end
 
@@ -284,204 +556,70 @@ function Dash.onPickup(userId: number, timestamp: number)
 end
 
 function Dash.canActivate(player: Player)
-   if isPlayerAiming(player) then
-      print("cannot dash: is aiming")
+   local reason = getBlockReason(player)
+   if reason then
+      print(`cannot dash: {reason}`)
       return false
    end
-
-   -- // T-092/T-093: holding a manual recall of a dead boomerang (charging it, or while it flies back) hinders the player like aiming does
-   local deadWeaponData = DeadWeapons.Data[player]
-   local thrownWeaponData = ThrownWeapons.Data[player]
-   if (deadWeaponData and deadWeaponData.RecallChargeStart ~= nil) or (thrownWeaponData and thrownWeaponData.RecallFromDead == true) then
-      print("cannot dash: holding a recall")
-      return false
-   end
-
-   local gameStateData = GameStateLibrary.getGameStateData()
-   local currentRoundData = gameStateData.CurrentRoundData:Get()
-   local currentGameMode = if currentRoundData then currentRoundData.Gamemode else nil
-   if currentGameMode then
-      local gameModeData = Gamemodes[currentGameMode]
-      if gameModeData and gameModeData.DashDisabled then
-         print("dash disabled in this gamemode")
-         return false
-      end
-   end
-
    local character = player.Character
-   if not character then
-      warn(`Dash.activate: No character found for player {player.Name}`)
-      return  
-   end
-
-   local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-   if not humanoidRootPart then
-      warn(`Dash.activate: No HumanoidRootPart found for player {player.Name}`)
-      return
-   end
-
-   -- // Jump replaces dash in the lobby (see LobbyController / AbilityController.useMovementInput)
-   if LobbyLibrary.isCharacterInLobby(character) then
-      return false
-   end
-
-   local rayOrigin = humanoidRootPart.Position
-   local rayDirection = Vector3.new(0, -5, 0)
-   local raycastParams = RaycastParams.new()
-   raycastParams.FilterDescendantsInstances = {character}
-   raycastParams.CollisionGroup = CollisionGroupConstants.ArenaFloorDetector
-   raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-   local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
-   if not raycastResult then
-      print("cannot dash: not grounded")
-      return false
-   end
-
-   local cooldown = cooldowns[player]
-   if cooldown and os.clock() < cooldown then
+   local humanoidRootPart = character and character:FindFirstChild("HumanoidRootPart")
+   if humanoidRootPart and time() < (humanoidRootPart:GetAttribute(ATTRIBUTE_READY_AT) or 0) then
       print("cannot dash: on cooldown")
       return false
    end
    return true
 end
 
+-- // Effects only (the dash itself is started by the jump input inside the simulation, see PREDICTED DASH)
 function Dash.activate(player: Player, _timestamp: number?)
-   local character = player.Character
-   if not character then
-      warn(`Dash.activate: No character found for player {player.Name}`)
-      return  
-   end
-
-   local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-   if not humanoidRootPart then
-      warn(`Dash.activate: No HumanoidRootPart found for player {player.Name}`)
+   if isServer then
       return
    end
-   
-   local humanoid = character:FindFirstChildWhichIsA("Humanoid")
-   if not humanoid then
-      warn(`Dash.activate: No Humanoid found for player {player.Name}`)
+   playDashEffects(player)
+end
+
+-- // Client: the dash buttons (touch) press the same replicated input Space does, so the dash is predicted the same way
+function Dash.pressInput()
+   if isServer then
       return
    end
-
-   local timestamp = _timestamp or game.Workspace:GetServerTimeNow()
-   if isServer then
-      for _, p in pairs(game.Players:GetPlayers()) do
-         if p == player then
-            continue
-         end
-         PlayDash:FireClient(p, player.UserId, timestamp)
-      end
+   local jumpAction = getJumpAction(Players.LocalPlayer)
+   if not jumpAction then
+      return
    end
-
-   stopDash(player, character)
-
-   cooldowns[player] = os.clock() + DASH_COOLDOWN_SECONDS
-   if AnimationController then
-      AnimationController.playCoreAnimation(player, "Dash")
-   end
-
-   local dashEndsAt = os.clock() + DASH_DURATION_SECONDS
-
-   if isServer then
-      -- Server context
-
-      local forward = humanoid.MoveDirection
-      if forward.X == 0 and forward.Y == 0 and forward.Z == 0 then
-         forward = humanoidRootPart.CFrame.LookVector
-      end
-      local horizontalForward = Vector3.new(forward.X, 0, forward.Z)
-      if horizontalForward.Magnitude <= 1e-5 then
-         return
-      end
-      horizontalForward = horizontalForward.Unit
-
-      -- // Where it ends: the full dash, up to a wall, or stopped at the edge of a gap/water (SAFE DASH)
-      local plan = planDash(humanoidRootPart.Position, horizontalForward, character)
-      local startPosition = humanoidRootPart.Position
-
-      HitboxLibrary.immunize(player, "Dash", 0)
-
-      activeDashConnections[character] = RunService.Heartbeat:Connect(function(deltaTime)
-         if not character.Parent or not humanoidRootPart.Parent then
-            stopDash(player, character)
-            return
-         end
-
-         local currentVelocity = humanoidRootPart.AssemblyLinearVelocity
-         local travelled = (humanoidRootPart.Position - startPosition) * Vector3.new(1, 0, 1)
-         local remaining = plan.Distance - travelled:Dot(plan.Direction)
-         if os.clock() >= dashEndsAt or (plan.Shortened and remaining <= 0.05) then
-            if plan.Shortened then
-               -- // Stopped at the edge: no momentum left to carry the player over it
-               humanoidRootPart.AssemblyLinearVelocity = Vector3.new(0, currentVelocity.Y, 0)
-            elseif DASH_END_CLAMPS_SPEED then
-               local horizontal = Vector3.new(currentVelocity.X, 0, currentVelocity.Z)
-               if horizontal.Magnitude > humanoid.WalkSpeed then
-                  horizontal = horizontal.Unit * humanoid.WalkSpeed
-               end
-               humanoidRootPart.AssemblyLinearVelocity = Vector3.new(horizontal.X, currentVelocity.Y, horizontal.Z)
-            end
-            stopDash(player, character)
-            return
-         end
-
-         -- // A shortened dash slows on its last frame so it lands on the planned spot
-         local speed = if plan.Shortened then math.min(DASH_SPEED, remaining / math.max(deltaTime, 1 / 240)) else DASH_SPEED
-         humanoidRootPart.AssemblyLinearVelocity = Vector3.new(
-            plan.Direction.X * speed,
-            currentVelocity.Y,
-            plan.Direction.Z * speed
-         )
+   pcall(function()
+      jumpAction:Fire(true)
+   end)
+   task.delay(0.1, function()
+      pcall(function()
+         jumpAction:Fire(false)
       end)
-   else
-      -- Client context
-      local particle = ParticlesLibrary.play(math.random(1000), "Dash", humanoidRootPart:GetPivot().Position, 3, DASH_DURATION_SECONDS*.5)
-      task.spawn(function()
-         while particle and particle.Parent do
-            local dir = humanoid.MoveDirection
-            dir = Vector3.new(dir.X, 0, dir.Z)
-            if dir.Magnitude > 0 then
-                  particle:PivotTo(
-                     CFrame.lookAt(
-                        humanoidRootPart.Position,
-                        humanoidRootPart.Position + dir
-                     ) * CFrame.Angles(0, math.rad(-90), 0)
-                  )
-            end
-            task.wait()
-         end
-      end)
-
-      activeDashConnections[character] = RunService.Heartbeat:Connect(function()
-         if not character.Parent or not humanoidRootPart.Parent then
-            stopDash(player, character)
-            return
-         end
-
-         if os.clock() >= dashEndsAt then
-            stopDash(player, character)
-            return
-         end
-      end)
-   end
+   end)
 end
 
 -------------------------------------------------------------------------------
 -- RUNTIME
 -------------------------------------------------------------------------------
 
+RunService:BindToSimulation(stepDashes, Enum.StepFrequency.Hz60)
+RunService.Heartbeat:Connect(followDashes)
+
 PlayersUtil.PlayerRemoving:Add(function(player: Player)
    cooldowns[player] = nil
+   blockReasons[player] = nil
+   seenDashStarts[player] = nil
+   dashEffectsActive[player] = nil
 end)
 
 PlayersUtil.CharacterDestroying:Add(function(player: Player, character: Model)
-   stopDash(player, character)
+   endDashEffects(player)
+   dashEffectsActive[player] = nil
    cooldowns[player] = nil
 end)
 
 PlayersUtil.CharacterDied:Add(function(player: Player, character: Model, humanoid: Humanoid)
-   stopDash(player, character)
+   endDashEffects(player)
+   dashEffectsActive[player] = nil
    cooldowns[player] = nil
 end)
 

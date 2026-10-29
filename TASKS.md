@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-137** *(shared by every task list, general and Epic)*
+**Next free ID: T-138** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -83,6 +83,24 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-137 · Dash predicted on the client (no more glitchy jump when dashing)
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared (Dash ability, server authority) + Client input
+- **Files:** `Shared/Logics/AbilityLogics/Dash.luau`, `Client/Core/AbilityController.luau`
+
+**Done when**
+- [ ] Dashing shows no jump/snap: the dash is applied the same way at the same moment on the server and in the player's own client prediction
+- [ ] PREDICTED DASH section: the dash starts when the player's replicated JumpAction is pressed (Space, gamepad), inside RunService:BindToSimulation on the server (every player) and on the player's own client, and its movement (SAFE DASH plan included) runs there too; its state (start time, end time, cooldown, direction, start, distance) is kept in attributes on the HumanoidRootPart so it is rolled back and replayed with the character
+- [ ] What can't run inside the simulation follows those attributes on Heartbeat: dash immunity, PlayDash to the other clients and the PlayerUsedAbility stats/fire hook (server); the animation, trail and cooldown icon (own client)
+- [ ] The on-screen dash buttons press the same JumpAction (Dash.pressInput), so they're predicted the same way; Space in the arena is no longer handled by AbilityController (only in the lobby, for jumping)
+- [ ] The Dash module is loaded on the client at start (it used to load on the first dash)
+
+**Notes**
+- From Sol, 2026-10-28 ("a small glitchy jump when they use dash"). Cause: the dash set the character's velocity only on the server, outside the simulation, so the client never predicted it and was corrected to the server's result. Tested in Studio: logging both sides, a dash started on the same simulation frame (same time() and position) on the server and the client, and every frame of it matched (same X to 0.01 studs).
+- Not tested: the mobile dash buttons (Dash.pressInput fires the JumpAction).
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-137-predicted-dash`.
 
 ### T-136 · Dash avoids landing the player somewhere deadly (water, open air)
 - **Priority:** P2

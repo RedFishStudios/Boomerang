@@ -88,7 +88,9 @@ end
 -- CORE FUNCTIONS
 -------------------------------------------------------------------------------
 
--- // The jump/dash input (Space, mobile jump/dash button): jumps in the lobby, dashes in the arena
+-- // The jump/dash input (Space, mobile jump/dash button): jumps in the lobby, dashes in the arena.
+-- // In the arena the dash is started by the replicated jump input inside the simulation (Dash, T-137), which Space and the
+-- // gamepad already press; the on-screen buttons press it through Dash.pressInput.
 function AbilityController.useMovementInput()
    if LobbyController.isInLobby() then
       local character = localPlayer.Character
@@ -98,16 +100,23 @@ function AbilityController.useMovementInput()
       end
       return
    end
-   AbilityController.activate("Dash")
+   local dash = getLogic("Dash")
+   if dash and dash.pressInput then
+      dash.pressInput()
+   end
 end
 
 function AbilityController.init()
+   -- // Dash runs inside the simulation from the jump input (T-137), so it must be loaded before it's first used
+   task.spawn(getLogic, "Dash")
+
    UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessed: boolean)
 		if gameProcessed then
 			return
 		end
 
-      if input.KeyCode == Enum.KeyCode.Space then
+      -- // Space in the arena presses the jump input itself (the dash, T-137); only the lobby needs it handled here
+      if input.KeyCode == Enum.KeyCode.Space and LobbyController.isInLobby() then
          AbilityController.useMovementInput()
 		end
 
