@@ -11,6 +11,7 @@ return {
    CloseButton = 83841981001141,
    StabButton = 70946537634521, -- // Touch controls: the Stab (slash) button (used in CustomTouchscreen.rbxmx)
    AimThumbstick = 118487572306150, -- // Touch controls: the aim thumbstick knob (transparent background; used in CustomTouchscreen.rbxmx)
+   ManualRecall = 71238029462038, -- // Touch controls: the aim thumbstick knob while the boomerang is dead and needs a manual recall (CustomTouchscreen)
 
    -- Inventory
    InventoryButton = 123566439013193, -- // Boomerang icon: the Inventory HUD button (MenuButtons) and the Inventory's Weapons tab

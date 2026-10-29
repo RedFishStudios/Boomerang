@@ -4,6 +4,8 @@ TouchscreenGui.Open = false
 
 local GuiService = game:GetService("GuiService")
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 
 local Player = game:GetService("Players").LocalPlayer
 
@@ -16,6 +18,9 @@ local _UIController = require(ClientMods.UI.UIController)
 local AbilityController = require(ClientMods.Core.AbilityController)
 local WeaponController = require(ClientMods.Core.WeaponController)
 local PlatformController = require(ClientMods.Core.PlatformController)
+local Icons = require(ReplicatedStorage.Shared.Constants.Icons)
+local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
+local DeadWeapons = require(ReplicatedStorage.Shared.Referential.DeadWeapons)
 
 -- // Gui Values // --
 
@@ -25,6 +30,7 @@ Gui.IgnoreGuiInset = true
 
 local aimThumbstickContainer = Gui.AimThumbstick
 local aimThumbstick = aimThumbstickContainer.Thumbstick
+local aimThumbstickImage = aimThumbstick.ThumbstickImage
 
 local aimThumbstickDragAngle = 0
 
@@ -45,6 +51,61 @@ local function ensureThumbstickOrigin()
 end
 
 local drag
+
+-- // MANUAL RECALL MODE (T-138): while the boomerang is dead (or flying back from a manual recall), the aim thumbstick becomes
+-- // the Manual Recall button: its knob shows Icons.ManualRecall, it no longer aims, and holding it recalls exactly like holding
+-- // E on PC. Back in hand, it's the aim thumbstick again. Each switch pops the knob out a little and back (POP_SCALE).
+local POP_SCALE = 1.25 -- // How much bigger the knob pops out when it switches
+local POP_OUT_SECONDS = 0.08
+local POP_BACK_SECONDS = 0.18
+
+local recallMode = false
+local recallInput: InputObject? = nil -- // The touch holding the recall (another finger lifting doesn't end it)
+local knobScale = Instance.new("UIScale")
+knobScale.Parent = aimThumbstick
+local popTween: Tween? = nil
+
+local function toImage(assetId: number): string
+	return `rbxassetid://{assetId}`
+end
+
+local function needsManualRecall(): boolean
+	if DeadWeapons.Data[Player] then
+		return true
+	end
+	local thrownWeaponData = ThrownWeapons.Data[Player]
+	return thrownWeaponData ~= nil and thrownWeaponData.RecallFromDead == true -- // Flying back from a manual recall: keep holding
+end
+
+local function isBoomerangInHand(): boolean
+	return not ThrownWeapons.Data[Player] and not DeadWeapons.Data[Player]
+end
+
+-- // The cartoony switch: out to POP_SCALE, then back to normal with a little overshoot
+local function popKnob()
+	if popTween then
+		popTween:Cancel()
+	end
+	knobScale.Scale = 1
+	local popOut = TweenService:Create(knobScale, TweenInfo.new(POP_OUT_SECONDS, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Scale = POP_SCALE })
+	popTween = popOut
+	popOut.Completed:Connect(function(playbackState)
+		if playbackState ~= Enum.PlaybackState.Completed then
+			return
+		end
+		local popBack = TweenService:Create(knobScale, TweenInfo.new(POP_BACK_SECONDS, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
+		popTween = popBack
+		popBack:Play()
+	end)
+	popOut:Play()
+end
+
+local function endRecallHold()
+	if recallInput then
+		recallInput = nil
+		WeaponController.endRecallInput()
+	end
+end
 
 -- // T-118: the circle's center in the same space as the touch positions. Touch positions already line up with this GUI's
 -- // AbsolutePosition (it ignores the top bar inset), so no inset correction: subtracting it put the thumbstick below the finger.
@@ -73,6 +134,14 @@ local function touchStarted(input, gameProcessed)
 	local center = getContainerCenterInInputSpace()
 	local radius = math.min(aimThumbstickContainer.AbsoluteSize.X, aimThumbstickContainer.AbsoluteSize.Y) / 2
 	if (Vector2.new(input.Position.X, input.Position.Y) - Vector2.new(center.X, center.Y)).Magnitude > radius then
+		return
+	end
+
+	-- // MANUAL RECALL MODE: the press starts holding the recall instead of aiming
+	if recallMode then
+		if not recallInput and WeaponController.beginRecallInput() then
+			recallInput = input
+		end
 		return
 	end
 
@@ -114,6 +183,10 @@ end
 
 -- Touch has ended
 local function touchEnded(input, gameProcessed, shouldThrow: boolean?)
+	if recallInput and input == recallInput then
+		endRecallHold()
+		return
+	end
 	if input == DragInput then
 		local releasedAngle = aimThumbstickDragAngle
 		draggingAimThumbstick = false
@@ -128,6 +201,31 @@ local function touchEnded(input, gameProcessed, shouldThrow: boolean?)
 		end
 
 		WeaponController.releaseThumbstickAim(releasedAngle)
+	end
+end
+
+-- // MANUAL RECALL MODE: switch the thumbstick when the boomerang dies, and back once it's in hand again
+local function setRecallMode(enabled: boolean)
+	if recallMode == enabled then
+		return
+	end
+	recallMode = enabled
+	if enabled and draggingAimThumbstick and DragInput then
+		touchEnded(DragInput, false, false) -- // Stop aiming without throwing
+	end
+	if not enabled then
+		endRecallHold()
+	end
+	aimThumbstick.Position = aimThumbstickDefaultPosition
+	aimThumbstickImage.Image = toImage(if enabled then Icons.ManualRecall else Icons.AimThumbstick)
+	popKnob()
+end
+
+local function updateRecallMode()
+	if not recallMode and needsManualRecall() then
+		setRecallMode(true)
+	elseif recallMode and isBoomerangInHand() then
+		setRecallMode(false)
 	end
 end
 
@@ -169,6 +267,13 @@ local function setupFunctionality()
 	aimThumbstickContainer.InputBegan:Connect(touchStarted)
 	UserInputService.TouchMoved:Connect(drag)
 	UserInputService.TouchEnded:Connect(touchEnded)
+	-- // A mouse click held on the recall button (Studio's touch emulation) ends on the mouse release
+	UserInputService.InputEnded:Connect(function(input: InputObject)
+		if recallInput and recallInput.UserInputType == Enum.UserInputType.MouseButton1 and input.UserInputType == Enum.UserInputType.MouseButton1 then
+			endRecallHold()
+		end
+	end)
+	RunService.Heartbeat:Connect(updateRecallMode)
 end
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -191,6 +296,7 @@ end
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 local function _init()
+   aimThumbstickImage.Image = toImage(Icons.AimThumbstick)
    Gui.Parent = Player.PlayerGui
    Gui.ClipToDeviceSafeArea = false
    Gui.IgnoreGuiInset = true
@@ -200,6 +306,7 @@ local function _init()
 	layoutActionButtons()
 
    GuiService.MenuOpened:Connect(function()
+      endRecallHold()
       if draggingAimThumbstick then
 			touchEnded(DragInput, false, false)
 		end
@@ -220,6 +327,7 @@ local function _init()
 			if draggingAimThumbstick and DragInput then
 				touchEnded(DragInput, false, false)
 			end
+			endRecallHold()
          TouchscreenGui.close()
       end
    end)
