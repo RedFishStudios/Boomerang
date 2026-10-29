@@ -15,6 +15,8 @@
 	- Throws: accepted weapon throws in a round.
 	- AbilityUses: uses of AbilityId (e.g. "Dash", "Stab") in a round.
 	- Pickups: pickups collected; PickupId limits it to one kind (a PickupLogics module name).
+	- PickupUses: uses of the pickup PickupId (T-148): pressing its use button (Decoy, Explosive Boomerang...), or
+	  collecting one that takes effect at once (Shield, Speedup...).
 
 	Rewards use the shared reward shape (RewardLibrary): Currency, Skin, ChargeUpEffect, Emote or Item. A quest
 	without its own Reward gives its pool's Reward. Daily and weekly quests only give Currency in practice; cosmetics
@@ -29,14 +31,14 @@ local RewardLibrary = require(ReplicatedStorage.Shared.Library.RewardLibrary)
 -- TYPES
 -------------------------------------------------------------------------------
 
-export type ObjectiveType = "Eliminations" | "Wins" | "RoundsPlayed" | "MinutesPlayed" | "Throws" | "AbilityUses" | "Pickups"
+export type ObjectiveType = "Eliminations" | "Wins" | "RoundsPlayed" | "MinutesPlayed" | "Throws" | "AbilityUses" | "Pickups" | "PickupUses"
 
 export type Objective = {
 	Type: ObjectiveType,
 	Goal: number,
 	Gamemode: string?, -- // Gamemode id (Shared/Constants/Gamemodes); only rounds of it count
 	AbilityId: string?, -- // AbilityUses: which ability
-	PickupId: string?, -- // Pickups: which pickup (nil = any)
+	PickupId: string?, -- // Pickups: which pickup (nil = any). PickupUses: which pickup (required)
 }
 
 export type Quest = {
@@ -104,6 +106,31 @@ local List: { Quest } = {
 	{ Id = "WeeklyEliminationWins", Pool = "Weekly", Objective = { Type = "Wins", Gamemode = "Elimination", Goal = 2 } },
 	{ Id = "WeeklyTeamClassicWins", Pool = "Weekly", Objective = { Type = "Wins", Gamemode = "TeamClassic", Goal = 3 } },
 }
+
+-- // T-148: "Use <pickup> N times" quests, one per pickup in each pool (ids "DailyUse<Pickup>" / "WeeklyUse<Pickup>").
+-- // Only pickups that can spawn (not Disabled in their PickupLogics module).
+local USE_PICKUP_IDS = {
+	"Decoy",
+	"Disguise",
+	"ElectricBoomerang",
+	"ExplosiveBoomerang",
+	"FireBoomerang",
+	"HomingBoomerang",
+	"Shield",
+	"Speedup",
+	"Telekinesis",
+	"TeleportBoomerang",
+}
+local USE_PICKUP_GOALS = { Daily = 3, Weekly = 6 }
+for _, pickupId in USE_PICKUP_IDS do
+	for _, poolName in { "Daily", "Weekly" } do
+		table.insert(List, {
+			Id = `{poolName}Use{pickupId}`,
+			Pool = poolName,
+			Objective = { Type = "PickupUses", PickupId = pickupId, Goal = USE_PICKUP_GOALS[poolName] },
+		})
+	end
+end
 
 return {
 	Pools = Pools,

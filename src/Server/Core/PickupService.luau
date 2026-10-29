@@ -98,6 +98,9 @@ instantiateReverseCompatibility()
 PickupService.PickupEffectEndedTasks = TasksList.new() :: TasksList.TasksList<(forUserId: number, livePickupId: string)->()>
 -- // A player picked up a live pickup in the world (not developer grants)
 PickupService.PickupAcquiredTasks = TasksList.new() :: TasksList.TasksList<(player: Player, pickupClassId: string)->()>
+-- // T-148: a player used a pickup: pressed its use button (Decoy, Explosive, Teleport...), or picked up one that takes
+-- // effect at once (no use button: Shield, Speedup...). Quests count "Use X" from this.
+PickupService.PickupUsedTasks = TasksList.new() :: TasksList.TasksList<(player: Player, pickupClassId: string)->()>
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -242,6 +245,9 @@ local function activatePickup(player: Player, livePickupId: LivePickupId, ...)
       PickupLibrary.setPickupEffectActive(player.UserId, livePickupId, pickupClassId, endsAt)
    end
    PickupService.PickupAcquiredTasks:Execute("parallel", player, pickupClassId)
+   if not logic.UseButton then
+      PickupService.PickupUsedTasks:Execute("parallel", player, pickupClassId) -- // T-148: takes effect at once
+   end
 
    pickupReplication:FireAllClients(livePickupId, pickupClassId, player.UserId, workspace:GetServerTimeNow())
 end
@@ -424,6 +430,7 @@ function PickupService.init()
          return
       end
       logic.onUse(player)
+      PickupService.PickupUsedTasks:Execute("parallel", player, pickupClassId) -- // T-148
    end)
 
    -- // T-108: dying loses every pickup the player holds (round end already clears them all: clearAllPickupEffectsActive above).

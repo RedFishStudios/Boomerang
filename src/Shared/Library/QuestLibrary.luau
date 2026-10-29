@@ -138,6 +138,8 @@ function QuestLibrary.getText(quest: Quests.Quest): string
 			return `Collect {goal} {spaceOut(objective.PickupId)} {plural(goal, "pickup")}`
 		end
 		return `Collect {goal} {plural(goal, "pickup")}`
+	elseif objective.Type == "PickupUses" then
+		return `Use {spaceOut(objective.PickupId or "a pickup")} {goal} {plural(goal, "time")}`
 	end
 	return quest.Id
 end

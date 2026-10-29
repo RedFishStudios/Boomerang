@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-148** *(shared by every task list, general and Epic)*
+**Next free ID: T-149** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -141,6 +141,20 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 
 ## Review
+
+### T-148 · Quests: "Use <pickup> N times"
+- **Priority:** P3
+- **Owner:** Agent
+- **Area:** Quests
+- **Files:** `Shared/Referential/Quests.luau`, `Shared/Library/QuestLibrary.luau`, `Server/Core/QuestService.luau`, `Server/Core/PickupService.luau`
+
+**Done when**
+- [ ] Daily and Weekly pools have a "Use <pickup> N times" quest for each pickup that can spawn (Decoy, Disguise, Electric / Explosive / Fire / Homing / Teleport Boomerang, Shield, Speedup, Telekinesis); Daily goal 3, Weekly goal 6
+- [ ] A use is pressing the pickup's use button (Decoy, Explosive Boomerang, Teleport Boomerang), or collecting a pickup that takes effect at once (the rest)
+
+**Notes**
+- From Sol, 2026-10-29. New PickupService.PickupUsedTasks event. They all share one objective type, so a player usually gets at most one per pool (draws prefer different kinds).
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-148-pickup-quests`.
 
 ### T-147 · Quests: reward becomes the claim button, Reroll button
 - **Priority:** P2

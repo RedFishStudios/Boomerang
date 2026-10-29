@@ -388,6 +388,11 @@ function QuestService.init()
 			return objective.Type == "Pickups" and (objective.PickupId == nil or objective.PickupId == pickupClassId)
 		end)
 	end)
+	PickupService.PickupUsedTasks:Add(function(player: Player, pickupClassId: string)
+		addProgress(player, 1, function(objective)
+			return objective.Type == "PickupUses" and objective.PickupId == pickupClassId
+		end)
+	end)
 
 	local gameStateData = GameStateLibrary.getGameStateData()
 	gameStateData.CurrentRoundData:Subscribe(function(roundData)
