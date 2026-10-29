@@ -265,6 +265,14 @@ local function throwEquippedTool(forcedDirection: Vector3?): boolean
 		releasePosition = throwOrigin + direction * 3
 	 end
 
+	 -- // T-141: the point aimed at, so the server can curve the throw through it (BoomerangCurveLibrary). PC mouse aim (top-down
+	 -- // camera) only for now: the mouse's spot on the floor. Other aim modes send none and the server picks the distance.
+	 local aimTarget: Vector3? = nil
+	 if not forcedDirection and UserInputService.MouseBehavior == Enum.MouseBehavior.Default
+	    and PlatformController.getDominantControlScheme() ~= "Touch" and PlatformController.getDominantControlScheme() ~= "Console" then
+		aimTarget = CharacterController.getMouseGroundPosition()
+	 end
+
 	 if pendingHost then
 		local pendingToken = {}
 		pendingLocalThrow = {
@@ -282,7 +290,7 @@ local function throwEquippedTool(forcedDirection: Vector3?): boolean
 	 end
 
     
-	throwFunction:InvokeServer(equippedToolId, direction, releasePosition)
+	throwFunction:InvokeServer(equippedToolId, direction, releasePosition, aimTarget)
    setLocalAimState(false)
 
    return true

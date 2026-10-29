@@ -226,7 +226,8 @@ local function throwForPlayer(
    direction: Vector3?,
    startPosition: Vector3?,
    timeSinceAiming: number,
-   aimStrengthAlpha: number
+   aimStrengthAlpha: number,
+   targetPosition: Vector3?
 )
    if playerIsWeaponLocked(player) then
       return
@@ -277,6 +278,7 @@ local function throwForPlayer(
       StartPosition = trustedStartPosition,
       TimeSinceAiming = timeSinceAiming,
       AimStrengthAlpha = aimStrengthAlpha,
+      TargetPosition = targetPosition, -- // T-141: only sets how far ahead the curve crosses the aim line (clamped by the curve library)
    })
    SharedTasks.WeaponThrownTasks:Execute("serial", player, toolId)
 end
@@ -457,7 +459,7 @@ function WeaponService.init()
    end)
 
    -- // Throw boomerang
-   throwFunction.OnServerInvoke = function(player: Player, toolId: string, clientDirection: Vector3?, clientStartPosition: Vector3?)
+   throwFunction.OnServerInvoke = function(player: Player, toolId: string, clientDirection: Vector3?, clientStartPosition: Vector3?, clientAimTarget: Vector3?)
       toolId = equippedToolIds[player] or toolId -- // The server decides the weapon class (from the equipped skin)
       local timeSinceAiming = os.clock() - (aiming[player] or os.clock())
       local chargeTime = BoomerangTuningLibrary.getForAnyTool(if type(toolId) == "string" then toolId else nil, "ChargeTime") -- // T-066
@@ -492,7 +494,8 @@ function WeaponService.init()
                   if typeof(clientDirection) == "Vector3" then clientDirection else nil,
                   if typeof(clientStartPosition) == "Vector3" then clientStartPosition else nil,
                   timeSinceAiming,
-                  aimStrengthAlpha
+                  aimStrengthAlpha,
+                  if typeof(clientAimTarget) == "Vector3" then clientAimTarget else nil
                )
             else
                throwForPlayer(
@@ -512,7 +515,8 @@ function WeaponService.init()
             if typeof(clientDirection) == "Vector3" then clientDirection else nil,
             if typeof(clientStartPosition) == "Vector3" then clientStartPosition else nil,
             timeSinceAiming,
-            aimStrengthAlpha
+            aimStrengthAlpha,
+            if typeof(clientAimTarget) == "Vector3" then clientAimTarget else nil
          )
       end
 	end
