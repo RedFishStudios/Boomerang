@@ -7,6 +7,7 @@
 ]]
 
 local DecoyBehavior = {}
+DecoyBehavior.CountsAsElimination = false -- // T-143: popping a decoy isn't an elimination (quests)
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

@@ -25,6 +25,7 @@ local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.Colli
 local WalkSpeedLibrary = require(ReplicatedStorage.Shared.Library.WalkSpeedLibrary)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
+local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 local ParticlesLibrary = require(ReplicatedStorage.Shared.Library.ParticlesLibrary)
 
 -------------------------------------------------------------------------------
@@ -67,6 +68,7 @@ export type BotBehavior = {
 	update: ((bot: Bot, deltaTime: number) -> ())?,
 	shouldDespawn: ((bot: Bot) -> boolean)?,
 	onHit: ((bot: Bot, throwerPlayer: Player) -> boolean)?, -- // may this weapon hit eliminate the bot? (nil = any hit does)
+	CountsAsElimination: boolean?, -- // T-143: false = eliminating it doesn't count for quests (decoys); nil = it does
 }
 
 -------------------------------------------------------------------------------
@@ -74,6 +76,9 @@ export type BotBehavior = {
 -------------------------------------------------------------------------------
 
 local bots: { [string]: Bot } = {}
+
+-- // T-143: a weapon hit eliminated a bot (QuestService counts it unless the behavior's CountsAsElimination is false)
+BotService.BotEliminatedTasks = TasksList.new() :: TasksList.TasksList<(throwerPlayer: Player, bot: Bot) -> ()>
 local hitboxesVisible = false -- // Cmdr `viewhitbox` shows bot hitboxes like player hitboxes
 local HITBOX_VISIBLE_TRANSPARENCY = 0.6
 local botsFolder: Folder? = nil
@@ -261,6 +266,7 @@ function BotService.onWeaponHit(throwerPlayer: Player, botModel: Instance): bool
 		return false
 	end
 	BotService.despawn(botId, "eliminated")
+	BotService.BotEliminatedTasks:Execute("parallel", throwerPlayer, bot)
 	return true
 end
 
