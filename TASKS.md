@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-149** *(shared by every task list, general and Epic)*
+**Next free ID: T-150** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -141,6 +141,23 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 
 ## Review
+
+### T-149 · PC / console: "Recall" pop-up above the head when the boomerang is dead
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client UI
+- **Files:** `Client/Core/RecallPromptController.luau` (new), `Client/Core/WeaponController.luau`
+
+**Done when**
+- [ ] On PC and console, while the local player's boomerang is dead (or dying), a green prompt pops up above their head: an outlined box with the recall key, then "Recall"
+- [ ] It pops in (from 80% size, overshoots, settles; fades in fast) and pops out when they start recalling or the boomerang is back (expands, shrinks to 80%, fades out); it's a CanvasGroup so it fades as one
+- [ ] It sits above the head and is the same size on screen in the top-down and over-the-shoulder cameras
+
+**Notes**
+- From Sol, 2026-10-29. BillboardGui on the rendered head: StudsOffsetWorldSpace just above the head + SizeOffset (0, 0.5) (bottom edge on that point in screen space); its stud size is recomputed every frame from the camera distance and FOV (SCREEN_HEIGHT_FRACTION of the screen).
+- Console had no recall button: added ButtonY (WeaponController.RECALL_GAMEPAD_KEY) alongside E (RECALL_KEY); the prompt shows the platform's own button image on console.
+- Studio: checked visually in both camera modes (above the head, readable); holding E hid it.
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-149-recall-popup`.
 
 ### T-148 · Quests: "Use <pickup> N times"
 - **Priority:** P3

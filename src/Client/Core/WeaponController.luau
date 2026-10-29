@@ -300,6 +300,15 @@ end
 -- // A live boomerang only needs the press; a dying/dead one returns only while held.
 local isRecallHeld = false
 
+-- // T-149: the recall keys (hold to recall a dead boomerang). The recall prompt above the player's head shows these.
+WeaponController.RECALL_KEY = Enum.KeyCode.E
+WeaponController.RECALL_GAMEPAD_KEY = Enum.KeyCode.ButtonY
+
+-- // Whether the local player is holding recall right now
+function WeaponController.isRecallHeld(): boolean
+	return isRecallHeld
+end
+
 function WeaponController.beginRecallInput(): boolean
    local localPlayer = Players.LocalPlayer
    if not ThrownWeapons.Data[localPlayer] and not DeadWeapons.Data[localPlayer] then
@@ -995,7 +1004,7 @@ function WeaponController.init()
          beginEquippedToolAim()
 		end
 
-      if input.KeyCode == Enum.KeyCode.E then
+      if input.KeyCode == WeaponController.RECALL_KEY or input.KeyCode == WeaponController.RECALL_GAMEPAD_KEY then
 			WeaponController.beginRecallInput()
 		end
 	end)
@@ -1004,7 +1013,7 @@ function WeaponController.init()
 
    UserInputService.InputEnded:Connect(function(input: InputObject, gameProcessed: boolean)
       -- // Always deliver the recall release (even if a gui took the input), so a held recall can't get stuck
-      if input.KeyCode == Enum.KeyCode.E then
+      if input.KeyCode == WeaponController.RECALL_KEY or input.KeyCode == WeaponController.RECALL_GAMEPAD_KEY then
          WeaponController.endRecallInput()
       end
       if gameProcessed then
