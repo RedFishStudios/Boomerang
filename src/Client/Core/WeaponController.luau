@@ -682,12 +682,18 @@ local function renderChargeUpEffects()
          local timeSinceAimStart = os.clock() - arrows.AimStart
          local aimStrengthAlpha = math.clamp(timeSinceAimStart / BoomerangTuningLibrary.getForAnyTool(SkinLibrary.getWeaponClass(Players.LocalPlayer), "ChargeTime"), 0, 1) -- // T-066
          local characterCFrame = if p == Players.LocalPlayer then CharacterController.LastCFrame else humanoidRootPart.CFrame
+         -- // T-142: the held boomerang, which the throw leaves from (a pivot too far from the character is stale: none, like the throw)
+         local throwOrigin = ToolController.getToolPivotPosition(p)
+         if throwOrigin and (throwOrigin - humanoidRootPart.Position).Magnitude > MAX_RELEASE_DISTANCE_FROM_CHARACTER then
+            throwOrigin = nil
+         end
 
          -- // The effect's own logic module animates it from the charge progress (see Shared/Logics/ChargeUpEffects)
          arrows.Handle:update({
             Alpha = aimStrengthAlpha,
             RootPart = humanoidRootPart,
             AimCFrame = characterCFrame,
+            ThrowOrigin = throwOrigin,
          })
       end
    end)

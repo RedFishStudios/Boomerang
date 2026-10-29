@@ -19,7 +19,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-142** *(shared by every task list, general and Epic)*
+**Next free ID: T-143** *(shared by every task list, general and Epic)*
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -81,6 +81,21 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ---
 
 ## In Progress
+
+### T-142 · Aim arrow lines up under the boomerang's path
+- **Priority:** P3
+- **Owner:** Agent
+- **Area:** Client visuals (charge up effects)
+- **Files:** `Shared/Logics/ChargeUpEffects/ArrowEffect.luau`, `Shared/Library/ChargeUpEffectLibrary.luau`, `Client/Core/WeaponController.luau`
+
+**Done when**
+- [ ] The aim arrow sits under the line the boomerang leaves along (the held boomerang's side of the character), not under the character's centre
+- [ ] Both arrow skins (GenericAimArrow, RedAimArrow) get it, through the shared ArrowEffect
+- [ ] Other players' arrows line up the same way; a stale tool position (too far from the character) falls back to the centre, like the throw does
+
+**Notes**
+- From Sol, 2026-10-29. The charge frame now carries ThrowOrigin (the held boomerang's position, the same point the throw is released from); ArrowEffect shifts the arrow sideways onto that line, eased so the charge animation doesn't make it jitter (THROW_LINE_FOLLOW_RATE).
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-142-aim-arrow-origin`.
 
 ### T-141 · Thrown boomerangs curve (stage 1: PC mouse aim)
 - **Priority:** P2
