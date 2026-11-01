@@ -12,8 +12,14 @@
 	- Progress comes from the same server events the lifetime stats use (see Shared/Referential/Quests for what each
 	  objective type counts). Actions only count while the player is alive in the arena, so the lobby can't be farmed.
 	- Rewards are granted with RewardService (shared by everything that gives rewards).
-	- Reroll (T-147, "RerollQuest" remote function): swaps one unclaimed quest, in its place, for another from the same
-	  pool that the player doesn't have. FREE FOR NOW (testing): a developer product will pay for it later (REROLL_IS_FREE).
+	- Reroll (T-147): swaps one unclaimed quest, in its place, for another from the same pool that the player doesn't
+	  have. Paid with the "QuestReroll" developer product (MarketplaceItems):
+	    1. The client reserves the quest ("ReserveQuestReroll" remote function). While it's reserved it gets no progress
+	       and can't be claimed.
+	    2. Once the server confirms, the client shows the purchase prompt.
+	    3. The receipt (ProductLogics/QuestReroll -> QuestService.applyPaidReroll) rerolls the reserved quest. Declining
+	       the prompt releases it. A receipt with no usable reservation (e.g. after a rejoin, or the quests reset in
+	       between) rerolls a random weekly quest instead, so a purchase always gives something.
 ]]
 
 local QuestService = {}
@@ -33,6 +39,7 @@ local PlayerDataService = require(ServerStorage.Server.Core.PlayerDataService)
 local PickupService = require(ServerStorage.Server.Core.PickupService)
 local BotService = require(ServerStorage.Server.Core.BotService)
 local RewardService = require(ServerStorage.Server.Core.RewardService)
+local MarketplaceLibrary = require(ReplicatedStorage.Shared.Library.MarketplaceLibrary)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -40,9 +47,7 @@ local RewardService = require(ServerStorage.Server.Core.RewardService)
 
 local RESET_CHECK_INTERVAL = 30 -- // Seconds between checks for a pool reset (so quests refresh at midnight for players online)
 local MINUTES_TICK = 5 -- // Seconds between MinutesPlayed checks
--- // T-147: rerolls cost nothing while this is on (testing). When the developer product exists, the reroll is granted
--- // from its receipt instead (ProductService) and this goes off.
-local REROLL_IS_FREE = true
+local FALLBACK_REROLL_POOL = "Weekly" -- // A paid reroll with no reserved quest rerolls a random quest from this pool
 local SECONDS_IN_MINUTE = 60
 
 -------------------------------------------------------------------------------
@@ -52,22 +57,36 @@ local SECONDS_IN_MINUTE = 60
 -- // Does this objective count this event?
 type ObjectiveMatcher = (objective: Quests.Objective) -> boolean
 
+-- // A quest held for a reroll the player is buying (the quest's id too, in case the slot changes meanwhile)
+type RerollReservation = { PoolName: string, SlotIndex: number, QuestId: string }
+
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
 -------------------------------------------------------------------------------
 
 local claimQuestFunction = SimpleRemotes.getFunction("ClaimQuest")
-local rerollQuestFunction = SimpleRemotes.getFunction("RerollQuest")
+local reserveQuestRerollFunction = SimpleRemotes.getFunction("ReserveQuestReroll")
+local REROLL_PRODUCT_ID = MarketplaceLibrary.getItemId("QuestReroll")
 
 local random = Random.new()
 local roundParticipants: { [Player]: true } = {} -- // Players in the server when the current round started
 local currentGamemode: string? = nil -- // The current (or last) round's gamemode id
 local secondsInArena: { [Player]: number } = {} -- // Time alive in the arena not yet counted as a whole minute
 local claiming: { [Player]: true } = {}
+local rerollReservations: { [Player]: RerollReservation } = {} -- // At most one per player (a new one replaces it)
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
+
+-- // Whether this quest is held for a reroll the player is buying (no progress, no claim)
+local function isReservedForReroll(player: Player, poolName: string, slotIndex: number, questId: string): boolean
+	local reservation = rerollReservations[player]
+	return reservation ~= nil
+		and reservation.PoolName == poolName
+		and reservation.SlotIndex == slotIndex
+		and reservation.QuestId == questId
+end
 
 local function isAliveInArena(player: Player): boolean
 	local living = GameStateLibrary.getGameStateData().LivingPlayersInArena:Get() or {}
@@ -144,6 +163,9 @@ local function addProgress(player: Player, amount: number, matches: ObjectiveMat
 		for index, rawSlot in rawSlots do
 			local quest = QuestLibrary.getQuest(rawSlot.Id)
 			if not quest or rawSlot.Claimed or rawSlot.Progress >= quest.Objective.Goal then
+				continue
+			end
+			if isReservedForReroll(player, poolName, index, rawSlot.Id) then
 				continue
 			end
 			if matches(quest.Objective) then
@@ -226,7 +248,7 @@ local function claimQuest(player: Player, poolName: any, slotIndex: any): boolea
 	end
 	local rawSlots = (poolData.Slots :: any)() :: { QuestLibrary.QuestSlot }
 	local rawSlot = rawSlots[slotIndex]
-	if not rawSlot or not QuestLibrary.isClaimable(rawSlot) then
+	if not rawSlot or not QuestLibrary.isClaimable(rawSlot) or isReservedForReroll(player, poolName, slotIndex, rawSlot.Id) then
 		return false
 	end
 	local quest = QuestLibrary.getQuest(rawSlot.Id)
@@ -245,6 +267,26 @@ local function claimQuest(player: Player, poolName: any, slotIndex: any): boolea
 	end
 	claiming[player] = nil
 	return granted
+end
+
+-- // Holds one of the player's quests for a reroll they're about to buy (replacing any earlier reservation). Returns
+-- // whether it was reserved: the client only shows the purchase prompt after that.
+local function reserveQuestReroll(player: Player, poolName: any, slotIndex: any): boolean
+	if type(poolName) ~= "string" or type(slotIndex) ~= "number" or claiming[player] then
+		return false
+	end
+	local data = refreshPools(player)
+	local poolData = data and data.Quests[poolName]
+	if not poolData then
+		return false
+	end
+	local rawSlots = (poolData.Slots :: any)() :: { QuestLibrary.QuestSlot }
+	local rawSlot = rawSlots[slotIndex]
+	if not rawSlot or not QuestLibrary.canReroll(rawSlot) then
+		return false
+	end
+	rerollReservations[player] = { PoolName = poolName, SlotIndex = slotIndex, QuestId = rawSlot.Id }
+	return true
 end
 
 -------------------------------------------------------------------------------
@@ -294,6 +336,46 @@ function QuestService.rerollQuest(player: Player, poolName: string, slotIndex: n
 	return true
 end
 
+-- // The QuestReroll developer product was bought (ProductLogics/QuestReroll). Rerolls the reserved quest, or, if
+-- // there's no usable reservation, a random weekly quest. Returns false only if nothing could be rerolled at all
+-- // (the receipt then stays unprocessed and Roblox retries it later, e.g. once the quests have reset).
+function QuestService.applyPaidReroll(player: Player): boolean
+	local reservation = rerollReservations[player]
+	rerollReservations[player] = nil
+	if reservation then
+		local data = refreshPools(player)
+		local poolData = data and data.Quests[reservation.PoolName]
+		local rawSlots = poolData and (poolData.Slots :: any)() :: { QuestLibrary.QuestSlot }
+		local rawSlot = rawSlots and rawSlots[reservation.SlotIndex]
+		if rawSlot and rawSlot.Id == reservation.QuestId
+			and QuestService.rerollQuest(player, reservation.PoolName, reservation.SlotIndex) then
+			return true
+		end
+	end
+
+	-- // Fallback: a random weekly quest that can still be rerolled
+	local data = refreshPools(player)
+	local poolData = data and data.Quests[FALLBACK_REROLL_POOL]
+	if not poolData then
+		return false
+	end
+	local rawSlots = (poolData.Slots :: any)() :: { QuestLibrary.QuestSlot }
+	local rerollable: { number } = {}
+	for index, rawSlot in rawSlots do
+		if QuestLibrary.canReroll(rawSlot) then
+			table.insert(rerollable, index)
+		end
+	end
+	while #rerollable > 0 do
+		local index = table.remove(rerollable, random:NextInteger(1, #rerollable)) :: number
+		if QuestService.rerollQuest(player, FALLBACK_REROLL_POOL, index) then
+			return true
+		end
+	end
+	warn(`QuestService: {player.Name} bought a quest reroll but none of their quests could be rerolled`)
+	return false
+end
+
 -- // Draws new quests for the player now, in one pool or all of them. Returns false if their data isn't loaded.
 function QuestService.resetQuests(player: Player, poolName: string?): boolean
 	local data = PlayerDataService.get(player)
@@ -333,18 +415,13 @@ end
 
 function QuestService.init()
 	claimQuestFunction.OnServerInvoke = claimQuest
-	rerollQuestFunction.OnServerInvoke = function(player: Player, poolName: any, slotIndex: any): boolean
-		if type(poolName) ~= "string" or type(slotIndex) ~= "number" or claiming[player] then
-			return false
+	reserveQuestRerollFunction.OnServerInvoke = reserveQuestReroll
+	-- // Declined (or closed) the reroll purchase: the quest counts progress again. A purchase keeps it for the receipt.
+	MarketplaceLibrary.ProductPurchasePromptFinishedTasks:Add(function(player: Player, productId: number, wasPurchased: boolean)
+		if productId == REROLL_PRODUCT_ID and not wasPurchased then
+			rerollReservations[player] = nil
 		end
-		if not REROLL_IS_FREE then
-			return false -- // Paid rerolls are granted from the developer product's receipt, not this remote
-		end
-		claiming[player] = true -- // One claim or reroll at a time per player
-		local rerolled = QuestService.rerollQuest(player, poolName, slotIndex)
-		claiming[player] = nil
-		return rerolled
-	end
+	end)
 
 	PlayerDataService.ProfileAddedTasks:Add(function(player: Player)
 		refreshPools(player)
@@ -353,6 +430,7 @@ function QuestService.init()
 		roundParticipants[player] = nil
 		secondsInArena[player] = nil
 		claiming[player] = nil
+		rerollReservations[player] = nil
 	end)
 
 	-- // Eliminations: another player, or a bot whose behavior counts (decoys don't)
