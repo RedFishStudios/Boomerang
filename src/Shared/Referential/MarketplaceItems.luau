@@ -28,6 +28,10 @@ local Products: { [string]: { Id: number, Display: string, IconId: number?, IsPa
 		Id = 3714074543,
 		Display = "Placeholder",
 	},
+	QuestReroll = { -- // Swaps one quest for another (QuestService; granted by ProductLogics/QuestReroll)
+		Id = 3726889042,
+		Display = "Quest Reroll",
+	},
 }
 
 -- // Gamepasses, by name

@@ -13,6 +13,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local QuestLibrary = require(ReplicatedStorage.Shared.Library.QuestLibrary)
+local MarketplaceLibrary = require(ReplicatedStorage.Shared.Library.MarketplaceLibrary)
 local PlayerDataController = require(ReplicatedStorage.Client.Core.PlayerDataController)
 
 -------------------------------------------------------------------------------
@@ -20,7 +21,7 @@ local PlayerDataController = require(ReplicatedStorage.Client.Core.PlayerDataCon
 -------------------------------------------------------------------------------
 
 local claimQuestFunction = SimpleRemotes.getFunction("ClaimQuest")
-local rerollQuestFunction = SimpleRemotes.getFunction("RerollQuest")
+local reserveQuestRerollFunction = SimpleRemotes.getFunction("ReserveQuestReroll")
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -58,9 +59,14 @@ function QuestController.claim(poolName: string, slotIndex: number): boolean
 	return claimQuestFunction:InvokeServer(poolName, slotIndex) == true
 end
 
---- T-147: asks the server to swap this quest (in place) for another. Free for now. Yields; returns whether it was swapped.
+--- T-147: buying a reroll for this quest. The server first reserves the quest (it stops counting progress), then the
+--- QuestReroll purchase prompt opens; the server swaps the quest when the purchase goes through. Yields until the
+--- prompt is answered; returns whether it was bought.
 function QuestController.reroll(poolName: string, slotIndex: number): boolean
-	return rerollQuestFunction:InvokeServer(poolName, slotIndex) == true
+	if reserveQuestRerollFunction:InvokeServer(poolName, slotIndex) ~= true then
+		return false
+	end
+	return MarketplaceLibrary.promptDeveloperProduct("QuestReroll", nil, true) == true
 end
 
 -------------------------------------------------------------------------------
