@@ -12,6 +12,7 @@ local ThrownWeapons = require(game.ReplicatedStorage.Shared.Referential.ThrownWe
 local DeadWeapons = require(game.ReplicatedStorage.Shared.Referential.DeadWeapons)
 local GameStateLibrary = require(game.ReplicatedStorage.Shared.Library.GameStateLibrary)
 local ParticlesLibrary = require(game.ReplicatedStorage.Shared.Library.ParticlesLibrary)
+local Disguise = require(game.ReplicatedStorage.Shared.Logics.PickupLogics.Disguise)
 
 ----------------------------------------------------------------------------------------------------------------------------------
 -- Local variables
@@ -141,16 +142,19 @@ local function syncToolParticles(player: Player, toolModel: Model)
 	end
 end
 
+-- // While a Disguise is active the player's real avatar is taken out of the workspace (CharacterRenderController),
+--    so the held weapon goes inside it: hidden with the avatar, and back in the hand when the avatar returns.
 local function attachToolModelToCharacter(player: Player, character: Model, toolModel: Model)
    --print(`ToolController: Attaching tool model {toolModel.Name} to character {character.Name} for player {player.Name}`)
-	if not character or not character.Parent then
+	local isDisguised = Disguise.isActive(player)
+	if not character or (not character.Parent and not isDisguised) then
       warn(`no character`)
 		return false
 	end
 
 	toolModel.Name = `Holstered_{player.UserId}`
 	toolModel:SetAttribute("ToolName", toolModel:GetAttribute("ToolName") or toolModel.Name)
-	toolModel.Parent = WeaponsFolder
+	toolModel.Parent = if isDisguised then character else WeaponsFolder
 	setModelAnchored(toolModel, false)
 
 	local rightArm = character:FindFirstChild("RightHand") or character:FindFirstChild("Right Arm")
@@ -196,9 +200,16 @@ local function getToolNameFromModel(toolModel: Model?): string?
 	return nil
 end
 
+-- // A rendered character that can hold the weapon: in the workspace, or the hidden real avatar while disguised
+local function isReadyRenderedCharacter(player: Player, character: Model?): boolean
+	return character ~= nil
+		and (character.Parent ~= nil or Disguise.isActive(player))
+		and (character:FindFirstChild("RightHand") or character:FindFirstChild("Right Arm")) ~= nil
+end
+
 local function getReadyRenderedCharacter(player: Player, canYield: boolean): Model?
 	local character = CharacterRenderController.getCharacterModel(player, canYield)
-	if character and character.Parent and (character:FindFirstChild("RightHand") or character:FindFirstChild("Right Arm")) then
+	if isReadyRenderedCharacter(player, character) then
 		return character
 	end
 
@@ -210,9 +221,9 @@ local function getReadyRenderedCharacter(player: Player, canYield: boolean): Mod
 	repeat
 		elapsed += RunService.RenderStepped:Wait()
 		character = CharacterRenderController.getCharacterModel(player, false)
-	until elapsed > 5 or (character and character.Parent and (character:FindFirstChild("RightHand") or character:FindFirstChild("Right Arm")))
+	until elapsed > 5 or isReadyRenderedCharacter(player, character)
 
-	if character and character.Parent and (character:FindFirstChild("RightHand") or character:FindFirstChild("Right Arm")) then
+	if isReadyRenderedCharacter(player, character) then
 		return character
 	end
 
@@ -661,6 +672,14 @@ function ToolController.init()
 	GameStateLibrary.getGameStateData().CurrentRoundData:Subscribe(function()
 		if localPlayer.Parent then
 			requestToolUpdate(localPlayer, true)
+		end
+	end)
+
+	-- // A Disguise starting or ending moves the held weapon into or out of the hidden avatar (attachToolModelToCharacter)
+	Disguise.StateChanged:Add(function(userId: number, _active: boolean)
+		local player = game.Players:GetPlayerByUserId(userId)
+		if player then
+			requestToolUpdate(player, false)
 		end
 	end)
 
