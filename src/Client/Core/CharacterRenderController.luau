@@ -724,8 +724,10 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
-function CharacterRenderController.getCharacterModel(player: Player, canYield: boolean?): Model?
-   if disguiseModels[player] then
+-- // canAcceptDisguise: true to get the Disguise model while one is active (what the player looks like to others). Otherwise the
+--    real avatar is returned: the Disguise model has no Humanoid, Animator or arms, so callers that need those would wait on it.
+function CharacterRenderController.getCharacterModel(player: Player, canYield: boolean?, canAcceptDisguise: boolean?): Model?
+   if canAcceptDisguise and disguiseModels[player] then
       return disguiseModels[player]
    end
    return getCharacterModel(player, canYield)

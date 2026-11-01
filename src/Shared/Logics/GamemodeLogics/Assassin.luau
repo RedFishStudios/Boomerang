@@ -276,7 +276,7 @@ end
 -- // The rendered model is rebuilt on respawn and swapped on disguise, so re-resolve it every frame
 local function updateTargetHighlight()
    local target = localTargetUserId and Players:GetPlayerByUserId(localTargetUserId)
-   local model = target and CharacterRenderController.getCharacterModel(target, false)
+   local model = target and CharacterRenderController.getCharacterModel(target, false, true)
    if model == highlightedModel and targetHighlight and targetHighlight.Parent then
       return
    end
