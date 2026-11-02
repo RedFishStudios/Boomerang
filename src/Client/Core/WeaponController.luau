@@ -226,9 +226,10 @@ local function beginEquippedToolAim(): boolean
    return true
 end
 
--- // PC: the player whose character the mouse is on (their hitbox), if it's someone else: the server curves the throw
--- // toward them if they're an enemy it can reach (ThrowTargetLibrary). Only a direct click counts, not a near miss.
-local function getEnemyUnderMouse(): number?
+-- // PC: what the mouse is on: another player's character (their UserId) or a bot such as a decoy (its BotId), by their
+-- // hitbox. The server curves the throw toward it if it's an enemy it can reach (ThrowTargetLibrary). Only a direct click
+-- // counts, not a near miss.
+local function getEnemyUnderMouse(): (number | string)?
 	local camera = workspace.CurrentCamera
 	if not camera then
 		return nil
@@ -237,12 +238,21 @@ local function getEnemyUnderMouse(): number?
 	local ray = camera:ViewportPointToRay(mouseLocation.X, mouseLocation.Y)
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Include
-	params.FilterDescendantsInstances = { workspace:WaitForChild("Characters") }
+	local filter: { Instance } = { workspace:WaitForChild("Characters") }
+	local botsFolder = workspace:FindFirstChild("Bots")
+	if botsFolder then
+		table.insert(filter, botsFolder)
+	end
+	params.FilterDescendantsInstances = filter
 	local result = workspace:Raycast(ray.Origin, ray.Direction * 1000, params)
 	local model = result and result.Instance:FindFirstAncestorOfClass("Model")
 	local player = model and Players:GetPlayerFromCharacter(model)
 	if player and player ~= Players.LocalPlayer then
 		return player.UserId
+	end
+	local botId = model and model:GetAttribute("BotId")
+	if typeof(botId) == "string" then
+		return botId
 	end
 	return nil
 end
@@ -290,11 +300,11 @@ local function throwEquippedTool(forcedDirection: Vector3?): boolean
 	 -- // The point aimed at, so the server can curve the throw through it (BoomerangCurveLibrary). PC mouse aim (top-down
 	 -- // camera) only for now: the mouse's spot on the floor. Other aim modes send none and the server picks the distance.
 	 local aimTarget: Vector3? = nil
-	 local clickedUserId: number? = nil
+	 local clickedTarget: (number | string)? = nil
 	 if not forcedDirection and UserInputService.MouseBehavior == Enum.MouseBehavior.Default
 	    and PlatformController.getDominantControlScheme() ~= "Touch" and PlatformController.getDominantControlScheme() ~= "Console" then
 		aimTarget = CharacterController.getMouseGroundPosition()
-		clickedUserId = getEnemyUnderMouse()
+		clickedTarget = getEnemyUnderMouse()
 	 end
 
 	 if pendingHost then
@@ -314,7 +324,7 @@ local function throwEquippedTool(forcedDirection: Vector3?): boolean
 	 end
 
     
-	throwFunction:InvokeServer(equippedToolId, direction, releasePosition, aimTarget, clickedUserId)
+	throwFunction:InvokeServer(equippedToolId, direction, releasePosition, aimTarget, clickedTarget)
    setLocalAimState(false)
 
    return true

@@ -122,7 +122,7 @@ type ThrowInitOptions = {
    AimStrengthAlpha: number?,
    ExistingHost: Model?,
    TargetPosition: Vector3?, -- // (server): the point the player aimed at (clamped; only sets how far ahead the curve crosses the aim line)
-   ClickedUserId: number?, -- // Server: the enemy the PC client says was clicked (ThrowTargetLibrary checks it)
+   ClickedTarget: (number | string)?, -- // Server: the enemy the PC client says was clicked, a UserId or a BotId (ThrowTargetLibrary checks it)
    Curvature: number?, -- // (client): the curve the server decided, from the spawn event
 }
 
@@ -905,9 +905,9 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       -- // An enemy to curve toward: the one clicked on (PC), else the closest to the aim within a cone (ThrowTargetLibrary).
       -- // The arc then goes through that enemy's position on the server instead of through the aimed point.
       local curveDirection = direction
-      local clickedUserId = options and options.ClickedUserId
+      local clickedTarget = options and options.ClickedTarget
       local targetEnemyPosition = ThrowTargetLibrary.findTarget(player, startPosition, direction,
-         if type(clickedUserId) == "number" then clickedUserId else nil, maxDistance)
+         if type(clickedTarget) == "number" or type(clickedTarget) == "string" then clickedTarget else nil, maxDistance)
       if targetEnemyPosition then
          local toEnemy = Vector3.new(targetEnemyPosition.X - startPosition.X, 0, targetEnemyPosition.Z - startPosition.Z)
          if toEnemy.Magnitude > 1e-3 then

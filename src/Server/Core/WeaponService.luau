@@ -228,7 +228,7 @@ local function throwForPlayer(
    timeSinceAiming: number,
    aimStrengthAlpha: number,
    targetPosition: Vector3?,
-   clickedUserId: number?
+   clickedTarget: (number | string)?
 )
    if playerIsWeaponLocked(player) then
       return
@@ -280,7 +280,7 @@ local function throwForPlayer(
       TimeSinceAiming = timeSinceAiming,
       AimStrengthAlpha = aimStrengthAlpha,
       TargetPosition = targetPosition, -- // Only sets how far ahead the curve crosses the aim line (clamped by the curve library)
-      ClickedUserId = clickedUserId, -- // The enemy the PC client says was clicked (checked by ThrowTargetLibrary)
+      ClickedTarget = clickedTarget, -- // The enemy the PC client says was clicked: a UserId or a BotId (checked by ThrowTargetLibrary)
    })
    SharedTasks.WeaponThrownTasks:Execute("serial", player, toolId)
 end
@@ -461,7 +461,7 @@ function WeaponService.init()
    end)
 
    -- // Throw boomerang
-   throwFunction.OnServerInvoke = function(player: Player, toolId: string, clientDirection: Vector3?, clientStartPosition: Vector3?, clientAimTarget: Vector3?, clientClickedUserId: number?)
+   throwFunction.OnServerInvoke = function(player: Player, toolId: string, clientDirection: Vector3?, clientStartPosition: Vector3?, clientAimTarget: Vector3?, clientClickedTarget: any)
       toolId = equippedToolIds[player] or toolId -- // The server decides the weapon class (from the equipped skin)
       local timeSinceAiming = os.clock() - (aiming[player] or os.clock())
       local chargeTime = BoomerangTuningLibrary.getForAnyTool(if type(toolId) == "string" then toolId else nil, "ChargeTime") 
@@ -498,7 +498,7 @@ function WeaponService.init()
                   timeSinceAiming,
                   aimStrengthAlpha,
                   if typeof(clientAimTarget) == "Vector3" then clientAimTarget else nil,
-                  if type(clientClickedUserId) == "number" then clientClickedUserId else nil
+                  if type(clientClickedTarget) == "number" or (type(clientClickedTarget) == "string" and #clientClickedTarget <= 64) then clientClickedTarget else nil
                )
             else
                throwForPlayer(
@@ -520,7 +520,7 @@ function WeaponService.init()
             timeSinceAiming,
             aimStrengthAlpha,
             if typeof(clientAimTarget) == "Vector3" then clientAimTarget else nil,
-            if type(clientClickedUserId) == "number" then clientClickedUserId else nil
+            if type(clientClickedTarget) == "number" or (type(clientClickedTarget) == "string" and #clientClickedTarget <= 64) then clientClickedTarget else nil
          )
       end
 	end
