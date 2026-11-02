@@ -9,6 +9,7 @@
 	  2. Otherwise the cone: the living enemy closest to the aim line within CONE_HALF_ANGLE_DEGREES either side of the
 	     aim, within the throw's range. This is how touch and console throws find a target, and PC's fallback.
 	  3. Neither: nil (the throw curves through the aimed point, or at full range).
+	Disguised players are never targeted, by a click or by the cone.
 	Pure lookups; no state.
 ]]
 
@@ -19,6 +20,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local GameTeamLibrary = require(ReplicatedStorage.Shared.Library.GameTeamLibrary)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
+local Disguise = require(ReplicatedStorage.Shared.Logics.PickupLogics.Disguise)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -35,6 +37,9 @@ ThrowTargetLibrary.CONE_HALF_ANGLE_DEGREES = 20
 local function getTargetableRoot(thrower: Player, target: Player?): BasePart?
 	if not target or target == thrower or not GameTeamLibrary.areEnemies(thrower, target) then
 		return nil
+	end
+	if Disguise.isActive(target) then
+		return nil -- // A disguised player is never auto-targeted (it would give the disguise away)
 	end
 	local living = GameStateLibrary.getGameStateData().LivingPlayersInArena:Get() or {}
 	if not table.find(living, target) then
