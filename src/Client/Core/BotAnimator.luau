@@ -1,10 +1,10 @@
 --[[
-	BotAnimator (T-084) -- bot / NPC animation
+	BotAnimator -- bot / NPC animation
 
 	Drives a bot's client-rendered avatar from a replicated "pose" string. This is the same
 	contract players use under Server Authority: the authoritative root carries a "pose" attribute
 	(Standing / Running / FreeFall / ...) that maps to the Animate animation folders, and the
-	rendered model is animated from that attribute (T-068). BotService sets the pose on each bot's
+	rendered model is animated from that attribute. BotService sets the pose on each bot's
 	server rig root every step; the rig replicates, and this animates the cloned avatar to match --
 	idle, walk and fall, like a player.
 

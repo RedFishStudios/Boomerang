@@ -1,4 +1,4 @@
--- // Cmdr type "boomerangsetting": a tunable boomerang value from BoomerangTuningLibrary (T-054), tab-completable.
+-- // Cmdr type "boomerangsetting": a tunable boomerang value from BoomerangTuningLibrary, tab-completable.
 -- // Registered by CmdrService and replicated to clients, so it must not require server modules.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 

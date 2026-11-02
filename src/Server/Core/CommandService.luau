@@ -11,7 +11,7 @@ local Players = game:GetService("Players")
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
--- // T-016: chat commands are obsolete. They had no permission check, so any player in a live server could use them.
+-- // Chat commands are obsolete. They had no permission check, so any player in a live server could use them.
 -- // Every command now lives in Cmdr (F2), which is permission-checked by CmdrService: see Server/Cmdr/Commands.
 -- // This switch stays off; the old addCommand blocks in RoundCyclingService and PickupService are kept only as a reference.
 local CHAT_COMMANDS_ENABLED = false

@@ -54,7 +54,7 @@ local SERVER_COOLDOWN_GRACE = .1 -- // The server accepts a swing this much befo
 local SWING_STALE_SECONDS = 1 -- // Clients: another player's swing heard about later than this isn't shown at all (e.g. after the game was in the background)
 local SWEEP_MAX_SKIP_FRACTION = .5 -- // Clients: a late swing's sweep skips ahead at most this much of itself, so it always shows
 
--- // T-125: the swing is ONE check, at the moment the blade lands (IMPACT_DELAY after the click), of a wedge in front of the player:
+-- // The swing is ONE check, at the moment the blade lands (IMPACT_DELAY after the click), of a wedge in front of the player:
 -- // anyone whose Hitbox (a 10-stud-tall cylinder) reaches into it, with no wall in between, is hit. It is checked against where everyone
 -- // is now AND where the swinging player saw them (LagCompensationLibrary rewind: their ping plus the interpolation delay), so a swing
 -- // that looked like a hit on their screen counts. The client sends where it was facing; where the player is comes only from the server
@@ -78,7 +78,7 @@ local PARRY_STAGGER_TOTAL_DURATION = .3
 local PARRY_STAGGER_MIN_DIRECTION_DISTANCE = .05
 local PARRY_FACING_DOT_THRESHOLD = .4
 
--- // T-126: the swing's look. Every swing (yours at the click, others' when the server tells this client) shows the SlashAbility
+-- // The swing's look. Every swing (yours at the click, others' when the server tells this client) shows the SlashAbility
 -- // crescent (Shared/Assets/Particles/SlashAbility: one part, attachments "1" and "2" at its tips carrying the trails) sweeping
 -- // forward in front of the player and fading out. Purely visual: the kill effect (Slash particle) is only ever played by the server.
 local SWEEP_ASSET_NAME = "SlashAbility"
@@ -91,7 +91,7 @@ local SWEEP_HEIGHT_ABOVE_HAND = 1 -- // Studs above where the weapon is held in 
 local SWEEP_HEIGHT_OFFSET = 0 -- // Studs above the player's centre, if the held weapon can't be found
 local SWEEP_START_TRANSPARENCY = .2
 
--- // T-128: a slash also knocks away an enemy's weapon in flight (outgoing or returning; never a dying/dead one, nor your own): a clash
+-- // A slash also knocks away an enemy's weapon in flight (outgoing or returning; never a dying/dead one, nor your own): a clash
 -- // (same energy cost and Deflected snapshot as two weapons colliding), straight away from the slasher. The weapon is caught if its path
 -- // through the wedge comes within its own HitboxRadius. Clients run thrown weapons ahead to the server's present, so no rewind is
 -- // needed; a click that arrived after its impact moment checks the weapon's path back to where it was at that moment.
@@ -725,7 +725,7 @@ local function getWeaponContact(origin: Vector3, direction: Vector3, from: Vecto
    return nil
 end
 
--- // Server: knock away every enemy weapon in flight that the swing reaches (T-128)
+-- // Server: knock away every enemy weapon in flight that the swing reaches
 local function deflectWeapons(player: Player, origin: Vector3, direction: Vector3, clickTime: number, raycastParams: RaycastParams)
    if not WeaponService or not player.Team then
       return
@@ -858,7 +858,7 @@ local function resolveSwing(player: Player, character: Model, direction: Vector3
 
    deflectWeapons(player, origin, direction, clickTime, raycastParams)
 
-   -- // T-127: bots (e.g. decoys) are slashed the same way: now and where the swinging player saw them
+   -- // Bots (e.g. decoys) are slashed the same way: now and where the swinging player saw them
    local hitBots: { Model } = {}
    local seenBots: { [Model]: boolean } = {}
    local function tryBot(model: Model, hitbox: BasePart, position: Vector3)

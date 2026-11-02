@@ -1,11 +1,9 @@
 # Boomerang: Task Board
 
-The general task board: fixes, tooling, cleanup and small features. See [CLAUDE.md](CLAUDE.md) for how the project works.
-Large features are **Epics**, each with its own task list under `docs/epics/<epic>/TASKS.md`: see [docs/EPICS.md](docs/EPICS.md). Active: [Lobby](docs/epics/lobby/TASKS.md).
+The task board: every feature, fix and cleanup. See [CLAUDE.md](CLAUDE.md) for how the project works.
 
 ## How to use this board
 
-- **These rules apply to every task list**, general and Epic. A task keeps its ID when it moves between lists (general ↔ Epic): move the whole block, don't copy it. Epic tasks have an `Epic:` line.
 - **Status is the section a task sits in.** To change it, move the whole task block to another section.
   `Ready` → `In Progress` → `Review` → `Done`. `Backlog` holds ideas that aren't ready to start.
 - **Adding a task:** first **reserve** the next free ID (`T-###`) on `main` in the home repo ([docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md#2-reserve-a-task-id-before-adding-any-new-task)), then copy the template below into `Backlog` or `Ready` in your lane with that ID.
@@ -19,7 +17,7 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-150** *(shared by every task list, general and Epic)*
+**Next free ID: T-150**
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -28,7 +26,6 @@ Large features are **Epics**, each with its own task list under `docs/epics/<epi
 ### T-### · Short title
 - **Priority:** P0 / P1 / P2
 - **Owner:** Agent / Sol / Sol → Agent
-- **Epic:** <Epic name>   ← only in Epic task lists; omit here
 - **Area:** Server / Client / Shared / GUI / Data / Tooling
 - **Files:** `path/to/file.luau`
 
@@ -99,7 +96,7 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 - [ ] Cmdr: `resetquests <players> [pool]`, `questprogress <players> [amount]` (no amount = finish them)
 
 **Notes**
-- From Sol, 2026-10-29: general tasks, not an Epic. Bot eliminations count, decoys don't. Rewards: Currency only for now.
+- From Sol, 2026-10-29: Bot eliminations count, decoys don't. Rewards: Currency only for now.
 - A new pool (e.g. an event) = an entry in `Quests.Pools` (ResetPeriod "Never" for events) and its quests in `Quests.List`.
 - Unclaimed finished quests are lost when their pool resets.
 - Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-143-quests`.
@@ -141,6 +138,58 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 
 ## Review
+
+### T-081 · Decoy can be hit → eliminate + smoke poof
+- **Priority:** P0
+- **Owner:** Agent
+- **Area:** Server / Shared
+- **Files:** `Server/Core/BotService.luau` (hit handling + poof), `Server/Logics/BotBehaviors/Decoy.luau` (hit rules), `Shared/Logics/WeaponLogics/Boomerang.luau` (bot hit routing), `Shared/Utils/RaycastsUtility.luau` (bots never obstruct), `Shared/Constants/CollisionGroupConstants.luau` (new `Bots` group), `Shared/Constants/GlobalConfig.luau` (`CanHitSelfDecoy`)
+- **Blocked by:** T-079
+
+**Problem / goal**
+An enemy boomerang eliminates the decoy; it poofs into smoke. Only enemies can — the owner can't hit their own decoy unless `GlobalConfig.CanHitSelfDecoy` is on, and teammates follow the team's friendly-fire rule (`GameTeamLibrary.areEnemies`). No stat changes.
+
+**Done when**
+- [ ] An enemy boomerang pops the decoy into smoke; the owner and teammates can't hurt it; no stat changes.
+
+**Test in Studio**
+- `spawndecoy`, then have an enemy (or a second client) hit it with a boomerang → it poofs (DecoySmokePoof, 1.5 s). With `CanHitSelfDecoy` off, your own boomerang should pass through it (no block, no kill). The decoy should also poof when its 4 s lifetime ends. In a team mode, a teammate can't kill it.
+
+**Notes**
+- Implemented on branch `agent/T-081-decoy-hittable` (lane `Boomerang-lanes/T-077-telekinesis`).
+- New `Bots` collision group (Sol's call): collides with arena walls/floor/Default like a player and is detectable by `ThrownWeapons`, but NOT with `Players`, so a decoy passes through players. The rig root + hitbox use it; the hitbox is now `CanQuery = true`.
+- Boomerang hit path: `spherecastCharacterHitbox` also includes the `Bots` workspace folder; `damagedPlayer` routes a victim carrying a `BotId` attribute to `BotService.onWeaponHit` (server only), which asks the behavior's `onHit` and despawns with reason `eliminated`. No `WeaponKilledPlayer` for bots → no stats.
+- `RaycastsUtility.getProjectileObstructionParams` also excludes the `Bots` folder, so a decoy never blocks a boomerang as an obstruction.
+- Smoke: `BotService.despawn` plays the behavior's `DespawnParticle` (`DecoySmokePoof`) at the rig position for 1.5 s via `ParticlesLibrary`, on every despawn except round-end teardown. Decoy sets it in `start`.
+- Smoke asset `DecoySmokePoof` is in `Shared/Assets/Particles` (Sol committed it).
+- **Bug fixed (2026-10-12):** making the decoy's hitbox weapon-detectable caused thrown boomerangs to treat the decoy's client-rendered avatar as a solid obstruction — it bounced/stalled on the client while the server flew normally, so the server boomerang went dead out of range and every later throw was rejected (server weapon stuck). Fix: the decoy visual is kept `CanCollide`/`CanQuery`/`CanTouch = false` and on the Players collision group EVERY frame (a Humanoid rebuild had been resetting those), visuals live in a `BotVisuals` folder, and the boomerang's obstruction/line-of-sight casts exclude both the `Bots` rig folder and `BotVisuals`. Boomerangs now pass through decoys like players. Confirmed working by Sol.
+
+---
+
+### T-071 · Throw direction wrong under Server authority
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Client, Server
+- **Files:** `Client/Core/WeaponController.luau`, `Client/Core/CharacterController/init.luau`, `Client/Core/CharacterRenderController.luau`
+- **Approved early** by Sol (2026-10-03). DESIGN.md "Known problems: P4".
+
+**Problem / goal**
+In Server mode the aim direction shows correctly on the player's own screen, but the thrown boomerang doesn't go where they aimed.
+
+**Done when**
+- [ ] In Server mode, the boomerang flies exactly where the player aimed (mouse, locked mouse, touch thumbstick), on their screen and on other players' screens.
+- [ ] Automatic mode unchanged.
+
+**Notes**
+- Branch `agent/T-071-sa-throw-direction`, lane `Github/Boomerang-lanes/docs-server-authority`.
+- Cause (confirmed in Studio by logging what the server receives): the client measured the mouse aim from the held tool's pivot, which under Server authority reported a stale spot ~40 studs from the character, so every throw went roughly the same way. The server already uses the client's direction as-is.
+- Fix: `WeaponController.throwEquippedTool` aims from the rendered character's root (same origin as the aim arrow), and ignores the tool pivot as release position when it's more than 6 studs from the character.
+- Also guarded the per-frame `CharacterController:197` nil error (DESIGN.md P2) in the same file area.
+- Round 2 (Sol, 2026-10-05: still wrong, plus the character's facing jumps while aiming). Logged in Studio: while charging, the rendered model's facing alternated every frame between the aim and a drift toward +Z, and every throw reached the server at ~180°. Cause: the rendered model is unanchored with Humanoid AutoRotate on, so its physics (animation constraints) turned it while `CharacterController` re-pivoted it each frame; the throw read that rotation.
+- Fix 2: the rendered model's HumanoidRootPart is anchored and its AutoRotate is off (ragdoll still unanchors it); throws use `CharacterController.LastCFrame` (exactly what the aim arrow shows) unless a touch direction is given. Removed the now-unused requires in WeaponController.
+- Not lint-checked.
+
+---
 
 ### T-149 · PC / console: "Recall" pop-up above the head when the boomerang is dead
 - **Priority:** P2
@@ -504,6 +553,121 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 
 ## Backlog
+
+### T-078 · Smoke particle for the decoy poof
+- **Priority:** P2
+- **Owner:** Sol
+- **Area:** GUI / Assets
+- **Files:** (particle asset) + wherever bot/decoy despawn VFX are registered
+
+**Problem / goal**
+When a decoy is hit/eliminated it poofs into a smoke particle. Sol provides the smoke particle asset; an agent wires it into the decoy's despawn VFX once the bot layer exists.
+
+**Notes**
+- Parked during Discovery (Sol, 2026-10-09). Blocked on the asset from Sol and on the bot layer existing.
+
+---
+
+### T-024 · Shop pedestals in the lobby
+- **Priority:** P2
+- **Owner:** Sol → Agent
+- **Area:** Server / Client
+- **Files:** New: lobby pedestal logic (e.g. an Environment logic or a `LobbyShopService`); `Shared/Referential/ShopItems.luau` (`CurrentDeal`)
+
+**Problem / goal**
+Lobby pedestals show a floating, slowly spinning model of the current sale item. Walking up to one shows a prompt to buy it.
+- **Sol:** build the pedestal model(s) in the lobby (Studio) and tag/name them.
+- **Agent:** spawn and spin the current deal's model over each pedestal (client-side is fine), add a ProximityPrompt, and buy through the existing purchase flow.
+- **Sol: focus on Robux** (`MarketplaceLibrary.promptDeveloperProduct` with the item's `ProductId`), **but keep it scalable** so a Currency purchase option can be added later (e.g. a per-pedestal/per-item payment method, not Robux hard-coded into the prompt logic).
+
+**Decisions (Sol, 2026-10-02)**
+- `ShopItems.CurrentDeal` will be removed. There can be several pedestals, **each with its own item**, rotated **manually**.
+- Pedestals are lobby stations (T-047, `docs/LOBBY_STATIONS.md`).
+- 🗣️ Before starting: discuss how to make live-updatable config values (so pedestal items can change without a new place version). This may become a separate "flag handler" task that comes first.
+
+**Open questions (ask Sol first)**
+- Is `ShopItems.CurrentDeal` the item to show, and does it rotate (daily/weekly)?
+- How should pedestals be marked in the place (tag name / folder)?
+
+**Notes**
+
+---
+
+### T-042 · Prize wheel
+- **Priority:** P2
+- **Owner:** Sol → Agent
+- **Area:** Server / Client / Build
+- **Files:** New: wheel station (uses T-047); `MarketplaceLibrary`, `PolicyLibrary`
+
+**Problem / goal**
+Spec: `docs/LOBBY_SPEC.md`. A freestanding prize wheel on a pedestal with segmented rewards and a spin animation, used through a station prompt.
+
+**Open questions (ask Sol first)**
+- Rewards and their weights; is it cosmetic-only or can it affect gameplay?
+- How spins are earned/bought: free per day, Currency, Robux (Robux-first like T-024?), codes (T-049), playtime?
+- Spin animation length; is an "instant spin" Robux option wanted?
+
+**Notes**
+- 🗣️ **Talk with Sol before starting.**
+- A paid random reward: must respect `PolicyLibrary.arePaidRandomItemsRestricted` and Roblox's rules on disclosing odds.
+
+---
+
+### T-043 · Explosion crates (normal + premium) with odds panel
+- **Priority:** P2
+- **Owner:** Sol → Agent
+- **Area:** Server / Client / Build
+- **Files:** `Server/Core/LootBoxService.luau` and `Shared/Referential/LootBoxRates.luau` (currently empty stubs); crate stations (T-047)
+
+**Problem / goal**
+Spec: `docs/LOBBY_SPEC.md`. Two crate stations side by side (a normal and a more elaborate premium crate), each with a world-space name and, when approached, a panel showing rarity odds (e.g. Rare / Legendary / a very rare tier). Build the crate logic generically in `LootBoxService` so T-044 reuses it.
+
+**Open questions (ask Sol first)**
+- Crate names, prices and currency (Robux-first like T-024? Currency?), reward tables and odds.
+- What do "explosion" crates contain in Boomerang (elimination effects?)
+- Do crates open in the lobby (animation) or just act as purchase points with the reward shown in the ItemAcquired popup?
+
+**Notes**
+- 🗣️ **Talk with Sol before starting.**
+- Paid random items: `PolicyLibrary.arePaidRandomItemsRestricted` + odds disclosure required.
+
+---
+
+### T-044 · Sword (boomerang) crate station
+- **Priority:** P2
+- **Owner:** Sol → Agent
+- **Area:** Server / Client / Build
+- **Files:** Crate station (T-047), `LootBoxService` (T-043)
+
+**Problem / goal**
+Spec: `docs/LOBBY_SPEC.md`. A separate crate station for weapon cosmetics, visually distinct from the explosion crates. In Boomerang this is presumably a **boomerang skin** crate.
+
+**Open questions (ask Sol first)**
+- Is this a loot box, a fixed-item shop, or something else? Cost and contents.
+- Depends on how weapons/skins are equipped (was T-036).
+
+**Notes**
+- 🗣️ **Talk with Sol before starting.** Reuses T-043's crate logic.
+
+---
+
+### T-046 · Server Selection portal
+- **Priority:** P2 *(later: needs destinations first)*
+- **Owner:** Sol
+- **Area:** Design / Build
+- **Files:** -
+
+**Problem / goal**
+Spec: `docs/LOBBY_SPEC.md`. A large portal arch on a glowing ring with a sign, leading to other servers/modes/worlds.
+
+**Open questions (ask Sol first)**
+- What does it lead to in Boomerang? (Today there's a single server type; this needs other places or modes first, e.g. duels/ranked from `docs/research/BLADE_BALL_LOBBY.md`.)
+- Physical selection (several portals) or a follow-up UI?
+
+**Notes**
+- 🗣️ **Talk with Sol before starting.** Probably later; nothing to build until destinations exist.
+
+---
 
 ### T-145 · Quests: later options
 - **Priority:** P3

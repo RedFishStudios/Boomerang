@@ -1,5 +1,5 @@
 --[[
-	RecallChargeController (T-090)
+	RecallChargeController
 
 	The visuals of a manual recall of a dead boomerang, for EVERY player (each client renders them from the replicated state, so
 	everyone sees the same thing):
@@ -54,7 +54,7 @@ type RingEntry = {
 -------------------------------------------------------------------------------
 
 local rings: { [Player]: RingEntry } = {}
--- // T-111: rings shrinking away after an early release, still following their player's boomerang until they are gone
+-- // Rings shrinking away after an early release, still following their player's boomerang until they are gone
 local vanishingRings: { [MeshPart]: Player } = {}
 local summonPlaying: { [Player]: boolean } = {}
 local container: Folder? = nil
@@ -162,7 +162,7 @@ local function removeRing(player: Player, immediate: boolean)
 	local vanishSeconds = GlobalConfig.SelectionRingVanishSeconds
 	local info = TweenInfo.new(vanishSeconds, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 	local vanishTween = TweenService:Create(ring, info, { Size = RING_START_SIZE, Transparency = 1 })
-	vanishingRings[ring] = player -- // T-111: keeps clinging to the boomerang as it drops and slides after the release
+	vanishingRings[ring] = player -- // Keeps clinging to the boomerang as it drops and slides after the release
 	vanishTween.Completed:Once(function()
 		vanishingRings[ring] = nil
 		ring:Destroy()
@@ -210,7 +210,7 @@ local function reconcile()
 	for _, player in Players:GetPlayers() do
 		reconcilePlayer(player)
 	end
-	-- // T-111: shrinking rings follow the boomerang too, until they are gone
+	-- // Shrinking rings follow the boomerang too, until they are gone
 	for ring, player in vanishingRings do
 		if not ring.Parent then
 			vanishingRings[ring] = nil
@@ -243,7 +243,7 @@ function RecallChargeController.start()
 		ringTemplate = template
 		ringFullSize = template.Size
 		ringRotation = template.CFrame.Rotation
-		-- // T-111: after the frame's movement (boomerangs move in Stepped / PreSimulation), so the ring is placed on where the
+		-- // After the frame's movement (boomerangs move in Stepped / PreSimulation), so the ring is placed on where the
 		-- // boomerang is drawn this frame instead of lagging a frame behind it (RenderStepped runs before they move)
 		RunService.Heartbeat:Connect(reconcile)
 	end)

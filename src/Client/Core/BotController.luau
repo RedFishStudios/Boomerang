@@ -1,5 +1,5 @@
 --[[
-	BotController (T-079)
+	BotController
 
 	Renders bots. The server owns each bot's (invisible) rig under workspace.Bots (BotService).
 	For every bot, this client clones the OWNER'S rendered avatar (the same model
@@ -63,7 +63,7 @@ local function buildVisual(ownerUserId: number): Model?
 
 	-- // Visual-only avatar, placed with PivotTo every frame. Anchor ONLY the root; the limbs stay
 	--    unanchored so the Animator can pose them -- anchoring every part freezes the animation.
-	--    Mirrors CharacterRenderController's player render model (T-071).
+	--    Mirrors CharacterRenderController's player render model.
 	local renderedRoot = clone:FindFirstChild("HumanoidRootPart")
 	if renderedRoot and renderedRoot:IsA("BasePart") then
 		renderedRoot.Anchored = true
@@ -92,7 +92,7 @@ local function buildVisual(ownerUserId: number): Model?
 	-- // Keep the cosmetic avatar non-interactive EVERY frame. Its Humanoid rebuilds body parts when it
 	--    scales / applies appearance, which resets them to CanCollide = true / CanQuery = true -- that made
 	--    thrown boomerangs physically bounce off (and raycast-hit) the decoy's body. Mirror the persistent
-	--    guard CharacterRenderController keeps on the player's render model (T-081).
+	--    guard CharacterRenderController keeps on the player's render model.
 	task.spawn(function()
 		repeat
 			for _, d in pairs(clone:GetDescendants()) do
@@ -185,7 +185,7 @@ function BotController.init()
 	end)
 
 	botDespawnedEvent.OnClientEvent:Connect(function(_botId: string, _reason: string?)
-		-- // TODO (T-081 + T-078): when reason == "eliminated", play the smoke poof at the bot's
+		-- // TODO: when reason == "eliminated", play the smoke poof at the bot's
 		-- // last position before it's destroyed.
 	end)
 

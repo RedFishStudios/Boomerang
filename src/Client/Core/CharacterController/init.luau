@@ -285,7 +285,7 @@ end
 -- // camera, and Telekinesis steers a thrown boomerang toward it.
 function CharacterController.getMouseGroundPosition(): Vector3?
 	local lastInWorld = PlatformController.getLastMousePositionInWorld()
-	if lastInWorld then -- // nil until the mouse first moves (Server Authority Epic P2)
+	if lastInWorld then -- // nil until the mouse first moves
 		lastInWorld += Vector3.new(0, -60, 0)
 	end
 

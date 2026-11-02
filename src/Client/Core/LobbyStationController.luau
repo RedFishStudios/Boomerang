@@ -1,5 +1,5 @@
 --[[
-	Lobby station framework, client side (T-047). See LobbyStationLibrary for the tag and attributes.
+	Lobby station framework, client side. See LobbyStationLibrary for the tag and attributes.
 
 	For every tagged station: draws the world-space title, makes the pad glow (brighter while the
 	prompt is shown, dimmed when the station's state isn't "Active"), and applies this player's

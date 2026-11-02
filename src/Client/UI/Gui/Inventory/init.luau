@@ -1,5 +1,5 @@
 --[[
-	Inventory (T-075; was the Skins menu from T-072)
+	Inventory (formerly the Skins menu)
 
 	Description:
 	The Inventory menu, opened from the Skins button in the left lobby menu (MenuButtons).

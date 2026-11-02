@@ -53,7 +53,7 @@ local Skins: { [SkinId]: Skin } = {
 		Price = 1000, -- TODO:RELEASE placeholder
 		Order = 3,
 	},
-	-- // T-110: TODO:RELEASE placeholder second weapon per category (copies of the Classic models), for the gacha shop work
+	-- // TODO:RELEASE placeholder second weapon per category (copies of the Classic models), for the gacha shop work
 	PlaceholderBoomerang = {
 		Name = "Placeholder Boomerang",
 		Model = "PlaceholderBoomerang",

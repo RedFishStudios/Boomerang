@@ -2,7 +2,7 @@ local Dash = {}
 
 -- TODO: the animation clashes badly with authoritative run animation, causing the character to wiggle around
 --       address as either an animation issue or a propulsion issue
--- // Server authority (T-137): the dash is started and moved inside the simulation step on the server and on the player's own
+-- // Server authority: the dash is started and moved inside the simulation step on the server and on the player's own
 -- // client, from the replicated jump input, so the client's prediction matches the server. See PREDICTED DASH below.
 
 local RunService = game:GetService("RunService")
@@ -47,7 +47,7 @@ local DASH_DURATION_SECONDS = 0.12
 local DASH_COOLDOWN_SECONDS = 1
 local DASH_DISTANCE = DASH_SPEED * DASH_DURATION_SECONDS -- // How far a full dash goes (studs)
 
--- // SAFE DASH config (T-136): see the SAFE DASH section below. Set SAFE_DASH_ENABLED = false to remove the behaviour entirely.
+-- // SAFE DASH config: see the SAFE DASH section below. Set SAFE_DASH_ENABLED = false to remove the behaviour entirely.
 local SAFE_DASH_ENABLED = true
 -- // A dash that would end over open air (or deadly water) is shortened to stop at the edge, but only if that still covers at
 -- // least this fraction of the full dash distance; otherwise the full dash happens (and the player goes over the edge)
@@ -127,7 +127,7 @@ local function isPlayerAiming(player: Player): boolean
 end
 
 -------------------------------------------------------------------------------
--- SAFE DASH (T-136). Kept separate: change SAFE_DASH_MIN_FRACTION, or set SAFE_DASH_ENABLED = false to remove it entirely.
+-- SAFE DASH. Kept separate: change SAFE_DASH_MIN_FRACTION, or set SAFE_DASH_ENABLED = false to remove it entirely.
 --
 -- // Plans where a dash ends, before it starts:
 -- // 1. One shapecast along the full dash finds how far the body can go (the full distance, or up to an obstruction).
@@ -267,7 +267,7 @@ local function planDash(rootPosition: Vector3, direction: Vector3, character: Mo
 end
 
 -------------------------------------------------------------------------------
--- PREDICTED DASH (T-137)
+-- PREDICTED DASH
 --
 -- // Under server authority the server simulates every character and a player's own client only predicts its own. So the dash
 -- // is started and moved inside the simulation step (RunService:BindToSimulation), on the server for every player and on each
@@ -304,7 +304,7 @@ local function getBlockReason(player: Player): string?
    if isPlayerAiming(player) then
       return "is aiming"
    end
-   -- // T-092/T-093: holding a manual recall of a dead boomerang (charging it, or while it flies back) hinders the player like aiming does
+   -- // Holding a manual recall of a dead boomerang (charging it, or while it flies back) hinders the player like aiming does
    local deadWeaponData = DeadWeapons.Data[player]
    local thrownWeaponData = ThrownWeapons.Data[player]
    if (deadWeaponData and deadWeaponData.RecallChargeStart ~= nil) or (thrownWeaponData and thrownWeaponData.RecallFromDead == true) then

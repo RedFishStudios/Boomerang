@@ -33,7 +33,7 @@ local GamemodeLogicModules = {}
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
--- // T-115: lobby time between rounds doubled (was 10 / 30). PRE_INTERMISSION is the end-of-round screen while players are
+-- // Lobby time between rounds doubled (was 10 / 30). PRE_INTERMISSION is the end-of-round screen while players are
 -- // still in the arena: not lobby time, so it stays 5 s.
 local INTERMISSION_DURATION = 20
 local VOTE_DURATION = 60
@@ -385,7 +385,7 @@ function RoundCyclingService.init()
    SimpleRemotes.getEvent("VoteUpdated")
    local gameStateData = GameStateLibrary.getGameStateData()
 
-   -- // T-016: these chat commands are disabled (CommandService.CHAT_COMMANDS_ENABLED = false) and kept only as a reference.
+   -- // These chat commands are disabled (CommandService.CHAT_COMMANDS_ENABLED = false) and kept only as a reference.
    -- // Their replacements are the Cmdr commands printgamestate, endround, setnextgamemode and setnextmap (Server/Cmdr/Commands).
    CommandService.addCommand("PrintGameState", "/printgamestate", nil, function(player: Player, _args: {string})
       local snapshot = GameStateLibrary.getSnapshot()

@@ -42,21 +42,21 @@ local REPLICATION_RATE = 1 / 20
 local DEAD_FALL_ACCELERATION = 120 -- // Times the DeadWeaponDeceleration tuning value (default GlobalConfig.DeadWeaponDeceleration)
 
 -- ============================================================================================================================
--- INTERNAL CONFIG: dying slide "on ice" (T-098)
+-- INTERNAL CONFIG: dying slide "on ice"
 -- ============================================================================================================================
 -- // A dying boomerang drops to the ground, then glides on with its momentum, slowing gradually (like sliding on ice), so a fast
 -- // boomerang slides further than a slow one. Its spin winds down gradually too. Each frame the speed loses DRAG x speed (the
 -- // gradual, momentum-based part) plus FRICTION (so it does come to a stop). Every value below is multiplied by the
 -- // DeadWeaponDeceleration tuning value (GlobalConfig.DeadWeaponDeceleration, default 4; Cmdr `tune DeadWeaponDeceleration`), so the
 -- // effective values at the default are 4x these. At the default a boomerang dying at full throw speed (75) travels about 17 studs
--- // (about 11 of them sliding on the ground, over about 0.8 s); one dying at 25 travels about 5. (Before T-098: about 9 and 1.)
+-- // (about 11 of them sliding on the ground, over about 0.8 s); one dying at 25 travels about 5. (Before about 9 and 1.)
 local DEAD_AIR_DRAG = 0.375 -- // Per second, while still dropping to the ground (effective 1.5)
 local DEAD_AIR_FRICTION = 5 -- // Studs/s per second, while still dropping to the ground (effective 20)
 local DEAD_LANDING_SPEED_KEPT = 0.8 -- // Fraction of its speed kept when it hits the ground (not scaled by the multiplier)
 local DEAD_ICE_DRAG = 1 -- // Per second, while sliding on the ground (effective 4)
 local DEAD_ICE_FRICTION = 2.5 -- // Studs/s per second, while sliding on the ground (effective 10)
 local DEAD_SPIN_DRAG = 0.5 -- // Per second: the spin (starting at the flight spin rate) winds down (effective 2)
--- // T-107: a boomerang that has already been Dead (so it never recalls by itself) and keeps sliding with nothing below it for this
+-- // A boomerang that has already been Dead (so it never recalls by itself) and keeps sliding with nothing below it for this
 -- // long is put down at the last solid spot it passed over (or, with none recorded, back in its player's hand, with a warning)
 local DEAD_NO_GROUND_FAILSAFE_SECONDS = 3
 local DEAD_SPIN_FRICTION = math.rad(75) -- // Radians/s per second (effective 300 degrees/s per second); stops in about 1 s at default
@@ -65,7 +65,7 @@ local DEAD_GROUND_RAY_DISTANCE = 10
 local DEAD_GROUND_MAX_IGNORE_ITERATIONS = 16
 local DEAD_GROUND_EPSILON = 0.02
 local DEAD_OBSTRUCTION_RADIUS = 2 -- // How far from a wall it stops; also the hitbox radius for a tool without one
-local DEAD_MAX_STEP_UP = 0.1 -- // T-124: ground ahead higher than this above it is a wall face, not floor (it never climbs)
+local DEAD_MAX_STEP_UP = 0.1 -- // Ground ahead higher than this above it is a wall face, not floor (it never climbs)
 local DEAD_PICKUP_DISTANCE = 3
 local DEAD_OVERLAP_CHECK_SIZE = Vector3.new(0.01, 0.01, 0.01)
 local SNAPSHOT_PACKET_SIZE = 1 + 8 + 12 + 12 + 4 + 1 + 8
@@ -77,11 +77,11 @@ export type DeathInitOptions = {
 	Direction: Vector3,
 	Speed: number?,
 	Position: Vector3?,
-	SpinRate: number?, -- // T-104: starting visual spin (radians/s); nil = the full flight spin rate
-	PhysicsY: number?, -- // T-107: the height its fall starts from in the physics (thrown: GlobalConfig.BoomerangFlightHeight); nil = its current height
+	SpinRate: number?, -- // Starting visual spin (radians/s); nil = the full flight spin rate
+	PhysicsY: number?, -- // The height its fall starts from in the physics (thrown: GlobalConfig.BoomerangFlightHeight); nil = its current height
 }
 
--- // One frame of the dying slow-down (T-098): proportional drag (the gradual "ice" glide) plus a constant friction so it stops.
+-- // One frame of the dying slow-down: proportional drag (the gradual "ice" glide) plus a constant friction so it stops.
 -- // Used for the slide speed (air or ground values) and for the visual spin rate.
 local function getSlowedValue(value: number, deltaTime: number, drag: number, friction: number): number
 	return math.max(0, value * math.exp(-drag * deltaTime) - friction * deltaTime)
@@ -179,7 +179,7 @@ end
 
 -- // Moves horizontally without entering obstructions, sliding along the struck face
 --    Returns the new position, the direction to keep travelling in, and whether the weapon is blocked head-on
--- // T-124: the same hitbox-wide, cast-height block flying weapons bounce off (ObstructionCastLibrary.blockcast), not a thin ray.
+-- // The same hitbox-wide, cast-height block flying weapons bounce off (ObstructionCastLibrary.blockcast), not a thin ray.
 --    Returns how far ahead (along direction) the block meets an obstruction, or nil.
 local function castObstruction(position: Vector3, direction: Vector3, distance: number, hitboxRadius: number, raycastParams: RaycastParams): (RaycastResult?, number)
 	local result = ObstructionCastLibrary.blockcast(position, direction, distance, hitboxRadius, raycastParams)
@@ -279,7 +279,7 @@ local function setWeaponCFrame(deadWeaponData: DeadWeapons.Data, cframe: CFrame,
 		if not isServer then
 			local direction = deadWeaponData.Direction
 			if direction and direction.Magnitude > 1e-5 then
-				-- // T-098: the spin rate winds down while dying (SpinRate, set and slowed in applyDeath)
+				-- // The spin rate winds down while dying (SpinRate, set and slowed in applyDeath)
 				local visualRotation = (deadWeaponData.VisualRotation or 0) + ((deadWeaponData.SpinRate or 0) * (deltaTime or 0))
 				deadWeaponData.VisualRotation = visualRotation
 
@@ -402,7 +402,7 @@ function DeadWeaponLogic.hasGroundBelow(position: Vector3, host: Instance?): boo
 end
 
 -- ============================================================================================================================
--- DYING PHYSICS (T-107): one step, shared by the real loop (applyDeath, server AND clients) and the prediction below, so they can't
+-- DYING PHYSICS: one step, shared by the real loop (applyDeath, server AND clients) and the prediction below, so they can't
 -- drift apart. Physics is always worked out at GlobalConfig.BoomerangFlightHeight (walls, ground checks), whatever height the model
 -- is drawn at; the fall to the ground is tracked as a separate number (PhysicsY), and clients draw the model from it (applyDeath).
 -- ============================================================================================================================
@@ -433,7 +433,7 @@ local function stepDyingSim(sim: DyingSim, deltaTime: number, dyingSpeedMultipli
 	local nextPosition, nextDirection, isBlocked = resolveHorizontalMovement(fromPosition, sim.Direction, travelDistance, sim.HitboxRadius, obstructionParams)
 	local groundY = getPhysicsGroundY(nextPosition, groundParams)
 
-	-- // T-124: it never climbs. Ground ahead that is higher than it is (a wall top under the obstruction block) is a wall it
+	-- // It never climbs. Ground ahead that is higher than it is (a wall top under the obstruction block) is a wall it
 	-- // runs into: it stays where it is, blocked, and loses speed like against any other wall.
 	if groundY and groundY > sim.PhysicsY + DEAD_MAX_STEP_UP then
 		nextPosition = fromPosition
@@ -466,7 +466,7 @@ local function stepDyingSim(sim: DyingSim, deltaTime: number, dyingSpeedMultipli
 				nextY = groundY
 				sim.FallSpeed = 0
 				sim.IsGrounded = true
-				sim.Speed *= DEAD_LANDING_SPEED_KEPT -- // T-098: hitting the ground costs a little speed, then it glides on
+				sim.Speed *= DEAD_LANDING_SPEED_KEPT -- // Hitting the ground costs a little speed, then it glides on
 				landed = true
 			end
 			sim.PhysicsY = nextY
@@ -534,7 +534,7 @@ function DeadWeaponLogic.predictSlidePositions(position: Vector3, direction: Vec
 	groundParams.CollisionGroup = CollisionGroupConstants.Camera
 
 	local dyingSpeedMultiplier = BoomerangTuningLibrary.getForAnyTool(toolId, "DeadWeaponDeceleration")
-	-- // T-107: the very same physics step as applyDeath; positions are at flight height (where the physics is worked out)
+	-- // The very same physics step as applyDeath; positions are at flight height (where the physics is worked out)
 	local sim = newDyingSim(position, slideDirection, speed, position.Y, toolId)
 	local elapsed = 0
 	while elapsed + stepSeconds <= lookaheadSeconds + 1e-4 and sim.Speed > 0 do
@@ -542,7 +542,7 @@ function DeadWeaponLogic.predictSlidePositions(position: Vector3, direction: Vec
 		local landed = stepDyingSim(sim, stepSeconds, dyingSpeedMultiplier, obstructionParams, groundParams)
 		table.insert(positions, sim.Position)
 		if landed then
-			break -- // T-123: once it has hit the ground it can't recall by itself any more, so the rest of the slide doesn't count
+			break -- // Once it has hit the ground it can't recall by itself any more, so the rest of the slide doesn't count
 		end
 	end
 	return positions
@@ -670,7 +670,7 @@ function DeadWeaponLogic.updateSmoothing(deltaTime: number)
 end
 
 -------------------------------------------------------------------------------
--- RECALL CHARGE (T-090)
+-- RECALL CHARGE
 -- A dead boomerang only returns after its owner has held the manual recall for GlobalConfig.RecallCharge seconds. While
 -- charging it lifts straight up to hand height (Y only), arriving exactly when the charge completes; releasing early drops it
 -- back down. The server owns the state; the start/cancel are broadcast with server timestamps (RecallCharge event) and every
@@ -681,7 +681,7 @@ end
 local RECALL_CHARGE_EVENT = "RecallCharge"
 
 -- ============================================================================================================================
--- INTERNAL CONFIG: how a dead boomerang rises while its manual recall charges (T-096). The rise ends exactly at the target
+-- INTERNAL CONFIG: how a dead boomerang rises while its manual recall charges. The rise ends exactly at the target
 -- height (GlobalConfig.BoomerangFlightHeight) when the charge is complete (GlobalConfig.RecallCharge).
 -- ============================================================================================================================
 local RISE_OVERSHOOT = 0.3 -- // How far past the target it goes at the top, as a fraction of the rise (0.3 = 30% of the distance risen)
@@ -689,7 +689,7 @@ local RISE_PEAK_AT = 0.62 -- // Fraction of the charge time at which it reaches 
 local RISE_SETTLE_BOBS = 1.5 -- // How many half-swings it makes around the target while settling (it dips just under it once, then rests on it)
 
 -- ============================================================================================================================
--- INTERNAL CONFIG: momentum given when the manual recall is released (T-104)
+-- INTERNAL CONFIG: momentum given when the manual recall is released
 -- Releasing the recall drops the boomerang, but it always gets at least this much speed toward its player, so it falls and slides
 -- a few studs their way even if it hadn't moved sideways at all.
 --   * Released during the charge: MinSpeed at the very start of the charge, rising to MaxSpeed at the end (interpolated by how far
@@ -704,7 +704,7 @@ local RELEASE_MOMENTUM = {
 	-- // DeadWeaponLogic.getReleaseMomentum and the release-drop options (applyDeath), so a push-in can be added there.
 }
 
--- // T-104: the speed (studs/s, toward the player) a manual-recall release gives a boomerang. chargeProgress: 0 = charge just started,
+-- // The speed (studs/s, toward the player) a manual-recall release gives a boomerang. chargeProgress: 0 = charge just started,
 -- // 1 = fully charged (or already returning).
 function DeadWeaponLogic.getReleaseMomentum(chargeProgress: number): number
 	local alpha = math.clamp(chargeProgress, 0, 1)
@@ -751,7 +751,7 @@ local function getChargeHeight(deadWeaponData: DeadWeapons.Data, now: number): n
 	return startY + (targetY - startY) * getRiseCurve(alpha)
 end
 
--- // T-097: how long this boomerang's recall charge lasts (tunable live with `tune recallchargetime`; default GlobalConfig.RecallCharge)
+-- // How long this boomerang's recall charge lasts (tunable live with `tune recallchargetime`; default GlobalConfig.RecallCharge)
 function DeadWeaponLogic.getRecallChargeSeconds(deadWeaponData: DeadWeapons.Data): number
 	return math.max(BoomerangTuningLibrary.getForAnyTool(deadWeaponData.ToolId, "RecallChargeTime"), 0.01)
 end
@@ -803,7 +803,7 @@ function DeadWeaponLogic.applyRecallChargeEvent(player: Player, action: string, 
 		deadWeaponData.RecallCancelAt = nil
 		deadWeaponData.RecallCancelFromY = nil
 	elseif action == "Cancel" then
-		-- // Released before the charge finished (T-093). T-104: instead of dropping straight down, it is pushed toward the player
+		-- // Released before the charge finished. instead of dropping straight down, it is pushed toward the player
 		-- // (a = the height it had risen to, b/c = the X/Z direction to the player, from the server) and falls and slides with the
 		-- // normal dying motion; the server's Dying/Dead snapshots keep everyone in step after that.
 		local chargeStart = deadWeaponData.RecallChargeStart
@@ -818,7 +818,7 @@ function DeadWeaponLogic.applyRecallChargeEvent(player: Player, action: string, 
 				Direction = Vector3.new(b or 0, 0, c or 0),
 				Speed = DeadWeaponLogic.getReleaseMomentum(chargeProgress),
 				SpinRate = 0, -- // It wasn't spinning while charging
-				PhysicsY = a, -- // T-107: falls from the height it had risen to (the same number on the server and every client)
+				PhysicsY = a, -- // Falls from the height it had risen to (the same number on the server and every client)
 			})
 		end
 	end
@@ -848,7 +848,7 @@ function DeadWeaponLogic.beginRecallCharge(player: Player, deadWeaponData: DeadW
 	SimpleRemotes.getEvent(RECALL_CHARGE_EVENT):FireAllClients(player.UserId, "Start", now, startY, targetY, restY)
 end
 
--- // Server only: the owner released recall before the charge finished: it drops and slides toward the player (T-104)
+-- // Server only: the owner released recall before the charge finished: it drops and slides toward the player
 function DeadWeaponLogic.cancelRecallCharge(player: Player, deadWeaponData: DeadWeapons.Data)
 	if not isServer or DeadWeapons.Data[player] ~= deadWeaponData or not DeadWeaponLogic.isRecallCharging(deadWeaponData) then
 		return
@@ -856,14 +856,14 @@ function DeadWeaponLogic.cancelRecallCharge(player: Player, deadWeaponData: Dead
 	local now = workspace:GetServerTimeNow()
 	local pivot = getWeaponCFrame(deadWeaponData)
 	local currentY = getChargeHeight(deadWeaponData, now) or (pivot and pivot.Position.Y) or deadWeaponData.RecallRestY or 0
-	-- // T-104: pushed toward the player (the server's view of them; sent along so every machine pushes the same way)
+	-- // Pushed toward the player (the server's view of them; sent along so every machine pushes the same way)
 	local rootPart = player.Character and player.Character.PrimaryPart
 	local towardPlayer = if pivot and rootPart then getHorizontalDirection(rootPart.Position - pivot.Position) else getHorizontalDirection(deadWeaponData.Direction or Vector3.zero)
 	DeadWeaponLogic.applyRecallChargeEvent(player, "Cancel", now, currentY, towardPlayer.X, towardPlayer.Z)
 	SimpleRemotes.getEvent(RECALL_CHARGE_EVENT):FireAllClients(player.UserId, "Cancel", now, currentY, towardPlayer.X, towardPlayer.Z)
 end
 
--- // The charge lifts the boomerang again (T-096, client feedback; T-092 had kept it on the ground). Moves it to getChargeHeight each frame
+-- // The charge lifts the boomerang again (an earlier version kept it on the ground). Moves it to getChargeHeight each frame
 -- // and finishes a cancelled drop.
 local function applyRecallChargeLift(deadWeaponData: DeadWeapons.Data, now: number)
 	local height = getChargeHeight(deadWeaponData, now)
@@ -879,7 +879,7 @@ local function applyRecallChargeLift(deadWeaponData: DeadWeapons.Data, now: numb
 end
 
 -- // Every frame, on the server and on clients' copy of the data. The server starts a charge for a HELD recall once the boomerang has
--- // landed, and starts the return when the charge time is up. Releasing the button before that cancels the charge (T-093).
+-- // landed, and starts the return when the charge time is up. Releasing the button before that cancels the charge.
 function DeadWeaponLogic.updateRecallCharges(_deltaTime: number)
 	local now = workspace:GetServerTimeNow()
 	for player, deadWeaponData in pairs(DeadWeapons.Data) do
@@ -931,7 +931,7 @@ function DeadWeaponLogic.applyDeath(player: Player, deadWeaponData: DeadWeapons.
 	local obstructionRaycastParams = RaycastsUtility.getProjectileObstructionParams(obstructionFilter)
 
 	deadWeaponData.State = DeadWeapons.StateEnum.Dying
-	deadWeaponData.SpinRate = if options.SpinRate ~= nil then options.SpinRate else BOOMERANG_SPIN_SPEED -- // T-098: starts at the flight spin rate and winds down (visual, clients)
+	deadWeaponData.SpinRate = if options.SpinRate ~= nil then options.SpinRate else BOOMERANG_SPIN_SPEED -- // Starts at the flight spin rate and winds down (visual, clients)
 	deadWeaponData.Direction = direction
 	deadWeaponData.Speed = speed
 	deadWeaponData.SyncTargetPosition = nil
@@ -943,14 +943,14 @@ function DeadWeaponLogic.applyDeath(player: Player, deadWeaponData: DeadWeapons.
 
 	deadWeaponData.DeathOrigin = options.Position or pivot.Position
 
-	-- // T-107: the physics (identical on the server and every client: stepDyingSim) is worked out at flight height; PhysicsY is the
+	-- // The physics (identical on the server and every client: stepDyingSim) is worked out at flight height; PhysicsY is the
 	-- // height of the fall. The server's position IS the physics; a client draws its model from it (visual height below).
 	local startPivot = getWeaponCFrame(deadWeaponData) or pivot
 	local sim = newDyingSim(startPivot.Position, direction, speed, options.PhysicsY or startPivot.Position.Y, deadWeaponData.ToolId)
 	local pivotToBottom = if isServer then 0 else getHostPivotToBottom(deadWeaponData.Host)
 	-- // Client visual fall: from the model's height when a fall starts to resting on the ground, in step with the physics fall
 	local isFalling = false
-	local hasLanded = false -- // T-123: once it has hit the ground it never recalls by itself (it stays dead, even if it slides into view)
+	local hasLanded = false -- // Once it has hit the ground it never recalls by itself (it stays dead, even if it slides into view)
 	local fallStartPhysicsY = sim.PhysicsY
 	local fallStartVisualY = startPivot.Position.Y
 
@@ -1015,7 +1015,7 @@ function DeadWeaponLogic.applyDeath(player: Player, deadWeaponData: DeadWeapons.
 
 		if landed then
 			hasLanded = true
-			-- // T-099: the flight spin loop (Boomerang.throw, same channel) stops when it hits the ground, not when it comes to
+			-- // The flight spin loop (Boomerang.throw, same channel) stops when it hits the ground, not when it comes to
 			-- // rest. SoundLibrary.stop fades it out (0.25 s) on every client, so it never cuts off abruptly.
 			if isServer then
 				SoundLibrary.stop(deadWeaponData.InstanceId)
@@ -1027,11 +1027,11 @@ function DeadWeaponLogic.applyDeath(player: Player, deadWeaponData: DeadWeapons.
 			end
 		end
 
-		-- // T-062: it keeps sliding with nowhere to land: instead of snapping back to the player, it flies back on its own
+		-- // It keeps sliding with nowhere to land: instead of snapping back to the player, it flies back on its own
 		-- // (automatic recall). Based on time only, never on distance. Server decides; clients follow its Returning snapshot.
-		-- // T-107: not for a boomerang that has already been Dead (it never recalls by itself, T-093): that one keeps sliding like
+		-- // Not for a boomerang that has already been Dead (it never recalls by itself): that one keeps sliding like
 		-- // on the clients until it finds ground; see the failsafe below.
-		-- // T-123: and not once it has hit the ground (it keeps sliding like an already-Dead one, with the same failsafe)
+		-- // And not once it has hit the ground (it keeps sliding like an already-Dead one, with the same failsafe)
 		if isServer and not deadWeaponData.HasBeenDead and not hasLanded and sim.NoGroundTime >= GlobalConfig.DyingBoomerangNoGroundRecallSeconds then
 			if DeadWeaponLogic.onSlidingAway then
 				DeadWeaponLogic.onSlidingAway(player, deadWeaponData)
@@ -1041,7 +1041,7 @@ function DeadWeaponLogic.applyDeath(player: Player, deadWeaponData: DeadWeapons.
 			return
 		end
 
-		-- // T-107 failsafe: still no ground after DEAD_NO_GROUND_FAILSAFE_SECONDS: put it down at the last solid spot it passed over.
+		-- // failsafe: still no ground after DEAD_NO_GROUND_FAILSAFE_SECONDS: put it down at the last solid spot it passed over.
 		-- // With no such spot it goes back to the player's hand (warning, so it shows up in testing). Clients follow the Dead snapshot.
 		if isServer and (deadWeaponData.HasBeenDead or hasLanded) and sim.NoGroundTime >= DEAD_NO_GROUND_FAILSAFE_SECONDS then
 			local lastSolid = sim.LastSolid
@@ -1064,7 +1064,7 @@ function DeadWeaponLogic.applyDeath(player: Player, deadWeaponData: DeadWeapons.
 
 		-- // Still dying: keep checking whether the player is in sight and close. If so the recall resumes even at 0 energy
 		-- // (the hook decides and starts the recall; clients follow its Returning snapshot). Server only, throttled.
-		-- // T-123: only until it hits the ground; sliding into view afterwards doesn't bring it back
+		-- // Only until it hits the ground; sliding into view afterwards doesn't bring it back
 		if isServer and not hasLanded and DeadWeaponLogic.checkRecallWhileDying and time >= nextRecallCheckAt then
 			nextRecallCheckAt = time + GlobalConfig.DyingBoomerangRecallCheckSeconds
 			if DeadWeaponLogic.checkRecallWhileDying(player, deadWeaponData, sim.Position) then
@@ -1100,7 +1100,7 @@ function DeadWeaponLogic.applyDeath(player: Player, deadWeaponData: DeadWeapons.
 		deadWeaponData.Speed = speed
 		updateOwnWeaponHighlight(player, deadWeaponData, nextPosition)
 
-		-- // T-099: once it has hit the ground it can be picked up, even while it is still sliding (not while flying or dropping)
+		-- // Once it has hit the ground it can be picked up, even while it is still sliding (not while flying or dropping)
 		if isServer and isGrounded and isWithinPickupDistance(player, nextPosition) then
 			DeadWeaponLogic.removeFromField(player, deadWeaponData)
 			return

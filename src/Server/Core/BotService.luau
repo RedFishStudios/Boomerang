@@ -1,5 +1,5 @@
 --[[
-	BotService (T-079)
+	BotService
 
 	A thin server-authoritative "bot" layer. A bot is a minimal INVISIBLE Humanoid rig:
 	a HumanoidRootPart (in the Bots collision group, so it collides with the environment like a
@@ -68,7 +68,7 @@ export type BotBehavior = {
 	update: ((bot: Bot, deltaTime: number) -> ())?,
 	shouldDespawn: ((bot: Bot) -> boolean)?,
 	onHit: ((bot: Bot, throwerPlayer: Player) -> boolean)?, -- // may this weapon hit eliminate the bot? (nil = any hit does)
-	CountsAsElimination: boolean?, -- // T-143: false = eliminating it doesn't count for quests (decoys); nil = it does
+	CountsAsElimination: boolean?, -- // False = eliminating it doesn't count for quests (decoys); nil = it does
 }
 
 -------------------------------------------------------------------------------
@@ -77,7 +77,7 @@ export type BotBehavior = {
 
 local bots: { [string]: Bot } = {}
 
--- // T-143: a weapon hit eliminated a bot (QuestService counts it unless the behavior's CountsAsElimination is false)
+-- // A weapon hit eliminated a bot (QuestService counts it unless the behavior's CountsAsElimination is false)
 BotService.BotEliminatedTasks = TasksList.new() :: TasksList.TasksList<(throwerPlayer: Player, bot: Bot) -> ()>
 local hitboxesVisible = false -- // Cmdr `viewhitbox` shows bot hitboxes like player hitboxes
 local HITBOX_VISIBLE_TRANSPARENCY = 0.6
@@ -138,7 +138,7 @@ local function buildRig(ownerUserId: number, botId: string, spawnCFrame: CFrame,
 
 	model.PrimaryPart = root
 
-	-- // Weapon hitbox: same shape/group as the player hitbox, kept non-queryable until T-081
+	-- // Weapon hitbox: same shape/group as the player hitbox, kept non-queryable
 	local hitbox = Instance.new("Part")
 	hitbox.Name = "Hitbox"
 	hitbox.Size = HITBOX_SIZE
@@ -146,7 +146,7 @@ local function buildRig(ownerUserId: number, botId: string, spawnCFrame: CFrame,
 	hitbox.Massless = true
 	hitbox.Transparency = if hitboxesVisible then HITBOX_VISIBLE_TRANSPARENCY else 1
 	hitbox.CanCollide = false
-	hitbox.CanQuery = true -- // T-081: weapon spherecasts detect the bot through this hitbox
+	hitbox.CanQuery = true -- // Weapon spherecasts detect the bot through this hitbox
 	hitbox.CanTouch = false
 	hitbox.CollisionGroup = BOTS_COLLISION_GROUP
 	hitbox:PivotTo(root.CFrame * CFrame.Angles(0, 0, math.rad(90)))
@@ -275,7 +275,7 @@ end
 -------------------------------------------------------------------------------
 
 -- // Animation state published as a replicated "pose" attribute on the rig root -- the same
---    contract players use under Server Authority (T-068). BotController renders walk / idle / fall
+--    contract players use under Server Authority. BotController renders walk / idle / fall
 --    from it, so every bot animates without per-behavior work. A behavior can force a state via
 --    bot.Pose; otherwise it is derived from the rig's Humanoid state and horizontal speed.
 local function derivePose(bot: Bot): string

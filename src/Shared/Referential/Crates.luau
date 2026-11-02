@@ -1,5 +1,5 @@
 --[[
-	Crates (T-112)
+	Crates
 
 	Description:
 	The weapon crates sold in the Weapons Shop, one per weapon category (Shared/Constants/Tools Category). Buying a crate

@@ -1,11 +1,11 @@
 --[[
-	CrateService (T-112, T-114)
+	CrateService
 
 	Description:
 	Buying a weapon crate (Shared/Referential/Crates) from the Weapons Shop: the Currency is spent and a weapon of the
 	crate's category is rolled with CrateLibrary (weighted by Tools.CrateWeight). Called by ShopService for "Crate" listings.
 
-	T-114: the weapon isn't given right away. A copy of the crate model is put in the world next to the player
+	The weapon isn't given right away. A copy of the crate model is put in the world next to the player
 	(findCrateSpot), and the player opens it by clicking / tapping it GlobalConfig.CrateClicksToOpen times (a ClickDetector:
 	only the owner's clicks count, counted here on the server). Opening grants the rolled skin (SkinService) and tells the
 	owner's client (CrateOpened event: skin id + whether it was new); the client shows the clicks left, a hit bounce and the
@@ -45,7 +45,7 @@ local SPOT_CLEARANCE = 0.25 -- // Extra room checked around the crate
 local CLICK_DETECTOR_DISTANCE = 60
 local MIN_CLICK_INTERVAL = 1 / 25 -- // Faster clicks are ignored (auto-clickers)
 local OPENED_REMOVE_DELAY = 0.6 -- // The opened crate stays this long so clients can play the pop
-local WORLD_SCALE = 0.5 -- // T-115: the crate placed in the world is this size of the Shared/Assets/Crates model
+local WORLD_SCALE = 0.5 -- // The crate placed in the world is this size of the Shared/Assets/Crates model
 
 -------------------------------------------------------------------------------
 -- TYPES / PRIVATE VARIABLES

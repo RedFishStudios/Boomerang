@@ -1,5 +1,5 @@
 -- // Cmdr command definition (replicated to clients for autocomplete). Server logic is in TuneBoomerangServer.
--- // Changes the weapon the caller is holding, for every player, until the server shuts down (T-054).
+-- // Changes the weapon the caller is holding, for every player, until the server shuts down.
 return {
 	Name = "tuneboomerang",
 	Aliases = { "tune" },

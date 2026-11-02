@@ -1,5 +1,5 @@
 --[[
-	Quests (T-143)
+	Quests
 
 	Description:
 	The Quests menu, opened from the Quests button in the left lobby menu (MenuButtons). A vertical scrolling list: each

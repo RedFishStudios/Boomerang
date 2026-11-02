@@ -49,7 +49,7 @@ local SetupData = {
    Players = collisionGroupData("Players", {"ArenaWalls", "ArenaFloor", "Default"}),
    -- // Bots (e.g. the decoy): collide with the environment like a player, and be detectable by
    -- // boomerang casts (ThrownWeapons). Deliberately NOT collidable with Players, so a decoy passes
-   -- // through players just as players pass through each other (T-081).
+   -- // through players just as players pass through each other.
    Bots = collisionGroupData("Bots", {"ArenaWalls", "ArenaFloor", "Default", "ThrownWeapons"}),
    ThrownWeapons = collisionGroupData("ThrownWeapons", {"ArenaWalls", "ThrownWeapons", "Players"}),
    HandWeapons = collisionGroupData("HandWeapons", {"Players"}),

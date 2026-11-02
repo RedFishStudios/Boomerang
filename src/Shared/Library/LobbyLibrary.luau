@@ -25,7 +25,7 @@ end
 
 --- Jumping is enabled only in the lobby (dash replaces it in the arena). Run on BOTH the server and the owning client:
 --- with Workspace.AuthorityMode = Server the server simulates the character, so a jump only enabled on the client gets
---- predicted and then corrected (T-070).
+--- predicted and then corrected.
 function LobbyLibrary.applyJumpState(humanoid: Humanoid, isInLobby: boolean)
 	local jumpHeight = if isInLobby then GlobalConfig.LobbyJumpHeight else 0
 	if humanoid.UseJumpPower then

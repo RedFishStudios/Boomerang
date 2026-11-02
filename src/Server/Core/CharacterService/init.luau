@@ -35,7 +35,7 @@ local LobbyLibrary = require(ReplicatedStorage.Shared.Library.LobbyLibrary)
 local UNRELIABLE_CODES = RemoteCodes.Character.Unreliable
 local _COLLISION_GROUP = CollisionGroupConstants.Players
 local REPLICATION_FLUSH_RATE = 1 / 12
--- // How often the server re-checks who is in the lobby to enable/disable jumping (T-070)
+-- // How often the server re-checks who is in the lobby to enable/disable jumping
 local LOBBY_JUMP_CHECK_RATE = 1 / 10
 
 -------------------------------------------------------------------------------
@@ -165,7 +165,7 @@ end
 
 -- // The part a character physically collides with (R6). It must collide on the server too: the player's own client has
 -- // its Humanoid switch it on, so with it off here the server simulated the character as a ghost (moving platforms passed
--- // straight through it) and corrected the client back each time (the character "popped" back to where it stood). T-135
+-- // straight through it) and corrected the client back each time (the character "popped" back to where it stood).
 local COLLIDING_PART_NAME = "Torso"
 
 local function onCharacterLoaded(player: Player, character: Model, humanoid: Humanoid, _rootPart: BasePart)

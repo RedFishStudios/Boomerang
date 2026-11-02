@@ -1,5 +1,5 @@
 -- // Cmdr command definition (replicated to clients for autocomplete). Server logic is in PrintGameStateServer.
--- // Replaces the old /printgamestate chat command (T-016).
+-- // Replaces the old /printgamestate chat command.
 return {
 	Name = "printgamestate",
 	Aliases = { "gamestate" },

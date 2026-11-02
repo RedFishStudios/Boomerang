@@ -8,7 +8,7 @@
 	     is created once, when the boomerang first dies, and destroyed when it is back in the player's hands. In between it is the same
 	     beam: it fades in once the boomerang has landed (GlobalConfig.DeadBeamFadeSeconds), fades out gradually as the recall charges and
 	     is completely invisible exactly when the charge peaks, stays invisible while the boomerang flies back, and fades back in if the
-	     recall is released/cancelled or the boomerang is dead again (T-094). It fades out the same way when it goes away for any other reason, if it can still be drawn (if the boomerang or
+	     recall is released/cancelled or the boomerang is dead again. It fades out the same way when it goes away for any other reason, if it can still be drawn (if the boomerang or
 	     the player's character is gone it is removed at once).
 	  2. "Returning" beam (BeamToReturningWeapon): from the moment the charged recall starts moving the boomerang until it is
 	     caught. It fades in over GlobalConfig.RecallReturnBeamFadeInSeconds.
@@ -49,7 +49,7 @@ local CONTAINER_NAME = "DeadWeaponBeams"
 local CONTAINER_TAG = "DeadWeaponBeamContainer"
 
 -- // Attachment offsets (from the BeamToDeadWeapon / BeamToReturningWeapon references): boomerang (0, 1, 0), player (0, 0, 0)
--- // (the player one was moved from (0, 2, 0) to the Hitbox's center by Sol, 2026-10-20)
+-- // (the player one was moved from (0, 2, 0) to the Hitbox's center)
 local WEAPON_ATTACHMENT_OFFSET = Vector3.new(0, 1, 0) -- // In the boomerang part's own space (the dead beam: a stud above it)
 local RETURNING_WEAPON_ATTACHMENT_OFFSET = Vector3.zero -- // The returning beam attaches directly on the boomerang itself
 local PLAYER_ATTACHMENT_OFFSET = Vector3.zero -- // In WORLD-upright terms, converted to the Hitbox's space (zero = the Hitbox's center)
@@ -354,7 +354,7 @@ local deadKind: BeamKind = {
 	WeaponAttachmentOffset = WEAPON_ATTACHMENT_OFFSET,
 	Active = nil,
 
-	-- // The beam's whole life cycle (T-094): ONE beam exists from the moment the local player's boomerang dies until it is back in
+	-- // The beam's whole life cycle: ONE beam exists from the moment the local player's boomerang dies until it is back in
 	-- // their hands. It is the same beam through every dead -> recall charge -> returning -> dropped (released) -> dead again round, so
 	-- // it is only built the first time (the boomerang's host part stays the same, so isActiveBeamValid keeps matching it) and it
 	-- // only turns invisible in between (getDeadTarget). It is removed once the boomerang is neither dead nor being recalled
@@ -365,7 +365,7 @@ local deadKind: BeamKind = {
 			return getWeaponPart(deadWeaponData.Host)
 		end
 		local thrownWeaponData = ThrownWeapons.Data[localPlayer]
-		-- // T-122: only a manual (charged) recall keeps the dead beam (invisible while it flies back, in case it is dropped again).
+		-- // Only a manual (charged) recall keeps the dead beam (invisible while it flies back, in case it is dropped again).
 		-- // An automatic recall (RecallFromDead == false) has no beam: it fades out and is removed.
 		if thrownWeaponData and thrownWeaponData.RecallFromDead == true then
 			return getWeaponPart(thrownWeaponData.Host)
@@ -414,7 +414,7 @@ local returningKind: BeamKind = {
 	-- // The local player's own boomerang while a charged manual recall is moving it back to them, until it is caught
 	getWeaponPart = function(): BasePart?
 		local thrownWeaponData = ThrownWeapons.Data[localPlayer]
-		-- // T-100: a predicted catch hides the boomerang until the server confirms it: the beam goes with it
+		-- // A predicted catch hides the boomerang until the server confirms it: the beam goes with it
 		if thrownWeaponData and thrownWeaponData.RecallFromDead == true and not thrownWeaponData.HostHidden then
 			return getWeaponPart(thrownWeaponData.Host)
 		end

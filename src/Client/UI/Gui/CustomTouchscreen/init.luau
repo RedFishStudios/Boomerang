@@ -54,7 +54,7 @@ end
 
 local drag
 
--- // MANUAL RECALL MODE (T-138): while the boomerang is dead (or flying back from a manual recall), the aim thumbstick becomes
+-- // MANUAL RECALL MODE: while the boomerang is dead (or flying back from a manual recall), the aim thumbstick becomes
 -- // the Manual Recall button: its knob shows Icons.ManualRecall, it no longer aims, and holding it recalls exactly like holding
 -- // E on PC. Back in hand, it's the aim thumbstick again. Each switch pops the knob out a little and back (POP_SCALE).
 local POP_SCALE = 1.25 -- // How much bigger the knob pops out when it switches
@@ -75,7 +75,7 @@ local knobScale = Instance.new("UIScale")
 knobScale.Parent = aimThumbstick
 local popTween: Tween? = nil
 
--- // The label under the knob (Sol's TextLabel under ThumbstickImage if it's there, else made here with the same layout)
+-- // The label under the knob (the TextLabel under ThumbstickImage if it's there, else made here with the same layout)
 local function getRecallLabel(): TextLabel
 	local label = aimThumbstickImage:FindFirstChild(RECALL_LABEL_NAME) or aimThumbstickImage:FindFirstChildWhichIsA("TextLabel")
 	if not label then
@@ -145,14 +145,14 @@ local function endRecallHold()
 	end
 end
 
--- // T-118: the circle's center in the same space as the touch positions. Touch positions already line up with this GUI's
+-- // The circle's center in the same space as the touch positions. Touch positions already line up with this GUI's
 -- // AbsolutePosition (it ignores the top bar inset), so no inset correction: subtracting it put the thumbstick below the finger.
 local function getContainerCenterInInputSpace(): Vector3
 	local center = aimThumbstickContainer.AbsolutePosition + aimThumbstickContainer.AbsoluteSize / 2
 	return Vector3.new(center.X, center.Y, 0)
 end
 
--- // Touch has started on the thumbstick, or (T-118) anywhere in the circle around it: aiming starts and the thumbstick
+-- // Touch has started on the thumbstick, or anywhere in the circle around it: aiming starts and the thumbstick
 -- // jumps under the finger (its offset from the circle's center is the aim direction, as when dragging)
 local function touchStarted(input, gameProcessed)
 	if input.UserInputType ~= Enum.UserInputType.Touch and input.UserInputType ~= Enum.UserInputType.MouseButton1 then
@@ -268,7 +268,7 @@ local function updateRecallMode()
 	end
 end
 
--- // T-121: the Dash and Stab buttons sit in a row to the left of the aim circle with a gap between each. Their sizes follow the
+-- // The Dash and Stab buttons sit in a row to the left of the aim circle with a gap between each. Their sizes follow the
 -- // screen height but their old positions followed its width, so on some screens they overlapped. Laid out here in pixels from
 -- // the aim circle, so the spacing is the same on every screen shape (their Y position still comes from the rbxmx).
 local ACTION_BUTTON_GAP = 0.035 -- // Gap between the aim circle, Dash and Stab, as a fraction of the screen height
@@ -325,7 +325,7 @@ local function setupFunctionality()
    end)
 
 	aimThumbstick.InputBegan:Connect(touchStarted)
-	-- // T-118: touching anywhere in the circle around the thumbstick starts aiming too (and doesn't reach the world/camera)
+	-- // Touching anywhere in the circle around the thumbstick starts aiming too (and doesn't reach the world/camera)
 	aimThumbstickContainer.Active = true
 	aimThumbstickContainer.InputBegan:Connect(touchStarted)
 	UserInputService.TouchMoved:Connect(drag)

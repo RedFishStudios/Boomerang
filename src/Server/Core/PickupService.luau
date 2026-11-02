@@ -69,7 +69,7 @@ local NotCompatible: {
    TeleportBoomerang = {
       "FireBoomerang", "ElectricBoomerang"
    },
-   -- // T-077: Homing and Telekinesis both steer the thrown boomerang, so they can't stack (reverse auto-filled below)
+   -- // Homing and Telekinesis both steer the thrown boomerang, so they can't stack (reverse auto-filled below)
    HomingBoomerang = {
       "Telekinesis"
    }
@@ -98,7 +98,7 @@ instantiateReverseCompatibility()
 PickupService.PickupEffectEndedTasks = TasksList.new() :: TasksList.TasksList<(forUserId: number, livePickupId: string)->()>
 -- // A player picked up a live pickup in the world (not developer grants)
 PickupService.PickupAcquiredTasks = TasksList.new() :: TasksList.TasksList<(player: Player, pickupClassId: string)->()>
--- // T-148: a player used a pickup: pressed its use button (Decoy, Explosive, Teleport...), or picked up one that takes
+-- // A player used a pickup: pressed its use button (Decoy, Explosive, Teleport...), or picked up one that takes
 -- // effect at once (no use button: Shield, Speedup...). Quests count "Use X" from this.
 PickupService.PickupUsedTasks = TasksList.new() :: TasksList.TasksList<(player: Player, pickupClassId: string)->()>
 
@@ -246,7 +246,7 @@ local function activatePickup(player: Player, livePickupId: LivePickupId, ...)
    end
    PickupService.PickupAcquiredTasks:Execute("parallel", player, pickupClassId)
    if not logic.UseButton then
-      PickupService.PickupUsedTasks:Execute("parallel", player, pickupClassId) -- // T-148: takes effect at once
+      PickupService.PickupUsedTasks:Execute("parallel", player, pickupClassId) -- // Takes effect at once
    end
 
    pickupReplication:FireAllClients(livePickupId, pickupClassId, player.UserId, workspace:GetServerTimeNow())
@@ -287,7 +287,7 @@ function PickupService.grantPickupClassId(player: Player, insensitivePickupClass
 end
 
 -- // Dev/testing: grant a pickup's effect by exact class id, even if the pickup is Disabled (not in the spawn
--- // pool). Used by the spawndecoy command (T-082). Mirrors grantPickupClassId without the pool filter.
+-- // pool). Used by the spawndecoy command. Mirrors grantPickupClassId without the pool filter.
 function PickupService.forceGrantPickup(player: Player, pickupClassId: string): (boolean, string?)
    local logic = getLogic(pickupClassId)
    if not logic then
@@ -410,7 +410,7 @@ function PickupService.init()
       livePickupReplication:FireAllClients(replicationData)
    end)
 
-   -- // T-108: the on-screen use button (UsePickupButtons GUI). Only for a pickup the player holds, whose logic has a use button,
+   -- // The on-screen use button (UsePickupButtons GUI). Only for a pickup the player holds, whose logic has a use button,
    -- // while they are alive in the arena and the pickup says it can be used right now (e.g. their boomerang is out).
    SimpleRemotes.getEvent(PickupLibrary.USE_PICKUP_BUTTON_EVENT).OnServerEvent:Connect(function(player: Player, pickupClassId: any)
       if type(pickupClassId) ~= "string" or not PickupLibrary.hasPickupEffectActive(player.UserId, pickupClassId) then
@@ -430,10 +430,10 @@ function PickupService.init()
          return
       end
       logic.onUse(player)
-      PickupService.PickupUsedTasks:Execute("parallel", player, pickupClassId) -- // T-148
+      PickupService.PickupUsedTasks:Execute("parallel", player, pickupClassId) 
    end)
 
-   -- // T-108: dying loses every pickup the player holds (round end already clears them all: clearAllPickupEffectsActive above).
+   -- // Dying loses every pickup the player holds (round end already clears them all: clearAllPickupEffectsActive above).
    -- // Effects owned by other systems (data-only: OnFire, HotPotato, ...) are left to those systems.
    PlayersUtil.CharacterDied:Add(function(player: Player)
       local userEffects = PickupLibrary.UserPickupEffectsActive[player.UserId]
@@ -574,7 +574,7 @@ function PickupService.init()
       end
    end)
 
-   -- // T-016: this chat command is disabled (CommandService.CHAT_COMMANDS_ENABLED = false) and kept only as a reference.
+   -- // This chat command is disabled (CommandService.CHAT_COMMANDS_ENABLED = false) and kept only as a reference.
    -- // Its replacement is the Cmdr command getpickup (Server/Cmdr/Commands), which uses PickupService.grantPickupClassId.
    CommandService.addCommand("GrantEffect", "/getPickup", "/getpickup", function(player: Player, args: {string})
       local pickupClassId = args[1]

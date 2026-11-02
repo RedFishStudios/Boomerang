@@ -1,5 +1,5 @@
 --[[
-	QuestController (T-143)
+	QuestController
 
 	Description:
 	Client side of quests: the local player's current quests (from the replicated profile's `Quests`, written by
@@ -59,7 +59,7 @@ function QuestController.claim(poolName: string, slotIndex: number): boolean
 	return claimQuestFunction:InvokeServer(poolName, slotIndex) == true
 end
 
---- T-147: buying a reroll for this quest. The server first reserves the quest (it stops counting progress), then the
+--- Buying a reroll for this quest. The server first reserves the quest (it stops counting progress), then the
 --- QuestReroll purchase prompt opens; the server swaps the quest when the purchase goes through. Yields until the
 --- prompt is answered; returns whether it was bought.
 function QuestController.reroll(poolName: string, slotIndex: number): boolean

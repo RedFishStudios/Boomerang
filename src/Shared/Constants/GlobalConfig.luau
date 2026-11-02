@@ -12,7 +12,7 @@ local GlobalConfig = {
    CharacterFocalHeight = 154.902,
    SkipVoting = false,
    CanHurtSelf = false,
-   CanHitSelfDecoy = false, -- // T-081: if true, a player's own boomerang can eliminate their own decoy (friendly fire on your own decoy). Default off.
+   CanHitSelfDecoy = false, -- // If true, a player's own boomerang can eliminate their own decoy (friendly fire on your own decoy). Default off.
    SpawnShieldDuration = 2,
    NilDataType = "nil_",
    ChargeTime = 1, -- // Seconds of holding aim until BOTH the throw is at max power AND the aim arrow is at its full size/length. Default for the Cmdr `tuneboomerang ChargeTime` setting (BoomerangTuningLibrary).
@@ -55,7 +55,7 @@ local GlobalConfig = {
    -- // A RETURNING boomerang bounces, takes player hits and loses energy exactly like an outgoing one. After a bounce (or clash) its
    -- // bounce momentum is in charge and fades back into steering toward the player over this many seconds (Cmdr `tune RecallBounceRecovery`).
    BoomerangRecallBounceRecoverySeconds = 0.35,
-   -- // A dying boomerang that keeps sliding with nothing to land on returns to its player on its own after this long (T-062)
+   -- // A dying boomerang that keeps sliding with nothing to land on returns to its player on its own after this long
    DyingBoomerangNoGroundRecallSeconds = 0.75, -- // Seconds of sliding with nothing below to land on
    -- // While a boomerang is dying (sliding to a stop after running out of energy) it keeps checking for its player: with line of sight
    -- // and within this many studs (horizontal) it resumes its recall even at 0 energy. Checked this often (seconds), server only.
@@ -65,14 +65,14 @@ local GlobalConfig = {
    -- // within range at any point of it, the boomerang keeps returning instead of dying (no die-then-revive flicker).
    DyingBoomerangRecallLookaheadSeconds = 0.4,
    -- // Manual recall of a dying/dead boomerang (held recall): slower and heavier. It must first be charged (RecallCharge below)
-   CrateClicksToOpen = 20, -- // T-114: clicks / taps it takes to open a bought weapon crate (CrateService). TODO:RELEASE placeholder
-   RecallCharge = 0.3, -- // T-092: seconds a tapped manual recall charges (boomerang stays on the ground, player slowed, no dash, can't be interrupted) before it starts returning
-   ManualRecallRiseSeconds = 0.8, -- // T-095 (only if Boomerang.luau's MANUAL_RECALL_RISES_DURING_FLIGHT is on; the charge lifts it now): a manual recall rises from the ground to BoomerangFlightHeight over this long (eased start and finish)
-   ManualRecallLiftRate = 2.5, -- // UNUSED for manual recalls since T-095 -- // How quickly a manually recalled boomerang rises to flight height while returning (the automatic from-ground lift is 8)
+   CrateClicksToOpen = 20, -- // Clicks / taps it takes to open a bought weapon crate (CrateService). TODO:RELEASE placeholder
+   RecallCharge = 0.3, -- // Seconds a tapped manual recall charges (boomerang stays on the ground, player slowed, no dash, can't be interrupted) before it starts returning
+   ManualRecallRiseSeconds = 0.8, -- // (only if Boomerang.luau's MANUAL_RECALL_RISES_DURING_FLIGHT is on; the charge lifts it now): a manual recall rises from the ground to BoomerangFlightHeight over this long (eased start and finish)
+   ManualRecallLiftRate = 2.5, -- // UNUSED for manual recalls -- // How quickly a manually recalled boomerang rises to flight height while returning (the automatic from-ground lift is 8)
    ManualRecallMaxTiltDegrees = 35, -- // Visual tilt toward the player while it's being lifted
-   RecallChargeCancelDropSeconds = 0.25, -- // UNUSED since T-104 (a released charge now falls and slides with the dying motion, see Dead.luau RELEASE_MOMENTUM) -- // Releasing the recall before it is charged drops the boomerang back to the ground over this long
-   DeadBeamFadeSeconds = 0.4, -- // T-094: the beam to a dead boomerang fades in / out over this long (a full 0 to 1 fade)
-   RecallChargeBeamOpacity = 0.2, -- // UNUSED since T-094 (the beam now fades to invisible as the charge builds) -- // The player-to-dead-boomerang beam fades to at most this opacity while the recall is charging (1 = normal beam)
+   RecallChargeCancelDropSeconds = 0.25, -- // UNUSED (a released charge now falls and slides with the dying motion, see Dead.luau RELEASE_MOMENTUM) -- // Releasing the recall before it is charged drops the boomerang back to the ground over this long
+   DeadBeamFadeSeconds = 0.4, -- // The beam to a dead boomerang fades in / out over this long (a full 0 to 1 fade)
+   RecallChargeBeamOpacity = 0.2, -- // UNUSED (the beam now fades to invisible as the charge builds) -- // The player-to-dead-boomerang beam fades to at most this opacity while the recall is charging (1 = normal beam)
    RecallReturnBeamFadeInSeconds = 0.3, -- // The beam to the returning boomerang fades in over this long once the charged recall starts moving it
    SelectionRingGrowSeconds = 0.3, -- // The SelectionRing tweens from nothing to full size (with a small overshoot) over this long
    SelectionRingVanishSeconds = 0.15, -- // ...and shrinks away over this long when the recall is released early
@@ -95,7 +95,7 @@ local GlobalConfig = {
    AimingWalkSpeedMultiplier = 0.3, -- // Walk speed while aiming/charging a throw, as a fraction of the default walk speed (WalkSpeedLibrary.getDefault())
 
    -- // The game's Roblox group (community), checked by GroupMembershipService (Cmdr `setgroupid` overrides it per server).
-   -- // Members can claim GroupRewardCurrency from the lobby Group Rewards chest once every 24 h (T-045).
+   -- // Members can claim GroupRewardCurrency from the lobby Group Rewards chest once every 24 h.
    GroupId = 293180599,
    GroupRewardCurrency = 100, -- TODO:RELEASE placeholder (the real reward isn't decided yet)
 
@@ -110,8 +110,8 @@ local GlobalConfig = {
    ParryVisualizersEnabled = false, -- // Default for drawing each slash's hit wedge (server). Cmdr `viewhitbox` changes it live, with the other hit visualizers.
    VisualizeElectricChainRadius = true, -- // Client-only red cylinder showing the chain radius around every Electric boomerang elimination
    SyncAbilitiesToEveryPlayer = false, -- // Testing: every player does any player's ability or throw (AbilityService, WeaponService). Cmdr `togglesyncabilities` changes it live.
-   -- // Cmdr developer console (F2): true = every player can use it in live servers (for client review builds).
-   CmdrOpenToEveryone = true, -- TODO:RELEASE (T-052) RELEASE BLOCKER: must be false before public release, or every player can use admin commands (then only admins, see CmdrService)
+   -- // Cmdr developer console (F2): true = every player can use it in live servers (for review builds).
+   CmdrOpenToEveryone = true, -- TODO:RELEASE RELEASE BLOCKER: must be false before public release, or every player can use admin commands (then only admins, see CmdrService)
    AuthoritativeCharacterDebugVisible = false, -- // Shows the server-authoritative character half-transparent (normally fully invisible)
    ShowAuthoritativeCharacterOnRenderFailure = true, -- // If a player's rendered model failed to load, show the authoritative character so they aren't invisible
 }

@@ -1,4 +1,4 @@
--- // While active, the player can teleport to their boomerang with the on-screen button (T-108: UsePickupButtons GUI) while it is
+-- // While active, the player can teleport to their boomerang with the on-screen button (UsePickupButtons GUI) while it is
 -- // out of their hand. One use: the effect ends when they teleport (or when it times out). It no longer triggers by itself.
 
 local TeleportBoomerang = {}
@@ -25,12 +25,12 @@ local particles = {} -- {[Player]: Part}
 TeleportBoomerang.UseButton = true
 TeleportBoomerang.ConsumedOnUse = true
 
--- // T-108: usable while the player's boomerang is out of their hand
+-- // Usable while the player's boomerang is out of their hand
 function TeleportBoomerang.canUse(player: Player): boolean
    return (PickupLibrary.getWeaponOnField(player)) ~= nil
 end
 
--- // T-108: the button was pressed: teleport to the boomerang, then the effect is used up
+-- // The button was pressed: teleport to the boomerang, then the effect is used up
 function TeleportBoomerang.onUse(player: Player)
    if not isServer then
       return

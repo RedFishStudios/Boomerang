@@ -1,5 +1,5 @@
 --[[
-	CrateLibrary (T-112)
+	CrateLibrary
 
 	Description:
 	Shared helpers for the weapon crates (Shared/Referential/Crates): what a crate can give and with which chance, and the

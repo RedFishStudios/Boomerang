@@ -53,7 +53,7 @@ function ShopController.requestPurchaseItem(itemId: string, listingType: string?
    return requestPurchaseRemoteFunction:InvokeServer(itemId, listingType or "Item")
 end
 
--- // T-112 / T-114: buys a weapon crate. The crate is put in the world next to the player, who opens it by clicking it
+-- // Buys a weapon crate. The crate is put in the world next to the player, who opens it by clicking it
 -- // (CrateService, CrateOpeningController shows what was inside). Returns success.
 function ShopController.requestPurchaseCrate(crateId: string): boolean
    return requestPurchaseRemoteFunction:InvokeServer(crateId, "Crate") == true

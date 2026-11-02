@@ -214,7 +214,7 @@ function DailyClaimsGui.start()
       end
    end)
 
-   -- // Opened from the Daily button in MenuButtons (T-037; was a Topbar button, T-055)
+   -- // Opened from the Daily button in MenuButtons (was a Topbar button)
 
    if game:GetService("RunService"):IsStudio() then
       game:GetService("ContextActionService"):BindAction("testopendailyclaimsmenu", function(_, inputState)

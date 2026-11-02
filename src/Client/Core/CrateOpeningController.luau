@@ -1,5 +1,5 @@
 --[[
-	CrateOpeningController (T-114)
+	CrateOpeningController
 
 	Description:
 	The client side of opening a bought weapon crate (the server places and counts: Server/Core/CrateService).

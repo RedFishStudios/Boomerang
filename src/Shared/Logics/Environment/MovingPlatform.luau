@@ -1,5 +1,5 @@
 --[[
-	MovingPlatform (environment logic, T-131, T-133, T-134)
+	MovingPlatform (environment logic)
 
 	A platform that travels back and forth between two pivots, at Speed studs per second, resting RestTime seconds at each end,
 	eased in and out (easeInOutQuint). The platform is a single part directly in the map's Functional folder, with attributes
@@ -11,7 +11,7 @@
 	  EnvironmentController). Clients force prediction on for it (RunService:SetPredictionMode), so each client drives it the
 	  same way the server does for every simulation frame, including frames replayed after a rollback. Characters are
 	  therefore always predicted against the platform where it really is.
-	- DRIVE (PHYSICS_DRIVEN, T-134): the platform is an unanchored, heavy body held to that path by a rigid AlignPosition and
+	- DRIVE (PHYSICS_DRIVEN): the platform is an unanchored, heavy body held to that path by a rigid AlignPosition and
 	  AlignOrientation (created by the server; each client drives its own local copy); each step only their targets are set. Roblox physics moves it
 	  through its substeps with a real velocity, so it pushes characters in its way and carries characters standing on it
 	  itself. PHYSICS_DRIVEN = false goes back to the anchored platform moved by setting its CFrame each step, which needs

@@ -1,4 +1,4 @@
--- // While active, the player can explode their boomerang with the on-screen button (T-108: UsePickupButtons GUI) while it is out
+-- // While active, the player can explode their boomerang with the on-screen button (UsePickupButtons GUI) while it is out
 -- // of their hand, once per throw, and it returns faster. It no longer explodes by itself (end of the throw / first kill).
 -- // The faster return is applied in WeaponLogics/Boomerang.recall (speed) and below (shorter weapon lock after an explosion).
 
@@ -33,7 +33,7 @@ else
    ToolController = require(ReplicatedStorage.Client.Core.ToolController)
 end
 
--- // T-108: one explosion per throw: the instance id of the boomerang that already exploded (each throw has a new one). Both sides
+-- // One explosion per throw: the instance id of the boomerang that already exploded (each throw has a new one). Both sides
 -- // keep it (the client marks its own press right away, so the button dims without waiting for the server).
 local explodedInstanceId: {[Player]: string} = {}
 
@@ -80,13 +80,13 @@ local function applyExplosion(player: Player, position: Vector3)
    -- // The effect stays active until it times out (onEnd); it no longer ends after the first explosion
 end
 
--- // T-108: usable while the player's boomerang is out of their hand and hasn't exploded yet this throw
+-- // Usable while the player's boomerang is out of their hand and hasn't exploded yet this throw
 function ExplosiveBoomerang.canUse(player: Player): boolean
    local position, instanceId = PickupLibrary.getWeaponOnField(player)
    return position ~= nil and (instanceId == nil or explodedInstanceId[player] ~= instanceId)
 end
 
--- // T-108: the button was pressed: the boomerang explodes where it is
+-- // The button was pressed: the boomerang explodes where it is
 function ExplosiveBoomerang.onUse(player: Player)
    local position, instanceId = PickupLibrary.getWeaponOnField(player)
    if not position or (instanceId ~= nil and explodedInstanceId[player] == instanceId) then

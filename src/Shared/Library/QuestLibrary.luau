@@ -1,5 +1,5 @@
 --[[
-	QuestLibrary (T-143)
+	QuestLibrary
 
 	Description:
 	Shared quest helpers, used by QuestService (server) and the Quests menu (client): finding quests and pools, their
@@ -153,7 +153,7 @@ function QuestLibrary.isClaimable(slot: QuestSlot): boolean
 	return not slot.Claimed and QuestLibrary.isComplete(slot)
 end
 
--- // Whether a quest can be swapped for another (T-147): any quest whose reward hasn't been claimed yet
+-- // Whether a quest can be swapped for another: any quest whose reward hasn't been claimed yet
 function QuestLibrary.canReroll(slot: QuestSlot): boolean
 	return not slot.Claimed
 end

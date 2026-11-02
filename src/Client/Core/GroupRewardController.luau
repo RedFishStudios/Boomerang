@@ -1,5 +1,5 @@
 --[[
-	Group Rewards chest, client side (T-045): shows the claim popup. The join prompt is GroupMembershipController's.
+	Group Rewards chest, client side: shows the claim popup. The join prompt is GroupMembershipController's.
 
 	Author:
 	@Soulsplosion

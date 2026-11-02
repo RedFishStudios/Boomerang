@@ -34,7 +34,7 @@ export type ListingDisplay = {
 	IconImage: number?, -- // Charge up effects: GUI image asset id shown instead of a model
 	IconGlyph: string?, -- // Charge up effects: placeholder label shown while there is no image yet
 	EmoteAnimationId: string?, -- // Emotes: animation asset id played by the EmotesRig in the listing's viewport
-	CrateModelName: string?, -- // Crates (T-112): model in Shared/Assets/Crates shown in the listing's viewport
+	CrateModelName: string?, -- // Crates: model in Shared/Assets/Crates shown in the listing's viewport
 	CrateViewportRotation: CFrame?,
 	Subtitle: string?, -- // Shown instead of the rarity name (crates)
 	Rarity: string,
@@ -97,7 +97,7 @@ function ShopListings.getDisplay(listing: { Type: string, Id: string }): Listing
 		}
 	end
 
-	-- // T-112: a weapon crate (gives a random weapon of its category); can be bought again and again
+	-- // A weapon crate (gives a random weapon of its category); can be bought again and again
 	if listing.Type == "Crate" then
 		local crate = CrateLibrary.getCrate(listing.Id)
 		if not crate or crate.OffSale then

@@ -1,5 +1,5 @@
 -- // Cmdr command definition (replicated to clients for autocomplete). Server logic is in SpawnDecoyServer.
--- // Testing entry point for the Decoy epic (T-082): getpickup can't grant Decoy while it's Disabled.
+-- // Testing entry point for the Decoy: getpickup can't grant Decoy while it's Disabled.
 return {
 	Name = "spawndecoy",
 	Aliases = {},

@@ -1,7 +1,7 @@
 --[[
-	MenuButtons (T-037)
+	MenuButtons
 
-	The player's menu buttons on the left side of the screen, laid out like Sol's mockup:
+	The player's menu buttons on the left side of the screen, laid out like the mockup:
 		[      Currency      ]   <- as wide as two buttons: boomerang icon + balance; click = Currency shop (later)
 		[ Shop ] [ Daily ]
 		[ Skins] [ Stats]
@@ -9,8 +9,8 @@
 	Buttons sit in a 2-column grid; hidden buttons are skipped, so the grid closes up.
 	Only these buttons exist in the left bar. A later feature that needs one adds it to the BUTTONS table.
 
-	Art: Sol's wooden frame + recolorable grayscale interior for the buttons, and the currency bar image. The button icons
-	and the currency coin are Sol's images. Every size, color, icon and the art's layout rectangles are in
+	Art: the wooden frame + recolorable grayscale interior for the buttons, and the currency bar image. The button icons
+	and the currency coin are custom images. Every size, color, icon and the art's layout rectangles are in
 	the constants / BUTTONS table below.
 	Hidden while the local player is alive in the arena (it's a lobby menu; the round camera locks the mouse anyway).
 ]]
@@ -52,7 +52,7 @@ local CURRENCY_WIDTH = BUTTON_SIZE.X * 2 + GAP -- // Two small buttons wide
 local LEFT_MARGIN = 14
 local VERTICAL_POSITION = 0.42 -- // Center of the menu, as a fraction of screen height (clear of the mobile thumbstick)
 
--- // Sol's image assets. All the rectangles below are in pixels of the source image and get converted to Scale, so the
+-- // The image assets. All the rectangles below are in pixels of the source image and get converted to Scale, so the
 -- // text and icons stay inside the art's free space at any size.
 local FRAME_IMAGE = "rbxassetid://78059494085912" -- // Hollow wooden frame with a name board at the bottom
 local FRAME_IMAGE_SIZE = Vector2.new(838, 753)
@@ -69,7 +69,7 @@ local INTERIOR_CROP_HEIGHT = INTERIOR_IMAGE_SIZE.X * INTERIOR_BLEED.Height / INT
 local BAR_IMAGE = "rbxassetid://97631724752812" -- // Currency bar (transparent margin around the painted part)
 local BAR_IMAGE_SIZE = Vector2.new(1024, 512)
 local BAR_CONTENT = Rect.new(32, 56, 1006, 464) -- // The painted part; this is what gets CURRENCY_WIDTH wide
-local CURRENCY_ICON_IMAGE = "rbxassetid://110596837298294" -- // Boomerang coin, placed as in Sol's Studio mockup (CURRENCY_ICON)
+local CURRENCY_ICON_IMAGE = "rbxassetid://110596837298294" -- // Boomerang coin, placed as in the Studio mockup (CURRENCY_ICON)
 local BAR_TEXT_AREA = Rect.new(360, 140, 860, 372) -- // Free space for the balance
 local CURRENCY_HEIGHT = math.round(CURRENCY_WIDTH * BAR_CONTENT.Height / BAR_CONTENT.Width)
 
@@ -79,9 +79,9 @@ local CURRENCY_HEIGHT = math.round(CURRENCY_WIDTH * BAR_CONTENT.Height / BAR_CON
 local BUTTONS = {
 	{ Id = "Shop", Text = "Shop", Icon = "rbxassetid://95884415147706", Color = Color3.fromRGB(255, 120, 95), Enabled = true },
 	{ Id = "Daily", Text = "Daily", Icon = "rbxassetid://126765785652910", Color = Color3.fromRGB(205, 130, 255), Enabled = true },
-	{ Id = "Skins", Text = "Inventory", Icon = `rbxassetid://{Icons.InventoryButton}`, Color = Color3.fromRGB(110, 175, 255), Enabled = true }, -- // T-072
-	{ Id = "Stats", Text = "Stats", Icon = "rbxassetid://124985088272789", Color = Color3.fromRGB(100, 255, 225), Enabled = true }, -- // T-074
-	-- // T-087: Quests opens the Quests menu (T-143), Settings the Settings menu
+	{ Id = "Skins", Text = "Inventory", Icon = `rbxassetid://{Icons.InventoryButton}`, Color = Color3.fromRGB(110, 175, 255), Enabled = true }, 
+	{ Id = "Stats", Text = "Stats", Icon = "rbxassetid://124985088272789", Color = Color3.fromRGB(100, 255, 225), Enabled = true }, 
+	-- // Quests opens the Quests menu, Settings the Settings menu
 	{ Id = "Quests", Text = "Quests", Icon = "rbxassetid://83981048085676", Color = Color3.fromRGB(255, 215, 90), Enabled = true },
 	{ Id = "Settings", Text = "Settings", Icon = "rbxassetid://118835487029221", Color = Color3.fromRGB(190, 200, 215), Enabled = true },
 }
@@ -155,10 +155,10 @@ local function toggleGui(guiName: string)
 	end
 end
 
--- // Placeholder: the Robux shop for buying Currency doesn't exist yet (Sol, 2026-10-03). Wire it here when it does.
+-- // Placeholder: the Robux shop for buying Currency doesn't exist yet. Wire it here when it does.
 local function openCurrencyShop()
 	if RunService:IsStudio() then
-		print("[MenuButtons] Currency shop isn't built yet (T-037 placeholder)")
+		print("[MenuButtons] Currency shop isn't built yet (placeholder)")
 	end
 end
 
@@ -347,7 +347,7 @@ function MenuButtonsGui.start()
 		toggleGui("Stats")
 	end
 	buttonCallbacks.Quests = buttonCallbacks.Quests or function()
-		toggleGui("Quests") -- // T-143
+		toggleGui("Quests") 
 	end
 	buttonCallbacks.Settings = buttonCallbacks.Settings or function()
 		toggleGui("Settings")

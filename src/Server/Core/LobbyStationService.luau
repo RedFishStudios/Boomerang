@@ -1,5 +1,5 @@
 --[[
-	Lobby station framework, server side (T-047). See LobbyStationLibrary for the tag and attributes.
+	Lobby station framework, server side. See LobbyStationLibrary for the tag and attributes.
 
 	- Creates the proximity prompt on every tagged station.
 	- Runs the handler registered for the station's StationId when a player in the lobby triggers it.

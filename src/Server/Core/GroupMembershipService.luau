@@ -1,6 +1,6 @@
 --[[
 	Roblox group (community) membership, server side. The one place that decides whether a player is in
-	the game's group. Features that care (e.g. the Group Rewards chest, T-045) call isMember / promptJoin
+	the game's group. Features that care (e.g. the Group Rewards chest) call isMember / promptJoin
 	and listen to MembershipChangedTasks; they never call IsInGroup / GetGroupsAsync themselves.
 
 	- The group is GlobalConfig.GroupId, unless overridden for this server with setGroupId (Cmdr `setgroupid`).

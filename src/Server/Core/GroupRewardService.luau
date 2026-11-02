@@ -1,5 +1,5 @@
 --[[
-	Group Rewards chest in the lobby (T-045). A lobby station (docs/LOBBY_STATIONS.md) with StationId "GroupRewards".
+	Group Rewards chest in the lobby. A lobby station (docs/LOBBY_STATIONS.md) with StationId "GroupRewards".
 
 	- Group members (GroupMembershipService) can claim GlobalConfig.GroupRewardCurrency once every 24 h
 	  (same rolling 24 h window as DailyRewardsService).

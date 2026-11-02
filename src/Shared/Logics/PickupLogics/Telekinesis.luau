@@ -6,10 +6,10 @@
 
 	How the player steers:
 	  - PC, top-down camera: the boomerang turns toward the mouse cursor.
-	  - PC, over-the-shoulder camera: nothing yet (TODO, see TASKS.md).
+	  - PC, over-the-shoulder camera: nothing yet (TODO).
 	  - Mobile: it turns toward the direction the aim button is dragged. While a thrown boomerang exists and the effect is active the
 	    aim button steers instead of aiming a new throw.
-	  - Console: nothing yet (TODO, see TASKS.md).
+	  - Console: nothing yet (TODO).
 
 	How it works (same on every machine that steers, so they agree):
 	  - The owner's client works out the direction it wants every frame and streams it to the server (about 20 per second, "TelekinesisSteer"),
@@ -166,12 +166,12 @@ local function getLocalSteerDirection(thrownWeaponData: ThrownWeapons.Data): Vec
 		local lookVector = CharacterController.getTouchAimLookVector(touchAngle)
 		return if lookVector then getHorizontalUnit(lookVector) else nil
 	elseif scheme == "Console" then
-		return nil -- // TODO: console steering (see TASKS.md)
+		return nil -- // TODO: console steering
 	end
 
 	-- // PC
 	if CustomCameraController.getMode() ~= "Overhead" then
-		return nil -- // TODO: steering with the over-the-shoulder camera (see TASKS.md)
+		return nil -- // TODO: steering with the over-the-shoulder camera
 	end
 	local cursorPosition = CharacterController.getMouseGroundPosition()
 	local weaponCFrame = thrownWeaponData.CFrame

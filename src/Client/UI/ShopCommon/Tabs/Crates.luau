@@ -1,5 +1,5 @@
 --[[
-	Crates tab (Weapons Shop, T-112)
+	Crates tab (Weapons Shop)
 
 	Description:
 	Every weapon crate on sale (Shared/Referential/Crates), in their Order. The Weapons Shop is a single window with only

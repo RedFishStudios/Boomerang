@@ -1,5 +1,5 @@
 -- // Cmdr command definition (replicated to clients for autocomplete). Server logic is in ResetBoomerangServer.
--- // Undoes tuneboomerang for the weapon the caller is holding (T-054).
+-- // Undoes tuneboomerang for the weapon the caller is holding.
 return {
 	Name = "resetboomerang",
 	Aliases = {},

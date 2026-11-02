@@ -1,5 +1,5 @@
 --[[
-	Stats (T-074)
+	Stats
 
 	Description:
 	The Stats menu, opened from the Stats button in the left lobby menu (MenuButtons).

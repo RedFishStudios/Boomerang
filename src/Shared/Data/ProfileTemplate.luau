@@ -35,7 +35,7 @@ export type Template = {
       Streak: number, -- Current daily reward streak
       LastClaim: number, -- Timestamp of the last claimed daily reward
    },
-   GroupRewardLastClaim: number, -- Timestamp of the last Group Rewards chest claim (T-045), 0 = never
+   GroupRewardLastClaim: number, -- Timestamp of the last Group Rewards chest claim, 0 = never
    Inventory: {
       [string]: number -- Shop item id : amount owned
    },
@@ -52,7 +52,7 @@ export type Template = {
    },
    EquippedEmote: string, -- Emote id the player's avatar performs on the winner pedestal
    Quests: {
-      -- // T-143: quest pool name (Shared/Referential/Quests) : its current quests (QuestLibrary.PoolData). Written only by QuestService
+      -- // Quest pool name (Shared/Referential/Quests) : its current quests (QuestLibrary.PoolData). Written only by QuestService
       [string]: {
          PeriodKey: string, -- QuestLibrary.getPeriodKey of the period the quests were drawn in ("" = never resets)
          Slots: { { Id: string, Progress: number, Claimed: boolean } },
@@ -61,7 +61,7 @@ export type Template = {
    Settings: {
       [string]: boolean | number -- Setting id (Shared/Constants/SettingConstants) : the value the player chose. Unset = the device's default. Written only by SettingsService
    },
-   ProcessedReceipts: { string }, -- T-146: PurchaseIds of the latest developer product receipts granted (ProductService), so one is never granted twice
+   ProcessedReceipts: { string }, -- PurchaseIds of the latest developer product receipts granted (ProductService), so one is never granted twice
    GiftedPasses: {
       number -- Gamepass id
    }

@@ -1,5 +1,5 @@
 --[[
-	UsePickupButtons (T-108)
+	UsePickupButtons
 
 	A column of round buttons on the left of the screen, one per held pickup that is used by the player (its logic has
 	`UseButton = true`: Explosive Boomerang, Teleport Boomerang, Decoy). Pressing a button asks the server to use the pickup
@@ -9,7 +9,7 @@
 	  timed out, death, round end): it follows PickupLibrary's effect added/removed tasks, like the Effects HUD.
 	- Each frame the logic's canUse decides whether it can be pressed; when it can't, the icon is at 50% and non-interactive.
 	- A pickup that is used up by one press (ConsumedOnUse) stays non-interactive after the press until the server removes it.
-	- T-109: each button gets a slot number, also its keyboard key (1-9): a new pickup takes the lowest free slot, and a pickup
+	- Each button gets a slot number, also its keyboard key (1-9): a new pickup takes the lowest free slot, and a pickup
 	  keeps its slot until it is lost (so slots can have gaps, and a later pickup can fill slot 1 again). Buttons are listed by
 	  slot, and show their number in a small label on their right (only on devices with a keyboard).
 ]]
@@ -50,7 +50,7 @@ local ButtonTemplate = script:WaitForChild("ButtonTemplate") :: ImageButton
 local UNUSABLE_IMAGE_TRANSPARENCY = 0.5
 local USED_PENDING_TIMEOUT_SECONDS = 2 -- // A used-up press the server never answered becomes pressable again after this long
 
--- // T-109: number keys for slots 1-9 (a 10th+ pickup at once still gets a button, just no key)
+-- // Number keys for slots 1-9 (a 10th+ pickup at once still gets a button, just no key)
 local SLOT_KEYS: { Enum.KeyCode } = {
 	Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four, Enum.KeyCode.Five,
 	Enum.KeyCode.Six, Enum.KeyCode.Seven, Enum.KeyCode.Eight, Enum.KeyCode.Nine,
@@ -60,7 +60,7 @@ type UseButton = {
 	Button: ImageButton,
 	ClassId: PickupLibrary.PickupClassId,
 	Logic: PickupLibrary.PickupLogic,
-	Slot: number, -- // T-109: 1 = top of the list and key 1
+	Slot: number, -- // 1 = top of the list and key 1
 	UsedAt: number?, -- // os.clock() of a ConsumedOnUse press still waiting for the server to remove the pickup
 }
 
@@ -133,7 +133,7 @@ local function onButtonPressed(useButton: UseButton)
 	updateButton(useButton)
 end
 
--- // T-109: the lowest slot no current button holds
+-- // The lowest slot no current button holds
 local function getFreeSlot(): number
 	local taken: { [number]: boolean } = {}
 	for _, useButton in pairs(buttons) do
@@ -270,7 +270,7 @@ function UsePickupButtonsGui.start()
 
 	RunService.Heartbeat:Connect(updateAllButtons)
 
-	-- // T-109: number keys use the button in that slot (not while typing in chat or a text box)
+	-- // Number keys use the button in that slot (not while typing in chat or a text box)
 	UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessedEvent: boolean)
 		if gameProcessedEvent or input.UserInputType ~= Enum.UserInputType.Keyboard then
 			return

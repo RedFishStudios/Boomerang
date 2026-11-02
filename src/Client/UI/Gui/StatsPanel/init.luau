@@ -1,5 +1,5 @@
 --[[
-	StatsPanel (T-130)
+	StatsPanel
 
 	A small panel on the right edge of the screen (centred vertically on PC, top-right corner on touch devices) that replaces
 	Roblox's player list (StarterGuiController turns that off). Only its arrow tab shows until it is opened: clicking the tab,

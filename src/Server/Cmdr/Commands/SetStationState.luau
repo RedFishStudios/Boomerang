@@ -2,7 +2,7 @@
 return {
 	Name = "setstationstate",
 	Aliases = { "stationstate" },
-	Description = "Sets players' state for a lobby station (T-047). State \"clear\" resets it; \"Locked\"/\"Claimed\" dim the pad.",
+	Description = "Sets players' state for a lobby station. State \"clear\" resets it; \"Locked\"/\"Claimed\" dim the pad.",
 	Group = "DevTesting",
 	Args = {
 		{

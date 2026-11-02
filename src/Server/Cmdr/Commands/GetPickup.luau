@@ -1,5 +1,5 @@
 -- // Cmdr command definition (replicated to clients for autocomplete). Server logic is in GetPickupServer.
--- // Replaces the old /getpickup chat command (T-016).
+-- // Replaces the old /getpickup chat command.
 return {
 	Name = "getpickup",
 	Aliases = { "grantpickup" },

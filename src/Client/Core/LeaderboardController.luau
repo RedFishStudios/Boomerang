@@ -2,10 +2,10 @@
 	LeaderboardController
 
 	Description:
-	Draws the lobby leaderboards (T-032) on the physical boards in workspace.Lobby.Leaderboards.
+	Draws the lobby leaderboards on the physical boards in workspace.Lobby.Leaderboards.
 	Each board has one SurfaceGui (in PlayerGui, adorned to the board part): a static background, and one
 	CanvasGroup ("Fader") holding each period's title and entries (Monthly / All-Time). Every
-	LeaderboardConstants.DisplaySwapInterval the Fader fades out, swaps period and fades back in (T-053).
+	LeaderboardConstants.DisplaySwapInterval the Fader fades out, swaps period and fades back in.
 	Entries come from LeaderboardService.
 ]]
 
@@ -255,7 +255,7 @@ local function createBoardGui(boardId: string, board: { Title: string, Face: Enu
 	gui.LightInfluence = 0
 	gui.MaxDistance = MAX_DISTANCE
 	gui.ResetOnSpawn = false
-	-- // Required for the CanvasGroup fade: Instance.new defaults to Global, where CanvasGroups don't apply GroupTransparency (T-053)
+	-- // Required for the CanvasGroup fade: Instance.new defaults to Global, where CanvasGroups don't apply GroupTransparency
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 	createBoardFrame().Parent = gui

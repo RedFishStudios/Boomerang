@@ -3,7 +3,7 @@
 
 	Description:
 	Saves each player's Elims / Wins (all-time and this month) to OrderedDataStores and loads the top
-	players for the lobby leaderboards (T-032). Everything runs in one background loop every
+	players for the lobby leaderboards. Everything runs in one background loop every
 	LeaderboardConstants.RefreshInterval; nothing runs per frame. Clients draw the boards themselves
 	(LeaderboardController), the server only sends the entries.
 ]]

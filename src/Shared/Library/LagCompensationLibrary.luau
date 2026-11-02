@@ -6,7 +6,7 @@
 	a boomerang's hit sweep runs, it also asks this library which players the sweep would have hit if they were where the
 	thrower SAW them (a bit in the past: the thrower's ping plus a little interpolation delay), so a hit that looks like a hit on the
 	thrower's screen counts. It only ever adds hits to the normal (live) check; flight, bounces and recalls are never rewound.
-	The slash (Stab ability, T-125) uses the same rewind: its swing is checked against where the swinging player saw everyone too.
+	The slash (Stab ability) uses the same rewind: its swing is checked against where the swinging player saw everyone too.
 
 	The setting is one number, in milliseconds: the most the server will rewind. 200 by default (GlobalConfig.LagCompensationMilliseconds).
 	0 turns lag compensation off completely (nothing is recorded, hits are exactly as before). Cmdr `setlagcompensation` changes it live
@@ -84,7 +84,7 @@ local function record()
 		history.Count = math.min(history.Count + 1, SAMPLE_CAPACITY)
 	end
 
-	-- // Bots: the models in workspace.Bots with a Hitbox (T-127: the slash rewinds them like players)
+	-- // Bots: the models in workspace.Bots with a Hitbox (the slash rewinds them like players)
 	for model in pairs(botHistories) do
 		if not model.Parent then
 			botHistories[model] = nil
@@ -233,7 +233,7 @@ export type RewoundTarget = {
 	Position: Vector3, -- // Where the Hitbox's centre was at the rewound moment
 }
 
--- // Every other living player as `viewer` saw them `rewindSeconds` ago (T-125: the slash checks its swing against these). Leaves out
+-- // Every other living player as `viewer` saw them `rewindSeconds` ago (the slash checks its swing against these). Leaves out
 -- // anyone who was immune around that moment (same dash rule as boomerang hits), and anyone the history doesn't reach back for.
 function LagCompensationLibrary.getRewoundTargets(viewer: Player, rewindSeconds: number): { RewoundTarget }
 	local targets: { RewoundTarget } = {}

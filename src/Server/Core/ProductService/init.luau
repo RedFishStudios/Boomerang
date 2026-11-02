@@ -19,7 +19,7 @@ local RegisteredProductLogics: {
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
--- // T-146: how many of a player's latest receipt PurchaseIds are remembered (ProcessedReceipts in the profile). Roblox
+-- // How many of a player's latest receipt PurchaseIds are remembered (ProcessedReceipts in the profile). Roblox
 -- // can send the same receipt again (e.g. the grant succeeded but the answer was lost); a remembered one isn't granted twice.
 local PROCESSED_RECEIPTS_KEPT = 50
 
@@ -63,7 +63,7 @@ local function processReceipt(receiptInfo: ReceiptInfo)
       return Enum.ProductPurchaseDecision.NotProcessedYet
    end
 
-   -- // T-146: the grant and the receipt's PurchaseId are saved in the same profile, so they're saved (or lost) together
+   -- // The grant and the receipt's PurchaseId are saved in the same profile, so they're saved (or lost) together
    local data = PlayerDataService.get(player)
    if not data then
       return Enum.ProductPurchaseDecision.NotProcessedYet -- // Profile not loaded yet: Roblox sends the receipt again later

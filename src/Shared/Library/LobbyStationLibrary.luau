@@ -1,5 +1,5 @@
 --[[
-	Shared conventions for lobby stations (T-047): the tag, attribute names, the per-player
+	Shared conventions for lobby stations: the tag, attribute names, the per-player
 	state shape, and helpers both sides use to find a station's parts.
 
 	A station is any Model or BasePart in workspace tagged `LobbyStation`. Attributes:

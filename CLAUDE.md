@@ -43,7 +43,6 @@ Roblox game written in Luau, synced into Studio with Rojo. A fast-paced, round-b
 |---|---|
 | [TASKS.md](TASKS.md) | Always. The general task board, its rules (for every task list), and the `Next free ID`. |
 | [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) | Before any git command. Lanes (one clone per chat), reserving task IDs, handing a branch back, ship lane. |
-| [docs/EPICS.md](docs/EPICS.md) | Always. Large features (Epics): which are active, and their lifecycle. Before working on an Epic, read its `docs/epics/<epic>/DESIGN.md` and `TASKS.md`. |
 | [docs/LOBBY_SPEC.md](docs/LOBBY_SPEC.md) | Before any lobby work. Physical lobby stations (wheel, crates, group chest, server portal, leaderboards) from the client's reference screenshots. |
 | [docs/LOBBY_STATIONS.md](docs/LOBBY_STATIONS.md) | Before adding or changing **anything players interact with in the lobby** (pedestals, wheel, crates, chests, portals, ad/promo boards...). How to add a station and its handler, per-player states, testing commands. |
 | [docs/GAME_DESIGN.md](docs/GAME_DESIGN.md) | Before any gameplay work. The client's MVP spec (round flow, controls, Classic, parry/clash, camera) and where the code differs from it. See "How authoritative the docs are" below. |
@@ -265,19 +264,15 @@ If a prompt mentions a larger *back-end feature* that doesn't exist yet, that ma
 - **The `Github` folder is read-only** except: this repo's git steps in [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) (in the home repo `Github/Boomerang`, plus appending to its git-ignored `Commits.txt` / `AgentLog.md`), your own lane in `Github/Boomerang-lanes/`, and anything Sol grants for a specific task. Never touch the other projects' folders.
 - **Player-facing wording:** avoid the word "kill" in stat names, UI text and leaderboard titles (Roblox audience/monetisation safety). Use "eliminations" for kills and "defeats" for deaths.
 
-- **Tasks:** general tasks are in [TASKS.md](TASKS.md); each Epic's tasks are in `docs/epics/<epic>/TASKS.md`. Follow the "How to use this board" rules in TASKS.md for all of them: only pick up `Ready` tasks; when Sol reports a task passed testing, **you** move it to `Done` (Sol doesn't), but never before Sol has tested it; and IDs are global: **reserve** new IDs on `main` before adding a task (see [GIT_WORKFLOW.md - Reserve a task ID](docs/GIT_WORKFLOW.md#2-reserve-a-task-id-before-adding-any-new-task)).
-- **Epics** (large features): follow [docs/EPICS.md](docs/EPICS.md).
-  - A new Epic starts with **Discovery**: copy `docs/epics/_TEMPLATE/` and work through `DESIGN.md` with Sol, one section at a time. The first question is always "full Epic, or general tasks?".
-  - Present options and trade-offs; Sol decides. Record decisions in DESIGN.md as they're made.
-  - **Never write an Epic's tasks before Sol approves its DESIGN.md**, and never mark an Epic Shipped.
-- **When Sol says they're logging off:** summarize the session (focus on Epic progress if that was most of the work), then recommend what Sol can do next.
+- **Tasks:** all tasks are in [TASKS.md](TASKS.md). Follow its "How to use this board" rules: only pick up `Ready` tasks; when Sol reports a task passed testing, **you** move it to `Done` (Sol doesn't), but never before Sol has tested it; and IDs are global: **reserve** new IDs on `main` before adding a task (see [GIT_WORKFLOW.md - Reserve a task ID](docs/GIT_WORKFLOW.md#2-reserve-a-task-id-before-adding-any-new-task)).
+- **When Sol says they're logging off:** summarize the session, then recommend what Sol can do next.
 - **Git: one lane per chat, never edit the home repo directly.** Several chats can work at once, each in its own clone (a **lane**) in `Github/Boomerang-lanes/`. The home repo (`Github/Boomerang`) stays on `main` for Sol, GitHub Desktop and testing. Follow [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) for every step.
   - One lane per chat, one branch per task: each task gets its own branch, `agent/T-###-short-name` (docs-only work: `agent/docs-short-name`), made inside this chat's lane. Never create a second lane for a new task in the same chat.
   - Commit with Sol's normal git identity, passed per commit (don't change git config): `git -c user.name="SoulsplosionSide" -c user.email="116596822+LaurKnill@users.noreply.github.com" commit …`.
   - **Commit messages look human** (Sol, 2026-10-03). Write them like Sol's commits before 2026-10-01: a short past-tense line saying what changed in the game, e.g. "Added environment portals", "Fixed issue with claims menu not being able to close", "Updated collisions of MovingPlatform to interact with boomerangs". Rules:
     - **No task IDs** in the message (no "T-068", no "T-062 to T-067").
     - **No prefixes** like "docs:", "fix:", "Task board:" or "Research:".
-    - **No commits that change nothing in the game on their own:** documentation, task-board moves (entering `Review`, passing testing / `Done`, new tasks, answers to questions), starting an Epic, notes. Fold them into the next commit that changes the game, in the same branch. If only docs changes are waiting and Sol wants them shipped, put them all in one commit named plainly (e.g. "Updated documentation").
+    - **No commits that change nothing in the game on their own:** documentation, task-board moves (entering `Review`, passing testing / `Done`, new tasks, answers to questions), notes. Fold them into the next commit that changes the game, in the same branch. If only docs changes are waiting and Sol wants them shipped, put them all in one commit named plainly (e.g. "Updated documentation").
     - **The one exception:** the task-ID reservation commit on `main` (it's what stops two chats taking the same ID). Name it "Reserved task numbers", without the IDs.
   - When you're done, push the branch into the home repo (`git push home agent/<lane>`), move the task to `Review`, and put the branch and lane folder in its Notes. Sol tests in Studio.
   - The only commits allowed on `main` without a ship lane are task-ID reservations (they change only the `Next free ID` line).

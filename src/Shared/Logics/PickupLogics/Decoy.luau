@@ -1,9 +1,9 @@
 --[[
-	Decoy pickup (T-080)
+	Decoy pickup
 
-	T-108: the player spawns the decoy with the on-screen button (UsePickupButtons GUI), at any time; that uses up the
+	The player spawns the decoy with the on-screen button (UsePickupButtons GUI), at any time; that uses up the
 	effect (one pickup = one decoy). It no longer spawns by itself on the next throw. The decoy entity + movement live in
-	the bot layer (BotService + the Decoy BotBehavior). Enabled (T-083): spawns from the normal pickup pool like other pickups.
+	the bot layer (BotService + the Decoy BotBehavior). Enabled: spawns from the normal pickup pool like other pickups.
 ]]
 
 local Decoy = {}
@@ -22,12 +22,12 @@ end
 Decoy.UseButton = true
 Decoy.ConsumedOnUse = true
 
--- // T-108: usable at any time while the effect is held
+-- // Usable at any time while the effect is held
 function Decoy.canUse(_player: Player): boolean
 	return true
 end
 
--- // T-108: the button was pressed: spawn the decoy, then the effect is used up
+-- // The button was pressed: spawn the decoy, then the effect is used up
 function Decoy.onUse(player: Player)
 	if not isServer then
 		return

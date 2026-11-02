@@ -8,7 +8,7 @@ export type Tool = {
    Category: ToolCategory, -- Which Weapons Shop tab lists it
    LogicClass: "Boomerang", -- Name of the logics module responsible for handling this weapon's behavior when thrown
    Rarity: string?, -- Shown in the Inventory (e.g. "Common"); not used by gameplay
-   CrateWeight: number?, -- // T-112: weighted chance in its category's crate (Shared/Referential/Crates); nil/0 = not in the crate
+   CrateWeight: number?, -- // Weighted chance in its category's crate (Shared/Referential/Crates); nil/0 = not in the crate
    Viewport: { -- How the model is posed in GUI item viewports (Client/UI/ItemViewport)
       Rotation: CFrame, -- Model orientation; the camera looks at it along -Z and is fitted automatically
       Zoom: number?, -- Above 1 moves the camera closer (when the bounding box is much bigger than the visible shape)
@@ -23,7 +23,7 @@ export type Tool = {
 
 local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
    -- // Each tool id is also the name of its model in Shared/Assets/Tools; its Category picks the Weapons Shop tab.
-   -- // The "Placeholder..." tools are copies (same model and stats) standing in for a second weapon per category (T-110).
+   -- // The "Placeholder..." tools are copies (same model and stats) standing in for a second weapon per category.
 
    -- // Boomerangs // --
    ClassicBoomerang = {

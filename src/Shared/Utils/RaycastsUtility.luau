@@ -9,13 +9,13 @@ local CollisionGroupConstants = require(game.ReplicatedStorage.Shared.Constants.
 function RaycastsUtility.getProjectileObstructionParams(filterDescendantsInstances: { Instance }): RaycastParams
 	local raycastParams = RaycastParams.new()
 	-- // Bots (e.g. the decoy) are character-like and must never count as obstructions -- exclude the
-	--    Bots folder alongside whatever the caller passed, so a decoy can't block a boomerang (T-081).
+	--    Bots folder alongside whatever the caller passed, so a decoy can't block a boomerang.
 	local filter = table.clone(filterDescendantsInstances)
 	local botsFolder = workspace:FindFirstChild("Bots")
 	if botsFolder then
 		table.insert(filter, botsFolder)
 	end
-	-- // Client-rendered bot avatars (cosmetic, spawn on top of the owner) must not count as obstructions either (T-081).
+	-- // Client-rendered bot avatars (cosmetic, spawn on top of the owner) must not count as obstructions either.
 	local botVisualsFolder = workspace:FindFirstChild("BotVisuals")
 	if botVisualsFolder then
 		table.insert(filter, botVisualsFolder)

@@ -27,7 +27,7 @@ LobbyController.ClientIsInLobbyChangedTasks = TasksList.new() :: TasksList.Tasks
 -------------------------------------------------------------------------------
 
 -- // Jumping is enabled only in the lobby. The client sets it for its own prediction; the server sets the same
--- // state for the authoritative character (CharacterService, T-070). Both use LobbyLibrary.applyJumpState.
+-- // state for the authoritative character (CharacterService). Both use LobbyLibrary.applyJumpState.
 local function applyJumpState(character: Model)
    local humanoid = character:FindFirstChildOfClass("Humanoid")
    if not humanoid then

@@ -1,5 +1,5 @@
 --[[
-	QuestService (T-143)
+	QuestService
 
 	Description:
 	Gives players their quests, counts their progress and pays out claimed quests. Server only: the client sees its
@@ -12,7 +12,7 @@
 	- Progress comes from the same server events the lifetime stats use (see Shared/Referential/Quests for what each
 	  objective type counts). Actions only count while the player is alive in the arena, so the lobby can't be farmed.
 	- Rewards are granted with RewardService (shared by everything that gives rewards).
-	- Reroll (T-147): swaps one unclaimed quest, in its place, for another from the same pool that the player doesn't
+	- Reroll: swaps one unclaimed quest, in its place, for another from the same pool that the player doesn't
 	  have. Paid with the "QuestReroll" developer product (MarketplaceItems):
 	    1. The client reserves the quest ("ReserveQuestReroll" remote function). While it's reserved it gets no progress
 	       and can't be claimed.
@@ -293,7 +293,7 @@ end
 -- PUBLIC FUNCTIONS (also used by the Cmdr commands in Server/Cmdr/Commands)
 -------------------------------------------------------------------------------
 
--- // T-147: swaps one of the player's quests, in the same place, for another quest from that pool they don't have
+-- // Swaps one of the player's quests, in the same place, for another quest from that pool they don't have
 -- // (preferring a kind of objective their other quests in the pool don't use). Not for a quest whose reward was claimed.
 -- // Returns whether it was swapped.
 function QuestService.rerollQuest(player: Player, poolName: string, slotIndex: number): boolean

@@ -1,5 +1,5 @@
 --[[
-	ShopBuilder (T-076)
+	ShopBuilder
 
 	Description:
 	Builds a shop menu: ShopBuilder.create(config) returns a Gui module for UIController. Used by the Weapons Shop and the
@@ -57,7 +57,7 @@ export type ShopTabDefinition = {
 	Tab: ShopTab?, -- // Its content; nil opens blank (placeholder until the feature exists)
 }
 
--- // T-112: optional layout overrides for a frame art that differs from the default (tabbed) one. Scales are of the Container.
+-- // Optional layout overrides for a frame art that differs from the default (tabbed) one. Scales are of the Container.
 export type ShopLayout = {
 	HideTabs: boolean?, -- // No tab row (a single-tab shop); the first / AutoSelect tab is shown
 	ListingsPosition: UDim2?,
@@ -101,7 +101,7 @@ local OWNED_BUTTON_COLOR = Color3.fromRGB(150, 150, 150)
 local OWNED_TEXT = "Owned"
 local FREE_TEXT = "Free"
 
--- // Layout (all scales; the grid's pixel sizes are measured in layoutGrid). Columns / rows: config.Layout (T-112), default 3 x 2.
+-- // Layout (all scales; the grid's pixel sizes are measured in layoutGrid). Columns / rows: config.Layout, default 3 x 2.
 local DEFAULT_GRID_COLUMNS = 3
 local DEFAULT_GRID_ROWS = 2 -- // Rows visible at once
 local GRID_GAP_FRACTION = 0.012 -- // Gap between listings, as a fraction of the grid's width
@@ -138,7 +138,7 @@ function ShopBuilder.create(config: ShopConfig)
 	local GRID_COLUMNS = layout.GridColumns or DEFAULT_GRID_COLUMNS
 	local GRID_ROWS = layout.GridRows or DEFAULT_GRID_ROWS
 	local crateAssetsFolder = ReplicatedStorage.Shared:WaitForChild("Assets"):FindFirstChild("Crates")
-	local purchaseInFlight: { [string]: boolean } = {} -- // T-112: one crate purchase at a time per crate (no double charges)
+	local purchaseInFlight: { [string]: boolean } = {} -- // One crate purchase at a time per crate (no double charges)
 
 	local ShopScreenGui: ScreenGui
 	local Container: ImageLabel
@@ -455,7 +455,7 @@ function ShopBuilder.create(config: ShopConfig)
 			-- // Emotes: the EmotesRig playing the emote
 			ItemViewport.renderEmote(viewport, display.EmoteAnimationId)
 		elseif display.CrateModelName then
-			-- // Crates (T-112): the crate model from Shared/Assets/Crates
+			-- // Crates: the crate model from Shared/Assets/Crates
 			local crateModel = crateAssetsFolder and crateAssetsFolder:FindFirstChild(display.CrateModelName)
 			if crateModel and crateModel:IsA("Model") then
 				ItemViewport.renderModel(viewport, crateModel, display.CrateViewportRotation)
@@ -619,7 +619,7 @@ function ShopBuilder.create(config: ShopConfig)
 			setupButtonHover(currencyButton)
 			currencyButton.MouseButton1Click:Connect(function()
 				if display.Type == "Crate" then
-					-- // T-112: one at a time; the result popup is shown by ShopController / SkinController
+					-- // One at a time; the result popup is shown by ShopController / SkinController
 					if purchaseInFlight[display.Id] then
 						return
 					end
@@ -628,7 +628,7 @@ function ShopBuilder.create(config: ShopConfig)
 						local bought = ShopController.requestPurchaseCrate(display.Id)
 						purchaseInFlight[display.Id] = nil
 						if bought and ShopGui.Open then
-							ShopGui.close() -- // T-114: the crate is waiting next to the player, to be clicked open
+							ShopGui.close() -- // The crate is waiting next to the player, to be clicked open
 						end
 					end)
 					return

@@ -1,5 +1,5 @@
 --[[
-	RecallPromptController (T-149)
+	RecallPromptController
 
 	Description:
 	PC and console: when the local player's boomerang is dead (or dying) on the field, a small green "[E] Recall" prompt

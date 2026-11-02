@@ -27,7 +27,7 @@ local SHAKE_START_ALPHA = 0.8 -- // Charge progress at which the arrow starts to
 local SHAKE_MAX_OFFSET_SCALE = 0.25 -- // Shake amplitude as a fraction of the arrow image's default offset
 local SHAKE_SPEED = 4.5
 local SHAKE_NOISE_SCALE = 0.11
--- // T-142: the arrow is moved sideways onto the line the boomerang leaves along (under the held boomerang), not the
+-- // The arrow is moved sideways onto the line the boomerang leaves along (under the held boomerang), not the
 -- // character's centre. This is how quickly it follows the hand as the charge animation moves it (higher = snappier).
 local THROW_LINE_FOLLOW_RATE = 18
 
@@ -42,7 +42,7 @@ local function getArrowPart(model: Model): BasePart
 	return part
 end
 
--- // T-142: how far the throw line is to the side of the character's centre (the held boomerang's sideways offset, flat)
+-- // How far the throw line is to the side of the character's centre (the held boomerang's sideways offset, flat)
 local function getThrowLineSideOffset(rootPosition: Vector3, flatLook: Vector3, throwOrigin: Vector3?): Vector3
 	if not throwOrigin then
 		return Vector3.zero
@@ -74,7 +74,7 @@ function ArrowEffect.apply(template: Model, player: Player): ChargeUpEffectLibra
 	local defaultPosition = templatePart.SurfaceGui.CanvasGroup.Arrows.Position
 
 	local handle = {} :: ChargeUpEffectLibrary.ChargeUpEffectHandle
-	local sideOffset: Vector3? = nil -- // T-142: eased toward the throw line's offset
+	local sideOffset: Vector3? = nil -- // Eased toward the throw line's offset
 	local lastUpdateAt = os.clock()
 
 	function handle.update(_self, frame: ChargeUpEffectLibrary.ChargeUpFrame)
@@ -92,7 +92,7 @@ function ArrowEffect.apply(template: Model, player: Player): ChargeUpEffectLibra
 		local flatLook = Vector3.new(lookVector.X, 0, lookVector.Z)
 		flatLook = if flatLook.Magnitude > 1e-5 then flatLook.Unit else Vector3.new(0, 0, -1)
 
-		-- // T-142: under the boomerang's path, not the character's centre
+		-- // Under the boomerang's path, not the character's centre
 		local now = os.clock()
 		local targetSideOffset = getThrowLineSideOffset(rootPosition, flatLook, frame.ThrowOrigin)
 		if sideOffset then

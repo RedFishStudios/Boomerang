@@ -9,7 +9,7 @@ What the framework gives every station automatically:
 - **per-player state** (locked, claimed, different prompt text or title, prompt hidden) set by the server and replicated to that player only,
 - **client hooks** for when the player walks up to or away from a station (e.g. to show an odds panel).
 
-Spec for the stations themselves: [LOBBY_SPEC.md](LOBBY_SPEC.md). Lobby tasks: [epics/lobby/TASKS.md](epics/lobby/TASKS.md).
+Spec for the stations themselves: [LOBBY_SPEC.md](LOBBY_SPEC.md). Lobby tasks: [TASKS.md](../TASKS.md).
 
 ## Files
 

@@ -2,7 +2,7 @@
 	BoomerangTuningLibrary
 
 	Description:
-	Live, per-tool overrides of the boomerang feel values, set from Cmdr (T-054: "tuneboomerang", "resetboomerang").
+	Live, per-tool overrides of the boomerang feel values, set from Cmdr ("tuneboomerang", "resetboomerang").
 	Overrides are stored as attributes on ReplicatedStorage, so they replicate to every client and the client's
 	prediction keeps matching the server. They last for the server session only (never saved).
 	Without an override, each value falls back to its default in Tools / GlobalConfig.
@@ -22,7 +22,7 @@ local BoomerangTuningLibrary = {}
 -------------------------------------------------------------------------------
 
 -- // Kept short: Roblox attribute names are limited to 50 characters, and "BoomerangTuning_ClassicBoomerang_RecallAcceleration"
--- // was 51 (T-065). Names look like "BT_ClassicBoomerang_RecallAcceleration".
+-- // was 51. Names look like "BT_ClassicBoomerang_RecallAcceleration".
 local ATTRIBUTE_PREFIX = "BT"
 
 -------------------------------------------------------------------------------
@@ -105,7 +105,7 @@ BoomerangTuningLibrary.SETTINGS = {
 			return GlobalConfig.ManualRecallAcceleration
 		end,
 	},
-	-- // How strongly a manual recall's heading swings toward the player (was called RecallAcceleration before T-097)
+	-- // How strongly a manual recall's heading swings toward the player (formerly called RecallAcceleration)
 	RecallCurveAcceleration = {
 		Description = "how quickly a manual recall turns toward the player (1 = normal recall)",
 		getDefault = function(_toolData)
@@ -126,28 +126,28 @@ BoomerangTuningLibrary.SETTINGS = {
 			return GlobalConfig.BoomerangRecallBounceRecoverySeconds
 		end,
 	},
-	-- // How fast a dying boomerang stops sliding and falls (renamed from DyingSpeedMultiplier in T-098) (Dead.luau; client and server both read it)
+	-- // How fast a dying boomerang stops sliding and falls (formerly DyingSpeedMultiplier) (Dead.luau; client and server both read it)
 	DeadWeaponDeceleration = {
 		Description = "how much faster a dying boomerang loses its slide and falls (1 = original pace)",
 		getDefault = function(_toolData)
 			return GlobalConfig.DeadWeaponDeceleration
 		end,
 	},
-	-- // T-066: seconds of holding aim until the throw is at max power (also the aim arrow's fill time)
+	-- // Seconds of holding aim until the throw is at max power (also the aim arrow's fill time)
 	ChargeTime = {
 		Description = "seconds of charging until the throw is at max power",
 		getDefault = function(_toolData)
 			return GlobalConfig.ChargeTime
 		end,
 	},
-	-- // T-067: the player's walk speed while aiming/charging a throw
+	-- // The player's walk speed while aiming/charging a throw
 	AimWalkSpeed = {
 		Description = "player walk speed while aiming/charging (studs/s)",
 		getDefault = function(_toolData)
 			return WalkSpeedLibrary.getDefault() * GlobalConfig.AimingWalkSpeedMultiplier
 		end,
 	},
-	-- // T-097: seconds a tapped manual recall charges before the dead boomerang starts returning (Dead.luau; client and server both read it)
+	-- // Seconds a tapped manual recall charges before the dead boomerang starts returning (Dead.luau; client and server both read it)
 	RecallChargeTime = {
 		Description = "seconds a manual recall charges (boomerang stays down, player slowed) before it starts returning",
 		getDefault = function(_toolData)

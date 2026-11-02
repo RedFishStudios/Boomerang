@@ -2,7 +2,7 @@
 return {
 	Name = "resetgroupreward",
 	Aliases = {},
-	Description = "Makes the lobby Group Rewards chest claimable again now, as if 24 h had passed (T-045).",
+	Description = "Makes the lobby Group Rewards chest claimable again now, as if 24 h had passed.",
 	Group = "DevTesting",
 	Args = {
 		{

@@ -47,7 +47,7 @@ local syncedAnimationTracks: {
 
 -- // Server authority (Workspace.AuthorityMode = Server): Roblox's Animate is a ModuleScript that keeps its state in
 --    HumanoidRootPart attributes ("pose", "currentAnimId", ...). Those attributes replicate to every client, so the rendered
---    model is animated from the authoritative character's "pose" attribute instead of mirroring its tracks (T-068).
+--    model is animated from the authoritative character's "pose" attribute instead of mirroring its tracks.
 --    When the attribute is missing (AuthorityMode = Automatic, classic Animate LocalScript), the old track mirroring is used.
 type PoseAnimationData = {
    Animate: Instance, -- // the rendered model's Animate (LocalScript or ModuleScript); holds the animation folders
@@ -382,7 +382,7 @@ local function syncPoseAnimations(player: Player, authorityCharacter: Model, aut
    if pose == "Running" then
       local velocity = authorityRoot.AssemblyLinearVelocity
       local horizontalSpeed = Vector3.new(velocity.X, 0, velocity.Z).Magnitude
-      -- // The Animate first normalizes studs/s by WALK_SPEED_SCALE (16 for R15), then applies root motion compensation (T-069)
+      -- // The Animate first normalizes studs/s by WALK_SPEED_SCALE (16 for R15), then applies root motion compensation
       local runSpeed = (horizontalSpeed / R15_WALK_SPEED_SCALE) * 1.25 / getRenderedHeightScale(data)
       local walkWeight, runWeight, timeWarp = 0.0001, 0.0001, 1
       if runSpeed <= NORMALIZED_WALK_SPEED then
@@ -484,7 +484,7 @@ local function createCharacterModel(player: Player, canYield: boolean?)
    local model = sourceModel:Clone()
    model.Name = `{player.UserId}_LocalModel`
 
-   -- // T-071: the rendered model is visual only and is placed with PivotTo every frame. Unanchored, its physics
+   -- // The rendered model is visual only and is placed with PivotTo every frame. Unanchored, its physics
    -- // (animation constraints, Humanoid AutoRotate) turned it away from the aim while charging. Ragdoll unanchors it.
    local renderedRoot = model:FindFirstChild("HumanoidRootPart")
    if renderedRoot and renderedRoot:IsA("BasePart") then

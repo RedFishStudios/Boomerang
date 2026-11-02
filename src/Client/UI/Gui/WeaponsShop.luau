@@ -2,7 +2,7 @@
 	WeaponsShop
 
 	Description:
-	The Weapons Shop, opened from the Shop button in the left lobby menu (MenuButtons). T-112: a single window (no tabs)
+	The Weapons Shop, opened from its topbar button (MenuButtons). A single window (no tabs)
 	selling weapon crates, one per category (Shared/Referential/Crates, ShopCommon/Tabs/Crates): buying one gives a random
 	weapon of that category (CrateService on the server). Built by ShopCommon/ShopBuilder.
 ]]

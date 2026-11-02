@@ -28,7 +28,7 @@ local CHAIN_RADIUS = GlobalConfig.ElectricChainRadius
 local CHAIN_LINK_DELAY = GlobalConfig.ElectricChainLinkDelay
 -- // Weapon id passed to the kill path for chained eliminations (elim message: "Shocked")
 local CHAIN_WEAPON_ID = "ElectricChain"
--- // Weapon id ExplosiveBoomerang passes to the kill path for explosion eliminations (T-056: these start chains too)
+-- // Weapon id ExplosiveBoomerang passes to the kill path for explosion eliminations (these start chains too)
 local EXPLOSION_WEAPON_ID = "ExplosiveBoomerang"
 local CHAIN_RADIUS_VISUAL_LIFETIME = 5
 local CHAIN_RADIUS_VISUAL_HEIGHT = 0.5

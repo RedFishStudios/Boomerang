@@ -1,5 +1,5 @@
 --[[
-	Decoy bot behavior (T-080)
+	Decoy bot behavior
 
 	The first BotBehavior. The decoy FACES the owner's facing at spawn, but MOVES opposite the
 	owner's movement at spawn (a random direction if the owner was standing still) -- so it
@@ -7,7 +7,7 @@
 ]]
 
 local DecoyBehavior = {}
-DecoyBehavior.CountsAsElimination = false -- // T-143: popping a decoy isn't an elimination (quests)
+DecoyBehavior.CountsAsElimination = false -- // Popping a decoy isn't an elimination (quests)
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -22,7 +22,7 @@ local GameTeamLibrary = require(ReplicatedStorage.Shared.Library.GameTeamLibrary
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
-local LIFETIME_SECONDS = 4 -- // design doc T-080 (tunable)
+local LIFETIME_SECONDS = 4 -- // Tunable
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -63,7 +63,7 @@ function DecoyBehavior.start(bot: BotService.Bot)
 		bot.MoveDirection = BotService.flattenHorizontal(randomHorizontal())
 	end
 
-	bot.DespawnParticle = "DecoySmokePoof" -- // T-081 / T-078: smoke poof where the decoy vanishes
+	bot.DespawnParticle = "DecoySmokePoof" -- // Smoke poof where the decoy vanishes
 end
 
 function DecoyBehavior.shouldDespawn(bot: BotService.Bot): boolean

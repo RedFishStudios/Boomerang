@@ -1,5 +1,5 @@
 --[[
-	BoomerangCurveLibrary (T-141)
+	BoomerangCurveLibrary
 
 	Thrown boomerangs fly a gentle arc instead of a straight line. The arc still passes through the point the player aimed at
 	(the aim arrow stays straight and points at it): the boomerang leaves a few degrees to one side of the aim line and turns

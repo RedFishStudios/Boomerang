@@ -77,7 +77,7 @@ local function incrementMonthly(data: PlayerDataService.Data, field: "Elims" | "
 	monthly[field] += 1
 end
 
--- // T-130: copy the player's lifetime totals onto their Player attributes, so every client's Stats panel can show them
+-- // Copy the player's lifetime totals onto their Player attributes, so every client's Stats panel can show them
 local function publishLifetimeStats(player: Player)
 	local data = PlayerDataService.get(player)
 	if not data or player.Parent ~= Players then
@@ -216,7 +216,7 @@ function LifetimeStatsService.init()
 		table.clear(roundParticipants)
 		for _, player in Players:GetPlayers() do
 			roundParticipants[player] = true
-			-- // T-130: a new round's elims and defeats start from 0 (the last round's stay shown until then)
+			-- // A new round's elims and defeats start from 0 (the last round's stay shown until then)
 			player:SetAttribute(PlayerStatAttributes.RoundElims, 0)
 			player:SetAttribute(PlayerStatAttributes.RoundDefeats, 0)
 		end

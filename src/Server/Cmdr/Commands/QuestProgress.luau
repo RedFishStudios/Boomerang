@@ -2,7 +2,7 @@
 return {
 	Name = "questprogress",
 	Aliases = { "completequests" },
-	Description = "T-143: adds progress to all of the players' current quests (no amount = finish them all, ready to claim).",
+	Description = "adds progress to all of the players' current quests (no amount = finish them all, ready to claim).",
 	Group = "DevTesting",
 	Args = {
 		{

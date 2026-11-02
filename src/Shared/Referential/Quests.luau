@@ -1,5 +1,5 @@
 --[[
-	Quests (T-143)
+	Quests
 
 	Description:
 	Every quest the game can hand out, and the pools they're drawn from. QuestService (server) gives each player
@@ -15,7 +15,7 @@
 	- Throws: accepted weapon throws in a round.
 	- AbilityUses: uses of AbilityId (e.g. "Dash", "Stab") in a round.
 	- Pickups: pickups collected; PickupId limits it to one kind (a PickupLogics module name).
-	- PickupUses: uses of the pickup PickupId (T-148): pressing its use button (Decoy, Explosive Boomerang...), or
+	- PickupUses: uses of the pickup PickupId: pressing its use button (Decoy, Explosive Boomerang...), or
 	  collecting one that takes effect at once (Shield, Speedup...).
 
 	Rewards use the shared reward shape (RewardLibrary): Currency, Skin, ChargeUpEffect, Emote or Item. A quest
@@ -107,7 +107,7 @@ local List: { Quest } = {
 	{ Id = "WeeklyTeamClassicWins", Pool = "Weekly", Objective = { Type = "Wins", Gamemode = "TeamClassic", Goal = 3 } },
 }
 
--- // T-148: "Use <pickup> N times" quests, one per pickup in each pool (ids "DailyUse<Pickup>" / "WeeklyUse<Pickup>").
+-- // "Use <pickup> N times" quests, one per pickup in each pool (ids "DailyUse<Pickup>" / "WeeklyUse<Pickup>").
 -- // Only pickups that can spawn (not Disabled in their PickupLogics module).
 local USE_PICKUP_IDS = {
 	"Decoy",

@@ -65,13 +65,13 @@ type WeaponReachedEventPointTask = (player: Player, toolId: string, position: Ve
 
 local aimEvent = SimpleRemotes.getEvent("WeaponAim")
 local aimStateEvent = SimpleRemotes.getEvent("WeaponAimState")
-local aimCancelEvent = SimpleRemotes.getEvent("WeaponAimCancel") -- // Client left aiming without throwing (T-060)
+local aimCancelEvent = SimpleRemotes.getEvent("WeaponAimCancel") -- // Client left aiming without throwing
 local throwFunction = SimpleRemotes.getFunction("Weapon")
 local recallEvent = SimpleRemotes.getEvent("WeaponRecall")
 local weaponEquipStateEvent = SimpleRemotes.getEvent("WeaponEquipState")
 
 local aiming: {[Player]: number} = {}
-local recallSlowed: {[Player]: boolean} = {} -- // T-092: players whose walk speed is reduced by a manual recall charge
+local recallSlowed: {[Player]: boolean} = {} -- // Players whose walk speed is reduced by a manual recall charge
 local equippedToolIds: {[Player]: string} = {}
 local equippedToolVisible: {[Player]: boolean} = {}
 
@@ -136,7 +136,7 @@ local function getHorizontalDirection(direction: Vector3): Vector3
    return horizontal.Unit
 end
 
--- // T-092/T-093: a manual recall (the charge AND the return flight, i.e. for as long as the button is held) hinders the player exactly like charging a throw: the same reduced walk speed (AimWalkSpeed), tweened
+-- // A manual recall (the charge AND the return flight, i.e. for as long as the button is held) hinders the player exactly like charging a throw: the same reduced walk speed (AimWalkSpeed), tweened
 -- // the same way on the server (so it is authoritative; the client mirrors it), and restored the same way when the charge ends (the
 -- // boomerang starts returning). Dash is blocked meanwhile too (Dash.canActivate). Reconciled every frame, so death or a round
 -- // ending can't leave a player slowed.
@@ -278,7 +278,7 @@ local function throwForPlayer(
       StartPosition = trustedStartPosition,
       TimeSinceAiming = timeSinceAiming,
       AimStrengthAlpha = aimStrengthAlpha,
-      TargetPosition = targetPosition, -- // T-141: only sets how far ahead the curve crosses the aim line (clamped by the curve library)
+      TargetPosition = targetPosition, -- // Only sets how far ahead the curve crosses the aim line (clamped by the curve library)
    })
    SharedTasks.WeaponThrownTasks:Execute("serial", player, toolId)
 end
@@ -316,7 +316,7 @@ function WeaponService.playerIsWeaponLocked(player: Player): boolean
 end
 
 -- // Ends a player's aim without a throw: back to free motion and normal walk speed, and every client hides the aim
--- // arrow (T-060). Used when the weapon gets locked and when the client cancels its aim.
+-- // arrow. Used when the weapon gets locked and when the client cancels its aim.
 local function cancelAiming(player: Player)
    if aiming[player] == nil then
       return
@@ -339,7 +339,7 @@ local function cancelAiming(player: Player)
 end
 
 function WeaponService.applyLockOnWeapon(player: Player, forTime: number)
-   cancelAiming(player) -- // T-060: a locked weapon can't stay aimed (the client drops its aim too)
+   cancelAiming(player) -- // A locked weapon can't stay aimed (the client drops its aim too)
    PlayerStatsLibrary.setStat(player, "WeaponLockedUntilTimestamp", game.Workspace:GetServerTimeNow() + forTime)
 
    local thrownWeaponData = ThrownWeapons.Data[player]
@@ -386,9 +386,9 @@ function WeaponService.init()
    SimpleRemotes.getEvent("ThrownBoomerangDespawned")
    SimpleRemotes.getEvent("WeaponEquipState")
    SimpleRemotes.getUnreliableEvent("ThrownWeaponReplication")
-   SimpleRemotes.getEvent("RecallCharge") -- // T-090: recall charge start/cancel (Dead.luau)
+   SimpleRemotes.getEvent("RecallCharge") -- // Recall charge start/cancel (Dead.luau)
 
-   -- // T-090: charging dead boomerangs lift/drop and the server starts the recall once the charge completes
+   -- // Charging dead boomerangs lift/drop and the server starts the recall once the charge completes
    RunService.Heartbeat:Connect(function(deltaTime: number)
       DeadWeaponLogic.updateRecallCharges(deltaTime)
       reconcileRecallChargeSlowdown()
@@ -440,7 +440,7 @@ function WeaponService.init()
          tweenWalkSpeed(
             player,
             humanoid,
-            BoomerangTuningLibrary.getForAnyTool(if type(toolId) == "string" then toolId else nil, "AimWalkSpeed"), -- // T-067
+            BoomerangTuningLibrary.getForAnyTool(if type(toolId) == "string" then toolId else nil, "AimWalkSpeed"), 
             AIM_WALK_SPEED_TWEEN_DURATION,
             AIM_WALK_SPEED_TWEEN_EXPONENT,
             function()
@@ -462,7 +462,7 @@ function WeaponService.init()
    throwFunction.OnServerInvoke = function(player: Player, toolId: string, clientDirection: Vector3?, clientStartPosition: Vector3?, clientAimTarget: Vector3?)
       toolId = equippedToolIds[player] or toolId -- // The server decides the weapon class (from the equipped skin)
       local timeSinceAiming = os.clock() - (aiming[player] or os.clock())
-      local chargeTime = BoomerangTuningLibrary.getForAnyTool(if type(toolId) == "string" then toolId else nil, "ChargeTime") -- // T-066
+      local chargeTime = BoomerangTuningLibrary.getForAnyTool(if type(toolId) == "string" then toolId else nil, "ChargeTime") 
       timeSinceAiming = math.clamp(timeSinceAiming, 0, chargeTime)
       local aimStrengthAlpha = timeSinceAiming / chargeTime
 
@@ -558,13 +558,13 @@ function WeaponService.init()
          end
          -- // A dead boomerang doesn't return on the press: holding recall charges it (GlobalConfig.RecallCharge). Dead.luau
          -- // starts the charge once the boomerang is Dead (a Dying one begins charging as soon as it lands while held) and starts the
-         -- // return when the charge completes. The button must stay held for the whole return (T-093).
+         -- // return when the charge completes. The button must stay held for the whole return.
          local deadWeaponData = DeadWeapons.Data[Player]
          if deadWeaponData then
             deadWeaponData.RecallHeld = true
          end
       end
-      -- // T-093: the recall is HELD. Released while the dead boomerang is still charging: the charge is cancelled. Released while a charged
+      -- // The recall is HELD. Released while the dead boomerang is still charging: the charge is cancelled. Released while a charged
       -- // boomerang is flying back to the player: it drops and goes back to the dead state.
       if not isPressed then
          local deadWeaponData = DeadWeapons.Data[Player]

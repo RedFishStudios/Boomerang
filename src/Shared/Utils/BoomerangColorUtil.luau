@@ -2,7 +2,7 @@
 	BoomerangColorUtil
 
 	The color that identifies a player's boomerang to the viewer: the thrown-boomerang trail, the recall SelectionRing, and
-	anything else that should match them (T-090). Moved here from Boomerang.luau so every feature uses the same rule:
+	anything else that should match them. Moved here from Boomerang.luau so every feature uses the same rule:
 	  - the local player's own: white (GlobalConfig.MyBoomerangTrailColor)
 	  - a player in a free-for-all (no team, or a team with friendly fire): red (GlobalConfig.EnemyBoomerangTrailColor)
 	  - a player on a team: the team's color

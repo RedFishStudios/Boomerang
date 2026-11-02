@@ -1,5 +1,5 @@
 --[[
-	RewardLibrary (T-143)
+	RewardLibrary
 
 	Description:
 	The shared shape of a reward, for anything that hands one out (quests today; daily rewards, events and achievements

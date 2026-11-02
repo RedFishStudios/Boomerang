@@ -1,5 +1,5 @@
 --[[
-	RewardService (T-143)
+	RewardService
 
 	Description:
 	Grants a reward (RewardLibrary.Reward) to a player: currency, a skin, an aim arrow (charge up effect), an emote or
