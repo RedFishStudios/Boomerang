@@ -52,7 +52,8 @@ local activeAudios: {
 
 local didInitclient = false
 local SOUND_EFFECTS_GROUP_NAME = "SoundEffects"
-local soundEffectsGroup: SoundGroup? = nil
+local MUSIC_GROUP_NAME = "Music"
+local soundGroups: { [string]: SoundGroup } = {}
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -62,19 +63,29 @@ local soundEffectsGroup: SoundGroup? = nil
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
 
--- // Client: the SoundGroup every sound played here belongs to (its Volume is the Sound Effects setting, SettingsController)
-function SoundLibrary.getSoundEffectsGroup(): SoundGroup
-	if soundEffectsGroup and soundEffectsGroup.Parent then
-		return soundEffectsGroup
+local function getSoundGroup(name: string): SoundGroup
+	local cached = soundGroups[name]
+	if cached and cached.Parent then
+		return cached
 	end
-	local group = SoundService:FindFirstChild(SOUND_EFFECTS_GROUP_NAME)
+	local group = SoundService:FindFirstChild(name)
 	if not (group and group:IsA("SoundGroup")) then
 		group = Instance.new("SoundGroup")
-		group.Name = SOUND_EFFECTS_GROUP_NAME
+		group.Name = name
 		group.Parent = SoundService
 	end
-	soundEffectsGroup = group :: SoundGroup
+	soundGroups[name] = group :: SoundGroup
 	return group :: SoundGroup
+end
+
+-- // Client: the SoundGroup sounds played here belong to, unless marked IsMusic (its Volume is the Sound Effects setting)
+function SoundLibrary.getSoundEffectsGroup(): SoundGroup
+	return getSoundGroup(SOUND_EFFECTS_GROUP_NAME)
+end
+
+-- // Client: the SoundGroup for sounds marked IsMusic in Sounds (its Volume is the Music setting, SettingsController)
+function SoundLibrary.getMusicGroup(): SoundGroup
+	return getSoundGroup(MUSIC_GROUP_NAME)
 end
 
 local function generateAudioId(): string
@@ -168,7 +179,7 @@ local function playLocal(audioChannelId: AudioChannelId?, soundName: string, hos
    soundInstance.SoundId = `rbxassetid://{thisSoundData.Id}`
    soundInstance.Looped = thisSoundData.Looping or Sounds.Defaults.Looping
    if not isServer then
-      soundInstance.SoundGroup = SoundLibrary.getSoundEffectsGroup()
+      soundInstance.SoundGroup = if thisSoundData.IsMusic then SoundLibrary.getMusicGroup() else SoundLibrary.getSoundEffectsGroup()
    end
    activeAudios[audioChannelId] = {
       Instance = soundInstance,

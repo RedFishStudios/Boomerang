@@ -29,6 +29,7 @@ local SETTING_NAMES = table.freeze({
 	OverShoulderCamera = "OverShoulderCamera",
 	CameraShake = "CameraShake",
 	SoundEffectsVolume = "SoundEffectsVolume",
+	MusicVolume = "MusicVolume",
 })
 
 local DEVICE_TYPES = DeviceConstants.DeviceTypes
@@ -84,12 +85,21 @@ local settings: { [SettingName]: Setting } = {
 		Suffix = "%",
 		DefaultValues = { [DEVICE_TYPES.Mobile] = 100, [DEVICE_TYPES.Console] = 100, [DEVICE_TYPES.Desktop] = 100 },
 	},
+	[SETTING_NAMES.MusicVolume] = {
+		DisplayName = "Music",
+		Type = SETTING_TYPES.Slider,
+		Min = 0,
+		Max = 100,
+		Step = 1,
+		Suffix = "%",
+		DefaultValues = { [DEVICE_TYPES.Mobile] = 100, [DEVICE_TYPES.Console] = 100, [DEVICE_TYPES.Desktop] = 100 },
+	},
 }
 
 -- // The Settings menu's sections and rows, in order
 local SETTING_SECTIONS: { SettingSection } = {
 	{ Title = "Camera", Settings = { SETTING_NAMES.OverShoulderCamera, SETTING_NAMES.CameraShake } },
-	{ Title = "Audio", Settings = { SETTING_NAMES.SoundEffectsVolume } },
+	{ Title = "Audio", Settings = { SETTING_NAMES.SoundEffectsVolume, SETTING_NAMES.MusicVolume } },
 }
 
 -- // Every setting, in menu order

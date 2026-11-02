@@ -8,6 +8,7 @@
 	  - OverShoulderCamera: CustomCameraController (also changed by its C key)
 	  - CameraShake: CustomCameraController (the parry shake)
 	  - SoundEffectsVolume: the volume of SoundLibrary's sound effects SoundGroup
+	  - MusicVolume: the volume of SoundLibrary's Music SoundGroup
 ]]
 
 local SettingsController = {}
@@ -52,10 +53,11 @@ local function getSavedValue(settingName: string): SettingConstants.SettingValue
 	return SettingConstants.sanitize(settingName, value)
 end
 
-local function applySoundEffectsVolume(value: SettingConstants.SettingValue)
-	local setting = SettingConstants.Settings.SoundEffectsVolume
-	local max = setting.Max or 100
-	SoundLibrary.getSoundEffectsGroup().Volume = (value :: number) / max
+local function applyVolumes()
+	local effectsSetting = SettingConstants.Settings.SoundEffectsVolume
+	local musicSetting = SettingConstants.Settings.MusicVolume
+	SoundLibrary.getSoundEffectsGroup().Volume = (SettingsController.getValue("SoundEffectsVolume") :: number) / (effectsSetting.Max or 100)
+	SoundLibrary.getMusicGroup().Volume = (SettingsController.getValue("MusicVolume") :: number) / (musicSetting.Max or 100)
 end
 
 -- // Tells every listener the current value of every setting (after loading, or when defaults may have changed)
@@ -97,15 +99,15 @@ end
 -------------------------------------------------------------------------------
 
 function SettingsController.init()
-	SettingsController.SettingChangedTasks:Add(function(settingName, value)
-		if settingName == SettingConstants.SettingNames.SoundEffectsVolume then
-			applySoundEffectsVolume(value)
+	SettingsController.SettingChangedTasks:Add(function(settingName, _value)
+		if settingName == SettingConstants.SettingNames.SoundEffectsVolume or settingName == SettingConstants.SettingNames.MusicVolume then
+			applyVolumes()
 		end
 	end)
 end
 
 function SettingsController.start()
-	applySoundEffectsVolume(SettingsController.getValue(SettingConstants.SettingNames.SoundEffectsVolume))
+	applyVolumes()
 
 	PlayerDataController.getAsync(function()
 		announceAll()
