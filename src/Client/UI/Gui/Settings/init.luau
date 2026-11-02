@@ -20,6 +20,8 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local TextService = game:GetService("TextService")
+local RunService = game:GetService("RunService")
 
 local UIController = require(ReplicatedStorage.Client.UI.UIController)
 local SettingsController = require(ReplicatedStorage.Client.Core.SettingsController)
@@ -46,8 +48,13 @@ local FONT = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWeig
 local CONTAINER_IMAGE = "rbxassetid://107079429198573" -- // Borrowed from the Stats menu (placeholder)
 local EXIT_IMAGE = "rbxassetid://83841981001141"
 local CONTAINER_ASPECT_RATIO = 1.46190941
-local ROW_ASPECT_RATIO = 6.5 -- // Row width / height (rows span the list's width)
-local HEADER_ASPECT_RATIO = 13 -- // Section header width / height
+local ROW_ASPECT_RATIO = 11 -- // Row width / height (rows span the list's width)
+local HEADER_ASPECT_RATIO = 20 -- // Section header width / height
+-- // Every label in a group shares one text size: the largest at which all of the group's texts fit their labels,
+-- // but no bigger than this fraction of the row height (so short words don't come out huge)
+local ROW_TEXT_MAX_HEIGHT_FRACTION = 0.42
+local HEADER_TEXT_MAX_HEIGHT_FRACTION = 0.8
+local TEXT_FONT = Enum.Font.FredokaOne -- // Same font as FONT, for measuring with TextService
 local LIST_PADDING_PIXELS = 6 -- // Gap between rows in the list
 local SCROLLBAR_THICKNESS = 6
 
@@ -72,6 +79,10 @@ local Container: GuiObject
 local List: ScrollingFrame
 local rows: { GuiObject } = {}
 local headers: { GuiObject } = {}
+local rowTextLabels: { TextLabel } = {} -- // Row titles, toggle texts, slider values: one shared text size
+local headerTextLabels: { TextLabel } = {}
+local textSizeQueued = false
+local textsForLabel: { [TextLabel]: { string } } = {} -- // Every text a label can show (a toggle's two texts, a slider's widest values)
 local containerGoalPosition: UDim2
 local containerOffscreenPosition: UDim2
 local activeTween: Tween?
@@ -111,11 +122,13 @@ local function createToggle(settingName: SettingConstants.SettingName, setting: 
 		Name = "Text",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.45),
-		Size = UDim2.fromScale(0.8, 0.55),
+		Size = UDim2.fromScale(0.85, 0.75),
 		TextColor3 = Color3.new(1, 1, 1),
 		Text = "",
 		ZIndex = 3,
 	}, { createOutline() })
+	table.insert(rowTextLabels, text)
+	textsForLabel[text] = { setting.OnText or "On", setting.OffText or "Off" }
 	local button = CreateElement("ImageButton", {
 		Name = "Toggle",
 		AnchorPoint = Vector2.new(1, 0.5),
@@ -186,6 +199,8 @@ local function createSlider(settingName: SettingConstants.SettingName, setting: 
 		Text = "",
 		ZIndex = 2,
 	}, { createOutline() })
+	table.insert(rowTextLabels, valueLabel)
+	textsForLabel[valueLabel] = { `{max}{setting.Suffix or ""}`, `{min}{setting.Suffix or ""}` }
 	local holder = CreateElement("Frame", {
 		Name = "Slider",
 		Size = UDim2.fromScale(1, 1),
@@ -260,6 +275,17 @@ local function createRow(settingName: SettingConstants.SettingName, order: numbe
 	end
 	rowUpdaters[settingName] = update
 
+	local title = createLabel({
+		Name = "Title",
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.fromScale(0.05, 0.5),
+		Size = UDim2.fromScale(0.42, 0.75),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = Color3.new(1, 1, 1),
+		Text = setting.DisplayName,
+		ZIndex = 2,
+	}, { createOutline() })
+	table.insert(rowTextLabels, title)
 	local row = CreateElement("ImageLabel", {
 		Name = settingName,
 		LayoutOrder = order,
@@ -268,16 +294,7 @@ local function createRow(settingName: SettingConstants.SettingName, order: numbe
 		Image = `rbxassetid://{Icons.ShopListingBase}`, -- // Stretched to the row
 		ImageColor3 = ROW_COLOR,
 	}, {
-		createLabel({
-			Name = "Title",
-			AnchorPoint = Vector2.new(0, 0.5),
-			Position = UDim2.fromScale(0.06, 0.5),
-			Size = UDim2.fromScale(0.4, 0.5),
-			TextXAlignment = Enum.TextXAlignment.Left,
-			TextColor3 = Color3.new(1, 1, 1),
-			Text = setting.DisplayName,
-			ZIndex = 2,
-		}, { createOutline() }),
+		title,
 		control,
 	})
 	row.Parent = List
@@ -295,6 +312,72 @@ local function createHeader(title: string, order: number)
 	})
 	header.Parent = List
 	table.insert(headers, header)
+	table.insert(headerTextLabels, header)
+end
+
+-- // Whether `text` fits a label of `size` at `textSize` (on one line, or wrapped if the label wraps)
+local function textFits(label: TextLabel, text: string, textSize: number): boolean
+	local size = label.AbsoluteSize
+	local wrapWidth = if label.TextWrapped then size.X else math.huge
+	local bounds = TextService:GetTextSize(text, textSize, TEXT_FONT, Vector2.new(wrapWidth, math.huge))
+	return bounds.X <= size.X + 0.5 and bounds.Y <= size.Y + 0.5
+end
+
+-- // One text size for every label in the group: the largest that fits all of them, capped by maxSize
+local function applySharedTextSize(labels: { TextLabel }, maxSize: number)
+	local best = 1
+	local low, high = 1, math.max(1, math.floor(maxSize))
+	while low <= high do
+		local candidate = math.floor((low + high) / 2)
+		local fitsAll = true
+		for _, label in labels do
+			if label.AbsoluteSize.X <= 0 then
+				continue
+			end
+			for _, text in textsForLabel[label] or { label.Text } do
+				if not textFits(label, text, candidate) then
+					fitsAll = false
+					break
+				end
+			end
+			if not fitsAll then
+				break
+			end
+		end
+		if fitsAll then
+			best = candidate
+			low = candidate + 1
+		else
+			high = candidate - 1
+		end
+	end
+	for _, label in labels do
+		label.TextScaled = false
+		label.TextSize = best
+	end
+end
+
+local function updateTextSizes()
+	local rowHeight = if rows[1] then rows[1].AbsoluteSize.Y else 0
+	local headerHeight = if headers[1] then headers[1].AbsoluteSize.Y else 0
+	if rowHeight <= 0 then
+		return
+	end
+	applySharedTextSize(rowTextLabels, rowHeight * ROW_TEXT_MAX_HEIGHT_FRACTION)
+	applySharedTextSize(headerTextLabels, headerHeight * HEADER_TEXT_MAX_HEIGHT_FRACTION)
+end
+
+-- // After a resize the labels' AbsoluteSize updates once the frame is laid out: measure after that
+local function queueTextSizes()
+	if textSizeQueued then
+		return
+	end
+	textSizeQueued = true
+	task.spawn(function()
+		RunService.Heartbeat:Wait()
+		textSizeQueued = false
+		updateTextSizes()
+	end)
 end
 
 -- // Rows have pixel heights (a scrolling list can't size them by scale): kept in proportion to the list's width
@@ -306,6 +389,7 @@ local function resizeList()
 	for _, row in rows do
 		row.Size = UDim2.new(1, 0, 0, math.floor(width / ROW_ASPECT_RATIO))
 	end
+	queueTextSizes()
 end
 
 local function refreshAll()
@@ -450,6 +534,9 @@ local function _init()
 	containerOffscreenPosition = containerGoalPosition - UDim2.fromScale(0, 1)
 
 	List:GetPropertyChangedSignal("AbsoluteSize"):Connect(resizeList)
+	if rows[1] then
+		rows[1]:GetPropertyChangedSignal("AbsoluteSize"):Connect(queueTextSizes)
+	end
 end
 
 function SettingsGui.start()
