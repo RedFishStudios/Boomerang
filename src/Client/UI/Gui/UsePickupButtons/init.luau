@@ -34,6 +34,9 @@ local GameStateLibrary = require(SharedMods.Library.GameStateLibrary)
 local PickupLibrary = require(SharedMods.Library.PickupLibrary)
 local AcquirableThingData = require(SharedMods.Referential.AcquirableThingData)
 local SimpleRemotes = require(SharedMods.Networking.SimpleRemotes)
+local SettingsController = require(ReplicatedStorage.Client.Core.SettingsController)
+local PlatformController = require(ReplicatedStorage.Client.Core.PlatformController)
+local GuiMirror = require(ReplicatedStorage.Client.UI.GuiMirror)
 
 local PickupLogics = SharedMods.Logics.PickupLogics
 local usePickupButtonEvent = SimpleRemotes.getEvent(PickupLibrary.USE_PICKUP_BUTTON_EVENT)
@@ -237,7 +240,20 @@ local function _init()
 end
 _init()
 
+-- // Left-handed touch layout (Touch Controls setting): the buttons move to the right side, away from the aim thumbstick
+local function updateSide()
+	local leftHanded = SettingsController.getValue("LeftHandedTouch") == true
+	GuiMirror.setMirrored(RootFrame, leftHanded and PlatformController.getDominantControlScheme() == "Touch")
+end
+
 function UsePickupButtonsGui.start()
+	updateSide()
+	PlatformController.DominantControlSchemeChanged:Add(updateSide)
+	SettingsController.SettingChangedTasks:Add(function(settingName, _value)
+		if settingName == "LeftHandedTouch" then
+			updateSide()
+		end
+	end)
 	PickupLibrary.PickupEffectAddedTasks:Add(function(userId, livePickupId, pickupClassId, _endsAt)
 		if userId == Player.UserId then
 			addButton(livePickupId, pickupClassId)

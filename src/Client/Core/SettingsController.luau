@@ -11,6 +11,7 @@
 	  - MusicVolume: the volume of SoundLibrary's Music SoundGroup
 	  - AimArrowLength: WeaponController (the local player's charge up effect)
 	  - GuiInset*: GuiInsetController
+	  - LeftHandedTouch: CustomTouchscreen, UsePickupButtons, TouchControlsSideController (Roblox's movement stick)
 ]]
 
 local SettingsController = {}

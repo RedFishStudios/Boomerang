@@ -31,6 +31,7 @@ local SETTING_NAMES = table.freeze({
 	SoundEffectsVolume = "SoundEffectsVolume",
 	MusicVolume = "MusicVolume",
 	AimArrowLength = "AimArrowLength",
+	LeftHandedTouch = "LeftHandedTouch",
 	GuiInsetLeft = "GuiInsetLeft",
 	GuiInsetRight = "GuiInsetRight",
 	GuiInsetTop = "GuiInsetTop",
@@ -108,6 +109,13 @@ local settings: { [SettingName]: Setting } = {
 		Suffix = "%",
 		DefaultValues = { [DEVICE_TYPES.Mobile] = 100, [DEVICE_TYPES.Console] = 100, [DEVICE_TYPES.Desktop] = 100 },
 	},
+	[SETTING_NAMES.LeftHandedTouch] = {
+		DisplayName = "Touch Controls",
+		Type = SETTING_TYPES.Toggle,
+		OffText = "Right-Handed",
+		OnText = "Left-Handed",
+		DefaultValues = { [DEVICE_TYPES.Mobile] = false, [DEVICE_TYPES.Console] = false, [DEVICE_TYPES.Desktop] = false },
+	},
 	-- // Screen edge insets (pixels) for every GUI. Roblox's own safe-area insets are turned off (GuiInsetController),
 	-- // so these are the only thing keeping the GUIs away from the screen's edges, notches and the top bar.
 	[SETTING_NAMES.GuiInsetLeft] = {
@@ -152,7 +160,7 @@ local settings: { [SettingName]: Setting } = {
 local SETTING_SECTIONS: { SettingSection } = {
 	{ Title = "Camera", Settings = { SETTING_NAMES.OverShoulderCamera, SETTING_NAMES.CameraShake } },
 	{ Title = "Audio", Settings = { SETTING_NAMES.SoundEffectsVolume, SETTING_NAMES.MusicVolume } },
-	{ Title = "Controls", Settings = { SETTING_NAMES.AimArrowLength } },
+	{ Title = "Controls", Settings = { SETTING_NAMES.AimArrowLength, SETTING_NAMES.LeftHandedTouch } },
 	{
 		Title = "Screen Insets",
 		Settings = { SETTING_NAMES.GuiInsetLeft, SETTING_NAMES.GuiInsetRight, SETTING_NAMES.GuiInsetTop, SETTING_NAMES.GuiInsetBottom },

@@ -17,6 +17,8 @@ local ClientMods = ReplicatedStorage.Client
 local _UIController = require(ClientMods.UI.UIController)
 local AbilityController = require(ClientMods.Core.AbilityController)
 local WeaponController = require(ClientMods.Core.WeaponController)
+local SettingsController = require(ClientMods.Core.SettingsController)
+local GuiMirror = require(ClientMods.UI.GuiMirror)
 local PlatformController = require(ClientMods.Core.PlatformController)
 local Icons = require(ReplicatedStorage.Shared.Constants.Icons)
 local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
@@ -271,6 +273,10 @@ end
 -- // the aim circle, so the spacing is the same on every screen shape (their Y position still comes from the rbxmx).
 local ACTION_BUTTON_GAP = 0.035 -- // Gap between the aim circle, Dash and Stab, as a fraction of the screen height
 
+local function isLeftHanded(): boolean
+	return SettingsController.getValue("LeftHandedTouch") == true
+end
+
 local function layoutActionButtons()
 	local screenHeight = Gui.AbsoluteSize.Y
 	if screenHeight <= 0 then
@@ -281,10 +287,27 @@ local function layoutActionButtons()
 	local insets = Gui:FindFirstChild("PlayerGuiInsets")
 	local contentLeft = Gui.AbsolutePosition.X + (if insets and insets:IsA("UIPadding") then insets.PaddingLeft.Offset else 0)
 	local aimLeft = aimThumbstickContainer.AbsolutePosition.X - contentLeft
+	local aimRight = aimLeft + aimThumbstickContainer.AbsoluteSize.X
 	local dash, stab = Gui.Dash, Gui.Stab
-	-- // Both are anchored at their right edge (AnchorPoint X = 1)
-	dash.Position = UDim2.new(0, aimLeft - gap, dash.Position.Y.Scale, dash.Position.Y.Offset)
-	stab.Position = UDim2.new(0, aimLeft - gap - dash.AbsoluteSize.X - gap, stab.Position.Y.Scale, stab.Position.Y.Offset)
+	if isLeftHanded() then
+		-- // Left-handed (Touch Controls setting): the aim circle is on the left, Dash then Stab to its right (left edge anchors)
+		dash.AnchorPoint = Vector2.new(0, dash.AnchorPoint.Y)
+		stab.AnchorPoint = Vector2.new(0, stab.AnchorPoint.Y)
+		dash.Position = UDim2.new(0, aimRight + gap, dash.Position.Y.Scale, dash.Position.Y.Offset)
+		stab.Position = UDim2.new(0, aimRight + gap + dash.AbsoluteSize.X + gap, stab.Position.Y.Scale, stab.Position.Y.Offset)
+	else
+		-- // Both are anchored at their right edge (AnchorPoint X = 1)
+		dash.AnchorPoint = Vector2.new(1, dash.AnchorPoint.Y)
+		stab.AnchorPoint = Vector2.new(1, stab.AnchorPoint.Y)
+		dash.Position = UDim2.new(0, aimLeft - gap, dash.Position.Y.Scale, dash.Position.Y.Offset)
+		stab.Position = UDim2.new(0, aimLeft - gap - dash.AbsoluteSize.X - gap, stab.Position.Y.Scale, stab.Position.Y.Offset)
+	end
+end
+
+-- // Touch Controls setting: the aim thumbstick goes to the left edge (mirrored) for left-handed players
+local function applyHandedness()
+	GuiMirror.setMirrored(aimThumbstickContainer, isLeftHanded())
+	layoutActionButtons()
 end
 
 local function setupFunctionality()
@@ -342,8 +365,18 @@ local function _init()
    Gui.IgnoreGuiInset = true
 	ensureThumbstickOrigin()
 	Gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layoutActionButtons)
-	aimThumbstickContainer:GetPropertyChangedSignal("AbsolutePosition"):Connect(layoutActionButtons)
-	layoutActionButtons()
+	aimThumbstickContainer:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
+		layoutActionButtons()
+		if not draggingAimThumbstick then
+			ensureThumbstickOrigin() -- // The circle moved (handedness, insets, screen size)
+		end
+	end)
+	applyHandedness()
+	SettingsController.SettingChangedTasks:Add(function(settingName, _value)
+		if settingName == "LeftHandedTouch" then
+			applyHandedness()
+		end
+	end)
 
    GuiService.MenuOpened:Connect(function()
       endRecallHold()
