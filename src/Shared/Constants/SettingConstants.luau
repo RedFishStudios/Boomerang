@@ -30,6 +30,7 @@ local SETTING_NAMES = table.freeze({
 	CameraShake = "CameraShake",
 	SoundEffectsVolume = "SoundEffectsVolume",
 	MusicVolume = "MusicVolume",
+	AimArrowLength = "AimArrowLength",
 })
 
 local DEVICE_TYPES = DeviceConstants.DeviceTypes
@@ -94,12 +95,22 @@ local settings: { [SettingName]: Setting } = {
 		Suffix = "%",
 		DefaultValues = { [DEVICE_TYPES.Mobile] = 100, [DEVICE_TYPES.Console] = 100, [DEVICE_TYPES.Desktop] = 100 },
 	},
+	[SETTING_NAMES.AimArrowLength] = {
+		DisplayName = "Aim Arrow Length",
+		Type = SETTING_TYPES.Slider,
+		Min = 50,
+		Max = 200,
+		Step = 5,
+		Suffix = "%",
+		DefaultValues = { [DEVICE_TYPES.Mobile] = 100, [DEVICE_TYPES.Console] = 100, [DEVICE_TYPES.Desktop] = 100 },
+	},
 }
 
 -- // The Settings menu's sections and rows, in order
 local SETTING_SECTIONS: { SettingSection } = {
 	{ Title = "Camera", Settings = { SETTING_NAMES.OverShoulderCamera, SETTING_NAMES.CameraShake } },
 	{ Title = "Audio", Settings = { SETTING_NAMES.SoundEffectsVolume, SETTING_NAMES.MusicVolume } },
+	{ Title = "Controls", Settings = { SETTING_NAMES.AimArrowLength } },
 }
 
 -- // Every setting, in menu order

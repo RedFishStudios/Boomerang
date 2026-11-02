@@ -79,7 +79,11 @@ function ArrowEffect.apply(template: Model, player: Player): ChargeUpEffectLibra
 
 	function handle.update(_self, frame: ChargeUpEffectLibrary.ChargeUpFrame)
 		local alpha = frame.Alpha
-		primaryPart.Size = startSize:Lerp(fullSize, alpha)
+		local lengthScale = frame.LengthScale or 1
+		local size = startSize:Lerp(fullSize, alpha)
+		-- // Aim Arrow Length setting: stretched along its length (the part's Z, which points along the aim), from its back edge
+		primaryPart.Size = Vector3.new(size.X, size.Y, size.Z * lengthScale)
+		local lengthExtension = size.Z * (lengthScale - 1) / 2
 		primaryPart.SurfaceGui.CanvasGroup.GroupTransparency = 1 - alpha
 
 		local lookVector = frame.AimCFrame.LookVector
@@ -100,7 +104,7 @@ function ArrowEffect.apply(template: Model, player: Player): ChargeUpEffectLibra
 		end
 		lastUpdateAt = now
 
-		local arrowPosition = rootPosition + Vector3.new(0, ARROW_HEIGHT_OFFSET, 0) + (lookVector.Unit * distance) + sideOffset
+		local arrowPosition = rootPosition + Vector3.new(0, ARROW_HEIGHT_OFFSET, 0) + (lookVector.Unit * (distance + lengthExtension)) + sideOffset
 		arrow:PivotTo(CFrame.new(arrowPosition, arrowPosition + lookVector))
 
 		-- // Shaking

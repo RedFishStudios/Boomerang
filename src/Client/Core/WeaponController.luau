@@ -21,6 +21,7 @@ local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local SkinLibrary = require(ReplicatedStorage.Shared.Library.SkinLibrary)
 local ChargeUpEffectLibrary = require(ReplicatedStorage.Shared.Library.ChargeUpEffectLibrary)
+local SettingsController = require(ReplicatedStorage.Client.Core.SettingsController)
 local BoomerangTuningLibrary = require(ReplicatedStorage.Shared.Library.BoomerangTuningLibrary)
 local BoomerangCurveLibrary = require(ReplicatedStorage.Shared.Library.BoomerangCurveLibrary)
 local CharacterController = require(ReplicatedStorage.Client.Core.CharacterController)
@@ -703,6 +704,7 @@ local function renderChargeUpEffects()
             RootPart = humanoidRootPart,
             AimCFrame = characterCFrame,
             ThrowOrigin = throwOrigin,
+            LengthScale = if p == Players.LocalPlayer then (SettingsController.getValue("AimArrowLength") :: number) / 100 else 1,
          })
       end
    end)

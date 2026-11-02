@@ -25,6 +25,7 @@ export type ChargeUpFrame = {
 	RootPart: BasePart, -- // The rendered character's HumanoidRootPart
 	AimCFrame: CFrame, -- // The direction the player is aiming (their facing)
 	ThrowOrigin: Vector3?, -- // T-142: where the boomerang will leave from (the held boomerang), when known; arrows line up under it
+	LengthScale: number?, -- // How much longer (forward) to draw the arrow: the local player's Aim Arrow Length setting (1 = normal)
 }
 
 -- // A running charge up effect. Removed when the player stops charging (throw, cancel, death...); it must clean up everything it made.
