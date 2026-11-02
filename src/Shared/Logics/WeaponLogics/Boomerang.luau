@@ -14,6 +14,7 @@ local AuthorityViewLibrary = require(ReplicatedStorage.Shared.Library.AuthorityV
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local SkinLibrary = require(ReplicatedStorage.Shared.Library.SkinLibrary)
 local BoomerangTuningLibrary = require(ReplicatedStorage.Shared.Library.BoomerangTuningLibrary)
+local ThrowTargetLibrary = require(ReplicatedStorage.Shared.Library.ThrowTargetLibrary)
 local BoomerangCurveLibrary = require(ReplicatedStorage.Shared.Library.BoomerangCurveLibrary)
 local ObstructionCastLibrary = require(ReplicatedStorage.Shared.Library.ObstructionCastLibrary)
 local LagCompensationLibrary = require(ReplicatedStorage.Shared.Library.LagCompensationLibrary)
@@ -121,6 +122,7 @@ type ThrowInitOptions = {
    AimStrengthAlpha: number?,
    ExistingHost: Model?,
    TargetPosition: Vector3?, -- // T-141 (server): the point the player aimed at (clamped; only sets how far ahead the curve crosses the aim line)
+   ClickedUserId: number?, -- // Server: the enemy the PC client says was clicked (ThrowTargetLibrary checks it)
    Curvature: number?, -- // T-141 (client): the curve the server decided, from the spawn event
 }
 
@@ -900,7 +902,20 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       local humanoid = character:FindFirstChildOfClass("Humanoid")
       local energyPerStud = BoomerangTuningLibrary.get(tuningToolId, "EnergyPerStud")
       local maxDistance = if energyPerStud > 1e-3 then thrownWeaponData.Energy / energyPerStud else math.huge
-      local launchDirection, curvature = BoomerangCurveLibrary.decide(direction, aimDistance, humanoid and humanoid.MoveDirection, maxDistance)
+      -- // An enemy to curve toward: the one clicked on (PC), else the closest to the aim within a cone (ThrowTargetLibrary).
+      -- // The arc then goes through that enemy's position on the server instead of through the aimed point.
+      local curveDirection = direction
+      local clickedUserId = options and options.ClickedUserId
+      local targetEnemyPosition = ThrowTargetLibrary.findTarget(player, startPosition, direction,
+         if type(clickedUserId) == "number" then clickedUserId else nil, maxDistance)
+      if targetEnemyPosition then
+         local toEnemy = Vector3.new(targetEnemyPosition.X - startPosition.X, 0, targetEnemyPosition.Z - startPosition.Z)
+         if toEnemy.Magnitude > 1e-3 then
+            curveDirection = toEnemy.Unit
+            aimDistance = toEnemy.Magnitude
+         end
+      end
+      local launchDirection, curvature = BoomerangCurveLibrary.decide(curveDirection, aimDistance, humanoid and humanoid.MoveDirection, maxDistance)
       direction = launchDirection
       thrownWeaponData.Curvature = curvature
    else
