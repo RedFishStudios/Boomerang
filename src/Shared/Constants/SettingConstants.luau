@@ -36,6 +36,7 @@ local SETTING_NAMES = table.freeze({
 	GuiInsetRight = "GuiInsetRight",
 	GuiInsetTop = "GuiInsetTop",
 	GuiInsetBottom = "GuiInsetBottom",
+	ShowCosmeticEffects = "ShowCosmeticEffects",
 })
 
 local DEVICE_TYPES = DeviceConstants.DeviceTypes
@@ -154,6 +155,13 @@ local settings: { [SettingName]: Setting } = {
 		Suffix = "px",
 		DefaultValues = { [DEVICE_TYPES.Mobile] = 0, [DEVICE_TYPES.Console] = 0, [DEVICE_TYPES.Desktop] = 0 },
 	},
+	[SETTING_NAMES.ShowCosmeticEffects] = {
+		DisplayName = "Others' Cosmetic Effects",
+		Type = SETTING_TYPES.Toggle,
+		OffText = "Hidden",
+		OnText = "Shown",
+		DefaultValues = { [DEVICE_TYPES.Mobile] = true, [DEVICE_TYPES.Console] = true, [DEVICE_TYPES.Desktop] = true },
+	},
 }
 
 -- // The Settings menu's sections and rows, in order
@@ -164,6 +172,10 @@ local SETTING_SECTIONS: { SettingSection } = {
 	{
 		Title = "Screen Insets",
 		Settings = { SETTING_NAMES.GuiInsetLeft, SETTING_NAMES.GuiInsetRight, SETTING_NAMES.GuiInsetTop, SETTING_NAMES.GuiInsetBottom },
+	},
+	{
+		Title = "Display",
+		Settings = { SETTING_NAMES.ShowCosmeticEffects },
 	},
 }
 

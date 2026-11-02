@@ -736,7 +736,9 @@ local function beginAiming(player: Player)
    -- // Every client applies each player's charge up effect locally. The equipped id is replicated on the Player and
    -- // validated by ChargeUpEffectLibrary (an unknown or not-yet-replicated value uses the default effect); the id names
    -- // the logic module in Shared/Logics/ChargeUpEffects that applies and animates the effect
-   local logic = ChargeUpEffectLibrary.getLogicFor(player)
+   -- // Others' Cosmetic Effects setting off: other players charge with the default effect (this player's own still shows)
+   local showsEquipped = player == Players.LocalPlayer or SettingsController.getValue("ShowCosmeticEffects") == true
+   local logic = if showsEquipped then ChargeUpEffectLibrary.getLogicFor(player) else ChargeUpEffectLibrary.getLogic(ChargeUpEffectLibrary.getDefaultId())
    chargeUpEffects[player] = {
       Handle = logic.apply(player, character),
       AimStart = os.clock()
