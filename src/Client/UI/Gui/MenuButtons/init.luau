@@ -382,8 +382,17 @@ function MenuButtonsGui.start()
 	})
 
 	currencyLabel.Text = formatNumber(EconomyController.getBalance())
+	-- // The player's currency in the topbar too (coin + amount), always visible; clicking it does what the lobby's currency bar does
+	TopbarGui.addButton({
+		Id = "Currency",
+		Text = formatNumber(EconomyController.getBalance()),
+		Icon = `rbxassetid://{Icons.CurrencyIcon}`,
+		Side = "Right",
+		onActivated = openCurrencyShop,
+	})
 	EconomyController.CurrencyChangedTasks:Add(function(value: number)
 		currencyLabel.Text = formatNumber(value or 0)
+		TopbarGui.setButtonText("Currency", formatNumber(value or 0))
 	end)
 
 	updateVisibility()

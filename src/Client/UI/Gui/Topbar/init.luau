@@ -224,6 +224,15 @@ function TopbarGui.addButton(config: ButtonConfig): TextButton
 	return button
 end
 
+-- // Changes a button's text (e.g. a live amount). Not for icon-only buttons (they have no text label).
+function TopbarGui.setButtonText(id: string, text: string)
+	local button = Buttons[id]
+	local label = button and button:FindFirstChild("Label")
+	if label and label:IsA("TextLabel") then
+		label.Text = text
+	end
+end
+
 function TopbarGui.removeButton(id: string)
 	local button = Buttons[id]
 	if button then
