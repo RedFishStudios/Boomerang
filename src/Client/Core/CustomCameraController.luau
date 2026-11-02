@@ -14,6 +14,7 @@ local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibra
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local ToolController = require(ReplicatedStorage.Client.Core.ToolController)
 local CameraPaddingController = require(ReplicatedStorage.Client.Core.CameraPaddingController)
+local SettingsController = require(ReplicatedStorage.Client.Core.SettingsController)
 local ArenaLibrary = require(ReplicatedStorage.Shared.Library.ArenaLibrary)
 local GameplayPhases = require(ReplicatedStorage.Shared.Constants.Enums.GameplayPhases)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
@@ -507,6 +508,9 @@ function CustomCameraController.getMode()
 end
 
 function CustomCameraController.parryEffect()
+   if not SettingsController.getValue("CameraShake") then
+      return -- // Camera Shake setting is off
+   end
    local now = os.clock()
    parryShakeStart = now
    parryShakeEnd = now + PARRY_SHAKE_DURATION
@@ -520,8 +524,19 @@ end
 -- CORE FUNCTIONS
 -------------------------------------------------------------------------------
 
+-- // The arena camera mode the Camera Mode setting asks for
+local function getSettingMode(): CameraMode
+   return if SettingsController.getValue("OverShoulderCamera") then "Regular" else "Overhead"
+end
+
 function CustomCameraController.init()
-   CustomCameraController.setMode("Overhead")
+   CustomCameraController.setMode(getSettingMode())
+
+   SettingsController.SettingChangedTasks:Add(function(settingName, _value)
+      if settingName == "OverShoulderCamera" then
+         CustomCameraController.setMode(getSettingMode())
+      end
+   end)
 
    LobbyController.ClientIsInLobbyChangedTasks:Add(function(isInLobby)
       if isInLobby then
@@ -546,7 +561,7 @@ function CustomCameraController.start()
          return
       end
       initialModeSet = true
-      CustomCameraController.setMode("Overhead")
+      CustomCameraController.setMode(getSettingMode())
    end
 
    if localPlayer.Character then
@@ -568,11 +583,8 @@ function CustomCameraController.start()
          return
       end
       if inputState == Enum.UserInputState.Begin then
-         if CustomCameraController.Mode == "Overhead" then
-            CustomCameraController.setMode("Regular")
-         else
-            CustomCameraController.setMode("Overhead")
-         end
+         -- // Changes the Camera Mode setting (saved); its change handler in init() switches the camera
+         SettingsController.setValue("OverShoulderCamera", CustomCameraController.Mode == "Overhead")
       end
    end, false, Enum.KeyCode.C)
 

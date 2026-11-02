@@ -1,3 +1,15 @@
+--[[
+	SettingConstants
+
+	Description:
+	Every player setting: its type, how it's shown in the Settings menu, and its default per device. Players' changes are
+	saved in the profile (`Settings`: setting id -> value, only for settings they changed); a setting with no saved value
+	uses the default for the device they're on. SettingsService (server) saves changes, SettingsController (client) reads
+	and applies them.
+
+	Setting ids are saved: never rename or reuse one.
+]]
+
 local SettingConstants = {}
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -10,10 +22,13 @@ local DeviceConstants = require(ReplicatedStorage.Shared.Constants.DeviceConstan
 
 local SETTING_TYPES = table.freeze({
 	Toggle = "Toggle",
+	Slider = "Slider",
 })
 
 local SETTING_NAMES = table.freeze({
-	RenderReplicatedCasings = "RenderReplicatedCasings",
+	OverShoulderCamera = "OverShoulderCamera",
+	CameraShake = "CameraShake",
+	SoundEffectsVolume = "SoundEffectsVolume",
 })
 
 local DEVICE_TYPES = DeviceConstants.DeviceTypes
@@ -24,10 +39,17 @@ local DEVICE_TYPES = DeviceConstants.DeviceTypes
 
 export type SettingType = keyof<typeof(SETTING_TYPES)>
 export type SettingName = keyof<typeof(SETTING_NAMES)>
+export type SettingValue = boolean | number
 
-type Setting = { DisplayName: string } & {
-	Type: "Toggle",
-	DefaultValues: { [DeviceConstants.DeviceType]: boolean },
+export type Setting = {
+	DisplayName: string,
+	Type: SettingType,
+	DefaultValues: { [DeviceConstants.DeviceType]: SettingValue },
+	OffText: string?, -- // Toggle: text shown when off / on
+	OnText: string?,
+	Min: number?, -- // Slider: range and step
+	Max: number?,
+	Step: number?,
 }
 
 -------------------------------------------------------------------------------
@@ -35,11 +57,35 @@ type Setting = { DisplayName: string } & {
 -------------------------------------------------------------------------------
 
 local settings: { [SettingName]: Setting } = {
-	[SETTING_NAMES.RenderReplicatedCasings] = {
-		DisplayName = "Render Replicated Casings",
+	[SETTING_NAMES.OverShoulderCamera] = {
+		DisplayName = "Camera Mode",
 		Type = SETTING_TYPES.Toggle,
-		DefaultValues = { [DEVICE_TYPES.Mobile] = false, [DEVICE_TYPES.Console] = true, [DEVICE_TYPES.Desktop] = true },
+		OffText = "Top-Down",
+		OnText = "Over-Shoulder",
+		DefaultValues = { [DEVICE_TYPES.Mobile] = false, [DEVICE_TYPES.Console] = false, [DEVICE_TYPES.Desktop] = false },
 	},
+	[SETTING_NAMES.CameraShake] = {
+		DisplayName = "Camera Shake",
+		Type = SETTING_TYPES.Toggle,
+		OffText = "Off",
+		OnText = "On",
+		DefaultValues = { [DEVICE_TYPES.Mobile] = true, [DEVICE_TYPES.Console] = true, [DEVICE_TYPES.Desktop] = true },
+	},
+	[SETTING_NAMES.SoundEffectsVolume] = {
+		DisplayName = "Sound Effects",
+		Type = SETTING_TYPES.Slider,
+		Min = 0,
+		Max = 100,
+		Step = 1,
+		DefaultValues = { [DEVICE_TYPES.Mobile] = 100, [DEVICE_TYPES.Console] = 100, [DEVICE_TYPES.Desktop] = 100 },
+	},
+}
+
+-- // Order of the rows in the Settings menu
+local SETTING_ORDER: { SettingName } = {
+	SETTING_NAMES.OverShoulderCamera,
+	SETTING_NAMES.CameraShake,
+	SETTING_NAMES.SoundEffectsVolume,
 }
 
 -------------------------------------------------------------------------------
@@ -47,13 +93,41 @@ local settings: { [SettingName]: Setting } = {
 -------------------------------------------------------------------------------
 
 SettingConstants.Settings = settings
+SettingConstants.SettingNames = SETTING_NAMES
+SettingConstants.SettingTypes = SETTING_TYPES
+SettingConstants.SettingOrder = SETTING_ORDER
 
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
-function SettingConstants.getDefaultValue(settingName: SettingName, deviceType: DeviceConstants.DeviceType)
-	return settings[settingName].DefaultValues[deviceType]
+function SettingConstants.getDefaultValue(settingName: SettingName, deviceType: DeviceConstants.DeviceType): SettingValue
+	local setting = settings[settingName]
+	return setting.DefaultValues[deviceType] or setting.DefaultValues[DEVICE_TYPES.Desktop]
+end
+
+-- // The value as it should be saved (a slider is clamped and snapped to its step), or nil if it isn't valid for
+-- // the setting. The server runs every change through this.
+function SettingConstants.sanitize(settingName: any, value: any): SettingValue?
+	local setting = type(settingName) == "string" and settings[settingName]
+	if not setting then
+		return nil
+	end
+	if setting.Type == SETTING_TYPES.Toggle then
+		return if type(value) == "boolean" then value else nil
+	end
+	if setting.Type == SETTING_TYPES.Slider then
+		if type(value) ~= "number" or value ~= value then -- // value ~= value: NaN
+			return nil
+		end
+		local min, max, step = setting.Min or 0, setting.Max or 1, setting.Step
+		local clamped = math.clamp(value, min, max)
+		if step and step > 0 then
+			clamped = math.clamp(min + math.floor((clamped - min) / step + 0.5) * step, min, max)
+		end
+		return clamped
+	end
+	return nil
 end
 
 return SettingConstants

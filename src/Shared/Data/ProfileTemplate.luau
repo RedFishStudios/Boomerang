@@ -58,6 +58,9 @@ export type Template = {
          Slots: { { Id: string, Progress: number, Claimed: boolean } },
       }
    },
+   Settings: {
+      [string]: boolean | number -- Setting id (Shared/Constants/SettingConstants) : the value the player chose. Unset = the device's default. Written only by SettingsService
+   },
    ProcessedReceipts: { string }, -- T-146: PurchaseIds of the latest developer product receipts granted (ProductService), so one is never granted twice
    GiftedPasses: {
       number -- Gamepass id
@@ -98,6 +101,7 @@ function ProfileTemplate.get()
       OwnedEmotes = {},
       EquippedEmote = "DefaultEmote",
       Quests = {},
+      Settings = {},
       ProcessedReceipts = {},
       GiftedPasses = {},
    }

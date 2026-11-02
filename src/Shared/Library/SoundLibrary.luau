@@ -51,6 +51,8 @@ local activeAudios: {
 } = {}
 
 local didInitclient = false
+local SOUND_EFFECTS_GROUP_NAME = "SoundEffects"
+local soundEffectsGroup: SoundGroup? = nil
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -59,6 +61,21 @@ local didInitclient = false
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
+
+-- // Client: the SoundGroup every sound played here belongs to (its Volume is the Sound Effects setting, SettingsController)
+function SoundLibrary.getSoundEffectsGroup(): SoundGroup
+	if soundEffectsGroup and soundEffectsGroup.Parent then
+		return soundEffectsGroup
+	end
+	local group = SoundService:FindFirstChild(SOUND_EFFECTS_GROUP_NAME)
+	if not (group and group:IsA("SoundGroup")) then
+		group = Instance.new("SoundGroup")
+		group.Name = SOUND_EFFECTS_GROUP_NAME
+		group.Parent = SoundService
+	end
+	soundEffectsGroup = group :: SoundGroup
+	return group :: SoundGroup
+end
 
 local function generateAudioId(): string
    return HttpService:GenerateGUID(false)
@@ -150,6 +167,9 @@ local function playLocal(audioChannelId: AudioChannelId?, soundName: string, hos
    soundInstance.RollOffMaxDistance = thisSoundData.RollOffMaxDistance or Sounds.Defaults.RollOffMaxDistance
    soundInstance.SoundId = `rbxassetid://{thisSoundData.Id}`
    soundInstance.Looped = thisSoundData.Looping or Sounds.Defaults.Looping
+   if not isServer then
+      soundInstance.SoundGroup = SoundLibrary.getSoundEffectsGroup()
+   end
    activeAudios[audioChannelId] = {
       Instance = soundInstance,
       CurrentTween = nil,
