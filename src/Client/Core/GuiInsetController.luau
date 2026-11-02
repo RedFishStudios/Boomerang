@@ -6,6 +6,9 @@
 	in pixels). Roblox's own safe-area insets are turned off on every ScreenGui in the PlayerGui (ScreenInsets = None,
 	IgnoreGuiInset = true), and each one gets a UIPadding named PlayerGuiInsets with the player's insets instead.
 	ScreenGuis added later (cloned GUIs, Cmdr...) are handled when they appear.
+
+	A ScreenGui with the attribute KeepRobloxInsets = true (set before it's parented) is left alone: it keeps Roblox's
+	insets and ignores the player's. The Topbar uses this, so its buttons line up with Roblox's own topbar buttons.
 ]]
 
 local GuiInsetController = {}
@@ -20,6 +23,7 @@ local SettingsController = require(ReplicatedStorage.Client.Core.SettingsControl
 -------------------------------------------------------------------------------
 
 local PADDING_NAME = "PlayerGuiInsets"
+local OPT_OUT_ATTRIBUTE = "KeepRobloxInsets"
 local INSET_SETTINGS = {
 	GuiInsetLeft = "PaddingLeft",
 	GuiInsetRight = "PaddingRight",
@@ -56,7 +60,7 @@ local function setUpScreenGui(screenGui: ScreenGui)
 end
 
 local function onChildAdded(child: Instance)
-	if child:IsA("ScreenGui") then
+	if child:IsA("ScreenGui") and child:GetAttribute(OPT_OUT_ATTRIBUTE) ~= true then
 		setUpScreenGui(child)
 	end
 end

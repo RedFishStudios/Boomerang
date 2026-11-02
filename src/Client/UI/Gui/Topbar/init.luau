@@ -253,6 +253,8 @@ local function _init()
 		DisplayOrder = 10,
 		Enabled = true,
 	})
+	-- // Lines up with Roblox's own topbar buttons: not moved by the Screen Insets settings (GuiInsetController)
+	Gui:SetAttribute("KeepRobloxInsets", true)
 	Containers.Left = createContainer("Left")
 	Containers.Right = createContainer("Right")
 
