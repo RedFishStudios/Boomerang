@@ -6,8 +6,9 @@
 	  1. A clicked target: on PC the client reports the enemy (a player's UserId, or a bot's BotId) whose character the
 	     mouse was on when the throw was released. The server only accepts it if it's a living enemy within the throw's
 	     range, and uses its position on the server.
-	  2. Otherwise the cone: the living enemy closest to the aim line within CONE_HALF_ANGLE_DEGREES either side of the
-	     aim, within the throw's range. This is how touch and console throws find a target, and PC's fallback.
+	  2. Otherwise the cone: of the living enemies within CONE_HALF_ANGLE_DEGREES either side of the aim and within the
+	     throw's range, the one closest to the thrower. This is how touch and console throws find a target, and PC's
+	     fallback.
 	  3. Neither: nil (the throw curves through the aimed point, or at full range).
 	Disguised players are never targeted, by a click or by the cone. Bots (e.g. decoys) are targets like players: any
 	bot whose owner isn't the thrower or an ally of theirs.
@@ -110,10 +111,10 @@ function ThrowTargetLibrary.findTarget(thrower: Player, origin: Vector3, aimDire
 		end
 	end
 
-	-- // 2. The cone: the enemy closest to the aim line
+	-- // 2. The cone: of the enemies inside it, the one closest to the thrower
 	local minDot = math.cos(math.rad(ThrowTargetLibrary.CONE_HALF_ANGLE_DEGREES))
 	local bestPosition: Vector3? = nil
-	local bestDot = -math.huge
+	local bestDistance = math.huge
 	local candidates: { BasePart } = {}
 	for _, player in Players:GetPlayers() do
 		local root = getTargetableRoot(thrower, player)
@@ -134,8 +135,8 @@ function ThrowTargetLibrary.findTarget(thrower: Player, origin: Vector3, aimDire
 			continue
 		end
 		local dot = (toTarget / distance):Dot(aimDirection)
-		if dot >= minDot and dot > bestDot then
-			bestDot = dot
+		if dot >= minDot and distance < bestDistance then
+			bestDistance = distance
 			bestPosition = root.Position
 		end
 	end
