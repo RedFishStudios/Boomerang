@@ -14,6 +14,7 @@
 	  - LeftHandedTouch: CustomTouchscreen, UsePickupButtons, TouchControlsSideController (Roblox's movement stick)
 	  - ShowCosmeticEffects: WeaponController (other players' charge up effects)
 	  - ShowEliminationFeed: ElimMessage
+	  - ShowRecallPopup: RecallPromptController
 ]]
 
 local SettingsController = {}

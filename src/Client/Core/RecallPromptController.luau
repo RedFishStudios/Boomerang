@@ -34,6 +34,7 @@ local CreateElement = require(ReplicatedStorage.Shared.Utils.CreateElement)
 local PlatformController = require(ReplicatedStorage.Client.Core.PlatformController)
 local CharacterRenderController = require(ReplicatedStorage.Client.Core.CharacterRenderController)
 local WeaponController = require(ReplicatedStorage.Client.Core.WeaponController)
+local SettingsController = require(ReplicatedStorage.Client.Core.SettingsController)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -256,6 +257,9 @@ end
 local function shouldShow(scheme: string): boolean
 	if scheme ~= "PC" and scheme ~= "Console" then
 		return false
+	end
+	if not SettingsController.getValue("ShowRecallPopup") then
+		return false -- // Recall Pop-Up setting is off
 	end
 	local deadWeaponData = DeadWeapons.Data[localPlayer]
 	if not deadWeaponData then

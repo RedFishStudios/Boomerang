@@ -38,6 +38,7 @@ local SETTING_NAMES = table.freeze({
 	GuiInsetBottom = "GuiInsetBottom",
 	ShowCosmeticEffects = "ShowCosmeticEffects",
 	ShowEliminationFeed = "ShowEliminationFeed",
+	ShowRecallPopup = "ShowRecallPopup",
 })
 
 local DEVICE_TYPES = DeviceConstants.DeviceTypes
@@ -170,6 +171,13 @@ local settings: { [SettingName]: Setting } = {
 		OnText = "Shown",
 		DefaultValues = { [DEVICE_TYPES.Mobile] = true, [DEVICE_TYPES.Console] = true, [DEVICE_TYPES.Desktop] = true },
 	},
+	[SETTING_NAMES.ShowRecallPopup] = {
+		DisplayName = "Recall Pop-Up",
+		Type = SETTING_TYPES.Toggle,
+		OffText = "Hidden",
+		OnText = "Shown",
+		DefaultValues = { [DEVICE_TYPES.Mobile] = true, [DEVICE_TYPES.Console] = true, [DEVICE_TYPES.Desktop] = true },
+	},
 }
 
 -- // The Settings menu's sections and rows, in order
@@ -183,7 +191,7 @@ local SETTING_SECTIONS: { SettingSection } = {
 	},
 	{
 		Title = "Display",
-		Settings = { SETTING_NAMES.ShowCosmeticEffects, SETTING_NAMES.ShowEliminationFeed },
+		Settings = { SETTING_NAMES.ShowCosmeticEffects, SETTING_NAMES.ShowEliminationFeed, SETTING_NAMES.ShowRecallPopup },
 	},
 }
 
