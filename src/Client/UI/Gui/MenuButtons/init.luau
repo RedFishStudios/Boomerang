@@ -335,7 +335,7 @@ function MenuButtonsGui.start()
 	build()
 
 	buttonCallbacks.Shop = buttonCallbacks.Shop or function()
-		toggleGui("WeaponsShop") -- // The Cosmetics Shop has no button yet
+		toggleGui("CosmeticsShop") -- // The Weapons Shop has its own topbar button (below)
 	end
 	buttonCallbacks.Daily = buttonCallbacks.Daily or function()
 		toggleGui("DailyClaims")
@@ -360,7 +360,7 @@ function MenuButtonsGui.start()
 				Id = `Menu{entry.Id}`,
 				Icon = entry.Icon,
 				Side = "Left",
-				Order = order,
+				Order = order * 10,
 				onActivated = function()
 					local callback = buttonCallbacks[entry.Id]
 					if callback then
@@ -370,6 +370,16 @@ function MenuButtonsGui.start()
 			})
 		end
 	end
+	-- // Weapons Shop: topbar only, right after the Shop (Cosmetics) button
+	TopbarGui.addButton({
+		Id = "MenuWeaponsShop",
+		Icon = `rbxassetid://{Icons.StatsThrows}`, -- // A boomerang being thrown (borrowed from the Stats menu)
+		Side = "Left",
+		Order = 15,
+		onActivated = function()
+			toggleGui("WeaponsShop")
+		end,
+	})
 
 	currencyLabel.Text = formatNumber(EconomyController.getBalance())
 	EconomyController.CurrencyChangedTasks:Add(function(value: number)

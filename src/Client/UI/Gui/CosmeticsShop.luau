@@ -4,8 +4,8 @@
 	Description:
 	The Cosmetics Shop. Tabs: Charge Effects (the old Arrows tab, charge up effects), Strike Effects (elimination effects) and Emotes.
 	Elim Effects has no system behind it yet, so its tab opens blank. Built by ShopCommon/ShopBuilder.
-	Nothing opens it yet: the Shop button in MenuButtons opens the Weapons Shop for now (the B key toggles the Weapons
-	Shop in Studio, N toggles this one).
+	Opened by the Shop button (lobby and topbar, MenuButtons); the Weapons Shop has its own topbar button (in Studio
+	the B key also toggles the Weapons Shop, N this one).
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
