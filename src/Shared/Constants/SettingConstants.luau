@@ -50,7 +50,11 @@ export type Setting = {
 	Min: number?, -- // Slider: range and step
 	Max: number?,
 	Step: number?,
+	Suffix: string?, -- // Slider: shown after the number (e.g. "%")
 }
+
+-- // A titled group of rows in the Settings menu
+export type SettingSection = { Title: string, Settings: { SettingName } }
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
@@ -77,16 +81,24 @@ local settings: { [SettingName]: Setting } = {
 		Min = 0,
 		Max = 100,
 		Step = 1,
+		Suffix = "%",
 		DefaultValues = { [DEVICE_TYPES.Mobile] = 100, [DEVICE_TYPES.Console] = 100, [DEVICE_TYPES.Desktop] = 100 },
 	},
 }
 
--- // Order of the rows in the Settings menu
-local SETTING_ORDER: { SettingName } = {
-	SETTING_NAMES.OverShoulderCamera,
-	SETTING_NAMES.CameraShake,
-	SETTING_NAMES.SoundEffectsVolume,
+-- // The Settings menu's sections and rows, in order
+local SETTING_SECTIONS: { SettingSection } = {
+	{ Title = "Camera", Settings = { SETTING_NAMES.OverShoulderCamera, SETTING_NAMES.CameraShake } },
+	{ Title = "Audio", Settings = { SETTING_NAMES.SoundEffectsVolume } },
 }
+
+-- // Every setting, in menu order
+local SETTING_ORDER: { SettingName } = {}
+for _, section in SETTING_SECTIONS do
+	for _, settingName in section.Settings do
+		table.insert(SETTING_ORDER, settingName)
+	end
+end
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -96,6 +108,7 @@ SettingConstants.Settings = settings
 SettingConstants.SettingNames = SETTING_NAMES
 SettingConstants.SettingTypes = SETTING_TYPES
 SettingConstants.SettingOrder = SETTING_ORDER
+SettingConstants.SettingSections = SETTING_SECTIONS
 
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS

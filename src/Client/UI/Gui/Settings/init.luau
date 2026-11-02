@@ -46,8 +46,10 @@ local FONT = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWeig
 local CONTAINER_IMAGE = "rbxassetid://107079429198573" -- // Borrowed from the Stats menu (placeholder)
 local EXIT_IMAGE = "rbxassetid://83841981001141"
 local CONTAINER_ASPECT_RATIO = 1.46190941
-local ROW_HEIGHT_SCALE = 0.2 -- // Of the list's height
-local ROW_GAP_SCALE = 0.03
+local ROW_ASPECT_RATIO = 6.5 -- // Row width / height (rows span the list's width)
+local HEADER_ASPECT_RATIO = 13 -- // Section header width / height
+local LIST_PADDING_PIXELS = 6 -- // Gap between rows in the list
+local SCROLLBAR_THICKNESS = 6
 
 local CONTAINER_TWEEN_INFO_IN = TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 local CONTAINER_TWEEN_INFO_OUT = TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In)
@@ -67,7 +69,9 @@ local player = Players.LocalPlayer
 
 local SettingsScreenGui: ScreenGui
 local Container: GuiObject
-local List: Frame
+local List: ScrollingFrame
+local rows: { GuiObject } = {}
+local headers: { GuiObject } = {}
 local containerGoalPosition: UDim2
 local containerOffscreenPosition: UDim2
 local activeTween: Tween?
@@ -161,8 +165,8 @@ local function createSlider(settingName: SettingConstants.SettingName, setting: 
 	local track = CreateElement("ImageButton", {
 		Name = "Track",
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(0.33, 0.22),
+		Position = UDim2.fromScale(0.47, 0.5),
+		Size = UDim2.fromScale(0.34, 0.22),
 		BackgroundTransparency = 1,
 		Image = `rbxassetid://{Icons.ShopWideButton}`,
 		ImageColor3 = TRACK_COLOR,
@@ -175,8 +179,8 @@ local function createSlider(settingName: SettingConstants.SettingName, setting: 
 	local valueLabel = createLabel({
 		Name = "Value",
 		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.fromScale(0.98, 0.5),
-		Size = UDim2.fromScale(0.11, 0.55),
+		Position = UDim2.fromScale(0.97, 0.5),
+		Size = UDim2.fromScale(0.13, 0.5),
 		TextXAlignment = Enum.TextXAlignment.Right,
 		TextColor3 = Color3.new(1, 1, 1),
 		Text = "",
@@ -192,7 +196,7 @@ local function createSlider(settingName: SettingConstants.SettingName, setting: 
 		local alpha = if max > min then math.clamp((value - min) / (max - min), 0, 1) else 0
 		fill.Size = UDim2.fromScale(alpha, 1)
 		knob.Position = UDim2.fromScale(alpha, 0.5)
-		valueLabel.Text = tostring(math.floor(value + 0.5))
+		valueLabel.Text = `{math.floor(value + 0.5)}{setting.Suffix or ""}`
 	end
 
 	local function valueAt(screenX: number): number
@@ -259,7 +263,7 @@ local function createRow(settingName: SettingConstants.SettingName, order: numbe
 	local row = CreateElement("ImageLabel", {
 		Name = settingName,
 		LayoutOrder = order,
-		Size = UDim2.fromScale(1, ROW_HEIGHT_SCALE),
+		Size = UDim2.new(1, 0, 0, 20), -- // Height is set by resizeList
 		BackgroundTransparency = 1,
 		Image = `rbxassetid://{Icons.ShopListingBase}`, -- // Stretched to the row
 		ImageColor3 = ROW_COLOR,
@@ -277,7 +281,31 @@ local function createRow(settingName: SettingConstants.SettingName, order: numbe
 		control,
 	})
 	row.Parent = List
+	table.insert(rows, row)
 	return row
+end
+
+local function createHeader(title: string, order: number)
+	local header = createLabel({
+		Name = `{title}Header`,
+		LayoutOrder = order,
+		Size = UDim2.new(1, 0, 0, 20), -- // Height is set by resizeList
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Text = title,
+	})
+	header.Parent = List
+	table.insert(headers, header)
+end
+
+-- // Rows have pixel heights (a scrolling list can't size them by scale): kept in proportion to the list's width
+local function resizeList()
+	local width = List.AbsoluteSize.X - SCROLLBAR_THICKNESS * 2
+	for _, header in headers do
+		header.Size = UDim2.new(1, 0, 0, math.floor(width / HEADER_ASPECT_RATIO))
+	end
+	for _, row in rows do
+		row.Size = UDim2.new(1, 0, 0, math.floor(width / ROW_ASPECT_RATIO))
+	end
 end
 
 local function refreshAll()
@@ -288,20 +316,38 @@ end
 
 local function createGui(): ScreenGui
 	-- // The parchment inside the brick border of the (borrowed) frame image, as in the Stats and Quests menus
-	List = CreateElement("Frame", {
+	List = CreateElement("ScrollingFrame", {
 		Name = "List",
-		Position = UDim2.fromScale(0.118, 0.26),
-		Size = UDim2.fromScale(0.765, 0.52),
+		Position = UDim2.fromScale(0.118, 0.24),
+		Size = UDim2.fromScale(0.765, 0.548),
 		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		CanvasSize = UDim2.new(),
+		ScrollBarThickness = SCROLLBAR_THICKNESS,
+		ScrollBarImageColor3 = TEXT_COLOR,
+		ScrollingDirection = Enum.ScrollingDirection.Y,
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
 	}, {
 		CreateElement("UIListLayout", {
-			Padding = UDim.new(ROW_GAP_SCALE, 0),
+			Padding = UDim.new(0, LIST_PADDING_PIXELS),
 			HorizontalAlignment = Enum.HorizontalAlignment.Center,
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
+		CreateElement("UIPadding", {
+			PaddingTop = UDim.new(0, 3),
+			PaddingBottom = UDim.new(0, 3),
+			PaddingLeft = UDim.new(0, 3),
+			PaddingRight = UDim.new(0, SCROLLBAR_THICKNESS * 2),
+		}),
 	})
-	for order, settingName in SettingConstants.SettingOrder do
-		createRow(settingName, order)
+	local order = 0
+	for _, section in SettingConstants.SettingSections do
+		order += 1
+		createHeader(section.Title, order)
+		for _, settingName in section.Settings do
+			order += 1
+			createRow(settingName, order)
+		end
 	end
 
 	local title = createLabel({
@@ -366,6 +412,7 @@ function SettingsGui.open()
 	SettingsGui.Open = true
 	SettingsScreenGui.Enabled = true
 	refreshAll()
+	resizeList()
 	Container.Position = containerOffscreenPosition
 	playContainerTween(CONTAINER_TWEEN_INFO_IN, containerGoalPosition)
 	UIController.supercede("Settings", "GamemodeHud")
@@ -401,6 +448,8 @@ local function _init()
 
 	containerGoalPosition = Container.Position
 	containerOffscreenPosition = containerGoalPosition - UDim2.fromScale(0, 1)
+
+	List:GetPropertyChangedSignal("AbsoluteSize"):Connect(resizeList)
 end
 
 function SettingsGui.start()
