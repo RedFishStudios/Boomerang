@@ -31,6 +31,7 @@ local UIController = require(ReplicatedStorage.Client.UI.UIController)
 local EconomyController = require(ReplicatedStorage.Client.Core.EconomyController)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local Icons = require(ReplicatedStorage.Shared.Constants.Icons)
+local TopbarGui = require(ReplicatedStorage.Client.UI.Gui.Topbar)
 
 local LocalPlayer = Players.LocalPlayer
 
@@ -350,6 +351,24 @@ function MenuButtonsGui.start()
 	end
 	buttonCallbacks.Settings = buttonCallbacks.Settings or function()
 		toggleGui("Settings")
+	end
+
+	-- // The same menus from compact icon buttons in Roblox's topbar, which (unlike this lobby grid) are always there
+	for order, entry in BUTTONS do
+		if entry.Enabled then
+			TopbarGui.addButton({
+				Id = `Menu{entry.Id}`,
+				Icon = entry.Icon,
+				Side = "Left",
+				Order = order,
+				onActivated = function()
+					local callback = buttonCallbacks[entry.Id]
+					if callback then
+						callback()
+					end
+				end,
+			})
+		end
 	end
 
 	currencyLabel.Text = formatNumber(EconomyController.getBalance())

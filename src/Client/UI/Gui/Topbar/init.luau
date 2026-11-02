@@ -4,6 +4,7 @@
 	Buttons in Roblox's topbar, in line with the default topbar buttons (player list, chat...).
 	The ScreenGui uses TopbarSafeInsets, so it only covers the free part of the topbar between Roblox's own buttons:
 	"Left" buttons line up after Roblox's left buttons, "Right" buttons before Roblox's right buttons.
+	A button with no Text (or "") is a compact, round icon-only button.
 
 	Every button uses the same text size; its width grows to fit its text (and optional icon).
 
@@ -41,6 +42,7 @@ local HORIZONTAL_PADDING = 14 -- // Space between the button's edge and its cont
 local CONTENT_GAP = 6 -- // Space between the icon and the text
 local BUTTON_GAP = 12 -- // Space between buttons (and between Roblox's buttons and ours)
 local BUTTON_HEIGHT = 44 -- // Roblox's topbar buttons are 44 px tall (in a 58 px topbar)
+local ICON_ONLY_PADDING = (BUTTON_HEIGHT - ICON_SIZE) / 2 -- // Icon-only buttons come out round (as wide as tall)
 local TOP_OFFSET = 12 -- // Roblox's topbar buttons sit 12 px from the top of the screen
 
 -------------------------------------------------------------------------------
@@ -51,7 +53,7 @@ export type Side = "Left" | "Right"
 
 export type ButtonConfig = {
 	Id: string,
-	Text: string,
+	Text: string?, -- // nil or "": icon-only (compact)
 	Icon: string?,
 	Side: Side,
 	Order: number?,
@@ -163,10 +165,12 @@ function TopbarGui.addButton(config: ButtonConfig): TextButton
 		LayoutOrder = config.Order or 0,
 		Parent = Containers[config.Side] or Containers.Left,
 	})
+	local iconOnly = (config.Text == nil or config.Text == "") and config.Icon ~= nil and config.Icon ~= ""
+	local padding = if iconOnly then ICON_ONLY_PADDING else HORIZONTAL_PADDING
 	create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = button })
 	create("UIPadding", {
-		PaddingLeft = UDim.new(0, HORIZONTAL_PADDING),
-		PaddingRight = UDim.new(0, HORIZONTAL_PADDING),
+		PaddingLeft = UDim.new(0, padding),
+		PaddingRight = UDim.new(0, padding),
 		Parent = button,
 	})
 	create("UIListLayout", {
@@ -182,18 +186,20 @@ function TopbarGui.addButton(config: ButtonConfig): TextButton
 		createIcon(config.Icon, button)
 	end
 
-	create("TextLabel", {
-		Name = "Label",
-		BackgroundTransparency = 1,
-		Text = config.Text,
-		Font = FONT,
-		TextSize = TEXT_SIZE,
-		TextColor3 = TEXT_COLOR,
-		AutomaticSize = Enum.AutomaticSize.X,
-		Size = UDim2.fromScale(0, 1),
-		LayoutOrder = 2,
-		Parent = button,
-	})
+	if not iconOnly then
+		create("TextLabel", {
+			Name = "Label",
+			BackgroundTransparency = 1,
+			Text = config.Text or "",
+			Font = FONT,
+			TextSize = TEXT_SIZE,
+			TextColor3 = TEXT_COLOR,
+			AutomaticSize = Enum.AutomaticSize.X,
+			Size = UDim2.fromScale(0, 1),
+			LayoutOrder = 2,
+			Parent = button,
+		})
+	end
 
 	-- // Hover / press feedback
 	local hovered = false

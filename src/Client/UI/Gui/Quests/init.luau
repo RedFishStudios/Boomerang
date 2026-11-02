@@ -539,11 +539,15 @@ function QuestsGui.start()
 		end)
 	end)
 
-	-- // A lobby menu: it closes when the player goes into the arena (the lobby buttons hide then too)
+	-- // Closes when the player goes into the arena (the lobby buttons hide then). It can still be opened during a round
+	-- // from its topbar button, so it only closes on the way in, not whenever the arena's players change.
+	local wasInArena = false
 	GameStateLibrary.getGameStateData().LivingPlayersInArena:Subscribe(function(livingPlayers)
-		if QuestsGui.Open and table.find(livingPlayers or {}, player) then
+		local isInArena = table.find(livingPlayers or {}, player) ~= nil
+		if isInArena and not wasInArena and QuestsGui.Open then
 			QuestsGui.close()
 		end
+		wasInArena = isInArena
 	end)
 
 	-- // Reset countdowns tick while the menu is open
