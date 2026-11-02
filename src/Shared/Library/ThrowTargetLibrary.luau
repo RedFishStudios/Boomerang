@@ -37,6 +37,8 @@ ThrowTargetLibrary.CONE_HALF_ANGLE_DEGREES = 20
 
 -- // An enemy of the thrower who is alive in the arena: their root part on the server, or nil
 local function getTargetableRoot(thrower: Player, target: Player?): BasePart?
+	-- // Teammates and allies are never targets: areEnemies is false for a player on the thrower's own team, unless that
+	-- // team has friendly fire on (its FriendlyFire attribute, GameTeamService). Bots follow their owner's team below.
 	if not target or target == thrower or not GameTeamLibrary.areEnemies(thrower, target) then
 		return nil
 	end
