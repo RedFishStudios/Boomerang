@@ -277,7 +277,10 @@ local function layoutActionButtons()
 		return
 	end
 	local gap = screenHeight * ACTION_BUTTON_GAP
-	local aimLeft = aimThumbstickContainer.AbsolutePosition.X - Gui.AbsolutePosition.X
+	-- // Positions are measured from where the content starts: the left screen inset (GuiInsetController's UIPadding)
+	local insets = Gui:FindFirstChild("PlayerGuiInsets")
+	local contentLeft = Gui.AbsolutePosition.X + (if insets and insets:IsA("UIPadding") then insets.PaddingLeft.Offset else 0)
+	local aimLeft = aimThumbstickContainer.AbsolutePosition.X - contentLeft
 	local dash, stab = Gui.Dash, Gui.Stab
 	-- // Both are anchored at their right edge (AnchorPoint X = 1)
 	dash.Position = UDim2.new(0, aimLeft - gap, dash.Position.Y.Scale, dash.Position.Y.Offset)

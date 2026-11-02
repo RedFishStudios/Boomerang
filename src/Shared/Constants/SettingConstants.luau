@@ -31,6 +31,10 @@ local SETTING_NAMES = table.freeze({
 	SoundEffectsVolume = "SoundEffectsVolume",
 	MusicVolume = "MusicVolume",
 	AimArrowLength = "AimArrowLength",
+	GuiInsetLeft = "GuiInsetLeft",
+	GuiInsetRight = "GuiInsetRight",
+	GuiInsetTop = "GuiInsetTop",
+	GuiInsetBottom = "GuiInsetBottom",
 })
 
 local DEVICE_TYPES = DeviceConstants.DeviceTypes
@@ -104,6 +108,44 @@ local settings: { [SettingName]: Setting } = {
 		Suffix = "%",
 		DefaultValues = { [DEVICE_TYPES.Mobile] = 100, [DEVICE_TYPES.Console] = 100, [DEVICE_TYPES.Desktop] = 100 },
 	},
+	-- // Screen edge insets (pixels) for every GUI. Roblox's own safe-area insets are turned off (GuiInsetController),
+	-- // so these are the only thing keeping the GUIs away from the screen's edges, notches and the top bar.
+	[SETTING_NAMES.GuiInsetLeft] = {
+		DisplayName = "Left Inset",
+		Type = SETTING_TYPES.Slider,
+		Min = 0,
+		Max = 200,
+		Step = 1,
+		Suffix = "px",
+		DefaultValues = { [DEVICE_TYPES.Mobile] = 0, [DEVICE_TYPES.Console] = 0, [DEVICE_TYPES.Desktop] = 0 },
+	},
+	[SETTING_NAMES.GuiInsetRight] = {
+		DisplayName = "Right Inset",
+		Type = SETTING_TYPES.Slider,
+		Min = 0,
+		Max = 200,
+		Step = 1,
+		Suffix = "px",
+		DefaultValues = { [DEVICE_TYPES.Mobile] = 0, [DEVICE_TYPES.Console] = 0, [DEVICE_TYPES.Desktop] = 0 },
+	},
+	[SETTING_NAMES.GuiInsetTop] = {
+		DisplayName = "Top Inset",
+		Type = SETTING_TYPES.Slider,
+		Min = 0,
+		Max = 200,
+		Step = 1,
+		Suffix = "px",
+		DefaultValues = { [DEVICE_TYPES.Mobile] = 0, [DEVICE_TYPES.Console] = 0, [DEVICE_TYPES.Desktop] = 0 },
+	},
+	[SETTING_NAMES.GuiInsetBottom] = {
+		DisplayName = "Bottom Inset",
+		Type = SETTING_TYPES.Slider,
+		Min = 0,
+		Max = 200,
+		Step = 1,
+		Suffix = "px",
+		DefaultValues = { [DEVICE_TYPES.Mobile] = 0, [DEVICE_TYPES.Console] = 0, [DEVICE_TYPES.Desktop] = 0 },
+	},
 }
 
 -- // The Settings menu's sections and rows, in order
@@ -111,6 +153,10 @@ local SETTING_SECTIONS: { SettingSection } = {
 	{ Title = "Camera", Settings = { SETTING_NAMES.OverShoulderCamera, SETTING_NAMES.CameraShake } },
 	{ Title = "Audio", Settings = { SETTING_NAMES.SoundEffectsVolume, SETTING_NAMES.MusicVolume } },
 	{ Title = "Controls", Settings = { SETTING_NAMES.AimArrowLength } },
+	{
+		Title = "Screen Insets",
+		Settings = { SETTING_NAMES.GuiInsetLeft, SETTING_NAMES.GuiInsetRight, SETTING_NAMES.GuiInsetTop, SETTING_NAMES.GuiInsetBottom },
+	},
 }
 
 -- // Every setting, in menu order

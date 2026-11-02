@@ -10,6 +10,7 @@
 	  - SoundEffectsVolume: the volume of SoundLibrary's sound effects SoundGroup
 	  - MusicVolume: the volume of SoundLibrary's Music SoundGroup
 	  - AimArrowLength: WeaponController (the local player's charge up effect)
+	  - GuiInset*: GuiInsetController
 ]]
 
 local SettingsController = {}
