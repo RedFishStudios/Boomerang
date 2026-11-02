@@ -26,17 +26,20 @@ local SettingsController = require(ReplicatedStorage.Client.Core.SettingsControl
 local SettingConstants = require(ReplicatedStorage.Shared.Constants.SettingConstants)
 local CreateElement = require(ReplicatedStorage.Shared.Utils.CreateElement)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
+local Icons = require(ReplicatedStorage.Shared.Constants.Icons)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
--- // Look (placeholders until the settings art exists; same as the Quests menu)
+-- // Look: borrowed shop art (listing base for rows, wide button for toggles and the slider track; all grayscale,
+-- // tinted with ImageColor3) until the settings art exists
 local TEXT_COLOR = Color3.fromRGB(92, 52, 20)
-local ROW_COLOR = Color3.fromRGB(245, 225, 190)
-local TOGGLE_ON_COLOR = Color3.fromRGB(90, 190, 70)
-local TOGGLE_OFF_COLOR = Color3.fromRGB(190, 160, 120)
-local TRACK_COLOR = Color3.fromRGB(200, 170, 130)
+local OUTLINE_COLOR = Color3.fromRGB(45, 28, 12) -- // Same as the shop's text outline
+local ROW_COLOR = Color3.fromRGB(225, 160, 100) -- // The shop's unselected tab tint
+local TOGGLE_ON_COLOR = Color3.fromRGB(150, 255, 90) -- // The shop's currency button tint
+local TOGGLE_OFF_COLOR = Color3.fromRGB(150, 150, 150) -- // The shop's "owned" button tint
+local TRACK_COLOR = Color3.fromRGB(120, 85, 50)
 local FILL_COLOR = Color3.fromRGB(70, 140, 235)
 local KNOB_COLOR = Color3.new(1, 1, 1)
 local FONT = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
@@ -89,29 +92,43 @@ local function createLabel(properties: { [string]: any }, children: { Instance }
 	return CreateElement("TextLabel", merged, children)
 end
 
+-- // Text outline like the shop's (scales with the text)
+local function createOutline(): UIStroke
+	return CreateElement("UIStroke", {
+		Color = OUTLINE_COLOR,
+		Thickness = 0.08,
+		StrokeSizingMode = Enum.StrokeSizingMode.ScaledSize,
+		LineJoinMode = Enum.LineJoinMode.Round,
+	})
+end
+
 local function createToggle(settingName: SettingConstants.SettingName, setting: SettingConstants.Setting): (GuiObject, RowUpdater)
-	local button = CreateElement("TextButton", {
+	local text = createLabel({
+		Name = "Text",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.45),
+		Size = UDim2.fromScale(0.8, 0.55),
+		TextColor3 = Color3.new(1, 1, 1),
+		Text = "",
+		ZIndex = 3,
+	}, { createOutline() })
+	local button = CreateElement("ImageButton", {
 		Name = "Toggle",
 		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.fromScale(0.97, 0.5),
+		Position = UDim2.fromScale(0.95, 0.5),
 		Size = UDim2.fromScale(0.42, 0.7),
+		BackgroundTransparency = 1,
+		Image = `rbxassetid://{Icons.ShopWideButton}`,
 		AutoButtonColor = true,
-		TextColor3 = Color3.new(1, 1, 1),
-		TextScaled = true,
-		FontFace = FONT,
-		Text = "",
+		ZIndex = 2,
 		MouseButton1Click = function()
 			SettingsController.setValue(settingName, not SettingsController.getValue(settingName))
 		end,
-	}, {
-		CreateElement("UICorner", { CornerRadius = UDim.new(0.3, 0) }),
-		CreateElement("UIStroke", { Color = TEXT_COLOR, Thickness = 2, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }),
-		CreateElement("UIPadding", { PaddingTop = UDim.new(0.15, 0), PaddingBottom = UDim.new(0.15, 0) }),
-	})
+	}, { text })
 	local function update(value: SettingConstants.SettingValue)
 		local isOn = value == true
-		button.Text = if isOn then (setting.OnText or "On") else (setting.OffText or "Off")
-		button.BackgroundColor3 = if isOn then TOGGLE_ON_COLOR else TOGGLE_OFF_COLOR
+		text.Text = if isOn then (setting.OnText or "On") else (setting.OffText or "Off")
+		button.ImageColor3 = if isOn then TOGGLE_ON_COLOR else TOGGLE_OFF_COLOR
 	end
 	return button, update
 end
@@ -127,6 +144,7 @@ local function createSlider(settingName: SettingConstants.SettingName, setting: 
 		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = FILL_COLOR,
 		BorderSizePixel = 0,
+		ZIndex = 2,
 	}, { CreateElement("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
 	local knob = CreateElement("Frame", {
 		Name = "Knob",
@@ -135,21 +153,22 @@ local function createSlider(settingName: SettingConstants.SettingName, setting: 
 		Size = UDim2.fromScale(2.2, 2.2),
 		SizeConstraint = Enum.SizeConstraint.RelativeYY,
 		BackgroundColor3 = KNOB_COLOR,
-		ZIndex = 2,
+		ZIndex = 3,
 	}, {
 		CreateElement("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
 		CreateElement("UIStroke", { Color = TEXT_COLOR, Thickness = 2 }),
 	})
-	local track = CreateElement("TextButton", {
+	local track = CreateElement("ImageButton", {
 		Name = "Track",
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.fromScale(0.33, 0.22),
-		BackgroundColor3 = TRACK_COLOR,
+		BackgroundTransparency = 1,
+		Image = `rbxassetid://{Icons.ShopWideButton}`,
+		ImageColor3 = TRACK_COLOR,
 		AutoButtonColor = false,
-		Text = "",
+		ZIndex = 2,
 	}, {
-		CreateElement("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
 		fill,
 		knob,
 	})
@@ -159,8 +178,10 @@ local function createSlider(settingName: SettingConstants.SettingName, setting: 
 		Position = UDim2.fromScale(0.98, 0.5),
 		Size = UDim2.fromScale(0.11, 0.55),
 		TextXAlignment = Enum.TextXAlignment.Right,
+		TextColor3 = Color3.new(1, 1, 1),
 		Text = "",
-	})
+		ZIndex = 2,
+	}, { createOutline() })
 	local holder = CreateElement("Frame", {
 		Name = "Slider",
 		Size = UDim2.fromScale(1, 1),
@@ -225,7 +246,7 @@ local function createSlider(settingName: SettingConstants.SettingName, setting: 
 	return holder, update
 end
 
-local function createRow(settingName: SettingConstants.SettingName, order: number): Frame
+local function createRow(settingName: SettingConstants.SettingName, order: number): ImageLabel
 	local setting = SettingConstants.Settings[settingName]
 	local control, update
 	if setting.Type == SettingConstants.SettingTypes.Slider then
@@ -235,21 +256,24 @@ local function createRow(settingName: SettingConstants.SettingName, order: numbe
 	end
 	rowUpdaters[settingName] = update
 
-	local row = CreateElement("Frame", {
+	local row = CreateElement("ImageLabel", {
 		Name = settingName,
 		LayoutOrder = order,
 		Size = UDim2.fromScale(1, ROW_HEIGHT_SCALE),
-		BackgroundColor3 = ROW_COLOR,
+		BackgroundTransparency = 1,
+		Image = `rbxassetid://{Icons.ShopListingBase}`, -- // Stretched to the row
+		ImageColor3 = ROW_COLOR,
 	}, {
-		CreateElement("UICorner", { CornerRadius = UDim.new(0.2, 0) }),
 		createLabel({
 			Name = "Title",
 			AnchorPoint = Vector2.new(0, 0.5),
-			Position = UDim2.fromScale(0.04, 0.5),
-			Size = UDim2.fromScale(0.42, 0.55),
+			Position = UDim2.fromScale(0.06, 0.5),
+			Size = UDim2.fromScale(0.4, 0.5),
 			TextXAlignment = Enum.TextXAlignment.Left,
+			TextColor3 = Color3.new(1, 1, 1),
 			Text = setting.DisplayName,
-		}),
+			ZIndex = 2,
+		}, { createOutline() }),
 		control,
 	})
 	row.Parent = List
