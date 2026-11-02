@@ -37,6 +37,7 @@ local SETTING_NAMES = table.freeze({
 	GuiInsetTop = "GuiInsetTop",
 	GuiInsetBottom = "GuiInsetBottom",
 	ShowCosmeticEffects = "ShowCosmeticEffects",
+	ShowEliminationFeed = "ShowEliminationFeed",
 })
 
 local DEVICE_TYPES = DeviceConstants.DeviceTypes
@@ -162,6 +163,13 @@ local settings: { [SettingName]: Setting } = {
 		OnText = "Shown",
 		DefaultValues = { [DEVICE_TYPES.Mobile] = true, [DEVICE_TYPES.Console] = true, [DEVICE_TYPES.Desktop] = true },
 	},
+	[SETTING_NAMES.ShowEliminationFeed] = {
+		DisplayName = "Elimination Feed",
+		Type = SETTING_TYPES.Toggle,
+		OffText = "Hidden",
+		OnText = "Shown",
+		DefaultValues = { [DEVICE_TYPES.Mobile] = true, [DEVICE_TYPES.Console] = true, [DEVICE_TYPES.Desktop] = true },
+	},
 }
 
 -- // The Settings menu's sections and rows, in order
@@ -175,7 +183,7 @@ local SETTING_SECTIONS: { SettingSection } = {
 	},
 	{
 		Title = "Display",
-		Settings = { SETTING_NAMES.ShowCosmeticEffects },
+		Settings = { SETTING_NAMES.ShowCosmeticEffects, SETTING_NAMES.ShowEliminationFeed },
 	},
 }
 

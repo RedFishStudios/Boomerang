@@ -13,6 +13,7 @@
 	  - GuiInset*: GuiInsetController
 	  - LeftHandedTouch: CustomTouchscreen, UsePickupButtons, TouchControlsSideController (Roblox's movement stick)
 	  - ShowCosmeticEffects: WeaponController (other players' charge up effects)
+	  - ShowEliminationFeed: ElimMessage
 ]]
 
 local SettingsController = {}

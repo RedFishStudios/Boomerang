@@ -34,6 +34,7 @@ local ENTER_TWEEN_INFO = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingD
 local DESTROY_TWEEN_INFO = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 
 local SimpleRemotes = require(game.ReplicatedStorage.Shared.Networking.SimpleRemotes)
+local SettingsController = require(game.ReplicatedStorage.Client.Core.SettingsController)
 
 local activeNotifications: { CanvasGroup } = {}
 local currentScale = 1
@@ -316,6 +317,9 @@ function ElimMessageGui.close(_instant: boolean?)
 end
 
 function ElimMessageGui.showElimMessage(userIdA: number, userIdB: number, elimType: string)
+	if not SettingsController.getValue("ShowEliminationFeed") then
+		return -- // Elimination Feed setting is off
+	end
 	showElimMessage(userIdA, userIdB, elimType)
 end
 
