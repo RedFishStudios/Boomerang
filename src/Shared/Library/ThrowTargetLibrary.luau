@@ -99,6 +99,18 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
+-- // The root parts of every bot (e.g. a decoy) the thrower may target: not theirs or an ally's, alive
+function ThrowTargetLibrary.getEnemyBotRoots(thrower: Player): { BasePart }
+	local roots: { BasePart } = {}
+	for _, botModel in getBotModels() do
+		local root = getTargetableBotRoot(thrower, botModel)
+		if root then
+			table.insert(roots, root)
+		end
+	end
+	return roots
+end
+
 -- // The position to curve through, or nil. origin: where the throw starts. aimDirection: horizontal unit aim.
 -- // clickedTarget: what the PC client says was clicked, a player's UserId or a bot's BotId (nil for other controls).
 -- // maxDistance: the throw's range.

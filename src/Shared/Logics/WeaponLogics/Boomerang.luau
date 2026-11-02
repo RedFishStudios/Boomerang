@@ -204,6 +204,16 @@ local function getNearestEnemyDirection(player: Player, position: Vector3): Vect
       end
    end
 
+   -- // Decoys (and other bots) count too, unless they're the thrower's own or an ally's (ThrowTargetLibrary)
+   for _, botRoot in ThrowTargetLibrary.getEnemyBotRoots(player) do
+      local toTarget = Vector3.new(botRoot.Position.X - position.X, 0, botRoot.Position.Z - position.Z)
+      local distance = toTarget.Magnitude
+      if distance > 1e-5 and distance < nearestDistance then
+         nearestDistance = distance
+         nearestDirection = toTarget.Unit
+      end
+   end
+
    return nearestDirection
 end
 
