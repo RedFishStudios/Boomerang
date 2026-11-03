@@ -36,6 +36,15 @@ local CAMERA_FOCUS_SMOOTH_MAX = 42
 local CAMERA_DISTANCE_SMOOTH_BASE = 9
 local CAMERA_DISTANCE_SMOOTH_DISTANCE_FACTOR = 0.04
 local CAMERA_DISTANCE_SMOOTH_MAX = 30
+-- // FAKE ORTHOGRAPHIC (2026-11-02): Roblox has no orthographic camera, so the top-down camera uses a narrow field of view
+-- // from further away, which flattens perspective (walls lean less, everything keeps nearly the same size across the
+-- // arena). The distance is still worked out so everything to show fits, but the camera never goes further than
+-- // OVERHEAD_MAX_DISTANCE_FROM_CHARACTER from the player's character: when the narrow view would need more, the field of
+-- // view opens up (up to OVERHEAD_MAX_FIELD_OF_VIEW) just enough to fit within that distance.
+local OVERHEAD_FIELD_OF_VIEW = 20 -- // Vertical degrees. Lower = flatter, but further away. The old top-down camera used 60
+local OVERHEAD_MAX_FIELD_OF_VIEW = 60 -- // The widest it may open to keep everything framed within the distance limit
+local OVERHEAD_MAX_DISTANCE_FROM_CHARACTER = 299 -- // Studs (300 with a margin)
+local REFERENCE_FIELD_OF_VIEW = 60 -- // CAMERA_DISTANCE_PADDING / CAMERA_MIN_DISTANCE were tuned at this FOV; they scale with it
 local PARRY_SHAKE_DURATION = 0.28
 local PARRY_SHAKE_POSITION = 0.9
 local PARRY_SHAKE_ROTATION_DEGREES = 7
@@ -58,6 +67,7 @@ local overheadCameraConnection: RBXScriptConnection? = nil
 local cameraShakeConnection: RBXScriptConnection? = nil
 local smoothedFocusPosition: Vector3? = nil
 local smoothedCameraDistance: number? = nil
+local smoothedFieldOfView: number? = nil -- // FAKE ORTHOGRAPHIC (2026-11-02)
 local parryShakeStart: number? = nil
 local parryShakeEnd: number? = nil
 
@@ -245,6 +255,61 @@ local function getFocusOffsetForPadding(cameraBasis: CFrame, distance: number, a
    return cameraBasis.RightVector * rightShift + cameraBasis.UpVector * upShift
 end
 
+-- // FAKE ORTHOGRAPHIC (2026-11-02): the furthest the camera may sit from `focusPosition` along `focusToCameraDirection` while
+-- // staying within OVERHEAD_MAX_DISTANCE_FROM_CHARACTER of the local character (|F + u*t - C| <= R, solved for the largest t)
+local function getMaxCameraDistance(focusPosition: Vector3, focusToCameraDirection: Vector3): number
+   local character = localPlayer.Character
+   local root = character and character.PrimaryPart
+   if not root then
+      return OVERHEAD_MAX_DISTANCE_FROM_CHARACTER
+   end
+   local fromCharacter = focusPosition - root.Position
+   local b = focusToCameraDirection:Dot(fromCharacter)
+   local c = fromCharacter:Dot(fromCharacter) - OVERHEAD_MAX_DISTANCE_FROM_CHARACTER * OVERHEAD_MAX_DISTANCE_FROM_CHARACTER
+   local discriminant = b * b - c
+   if discriminant < 0 then
+      return 1 -- // The focus itself is out of reach of the character: stay as close as possible
+   end
+   return math.max(-b + math.sqrt(discriminant), 1)
+end
+
+-- // FAKE ORTHOGRAPHIC (2026-11-02): the camera distance, vertical field of view (degrees) and padded focus that show every
+-- // subject: the narrow OVERHEAD_FIELD_OF_VIEW when it fits within the distance limit, else the narrowest wider one that does
+local function getOverheadFraming(focusPosition: Vector3, boxSize: Vector3, focusToCameraDirection: Vector3, viewportSize: Vector2): (number, number, Vector3)
+   local aspectRatio = viewportSize.X / viewportSize.Y
+   local usableHalfWidthNdc, usableHalfHeightNdc, centerNdcX, centerNdcY = getPaddingFraming(viewportSize)
+   local baseCFrame = CFrame.lookAt(focusPosition + focusToCameraDirection, focusPosition)
+   local referenceTan = math.tan(math.rad(REFERENCE_FIELD_OF_VIEW) / 2)
+
+   local function distanceAt(fieldOfView: number): number
+      local fovRadians = math.rad(fieldOfView)
+      local scale = referenceTan / math.tan(fovRadians / 2)
+      local required = getRequiredDistanceForSize(boxSize, baseCFrame, aspectRatio, fovRadians, usableHalfWidthNdc, usableHalfHeightNdc)
+      return math.max(CAMERA_MIN_DISTANCE * scale, required + CAMERA_DISTANCE_PADDING * scale)
+   end
+
+   local maxDistance = getMaxCameraDistance(focusPosition, focusToCameraDirection)
+   local fieldOfView = OVERHEAD_FIELD_OF_VIEW
+   local distance = distanceAt(fieldOfView)
+   if distance > maxDistance then
+      -- // Too far: find the narrowest field of view that fits within the limit (binary search)
+      local low, high = OVERHEAD_FIELD_OF_VIEW, OVERHEAD_MAX_FIELD_OF_VIEW
+      for _ = 1, 12 do
+         local middle = (low + high) / 2
+         if distanceAt(middle) > maxDistance then
+            low = middle
+         else
+            high = middle
+         end
+      end
+      fieldOfView = high
+      distance = math.min(distanceAt(fieldOfView), maxDistance)
+   end
+
+   local focusOffset = getFocusOffsetForPadding(baseCFrame, distance, aspectRatio, math.rad(fieldOfView), centerNdcX, centerNdcY)
+   return distance, fieldOfView, focusPosition + focusOffset
+end
+
 -- // Smoothing functions for smooth camera motion
 local function expSmoothingAlpha(rate: number, deltaTime: number): number
    return 1 - math.exp(-rate * deltaTime)
@@ -292,10 +357,13 @@ local function applyParryShake(baseCFrame: CFrame, now: number): CFrame
       math.noise(0, 0, shakeSeed)
    ) * (PARRY_SHAKE_POSITION * alpha)
 
+   -- // FAKE ORTHOGRAPHIC (2026-11-02): a turn of the camera looks bigger in a narrower view, so it scales with the field of view
+   local camera = workspace.CurrentCamera
+   local rotationDegrees = PARRY_SHAKE_ROTATION_DEGREES * (if camera then camera.FieldOfView / REFERENCE_FIELD_OF_VIEW else 1)
    local rotation = CFrame.fromOrientation(
-      math.rad(math.noise(shakeSeed + 11, 0, 0) * PARRY_SHAKE_ROTATION_DEGREES * alpha),
-      math.rad(math.noise(0, shakeSeed + 17, 0) * PARRY_SHAKE_ROTATION_DEGREES * alpha),
-      math.rad(math.noise(0, 0, shakeSeed + 23) * PARRY_SHAKE_ROTATION_DEGREES * alpha)
+      math.rad(math.noise(shakeSeed + 11, 0, 0) * rotationDegrees * alpha),
+      math.rad(math.noise(0, shakeSeed + 17, 0) * rotationDegrees * alpha),
+      math.rad(math.noise(0, 0, shakeSeed + 23) * rotationDegrees * alpha)
    )
 
    return baseCFrame * CFrame.new(offset) * rotation
@@ -305,6 +373,10 @@ end
 local function placeCameraInstantly()
    if not currentCamera then
       return
+   end
+   local viewportSize = currentCamera.ViewportSize
+   if viewportSize.X < 2 or viewportSize.Y < 2 then
+      return -- // No usable view yet (e.g. a minimized window)
    end
 
    local focusPosition, boxSize = getAllSubjectsBoundingBox()
@@ -318,26 +390,12 @@ local function placeCameraInstantly()
    local horizontalDirection = Vector3.new(math.sin(yawRadians), 0, math.cos(yawRadians))
    local focusToCameraDirection = (Vector3.yAxis * math.cos(tiltRadians) + horizontalDirection * math.sin(tiltRadians)).Unit
 
-   local viewportSize = currentCamera.ViewportSize
-   local aspectRatio = viewportSize.X / viewportSize.Y
-   local verticalFovRadians = math.rad(currentCamera.FieldOfView)
-   local usableHalfWidthNdc, usableHalfHeightNdc, centerNdcX, centerNdcY = getPaddingFraming(viewportSize)
-
-   local baseCFrame = CFrame.lookAt(focusPosition + focusToCameraDirection, focusPosition)
-   local requiredDistance = getRequiredDistanceForSize(
-      boxSize,
-      baseCFrame,
-      aspectRatio,
-      verticalFovRadians,
-      usableHalfWidthNdc,
-      usableHalfHeightNdc
-   )
-   local targetDistance = math.max(CAMERA_MIN_DISTANCE, requiredDistance + CAMERA_DISTANCE_PADDING)
-   local focusOffset = getFocusOffsetForPadding(baseCFrame, targetDistance, aspectRatio, verticalFovRadians, centerNdcX, centerNdcY)
-   local paddedFocusPosition = focusPosition + focusOffset
+   local targetDistance, fieldOfView, paddedFocusPosition = getOverheadFraming(focusPosition, boxSize, focusToCameraDirection, viewportSize)
 
    smoothedFocusPosition = paddedFocusPosition
    smoothedCameraDistance = targetDistance
+   smoothedFieldOfView = fieldOfView
+   currentCamera.FieldOfView = fieldOfView
 
    local cameraPosition = paddedFocusPosition + focusToCameraDirection * targetDistance
    currentCamera.CFrame = CFrame.lookAt(cameraPosition, paddedFocusPosition, Vector3.yAxis)
@@ -350,6 +408,11 @@ local function updateCamera(deltaTime: number)
       return
    end
 
+   local viewportSize = currentCamera.ViewportSize
+   if viewportSize.X < 2 or viewportSize.Y < 2 then
+      return -- // No usable view (e.g. a minimized window): keep the last placement
+   end
+
    local focusPosition, boxSize = getAllSubjectsBoundingBox()
    if not focusPosition or not boxSize then
       return
@@ -361,21 +424,22 @@ local function updateCamera(deltaTime: number)
    local horizontalDirection = Vector3.new(math.sin(yawRadians), 0, math.cos(yawRadians))
    local focusToCameraDirection = (Vector3.yAxis * math.cos(tiltRadians) + horizontalDirection * math.sin(tiltRadians)).Unit
 
-   local viewportSize = currentCamera.ViewportSize
-   local aspectRatio = viewportSize.X / viewportSize.Y
-   local verticalFovRadians = math.rad(currentCamera.FieldOfView)
-   local usableHalfWidthNdc, usableHalfHeightNdc, centerNdcX, centerNdcY = getPaddingFraming(viewportSize)
+   local targetDistance, targetFieldOfView, paddedFocusPosition = getOverheadFraming(focusPosition, boxSize, focusToCameraDirection, viewportSize)
 
-   local baseCFrame = CFrame.lookAt(focusPosition + focusToCameraDirection, focusPosition)
-   local requiredDistance = getRequiredDistanceForSize(boxSize, baseCFrame, aspectRatio, verticalFovRadians, usableHalfWidthNdc, usableHalfHeightNdc)
-   local targetDistance = math.max(CAMERA_MIN_DISTANCE, requiredDistance + CAMERA_DISTANCE_PADDING)
-   local focusOffset = getFocusOffsetForPadding(baseCFrame, targetDistance, aspectRatio, verticalFovRadians, centerNdcX, centerNdcY)
-   local paddedFocusPosition = focusPosition + focusOffset
-
-   if not smoothedFocusPosition or not smoothedCameraDistance then
+   if not smoothedFocusPosition or not smoothedCameraDistance or not smoothedFieldOfView then
       smoothedFocusPosition = paddedFocusPosition
       smoothedCameraDistance = targetDistance
+      smoothedFieldOfView = targetFieldOfView
    else
+      -- // FAKE ORTHOGRAPHIC (2026-11-02): the field of view eases like the distance does
+      smoothedFieldOfView = stepSmoothNumber(
+         smoothedFieldOfView,
+         targetFieldOfView,
+         CAMERA_DISTANCE_SMOOTH_BASE,
+         CAMERA_DISTANCE_SMOOTH_DISTANCE_FACTOR,
+         CAMERA_DISTANCE_SMOOTH_MAX,
+         deltaTime
+      )
       smoothedFocusPosition = stepSmoothVector3(
          smoothedFocusPosition,
          paddedFocusPosition,
@@ -394,7 +458,10 @@ local function updateCamera(deltaTime: number)
       )
    end
 
-   local cameraPosition = smoothedFocusPosition + focusToCameraDirection * smoothedCameraDistance
+   -- // FAKE ORTHOGRAPHIC (2026-11-02): never further than the limit from the character, even mid-smoothing
+   local cameraDistance = math.min(smoothedCameraDistance, getMaxCameraDistance(smoothedFocusPosition, focusToCameraDirection))
+   currentCamera.FieldOfView = smoothedFieldOfView
+   local cameraPosition = smoothedFocusPosition + focusToCameraDirection * cameraDistance
    local now = os.clock()
 
 	-- Keep orientation stable by deriving camera position from fixed yaw/tilt and smoothed focus+distance.
@@ -437,9 +504,10 @@ local function startOverheadMode()
 
    currentCamera = workspace.CurrentCamera
    currentCamera.CameraType = Enum.CameraType.Scriptable
-   currentCamera.FieldOfView = 60
+   currentCamera.FieldOfView = OVERHEAD_FIELD_OF_VIEW
    smoothedFocusPosition = nil
    smoothedCameraDistance = nil
+   smoothedFieldOfView = nil
    placeCameraInstantly()
    overheadCameraConnection = RunService.RenderStepped:Connect(updateCamera)
 end
@@ -466,8 +534,10 @@ local function stopOverheadMode()
    end
 
    currentCamera.CameraType = Enum.CameraType.Custom
+   currentCamera.FieldOfView = REFERENCE_FIELD_OF_VIEW -- // FAKE ORTHOGRAPHIC (2026-11-02): the over-the-shoulder camera keeps the old 60
    smoothedFocusPosition = nil
    smoothedCameraDistance = nil
+   smoothedFieldOfView = nil
    currentCamera = nil
 end
 
