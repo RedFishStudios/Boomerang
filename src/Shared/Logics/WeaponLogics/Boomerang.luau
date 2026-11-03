@@ -502,6 +502,17 @@ local function getVisualYOffset(thrownWeaponData: ThrownWeapons.Data): number
    if not startOffset or not startedAt then
       return 0
    end
+   -- // GROUND APPROACH (2026-11-02): a manual recall's drawn height rises with the distance flown, slow-fast-slow (smoothstep)
+   if thrownWeaponData.VisualYOffsetByDistance then
+      local riseAlpha = math.clamp((thrownWeaponData.RecallTravelled or 0) / math.max(GlobalConfig.ManualRecallRiseDistance, 0.01), 0, 1)
+      if riseAlpha >= 1 then
+         thrownWeaponData.VisualYOffset = nil
+         thrownWeaponData.VisualYOffsetStartedAt = nil
+         thrownWeaponData.VisualYOffsetByDistance = nil
+         return 0
+      end
+      return startOffset * (1 - riseAlpha * riseAlpha * (3 - 2 * riseAlpha))
+   end
    local alpha = (os.clock() - startedAt) / math.max(GlobalConfig.BoomerangVisualHeightSyncSeconds, 0.01)
    if alpha >= 1 then
       thrownWeaponData.VisualYOffset = nil
@@ -1626,6 +1637,8 @@ function Boomerang.recallFromDead(player: Player, deadWeaponData: DeadWeapons.Da
       -- // Client: drawn where the model is now, easing to the physics height (getVisualYOffset), like a throw leaving the hand
       VisualYOffset = if isServer then nil else pivot.Position.Y - GlobalConfig.BoomerangFlightHeight,
       VisualYOffsetStartedAt = if isServer then nil else os.clock(),
+      -- // GROUND APPROACH (2026-11-02): a manual recall starts on the ground and rises with the distance flown
+      VisualYOffsetByDistance = if not isServer and isManualRecall and GlobalConfig.ManualRecallGroundApproach then true else nil,
    } :: any
 
    DeadWeapons.Data[player] = nil
@@ -1890,6 +1903,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
    local maximumSpeed, momentumMultiplier = 0, 1
    local rampSeconds, rampPower = MANUAL_RECALL_FULL_SPEED_SECONDS, GlobalConfig.ManualRecallRampPower
    local rampElapsed = 0 -- // Seconds since this recall started (drives the manual recall's speed-up curve)
+   local recallTravelled = 0 -- // GROUND APPROACH (2026-11-02): studs flown since this recall started (drives its speed-up and rise)
    local riseStartY: number? = nil -- // Manual recall: the height it started rising from
    -- // Tools/GlobalConfig values unless changed with Cmdr; re-read every frame so live changes apply mid-recall
    local function updateRecallTuning()
@@ -1946,6 +1960,8 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
 
       updateRecallTuning()
       rampElapsed += deltaTime
+      recallTravelled += speed * deltaTime -- // GROUND APPROACH (2026-11-02)
+      thrownWeaponData.RecallTravelled = recallTravelled
 
       -- // Prioritize movement towards the player
       local hostPivot = getWeaponCFrame(thrownWeaponData)
@@ -2019,7 +2035,16 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       -- // Far away this changes nothing (the normal rate is already higher); it only tightens the turn up close.
       local forwardSpeed = travelVelocity:Dot(targetDirection)
       local sidewaysVelocity = travelVelocity - targetDirection * forwardSpeed
-      if isManualRecallFromDead then
+      if isManualRecallFromDead and GlobalConfig.ManualRecallGroundApproach then
+         -- // GROUND APPROACH (2026-11-02): a steady speed-up over distance, from ManualRecallRampStartFraction of max speed to
+         -- // full speed after ManualRecallFullSpeedDistance studs (v^2 = v0^2 + 2*a*d, with a chosen so v = max at that distance)
+         local startSpeed = maximumSpeed * GlobalConfig.ManualRecallRampStartFraction
+         local fullSpeedDistance = math.max(GlobalConfig.ManualRecallFullSpeedDistance, 0.01)
+         local acceleration = (maximumSpeed * maximumSpeed - startSpeed * startSpeed) / (2 * fullSpeedDistance)
+         forwardSpeed = math.min(maximumSpeed, math.sqrt(startSpeed * startSpeed + 2 * acceleration * recallTravelled))
+         local speedAlpha = if maximumSpeed > 1e-3 then forwardSpeed / maximumSpeed else 1
+         thrownWeaponData.RecallSpinScale = speedAlpha * speedAlpha -- // The spin builds up with the speed
+      elseif isManualRecallFromDead then
          -- // Manual recall: visibly slow at first, then a steep surge up to full speed (convex curve over time, not a lag toward max)
          local rampAlpha = math.clamp(rampElapsed / rampSeconds, 0, 1)
          local startFraction = GlobalConfig.ManualRecallRampStartFraction

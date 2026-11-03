@@ -56,6 +56,8 @@ export type Data = {
    RecallSpinScale: number?, -- // 0..1: how much of the full spin rate a manually recalled boomerang has built up (nil = full)
    VisualYOffset: number?, -- // Client drawing only: how far the freshly thrown boomerang is still drawn above/below its physics height (eases to 0)
    VisualYOffsetStartedAt: number?, -- // os.clock() of the throw
+   VisualYOffsetByDistance: boolean?, -- // GROUND APPROACH (2026-11-02): the offset eases by RecallTravelled, not by time
+   RecallTravelled: number?, -- // GROUND APPROACH (2026-11-02): studs a manual recall has flown so far
    PortalExitAt: number?, -- // os.clock() of the last portal exit (Environment/Portal)
    PortalExitPart: BasePart?, -- // The portal it last came out of
    TrailObject: {
