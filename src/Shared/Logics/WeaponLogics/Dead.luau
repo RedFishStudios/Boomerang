@@ -843,6 +843,10 @@ function DeadWeaponLogic.beginRecallCharge(player: Player, deadWeaponData: DeadW
 	local startY = getChargeHeight(deadWeaponData, now) or pivot.Position.Y
 	local restY = deadWeaponData.RecallRestY or pivot.Position.Y
 	local targetY = GlobalConfig.BoomerangFlightHeight -- // The exact height a thrown boomerang flies at, independent of the player (walls are only hit within a thin band around it)
+	-- // GROUND APPROACH (2026-11-02): the charge leaves it on the ground; it rises during the flight instead (Boomerang.recall)
+	if GlobalConfig.ManualRecallGroundApproach then
+		targetY = startY
+	end
 
 	DeadWeaponLogic.applyRecallChargeEvent(player, "Start", now, startY, targetY, restY)
 	SimpleRemotes.getEvent(RECALL_CHARGE_EVENT):FireAllClients(player.UserId, "Start", now, startY, targetY, restY)

@@ -68,6 +68,15 @@ local GlobalConfig = {
    CrateClicksToOpen = 20, -- // Clicks / taps it takes to open a bought weapon crate (CrateService). TODO:RELEASE placeholder
    RecallCharge = 0.3, -- // Seconds a tapped manual recall charges (boomerang stays on the ground, player slowed, no dash, can't be interrupted) before it starts returning
    ManualRecallRiseSeconds = 0.8, -- // (only if Boomerang.luau's MANUAL_RECALL_RISES_DURING_FLIGHT is on; the charge lifts it now): a manual recall rises from the ground to BoomerangFlightHeight over this long (eased start and finish)
+   -- // ===================== GROUND APPROACH (2026-11-02) =====================
+   -- // true: the recall charge keeps the boomerang on the ground; it then flies to the player at once, its drawn height
+   -- // rising slowly (physics always at BoomerangFlightHeight) while it speeds up at a steady rate.
+   -- // false: the previous "rise, then zoom" (the charge lifts it, then it surges to full speed almost at once).
+   -- // The old scripts are in backups/manual-recall-rise-then-zoom/.
+   ManualRecallGroundApproach = true,
+   ManualRecallFullSpeedDistance = 60, -- // Studs flown before it reaches full recall speed (steady acceleration from ManualRecallRampStartFraction)
+   ManualRecallRiseDistance = 60, -- // Studs flown while the drawn boomerang rises from the ground to flight height (visual only)
+   -- // =================== END GROUND APPROACH (2026-11-02) ===================
    ManualRecallLiftRate = 2.5, -- // UNUSED for manual recalls -- // How quickly a manually recalled boomerang rises to flight height while returning (the automatic from-ground lift is 8)
    ManualRecallMaxTiltDegrees = 35, -- // Visual tilt toward the player while it's being lifted
    RecallChargeCancelDropSeconds = 0.25, -- // UNUSED (a released charge now falls and slides with the dying motion, see Dead.luau RELEASE_MOMENTUM) -- // Releasing the recall before it is charged drops the boomerang back to the ground over this long
