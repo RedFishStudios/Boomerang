@@ -272,6 +272,15 @@ end
 Boomerang.retireTrail = retireTrail
 
 -- // Add trail
+local getVisualYOffset: (thrownWeaponData: ThrownWeapons.Data) -> number -- // Defined below (the drawn height offset)
+
+-- // Where the boomerang is DRAWN: its physics position plus the visual height offset (getVisualYOffset). The trail follows
+-- // this, so it stays on the visible boomerang while that eases to the physics height (after a throw, or a recall that
+-- // rises from the ground).
+local function getDrawnPosition(thrownWeaponData: ThrownWeapons.Data): Vector3
+   return thrownWeaponData.CFrame.Position + Vector3.new(0, getVisualYOffset(thrownWeaponData), 0)
+end
+
 local function addTrail(thrownWeaponData: ThrownWeapons.Data)
    if isServer then
       return
@@ -288,7 +297,7 @@ local function addTrail(thrownWeaponData: ThrownWeapons.Data)
    end
 
    if thrownWeaponData.TrailObject then
-      thrownWeaponData.TrailObject.TrailHost:PivotTo(CFrame.new(thrownWeaponData.CFrame.Position))
+      thrownWeaponData.TrailObject.TrailHost:PivotTo(CFrame.new(getDrawnPosition(thrownWeaponData)))
       updateTrailOrientation(thrownWeaponData)
       return
    end
@@ -301,7 +310,7 @@ local function addTrail(thrownWeaponData: ThrownWeapons.Data)
    trailHost.CanCollide = false
    trailHost.CanTouch = false
    trailHost.CanQuery = false
-   trailHost:PivotTo(CFrame.new(thrownWeaponData.CFrame.Position))
+   trailHost:PivotTo(CFrame.new(getDrawnPosition(thrownWeaponData)))
 
    local attachment0 = Instance.new("Attachment")
    attachment0.Parent = trailHost
@@ -496,7 +505,7 @@ end
 
 -- // Client drawing only: how far above (+) / below (-) the physics height a freshly thrown boomerang is still DRAWN. It starts at the
 -- // thrower's height and eases to 0 within GlobalConfig.BoomerangVisualHeightSyncSeconds; the simulation never sees it.
-local function getVisualYOffset(thrownWeaponData: ThrownWeapons.Data): number
+getVisualYOffset = function(thrownWeaponData: ThrownWeapons.Data): number
    local startOffset = thrownWeaponData.VisualYOffset
    local startedAt = thrownWeaponData.VisualYOffsetStartedAt
    if not startOffset or not startedAt then
