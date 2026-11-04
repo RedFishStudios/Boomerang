@@ -77,8 +77,8 @@ local GlobalConfig = {
    -- // Studs flown before it reaches full recall speed. Its speed grows in a straight line with the distance flown (so it
    -- // grows exponentially over time): it creeps at first, then surges into the catch, like the reference animation.
    ManualRecallFullSpeedDistance = 60, -- // Cmdr: tune RecallFullSpeedDistance
-   ManualRecallApproachStartFraction = 0.07, -- // Fraction of full recall speed it starts at (about 1/15, as in the reference). Cmdr: tune RecallStartSpeed
-   ManualRecallApproachCurve = 1, -- // Shape of the build-up: speed = start + (full - start) * (distance / full-speed distance) ^ this. 1 = straight line; below 1 picks up pace sooner. Cmdr: tune RecallSpeedCurve
+   ManualRecallApproachStartFraction = 0.2, -- // Fraction of full recall speed it starts at. Cmdr: tune RecallStartSpeed
+   ManualRecallApproachCurve = 0.7, -- // Shape of the build-up: speed = start + (full - start) * (distance / full-speed distance) ^ this. 1 = straight line; below 1 picks up pace sooner. Cmdr: tune RecallSpeedCurve
    ManualRecallRiseDistance = 60, -- // Studs flown while the drawn boomerang rises from the ground to flight height (visual only)
    -- // =================== END GROUND APPROACH (2026-11-02) ===================
    ManualRecallLiftRate = 2.5, -- // UNUSED for manual recalls -- // How quickly a manually recalled boomerang rises to flight height while returning (the automatic from-ground lift is 8)
