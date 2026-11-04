@@ -354,8 +354,8 @@ function MenuButtonsGui.start()
 	end
 
 	-- // The same menus from compact icon buttons in Roblox's topbar, which (unlike this lobby grid) are always there.
-	-- // Shops, Daily and Inventory sit on the left; Stats, Quests and Settings on the right (before the currency).
-	local RIGHT_SIDE_BUTTONS = { Stats = true, Quests = true, Settings = true }
+	-- // The two shops sit on the left; Daily, Inventory, Stats, Quests and Settings on the right (before the currency).
+	local RIGHT_SIDE_BUTTONS = { Daily = true, Skins = true, Stats = true, Quests = true, Settings = true }
 	for order, entry in BUTTONS do
 		if entry.Enabled then
 			TopbarGui.addButton({
