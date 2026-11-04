@@ -2,7 +2,7 @@
 	TopDownCameraLibrary
 
 	Description:
-	Live overrides of the top-down camera, set from Cmdr (settopdowntilt / settopdownfov / settopdowndistance) for testing.
+	Live overrides of the top-down camera, set from Cmdr (topdowncam tilt | fov | distance) for testing.
 	Stored as attributes on ReplicatedStorage, so the server sets them and every client's camera (CustomCameraController)
 	reads them each frame. This server only, not saved. nil = the default in CustomCameraController.
 	  - Tilt: degrees the camera leans back from straight down (0 = straight down)
