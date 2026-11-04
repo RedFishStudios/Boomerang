@@ -148,7 +148,9 @@ local function _init()
 
 		if inputType == Enum.UserInputType.MouseMovement or inputType == Enum.UserInputType.Touch then
 			local position = input.Position
-			if not gameProcessedEvent then
+			-- // The mouse always counts, even over a GUI: the character keeps facing the cursor (aiming) whatever it hovers.
+			-- // A touch on a GUI (a button) doesn't, or tapping an on-screen button would turn the character toward it.
+			if inputType == Enum.UserInputType.MouseMovement or not gameProcessedEvent then
 				lastValidMousePositionInWorld = position + Vector3.new(0, 60, 0) -- offset to account for topbar
 			end
 		end
