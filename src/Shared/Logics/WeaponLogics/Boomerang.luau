@@ -2045,12 +2045,12 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       local forwardSpeed = travelVelocity:Dot(targetDirection)
       local sidewaysVelocity = travelVelocity - targetDirection * forwardSpeed
       if isManualRecallFromDead and GlobalConfig.ManualRecallGroundApproach then
-         -- // GROUND APPROACH (2026-11-02): a steady speed-up over distance, from ManualRecallRampStartFraction of max speed to
-         -- // full speed after ManualRecallFullSpeedDistance studs (v^2 = v0^2 + 2*a*d, with a chosen so v = max at that distance)
-         local startSpeed = maximumSpeed * GlobalConfig.ManualRecallRampStartFraction
+         -- // GROUND APPROACH (2026-11-02, reshaped 2026-11-04): the speed grows in a straight line with the distance flown, from
+         -- // ManualRecallApproachStartFraction of max speed to full speed after ManualRecallFullSpeedDistance studs. Over time that is
+         -- // exponential: a slow creep, then a big late surge (a constant acceleration instead put most of the speed-up at the start)
+         local startSpeed = maximumSpeed * GlobalConfig.ManualRecallApproachStartFraction
          local fullSpeedDistance = math.max(GlobalConfig.ManualRecallFullSpeedDistance, 0.01)
-         local acceleration = (maximumSpeed * maximumSpeed - startSpeed * startSpeed) / (2 * fullSpeedDistance)
-         forwardSpeed = math.min(maximumSpeed, math.sqrt(startSpeed * startSpeed + 2 * acceleration * recallTravelled))
+         forwardSpeed = startSpeed + (maximumSpeed - startSpeed) * math.clamp(recallTravelled / fullSpeedDistance, 0, 1)
          local speedAlpha = if maximumSpeed > 1e-3 then forwardSpeed / maximumSpeed else 1
          thrownWeaponData.RecallSpinScale = speedAlpha * speedAlpha -- // The spin builds up with the speed
       elseif isManualRecallFromDead then

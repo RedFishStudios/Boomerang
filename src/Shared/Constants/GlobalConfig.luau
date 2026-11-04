@@ -74,7 +74,10 @@ local GlobalConfig = {
    -- // false: the previous "rise, then zoom" (the charge lifts it, then it surges to full speed almost at once).
    -- // The old scripts are in backups/manual-recall-rise-then-zoom/.
    ManualRecallGroundApproach = true,
-   ManualRecallFullSpeedDistance = 60, -- // Studs flown before it reaches full recall speed (steady acceleration from ManualRecallRampStartFraction)
+   -- // Studs flown before it reaches full recall speed. Its speed grows in a straight line with the distance flown (so it
+   -- // grows exponentially over time): it creeps at first, then surges into the catch, like the reference animation.
+   ManualRecallFullSpeedDistance = 60,
+   ManualRecallApproachStartFraction = 0.07, -- // Fraction of full recall speed it starts at (about 1/15, as in the reference)
    ManualRecallRiseDistance = 60, -- // Studs flown while the drawn boomerang rises from the ground to flight height (visual only)
    -- // =================== END GROUND APPROACH (2026-11-02) ===================
    ManualRecallLiftRate = 2.5, -- // UNUSED for manual recalls -- // How quickly a manually recalled boomerang rises to flight height while returning (the automatic from-ground lift is 8)
