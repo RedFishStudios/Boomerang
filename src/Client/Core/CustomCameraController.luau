@@ -14,6 +14,7 @@ local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibra
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 local ToolController = require(ReplicatedStorage.Client.Core.ToolController)
 local CameraPaddingController = require(ReplicatedStorage.Client.Core.CameraPaddingController)
+local TopDownCameraLibrary = require(ReplicatedStorage.Shared.Library.TopDownCameraLibrary)
 local SettingsController = require(ReplicatedStorage.Client.Core.SettingsController)
 local ArenaLibrary = require(ReplicatedStorage.Shared.Library.ArenaLibrary)
 local GameplayPhases = require(ReplicatedStorage.Shared.Constants.Enums.GameplayPhases)
@@ -255,6 +256,15 @@ local function getFocusOffsetForPadding(cameraBasis: CFrame, distance: number, a
    return cameraBasis.RightVector * rightShift + cameraBasis.UpVector * upShift
 end
 
+-- // The top-down camera's tilt and target field of view: Cmdr overrides (TopDownCameraLibrary), else the defaults above
+local function getTiltDegrees(): number
+   return TopDownCameraLibrary.get("Tilt") or CAMERA_TILT_DEGREES_FROM_VERTICAL
+end
+
+local function getTargetFieldOfView(): number
+   return TopDownCameraLibrary.get("FieldOfView") or OVERHEAD_FIELD_OF_VIEW
+end
+
 -- // FAKE ORTHOGRAPHIC (2026-11-02): the furthest the camera may sit from `focusPosition` along `focusToCameraDirection` while
 -- // staying within OVERHEAD_MAX_DISTANCE_FROM_CHARACTER of the local character (|F + u*t - C| <= R, solved for the largest t)
 local function getMaxCameraDistance(focusPosition: Vector3, focusToCameraDirection: Vector3): number
@@ -289,11 +299,12 @@ local function getOverheadFraming(focusPosition: Vector3, boxSize: Vector3, focu
    end
 
    local maxDistance = getMaxCameraDistance(focusPosition, focusToCameraDirection)
-   local fieldOfView = OVERHEAD_FIELD_OF_VIEW
-   local distance = distanceAt(fieldOfView)
-   if distance > maxDistance then
+   local fieldOfView = getTargetFieldOfView()
+   local fixedDistance = TopDownCameraLibrary.get("Distance") -- // Cmdr override: a fixed distance, no fitting
+   local distance = if fixedDistance then math.min(fixedDistance, maxDistance) else distanceAt(fieldOfView)
+   if not fixedDistance and distance > maxDistance then
       -- // Too far: find the narrowest field of view that fits within the limit (binary search)
-      local low, high = OVERHEAD_FIELD_OF_VIEW, OVERHEAD_MAX_FIELD_OF_VIEW
+      local low, high = fieldOfView, math.max(OVERHEAD_MAX_FIELD_OF_VIEW, fieldOfView)
       for _ = 1, 12 do
          local middle = (low + high) / 2
          if distanceAt(middle) > maxDistance then
@@ -384,7 +395,7 @@ local function placeCameraInstantly()
       return
    end
 
-   local tiltRadians = math.rad(CAMERA_TILT_DEGREES_FROM_VERTICAL)
+   local tiltRadians = math.rad(getTiltDegrees())
    local yawRadians = math.rad(CAMERA_YAW_DEGREES)
 
    local horizontalDirection = Vector3.new(math.sin(yawRadians), 0, math.cos(yawRadians))
@@ -418,7 +429,7 @@ local function updateCamera(deltaTime: number)
       return
    end
 
-   local tiltRadians = math.rad(CAMERA_TILT_DEGREES_FROM_VERTICAL)
+   local tiltRadians = math.rad(getTiltDegrees())
    local yawRadians = math.rad(CAMERA_YAW_DEGREES)
 
    local horizontalDirection = Vector3.new(math.sin(yawRadians), 0, math.cos(yawRadians))
@@ -504,7 +515,7 @@ local function startOverheadMode()
 
    currentCamera = workspace.CurrentCamera
    currentCamera.CameraType = Enum.CameraType.Scriptable
-   currentCamera.FieldOfView = OVERHEAD_FIELD_OF_VIEW
+   currentCamera.FieldOfView = getTargetFieldOfView()
    smoothedFocusPosition = nil
    smoothedCameraDistance = nil
    smoothedFieldOfView = nil
