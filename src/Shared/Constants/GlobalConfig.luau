@@ -76,8 +76,9 @@ local GlobalConfig = {
    ManualRecallGroundApproach = true,
    -- // Studs flown before it reaches full recall speed. Its speed grows in a straight line with the distance flown (so it
    -- // grows exponentially over time): it creeps at first, then surges into the catch, like the reference animation.
-   ManualRecallFullSpeedDistance = 60,
-   ManualRecallApproachStartFraction = 0.07, -- // Fraction of full recall speed it starts at (about 1/15, as in the reference)
+   ManualRecallFullSpeedDistance = 60, -- // Cmdr: tune RecallFullSpeedDistance
+   ManualRecallApproachStartFraction = 0.07, -- // Fraction of full recall speed it starts at (about 1/15, as in the reference). Cmdr: tune RecallStartSpeed
+   ManualRecallApproachCurve = 1, -- // Shape of the build-up: speed = start + (full - start) * (distance / full-speed distance) ^ this. 1 = straight line; below 1 picks up pace sooner. Cmdr: tune RecallSpeedCurve
    ManualRecallRiseDistance = 60, -- // Studs flown while the drawn boomerang rises from the ground to flight height (visual only)
    -- // =================== END GROUND APPROACH (2026-11-02) ===================
    ManualRecallLiftRate = 2.5, -- // UNUSED for manual recalls -- // How quickly a manually recalled boomerang rises to flight height while returning (the automatic from-ground lift is 8)
@@ -89,11 +90,11 @@ local GlobalConfig = {
    SelectionRingGrowSeconds = 0.3, -- // The SelectionRing tweens from nothing to full size (with a small overshoot) over this long
    SelectionRingVanishSeconds = 0.15, -- // ...and shrinks away over this long when the recall is released early
    ManualRecallMomentumMultiplier = 0.15, -- // How quickly its heading swings toward the player (1 = normal recall). Tunable live via Cmdr `tune RecallCurveAcceleration`
-   ManualRecallAcceleration = 1, -- // How quickly it reaches full recall speed and spin (1 = the time set by MANUAL_RECALL_FULL_SPEED_SECONDS in Boomerang.luau; 2 = twice as fast). Tunable live via Cmdr `tune RecallAcceleration`
+   ManualRecallAcceleration = 1, -- // (old recall only, not tunable any more) How quickly it reaches full recall speed and spin (1 = the time set by MANUAL_RECALL_FULL_SPEED_SECONDS in Boomerang.luau; 2 = twice as fast). Tunable live via Cmdr `tune RecallAcceleration`
    -- // Manual recall speed-up: the boomerang starts at ManualRecallRampStartFraction of its max recall speed and builds up
    -- // along a curve that stays slow at first and then climbs steeply, reaching max speed after MANUAL_RECALL_FULL_SPEED_SECONDS / RecallAcceleration.
    -- // speed = max * (StartFraction + (1 - StartFraction) * (t / RampSeconds) ^ RampPower). Tunable live via Cmdr `tune RecallAcceleration` / `RecallRampPower`.
-   ManualRecallRampPower = 3, -- // Curve steepness: 1 = steady speed-up, higher = slower start and a sharper late surge
+   ManualRecallRampPower = 3, -- // (old recall only, not tunable any more) Curve steepness: 1 = steady speed-up, higher = slower start and a sharper late surge
    ManualRecallRampStartFraction = 0.12, -- // Fraction of max recall speed at the moment the recall starts
    ManualRecallHighlightFadeOutSeconds = 0.6, -- // The dead boomerang's highlight fades this slowly when a manual recall starts (normal fade: 0.1)
    DeadWeaponDeceleration = 4, -- // How much faster a boomerang loses its slide momentum (and spin) and drops to the ground once it starts dying (1 = the original pace). The slide itself is set up in Dead.luau (INTERNAL CONFIG: dying slide "on ice"). Tunable live via Cmdr `tune DeadWeaponDeceleration`.

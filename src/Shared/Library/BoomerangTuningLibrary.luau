@@ -22,14 +22,14 @@ local BoomerangTuningLibrary = {}
 -------------------------------------------------------------------------------
 
 -- // Kept short: Roblox attribute names are limited to 50 characters, and "BoomerangTuning_ClassicBoomerang_RecallAcceleration"
--- // was 51. Names look like "BT_ClassicBoomerang_RecallAcceleration".
+-- // was 51. Names look like "BT_ClassicBoomerang_RecallFullSpeedDistance" (longest tool id + setting must stay within 50).
 local ATTRIBUTE_PREFIX = "BT"
 
 -------------------------------------------------------------------------------
 -- TYPES
 -------------------------------------------------------------------------------
 
-export type Setting = "ThrowSpeed" | "MinEnergy" | "MaxEnergy" | "EnergyPerStud" | "RecallEnergy" | "BounceEnergyCost" | "PlayerHitEnergyCost" | "ClashEnergyCost" | "RecallSpeed" | "RecallAcceleration" | "RecallCurveAcceleration" | "RecallRampPower" | "RecallBounceRecovery" | "DeadWeaponDeceleration" | "ChargeTime" | "AimWalkSpeed" | "RecallChargeTime"
+export type Setting = "ThrowSpeed" | "MinEnergy" | "MaxEnergy" | "EnergyPerStud" | "RecallEnergy" | "BounceEnergyCost" | "PlayerHitEnergyCost" | "ClashEnergyCost" | "RecallSpeed" | "RecallCurveAcceleration" | "RecallStartSpeed" | "RecallFullSpeedDistance" | "RecallSpeedCurve" | "RecallBounceRecovery" | "DeadWeaponDeceleration" | "ChargeTime" | "AimWalkSpeed" | "RecallChargeTime"
 
 type SettingInfo = {
 	Description: string,
@@ -41,7 +41,7 @@ type SettingInfo = {
 -------------------------------------------------------------------------------
 
 -- // Every tunable value, in display order. The names are what Cmdr shows (and autocompletes).
-BoomerangTuningLibrary.SETTING_ORDER = { "ThrowSpeed", "MinEnergy", "MaxEnergy", "EnergyPerStud", "RecallEnergy", "BounceEnergyCost", "PlayerHitEnergyCost", "ClashEnergyCost", "RecallSpeed", "RecallAcceleration", "RecallCurveAcceleration", "RecallRampPower", "RecallBounceRecovery", "DeadWeaponDeceleration", "ChargeTime", "AimWalkSpeed", "RecallChargeTime" } :: { Setting }
+BoomerangTuningLibrary.SETTING_ORDER = { "ThrowSpeed", "MinEnergy", "MaxEnergy", "EnergyPerStud", "RecallEnergy", "BounceEnergyCost", "PlayerHitEnergyCost", "ClashEnergyCost", "RecallSpeed", "RecallCurveAcceleration", "RecallStartSpeed", "RecallFullSpeedDistance", "RecallSpeedCurve", "RecallBounceRecovery", "DeadWeaponDeceleration", "ChargeTime", "AimWalkSpeed", "RecallChargeTime" } :: { Setting }
 
 BoomerangTuningLibrary.SETTINGS = {
 	ThrowSpeed = {
@@ -99,12 +99,6 @@ BoomerangTuningLibrary.SETTINGS = {
 			return toolData.Boomerang.ManualRecallSpeed
 		end,
 	},
-	RecallAcceleration = {
-		Description = "how quickly a manual recall reaches full recall speed and spin (1 = normal, 2 = twice as fast, 0.5 = half as fast)",
-		getDefault = function(_toolData)
-			return GlobalConfig.ManualRecallAcceleration
-		end,
-	},
 	-- // How strongly a manual recall's heading swings toward the player (formerly called RecallAcceleration)
 	RecallCurveAcceleration = {
 		Description = "how quickly a manual recall turns toward the player (1 = normal recall)",
@@ -112,11 +106,24 @@ BoomerangTuningLibrary.SETTINGS = {
 			return GlobalConfig.ManualRecallMomentumMultiplier
 		end,
 	},
-	-- // Manual recall speed-up curve shape (the time it takes is RecallAcceleration; see MANUAL_RECALL_FULL_SPEED_SECONDS in Boomerang.luau)
-	RecallRampPower = {
-		Description = "manual recall speed-up curve (1 = steady, higher = slower start and sharper surge)",
+	-- // Manual recall speed-up (the ground approach, Boomerang.luau): it starts at RecallStartSpeed of full speed and reaches full
+	-- // speed after RecallFullSpeedDistance studs. RecallSpeedCurve shapes the build-up in between.
+	RecallStartSpeed = {
+		Description = "fraction of full speed a manual recall starts at (0 to 1; higher = less of a slow start)",
 		getDefault = function(_toolData)
-			return GlobalConfig.ManualRecallRampPower
+			return GlobalConfig.ManualRecallApproachStartFraction
+		end,
+	},
+	RecallFullSpeedDistance = {
+		Description = "studs a manual recall flies before it reaches full speed (lower = picks up pace sooner)",
+		getDefault = function(_toolData)
+			return GlobalConfig.ManualRecallFullSpeedDistance
+		end,
+	},
+	RecallSpeedCurve = {
+		Description = "shape of the manual recall speed-up: 1 = steady (slow creep, late surge), below 1 = picks up pace sooner, above 1 = slower start",
+		getDefault = function(_toolData)
+			return GlobalConfig.ManualRecallApproachCurve
 		end,
 	},
 	-- // A returning boomerang's bounce momentum fades back into steering toward the player over this long

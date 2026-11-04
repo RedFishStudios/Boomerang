@@ -1919,8 +1919,9 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       if isManualRecallFromDead then
          maximumSpeed = BoomerangTuningLibrary.get(tuningToolId, "RecallSpeed") * returnSpeedMultiplier
          momentumMultiplier = BoomerangTuningLibrary.get(tuningToolId, "RecallCurveAcceleration")
-         rampSeconds = MANUAL_RECALL_FULL_SPEED_SECONDS / math.max(BoomerangTuningLibrary.get(tuningToolId, "RecallAcceleration"), 0.01)
-         rampPower = BoomerangTuningLibrary.get(tuningToolId, "RecallRampPower")
+         -- // Old recall only (ManualRecallGroundApproach off): read straight from GlobalConfig, no longer tunable with Cmdr
+         rampSeconds = MANUAL_RECALL_FULL_SPEED_SECONDS / math.max(GlobalConfig.ManualRecallAcceleration, 0.01)
+         rampPower = GlobalConfig.ManualRecallRampPower
       else
          maximumSpeed = BoomerangTuningLibrary.get(tuningToolId, "ThrowSpeed") * returnSpeedMultiplier
          momentumMultiplier = 1
@@ -2048,9 +2049,12 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          -- // GROUND APPROACH (2026-11-02, reshaped 2026-11-04): the speed grows in a straight line with the distance flown, from
          -- // ManualRecallApproachStartFraction of max speed to full speed after ManualRecallFullSpeedDistance studs. Over time that is
          -- // exponential: a slow creep, then a big late surge (a constant acceleration instead put most of the speed-up at the start)
-         local startSpeed = maximumSpeed * GlobalConfig.ManualRecallApproachStartFraction
-         local fullSpeedDistance = math.max(GlobalConfig.ManualRecallFullSpeedDistance, 0.01)
-         forwardSpeed = startSpeed + (maximumSpeed - startSpeed) * math.clamp(recallTravelled / fullSpeedDistance, 0, 1)
+         -- // Tunable live with Cmdr: tune RecallStartSpeed / RecallFullSpeedDistance / RecallSpeedCurve
+         local startSpeed = maximumSpeed * math.clamp(BoomerangTuningLibrary.get(tuningToolId, "RecallStartSpeed"), 0, 1)
+         local fullSpeedDistance = math.max(BoomerangTuningLibrary.get(tuningToolId, "RecallFullSpeedDistance"), 0.01)
+         local curve = math.max(BoomerangTuningLibrary.get(tuningToolId, "RecallSpeedCurve"), 0.05)
+         local progress = math.clamp(recallTravelled / fullSpeedDistance, 0, 1) ^ curve
+         forwardSpeed = startSpeed + (maximumSpeed - startSpeed) * progress
          local speedAlpha = if maximumSpeed > 1e-3 then forwardSpeed / maximumSpeed else 1
          thrownWeaponData.RecallSpinScale = speedAlpha * speedAlpha -- // The spin builds up with the speed
       elseif isManualRecallFromDead then
