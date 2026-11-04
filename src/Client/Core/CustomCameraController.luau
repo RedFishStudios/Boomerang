@@ -26,7 +26,7 @@ local localPlayer = Players.LocalPlayer
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
-local CAMERA_TILT_DEGREES_FROM_VERTICAL = 15
+local CAMERA_TILT_DEGREES_FROM_VERTICAL = 30 -- // How far the top-down camera leans back from straight down (0 = straight down)
 local CAMERA_YAW_DEGREES = 0
 local CAMERA_DISTANCE_PADDING = 20
 local CAMERA_MIN_DISTANCE = 60
