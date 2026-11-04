@@ -353,13 +353,15 @@ function MenuButtonsGui.start()
 		toggleGui("Settings")
 	end
 
-	-- // The same menus from compact icon buttons in Roblox's topbar, which (unlike this lobby grid) are always there
+	-- // The same menus from compact icon buttons in Roblox's topbar, which (unlike this lobby grid) are always there.
+	-- // Shops, Daily and Inventory sit on the left; Stats, Quests and Settings on the right (before the currency).
+	local RIGHT_SIDE_BUTTONS = { Stats = true, Quests = true, Settings = true }
 	for order, entry in BUTTONS do
 		if entry.Enabled then
 			TopbarGui.addButton({
 				Id = `Menu{entry.Id}`,
 				Icon = entry.Icon,
-				Side = "Left",
+				Side = if RIGHT_SIDE_BUTTONS[entry.Id] then "Right" else "Left",
 				Order = order * 10,
 				onActivated = function()
 					local callback = buttonCallbacks[entry.Id]
@@ -388,6 +390,7 @@ function MenuButtonsGui.start()
 		Text = formatNumber(EconomyController.getBalance()),
 		Icon = `rbxassetid://{Icons.CurrencyIcon}`,
 		Side = "Right",
+		Order = 1000, -- // The far right of the right-side buttons, next to Roblox's own
 		onActivated = openCurrencyShop,
 	})
 	EconomyController.CurrencyChangedTasks:Add(function(value: number)
