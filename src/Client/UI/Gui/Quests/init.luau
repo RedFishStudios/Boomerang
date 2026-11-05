@@ -68,7 +68,7 @@ local SECONDS_IN_DAY = 86400
 -------------------------------------------------------------------------------
 
 type Card = {
-	Frame: Frame,
+	Frame: ImageLabel,
 	Description: TextLabel,
 	Fill: Frame,
 	ProgressText: TextLabel,
@@ -261,14 +261,13 @@ local function createCard(poolName: string, slotIndex: number): Card
 		}),
 	})
 
-	local frame = CreateElement("Frame", {
+	local frame = CreateElement("ImageLabel", {
 		Name = `{poolName}Quest{slotIndex}`,
 		Size = UDim2.new(1, 0, 0, 40), -- // Height is set by resizeList
-		BackgroundColor3 = CARD_COLOR,
-		BorderSizePixel = 0,
+		BackgroundTransparency = 1,
+		Image = `rbxassetid://{Icons.MenuListingCard}`, -- // Grayscale card art, tinted (stretched to the card)
+		ImageColor3 = CARD_COLOR,
 	}, {
-		CreateElement("UICorner", { CornerRadius = UDim.new(0.15, 0) }),
-		CreateElement("UIStroke", { Color = TEXT_COLOR, Thickness = 2 }),
 		description,
 		bar,
 		reward,
@@ -429,7 +428,7 @@ local function updateCard(card: Card, poolName: string, slotIndex: number, slot:
 	local isComplete = progress >= goal
 	local isBusy = busySlot == `{poolName}/{slotIndex}`
 	local canClaim = QuestLibrary.isClaimable(slot)
-	card.Frame.BackgroundColor3 = if isComplete then CARD_DONE_COLOR else CARD_COLOR
+	card.Frame.ImageColor3 = if isComplete then CARD_DONE_COLOR else CARD_COLOR
 
 	-- // Reward: green button only while it can be claimed
 	card.Reward.Active = canClaim and not isBusy

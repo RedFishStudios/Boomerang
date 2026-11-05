@@ -35,6 +35,7 @@ local HOT_POTATO_EFFECT_ID = "HotPotato"
 local EXPLOSION_COUNTER = 10
 local NEXT_HOLDER_DELAY = 3
 local NON_HOLDER_WEAPON_LOCK_DURATION = 60 * 60 -- Outlasts the round; cleared on teardown
+local EXPLODED_CAUSE_LABEL = "Blown up by the Hot Potato" -- // Death screen reason for the holder when the bomb goes off
 
 local explodePlayerRemote = SimpleRemotes.getEvent("ExplodePlayerPotato")
 local pickupEffectStateChanged = SimpleRemotes.getEvent("PickupEffectStateChanged")
@@ -100,7 +101,9 @@ local function explode(player: Player)
    end
 
    clearHolderEffect(player)
+   -- // Set Health directly (no damage dealt by anyone), so send the death reason ourselves, as Water and MovingPlatform do
    humanoid.Health = 0
+   CombatLibrary.notifyDeathReason(player, nil, EXPLODED_CAUSE_LABEL)
    explodePlayerRemote:FireAllClients(player)
 
    local currentRoundData = CurrentGameState.getGameStateData().CurrentRoundData:Get()
