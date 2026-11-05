@@ -87,7 +87,8 @@ local SWEEP_DELAY = .08 -- // Seconds after the click before the crescent appear
 local SWEEP_SCALE = 0.616 -- // Size relative to the asset
 local SWEEP_START_DISTANCE = 0.5 -- // Studs in front of the player's centre the crescent's centre starts
 local SWEEP_END_DISTANCE = 1.5 -- // ...and ends (its front edge then reaches about as far as a swing hits)
-local SWEEP_HEIGHT_ABOVE_HAND = 1 -- // Studs above where the weapon is held in the player's hand (when the swing starts)
+local SWEEP_HEIGHT_ABOVE_HAND = 2.7 -- // Studs above where the weapon is held in the player's hand when the swing starts. The slash
+-- // animation raises the hand about 1.7 studs during the sweep (BoomerangSlash_R15), so this keeps the crescent 1 stud above it
 local SWEEP_HEIGHT_OFFSET = 0 -- // Studs above the player's centre, if the held weapon can't be found
 local SWEEP_START_TRANSPARENCY = .2
 
