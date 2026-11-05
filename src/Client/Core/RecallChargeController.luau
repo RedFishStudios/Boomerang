@@ -10,6 +10,9 @@
 	the boomerang is caught / removed (the ring is destroyed at once and the animation stops).
 	(The lift itself and the charge timing live in Dead.luau; the player-to-boomerang beam is DeadWeaponBeamController.)
 
+	The recall pose ("Summon") and pale-yellow pulse rings at the pulling (right) hand also play while a boomerang returns
+	on its own (automatic return), until it's caught.
+
 	Like the beam controller, nothing here reacts to events: every frame it compares what should exist with what does, so a
 	late, duplicated or missing event can't leave a stray ring or a stuck animation.
 ]]
@@ -28,6 +31,7 @@ local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons
 local DeadWeaponLogic = require(ReplicatedStorage.Shared.Logics.WeaponLogics.Dead)
 local BoomerangColorUtil = require(ReplicatedStorage.Shared.Utils.BoomerangColorUtil)
 local AnimationController = require(ReplicatedStorage.Client.Core.AnimationController)
+local CharacterRenderController = require(ReplicatedStorage.Client.Core.CharacterRenderController)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -39,6 +43,14 @@ local RING_START_TRANSPARENCY = 1
 -- // Grow: the size overshoots a little (Back) and settles; transparency fades in smoothly alongside
 local GROW_SIZE_EASING = Enum.EasingStyle.Back
 local GROW_TRANSPARENCY_EASING = Enum.EasingStyle.Quad
+
+-- // Hand pulse: two rings growing out of the pulling hand, half a cycle apart, around a faint centre
+local PULSE_HAND_NAME = "RightHand"
+local PULSE_COLOR = Color3.fromRGB(255, 248, 159)
+local PULSE_SIZE = 1.65 -- // Studs across at full size, for a hand 0.65 studs wide (scales with the hand)
+local PULSE_PERIOD = 0.62 -- // Seconds per ring cycle
+local PULSE_RING_THICKNESS = 1.7
+local PULSE_CENTRE_TRANSPARENCY = 0.92
 
 -------------------------------------------------------------------------------
 -- TYPES
@@ -57,6 +69,7 @@ local rings: { [Player]: RingEntry } = {}
 -- // Rings shrinking away after an early release, still following their player's boomerang until they are gone
 local vanishingRings: { [MeshPart]: Player } = {}
 local summonPlaying: { [Player]: boolean } = {}
+local handPulses: { [Player]: { Gui: BillboardGui, Hand: BasePart, Rings: { UIStroke }, StartedAt: number } } = {}
 local container: Folder? = nil
 local ringTemplate: MeshPart? = nil
 local ringFullSize: Vector3 = Vector3.one
@@ -184,11 +197,95 @@ local function setSummon(player: Player, wanted: boolean)
 	end
 end
 
+-- // A boomerang flying back to its player on its own (not yet caught on this client)
+local function isReturningAutomatically(player: Player): boolean
+	local thrownWeaponData = ThrownWeapons.Data[player]
+	return thrownWeaponData ~= nil
+		and thrownWeaponData.State == ThrownWeapons.StateEnum.Returning
+		and not thrownWeaponData.PendingCatchAt
+		and not thrownWeaponData.HostHidden
+end
+
+local function removeHandPulse(player: Player)
+	local pulse = handPulses[player]
+	if pulse then
+		pulse.Gui:Destroy()
+		handPulses[player] = nil
+	end
+end
+
+local function createPulseRing(parent: Instance): UIStroke
+	local frame = Instance.new("Frame")
+	frame.Name = "PulseRing"
+	frame.AnchorPoint = Vector2.new(0.5, 0.5)
+	frame.Position = UDim2.fromScale(0.5, 0.5)
+	frame.BackgroundTransparency = 1
+	frame.Parent = parent
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0.5, 0)
+	corner.Parent = frame
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = PULSE_COLOR
+	stroke.Thickness = PULSE_RING_THICKNESS
+	stroke.Transparency = 1
+	stroke.Parent = frame
+	return stroke
+end
+
+local function updateHandPulse(player: Player, wanted: boolean)
+	local character = if wanted then CharacterRenderController.getCharacterModel(player, false) else nil
+	local hand = character and character:FindFirstChild(PULSE_HAND_NAME)
+	if not hand or not hand:IsA("BasePart") then
+		removeHandPulse(player)
+		return
+	end
+
+	local pulse = handPulses[player]
+	if pulse and (pulse.Hand ~= hand or not pulse.Gui.Parent) then
+		removeHandPulse(player)
+		pulse = nil
+	end
+	if not pulse then
+		local size = PULSE_SIZE * math.clamp(hand.Size.X / 0.65, 0.65, 1.5)
+		local gui = Instance.new("BillboardGui")
+		gui.Name = "RecallHandPulse"
+		gui.Adornee = hand
+		gui.Size = UDim2.fromScale(size, size)
+		gui.LightInfluence = 0
+		local centre = Instance.new("Frame")
+		centre.Name = "Centre"
+		centre.AnchorPoint = Vector2.new(0.5, 0.5)
+		centre.Position = UDim2.fromScale(0.5, 0.5)
+		centre.Size = UDim2.fromScale(0.6, 0.6)
+		centre.BackgroundColor3 = PULSE_COLOR
+		centre.BackgroundTransparency = PULSE_CENTRE_TRANSPARENCY
+		centre.BorderSizePixel = 0
+		centre.Parent = gui
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0.5, 0)
+		corner.Parent = centre
+		pulse = { Gui = gui, Hand = hand, Rings = { createPulseRing(gui), createPulseRing(gui) }, StartedAt = os.clock() }
+		handPulses[player] = pulse
+		gui.Parent = getContainer()
+	end
+
+	local elapsed = os.clock() - pulse.StartedAt
+	for index, stroke in pulse.Rings do
+		local phase = (elapsed / PULSE_PERIOD + (index - 1) * 0.5) % 1
+		local frame = stroke.Parent :: Frame
+		local scale = 0.38 + phase * 0.6
+		frame.Size = UDim2.fromScale(scale, scale)
+		stroke.Transparency = 1 - math.sin(phase * math.pi) * 0.8 -- // Fades in and out, so a ring never pops when it restarts
+	end
+end
+
 local function reconcilePlayer(player: Player)
 	local position = getWeaponPosition(player)
 	local wanted = position ~= nil and DeadWeaponLogic.isRecallChargeActive(player)
+	local recallPose = wanted or isReturningAutomatically(player)
 
-	setSummon(player, wanted)
+	setSummon(player, recallPose)
+	updateHandPulse(player, recallPose)
 
 	local entry = rings[player]
 	if wanted then
@@ -225,6 +322,7 @@ end
 
 local function cleanupPlayer(player: Player)
 	removeRing(player, true)
+	removeHandPulse(player)
 	summonPlaying[player] = nil
 end
 

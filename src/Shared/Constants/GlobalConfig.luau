@@ -76,6 +76,11 @@ local GlobalConfig = {
    GroupId = 293180599,
    GroupRewardCurrency = 100, -- TODO:RELEASE placeholder
 
+   -- // Catching a returning boomerang (CatchLibrary)
+   HeavyCatchMinClosingSpeed = 120, -- // Studs/s toward the catcher at contact for the heavy catch (Cmdr: tuneboomerang HeavyCatchSpeed)
+   HeavyCatchPushDistance = 3, -- // Studs a grounded heavy catch pushes the catcher back
+   HeavyCatchPushSeconds = 0.18,
+
    -- // Top-down camera framing of boomerangs on the field (Cmdr `topdowncam weaponspeed | weaponhold | weaponrange`)
    CameraWeaponFollowSpeed = 55, -- // Top speed (studs/s) of the camera's point chasing each boomerang
    CameraWeaponAccelerationSeconds = 0.4, -- // Seconds that point takes to speed up from rest to top speed (it slows the same way)

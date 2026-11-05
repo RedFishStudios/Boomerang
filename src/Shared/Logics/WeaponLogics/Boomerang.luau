@@ -37,6 +37,7 @@ local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
 local Portal = require(ReplicatedStorage.Shared.Logics.Environment.Portal)
 local DeadWeapons = require(ReplicatedStorage.Shared.Referential.DeadWeapons)
 local DeadWeaponLogic = require(ReplicatedStorage.Shared.Logics.WeaponLogics.Dead)
+local CatchLibrary = require(ReplicatedStorage.Shared.Library.CatchLibrary)
 local HttpService = game:GetService("HttpService")
 
 local AnimationController
@@ -1465,8 +1466,19 @@ end
 
 -- // A returning boomerang reached its player. Server: it is caught (removed). Client: the catch is predicted only (see above).
 -- // Returns true if the boomerang was removed (the caller's movement loop must stop).
+-- // Normal or heavy catch (CatchLibrary), from the boomerang's motion just before contact
+local function resolveCatch(player: Player, thrownWeaponData: ThrownWeapons.Data): CatchLibrary.CatchInfo
+   local position = thrownWeaponData.CFrame and thrownWeaponData.CFrame.Position
+   local velocity = if thrownWeaponData.Direction and thrownWeaponData.Speed then thrownWeaponData.Direction * thrownWeaponData.Speed else nil
+   return CatchLibrary.resolve(player, thrownWeaponData.ToolId, position, velocity)
+end
+
 catchWeapon = function(player: Player, thrownWeaponData: ThrownWeapons.Data): boolean
    if isServer then
+      local catchInfo = resolveCatch(player, thrownWeaponData)
+      if catchInfo.Heavy then
+         CatchLibrary.push(player, catchInfo.Direction)
+      end
       Boomerang.removeFromField(player, thrownWeaponData)
       return true
    end
@@ -1476,8 +1488,12 @@ catchWeapon = function(player: Player, thrownWeaponData: ThrownWeapons.Data): bo
    thrownWeaponData.PendingCatchAt = os.clock()
    setHostHidden(thrownWeaponData, true)
    retireTrail(thrownWeaponData)
+   local catchInfo = resolveCatch(player, thrownWeaponData)
    if AnimationController then
-      AnimationController.playCoreAnimation(player, "Catch")
+      AnimationController.playCoreAnimation(player, if catchInfo.Heavy then "HeavyCatch" else "Catch")
+   end
+   if catchInfo.Heavy then
+      CatchLibrary.push(player, catchInfo.Direction) -- // Only does anything for the local player (its prediction)
    end
    SoundLibrary.play(thrownWeaponData.InstanceId, Sounds.Data.BoomerangCatch.Name, player.Character) -- // Replaces the flight loop
    thrownWeaponData.CatchEffectsPlayed = true
@@ -1526,7 +1542,7 @@ function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapo
 
    -- // A client that already showed the catch (pending catch) doesn't play the animation/sound a second time
    if returnToPlayer and AnimationController and not thrownWeaponData.CatchEffectsPlayed then
-      AnimationController.playCoreAnimation(player, "Catch")
+      AnimationController.playCoreAnimation(player, if resolveCatch(player, thrownWeaponData).Heavy then "HeavyCatch" else "Catch")
    end
    if shouldReattachLocally then
       setHostHidden(thrownWeaponData, false) -- // The hidden host goes back into the hand, visible again

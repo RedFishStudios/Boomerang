@@ -29,7 +29,7 @@ local ATTRIBUTE_PREFIX = "BT"
 -- TYPES
 -------------------------------------------------------------------------------
 
-export type Setting = "ThrowSpeed" | "MinEnergy" | "MaxEnergy" | "EnergyPerStud" | "RecallEnergy" | "BounceEnergyCost" | "PlayerHitEnergyCost" | "ClashEnergyCost" | "RecallSpeed" | "RecallCurveAcceleration" | "RecallStartSpeed" | "RecallFullSpeedDistance" | "RecallSpeedCurve" | "RecallBounceRecovery" | "DeadWeaponDeceleration" | "ChargeTime" | "AimWalkSpeed" | "RecallChargeTime"
+export type Setting = "ThrowSpeed" | "MinEnergy" | "MaxEnergy" | "EnergyPerStud" | "RecallEnergy" | "BounceEnergyCost" | "PlayerHitEnergyCost" | "ClashEnergyCost" | "RecallSpeed" | "RecallCurveAcceleration" | "RecallStartSpeed" | "RecallFullSpeedDistance" | "RecallSpeedCurve" | "RecallBounceRecovery" | "DeadWeaponDeceleration" | "ChargeTime" | "AimWalkSpeed" | "RecallChargeTime" | "HeavyCatchSpeed"
 
 type SettingInfo = {
 	Description: string,
@@ -41,7 +41,7 @@ type SettingInfo = {
 -------------------------------------------------------------------------------
 
 -- // Every tunable value, in display order. The names are what Cmdr shows (and autocompletes).
-BoomerangTuningLibrary.SETTING_ORDER = { "ThrowSpeed", "MinEnergy", "MaxEnergy", "EnergyPerStud", "RecallEnergy", "BounceEnergyCost", "PlayerHitEnergyCost", "ClashEnergyCost", "RecallSpeed", "RecallCurveAcceleration", "RecallStartSpeed", "RecallFullSpeedDistance", "RecallSpeedCurve", "RecallBounceRecovery", "DeadWeaponDeceleration", "ChargeTime", "AimWalkSpeed", "RecallChargeTime" } :: { Setting }
+BoomerangTuningLibrary.SETTING_ORDER = { "ThrowSpeed", "MinEnergy", "MaxEnergy", "EnergyPerStud", "RecallEnergy", "BounceEnergyCost", "PlayerHitEnergyCost", "ClashEnergyCost", "RecallSpeed", "RecallCurveAcceleration", "RecallStartSpeed", "RecallFullSpeedDistance", "RecallSpeedCurve", "RecallBounceRecovery", "DeadWeaponDeceleration", "ChargeTime", "AimWalkSpeed", "RecallChargeTime", "HeavyCatchSpeed" } :: { Setting }
 
 BoomerangTuningLibrary.SETTINGS = {
 	ThrowSpeed = {
@@ -159,6 +159,13 @@ BoomerangTuningLibrary.SETTINGS = {
 		Description = "seconds a manual recall charges (boomerang stays down, player slowed) before it starts returning",
 		getDefault = function(_toolData)
 			return GlobalConfig.RecallCharge
+		end,
+	},
+	-- // Closing speed at contact from which a catch is the heavy catch (CatchLibrary; client and server both read it)
+	HeavyCatchSpeed = {
+		Description = "studs/s a returning boomerang must be closing in at to be caught with the heavy catch (and its push)",
+		getDefault = function(_toolData)
+			return GlobalConfig.HeavyCatchMinClosingSpeed
 		end,
 	},
 } :: { [Setting]: SettingInfo }
