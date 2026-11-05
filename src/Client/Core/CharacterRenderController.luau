@@ -208,7 +208,8 @@ local function applyRagdoll(player: Player, model: Model)
       repeat
          RunService.Stepped:Wait()
         	for index, descendant in pairs(model:GetDescendants()) do
-            if descendant:IsA("AnimationConstraint") then
+            -- // Joints: AnimationConstraints, and the Motor6Ds KeyframeClipTrack turns them into
+            if descendant:IsA("AnimationConstraint") or (descendant:IsA("Motor6D") and descendant:GetAttribute("ConvertedFromAnimationConstraint")) then
                descendant:Destroy()
             elseif descendant:IsA("BasePart") or descendant:IsA("MeshPart") then
                descendant.Anchored = false

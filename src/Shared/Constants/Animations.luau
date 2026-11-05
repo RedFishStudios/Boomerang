@@ -1,6 +1,16 @@
+-- // An animation is either an uploaded asset (Id) or unpublished keyframe data (Clip): the name of a KeyframeSequence in
+-- // Shared/AnimationClips, played by KeyframeClipTrack. Clip-only fields:
+-- //   IntroClip: played once before Clip (e.g. raising into the aim before the aim loop)
+-- //   LowerBodyWhileMoving: false lets go of the hips and legs while the character moves (default true)
+-- //   Speed: playback rate (default 1); markers and the clip's own fade-out stretch with it
+-- // Clips always apply over asset animations, so Priority doesn't apply to them.
 local Animations: {
    [string]: {
-      Id: number,
+      Id: number?,
+      Clip: string?,
+      IntroClip: string?,
+      LowerBodyWhileMoving: boolean?,
+      Speed: number?,
       Layer: string,
       FadeIn: number?,
       FadeOut: number?,
@@ -14,19 +24,41 @@ local Animations: {
       Looping = true
    },
 
+   -- // Previous uploaded-asset version, kept for reference:
+   -- Charging = {
+   --    Id = 130007850779400,
+   --    Layer = "WeaponAction",
+   --    FadeIn = .8,
+   --    FadeOut = .8,
+   --    Looping = true
+   -- },
+
    Charging = {
-      Id = 130007850779400,
+      Clip = "BoomerangAimHold_R15", -- // Upper body only: the walk keeps the legs
+      Speed = 1 / 1.08, -- // 8% slower than authored
+      IntroClip = "BoomerangAimEnter_R15",
       Layer = "WeaponAction",
-      FadeIn = .8,
-      FadeOut = .8,
+      FadeIn = .05, -- // The intro clip raises into the aim itself
+      FadeOut = .2,
       Looping = true
    },
 
+   -- // Previous uploaded-asset version, kept for reference:
+   -- Throw = {
+   --    Id = 83626657502858,
+   --    Layer = "WeaponAction",
+   --    FadeIn = .2,
+   --    FadeOut = .8,
+   --    Looping = false
+   -- },
+
    Throw = {
-      Id = 83626657502858,
+      Clip = "BoomerangThrow_R15", -- // Ends by easing its own weight to 0
+      Speed = 1 / 1.08, -- // 8% slower than authored
+      LowerBodyWhileMoving = false,
       Layer = "WeaponAction",
-      FadeIn = .2,
-      FadeOut = .8,
+      FadeIn = .05,
+      FadeOut = .2,
       Looping = false
    },
 
@@ -47,10 +79,21 @@ local Animations: {
       Priority = Enum.AnimationPriority.Action,
    },
 
+   -- // Previous uploaded-asset version, kept for reference:
+   -- Stab = {
+   --    Id = 137065689006321,
+   --    Layer = "WeaponAction",
+   --    FadeIn = .1,
+   --    FadeOut = .2,
+   --    Looping = false
+   -- },
+
    Stab = {
-      Id = 137065689006321,
+      Clip = "BoomerangSlash_R15", -- // Ends by easing its own weight to 0
+      Speed = 1 / 1.08, -- // 8% slower than authored
+      LowerBodyWhileMoving = false,
       Layer = "WeaponAction",
-      FadeIn = .1,
+      FadeIn = .05,
       FadeOut = .2,
       Looping = false
    },

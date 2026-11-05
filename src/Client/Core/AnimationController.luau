@@ -19,6 +19,7 @@ local ContentProviderService = game:GetService("ContentProvider")
 local Animations = require(ReplicatedStorage.Shared.Constants.Animations)
 local CharacterRenderController = require(ReplicatedStorage.Client.Core.CharacterRenderController)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
+local KeyframeClipTrack = require(ReplicatedStorage.Client.Core.KeyframeClipTrack)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -31,9 +32,10 @@ local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 export type CoreTrackNames = "Charging" | "Throw" | "Catch" | "Stab" | "Dash" | "Summon"
 
 type TrackEntry = {
-   Track: AnimationTrack,
+   Track: any, -- // AnimationTrack, or a KeyframeClipTrack for Clip animations (same Play/Stop/IsPlaying use)
    LoadedAnimationKey: string,
-   AnimationObject: Animation,
+   AnimationObject: Animation?, -- // nil for Clip animations
+   Character: Model,
    Layer: string,
 }
 
@@ -66,7 +68,13 @@ local DefaultCoreTrackNames: { CoreTrackNames } = { "Charging", "Throw", "Catch"
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
 
-local function destroyTrackEntry(entry: { Track: AnimationTrack, AnimationObject: Animation })
+local function destroyTrackEntry(entry: TrackEntry)
+   if not entry.AnimationObject then
+      entry.Track:Destroy() -- // Clip track: lets go of its joints
+      table.clear(entry)
+      return
+   end
+
    if entry.Track.IsPlaying then
       entry.Track:Stop()
    end
@@ -100,9 +108,26 @@ local function createTrackEntry(animator: Animator, trackName: string, animation
       return nil
    end
 
+   local character = (animator.Parent :: Instance).Parent :: Model -- // Animator > Humanoid > character
+
+   if animationData.Clip then
+      return {
+         Track = KeyframeClipTrack.new(character, animationData.Clip, {
+            IntroClip = animationData.IntroClip,
+            Looped = animationData.Looping,
+            LowerBodyWhileMoving = animationData.LowerBodyWhileMoving,
+            Speed = animationData.Speed,
+         }),
+         LoadedAnimationKey = animationName,
+         AnimationObject = nil,
+         Character = character,
+         Layer = animationData.Layer,
+      }
+   end
+
    local animation = Instance.new("Animation")
    animation.Name = trackName
-   animation.AnimationId = string.format("rbxassetid://%d", animationData.Id)
+   animation.AnimationId = string.format("rbxassetid://%d", animationData.Id :: number)
    animation.Parent = animator
    ContentProviderService:PreloadAsync({ animation })
 
@@ -116,6 +141,7 @@ local function createTrackEntry(animator: Animator, trackName: string, animation
       Track = track,
       LoadedAnimationKey = animationName,
       AnimationObject = animation,
+      Character = character,
       Layer = animationData.Layer,
    }
 end
@@ -184,8 +210,12 @@ local function areTracksCurrentForPlayer(player: Player, character: Model, anima
       --if not entry.Track:IsDescendantOf(animator) then
       --   return false
       --end
-      if not entry.AnimationObject:IsDescendantOf(animator) then
-         return false
+      if entry.AnimationObject then
+         if not entry.AnimationObject:IsDescendantOf(animator) then
+            return false
+         end
+      elseif entry.Character ~= character then
+         return false -- // Clip track bound to an older character
       end
    end
 
