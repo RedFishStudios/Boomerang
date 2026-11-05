@@ -53,8 +53,7 @@ local Animations: {
    -- },
 
    Throw = {
-      Clip = "BoomerangThrow_R15", -- // Ends by easing its own weight to 0
-      Speed = 1 / 1.08, -- // 8% slower than authored
+      Clip = "BoomerangThrow_R15", -- // Starts at the release pose (the boomerang leaves at once); ends by easing its own weight to 0
       LowerBodyWhileMoving = false,
       Layer = "WeaponAction",
       FadeIn = .05,
