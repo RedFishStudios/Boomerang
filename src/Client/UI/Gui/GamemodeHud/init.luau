@@ -1,265 +1,220 @@
+--[[
+	GamemodeHud
+
+	The in-round HUD: one line of text at the top of the screen, in the topbar row, showing the gamemode and the time left
+	("Team Elimination • 01:24"). Shown while a round is running; hidden while a menu supersedes it.
+
+	The previous banner HUD (Gamemode.rbxmx) is kept, commented out, in LegacyBannerHud.luau.
+]]
+
 local GamemodeHudGui = {}
 GamemodeHudGui.Type = "HUD"
 GamemodeHudGui.Open = false
 GamemodeHudGui.SupercededBy = {}
 
-local TweenService = game:GetService("TweenService")
+local GuiService = game:GetService("GuiService")
 local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Player = game:GetService("Players").LocalPlayer
 
--- // Modules // --
+local Gamemodes = require(ReplicatedStorage.Shared.Constants.Gamemodes)
+local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local SharedMods = ReplicatedStorage.Shared
+-------------------------------------------------------------------------------
+-- CONSTANTS
+-------------------------------------------------------------------------------
 
-local Gamemodes = require(SharedMods.Constants.Gamemodes)
-local GameStateLibrary = require(SharedMods.Library.GameStateLibrary)
-local PlayersUtil = require(SharedMods.Utils.PlayersUtil)
+local FONT = Enum.Font.FredokaOne -- // Same as the topbar
+local TEXT_COLOR = Color3.new(1, 1, 1)
+local OUTLINE_COLOR = Color3.new(0, 0, 0)
+local OUTLINE_THICKNESS = 2.5
+local TEXT_HEIGHT_SCALE = 0.75 -- // Text height as a share of the topbar row's height
+local TEXT_WIDTH_SCALE = 0.4 -- // Widest the text may get, as a share of the screen (long names shrink to fit)
+local SEPARATOR = " • "
 
--- // Gui Values // --
+-------------------------------------------------------------------------------
+-- PRIVATE VARIABLES
+-------------------------------------------------------------------------------
 
-local Gui = script:WaitForChild("Gamemode")
-local Header = Gui:WaitForChild("Header") :: Frame
-local countdownConnection: RBXScriptConnection?
-local TimerLabel: TextLabel?
+local Gui: ScreenGui
+local Label: TextLabel
+
+local gamemodeText = ""
+local timerText = ""
 local shownWholeSeconds: number?
-
-local GuiHeader: Frame?
-local GamemodeLabel: TextLabel?
---local SubheaderLabel: TextLabel?
-
-local ColoredImage: ImageLabel?
-local GrayscaleImage: ImageLabel?
-local GamemodeLabelGradient: UIGradient?
-local TimerLabelGradient: UIGradient?
-
--- // Animation Values // --
-
-local headerGoalPosition = Header.Position
-local headerOffscreenPosition = headerGoalPosition - UDim2.fromScale(0, 1)
-local HEADER_TWEEN_INFO_IN = TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-local HEADER_TWEEN_INFO_OUT = TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.In)
-
-local instanceKey = nil
-local activeTween = nil
+local countdownConnection: RBXScriptConnection?
 local isSuperceded = false
 
-----------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Local Functions
+-------------------------------------------------------------------------------
+-- PRIVATE FUNCTIONS
+-------------------------------------------------------------------------------
 
-local function playHeaderTween(tweenInfo: TweenInfo, goalPosition: UDim2)
-   if activeTween then
-      activeTween:Cancel()
-   end
-   activeTween = TweenService:Create(Header, tweenInfo, { Position = goalPosition })
-   activeTween:Play()
+-- // Centered on the screen, vertically centered in the topbar row (GuiService.TopbarInset)
+local function placeLabel()
+	local topbar = GuiService.TopbarInset
+	local rowHeight = topbar.Height
+	Label.Position = UDim2.fromOffset(0, topbar.Min.Y + rowHeight / 2) + UDim2.fromScale(0.5, 0)
+	Label.Size = UDim2.new(TEXT_WIDTH_SCALE, 0, 0, rowHeight * TEXT_HEIGHT_SCALE)
 end
 
-local function animateAway(instant: boolean?)
-   local thisInstance = math.random(10000)
-   instanceKey = thisInstance
-   if instant then
-      if activeTween then
-         activeTween:Cancel()
-         activeTween = nil
-      end
-      Header.Position = headerOffscreenPosition
-      Gui.Enabled = false
-      return
-   end
-
-   playHeaderTween(HEADER_TWEEN_INFO_OUT, headerOffscreenPosition)
-   task.spawn(function()
-      task.wait(0.6)
-      if instanceKey == thisInstance then
-         Gui.Enabled = false
-      end
-   end)
+local function render()
+	if gamemodeText ~= "" and timerText ~= "" then
+		Label.Text = gamemodeText .. SEPARATOR .. timerText
+	else
+		Label.Text = gamemodeText .. timerText
+	end
 end
 
 local function stopCountdown()
-   if countdownConnection then
-      countdownConnection:Disconnect()
-      countdownConnection = nil
-   end
-   shownWholeSeconds = nil
+	if countdownConnection then
+		countdownConnection:Disconnect()
+		countdownConnection = nil
+	end
+	shownWholeSeconds = nil
 end
 
 local function updateTimer()
-   local currentTimerEndsAt = GameStateLibrary.getGameStateData().CurrentTimerEndsAt:Get()
-   if not TimerLabel or not currentTimerEndsAt then
-      return
-   end
+	local currentTimerEndsAt = GameStateLibrary.getGameStateData().CurrentTimerEndsAt:Get()
+	if typeof(currentTimerEndsAt) ~= "number" then
+		return
+	end
 
-   local secondsLeft = math.max(0, currentTimerEndsAt - workspace:GetServerTimeNow())
-   local wholeSeconds = math.ceil(secondsLeft)
-   if shownWholeSeconds ~= wholeSeconds then
-      shownWholeSeconds = wholeSeconds
-      TimerLabel.Text = string.format("%d:%02d", wholeSeconds // 60, wholeSeconds % 60)
-   end
+	local secondsLeft = math.max(0, currentTimerEndsAt - workspace:GetServerTimeNow())
+	local wholeSeconds = math.ceil(secondsLeft)
+	if shownWholeSeconds ~= wholeSeconds then
+		shownWholeSeconds = wholeSeconds
+		timerText = string.format("%02d:%02d", wholeSeconds // 60, wholeSeconds % 60)
+		render()
+	end
 
-   if secondsLeft <= 0 then
-      stopCountdown()
-   end
+	if secondsLeft <= 0 then
+		stopCountdown()
+	end
 end
 
+-- // `fallbackText` shows instead of a countdown when the round has no timer
 local function startCountdown(fallbackText: string)
-   stopCountdown()
-   if not TimerLabel then
-      return
-   end
+	stopCountdown()
+	if typeof(GameStateLibrary.getGameStateData().CurrentTimerEndsAt:Get()) ~= "number" then
+		timerText = fallbackText
+		render()
+		return
+	end
 
-   if typeof(GameStateLibrary.getGameStateData().CurrentTimerEndsAt:Get()) ~= "number" then
-      TimerLabel.Text = fallbackText
-      return
-   end
-
-   shownWholeSeconds = nil
-   updateTimer()
-   countdownConnection = RunService.Heartbeat:Connect(updateTimer)
+	updateTimer()
+	countdownConnection = RunService.Heartbeat:Connect(updateTimer)
 end
 
--- // Apply in-round display
 local function applyRoundUi()
-   if not GamemodeLabel then
-      return
-   end
+	local currentRoundData = GameStateLibrary.getGameStateData().CurrentRoundData:Get()
+	local gamemodeName = if currentRoundData then currentRoundData.Gamemode else nil
+	local gamemodeData = gamemodeName and Gamemodes[gamemodeName] or nil
+	if gamemodeData and gamemodeName then
+		gamemodeText = string.gsub(gamemodeData.Display or gamemodeName, "\n", " ")
+		startCountdown(gamemodeData.Timer or "")
+		return
+	end
 
-   local currentRoundData = GameStateLibrary.getGameStateData().CurrentRoundData:Get()
-   local newGamemode = if currentRoundData then currentRoundData.Gamemode else nil
-   local gamemodeData = newGamemode and Gamemodes[newGamemode] or nil
-   if gamemodeData and newGamemode then
-      GamemodeLabel.Text = string.gsub(gamemodeData.Display or newGamemode, "\n", "  ")
-      --SubheaderLabel.Text = gamemodeData.Subheader or ""
-      startCountdown(gamemodeData.Timer or "")
-      return
-   end
-
-   GamemodeLabel.Text = ""
-   --SubheaderLabel.Text = ""
-   startCountdown("")
+	gamemodeText = ""
+	startCountdown("")
 end
 
--- // Refresh hud display using current game state data
 local function refreshUiFromGameState()
-   local gameStateData = GameStateLibrary.getGameStateData()
-   if gameStateData.CurrentRoundData:Get() == nil then
-      GamemodeHudGui.close()
-   else
-      GamemodeHudGui.open()
-      applyRoundUi()
-      return
-   end
+	if GameStateLibrary.getGameStateData().CurrentRoundData:Get() == nil then
+		GamemodeHudGui.close()
+		stopCountdown()
+		gamemodeText, timerText = "", ""
+		render()
+		return
+	end
 
-   stopCountdown()
-   if TimerLabel then
-      TimerLabel.Text = ""
-   end
+	GamemodeHudGui.open()
+	applyRoundUi()
 end
 
-----------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Public Functions
-
-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+-- PUBLIC FUNCTIONS
+-------------------------------------------------------------------------------
 
 function GamemodeHudGui.open()
-   if GamemodeHudGui.Open and not isSuperceded then
-      return
-   end
+	if GamemodeHudGui.Open and not isSuperceded then
+		return
+	end
 
-   GamemodeHudGui.Open = true
-   if #GamemodeHudGui.SupercededBy > 0 then
-      isSuperceded = true
-      return
-   end
+	GamemodeHudGui.Open = true
+	if #GamemodeHudGui.SupercededBy > 0 then
+		isSuperceded = true
+		return
+	end
 
-   instanceKey = math.random(10000)
-   isSuperceded = false
-   Gui.Enabled = true
-
-   Header.Position = headerOffscreenPosition
-   playHeaderTween(HEADER_TWEEN_INFO_IN, headerGoalPosition)
+	isSuperceded = false
+	Gui.Enabled = true
 end
 
-function GamemodeHudGui.close(Instant: boolean?)
-   if not GamemodeHudGui.Open and not Gui.Enabled then
-      return
-   end
+function GamemodeHudGui.close(_instant: boolean?)
+	if not GamemodeHudGui.Open and not Gui.Enabled then
+		return
+	end
 
-   GamemodeHudGui.Open = false
-   isSuperceded = false
-   animateAway(Instant)
+	GamemodeHudGui.Open = false
+	isSuperceded = false
+	Gui.Enabled = false
 end
 
 function GamemodeHudGui.supercede()
-   if not GamemodeHudGui.Open then
-      return
-   end
+	if not GamemodeHudGui.Open then
+		return
+	end
 
-   isSuperceded = true
-   animateAway()
+	isSuperceded = true
+	Gui.Enabled = false
 end
 
+-- // The label sits in the topbar row, which the camera already leaves clear
 function GamemodeHudGui.getCameraPadding(): number
-   if not GuiHeader then
-      return 0
-   end
-   return GuiHeader.AbsoluteSize.Y * .75
+	return 0
 end
 
--- // Switch the hud between its colored and grayscale presentation
-local function setDead(isDead: boolean)
-   if ColoredImage then
-      ColoredImage.Visible = not isDead
-   end
-   if GrayscaleImage then
-      GrayscaleImage.Visible = isDead
-   end
-   if GamemodeLabelGradient then
-      GamemodeLabelGradient.Enabled = not isDead
-   end
-   if TimerLabelGradient then
-      TimerLabelGradient.Enabled = not isDead
-   end
-end
-
-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+-- CORE FUNCTIONS
+-------------------------------------------------------------------------------
 
 local function _init()
-   Gui.Parent = Player.PlayerGui
-   Gui.Enabled = false
-   Header.Position = headerOffscreenPosition
+	Gui = Instance.new("ScreenGui")
+	Gui.Name = "GamemodeHud"
+	Gui.ResetOnSpawn = false
+	Gui.ScreenInsets = Enum.ScreenInsets.None -- // Positioned by placeLabel
+	Gui.DisplayOrder = 10 -- // Same as the topbar
+	Gui.Enabled = false
 
-   GuiHeader = Header
-   GamemodeLabel = Header.GamemodeLabel
-   --SubheaderLabel = Header.SubheaderLabel
-   TimerLabel = Header.TimerLabel
+	Label = Instance.new("TextLabel")
+	Label.Name = "GamemodeTimer"
+	Label.AnchorPoint = Vector2.new(0.5, 0.5)
+	Label.BackgroundTransparency = 1
+	Label.Font = FONT
+	Label.TextScaled = true
+	Label.TextColor3 = TEXT_COLOR
+	Label.Text = ""
+	Label.Parent = Gui
 
-   ColoredImage = Header:WaitForChild("Colored") :: ImageLabel
-   GrayscaleImage = Header:WaitForChild("Grayscale") :: ImageLabel
-   GamemodeLabelGradient = GamemodeLabel:WaitForChild("UIGradient") :: UIGradient
-   TimerLabelGradient = TimerLabel:WaitForChild("UIGradient") :: UIGradient
+	local outline = Instance.new("UIStroke")
+	outline.Color = OUTLINE_COLOR
+	outline.Thickness = OUTLINE_THICKNESS
+	outline.Parent = Label
 
-   PlayersUtil.CharacterDied:Add(function(_player, _character)
-      if _player == Player then
-         setDead(true)
-      end
-   end)
+	placeLabel()
+	GuiService:GetPropertyChangedSignal("TopbarInset"):Connect(placeLabel)
 
-   PlayersUtil.CharacterAdded:Add(function(_player, _character)
-      if _player == Player then
-         setDead(false)
-      end
-   end)
+	Gui.Parent = Player.PlayerGui
 end
 _init()
 
 function GamemodeHudGui.start()
-   GameStateLibrary.GameStateSnapshotLoadedTasks:Add(function(_snapshot, _reason)
-      refreshUiFromGameState()
-   end)
-   refreshUiFromGameState()
+	GameStateLibrary.GameStateSnapshotLoadedTasks:Add(function(_snapshot, _reason)
+		refreshUiFromGameState()
+	end)
+	refreshUiFromGameState()
 end
 
 return GamemodeHudGui
