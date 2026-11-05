@@ -30,6 +30,7 @@ local QuestController = require(ReplicatedStorage.Client.Core.QuestController)
 local QuestLibrary = require(ReplicatedStorage.Shared.Library.QuestLibrary)
 local RewardLibrary = require(ReplicatedStorage.Shared.Library.RewardLibrary)
 local Icons = require(ReplicatedStorage.Shared.Constants.Icons)
+local UIUtil = require(ReplicatedStorage.Client.UI.UIUtil)
 local CreateElement = require(ReplicatedStorage.Shared.Utils.CreateElement)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 
@@ -39,8 +40,8 @@ local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibra
 
 -- // Look (placeholders until the quests art exists)
 local TEXT_COLOR = Color3.fromRGB(92, 52, 20)
-local CARD_COLOR = Color3.fromRGB(245, 225, 190)
-local CARD_DONE_COLOR = Color3.fromRGB(215, 240, 190)
+local CARD_COLOR = Color3.fromRGB(255, 240, 205) -- // Tints on the gray card art (they read a little darker than this)
+local CARD_DONE_COLOR = Color3.fromRGB(220, 255, 190)
 local BAR_BACK_COLOR = Color3.fromRGB(200, 170, 130)
 local BAR_FILL_COLOR = Color3.fromRGB(110, 200, 90)
 local CLAIM_COLOR = Color3.fromRGB(90, 190, 70)
@@ -68,7 +69,8 @@ local SECONDS_IN_DAY = 86400
 -------------------------------------------------------------------------------
 
 type Card = {
-	Frame: ImageLabel,
+	Frame: Frame,
+	Art: ImageLabel,
 	Description: TextLabel,
 	Fill: Frame,
 	ProgressText: TextLabel,
@@ -261,13 +263,13 @@ local function createCard(poolName: string, slotIndex: number): Card
 		}),
 	})
 
-	local frame = CreateElement("ImageLabel", {
+	local art = UIUtil.createListingCardArt(CARD_COLOR)
+	local frame = CreateElement("Frame", {
 		Name = `{poolName}Quest{slotIndex}`,
 		Size = UDim2.new(1, 0, 0, 40), -- // Height is set by resizeList
 		BackgroundTransparency = 1,
-		Image = `rbxassetid://{Icons.MenuListingCard}`, -- // Grayscale card art, tinted (stretched to the card)
-		ImageColor3 = CARD_COLOR,
 	}, {
+		art,
 		description,
 		bar,
 		reward,
@@ -276,6 +278,7 @@ local function createCard(poolName: string, slotIndex: number): Card
 
 	return {
 		Frame = frame,
+		Art = art,
 		Description = description,
 		Fill = fill,
 		ProgressText = progressText,
@@ -428,7 +431,7 @@ local function updateCard(card: Card, poolName: string, slotIndex: number, slot:
 	local isComplete = progress >= goal
 	local isBusy = busySlot == `{poolName}/{slotIndex}`
 	local canClaim = QuestLibrary.isClaimable(slot)
-	card.Frame.ImageColor3 = if isComplete then CARD_DONE_COLOR else CARD_COLOR
+	card.Art.ImageColor3 = if isComplete then CARD_DONE_COLOR else CARD_COLOR
 
 	-- // Reward: green button only while it can be claimed
 	card.Reward.Active = canClaim and not isBusy
