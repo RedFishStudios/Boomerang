@@ -20,6 +20,8 @@ local ArenaLibrary = require(ReplicatedStorage.Shared.Library.ArenaLibrary)
 local GameplayPhases = require(ReplicatedStorage.Shared.Constants.Enums.GameplayPhases)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local LobbyController = require(ReplicatedStorage.Client.Core.LobbyController)
+local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
+local DeadWeapons = require(ReplicatedStorage.Shared.Referential.DeadWeapons)
 
 local localPlayer = Players.LocalPlayer
 
@@ -45,6 +47,8 @@ local CAMERA_DISTANCE_SMOOTH_MAX = 30
 local OVERHEAD_FIELD_OF_VIEW = 20 -- // Vertical degrees. Lower = flatter, but further away. The old top-down camera used 60
 local OVERHEAD_MAX_FIELD_OF_VIEW = 60 -- // The widest it may open to keep everything framed within the distance limit
 local OVERHEAD_MAX_DISTANCE_FROM_CHARACTER = 299 -- // Studs (300 with a margin)
+local WEAPON_FRAME_SIZE = Vector3.new(2, 2, 2) -- // Box each framed boomerang adds
+local WEAPON_ANCHOR_ARRIVED_DISTANCE = 1 -- // Studs: a gone boomerang's point is dropped once it's back at its owner
 local REFERENCE_FIELD_OF_VIEW = 60 -- // CAMERA_DISTANCE_PADDING / CAMERA_MIN_DISTANCE were tuned at this FOV; they scale with it
 local PARRY_SHAKE_DURATION = 0.28
 local PARRY_SHAKE_POSITION = 0.9
@@ -56,6 +60,14 @@ local PARRY_SHAKE_FREQUENCY = 34
 -------------------------------------------------------------------------------
 
 type CameraMode = "Overhead" | "Regular"
+
+-- // The point the camera frames for one boomerang on the field. It chases the boomerang at a capped speed rather than
+-- // jumping with it, so the view glides after fast throws (a throw may briefly outrun it).
+type WeaponAnchor = {
+   Position: Vector3,
+   Owner: Player,
+   LastSeenAt: number,
+}
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
@@ -69,6 +81,7 @@ local cameraShakeConnection: RBXScriptConnection? = nil
 local smoothedFocusPosition: Vector3? = nil
 local smoothedCameraDistance: number? = nil
 local smoothedFieldOfView: number? = nil -- // FAKE ORTHOGRAPHIC (2026-11-02)
+local weaponAnchors: { [string]: WeaponAnchor } = {} -- // By boomerang InstanceId
 local parryShakeStart: number? = nil
 local parryShakeEnd: number? = nil
 
@@ -97,6 +110,88 @@ local function getCameraFocusMapObjects(): {Instance?}
       return {}
    end
    return cameraFocusFolder:GetChildren()
+end
+
+local function toFocalHeight(position: Vector3): Vector3
+   return Vector3.new(position.X, GlobalConfig.CharacterFocalHeight, position.Z)
+end
+
+local function getWeaponSetting(setting: TopDownCameraLibrary.Setting, default: number): number
+   return TopDownCameraLibrary.get(setting) or default
+end
+
+-- // Boomerangs on the field (thrown, returning, dying or dead), by InstanceId. Held boomerangs are in neither table, so
+-- // the sway of a holding player's animation never reaches the camera. A boomerang this client has predicted as caught
+-- // (waiting for the server) is already treated as gone.
+local function getFieldWeapons(): { [string]: { Position: Vector3, Owner: Player } }
+   local weapons = {}
+   for owner, data in ThrownWeapons.Data do
+      if data.CFrame and data.InstanceId and not data.PendingCatchAt and not data.HostHidden then
+         weapons[data.InstanceId] = { Position = data.CFrame.Position, Owner = owner }
+      end
+   end
+   for owner, data in DeadWeapons.Data do
+      local position = (data.CFrame and data.CFrame.Position) or data.LastPosition
+      if position and data.InstanceId then
+         weapons[data.InstanceId] = { Position = position, Owner = owner }
+      end
+   end
+   return weapons
+end
+
+local function getOwnerPosition(owner: Player): Vector3?
+   local root = owner.Parent and owner.Character and owner.Character.PrimaryPart
+   return if root then toFocalHeight(root.Position) else nil
+end
+
+-- // Moves every boomerang's point toward its boomerang, at most CameraWeaponFollowSpeed studs/s. A new point starts at the
+-- // thrower; a point whose boomerang left the field stays CameraWeaponHoldSeconds, then eases back to its owner and is dropped.
+local function updateWeaponAnchors(deltaTime: number)
+   local now = os.clock()
+   local followStep = getWeaponSetting("WeaponFollowSpeed", GlobalConfig.CameraWeaponFollowSpeed) * deltaTime
+   local holdSeconds = getWeaponSetting("WeaponHoldSeconds", GlobalConfig.CameraWeaponHoldSeconds)
+   local fieldWeapons = getFieldWeapons()
+
+   for instanceId, weapon in fieldWeapons do
+      local anchor = weaponAnchors[instanceId]
+      if not anchor then
+         anchor = {
+            Position = getOwnerPosition(weapon.Owner) or toFocalHeight(weapon.Position),
+            Owner = weapon.Owner,
+            LastSeenAt = now,
+         }
+         weaponAnchors[instanceId] = anchor
+      end
+      anchor.LastSeenAt = now
+   end
+
+   for instanceId, anchor in weaponAnchors do
+      local weapon = fieldWeapons[instanceId]
+      local target: Vector3?
+      if weapon then
+         target = toFocalHeight(weapon.Position)
+      elseif now - anchor.LastSeenAt < holdSeconds then
+         target = anchor.Position -- // Holding
+      else
+         target = getOwnerPosition(anchor.Owner)
+         if not target then
+            weaponAnchors[instanceId] = nil -- // Owner gone
+            continue
+         end
+      end
+
+      local offset = target - anchor.Position
+      local distance = offset.Magnitude
+      if distance <= followStep then
+         anchor.Position = target
+      else
+         anchor.Position += offset.Unit * followStep
+      end
+
+      if not weapon and now - anchor.LastSeenAt >= holdSeconds and distance <= WEAPON_ANCHOR_ARRIVED_DISTANCE then
+         weaponAnchors[instanceId] = nil -- // Back at its owner
+      end
+   end
 end
 
 -- // Get parameters for the Overhead camera to have these desired objects within its view
@@ -143,6 +238,25 @@ local function getAllSubjectsBoundingBox()
             table.insert(sizes, player.Character.PrimaryPart.Size)
          end
       end
+      -- // Boomerangs on the field, through their chasing points (updateWeaponAnchors), within range of a living player
+      local maxRange = getWeaponSetting("WeaponMaxRange", GlobalConfig.CameraWeaponMaxRange)
+      for _, anchor in weaponAnchors do
+         local inRange = false
+         for _, player in ipairs(livingPlayersInArena) do
+            local playerPosition = getOwnerPosition(player)
+            if playerPosition and (playerPosition - anchor.Position).Magnitude <= maxRange then
+               inRange = true
+               break
+            end
+         end
+         if inRange then
+            table.insert(positions, anchor.Position)
+            table.insert(sizes, WEAPON_FRAME_SIZE)
+         end
+      end
+
+      -- // Previous version: framed the weapon models in workspace.Weapons, which include ones held in hand, so the
+      -- // holding animation's sway shook the camera
       --[[for _, weapon in ipairs(thrownWeaponsFolder:GetChildren()) do
          if ToolController.isHolstered(weapon) then
             continue
@@ -424,6 +538,7 @@ local function updateCamera(deltaTime: number)
       return -- // No usable view (e.g. a minimized window): keep the last placement
    end
 
+   updateWeaponAnchors(deltaTime)
    local focusPosition, boxSize = getAllSubjectsBoundingBox()
    if not focusPosition or not boxSize then
       return
@@ -519,6 +634,7 @@ local function startOverheadMode()
    smoothedFocusPosition = nil
    smoothedCameraDistance = nil
    smoothedFieldOfView = nil
+   table.clear(weaponAnchors)
    placeCameraInstantly()
    overheadCameraConnection = RunService.RenderStepped:Connect(updateCamera)
 end
@@ -549,6 +665,7 @@ local function stopOverheadMode()
    smoothedFocusPosition = nil
    smoothedCameraDistance = nil
    smoothedFieldOfView = nil
+   table.clear(weaponAnchors)
    currentCamera = nil
 end
 
