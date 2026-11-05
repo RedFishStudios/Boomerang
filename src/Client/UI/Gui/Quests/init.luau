@@ -30,6 +30,7 @@ local QuestController = require(ReplicatedStorage.Client.Core.QuestController)
 local QuestLibrary = require(ReplicatedStorage.Shared.Library.QuestLibrary)
 local RewardLibrary = require(ReplicatedStorage.Shared.Library.RewardLibrary)
 local Icons = require(ReplicatedStorage.Shared.Constants.Icons)
+local GuiColors = require(ReplicatedStorage.Shared.Referential.GuiColors)
 local UIUtil = require(ReplicatedStorage.Client.UI.UIUtil)
 local CreateElement = require(ReplicatedStorage.Shared.Utils.CreateElement)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
@@ -40,8 +41,8 @@ local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibra
 
 -- // Look (placeholders until the quests art exists)
 local TEXT_COLOR = Color3.fromRGB(92, 52, 20)
-local CARD_COLOR = Color3.fromRGB(255, 240, 205) -- // Tints on the gray card art (they read a little darker than this)
-local CARD_DONE_COLOR = Color3.fromRGB(220, 255, 190)
+local CARD_COLOR = GuiColors.CommonItemFrame -- // Same tan as owned listings in the Shop and Inventory
+local CARD_DONE_COLOR = Color3.fromRGB(130, 215, 80) -- // Same green as an equipped listing in the Inventory
 local BAR_BACK_COLOR = Color3.fromRGB(200, 170, 130)
 local BAR_FILL_COLOR = Color3.fromRGB(110, 200, 90)
 local CLAIM_COLOR = Color3.fromRGB(90, 190, 70)

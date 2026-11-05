@@ -21,8 +21,8 @@ return {
 
    -- Currency
    CurrencyIcon = 110596837298294, -- // The coin: shown for currency amounts (Shop buttons, Daily Rewards)
-   QuestReroll = 90107008743164,
-   MenuListingCard = 101888093316548, -- // "WideCard": grayscale rounded card (tint with ImageColor3) behind each quest (Quests) and setting (Settings) -- // The Reroll button on each quest in the Quests menu
+   QuestReroll = 90107008743164, -- // The Reroll button on each quest in the Quests menu
+   MenuListingCard = 98265514231271, -- // "WideCard": light grayscale rounded card (tint with ImageColor3) behind each quest (Quests) and setting (Settings)
    RobuxIcon = 108754684100527, -- // The Robux hexagon (Shop Robux price buttons)
 
    -- Shop

@@ -29,6 +29,7 @@ local SettingConstants = require(ReplicatedStorage.Shared.Constants.SettingConst
 local CreateElement = require(ReplicatedStorage.Shared.Utils.CreateElement)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local Icons = require(ReplicatedStorage.Shared.Constants.Icons)
+local GuiColors = require(ReplicatedStorage.Shared.Referential.GuiColors)
 local UIUtil = require(ReplicatedStorage.Client.UI.UIUtil)
 
 -------------------------------------------------------------------------------
@@ -39,7 +40,7 @@ local UIUtil = require(ReplicatedStorage.Client.UI.UIUtil)
 -- // tinted with ImageColor3
 local TEXT_COLOR = Color3.fromRGB(92, 52, 20)
 local OUTLINE_COLOR = Color3.fromRGB(45, 28, 12) -- // Same as the shop's text outline
-local ROW_COLOR = Color3.fromRGB(255, 225, 175) -- // Warm tan once applied to the gray card art
+local ROW_COLOR = GuiColors.CommonItemFrame -- // Same tan as owned listings in the Shop and Inventory
 local TOGGLE_ON_COLOR = Color3.fromRGB(150, 255, 90) -- // The shop's currency button tint
 local TOGGLE_OFF_COLOR = Color3.fromRGB(150, 150, 150) -- // The shop's "owned" button tint
 local TRACK_COLOR = Color3.fromRGB(120, 85, 50)
