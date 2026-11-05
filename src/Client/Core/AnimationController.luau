@@ -29,7 +29,7 @@ local KeyframeClipTrack = require(ReplicatedStorage.Client.Core.KeyframeClipTrac
 -- TYPES
 -------------------------------------------------------------------------------
 
-export type CoreTrackNames = "Charging" | "Throw" | "Catch" | "HeavyCatch" | "Stab" | "Dash" | "Summon"
+export type CoreTrackNames = "Charging" | "Throw" | "Catch" | "HeavyCatch" | "ReturnCatch" | "Stab" | "Dash" | "Summon"
 
 type TrackEntry = {
    Track: any, -- // AnimationTrack, or a KeyframeClipTrack for Clip animations (same Play/Stop/IsPlaying use)
@@ -58,7 +58,7 @@ local playerTrackData: {
    [Player]: PlayerTrackData
 } = {}
 
-local DefaultCoreTrackNames: { CoreTrackNames } = { "Charging", "Throw", "Catch", "HeavyCatch", "Stab", "Dash", "Summon" }
+local DefaultCoreTrackNames: { CoreTrackNames } = { "Charging", "Throw", "Catch", "HeavyCatch", "ReturnCatch", "Stab", "Dash", "Summon" }
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES

@@ -77,7 +77,7 @@ local GlobalConfig = {
    GroupRewardCurrency = 100, -- TODO:RELEASE placeholder
 
    -- // Catching a returning boomerang (CatchLibrary)
-   HeavyCatchMinClosingSpeed = 120, -- // Studs/s toward the catcher at contact for the heavy catch (Cmdr: tuneboomerang HeavyCatchSpeed)
+   HeavyCatchMinClosingSpeed = 80, -- // Studs/s toward the catcher at contact for the heavy catch (Cmdr: tuneboomerang HeavyCatchSpeed)
    HeavyCatchPushDistance = 3, -- // Studs a grounded heavy catch pushes the catcher back
    HeavyCatchPushSeconds = 0.18,
 

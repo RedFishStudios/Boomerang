@@ -83,17 +83,18 @@ local Animations: {
 		Looping = true
 	},
 
-   -- // Previous uploaded-asset version, kept for reference:
-   -- Catch = {
-   --    Id = 111625966555407,
-   --    Layer = "WeaponAction",
-   --    FadeIn = .2,
-   --    FadeOut = .2,
-   --    Looping = false,
-   --    Priority = Enum.AnimationPriority.Action,
-   -- },
+   -- // Catching a boomerang that came back on its own (automatic return) or was picked up: the original catch
+   ReturnCatch = {
+      Id = 111625966555407,
+      Layer = "WeaponAction",
+      FadeIn = .2,
+      FadeOut = .2,
+      Looping = false,
+      Priority = Enum.AnimationPriority.Action,
+   },
 
-   -- // Catches (CatchLibrary picks one by the boomerang's closing speed); both end by easing their own weight to 0
+   -- // Catching a manually recalled boomerang (CatchLibrary picks one by its closing speed); both end by easing their own
+   -- // weight to 0
    Catch = {
       Clip = "Recall_Catch_R15",
       LowerBodyWhileMoving = false,

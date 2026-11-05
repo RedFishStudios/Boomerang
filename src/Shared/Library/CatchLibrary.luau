@@ -17,6 +17,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
+local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.CollisionGroupConstants)
 local BoomerangTuningLibrary = require(ReplicatedStorage.Shared.Library.BoomerangTuningLibrary)
 
 local isServer = RunService:IsServer()
@@ -29,7 +30,8 @@ local MIN_TOWARD_DISTANCE = 0.01
 local BODY_SIZE = Vector3.new(2, 4, 1) -- // Blockcast for walls in the push's way (torso width, step height to head)
 local WALL_MARGIN = 0.3
 local GROUND_PROBE_STEP = 0.5 -- // Studs between ground checks along the push
-local GROUND_PROBE_DEPTH = 6 -- // Studs below the root a probe looks for ground
+local BODY_BELOW_ROOT = 3 -- // Feet are this far below the root (R6), as in the dash
+local GROUND_PROBE_DEPTH = BODY_BELOW_ROOT + 5 -- // Studs below the root a probe looks for ground (any deeper is an edge)
 local MIN_GROUND_NORMAL_Y = 0.65
 
 -------------------------------------------------------------------------------
@@ -68,11 +70,29 @@ local function flat(vector: Vector3): Vector3
 	return Vector3.new(vector.X, 0, vector.Z)
 end
 
+-- // Casts that see what the player's body collides with (the same as the dash's)
 local function getCastParams(character: Model): RaycastParams
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = { character, workspace:FindFirstChild("Characters"), workspace:FindFirstChild("Weapons") }
+	params.FilterDescendantsInstances = { character }
+	params.CollisionGroup = CollisionGroupConstants.Players
 	params.RespectCanCollide = true
+	return params
+end
+
+-- // Lazily required, like the dash (load order)
+local WaterLogic = nil
+local function getWaterCastParams(): RaycastParams?
+	if not WaterLogic then
+		WaterLogic = require(ReplicatedStorage.Shared.Logics.Environment.Water)
+	end
+	local waterParts = WaterLogic.getCurrentWaterParts()
+	if #waterParts == 0 then
+		return nil
+	end
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Include
+	params.FilterDescendantsInstances = waterParts
 	return params
 end
 
@@ -83,11 +103,14 @@ local function getSafeDistance(character: Model, rootPart: BasePart, direction: 
 	local wall = workspace:Blockcast(CFrame.lookAt(rootPosition, rootPosition + direction), BODY_SIZE, direction * distance, params)
 	local safe = if wall then math.max(0, wall.Distance - WALL_MARGIN) else distance
 
+	local waterParams = getWaterCastParams()
 	local travelled = GROUND_PROBE_STEP
 	while travelled <= safe do
 		local probe = rootPosition + direction * travelled
 		local hit = workspace:Raycast(probe, Vector3.new(0, -GROUND_PROBE_DEPTH, 0), params)
-		if not hit or hit.Material == Enum.Material.Water or hit.Normal.Y < MIN_GROUND_NORMAL_Y then
+		local overWater = hit ~= nil and waterParams ~= nil
+			and workspace:Raycast(probe, Vector3.new(0, hit.Position.Y - probe.Y - 0.05, 0), waterParams) ~= nil
+		if not hit or hit.Normal.Y < MIN_GROUND_NORMAL_Y or overWater then
 			return math.max(0, travelled - GROUND_PROBE_STEP)
 		end
 		travelled += GROUND_PROBE_STEP
@@ -115,14 +138,15 @@ local function stepPushes()
 			stopPush(player)
 			continue
 		end
-		local travelled = flat(push.RootPart.Position - push.Start):Dot(push.Direction)
-		local elapsed = now - push.StartedAt
-		if elapsed >= push.Duration or travelled >= push.Distance then
+		local remaining = push.Distance - flat(push.RootPart.Position - push.Start):Dot(push.Direction)
+		local timeLeft = push.Duration - (now - push.StartedAt)
+		if timeLeft <= 0 or remaining <= 0.05 then
 			stopPush(player)
 			continue
 		end
-		-- // Strongest at the start, slowing to a stop (covers the distance over the duration)
-		local speed = push.InitialSpeed * (1 - elapsed / push.Duration)
+		-- // Strongest at the start, slowing to a stop. Re-aimed every frame at what's left (the Humanoid's own movement drags
+		-- // on it), so it still covers the distance; capped so a stuck push can't build up a launch
+		local speed = math.min(2 * remaining / timeLeft, push.InitialSpeed * 1.5)
 		local velocity = push.RootPart.AssemblyLinearVelocity
 		push.RootPart.AssemblyLinearVelocity = Vector3.new(push.Direction.X * speed, velocity.Y, push.Direction.Z * speed)
 	end

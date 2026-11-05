@@ -10,8 +10,8 @@
 	the boomerang is caught / removed (the ring is destroyed at once and the animation stops).
 	(The lift itself and the charge timing live in Dead.luau; the player-to-boomerang beam is DeadWeaponBeamController.)
 
-	The recall pose ("Summon") and pale-yellow pulse rings at the pulling (right) hand also play while a boomerang returns
-	on its own (automatic return), until it's caught.
+	While the manual recall lasts, the recall pose ("Summon") plays with pale-yellow pulse rings at the pulling (right) hand.
+	An automatic return shows neither.
 
 	Like the beam controller, nothing here reacts to events: every frame it compares what should exist with what does, so a
 	late, duplicated or missing event can't leave a stray ring or a stuck animation.
@@ -197,15 +197,6 @@ local function setSummon(player: Player, wanted: boolean)
 	end
 end
 
--- // A boomerang flying back to its player on its own (not yet caught on this client)
-local function isReturningAutomatically(player: Player): boolean
-	local thrownWeaponData = ThrownWeapons.Data[player]
-	return thrownWeaponData ~= nil
-		and thrownWeaponData.State == ThrownWeapons.StateEnum.Returning
-		and not thrownWeaponData.PendingCatchAt
-		and not thrownWeaponData.HostHidden
-end
-
 local function removeHandPulse(player: Player)
 	local pulse = handPulses[player]
 	if pulse then
@@ -282,10 +273,8 @@ end
 local function reconcilePlayer(player: Player)
 	local position = getWeaponPosition(player)
 	local wanted = position ~= nil and DeadWeaponLogic.isRecallChargeActive(player)
-	local recallPose = wanted or isReturningAutomatically(player)
-
-	setSummon(player, recallPose)
-	updateHandPulse(player, recallPose)
+	setSummon(player, wanted)
+	updateHandPulse(player, wanted)
 
 	local entry = rings[player]
 	if wanted then
