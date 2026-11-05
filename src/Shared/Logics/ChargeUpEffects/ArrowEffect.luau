@@ -24,8 +24,9 @@ local ARROW_BASE_DISTANCE = 3 -- // Studs in front of the character at zero char
 local ARROW_EXTRA_DISTANCE_AT_FULL_STRENGTH = 5 -- // Extra studs the arrow moves out by at full charge (reached after GlobalConfig.ChargeTime)
 local ARROW_HEIGHT_OFFSET = -2 -- // The arrow sits this far below the root part
 local SHAKE_START_ALPHA = 0.8 -- // Charge progress at which the arrow starts to shake
-local SHAKE_MAX_OFFSET_SCALE = 0.25 -- // Shake amplitude as a fraction of the arrow image's default offset
-local SHAKE_SPEED = 4.5
+local SHAKE_MAX_OFFSET_SCALE = 0.45 -- // Shake amplitude as a fraction of the arrow image's default offset
+local SHAKE_MAX_ROTATION_DEGREES = 8 -- // The arrow also wobbles side to side by up to this much at full charge
+local SHAKE_SPEED = 14
 local SHAKE_NOISE_SCALE = 0.11
 -- // The arrow is moved sideways onto the line the boomerang leaves along (under the held boomerang), not the
 -- // character's centre. This is how quickly it follows the hand as the charge animation moves it (higher = snappier).
@@ -72,6 +73,7 @@ function ArrowEffect.apply(template: Model, player: Player): ChargeUpEffectLibra
 	local startSize = fullSize * START_SIZE_SCALE
 	local shakingFrame = primaryPart.SurfaceGui.CanvasGroup.Arrows
 	local defaultPosition = templatePart.SurfaceGui.CanvasGroup.Arrows.Position
+	local defaultRotation = templatePart.SurfaceGui.CanvasGroup.Arrows.Rotation
 
 	local handle = {} :: ChargeUpEffectLibrary.ChargeUpEffectHandle
 	local sideOffset: Vector3? = nil -- // Eased toward the throw line's offset
@@ -117,14 +119,17 @@ function ArrowEffect.apply(template: Model, player: Player): ChargeUpEffectLibra
 			-- // Smooth noise so the direction shifts fluidly over multiple frames
 			local shakeX = (math.noise(player.UserId * SHAKE_NOISE_SCALE, now * SHAKE_SPEED, 0) * shakePixels) * 100
 			local shakeY = (math.noise((player.UserId + 97) * SHAKE_NOISE_SCALE, now * SHAKE_SPEED, 0) * shakePixels) * 100
+			local shakeRotation = math.noise((player.UserId + 193) * SHAKE_NOISE_SCALE, now * SHAKE_SPEED, 0) * 2 * SHAKE_MAX_ROTATION_DEGREES * shakeAlpha
 			shakingFrame.Position = UDim2.new(
 				defaultPosition.X.Scale,
 				defaultPosition.X.Offset + shakeX,
 				defaultPosition.Y.Scale,
 				defaultPosition.Y.Offset + shakeY
 			)
+			shakingFrame.Rotation = defaultRotation + math.clamp(shakeRotation, -SHAKE_MAX_ROTATION_DEGREES, SHAKE_MAX_ROTATION_DEGREES)
 		else
 			shakingFrame.Position = defaultPosition
+			shakingFrame.Rotation = defaultRotation
 		end
 	end
 
