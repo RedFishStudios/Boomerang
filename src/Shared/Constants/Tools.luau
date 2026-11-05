@@ -36,7 +36,7 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
       Boomerang = {
          HitboxRadius = 2,
          Speed = 75,
-         ManualRecallSpeed = 120
+         ManualRecallSpeed = 200
       }
    },
    PlaceholderBoomerang = { -- TODO:RELEASE placeholder (copy of ClassicBoomerang)
@@ -49,7 +49,7 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
       Boomerang = {
          HitboxRadius = 2,
          Speed = 75,
-         ManualRecallSpeed = 120
+         ManualRecallSpeed = 200
       }
    },
 
@@ -64,7 +64,7 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
       Boomerang = {
          HitboxRadius = 1,
          Speed = 75,
-         ManualRecallSpeed = 120
+         ManualRecallSpeed = 200
       }
    },
    PlaceholderShuriken = { -- TODO:RELEASE placeholder (copy of ClassicShuriken)
@@ -77,7 +77,7 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
       Boomerang = {
          HitboxRadius = 1,
          Speed = 75,
-         ManualRecallSpeed = 120
+         ManualRecallSpeed = 200
       }
    },
 
@@ -92,7 +92,7 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
       Boomerang = {
          HitboxRadius = 3,
          Speed = 75,
-         ManualRecallSpeed = 120
+         ManualRecallSpeed = 200
       }
    },
    PlaceholderFan = { -- TODO:RELEASE placeholder (copy of ClassicFan)
@@ -105,7 +105,7 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
       Boomerang = {
          HitboxRadius = 3,
          Speed = 75,
-         ManualRecallSpeed = 120
+         ManualRecallSpeed = 200
       }
    },
 
