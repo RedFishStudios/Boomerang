@@ -65,6 +65,7 @@ type CameraMode = "Overhead" | "Regular"
 -- // jumping with it, so the view glides after fast throws (a throw may briefly outrun it).
 type WeaponAnchor = {
    Position: Vector3,
+   Speed: number, -- // Current chase speed (studs/s): builds up, so the view starts gently and then catches up
    Owner: Player,
    LastSeenAt: number,
 }
@@ -144,11 +145,14 @@ local function getOwnerPosition(owner: Player): Vector3?
    return if root then toFocalHeight(root.Position) else nil
 end
 
--- // Moves every boomerang's point toward its boomerang, at most CameraWeaponFollowSpeed studs/s. A new point starts at the
--- // thrower; a point whose boomerang left the field stays CameraWeaponHoldSeconds, then eases back to its owner and is dropped.
+-- // Moves every boomerang's point toward its boomerang: it speeds up over CameraWeaponAccelerationSeconds to at most
+-- // CameraWeaponFollowSpeed, and slows the same way as it arrives (no overshoot). A new point starts at the thrower; a point
+-- // whose boomerang left the field stays CameraWeaponHoldSeconds, then eases back to its owner and is dropped.
 local function updateWeaponAnchors(deltaTime: number)
    local now = os.clock()
-   local followStep = getWeaponSetting("WeaponFollowSpeed", GlobalConfig.CameraWeaponFollowSpeed) * deltaTime
+   local topSpeed = getWeaponSetting("WeaponFollowSpeed", GlobalConfig.CameraWeaponFollowSpeed)
+   local accelerationSeconds = getWeaponSetting("WeaponAccelerationSeconds", GlobalConfig.CameraWeaponAccelerationSeconds)
+   local acceleration = topSpeed / math.max(accelerationSeconds, 1e-3)
    local holdSeconds = getWeaponSetting("WeaponHoldSeconds", GlobalConfig.CameraWeaponHoldSeconds)
    local fieldWeapons = getFieldWeapons()
 
@@ -157,6 +161,7 @@ local function updateWeaponAnchors(deltaTime: number)
       if not anchor then
          anchor = {
             Position = getOwnerPosition(weapon.Owner) or toFocalHeight(weapon.Position),
+            Speed = 0,
             Owner = weapon.Owner,
             LastSeenAt = now,
          }
@@ -182,10 +187,14 @@ local function updateWeaponAnchors(deltaTime: number)
 
       local offset = target - anchor.Position
       local distance = offset.Magnitude
-      if distance <= followStep then
+      -- // Fastest speed that can still slow to a stop by the target, capped at the top speed
+      local arrivingSpeed = math.min(topSpeed, math.sqrt(2 * acceleration * distance))
+      anchor.Speed = math.min(anchor.Speed + acceleration * deltaTime, arrivingSpeed)
+      local step = anchor.Speed * deltaTime
+      if distance <= step then
          anchor.Position = target
       else
-         anchor.Position += offset.Unit * followStep
+         anchor.Position += offset.Unit * step
       end
 
       if not weapon and now - anchor.LastSeenAt >= holdSeconds and distance <= WEAPON_ANCHOR_ARRIVED_DISTANCE then

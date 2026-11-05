@@ -77,7 +77,8 @@ local GlobalConfig = {
    GroupRewardCurrency = 100, -- TODO:RELEASE placeholder
 
    -- // Top-down camera framing of boomerangs on the field (Cmdr `topdowncam weaponspeed | weaponhold | weaponrange`)
-   CameraWeaponFollowSpeed = 70, -- // Studs/s the camera's point for each boomerang chases it
+   CameraWeaponFollowSpeed = 55, -- // Top speed (studs/s) of the camera's point chasing each boomerang
+   CameraWeaponAccelerationSeconds = 0.4, -- // Seconds that point takes to speed up from rest to top speed (it slows the same way)
    CameraWeaponHoldSeconds = 0.5, -- // Seconds a boomerang's point stays after it leaves the field, before easing back to its owner
    CameraWeaponMaxRange = 100, -- // Studs from the nearest living player beyond which a boomerang isn't framed
 

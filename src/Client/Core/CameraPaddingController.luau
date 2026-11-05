@@ -4,6 +4,7 @@
 
 local CameraPaddingController = {}
 
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -28,8 +29,10 @@ local HudButtonsGui = require(ReplicatedStorage.Client.UI.Gui.HudButtons)
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
+-- // The topbar row (Roblox's buttons, ours and the gamemode text) is drawn over the 3D view, so it's padding too
 function CameraPaddingController.getTopPadding(): number
-   return GamemodeHudGui.getCameraPadding()
+   local topbar = GuiService.TopbarInset
+   return math.max(GamemodeHudGui.getCameraPadding(), topbar.Min.Y + topbar.Height)
 end
 
 function CameraPaddingController.getBottomPadding(): number

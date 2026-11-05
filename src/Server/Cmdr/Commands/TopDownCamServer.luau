@@ -9,10 +9,11 @@ local SETTINGS = {
 	fov = { Setting = "FieldOfView", Unit = "degrees", Range = TopDownCameraLibrary.FIELD_OF_VIEW_RANGE, ResetValue = -1, Default = "20 degrees" },
 	distance = { Setting = "Distance", Unit = "studs", Range = TopDownCameraLibrary.DISTANCE_RANGE, ResetValue = 0, Default = "automatic" },
 	weaponspeed = { Setting = "WeaponFollowSpeed", Unit = "studs/s", Range = TopDownCameraLibrary.WEAPON_FOLLOW_SPEED_RANGE, ResetValue = -1, Default = `{GlobalConfig.CameraWeaponFollowSpeed} studs/s` },
+	weaponaccel = { Setting = "WeaponAccelerationSeconds", Unit = "seconds", Range = TopDownCameraLibrary.WEAPON_ACCELERATION_SECONDS_RANGE, ResetValue = -1, Default = `{GlobalConfig.CameraWeaponAccelerationSeconds} seconds` },
 	weaponhold = { Setting = "WeaponHoldSeconds", Unit = "seconds", Range = TopDownCameraLibrary.WEAPON_HOLD_SECONDS_RANGE, ResetValue = -1, Default = `{GlobalConfig.CameraWeaponHoldSeconds} seconds` },
 	weaponrange = { Setting = "WeaponMaxRange", Unit = "studs", Range = TopDownCameraLibrary.WEAPON_MAX_RANGE_RANGE, ResetValue = -1, Default = `{GlobalConfig.CameraWeaponMaxRange} studs` },
 }
-local ORDER = { "tilt", "fov", "distance", "weaponspeed", "weaponhold", "weaponrange" }
+local ORDER = { "tilt", "fov", "distance", "weaponspeed", "weaponaccel", "weaponhold", "weaponrange" }
 
 local function describe(name: string): string
 	local info = SETTINGS[name]
