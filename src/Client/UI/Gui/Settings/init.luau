@@ -291,7 +291,7 @@ local function createRow(settingName: SettingConstants.SettingName, order: numbe
 		LayoutOrder = order,
 		Size = UDim2.new(1, 0, 0, 20), -- // Height is set by resizeList
 		BackgroundTransparency = 1,
-		Image = `rbxassetid://{Icons.ShopListingBase}`, -- // Stretched to the row
+		Image = `rbxassetid://{Icons.MenuListingCard}`, -- // Grayscale card art, tinted (stretched to the row)
 		ImageColor3 = ROW_COLOR,
 	}, {
 		title,
