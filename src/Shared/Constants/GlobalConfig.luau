@@ -52,11 +52,9 @@ local GlobalConfig = {
    ManualRecallApproachStartFraction = 0.17, -- // Fraction of full recall speed it starts at
    ManualRecallApproachCurve = 2, -- // Speed-up shape: 1 = steady, below 1 = picks up pace sooner
    ManualRecallRiseDistance = 60, -- // Studs flown while the drawn boomerang rises to flight height
-   ManualRecallLiftRate = 2.5, -- // Unused
    ManualRecallMaxTiltDegrees = 35,
    RecallChargeCancelDropSeconds = 0.25, -- // Unused
    DeadBeamFadeSeconds = 0.4,
-   RecallChargeBeamOpacity = 0.2, -- // Unused
    RecallReturnBeamFadeInSeconds = 0.3,
    SelectionRingGrowSeconds = 0.3,
    SelectionRingVanishSeconds = 0.15,
