@@ -61,21 +61,55 @@ local Animations: {
       Looping = false
    },
 
+	-- // Previous uploaded-asset version, kept for reference:
+	-- Summon = {
+	-- 	Id = 93282079872868,
+	-- 	Layer = "WeaponAction",
+	-- 	FadeIn = .6,
+	-- 	FadeOut = .2,
+	-- 	Looping = true
+	-- },
+
+	-- // The recall pose, while a boomerang flies back (manual or automatic; RecallChargeController). The client's clips
+	-- // are mirrored (recall and catch with the right hand, where the boomerang is held)
 	Summon = {
-		Id = 93282079872868,
+		Clip = "Recall_Hold_R15",
+		IntroClip = "Recall_Start_R15", -- // Fades itself in
+		LowerBodyWhileMoving = false,
 		Layer = "WeaponAction",
-		FadeIn = .6,
-		FadeOut = .2,
+		FadeIn = .05,
+		FadeOut = .15,
 		Looping = true
 	},
 
-   Catch = {
+   -- // Catching a boomerang that came back on its own (automatic return) or was picked up: the original catch
+   ReturnCatch = {
       Id = 111625966555407,
       Layer = "WeaponAction",
       FadeIn = .2,
       FadeOut = .2,
       Looping = false,
       Priority = Enum.AnimationPriority.Action,
+   },
+
+   -- // Catching a manually recalled boomerang (CatchLibrary picks one by its closing speed); both end by easing their own
+   -- // weight to 0
+   Catch = {
+      Clip = "Recall_Catch_R15",
+      LowerBodyWhileMoving = false,
+      Layer = "WeaponAction",
+      FadeIn = .03,
+      FadeOut = .15,
+      Looping = false,
+   },
+
+   HeavyCatch = {
+      Clip = "Recall_HeavyCatch_R15",
+      LowerBodyWhileMoving = false,
+      Layer = "WeaponAction",
+      FadeIn = .02,
+      FadeOut = .15,
+      Looping = false,
    },
 
    -- // Previous uploaded-asset version, kept for reference:

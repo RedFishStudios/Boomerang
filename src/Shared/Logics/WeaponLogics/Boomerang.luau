@@ -37,6 +37,8 @@ local PickupLibrary = require(ReplicatedStorage.Shared.Library.PickupLibrary)
 local Portal = require(ReplicatedStorage.Shared.Logics.Environment.Portal)
 local DeadWeapons = require(ReplicatedStorage.Shared.Referential.DeadWeapons)
 local DeadWeaponLogic = require(ReplicatedStorage.Shared.Logics.WeaponLogics.Dead)
+local CatchLibrary = require(ReplicatedStorage.Shared.Library.CatchLibrary)
+local BoomerangDebugLibrary = require(ReplicatedStorage.Shared.Library.BoomerangDebugLibrary)
 local HttpService = game:GetService("HttpService")
 
 local AnimationController
@@ -420,6 +422,9 @@ end
 -- // swept from the boomerang to the player's Hitbox, at the boomerang's own height, so only horizontal obstructions count
 -- //. Characters are ignored. Same result on client and server, it only depends on replicated state.
 local function hasLineOfSightToPlayer(player: Player, position: Vector3, toolData: Tools.Tool, thrownWeaponData: ThrownWeapons.Data, skipVisualizer: boolean?): boolean
+   if BoomerangDebugLibrary.get("NoReturn") >= 1 then
+      return false -- // Dev testing (Cmdr `boomerangdebug noreturn 1`): always die, so manual recalls can be tested anywhere
+   end
    local character = player.Character
    local targetPart = character and getPlayerTargetPart(character)
    if not character or not targetPart then
@@ -1465,8 +1470,31 @@ end
 
 -- // A returning boomerang reached its player. Server: it is caught (removed). Client: the catch is predicted only (see above).
 -- // Returns true if the boomerang was removed (the caller's movement loop must stop).
+-- // Normal or heavy catch (CatchLibrary), from the boomerang's motion just before contact. Only a manual recall has these
+-- // (and the heavy catch's push); any other return is never heavy
+local function resolveCatch(player: Player, thrownWeaponData: ThrownWeapons.Data): CatchLibrary.CatchInfo
+   if thrownWeaponData.RecallFromDead ~= true then
+      return { Heavy = false, ClosingSpeed = 0, Direction = Vector3.zero }
+   end
+   local position = thrownWeaponData.CFrame and thrownWeaponData.CFrame.Position
+   local velocity = if thrownWeaponData.Direction and thrownWeaponData.Speed then thrownWeaponData.Direction * thrownWeaponData.Speed else nil
+   return CatchLibrary.resolve(player, thrownWeaponData.ToolId, position, velocity)
+end
+
+-- // The catch animation: the light or heavy catch for a manual recall, the original catch for any other return
+local function getCatchAnimation(thrownWeaponData: ThrownWeapons.Data, catchInfo: CatchLibrary.CatchInfo): string
+   if thrownWeaponData.RecallFromDead ~= true then
+      return "ReturnCatch"
+   end
+   return if catchInfo.Heavy then "HeavyCatch" else "Catch"
+end
+
 catchWeapon = function(player: Player, thrownWeaponData: ThrownWeapons.Data): boolean
    if isServer then
+      local catchInfo = resolveCatch(player, thrownWeaponData)
+      if catchInfo.Heavy then
+         CatchLibrary.push(player, catchInfo.Direction)
+      end
       Boomerang.removeFromField(player, thrownWeaponData)
       return true
    end
@@ -1476,8 +1504,12 @@ catchWeapon = function(player: Player, thrownWeaponData: ThrownWeapons.Data): bo
    thrownWeaponData.PendingCatchAt = os.clock()
    setHostHidden(thrownWeaponData, true)
    retireTrail(thrownWeaponData)
+   local catchInfo = resolveCatch(player, thrownWeaponData)
    if AnimationController then
-      AnimationController.playCoreAnimation(player, "Catch")
+      AnimationController.playCoreAnimation(player, getCatchAnimation(thrownWeaponData, catchInfo))
+   end
+   if catchInfo.Heavy then
+      CatchLibrary.push(player, catchInfo.Direction) -- // Only does anything for the local player (its prediction)
    end
    SoundLibrary.play(thrownWeaponData.InstanceId, Sounds.Data.BoomerangCatch.Name, player.Character) -- // Replaces the flight loop
    thrownWeaponData.CatchEffectsPlayed = true
@@ -1526,7 +1558,7 @@ function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapo
 
    -- // A client that already showed the catch (pending catch) doesn't play the animation/sound a second time
    if returnToPlayer and AnimationController and not thrownWeaponData.CatchEffectsPlayed then
-      AnimationController.playCoreAnimation(player, "Catch")
+      AnimationController.playCoreAnimation(player, getCatchAnimation(thrownWeaponData, resolveCatch(player, thrownWeaponData)))
    end
    if shouldReattachLocally then
       setHostHidden(thrownWeaponData, false) -- // The hidden host goes back into the hand, visible again

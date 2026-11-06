@@ -557,7 +557,7 @@ function DeadWeaponLogic.removeFromField(player: Player, deadWeaponData: DeadWea
 	end
 
 	if shouldReturnToPlayer and AnimationController then
-		AnimationController.playCoreAnimation(player, "Catch")
+		AnimationController.playCoreAnimation(player, "ReturnCatch") -- // Picked up, not a manual recall
 	end
 
 	if deadWeaponData.Host and not shouldReattachLocally then

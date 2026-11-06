@@ -22,6 +22,21 @@ local MapData = {
       },
       DisguiseAssets = {},
    },
+   -- // Dev testing: a 600x600 open floor with only border walls (fast recalls, boomerang replication). Debug maps are only
+   -- // played when picked with Cmdr `setnextmap TestField`
+   ["TestField"] = {
+      Id = "TestField",
+      Debug = true,
+      ForGamemodes = {
+         Gamemodes.Classic.Id,
+         Gamemodes.Elimination.Id,
+         Gamemodes.HotPotato.Id,
+         Gamemodes.TeamElimination.Id,
+         Gamemodes.TeamClassic.Id,
+         Gamemodes.Assassin.Id
+      },
+      DisguiseAssets = {},
+   },
    ["GenericA"] = {
       Id = "GenericA",
       ForGamemodes = {

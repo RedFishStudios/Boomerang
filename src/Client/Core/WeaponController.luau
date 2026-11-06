@@ -28,6 +28,7 @@ local CharacterController = require(ReplicatedStorage.Client.Core.CharacterContr
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local AnimationController = require(ReplicatedStorage.Client.Core.AnimationController)
 local ToolController = require(ReplicatedStorage.Client.Core.ToolController)
+local BoomerangDebugController = require(ReplicatedStorage.Client.Core.BoomerangDebugController)
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 local CharacterRenderController = require(ReplicatedStorage.Client.Core.CharacterRenderController)
 local PlayerStatsLibrary = require(ReplicatedStorage.Shared.Library.PlayerStatsLibrary)
@@ -539,6 +540,7 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
 
    local positionError = authoritativePosition - simulatedPosition
    local errorDistance = positionError.Magnitude
+   BoomerangDebugController.recordSnapshot(forPlayer, thrownWeaponData, errorDistance, speed, state, errorDistance >= HARD_SNAP_DISTANCE)
    if errorDistance >= HARD_SNAP_DISTANCE then
       local currentPivot = thrownWeaponData.Host:GetPivot()
       local snappedCFrame = (currentPivot - currentPivot.Position) + authoritativePosition

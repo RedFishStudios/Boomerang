@@ -66,7 +66,7 @@ type CameraMode = "Overhead" | "Regular"
 type WeaponAnchor = {
    Position: Vector3,
    Speed: number, -- // Current chase speed (studs/s): builds up, so the view starts gently and then catches up
-   Owner: Player,
+   Owner: Player?, -- // nil if the boomerang's owner isn't known (it then just fades out where it was)
    LastSeenAt: number,
 }
 
@@ -82,7 +82,9 @@ local cameraShakeConnection: RBXScriptConnection? = nil
 local smoothedFocusPosition: Vector3? = nil
 local smoothedCameraDistance: number? = nil
 local smoothedFieldOfView: number? = nil -- // FAKE ORTHOGRAPHIC (2026-11-02)
-local weaponAnchors: { [string]: WeaponAnchor } = {} -- // By boomerang InstanceId
+-- // By owner (each player has one boomerang, so its point carries on through thrown -> dying -> dead -> recalled, whose
+-- // data and ids change between those states), or by the boomerang's instance if its owner isn't known
+local weaponAnchors: { [any]: WeaponAnchor } = {}
 local parryShakeStart: number? = nil
 local parryShakeEnd: number? = nil
 
@@ -121,27 +123,56 @@ local function getWeaponSetting(setting: TopDownCameraLibrary.Setting, default: 
    return TopDownCameraLibrary.get(setting) or default
 end
 
--- // Boomerangs on the field (thrown, returning, dying or dead), by InstanceId. Held boomerangs are in neither table, so
--- // the sway of a holding player's animation never reaches the camera. A boomerang this client has predicted as caught
--- // (waiting for the server) is already treated as gone.
-local function getFieldWeapons(): { [string]: { Position: Vector3, Owner: Player } }
-   local weapons = {}
+-- // Whether a boomerang model is attached to a character (held in a hand): it's then welded into the character's assembly
+local function isAttachedToCharacter(weapon: Instance, rootPart: BasePart): boolean
+   local assemblyRoot = rootPart.AssemblyRootPart
+   return assemblyRoot ~= nil and assemblyRoot ~= rootPart and not assemblyRoot:IsDescendantOf(weapon)
+end
+
+local function getOwnerFromName(name: string): Player?
+   local userId = tonumber(name:match("^Holstered_(%d+)$"))
+   if userId then
+      return Players:GetPlayerByUserId(userId)
+   end
+   local playerName = name:match("^Boomerang_(.+)$")
+   local player = playerName and Players:FindFirstChild(playerName)
+   return if player and player:IsA("Player") then player else nil
+end
+
+-- // Every boomerang on the field: everything in workspace.Weapons except boomerangs attached to a character (held), whose
+-- // hand sway would otherwise shake the camera. A boomerang this client has predicted as caught (hidden, waiting for the
+-- // server) is treated as gone.
+local function getFieldWeapons(): { [any]: { Position: Vector3, Owner: Player? } }
+   local ownerByHost: { [Instance]: Player } = {}
+   local hiddenHosts: { [Instance]: true } = {}
    for owner, data in ThrownWeapons.Data do
-      if data.CFrame and data.InstanceId and not data.PendingCatchAt and not data.HostHidden then
-         weapons[data.InstanceId] = { Position = data.CFrame.Position, Owner = owner }
+      if data.Host then
+         ownerByHost[data.Host] = owner
+         if data.HostHidden or data.PendingCatchAt then
+            hiddenHosts[data.Host] = true
+         end
       end
    end
    for owner, data in DeadWeapons.Data do
-      local position = (data.CFrame and data.CFrame.Position) or data.LastPosition
-      if position and data.InstanceId then
-         weapons[data.InstanceId] = { Position = position, Owner = owner }
+      if data.Host then
+         ownerByHost[data.Host] = owner
       end
+   end
+
+   local weapons = {}
+   for _, weapon in thrownWeaponsFolder:GetChildren() do
+      local rootPart = if weapon:IsA("BasePart") then weapon elseif weapon:IsA("Model") then weapon.PrimaryPart else nil
+      if not rootPart or hiddenHosts[weapon] or isAttachedToCharacter(weapon, rootPart) then
+         continue
+      end
+      local owner = ownerByHost[weapon] or getOwnerFromName(weapon.Name)
+      weapons[owner or weapon] = { Position = rootPart.Position, Owner = owner }
    end
    return weapons
 end
 
-local function getOwnerPosition(owner: Player): Vector3?
-   local root = owner.Parent and owner.Character and owner.Character.PrimaryPart
+local function getOwnerPosition(owner: Player?): Vector3?
+   local root = owner and owner.Parent and owner.Character and owner.Character.PrimaryPart
    return if root then toFocalHeight(root.Position) else nil
 end
 
@@ -156,8 +187,8 @@ local function updateWeaponAnchors(deltaTime: number)
    local holdSeconds = getWeaponSetting("WeaponHoldSeconds", GlobalConfig.CameraWeaponHoldSeconds)
    local fieldWeapons = getFieldWeapons()
 
-   for instanceId, weapon in fieldWeapons do
-      local anchor = weaponAnchors[instanceId]
+   for key, weapon in fieldWeapons do
+      local anchor = weaponAnchors[key]
       if not anchor then
          anchor = {
             Position = getOwnerPosition(weapon.Owner) or toFocalHeight(weapon.Position),
@@ -165,13 +196,13 @@ local function updateWeaponAnchors(deltaTime: number)
             Owner = weapon.Owner,
             LastSeenAt = now,
          }
-         weaponAnchors[instanceId] = anchor
+         weaponAnchors[key] = anchor
       end
       anchor.LastSeenAt = now
    end
 
-   for instanceId, anchor in weaponAnchors do
-      local weapon = fieldWeapons[instanceId]
+   for key, anchor in weaponAnchors do
+      local weapon = fieldWeapons[key]
       local target: Vector3?
       if weapon then
          target = toFocalHeight(weapon.Position)
@@ -180,7 +211,7 @@ local function updateWeaponAnchors(deltaTime: number)
       else
          target = getOwnerPosition(anchor.Owner)
          if not target then
-            weaponAnchors[instanceId] = nil -- // Owner gone
+            weaponAnchors[key] = nil -- // Owner unknown or gone
             continue
          end
       end
@@ -198,7 +229,7 @@ local function updateWeaponAnchors(deltaTime: number)
       end
 
       if not weapon and now - anchor.LastSeenAt >= holdSeconds and distance <= WEAPON_ANCHOR_ARRIVED_DISTANCE then
-         weaponAnchors[instanceId] = nil -- // Back at its owner
+         weaponAnchors[key] = nil -- // Back at its owner
       end
    end
 end
