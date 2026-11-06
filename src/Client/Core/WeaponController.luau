@@ -564,9 +564,17 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
 
    thrownWeaponData.State = state
 
+   -- // Already caught on this client (hidden while the server confirms): its last moments are invisible, don't correct them
+   if thrownWeaponData.PendingCatchAt then
+      return
+   end
+
    local positionError = authoritativePosition - simulatedPosition
-   local errorDistance = positionError.Magnitude
-   BoomerangDebugController.recordSnapshot(forPlayer, thrownWeaponData, errorDistance, speed, state, errorDistance >= HARD_SNAP_DISTANCE)
+   -- // A correction still being eased in (e.g. a fresh throw catching up to where the server already has it) is where the
+   -- // boomerang is already headed, not drift: only the error beyond it decides a hard snap
+   local pendingCorrection = thrownWeaponData.SyncCorrection or Vector3.zero
+   local errorDistance = (positionError - pendingCorrection).Magnitude
+   BoomerangDebugController.recordSnapshot(forPlayer, thrownWeaponData, errorDistance, speed, state, errorDistance >= HARD_SNAP_DISTANCE, catchup, pendingCorrection.Magnitude)
    if errorDistance >= HARD_SNAP_DISTANCE then
       local currentPivot = thrownWeaponData.Host:GetPivot()
       local snappedCFrame = (currentPivot - currentPivot.Position) + authoritativePosition

@@ -210,7 +210,7 @@ end
 
 -- // WeaponController: a server snapshot of `forPlayer`'s thrown/returning boomerang arrived. `drift` = studs between this
 -- // client's simulation and the server's position (advanced to now); `hardSnap` = it was too far and teleported.
-function BoomerangDebugController.recordSnapshot(forPlayer: Player, data: any, drift: number, speed: number, state: number, hardSnap: boolean)
+function BoomerangDebugController.recordSnapshot(forPlayer: Player, data: any, drift: number, speed: number, state: number, hardSnap: boolean, catchup: number?, pendingCorrection: number?)
 	if not isLogging() then
 		return
 	end
@@ -249,8 +249,8 @@ function BoomerangDebugController.recordSnapshot(forPlayer: Player, data: any, d
 	entry.Count += 1
 	if hardSnap then
 		stats.HardSnaps += 1
-		print(string.format("%s HARD SNAP %s's boomerang: %.2f studs at %.0f studs/s (%s, ping %.0f ms)", LOG_PREFIX, forPlayer.Name, drift, speed,
-			STATE_NAMES[state] or tostring(state), Players.LocalPlayer:GetNetworkPing() * 1000))
+		print(string.format("%s HARD SNAP %s's boomerang: %.2f studs at %.0f studs/s (%s, ping %.0f ms, snapshot caught up %.0f ms, %.2f studs of correction still pending, snapshot #%d)", LOG_PREFIX, forPlayer.Name, drift, speed,
+			STATE_NAMES[state] or tostring(state), Players.LocalPlayer:GetNetworkPing() * 1000, (catchup or 0) * 1000, pendingCorrection or 0, stats.Snapshots))
 	end
 end
 
