@@ -170,6 +170,21 @@ local function runAction()
 		local SkinLibrary = require(ReplicatedStorage.Shared.Library.SkinLibrary) :: any
 		local WeaponLibrary = require(ReplicatedStorage.Shared.Library.WeaponLibrary) :: any
 		local toolId = SkinLibrary.getWeaponClass(Players.LocalPlayer)
+		-- // Players reach the arena by teleport, keeping the ForceField they spawned with in the lobby, and canThrow refuses
+		-- // while one exists. The server removes its copy (BoomerangDebugServer); wait for that to replicate, and remove a
+		-- // local copy too (with server authority the client can hold its own)
+		local character = Players.LocalPlayer.Character
+		if character then
+			local deadline = os.clock() + 1
+			while character:FindFirstChildWhichIsA("ForceField") and os.clock() < deadline do
+				task.wait()
+			end
+			for _, forceField in character:GetChildren() do
+				if forceField:IsA("ForceField") then
+					forceField:Destroy()
+				end
+			end
+		end
 		local began = WeaponController.beginThumbstickAim()
 		if not began then
 			print(`{LOG_PREFIX} test throw: couldn't start aiming (weapon locked: {WeaponController.playerIsWeaponLocked()}, weapon: {toolId}, can throw: {toolId and WeaponLibrary.canThrow(Players.LocalPlayer, toolId)})`)
