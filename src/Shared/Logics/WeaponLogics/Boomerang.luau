@@ -1923,13 +1923,11 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       -- // Explosive boomerang returns faster while its effect is active (effect state is replicated, so both sides agree)
       thrownWeaponData.ReturnSpeedMultiplier = if PickupLibrary.hasPickupEffectActive(player.UserId, "ExplosiveBoomerang") then GlobalConfig.ExplosiveBoomerangReturnSpeedMultiplier else 1
       if isServer and hostPivot then
-         local currentCharacter = player.Character
-         local rootPart = currentCharacter and currentCharacter.PrimaryPart
-         local immediateDirection = thrownWeaponData.Direction or Vector3.zero
-         if rootPart then
-            immediateDirection = getHorizontalDirection(rootPart.Position - hostPivot.Position)
-         end
-         fireSnapshot(player.UserId, hostPivot.Position, immediateDirection, thrownWeaponData.Speed or 0, thrownWeaponData.State, nil, 0) -- // The recall starts now
+         -- // Its real heading: it turns toward the player gradually in that loop. (This used to send a heading straight at the
+         -- // player, which clients extrapolated and adopted at once while the server was still turning: under lag that put
+         -- // them 20-40 studs off, a hard snap at every turnaround.)
+         local currentDirection = thrownWeaponData.Direction or Vector3.zero
+         fireSnapshot(player.UserId, hostPivot.Position, currentDirection, thrownWeaponData.Speed or 0, thrownWeaponData.State, thrownWeaponData.Curvature)
       end
       return
    end

@@ -491,7 +491,10 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
    local authoritativePosition = position + direction * speed * catchup
    -- // A returning boomerang speeds up and steers toward the thrower, so a straight line is far off at high speed: replay the
    -- // server's own return movement over the catch-up time, and hand the result to the local simulation
-   if state == ThrownWeapons.StateEnum.Returning and previousStateIsReturning(thrownWeaponData) and recallTravelled and recallTravelled >= 0 and targetPosition then
+   -- // Only from the return loop's own snapshots (it has started flying, recallTravelled > 0): the snapshot sent as a return
+   -- // starts carries a heading straight at the thrower, not the boomerang's real velocity (it is still flying outward and
+   -- // turning around), and replaying from it sent the local boomerang back early, 20-40 studs off under lag
+   if state == ThrownWeapons.StateEnum.Returning and previousStateIsReturning(thrownWeaponData) and recallTravelled and recallTravelled > 0 and targetPosition then
       local returnToolData = Tools[thrownWeaponData.ToolId]
       local returnLogic = returnToolData and getLogic(returnToolData.LogicClass)
       if returnLogic and returnLogic.advanceReturn then
