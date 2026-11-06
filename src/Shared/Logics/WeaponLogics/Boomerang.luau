@@ -95,7 +95,8 @@ local WEAPON_RAYCAST_COLLISION_GROUP = CollisionGroupConstants.ThrownWeapons
 
 local SPAWN_PACKET_SIZE = 8 + 12 + 12 + 4 + 8 + 4 -- // ... + the curvature
 local DESPAWN_PACKET_SIZE = 8 + 1
-local SNAPSHOT_PACKET_SIZE = 1 + 8 + 12 + 12 + 4 + 1 + 8 + 12 + 4 -- // ... + the thrower's position + the curvature (Dead.luau's snapshots omit both)
+local SNAPSHOT_PACKET_SIZE = 1 + 8 + 12 + 12 + 4 + 1 + 8 + 12 + 4 + 4 -- // ... + the thrower's position + the curvature + the recall's distance flown (Dead.luau's snapshots omit these)
+local RETURN_PREDICTION_STEP = 1 / 60 -- // Seconds per step when a client replays a returning boomerang's movement to catch a snapshot up
 local raycastVisualizersEnabled = GlobalConfig.RaycastVisualizersEnabled -- // The boomerang's hit sweep drawn each step; Cmdr `viewhitbox` changes it live (server)
 local projectileVisualizerEnabled = GlobalConfig.ProjectileHitboxVisualizerEnabled -- // Server only; Cmdr `toggleprojectilevisualizer` changes it live. Read when a boomerang is thrown
 
@@ -626,7 +627,8 @@ local function fireDespawned(ownerUserId: number, returnToPlayer: boolean)
 end
 
 -- // Notify all users of a boomerang simulation snapshot
-local function fireSnapshot(ownerUserId: number, position: Vector3, direction: Vector3, speed: number, state: number, curvature: number?)
+-- // `recallTravelled`: studs a returning boomerang has flown since its recall started (clients replay its speed-up from it)
+local function fireSnapshot(ownerUserId: number, position: Vector3, direction: Vector3, speed: number, state: number, curvature: number?, recallTravelled: number?)
    if not isServer then
       return
    end
@@ -644,7 +646,8 @@ local function fireSnapshot(ownerUserId: number, position: Vector3, direction: V
    local ownerPlayer = Players:GetPlayerByUserId(ownerUserId)
    local ownerRoot = ownerPlayer and ownerPlayer.Character and ownerPlayer.Character.PrimaryPart
    offset = BufferUtil.writeVector3_96(payload, offset, if ownerRoot then ownerRoot.Position else position)
-   BufferUtil.writef32(payload, offset, curvature or 0) -- // The current curve (0 once straightened by a bounce, homing, Telekinesis...)
+   offset = BufferUtil.writef32(payload, offset, curvature or 0) -- // The current curve (0 once straightened by a bounce, homing, Telekinesis...)
+   BufferUtil.writef32(payload, offset, recallTravelled or -1) -- // -1 = not returning
 
    thrownWeaponReplicationRemote:FireAllClients(payload)
 end
@@ -1926,7 +1929,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          if rootPart then
             immediateDirection = getHorizontalDirection(rootPart.Position - hostPivot.Position)
          end
-         fireSnapshot(player.UserId, hostPivot.Position, immediateDirection, thrownWeaponData.Speed or 0, thrownWeaponData.State)
+         fireSnapshot(player.UserId, hostPivot.Position, immediateDirection, thrownWeaponData.Speed or 0, thrownWeaponData.State, nil, 0) -- // The recall starts now
       end
       return
    end
@@ -2001,6 +2004,17 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       end
 
       updateRecallTuning()
+      -- // Client: adopt the server's movement state from the latest snapshot (caught up to now by Boomerang.advanceReturn), so
+      -- // the local simulation keeps the same speed-up and heading instead of drifting off it between snapshots
+      if not isServer and thrownWeaponData.SnapshotReturnVelocity then
+         travelVelocity = thrownWeaponData.SnapshotReturnVelocity
+         speed = math.clamp(travelVelocity.Magnitude, 0, maximumSpeed)
+         if thrownWeaponData.SnapshotRecallTravelled then
+            recallTravelled = thrownWeaponData.SnapshotRecallTravelled
+         end
+         thrownWeaponData.SnapshotReturnVelocity = nil
+         thrownWeaponData.SnapshotRecallTravelled = nil
+      end
       rampElapsed += deltaTime
       recallTravelled += speed * deltaTime -- // GROUND APPROACH (2026-11-02)
       thrownWeaponData.RecallTravelled = recallTravelled
@@ -2226,7 +2240,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       end
       if isServer and os.clock() >= nextReplicationAt and currentPivot then
          nextReplicationAt = os.clock() + REPLICATION_RATE
-         fireSnapshot(player.UserId, currentPivot.Position, direction, thrownWeaponData.Speed, thrownWeaponData.State)
+         fireSnapshot(player.UserId, currentPivot.Position, direction, thrownWeaponData.Speed, thrownWeaponData.State, nil, thrownWeaponData.RecallTravelled or 0)
       end
 
       local newPivot = getWeaponCFrame(thrownWeaponData)
@@ -2243,7 +2257,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       if rootPart then
          immediateDirection = getHorizontalDirection(rootPart.Position - currentPivot.Position)
       end
-      fireSnapshot(player.UserId, currentPivot.Position, immediateDirection, thrownWeaponData.Speed or speed, thrownWeaponData.State)
+      fireSnapshot(player.UserId, currentPivot.Position, immediateDirection, thrownWeaponData.Speed or speed, thrownWeaponData.State, nil, thrownWeaponData.RecallTravelled or 0)
    end
 end
 
@@ -2294,6 +2308,70 @@ end
 function Boomerang.setProjectileVisualizerEnabled(value: boolean)
    assert(isServer, "Boomerang.setProjectileVisualizerEnabled is server only")
    projectileVisualizerEnabled = value
+end
+
+-- // Client: where a returning boomerang is after `seconds` more of the server's return movement, from a snapshot. Replays the
+-- // same speed-up (manual recall: by distance flown) and steering toward the thrower as the recall loop below, in small steps,
+-- // without obstructions (a bounce sends its own snapshot). Used to catch snapshots up to now instead of a straight line.
+-- // Returns the position, velocity and distance flown since the recall started.
+function Boomerang.advanceReturn(options: {
+   ToolId: string,
+   Position: Vector3,
+   Velocity: Vector3,
+   Target: Vector3,
+   RecallTravelled: number,
+   IsManualRecall: boolean,
+   ReturnSpeedMultiplier: number?,
+   Seconds: number,
+}): (Vector3, Vector3, number)
+   local toolData = Tools[options.ToolId]
+   local position, velocity, travelled = options.Position, options.Velocity, options.RecallTravelled
+   if not toolData or not toolData.Boomerang or options.Seconds <= 0 then
+      return position, velocity, travelled
+   end
+   local multiplier = options.ReturnSpeedMultiplier or 1
+   local isManual = options.IsManualRecall
+   local maximumSpeed = BoomerangTuningLibrary.get(options.ToolId, if isManual then "RecallSpeed" else "ThrowSpeed") * multiplier
+   local momentumMultiplier = if isManual then BoomerangTuningLibrary.get(options.ToolId, "RecallCurveAcceleration") else 1
+   local catchRadius = math.max(RECALL_CATCH_RADIUS_MIN, toolData.Boomerang.HitboxRadius * 1.25)
+   local startSpeed = maximumSpeed * math.clamp(BoomerangTuningLibrary.get(options.ToolId, "RecallStartSpeed"), 0, 1)
+   local fullSpeedDistance = math.max(BoomerangTuningLibrary.get(options.ToolId, "RecallFullSpeedDistance"), 0.01)
+   local curve = math.max(BoomerangTuningLibrary.get(options.ToolId, "RecallSpeedCurve"), 0.05)
+
+   local remaining = options.Seconds
+   while remaining > 1e-4 do
+      local deltaTime = math.min(RETURN_PREDICTION_STEP, remaining)
+      remaining -= deltaTime
+      local toTarget = Vector3.new(options.Target.X - position.X, 0, options.Target.Z - position.Z)
+      local horizontalDistance = toTarget.Magnitude
+      if horizontalDistance <= catchRadius then
+         break -- // It would be caught here
+      end
+      local targetDirection = toTarget.Unit
+      if velocity.Magnitude <= 1e-5 then
+         velocity = targetDirection * velocity.Magnitude
+      end
+      local alignment = if velocity.Magnitude > 1e-5 then velocity.Unit:Dot(targetDirection) else 1
+      local transitionRate = (if alignment < -0.25 then 11 elseif alignment < 0.5 then 8 else 5) * momentumMultiplier
+      local transitionAlpha = 1 - math.exp(-transitionRate * deltaTime)
+      local forwardSpeed = velocity:Dot(targetDirection)
+      local sidewaysVelocity = velocity - targetDirection * forwardSpeed
+      if isManual and GlobalConfig.ManualRecallGroundApproach then
+         local progress = math.clamp(travelled / fullSpeedDistance, 0, 1) ^ curve
+         forwardSpeed = startSpeed + (maximumSpeed - startSpeed) * progress
+      else
+         forwardSpeed += (maximumSpeed - forwardSpeed) * transitionAlpha
+      end
+      local steerRate = math.max(transitionRate, RETURN_STEER_TIGHTNESS * velocity.Magnitude / math.max(horizontalDistance, catchRadius))
+      sidewaysVelocity *= math.exp(-steerRate * deltaTime)
+      velocity = targetDirection * forwardSpeed + sidewaysVelocity
+      if velocity.Magnitude > maximumSpeed then
+         velocity = velocity.Unit * maximumSpeed
+      end
+      position += velocity * deltaTime
+      travelled += velocity.Magnitude * deltaTime
+   end
+   return position, velocity, travelled
 end
 
 return Boomerang

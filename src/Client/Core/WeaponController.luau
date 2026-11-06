@@ -436,7 +436,12 @@ local function restoreMissingDeadWeapon(forPlayer: Player, position: Vector3, di
    })
 end
 
-local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vector3, speed: number, state: number, serverTime: number, targetPosition: Vector3?, curvature: number?)
+-- // The local simulation is already running the return (so a snapshot's movement state can be handed to it)
+local function previousStateIsReturning(thrownWeaponData: ThrownWeapons.Data): boolean
+   return thrownWeaponData.State == ThrownWeapons.StateEnum.Returning
+end
+
+local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vector3, speed: number, state: number, serverTime: number, targetPosition: Vector3?, curvature: number?, recallTravelled: number?)
    local thrownWeaponData = ThrownWeapons.Data[forPlayer]
 
    -- // The server says this boomerang clashed with another one and was knocked onto a new direction (it keeps flying)
@@ -484,6 +489,27 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
 
    local catchup = math.clamp(workspace:GetServerTimeNow() - serverTime, 0, MAX_SNAPSHOT_CATCHUP)
    local authoritativePosition = position + direction * speed * catchup
+   -- // A returning boomerang speeds up and steers toward the thrower, so a straight line is far off at high speed: replay the
+   -- // server's own return movement over the catch-up time, and hand the result to the local simulation
+   if state == ThrownWeapons.StateEnum.Returning and previousStateIsReturning(thrownWeaponData) and recallTravelled and recallTravelled >= 0 and targetPosition then
+      local returnToolData = Tools[thrownWeaponData.ToolId]
+      local returnLogic = returnToolData and getLogic(returnToolData.LogicClass)
+      if returnLogic and returnLogic.advanceReturn then
+         local advancedPosition, advancedVelocity, advancedTravelled = returnLogic.advanceReturn({
+            ToolId = thrownWeaponData.ToolId,
+            Position = position,
+            Velocity = direction * speed,
+            Target = targetPosition,
+            RecallTravelled = recallTravelled,
+            IsManualRecall = thrownWeaponData.RecallFromDead == true,
+            ReturnSpeedMultiplier = thrownWeaponData.ReturnSpeedMultiplier,
+            Seconds = catchup,
+         })
+         authoritativePosition = advancedPosition
+         thrownWeaponData.SnapshotReturnVelocity = advancedVelocity
+         thrownWeaponData.SnapshotRecallTravelled = advancedTravelled
+      end
+   end
    -- // A curving boomerang has kept turning since the server sent this: advance it along its arc instead (position and
    -- // heading), so the prediction lines up with where the server has it now
    if curvature and state ~= ThrownWeapons.StateEnum.Returning then
@@ -999,7 +1025,12 @@ function WeaponController.init()
       -- // The boomerang's current curve (the dead-weapon snapshots don't carry it)
       local curvature: number? = nil
       if buffer.len(payload) >= offset + 4 then
-         curvature = BufferUtil.readf32(payload, offset)
+         curvature, offset = BufferUtil.readf32(payload, offset)
+      end
+      -- // How far a returning boomerang has flown since its recall started (-1 = not returning)
+      local recallTravelled: number? = nil
+      if buffer.len(payload) >= offset + 4 then
+         recallTravelled = BufferUtil.readf32(payload, offset)
       end
 
       local forPlayer = Players:GetPlayerByUserId(ownerUserId)
@@ -1007,7 +1038,7 @@ function WeaponController.init()
          return
       end
 
-      onSnapshot(forPlayer, position, getHorizontalDirection(direction), speed, state, serverTime, targetPosition, curvature)
+      onSnapshot(forPlayer, position, getHorizontalDirection(direction), speed, state, serverTime, targetPosition, curvature, recallTravelled)
    end)
 
    RunService.PreSimulation:Connect(function(deltaTime)

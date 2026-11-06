@@ -29,6 +29,8 @@ export type Data = {
    SnapshotDirection: Vector3?, -- // Client: the server's latest heading, adopted by the simulation on its next step
    SnapshotSpeed: number?, -- // Client: the server's latest speed, adopted with SnapshotDirection
    ServerTargetPosition: Vector3?, -- // Client: where the server had the thrower at the latest snapshot (remote clients steer a recall toward it)
+   SnapshotReturnVelocity: Vector3?, -- // Client: a returning boomerang's velocity from the latest snapshot (caught up to now), adopted on its next step
+   SnapshotRecallTravelled: number?, -- // Client: with it, the recall's distance flown (drives a manual recall's speed-up)
    ServerDirection: Vector3?,
    ServerSpeed: number?,
    Homing: boolean?,
