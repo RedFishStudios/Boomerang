@@ -31,6 +31,9 @@ local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 
 local FONT = Enum.Font.FredokaOne
+-- // Temporarily hidden: the bar and its buttons are still built (MenuButtons adds them as usual), just never shown.
+-- // Set to false to bring the top bar back.
+local TOPBAR_HIDDEN = true
 local TEXT_SIZE = 20 -- // Shared by every topbar button, so their text always matches
 local ICON_SIZE = 22
 local TEXT_COLOR = Color3.fromRGB(255, 255, 255)
@@ -247,7 +250,7 @@ end
 
 function TopbarGui.open()
 	TopbarGui.Open = true
-	Gui.Enabled = true
+	Gui.Enabled = not TOPBAR_HIDDEN
 end
 
 function TopbarGui.close()
@@ -266,7 +269,7 @@ local function _init()
 		ScreenInsets = Enum.ScreenInsets.TopbarSafeInsets, -- // Only the free space between Roblox's topbar buttons
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		DisplayOrder = 10,
-		Enabled = true,
+		Enabled = not TOPBAR_HIDDEN,
 	})
 	-- // Lines up with Roblox's own topbar buttons: not moved by the Screen Insets settings (GuiInsetController)
 	Gui:SetAttribute("KeepRobloxInsets", true)
