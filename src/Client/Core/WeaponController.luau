@@ -472,6 +472,26 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
             -- // has no SelectionRing, Summon animation or beams. This used to always say "manual", so automatic recalls showed them.
             local isManualRecall = DeadWeaponLogic.isRecallCharging(deadWeaponData)
             deadLogic.recallFromDead(forPlayer, deadWeaponData, isManualRecall)
+            -- // This client starts the recall when the server's word arrives, after the server already started flying it:
+            -- // ease it to where the server has it by now (the eased-in part doesn't count toward a hard snap)
+            local recalledData = ThrownWeapons.Data[forPlayer]
+            if recalledData and recalledData.CFrame and targetPosition and deadLogic.advanceReturn then
+               local recallCatchup = math.clamp(workspace:GetServerTimeNow() - serverTime, 0, MAX_SNAPSHOT_CATCHUP)
+               local advancedPosition, advancedVelocity, advancedTravelled = deadLogic.advanceReturn({
+                  ToolId = recalledData.ToolId,
+                  Position = position,
+                  Velocity = direction * speed,
+                  Target = targetPosition,
+                  RecallTravelled = 0,
+                  IsManualRecall = isManualRecall,
+                  ReturnSpeedMultiplier = recalledData.ReturnSpeedMultiplier,
+                  Seconds = recallCatchup,
+               })
+               local offset = advancedPosition - recalledData.CFrame.Position
+               recalledData.SyncCorrection = Vector3.new(offset.X, 0, offset.Z)
+               recalledData.SnapshotReturnVelocity = advancedVelocity
+               recalledData.SnapshotRecallTravelled = advancedTravelled
+            end
          end
          return
       end
@@ -489,6 +509,8 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
 
    local catchup = math.clamp(workspace:GetServerTimeNow() - serverTime, 0, MAX_SNAPSHOT_CATCHUP)
    local authoritativePosition = position + direction * speed * catchup
+   local advancedReturnVelocity: Vector3? = nil -- // A thrown boomerang's return, caught up to now (heading/speed for its loop)
+   local returnCatchUpStart = false
    -- // A returning boomerang speeds up and steers toward the thrower, so a straight line is far off at high speed: replay the
    -- // server's own return movement over the catch-up time, and hand the result to the local simulation
    -- // Only from the return loop's own snapshots (it has started flying, recallTravelled > 0): the snapshot sent as a return
@@ -511,6 +533,31 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
          authoritativePosition = advancedPosition
          thrownWeaponData.SnapshotReturnVelocity = advancedVelocity
          thrownWeaponData.SnapshotRecallTravelled = advancedTravelled
+      end
+   elseif state == ThrownWeapons.StateEnum.Returning and thrownWeaponData.RecallFromDead == nil
+      and (recallTravelled == nil or recallTravelled < 0) and targetPosition then
+      -- // A thrown boomerang returning on its own (the throw's loop steers it home): the same steering, without the manual
+      -- // recall's speed-up. Its loop adopts the caught-up heading and speed through SnapshotDirection / SnapshotSpeed (set
+      -- // below). The first Returning snapshot is where it turns around: this client held it still at 0 energy until the
+      -- // server's verdict arrived, so the distance the server has already flown back is eased in, not snapped.
+      returnCatchUpStart = not previousStateIsReturning(thrownWeaponData)
+      local returnToolData = Tools[thrownWeaponData.ToolId]
+      local returnLogic = returnToolData and getLogic(returnToolData.LogicClass)
+      if returnLogic and returnLogic.advanceReturn then
+         local advancedPosition, advancedVelocity = returnLogic.advanceReturn({
+            ToolId = thrownWeaponData.ToolId,
+            Position = position,
+            Velocity = direction * speed,
+            Target = targetPosition,
+            RecallTravelled = 0,
+            IsManualRecall = false,
+            ReturnSpeedMultiplier = thrownWeaponData.ReturnSpeedMultiplier,
+            Seconds = catchup,
+         })
+         authoritativePosition = advancedPosition
+         if advancedVelocity.Magnitude > 1e-5 then
+            advancedReturnVelocity = advancedVelocity
+         end
       end
    end
    -- // A curving boomerang has kept turning since the server sent this: advance it along its arc instead (position and
@@ -541,6 +588,10 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
    -- // The simulation adopts the server's heading and speed on its next step (position is eased below)
    thrownWeaponData.SnapshotDirection = direction
    thrownWeaponData.SnapshotSpeed = speed
+   if advancedReturnVelocity then
+      thrownWeaponData.SnapshotDirection = getHorizontalDirection(advancedReturnVelocity)
+      thrownWeaponData.SnapshotSpeed = advancedReturnVelocity.Magnitude
+   end
    thrownWeaponData.ServerTargetPosition = targetPosition
 
    if previousState ~= state then
@@ -573,6 +624,12 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
    end
 
    local positionError = authoritativePosition - simulatedPosition
+   if returnCatchUpStart then
+      -- // The turnaround: ease the server's head start in (see above)
+      thrownWeaponData.SyncCorrection = positionError
+      BoomerangDebugController.recordSnapshot(forPlayer, thrownWeaponData, 0, speed, state, false, catchup, positionError.Magnitude)
+      return
+   end
    -- // A correction still being eased in (e.g. a fresh throw catching up to where the server already has it) is where the
    -- // boomerang is already headed, not drift: only the error beyond it decides a hard snap
    local pendingCorrection = thrownWeaponData.SyncCorrection or Vector3.zero
