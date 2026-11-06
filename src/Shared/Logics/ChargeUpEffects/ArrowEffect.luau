@@ -24,9 +24,9 @@ local ARROW_BASE_DISTANCE = 3 -- // Studs in front of the character at zero char
 local ARROW_EXTRA_DISTANCE_AT_FULL_STRENGTH = 5 -- // Extra studs the arrow moves out by at full charge (reached after GlobalConfig.ChargeTime)
 local ARROW_HEIGHT_OFFSET = -2 -- // The arrow sits this far below the root part
 local SHAKE_START_ALPHA = 0.8 -- // Charge progress at which the arrow starts to shake
-local SHAKE_MAX_OFFSET_SCALE = 0.45 -- // Shake amplitude as a fraction of the arrow image's default offset
-local SHAKE_MAX_ROTATION_DEGREES = 8 -- // The arrow also wobbles side to side by up to this much at full charge
-local SHAKE_SPEED = 14
+local SHAKE_MAX_OFFSET_SCALE = 0.35 -- // Shake amplitude as a fraction of the arrow image's default offset
+local SHAKE_MAX_ROTATION_DEGREES = 4 -- // The arrow also wobbles side to side by up to this much at full charge
+local SHAKE_SPEED = 9
 local SHAKE_NOISE_SCALE = 0.11
 -- // The arrow is moved sideways onto the line the boomerang leaves along (under the held boomerang), not the
 -- // character's centre. This is how quickly it follows the hand as the charge animation moves it (higher = snappier).
