@@ -38,6 +38,7 @@ local Portal = require(ReplicatedStorage.Shared.Logics.Environment.Portal)
 local DeadWeapons = require(ReplicatedStorage.Shared.Referential.DeadWeapons)
 local DeadWeaponLogic = require(ReplicatedStorage.Shared.Logics.WeaponLogics.Dead)
 local CatchLibrary = require(ReplicatedStorage.Shared.Library.CatchLibrary)
+local BoomerangDebugLibrary = require(ReplicatedStorage.Shared.Library.BoomerangDebugLibrary)
 local HttpService = game:GetService("HttpService")
 
 local AnimationController
@@ -421,6 +422,9 @@ end
 -- // swept from the boomerang to the player's Hitbox, at the boomerang's own height, so only horizontal obstructions count
 -- //. Characters are ignored. Same result on client and server, it only depends on replicated state.
 local function hasLineOfSightToPlayer(player: Player, position: Vector3, toolData: Tools.Tool, thrownWeaponData: ThrownWeapons.Data, skipVisualizer: boolean?): boolean
+   if BoomerangDebugLibrary.get("NoReturn") >= 1 then
+      return false -- // Dev testing (Cmdr `boomerangdebug noreturn 1`): always die, so manual recalls can be tested anywhere
+   end
    local character = player.Character
    local targetPart = character and getPlayerTargetPart(character)
    if not character or not targetPart then
