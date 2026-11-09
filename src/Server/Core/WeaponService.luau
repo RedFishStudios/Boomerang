@@ -652,6 +652,14 @@ function WeaponService.init()
       PlayerStatsLibrary.setStat(player, "CurrentMovementState", "FreeMotion", nil, nil)
       equippedToolIds[player] = nil
       equippedToolVisible[player] = nil
+      -- // Normally already removed with the character; covers a boomerang still out when the player leaves
+      local thrownWeaponData = ThrownWeapons.Data[player]
+      if thrownWeaponData then
+         local toolData = Tools[thrownWeaponData.ToolId]
+         if toolData then
+            getLogic(toolData.LogicClass).removeFromField(player, thrownWeaponData, { ReturnToPlayer = false })
+         end
+      end
       local deadWeaponData = DeadWeapons.Data[player]
       if deadWeaponData then
          DeadWeaponLogic.removeFromField(player, deadWeaponData, false)

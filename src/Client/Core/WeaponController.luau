@@ -183,6 +183,18 @@ local function clearThrownWeapon(forPlayer: Player, returnToPlayer: boolean?)
    end
    local toolData = Tools[thrownWeaponData.ToolId]
    if not toolData then
+      -- // Unknown tool: clean up what the entry owns directly
+      if thrownWeaponData.MovementConnection then
+         thrownWeaponData.MovementConnection:Disconnect()
+         thrownWeaponData.MovementConnection = nil
+      end
+      if thrownWeaponData.Host then
+         thrownWeaponData.Host:Destroy()
+      end
+      local trailHost = thrownWeaponData.TrailObject and thrownWeaponData.TrailObject.TrailHost
+      if trailHost then
+         trailHost:Destroy()
+      end
       ThrownWeapons.Data[forPlayer] = nil
       return
    end
@@ -1197,6 +1209,13 @@ function WeaponController.init()
       stopAiming(player)
       if player == Players.LocalPlayer then
          setLocalAimState(false)
+      end
+   end)
+
+   -- // A leaving player's boomerang is removed here: the server's despawn for it can't be matched to them once they're gone
+   PlayersUtil.PlayerRemoving:Add(function(player: Player)
+      if ThrownWeapons.Data[player] then
+         clearThrownWeapon(player, false)
       end
    end)
 
