@@ -493,6 +493,7 @@ function QuestsGui.open()
 	Container.Position = containerOffscreenPosition
 	playContainerTween(CONTAINER_TWEEN_INFO_IN, containerGoalPosition)
 	UIController.supercede("Quests", "GamemodeHud")
+	UIController.closeOtherMenus("Quests") -- // After superceding, so the closing menu doesn't bring the HUD back
 end
 
 function QuestsGui.close()

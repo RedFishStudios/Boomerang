@@ -10,6 +10,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SharedMods = ReplicatedStorage.Shared
 local ClientMods = ReplicatedStorage.Client
 local Items = require(SharedMods.Referential.Items)
+local UIController = require(ClientMods.UI.UIController)
 local DailyRewards = require(SharedMods.Referential.DailyRewards)
 local Skins = require(SharedMods.Referential.Skins)
 local PlayerDataController = require(ClientMods.Core.PlayerDataController)
@@ -108,6 +109,7 @@ end
 -------------------------------------------------------------------------------
 
 function DailyClaimsGui.open()
+   UIController.closeOtherMenus("DailyClaims")
    updateDayIndicators()
 
    Gui.Enabled = true

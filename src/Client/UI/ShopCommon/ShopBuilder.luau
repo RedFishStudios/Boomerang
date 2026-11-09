@@ -791,6 +791,7 @@ function ShopBuilder.create(config: ShopConfig)
 		selectTab(getDefaultTabId(), true)
 		playContainerTween(CONTAINER_TWEEN_INFO_IN, containerGoalPosition)
 		UIController.supercede(config.Name, "GamemodeHud")
+		UIController.closeOtherMenus(config.Name) -- // After superceding, so the closing menu doesn't bring the HUD back
 	end
 
 	function ShopGui.close()

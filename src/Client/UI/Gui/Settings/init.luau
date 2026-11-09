@@ -501,6 +501,7 @@ function SettingsGui.open()
 	Container.Position = containerOffscreenPosition
 	playContainerTween(CONTAINER_TWEEN_INFO_IN, containerGoalPosition)
 	UIController.supercede("Settings", "GamemodeHud")
+	UIController.closeOtherMenus("Settings") -- // After superceding, so the closing menu doesn't bring the HUD back
 end
 
 function SettingsGui.close()
