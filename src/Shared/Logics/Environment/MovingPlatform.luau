@@ -1,9 +1,11 @@
 --[[
 	MovingPlatform (environment logic)
 
-	A platform that travels back and forth between two pivots, at Speed studs per second, resting RestTime seconds at each end,
-	eased in and out (easeInOutQuint). The platform is a single part directly in the map's Functional folder, with attributes
-	ClassName = "MovingPlatform", Speed, StartPivot, EndPivot, and optionally RestTime, StartCrush, EndCrush.
+	A platform that travels back and forth between two pivots, resting RestTime seconds at each end. Each trip speeds up to
+	Speed (studs per second) over AccelerationTime seconds, runs at that speed, and stops over DecelerationTime seconds (short
+	by default, so it stays fast until it's nearly there). The platform is a single part directly in the map's Functional
+	folder, with attributes ClassName = "MovingPlatform", Speed, StartPivot, EndPivot, and optionally RestTime,
+	AccelerationTime, DecelerationTime, StartCrush, EndCrush.
 
 	SERVER AUTHORITY (Workspace.AuthorityMode = Server):
 	- Where the platform should be is a pure function of the synced simulation clock, time(). It is driven inside
@@ -66,6 +68,9 @@ local PUSH_STEP_TOLERANCE = 0.25 -- // Feet within this of the platform's top co
 local PUSH_MAX_VERTICAL_TRAVEL = 0.7 -- // Platforms travelling more steeply than this (|direction.Y|) aren't pushers: lifts carry instead
 local BOTS_FOLDER_NAME = "Bots" -- // BotService's folder in the workspace (decoys and other bots)
 
+local DEFAULT_ACCELERATION_TIME = 0.5 -- // Seconds a trip takes to reach full speed (attribute AccelerationTime)
+local DEFAULT_DECELERATION_TIME = 0.2 -- // Seconds it takes to stop at the end of a trip (attribute DecelerationTime)
+
 local CRUSH_CAUSE_LABEL = "Crushed"
 local CRUSH_GAP_TOLERANCE = 0.3 -- // Studs: a gap this much smaller than a Hitbox's width still counts as fitting (brushing the face is safe)
 
@@ -78,6 +83,8 @@ type MovingPlatformAttributes = {
 	StartPivot: CFrame,
 	EndPivot: CFrame,
 	RestTime: number?, -- // Seconds it rests at each end before going back
+	AccelerationTime: number?,
+	DecelerationTime: number?,
 	StartCrush: boolean?, -- // Crushes players against the wall at the start end
 	EndCrush: boolean?, -- // Crushes players against the wall at the end end
 }
@@ -88,6 +95,8 @@ type PlatformData = {
 	StartPivot: CFrame,
 	EndPivot: CFrame,
 	RestTime: number,
+	AccelerationTime: number,
+	DecelerationTime: number,
 	StartTime: number, -- // time() it started moving (the same value on the server and every client)
 	Size: Vector3, -- // Read once at registration (only simulation-synced members are read inside the simulation step)
 	AlignPosition: AlignPosition?, -- // PHYSICS_DRIVEN: the constraints the step retargets
@@ -114,12 +123,33 @@ local crushConnection: RBXScriptConnection? = nil
 -- PATH (pure functions of time: identical on the server and every client)
 -------------------------------------------------------------------------------
 
-local function easeInOutQuint(x: number): number
-	x = math.clamp(x, 0, 1)
-	if x < 0.5 then
-		return 16 * x * x * x * x * x
+-- // One trip's speed profile: steady speed-up to the top speed, a run at it, a steady stop. Returns the top speed
+-- // actually reached (lower on a trip too short to reach it) and the trip's duration.
+local function getTripProfile(distance: number, speed: number, accelerationTime: number, decelerationTime: number): (number, number)
+	local rampTime = accelerationTime + decelerationTime
+	local topSpeed = speed
+	if topSpeed * rampTime / 2 > distance then
+		topSpeed = 2 * distance / rampTime -- // Too short to reach full speed: speeds up, then straight into the stop
 	end
-	return 1 - (-2 * x + 2) ^ 5 / 2
+	return topSpeed, rampTime + (distance - topSpeed * rampTime / 2) / topSpeed
+end
+
+-- // Fraction of the trip covered `t` seconds in
+local function getTripAlpha(t: number, distance: number, topSpeed: number, tripTime: number, accelerationTime: number, decelerationTime: number): number
+	local travelled
+	if t <= 0 then
+		travelled = 0
+	elseif t < accelerationTime then
+		travelled = topSpeed * t * t / (2 * accelerationTime)
+	elseif t < tripTime - decelerationTime then
+		travelled = topSpeed * accelerationTime / 2 + topSpeed * (t - accelerationTime)
+	elseif t < tripTime then
+		local left = tripTime - t
+		travelled = distance - topSpeed * left * left / (2 * decelerationTime)
+	else
+		travelled = distance
+	end
+	return math.clamp(travelled / distance, 0, 1)
 end
 
 -- // Where the platform is at simulation time `now`; also whether it is heading for the end pivot and whether it is travelling
@@ -131,7 +161,8 @@ local function getPivotAt(platformData: PlatformData, now: number): (CFrame, boo
 	end
 
 	local restTime = platformData.RestTime
-	local travelTime = distance / platformData.Speed
+	local accelerationTime, decelerationTime = platformData.AccelerationTime, platformData.DecelerationTime
+	local topSpeed, travelTime = getTripProfile(distance, platformData.Speed, accelerationTime, decelerationTime)
 	local cycleTime = 2 * (restTime + travelTime)
 	local cycle = (now - platformData.StartTime) % cycleTime
 
@@ -140,14 +171,14 @@ local function getPivotAt(platformData: PlatformData, now: number): (CFrame, boo
 	end
 	cycle -= restTime
 	if cycle < travelTime then -- // Start -> end
-		return startPivot:Lerp(endPivot, easeInOutQuint(cycle / travelTime)), true, true
+		return startPivot:Lerp(endPivot, getTripAlpha(cycle, distance, topSpeed, travelTime, accelerationTime, decelerationTime)), true, true
 	end
 	cycle -= travelTime
 	if cycle < restTime then -- // Resting at the end
 		return endPivot, false, false
 	end
 	cycle -= restTime
-	return endPivot:Lerp(startPivot, easeInOutQuint(cycle / travelTime)), false, true -- // End -> start
+	return endPivot:Lerp(startPivot, getTripAlpha(cycle, distance, topSpeed, travelTime, accelerationTime, decelerationTime)), false, true -- // End -> start
 end
 
 -------------------------------------------------------------------------------
@@ -464,6 +495,8 @@ local function register(part: BasePart, startTime: number)
 		StartPivot = startPivot,
 		EndPivot = attributes.EndPivot or startPivot,
 		RestTime = attributes.RestTime or 0,
+		AccelerationTime = math.max(attributes.AccelerationTime or DEFAULT_ACCELERATION_TIME, 0),
+		DecelerationTime = math.max(attributes.DecelerationTime or DEFAULT_DECELERATION_TIME, 0),
 		StartTime = startTime,
 		Size = part.Size,
 		AlignPosition = getDriveConstraint(part, ALIGN_POSITION_NAME) :: AlignPosition?,
