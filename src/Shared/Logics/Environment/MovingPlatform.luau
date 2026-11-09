@@ -50,13 +50,21 @@ local CombatLibrary = require(ReplicatedStorage.Shared.Library.CombatLibrary)
 local START_TIME_ATTRIBUTE = "MovingPlatformStartTime" -- // Set by the server on the platform part: time() it started moving
 local CLASS_NAME = "MovingPlatform"
 
-local PHYSICS_DRIVEN = true -- // Unanchored and held to its path by rigid constraints, so Roblox physics does the pushing and carrying (see DRIVE)
+-- // Riding: see docs/MovingPlatformRiding.md for what has been tried. The physics drive moves the platform with no velocity
+-- // of its own, so the Humanoid doesn't follow it and riders are left behind; riding needs the anchored mode
+local PHYSICS_DRIVEN = false -- // Unanchored and held to its path by rigid constraints, so Roblox physics does the pushing and carrying (see DRIVE)
 local PLATFORM_DENSITY = 100 -- // Maximum density: characters can't shove the platform off its path
 local ALIGN_POSITION_NAME = "MovingPlatformAlignPosition"
 local ALIGN_ORIENTATION_NAME = "MovingPlatformAlignOrientation"
 local DRIVE_ATTACHMENT_NAME = "MovingPlatformAttachment"
 
 local CARRY_ENABLED = true -- // Players standing on a platform ride along with it (see CARRY; anchored mode only)
+-- // How riders are carried (anchored mode): "Delta" moves them by the platform's own movement every step (exact; the platform's
+-- // velocity is left at zero so the Humanoid doesn't carry them twice). "Velocity" only writes the platform's velocity and
+-- // lets the Humanoid follow its floor (slips about 2 studs per 35-stud trip)
+local RIDE_MODE: "Delta" | "Velocity" = "Delta"
+local RIDE_FOOTPRINT_MARGIN = 0.5 -- // Studs past the platform's edge a rider's root can be and still ride
+local RIDE_HEIGHT_TOLERANCE = 0.6 -- // Feet within this of the platform's top (above or below) count as standing on it
 
 local PUSH_ENABLED = true -- // Characters in the way are moved clear of the leading face (see PUSH; anchored mode only)
 local PUSH_BODY_HALF_SIZE = Vector3.new(1, 1, 0.5) -- // Half the collidable torso (2 x 2 x 1, R6 and bots), in the root's space
@@ -188,8 +196,32 @@ end
 -- // An anchored part's velocity is what physics uses for contacts with it: characters standing on it move with it, and
 -- // characters in its way are pushed at its speed. Called inside the simulation step (both properties have simulation access).
 local function applyCarryVelocity(part: BasePart, velocity: Vector3)
-	part.AssemblyLinearVelocity = if CARRY_ENABLED then velocity else Vector3.zero
+	part.AssemblyLinearVelocity = if CARRY_ENABLED and RIDE_MODE == "Velocity" then velocity else Vector3.zero
 	part.AssemblyAngularVelocity = Vector3.zero
+end
+
+-- // RIDE_MODE "Delta": every character standing on the platform (feet on its top, root over it, as of the platform's previous
+-- // pivot) is moved with it this step: the same move (and turn) the platform made. Their own walking is untouched, so they can
+-- // walk around on it. Inside the simulation step: the server carries everyone, a client its own predicted character.
+local function carryRiders(platformData: PlatformData, previousPivot: CFrame, pivot: CFrame)
+	if not CARRY_ENABLED or RIDE_MODE ~= "Delta" then
+		return
+	end
+	local delta = pivot * previousPivot:Inverse()
+	if delta.Position.Magnitude <= 1e-6 and delta.Rotation == CFrame.identity then
+		return
+	end
+	local halfSize = platformData.Size / 2
+	for root in pairs(pushableRoots) do
+		local rootCFrame = root.CFrame
+		local localPosition = previousPivot:PointToObjectSpace(rootCFrame.Position)
+		local feet = localPosition.Y - PUSH_BODY_BELOW_ROOT
+		if math.abs(feet - halfSize.Y) <= RIDE_HEIGHT_TOLERANCE
+			and math.abs(localPosition.X) <= halfSize.X + RIDE_FOOTPRINT_MARGIN
+			and math.abs(localPosition.Z) <= halfSize.Z + RIDE_FOOTPRINT_MARGIN then
+			root.CFrame = delta * rootCFrame
+		end
+	end
 end
 
 -------------------------------------------------------------------------------
@@ -337,6 +369,7 @@ local function stepPlatforms(deltaTime: number)
 
 		local previousPivot = getPivotAt(platformData, now - math.max(deltaTime, 1e-3))
 		applyCarryVelocity(part, (pivot.Position - previousPivot.Position) / math.max(deltaTime, 1e-3))
+		carryRiders(platformData, previousPivot, pivot)
 		if PUSH_ENABLED and moving then
 			pushCharacters(platformData, previousPivot, pivot)
 		end
