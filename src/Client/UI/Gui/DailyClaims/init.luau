@@ -1,7 +1,7 @@
 local DailyClaimsGui = {}
 DailyClaimsGui.Type = "HUD"
 DailyClaimsGui.Open = false
-DailyClaimsGui.RequiresMouse = true -- // Clickable menu: frees the mouse in the locked camera (MouseUnlockController)
+DailyClaimsGui.RequiresMouse = true -- // Frees the mouse in a locked camera (MouseUnlockController)
 
 local player = game:GetService("Players").LocalPlayer
 
@@ -58,7 +58,7 @@ local function updateDayIndicators()
 
    local visualStreak, nextVisualDay, isClaimable = getStreakState(playerData)
 
-   -- // The day the player is on: the claimable day, or the day already claimed today
+   -- // The current day: the claimable day, or the day already claimed today
    streakNumber.Text = tostring(if isClaimable then nextVisualDay else math.max(visualStreak, 1))
 
    for dayNum = 1, DailyRewards.MaxStreakDays do
@@ -83,8 +83,9 @@ local function updateDayIndicators()
    end
 end
 
--- // Item and skin rewards are announced by ShopController / SkinController (ItemAcquired), so only currency is shown here.
--- // A skin the player already owned was converted to its FallbackCurrency.
+-- // Only currency is shown here; item and skin rewards are announced by ShopController / SkinController
+-- // (ItemAcquired).
+-- // An already-owned skin is converted to its FallbackCurrency.
 local function notifyReward(claimedDay: number, convertedToCurrency: boolean)
    local reward = DailyRewards.Rewards[claimedDay]
    if reward and reward.Type == "Currency" then
@@ -209,14 +210,14 @@ function DailyClaimsGui.start()
 
    container:WaitForChild("Exit").MouseButton1Click:Connect(DailyClaimsGui.close)
 
-   -- // The claim's new Streak/LastClaim replicate after the remote returns, so refresh when they arrive
+   -- // The new Streak/LastClaim replicate after the remote returns, so refresh on arrival
    PlayerDataController.UpdatedTasks:Add(function(_, _, path)
       if path[1] == "DailyRewards" and DailyClaimsGui.Open then
          updateDayIndicators()
       end
    end)
 
-   -- // Opened from the Daily button in MenuButtons (was a Topbar button)
+   -- // Opened from the Daily button in MenuButtons
 
    if game:GetService("RunService"):IsStudio() then
       game:GetService("ContextActionService"):BindAction("testopendailyclaimsmenu", function(_, inputState)

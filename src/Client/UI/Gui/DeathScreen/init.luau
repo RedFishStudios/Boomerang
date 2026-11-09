@@ -75,7 +75,7 @@ end
 local instanceKey = nil
 
 function DeathScreen.open()
-   -- // Failsafe: never show the death screen over PreIntermission (e.g. a final elimination death that also ends the round)
+   -- // Never show over PreIntermission (e.g. a final elimination death that also ends the round)
    if UIController.get("PreIntermission").Open then
       return
    end

@@ -1,13 +1,11 @@
 --[[
 	BoomerangDebugController
 
-	Dev testing for boomerang replication (switched with Cmdr `boomerangdebug`, see BoomerangDebugLibrary):
-	  - Log: WeaponController reports every server snapshot of a thrown/returning boomerang here, with how far this client's
-	    simulation was from where the server says it is. Each flight is summarised in the output when it ends; every hard snap
-	    (a teleport to the server's position) is printed as it happens.
-	  - Walk: drives your own character's movement input, to test against a moving target.
-	  - Actions: a full-charge throw at a given angle, or holding manual recall for some seconds, through the same input
-	    functions touch controls use (WeaponController), so tests don't depend on real mouse/keyboard input.
+	Dev testing for boomerang replication (Cmdr `boomerangdebug`, see BoomerangDebugLibrary):
+	  - Log: records each server snapshot of a thrown/returning boomerang and the client's drift from it. Prints a summary
+	    per flight and each hard snap (teleport to the server position).
+	  - Walk: drives the local character's movement input.
+	  - Actions: full-charge throw at an angle, or manual recall held for some seconds, via the WeaponController touch input functions.
 ]]
 
 local BoomerangDebugController = {}
@@ -25,7 +23,7 @@ local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 -------------------------------------------------------------------------------
 
 local LOG_PREFIX = "[BoomerangDebug]"
-local STRAFE_PERIOD = 2 -- // Seconds for one left-right-left strafe
+local STRAFE_PERIOD = 2 -- // Seconds per left-right-left strafe
 local STATE_NAMES = { [1] = "Outgoing", [2] = "Exhausted", [3] = "Returning" }
 
 -------------------------------------------------------------------------------
@@ -115,14 +113,14 @@ local function getWalkDirection(root: BasePart, pattern: number, radius: number)
 	fromCentre = Vector3.new(fromCentre.X, 0, fromCentre.Z)
 
 	if pattern == 1 then
-		-- // Circle: tangent, plus a pull back onto the circle
+		-- // Circle: tangent plus a pull back onto the circle
 		local radial = if fromCentre.Magnitude > 0.1 then fromCentre.Unit else Vector3.xAxis
 		local tangent = Vector3.new(-radial.Z, 0, radial.X)
 		local pull = (radius - fromCentre.Magnitude) / math.max(radius, 1)
 		return (tangent + radial * pull * 2)
 	elseif pattern == 2 then
 		local side = if math.sin(elapsed * math.pi * 2 / STRAFE_PERIOD) >= 0 then 1 else -1
-		local back = -fromCentre / math.max(radius, 1) -- // Stays around the starting spot
+		local back = -fromCentre / math.max(radius, 1) -- // Keeps it around the starting spot
 		return Vector3.xAxis * side + Vector3.new(0, 0, back.Z)
 	elseif pattern == 3 or pattern == 4 then
 		local data = ThrownWeapons.Data[Players.LocalPlayer]
@@ -170,9 +168,8 @@ local function runAction()
 		local SkinLibrary = require(ReplicatedStorage.Shared.Library.SkinLibrary) :: any
 		local WeaponLibrary = require(ReplicatedStorage.Shared.Library.WeaponLibrary) :: any
 		local toolId = SkinLibrary.getWeaponClass(Players.LocalPlayer)
-		-- // Players reach the arena by teleport, keeping the ForceField they spawned with in the lobby, and canThrow refuses
-		-- // while one exists. The server removes its copy (BoomerangDebugServer); wait for that to replicate, and remove a
-		-- // local copy too (with server authority the client can hold its own)
+		-- // The lobby ForceField survives the arena teleport and canThrow refuses while one exists. Wait for the
+		-- // server (BoomerangDebugServer) to remove it, and remove any local copy
 		local character = Players.LocalPlayer.Character
 		if character then
 			local deadline = os.clock() + 1
@@ -208,8 +205,8 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
--- // WeaponController: a server snapshot of `forPlayer`'s thrown/returning boomerang arrived. `drift` = studs between this
--- // client's simulation and the server's position (advanced to now); `hardSnap` = it was too far and teleported.
+-- // Called by WeaponController on a server snapshot of `forPlayer`'s boomerang. `drift` = studs between the client
+-- // simulation and the server position (advanced to now); `hardSnap` = it was too far and teleported.
 function BoomerangDebugController.recordSnapshot(forPlayer: Player, data: any, drift: number, speed: number, state: number, hardSnap: boolean, catchup: number?, pendingCorrection: number?)
 	if not isLogging() then
 		return
@@ -263,7 +260,7 @@ function BoomerangDebugController.init()
 	BoomerangDebugLibrary.getActionChangedSignal(Players.LocalPlayer):Connect(function()
 		task.spawn(runAction)
 	end)
-	-- // After the default controls have set this frame's movement, so the debug walk wins
+	-- // Runs after the default controls set movement, so the debug walk wins
 	RunService:BindToRenderStep("BoomerangDebugWalk", Enum.RenderPriority.Character.Value + 1, stepWalk)
 end
 

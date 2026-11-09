@@ -1,7 +1,7 @@
 local VotingGui = {}
 VotingGui.Type = "HUD"
 VotingGui.Open = false
-VotingGui.RequiresMouse = true -- // Clickable menu: frees the mouse in the locked camera (MouseUnlockController)
+VotingGui.RequiresMouse = true -- // Frees the mouse in a locked camera (MouseUnlockController)
 
 local TweenService = game:GetService("TweenService")
 

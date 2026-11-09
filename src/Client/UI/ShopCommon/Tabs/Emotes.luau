@@ -2,8 +2,8 @@
 	Emotes tab (Cosmetics Shop)
 
 	Description:
-	Every emote on sale, in the same order as the Inventory's Emotes tab (EmoteLibrary / EmoteController, data in
-	Shared/Referential/Emotes). Emotes that are off sale are left out by ShopListings. Scrolls past 6 listings.
+	Every emote on sale, in the Inventory Emotes tab's order (EmoteLibrary / EmoteController, data in
+	Shared/Referential/Emotes). ShopListings omits off-sale emotes. Scrolls past 6 listings.
 	Follows the ShopTab shape in ShopCommon/ShopBuilder.
 ]]
 

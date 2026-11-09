@@ -2,9 +2,9 @@
 	WeaponsShop
 
 	Description:
-	The Weapons Shop, opened from its topbar button (MenuButtons). A single window (no tabs)
-	selling weapon crates, one per category (Shared/Referential/Crates, ShopCommon/Tabs/Crates): buying one gives a random
-	weapon of that category (CrateService on the server). Built by ShopCommon/ShopBuilder.
+	The Weapons Shop, opened from its topbar button (MenuButtons). A single window (no tabs) selling weapon crates,
+	one per category (Shared/Referential/Crates, ShopCommon/Tabs/Crates); buying one gives a random weapon of that
+	category (CrateService on the server). Built by ShopCommon/ShopBuilder.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -21,7 +21,7 @@ return ShopBuilder.create({
 	BackgroundImage = BACKGROUND_IMAGE,
 	AspectRatio = ASPECT_RATIO,
 	TestKey = Enum.KeyCode.B,
-	-- // Fitted to the new frame art: the listings fill the parchment panel, a 3 x 2 grid (scrolls past 6 crates)
+	-- // Listings fill the parchment panel in a 3 x 2 grid (scrolls past 6 crates)
 	Layout = {
 		HideTabs = true,
 		ListingsPosition = UDim2.fromScale(0.12, 0.2),

@@ -23,7 +23,7 @@ local acquiredTitleByType: {[Items.ItemType]: string} = {
    Skin = "New skin acquired!",
 }
 
--- // Last known inventory counts, since UpdatedTasks only provides the new value
+-- // Last known inventory counts; UpdatedTasks only provides the new value
 local knownInventoryCounts: {[string]: number} = {}
 
 -------------------------------------------------------------------------------
@@ -53,8 +53,8 @@ function ShopController.requestPurchaseItem(itemId: string, listingType: string?
    return requestPurchaseRemoteFunction:InvokeServer(itemId, listingType or "Item")
 end
 
--- // Buys a weapon crate. The crate is put in the world next to the player, who opens it by clicking it
--- // (CrateService, CrateOpeningController shows what was inside). Returns success.
+-- // Buys a weapon crate, placed next to the player, who opens it by clicking it (CrateService; see
+-- // CrateOpeningController). Returns success.
 function ShopController.requestPurchaseCrate(crateId: string): boolean
    return requestPurchaseRemoteFunction:InvokeServer(crateId, "Crate") == true
 end

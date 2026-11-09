@@ -2,13 +2,13 @@
 	CrateOpeningController
 
 	Description:
-	The client side of opening a bought weapon crate (the server places and counts: Server/Core/CrateService).
-	For the local player's own crates (workspace.PlacedCrates, attribute OwnerUserId):
-	  - a label above the crate: "Tap to open!" and the clicks / taps left (attribute ClicksLeft, counted by the server)
-	  - a little bounce on every click / tap (shown right away, before the server's count comes back)
-	  - when the server opens it (CrateOpened event): the crate pops (grows and vanishes), and a weapon the player already owned
-	    is shown as "Duplicate weapon" (a new one shows "New skin acquired!" through SkinController).
-	Other players' crates are just models.
+	Client side of opening a bought weapon crate (placed and counted by Server/Core/CrateService).
+	For the local player's crates (workspace.PlacedCrates, attribute OwnerUserId):
+	  - a label with "Tap to open!" and the clicks left (attribute ClicksLeft)
+	  - a bounce on every click / tap, shown before the server's count returns
+	  - on the CrateOpened event the crate pops (grows and vanishes); an already-owned weapon shows "Duplicate weapon",
+	    a new one shows "New skin acquired!" through SkinController.
+	Other players' crates are plain models.
 ]]
 
 local CrateOpeningController = {}
@@ -30,9 +30,9 @@ local FOLDER_NAME = "PlacedCrates" -- // CrateService.FOLDER_NAME
 local OPENED_EVENT = "CrateOpened" -- // CrateService.OPENED_EVENT
 local FONT = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
 
-local BOUNCE_SCALE = 1.12 -- // Size of the crate at the top of a hit bounce
+local BOUNCE_SCALE = 1.12 -- // Crate scale at the top of a hit bounce
 local BOUNCE_SECONDS = 0.12
-local POP_SCALE = 1.6 -- // The opened crate grows to this while vanishing
+local POP_SCALE = 1.6 -- // Scale the opened crate grows to while vanishing
 local POP_SECONDS = 0.35
 
 -------------------------------------------------------------------------------
@@ -103,7 +103,7 @@ local function updateCount(entry: TrackedCrate)
 	entry.CountText.Text = if type(clicksLeft) == "number" then tostring(math.max(clicksLeft, 0)) else ""
 end
 
--- // A quick grow-and-settle on every hit (local only)
+-- // Grow-and-settle on every hit (local only)
 local function bounce(entry: TrackedCrate)
 	local startedAt = os.clock()
 	entry.BounceStartedAt = startedAt
@@ -114,7 +114,7 @@ local function bounce(entry: TrackedCrate)
 				entry.Model:ScaleTo(entry.BaseScale)
 				break
 			end
-			-- // Up then back down (sine), so it ends exactly at its size
+			-- // Up then back down (sine), ending at the original size
 			entry.Model:ScaleTo(entry.BaseScale * (1 + (BOUNCE_SCALE - 1) * math.sin(alpha * math.pi)))
 			task.wait()
 		end
@@ -132,7 +132,7 @@ local function untrack(model: Model)
 	end
 end
 
--- // The opened crate grows and turns invisible (the server removes it shortly after)
+-- // The opened crate grows and turns invisible (the server removes it afterwards)
 local function pop(entry: TrackedCrate)
 	entry.BounceStartedAt = nil
 	entry.Label.Enabled = false
@@ -218,7 +218,7 @@ function CrateOpeningController.start()
 	local folder = workspace:WaitForChild(FOLDER_NAME, math.huge) :: Folder
 	folder.ChildAdded:Connect(function(child)
 		if child:IsA("Model") then
-			-- // Attributes and the ClickDetector arrive with the model; wait a frame in case they replicate just after
+			-- // Wait a frame in case the attributes and ClickDetector replicate after the model
 			task.defer(track, child)
 		end
 	end)

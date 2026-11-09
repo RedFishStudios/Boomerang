@@ -4,10 +4,6 @@
   TODO:
   - When a player joins, if currently in a team-based match, assign to the team with the least players
 
-TODO: figure out how teams should work
-do i want to deal with default roblox bs or do i want to override it completely
-dealing with default roblox system might be good for an MVP since it visualizes in the UI. it should just be very easy to modify for the future.
-
   Author:
   @Soulsplosion
 ]]
@@ -47,7 +43,7 @@ OutOfGameTeam.AutoAssignable = false
 
 local roundTeamsDismantled = false
 
--- Teams that only exist for a round and are dismantled at the end of  around
+-- Teams that only exist for a round and are dismantled at the end of the round
 local RoundTeams: {
    [string]: Team,
 } = {}

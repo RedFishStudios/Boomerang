@@ -2,8 +2,8 @@ local Dash = {}
 
 -- TODO: the animation clashes badly with authoritative run animation, causing the character to wiggle around
 --       address as either an animation issue or a propulsion issue
--- // Server authority: the dash is started and moved inside the simulation step on the server and on the player's own
--- // client, from the replicated jump input, so the client's prediction matches the server. See PREDICTED DASH below.
+-- // Server authority: the dash starts and moves inside the simulation step on the server and the player's own client,
+-- // from the replicated jump input, so prediction matches the server (see PREDICTED DASH).
 
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
@@ -45,32 +45,32 @@ end
 local DASH_SPEED = 80
 local DASH_DURATION_SECONDS = 0.12
 local DASH_COOLDOWN_SECONDS = 1
-local DASH_DISTANCE = DASH_SPEED * DASH_DURATION_SECONDS -- // How far a full dash goes (studs)
+local DASH_DISTANCE = DASH_SPEED * DASH_DURATION_SECONDS -- // Full dash distance (studs)
 
--- // SAFE DASH config: see the SAFE DASH section below. Set SAFE_DASH_ENABLED = false to remove the behaviour entirely.
+-- // SAFE DASH config (see SAFE DASH). SAFE_DASH_ENABLED = false removes the behaviour.
 local SAFE_DASH_ENABLED = true
--- // A dash that would end over open air (or deadly water) is shortened to stop at the edge, but only if that still covers at
--- // least this fraction of the full dash distance; otherwise the full dash happens (and the player goes over the edge)
+-- // A dash that would end over open air (or deadly water) is shortened to stop at the edge if that still covers at
+-- // least this fraction of the full distance; otherwise the full dash happens.
 local SAFE_DASH_MIN_FRACTION = 0.5
 local SAFE_DASH_GROUND_SEARCH_DEPTH = 30 -- // Studs below the feet: no standable ground within this counts as open air
 local SAFE_DASH_MAX_GROUND_SLOPE_Y = 0.7 -- // Ground whose normal's Y is below this is too steep to stand on
-local SAFE_DASH_EDGE_MARGIN = 1 -- // Studs a shortened dash stops short of the edge (so the torso isn't hanging over it)
+local SAFE_DASH_EDGE_MARGIN = 1 -- // Studs a shortened dash stops short of the edge
 local SAFE_DASH_FOOT_OFFSETS = { Vector3.zero, Vector3.new(0.6, 0, 0.6), Vector3.new(-0.6, 0, 0.6), Vector3.new(0.6, 0, -0.6), Vector3.new(-0.6, 0, -0.6) }
 local SAFE_DASH_MIN_SUPPORTED_FEET = 3 -- // Of the five footprint rays above (centre first, which must always hit): the centre and one side
 local BODY_BELOW_ROOT = 3 -- // Feet are this far below the root (R6)
 local BODY_ABOVE_ROOT = 2.5 -- // Top of the head is this far above the root
 local OBSTRUCTION_STEP_HEIGHT = 1 -- // The obstruction cast ignores anything lower than this above the feet (the Humanoid steps up it)
 local OBSTRUCTION_MARGIN = 0.1 -- // Studs a dash stops short of a wall
--- // When a dash ends, its leftover speed is cut to walking speed, so it really ends where it was planned to (at 80 studs/s
--- // the momentum used to slide the player several studs further, e.g. off the edge the dash had just stopped short of)
+-- // A dash's leftover speed is cut to walking speed at its end so it finishes where planned (at 80 studs/s, momentum
+-- // would slide the player several studs further)
 local DASH_END_CLAMPS_SPEED = true
-local MOVING_PLATFORM_CLASS_NAME = "MovingPlatform" -- // The ClassName attribute of a moving platform (MovingPlatform environment logic)
+local MOVING_PLATFORM_CLASS_NAME = "MovingPlatform" -- // ClassName attribute of a moving platform (MovingPlatform environment logic)
 
 local COOLDOWN_EFFECT_ID = "DashCooldown"
 local ABILITY_ID = "Dash"
 
--- // Client only: the os.clock timestamp the local player's dash cooldown shows until (display only; the real cooldown is the
--- // DashReadyAt attribute, see PREDICTED DASH)
+-- // Client only: os.clock time the local player's dash cooldown display runs until (display only; the real cooldown is
+-- // the DashReadyAt attribute)
 local cooldowns: {[Player]: number} = {}
 
 -------------------------------------------------------------------------------
@@ -87,11 +87,10 @@ local function endDashEffects(player: Player)
    end
 end
 
--- // Client only: the dash cooldown is shown in the effects bar (the same gui as pickups / On Fire) as a display-only effect.
--- // The countdown itself lives only in `cooldowns` above; the server never hears about this effect. Every frame this compares
--- // whether the local player's dash is cooling down with whether the effect is shown, so death, round end or any reset
--- // that clears the cooldown also removes the icon, and nothing here is event-driven.
-local shownCooldownEndsAt: number? = nil -- // The cooldown (an os.clock timestamp) the effect currently shown was started for
+-- // Client only: the dash cooldown shows in the effects bar as a display-only effect (the countdown lives only in
+-- // `cooldowns`; the server never hears of it). Each frame it compares whether the dash is cooling down with whether
+-- // the effect is shown, so any reset that clears the cooldown also removes the icon.
+local shownCooldownEndsAt: number? = nil -- // The cooldown (os.clock timestamp) the shown effect was started for
 
 local function updateCooldownEffect()
    local localPlayer = Players.LocalPlayer
@@ -132,18 +131,17 @@ end
 --
 -- // Plans where a dash ends, before it starts:
 -- // 1. One shapecast along the full dash finds how far the body can go (the full distance, or up to an obstruction).
--- // 2. Only that end point is checked. Stable ground there (or the safe-dash behaviour switched off): dash to it, even across
--- //    a gap.
--- // 3. Otherwise the end would leave the player over open air or deadly water. Find the near edge of the danger (a cast back
--- //    from the end just under the floor's surface hits the gap's near face; a cast forward at the water finds its near
--- //    face), and stop a margin short of it, provided that spot is stable and covers at least SAFE_DASH_MIN_FRACTION of the
--- //    full dash distance. If not, the full dash happens and the player goes over the edge.
+-- // 2. Only that end point is checked. Stable ground there (or safe dash off): dash to it, even across a gap.
+-- // 3. Otherwise the end is over open air or deadly water: find the near edge of the danger (a cast back from the end
+-- // just under the floor surface hits the gap's near face; a cast forward at the water finds its near face) and stop a
+-- // margin short, if that spot is stable and covers at least SAFE_DASH_MIN_FRACTION of the dash. If not, the full dash
+-- // happens.
 -------------------------------------------------------------------------------
 
 export type DashPlan = {
    Direction: Vector3, -- // Horizontal unit vector
    Distance: number, -- // Studs the dash travels
-   Shortened: boolean, -- // Stopped short to stay on stable ground (the dash ends dead on the spot instead of carrying momentum)
+   Shortened: boolean, -- // Stopped short to stay on stable ground (ends dead on the spot, no momentum)
 }
 
 -- // Lazily required: Water -> CombatLibrary -> PickupLibrary -> pickup logics (load order)
@@ -270,17 +268,15 @@ end
 -------------------------------------------------------------------------------
 -- PREDICTED DASH
 --
--- // Under server authority the server simulates every character and a player's own client only predicts its own. So the dash
--- // is started and moved inside the simulation step (RunService:BindToSimulation), on the server for every player and on each
--- // client for its own character, from the same replicated input: the moment the player's JumpAction is pressed (Space,
--- // gamepad, or the dash buttons, which press it). Both sides start it on the same simulation frame, plan it from the same
--- // state and move it the same way, and replays after a correction re-run it identically.
--- // Its state is kept in attributes on the HumanoidRootPart (a predicted instance, so they are rolled back and replayed with
--- // it), never in Lua tables. What can't happen inside the simulation (immunity, effects, stats, telling the other clients)
--- // follows those attributes afterwards (see EFFECTS).
+-- // Under server authority the server simulates every character and a client only predicts its own. So the dash starts
+-- // and moves inside the simulation step (RunService:BindToSimulation), on the server for every player and on each
+-- // client for its own character, from the same replicated JumpAction press (Space, gamepad, or dash buttons). Both
+-- // sides start, plan and move it identically, and replays after a correction re-run it identically. State lives in
+-- // attributes on the HumanoidRootPart (a predicted instance, so rolled back and replayed), never in Lua tables. What
+-- // can't run in the simulation (immunity, effects, stats, telling clients) follows those attributes (see EFFECTS).
 -------------------------------------------------------------------------------
 
-local ATTRIBUTE_INPUT_HELD = "DashInputHeld" -- // The jump input's state last step (a dash starts when it goes from up to down)
+local ATTRIBUTE_INPUT_HELD = "DashInputHeld" -- // Jump input state last step (a dash starts on up-to-down)
 local ATTRIBUTE_STARTED_AT = "DashStartedAt" -- // time() the latest dash started
 local ATTRIBUTE_ENDS_AT = "DashEndsAt" -- // time() the current dash ends; 0 when not dashing
 local ATTRIBUTE_READY_AT = "DashReadyAt" -- // time() the cooldown ends
@@ -289,8 +285,8 @@ local ATTRIBUTE_START = "DashStart" -- // Root position the dash started from
 local ATTRIBUTE_DISTANCE = "DashDistance" -- // Planned distance (SAFE DASH)
 local ATTRIBUTE_SHORTENED = "DashShortened"
 
--- // Why each player can't dash right now (aiming, in the lobby, ...), or nil. Worked out outside the simulation each frame
--- // (those checks read game state the simulation can't), read inside it
+-- // Why each player can't dash now (aiming, in the lobby, ...), or nil. Computed outside the simulation each frame (it
+-- // reads game state the simulation can't), read inside it.
 local blockReasons: {[Player]: string?} = {}
 
 local function getJumpAction(player: Player): InputAction?

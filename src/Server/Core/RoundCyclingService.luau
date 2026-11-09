@@ -33,8 +33,7 @@ local GamemodeLogicModules = {}
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
--- // Lobby time between rounds doubled (was 10 / 30). PRE_INTERMISSION is the end-of-round screen while players are
--- // still in the arena: not lobby time, so it stays 5 s.
+-- // PRE_INTERMISSION is the end-of-round screen while players are still in the arena (not lobby time).
 local INTERMISSION_DURATION = 20
 local VOTE_DURATION = 60
 local PRE_INTERMISSION_DURATION = 5

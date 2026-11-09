@@ -34,15 +34,15 @@ local PlayerDataController = require(ReplicatedStorage.Client.Core.PlayerDataCon
 
 local setSettingEvent = SimpleRemotes.getEvent("SetSetting")
 
--- // Values changed here that the replicated profile may not show yet (so the menu doesn't jump back while the save is
--- // on its way). Cleared once the profile has the same value.
+-- // Values changed here that the replicated profile may not show yet (so the menu doesn't jump back while saving).
+-- // Cleared once the profile has the same value.
 local localValues: { [string]: SettingConstants.SettingValue } = {}
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
 -------------------------------------------------------------------------------
 
--- // A setting's value changed (the player changed it, their saved settings loaded, or the device changed its default)
+-- // A setting's value changed (by the player, saved settings loading, or a device default change)
 SettingsController.SettingChangedTasks = TasksList.new() :: TasksList.TasksList<(settingName: SettingConstants.SettingName, value: SettingConstants.SettingValue) -> ()>
 
 -------------------------------------------------------------------------------
@@ -66,7 +66,7 @@ local function applyVolumes()
 	SoundLibrary.getMusicGroup().Volume = (SettingsController.getValue("MusicVolume") :: number) / (musicSetting.Max or 100)
 end
 
--- // Tells every listener the current value of every setting (after loading, or when defaults may have changed)
+-- // Tells listeners the current value of every setting (after loading, or when defaults may have changed)
 local function announceAll()
 	for _, settingName in SettingConstants.SettingOrder do
 		SettingsController.SettingChangedTasks:Execute("parallel", settingName, SettingsController.getValue(settingName))

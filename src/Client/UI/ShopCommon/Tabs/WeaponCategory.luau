@@ -3,8 +3,8 @@
 
 	Description:
 	Builds a Weapons Shop tab listing every skin on sale whose tool (Shared/Constants/Tools) has the given Category
-	("Boomerang", "Fan" or "Shuriken"), in the order of the Inventory's Skins tab (SkinLibrary / SkinController, data in
-	Shared/Referential/Skins). Skins that are off sale are left out by ShopListings. Scrolls past 6 listings.
+	("Boomerang", "Fan" or "Shuriken"), in the Inventory Skins tab's order (SkinLibrary / SkinController, data in
+	Shared/Referential/Skins). ShopListings omits off-sale skins. Scrolls past 6 listings.
 	Follows the ShopTab shape in ShopCommon/ShopBuilder.
 ]]
 

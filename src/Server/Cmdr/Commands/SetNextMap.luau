@@ -1,5 +1,4 @@
 -- // Cmdr command definition (replicated to clients for autocomplete). Server logic is in SetNextMapServer.
--- // Replaces the old /setnextmap chat command.
 return {
 	Name = "setnextmap",
 	Aliases = { "nextmap" },

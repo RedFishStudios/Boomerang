@@ -2,13 +2,10 @@
   StormCloseService
 
   Description:
-  Handles server-side player data
+  Handles the storm boundary that closes in during a round
 
   Author:
   @SixthAtom
-
-  Date:
-  20-02-2026
 ]]
 
 local StormCloseService = {}

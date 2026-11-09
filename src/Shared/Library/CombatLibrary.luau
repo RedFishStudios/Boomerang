@@ -1,8 +1,7 @@
 -- // Handles behavior of thrown weapons
 
 --[[
-  Handles equipping/unequipping of tools to the character
-  - Boomerangs, shuricans, fans, special weapons, etc
+  Equipping/unequipping of tools on the character (boomerangs, shuricans, fans, special weapons)
 ]]
 
 local CombatLibrary = {}

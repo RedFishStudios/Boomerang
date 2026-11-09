@@ -80,8 +80,7 @@ function DynamicCollisionLibrary.getPointVelocity(
 		return Vector3.zero
 	end
 
-	-- Keep the point fixed in the platform's local space
-	-- at the previous transform.
+	-- Keep the point fixed in the platform's local space at the previous transform.
 	local localPosition = data.PreviousTransform:PointToObjectSpace(worldPosition)
 
 	local previousWorldPosition =

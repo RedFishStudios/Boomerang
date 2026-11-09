@@ -2,34 +2,28 @@
 	MovingPlatform (environment logic)
 
 	A platform that travels back and forth between two pivots, resting RestTime seconds at each end. Each trip speeds up to
-	Speed (studs per second) over AccelerationTime seconds, runs at that speed, and stops over DecelerationTime seconds (short
-	by default, so it stays fast until it's nearly there). The platform is a single part directly in the map's Functional
-	folder, with attributes ClassName = "MovingPlatform", Speed, StartPivot, EndPivot, and optionally RestTime,
-	AccelerationTime, DecelerationTime, StartCrush, EndCrush.
+	Speed (studs/s) over AccelerationTime seconds, runs at that speed, and stops over DecelerationTime seconds. The platform is
+	a single part directly in the map's Functional folder with attributes ClassName = "MovingPlatform", Speed, StartPivot,
+	EndPivot, and optionally RestTime, AccelerationTime, DecelerationTime, StartCrush, EndCrush.
 
 	SERVER AUTHORITY (Workspace.AuthorityMode = Server):
-	- Where the platform should be is a pure function of the synced simulation clock, time(). It is driven inside
-	  RunService:BindToSimulation() on the server AND on every client (this module is initialised by EnvironmentService and by
-	  EnvironmentController). Clients force prediction on for it (RunService:SetPredictionMode), so each client drives it the
-	  same way the server does for every simulation frame, including frames replayed after a rollback. Characters are
-	  therefore always predicted against the platform where it really is.
-	- DRIVE (PHYSICS_DRIVEN): the platform is an unanchored, heavy body held to that path by a rigid AlignPosition and
-	  AlignOrientation (created by the server; each client drives its own local copy); each step only their targets are set. Roblox physics moves it
-	  through its substeps with a real velocity, so it pushes characters in its way and carries characters standing on it
-	  itself. PHYSICS_DRIVEN = false goes back to the anchored platform moved by setting its CFrame each step, which needs
-	  CARRY and PUSH below (those two sections only run in that mode).
-	- The server stamps the platform with the time it started (attribute MovingPlatformStartTime); clients read it from the
-	  replicated part. Clients find platforms by watching the live arena map (they can stream in and out).
-	- CARRY (separate section below, anchored mode only): the platform's velocity is also written each step, so players
-	  standing on it are carried along. CARRY_ENABLED turns the riding part off.
-	- PUSH (separate section below, anchored mode only): physics alone can't push characters out of the way of an anchored part that jumps
-	  forward each step (at full speed the platform moves further per step than half a torso, so characters were popped
-	  out the far side). So each step, every character (players and bots) caught by the leading face is moved forward,
-	  just clear of it. Only their position along the travel is changed, never their velocity, so they keep moving
-	  normally and never stick to the platform.
-	- CRUSH (separate section below, server only): the attributes StartCrush / EndCrush (booleans) make that end crush. While the platform closes in on a crushing end, a player inside its footprint, between its leading face and that
-	  end, is crushed once the gap left is too small for their Hitbox. The end must have a wall to crush against (map rule).
-	  Runs right after each server simulation step (eliminations can't be applied inside one); clients never predict it.
+	- Its position is a pure function of the synced simulation clock, time(). It is driven inside RunService:BindToSimulation()
+	  on the server and every client (initialised by EnvironmentService and EnvironmentController). Clients force prediction on
+	  for it (RunService:SetPredictionMode), so each drives it like the server, including frames replayed after a rollback.
+	- DRIVE (PHYSICS_DRIVEN): the platform is an unanchored, heavy body held to its path by a rigid AlignPosition and
+	  AlignOrientation (created by the server; each client drives its own local copy); each step only their targets are set, and
+	  Roblox physics pushes and carries characters. PHYSICS_DRIVEN = false uses the anchored platform moved by setting its CFrame
+	  each step, which needs CARRY and PUSH (those sections only run in that mode).
+	- The server stamps the platform with its start time (attribute MovingPlatformStartTime); clients read it from the replicated
+	  part and find platforms by watching the live arena map (they can stream in and out).
+	- CARRY (anchored mode only): players standing on the platform are carried along (RIDE_MODE). CARRY_ENABLED turns it off.
+	- PUSH (anchored mode only): physics can't push characters out of the way of an anchored part that jumps forward each step
+	  (at full speed it moves further per step than half a torso). So each step every character (players and bots) caught by the
+	  leading face is moved forward, just clear of it. Only their position along the travel changes, never their velocity.
+	- CRUSH (server only): StartCrush / EndCrush (booleans) make that end crush. While the platform closes in on a crushing end,
+	  a player inside its footprint between its leading face and that end is crushed once the gap is too small for their Hitbox.
+	  The end must have a wall (map rule). Runs right after each server simulation step (eliminations can't be applied inside
+	  one); clients never predict it.
 ]]
 
 local MovingPlatform = {}
@@ -50,8 +44,8 @@ local CombatLibrary = require(ReplicatedStorage.Shared.Library.CombatLibrary)
 local START_TIME_ATTRIBUTE = "MovingPlatformStartTime" -- // Set by the server on the platform part: time() it started moving
 local CLASS_NAME = "MovingPlatform"
 
--- // Riding: see docs/MovingPlatformRiding.md for what has been tried. The physics drive moves the platform with no velocity
--- // of its own, so the Humanoid doesn't follow it and riders are left behind; riding needs the anchored mode
+-- // Riding needs the anchored mode: the physics drive moves the platform with no velocity of its own, so the Humanoid
+-- // doesn't follow it and riders are left behind
 local PHYSICS_DRIVEN = false -- // Unanchored and held to its path by rigid constraints, so Roblox physics does the pushing and carrying (see DRIVE)
 local PLATFORM_DENSITY = 100 -- // Maximum density: characters can't shove the platform off its path
 local ALIGN_POSITION_NAME = "MovingPlatformAlignPosition"
@@ -59,9 +53,9 @@ local ALIGN_ORIENTATION_NAME = "MovingPlatformAlignOrientation"
 local DRIVE_ATTACHMENT_NAME = "MovingPlatformAttachment"
 
 local CARRY_ENABLED = true -- // Players standing on a platform ride along with it (see CARRY; anchored mode only)
--- // How riders are carried (anchored mode): "Delta" moves them by the platform's own movement every step (exact; the platform's
--- // velocity is left at zero so the Humanoid doesn't carry them twice). "Velocity" only writes the platform's velocity and
--- // lets the Humanoid follow its floor (slips about 2 studs per 35-stud trip)
+-- // How riders are carried (anchored mode): "Delta" moves them by the platform's own movement every step (exact;
+-- // platform velocity stays zero so the Humanoid doesn't carry them twice). "Velocity" only writes the platform's
+-- // velocity and lets the Humanoid follow its floor (slips about 2 studs per 35-stud trip)
 local RIDE_MODE: "Delta" | "Velocity" = "Delta"
 local RIDE_FOOTPRINT_MARGIN = 0.5 -- // Studs past the platform's edge a rider's root can be and still ride
 local RIDE_HEIGHT_TOLERANCE = 0.6 -- // Feet within this of the platform's top (above or below) count as standing on it
@@ -131,8 +125,8 @@ local crushConnection: RBXScriptConnection? = nil
 -- PATH (pure functions of time: identical on the server and every client)
 -------------------------------------------------------------------------------
 
--- // One trip's speed profile: steady speed-up to the top speed, a run at it, a steady stop. Returns the top speed
--- // actually reached (lower on a trip too short to reach it) and the trip's duration.
+-- // One trip's speed profile: steady speed-up to top speed, a run at it, a steady stop. Returns the top speed actually
+-- // reached (lower on a trip too short to reach it) and the trip's duration.
 local function getTripProfile(distance: number, speed: number, accelerationTime: number, decelerationTime: number): (number, number)
 	local rampTime = accelerationTime + decelerationTime
 	local topSpeed = speed
@@ -193,16 +187,17 @@ end
 -- CARRY (riding along / being pushed). Kept separate: if riding misbehaves, look here (or set CARRY_ENABLED = false).
 -------------------------------------------------------------------------------
 
--- // An anchored part's velocity is what physics uses for contacts with it: characters standing on it move with it, and
--- // characters in its way are pushed at its speed. Called inside the simulation step (both properties have simulation access).
+-- // An anchored part's velocity is what physics uses for contacts: characters standing on it move with it, and
+-- // characters in its way are pushed at its speed. Called inside the simulation step (both properties have simulation
+-- // access).
 local function applyCarryVelocity(part: BasePart, velocity: Vector3)
 	part.AssemblyLinearVelocity = if CARRY_ENABLED and RIDE_MODE == "Velocity" then velocity else Vector3.zero
 	part.AssemblyAngularVelocity = Vector3.zero
 end
 
--- // RIDE_MODE "Delta": every character standing on the platform (feet on its top, root over it, as of the platform's previous
--- // pivot) is moved with it this step: the same move (and turn) the platform made. Their own walking is untouched, so they can
--- // walk around on it. Inside the simulation step: the server carries everyone, a client its own predicted character.
+-- // RIDE_MODE "Delta": every character standing on the platform (feet on its top, root over it, as of its previous
+-- // pivot) moves with it this step (same move and turn). Their own walking is untouched. Inside the simulation step:
+-- // the server carries everyone, a client its own predicted character.
 local function carryRiders(platformData: PlatformData, previousPivot: CFrame, pivot: CFrame)
 	if not CARRY_ENABLED or RIDE_MODE ~= "Delta" then
 		return
@@ -233,11 +228,10 @@ local function getHalfExtentAlong(size: Vector3, localDirection: Vector3): numbe
 	return (math.abs(localDirection.X) * size.X + math.abs(localDirection.Y) * size.Y + math.abs(localDirection.Z) * size.Z) / 2
 end
 
--- // Moves characters caught by the platform's leading face (it went from previousPivot to pivot this step) forward along
--- // the travel, just clear of the face. Only their position along the travel changes: velocity, height and sideways
--- // position are left alone, so pushed characters keep their own movement and nothing pulls them back afterwards.
--- // Runs inside the simulation step (root CFrames have simulation access), so a client pushes its own predicted character
--- // exactly as the server does, replays included.
+-- // Moves characters caught by the platform's leading face (from previousPivot to pivot this step) forward along the
+-- // travel, just clear of the face. Only their position along the travel changes (velocity, height, sideways position
+-- // untouched). Runs inside the simulation step so a client pushes its own predicted character exactly as the server
+-- // does, replays included.
 local function pushCharacters(platformData: PlatformData, previousPivot: CFrame, pivot: CFrame)
 	local travel = pivot.Position - previousPivot.Position
 	local stepDistance = travel.Magnitude
@@ -279,8 +273,8 @@ local function pushCharacters(platformData: PlatformData, previousPivot: CFrame,
 			continue
 		end
 
-		-- // Along the travel: the torso's back was in front of the face before this step (allowing for it having walked a
-		-- // little into it), and is now short of being clear of it
+		-- // Along the travel: the torso's back was in front of the face before this step (allowing for it walking a
+		-- // little into it) and is now short of being clear of it
 		local bodyHalfDepth = getHalfExtentAlong(PUSH_BODY_HALF_SIZE * 2, rootCFrame:VectorToObjectSpace(direction))
 		local clearAlong = faceDistance + bodyHalfDepth + PUSH_SKIN
 		local along = offset:Dot(direction)
@@ -349,7 +343,7 @@ end
 
 local function stepPlatforms(deltaTime: number)
 	local now = time()
-	-- // Only simulation-synced members in here (CFrame, velocities, time()); platforms that left the workspace are
+	-- // Only simulation-synced members here (CFrame, velocities, time()); platforms that left the workspace are
 	-- // unregistered outside the simulation (see register)
 	for part, platformData in pairs(platforms) do
 		local pivot, movingToEnd, moving = getPivotAt(platformData, now)
@@ -435,8 +429,8 @@ local function isCrushed(platformData: PlatformData, hitbox: BasePart): boolean
 	return true
 end
 
--- // Crushing ignores shields: TakeDamage does nothing while the character has a ForceField (spawn protection), so set Health
--- // directly and send the death reason ourselves (same as applyDamageToHumanoid, and as Water does)
+-- // Crushing ignores shields (TakeDamage does nothing under a ForceField): set Health directly and send the death
+-- // reason ourselves (as applyDamageToHumanoid and Water do)
 local function crushPlayer(player: Player, humanoid: Humanoid)
 	humanoid.Health = 0
 	CombatLibrary.notifyDeathReason(player, nil, CRUSH_CAUSE_LABEL)
@@ -496,9 +490,9 @@ local function reset()
 	end
 end
 
--- // The constraint the simulation step retargets. On a client, the server's copy is switched off locally and replaced by a
--- // local one: the server keeps retargeting its copy, and those writes would arrive late and drag the predicted platform back
--- // (measured in Studio: the platform jittered back and forth every few frames until this)
+-- // The constraint the simulation step retargets. On a client the server's copy is switched off locally and replaced
+-- // by a local one: the server keeps retargeting its copy, and those writes would arrive late and drag the predicted
+-- // platform back (jitter).
 local function getDriveConstraint(part: BasePart, name: string): Instance?
 	local replicated = part:FindFirstChild(name)
 	if isServer or not replicated then
@@ -584,8 +578,8 @@ local function trackPlayer(player: Player)
 	end
 end
 
--- // Server: every player's character and every bot. Client: only its own character (the one it predicts; everyone else
--- // is shown where the server has them)
+-- // Server: every player's character and every bot. Client: only its own (predicted) character; others are shown where
+-- // the server has them
 local function startTrackingPushables()
 	if not isServer then
 		trackPlayer(Players.LocalPlayer)

@@ -3,8 +3,7 @@
 
 	Description:
 	Charge up effect `DefaultChargeUpEffect` (see Shared/Referential/ChargeUpEffects): shows the default arrow while the player charges a throw.
-	Its arrow template is the Model parented to this module. The effect id is the name of this module; the effect is
-	started with `apply` when a player begins charging and ended with the handle's `remove` when they stop
+	The arrow template is the Model parented to this module. The effect id is this module's name; `apply` starts it and the handle's `remove` ends it
 	(see ChargeUpEffectLibrary.ChargeUpEffectLogic for the contract).
 ]]
 

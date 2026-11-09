@@ -1,9 +1,8 @@
 --[[
 	Decoy bot behavior
 
-	The first BotBehavior. The decoy FACES the owner's facing at spawn, but MOVES opposite the
-	owner's movement at spawn (a random direction if the owner was standing still) -- so it
-	strafes. It lives a few seconds, then BotService despawns it.
+	Faces the owner's facing at spawn but moves opposite the owner's movement at spawn
+	(random direction if the owner was standing still), so it strafes. BotService despawns it after a few seconds.
 ]]
 
 local DecoyBehavior = {}
@@ -22,7 +21,7 @@ local GameTeamLibrary = require(ReplicatedStorage.Shared.Library.GameTeamLibrary
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
-local LIFETIME_SECONDS = 4 -- // Tunable
+local LIFETIME_SECONDS = 4
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS

@@ -1,6 +1,5 @@
 --[[
-   - The camera's preferred centerpoint should be the center of the current map arena.
-     However, it can drift from this centerpoint towards the centerpoint calculated from the average center of all players or boomerangs on the map.
+   - The camera centers on the current arena, drifting toward the average center of all players or boomerangs.
 ]]
 
 local CustomCameraController = {}
@@ -29,7 +28,7 @@ local localPlayer = Players.LocalPlayer
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
-local CAMERA_TILT_DEGREES_FROM_VERTICAL = 30 -- // How far the top-down camera leans back from straight down (0 = straight down)
+local CAMERA_TILT_DEGREES_FROM_VERTICAL = 30 -- // Degrees the top-down camera leans back from straight down (0 = straight down)
 local CAMERA_YAW_DEGREES = 0
 local CAMERA_DISTANCE_PADDING = 20
 local CAMERA_MIN_DISTANCE = 60
@@ -39,17 +38,17 @@ local CAMERA_FOCUS_SMOOTH_MAX = 42
 local CAMERA_DISTANCE_SMOOTH_BASE = 9
 local CAMERA_DISTANCE_SMOOTH_DISTANCE_FACTOR = 0.04
 local CAMERA_DISTANCE_SMOOTH_MAX = 30
--- // FAKE ORTHOGRAPHIC (2026-11-02): Roblox has no orthographic camera, so the top-down camera uses a narrow field of view
--- // from further away, which flattens perspective (walls lean less, everything keeps nearly the same size across the
--- // arena). The distance is still worked out so everything to show fits, but the camera never goes further than
--- // OVERHEAD_MAX_DISTANCE_FROM_CHARACTER from the player's character: when the narrow view would need more, the field of
--- // view opens up (up to OVERHEAD_MAX_FIELD_OF_VIEW) just enough to fit within that distance.
-local OVERHEAD_FIELD_OF_VIEW = 20 -- // Vertical degrees. Lower = flatter, but further away. The old top-down camera used 60
-local OVERHEAD_MAX_FIELD_OF_VIEW = 60 -- // The widest it may open to keep everything framed within the distance limit
+-- // FAKE ORTHOGRAPHIC: Roblox has no orthographic camera, so the top-down camera uses a narrow field of view from
+-- // further away to flatten perspective. The camera never goes further than OVERHEAD_MAX_DISTANCE_FROM_CHARACTER from
+-- // the
+-- // character; when the narrow view would need more, the field of view widens (up to OVERHEAD_MAX_FIELD_OF_VIEW) to
+-- // fit.
+local OVERHEAD_FIELD_OF_VIEW = 20 -- // Vertical degrees. Lower = flatter, but further away
+local OVERHEAD_MAX_FIELD_OF_VIEW = 60 -- // Widest allowed field of view (degrees)
 local OVERHEAD_MAX_DISTANCE_FROM_CHARACTER = 299 -- // Studs (300 with a margin)
 local WEAPON_FRAME_SIZE = Vector3.new(2, 2, 2) -- // Box each framed boomerang adds
-local WEAPON_ANCHOR_ARRIVED_DISTANCE = 1 -- // Studs: a gone boomerang's point is dropped once it's back at its owner
-local REFERENCE_FIELD_OF_VIEW = 60 -- // CAMERA_DISTANCE_PADDING / CAMERA_MIN_DISTANCE were tuned at this FOV; they scale with it
+local WEAPON_ANCHOR_ARRIVED_DISTANCE = 1 -- // Studs: a gone boomerang's point is dropped within this distance of its owner
+local REFERENCE_FIELD_OF_VIEW = 60 -- // FOV at which CAMERA_DISTANCE_PADDING / CAMERA_MIN_DISTANCE were tuned; they scale with it
 local PARRY_SHAKE_DURATION = 0.28
 local PARRY_SHAKE_POSITION = 0.9
 local PARRY_SHAKE_ROTATION_DEGREES = 7
@@ -61,12 +60,12 @@ local PARRY_SHAKE_FREQUENCY = 34
 
 type CameraMode = "Overhead" | "Regular"
 
--- // The point the camera frames for one boomerang on the field. It chases the boomerang at a capped speed rather than
--- // jumping with it, so the view glides after fast throws (a throw may briefly outrun it).
+-- // The point the camera frames for one boomerang on the field. It chases the boomerang at a capped speed, so the view
+-- // glides after fast throws.
 type WeaponAnchor = {
    Position: Vector3,
-   Speed: number, -- // Current chase speed (studs/s): builds up, so the view starts gently and then catches up
-   Owner: Player?, -- // nil if the boomerang's owner isn't known (it then just fades out where it was)
+   Speed: number, -- // Current chase speed (studs/s); builds up over time
+   Owner: Player?, -- // nil if the owner isn't known (the point then fades out in place)
    LastSeenAt: number,
 }
 
@@ -81,15 +80,15 @@ local overheadCameraConnection: RBXScriptConnection? = nil
 local cameraShakeConnection: RBXScriptConnection? = nil
 local smoothedFocusPosition: Vector3? = nil
 local smoothedCameraDistance: number? = nil
-local smoothedFieldOfView: number? = nil -- // FAKE ORTHOGRAPHIC (2026-11-02)
--- // By owner (each player has one boomerang, so its point carries on through thrown -> dying -> dead -> recalled, whose
--- // data and ids change between those states), or by the boomerang's instance if its owner isn't known
+local smoothedFieldOfView: number? = nil
+-- // Keyed by owner (one boomerang per player, whose data and ids change between states), or by the boomerang's
+-- // instance if the owner isn't known
 local weaponAnchors: { [any]: WeaponAnchor } = {}
 local parryShakeStart: number? = nil
 local parryShakeEnd: number? = nil
 
--- // The mode the player wants in the arena (top-down by default; C toggles it). The lobby always forces Regular
--- // (over-the-shoulder) on top of this, and leaving the lobby restores it.
+-- // The player's arena mode (top-down by default; C toggles). The lobby forces Regular (over-the-shoulder) and
+-- // leaving restores this.
 local lastModeSet: CameraMode = "Overhead"
 
 -------------------------------------------------------------------------------
@@ -102,7 +101,7 @@ CustomCameraController.Mode = "Overhead" :: CameraMode
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
 
--- // Get list of objects that should be included in view
+-- // Objects that should be in view
 local function getCameraFocusMapObjects(): {Instance?}
    local currentMap = ArenaLibrary.getArenaModel()
    if not currentMap then
@@ -123,7 +122,7 @@ local function getWeaponSetting(setting: TopDownCameraLibrary.Setting, default: 
    return TopDownCameraLibrary.get(setting) or default
 end
 
--- // Whether a boomerang model is attached to a character (held in a hand): it's then welded into the character's assembly
+-- // Whether a boomerang model is held (welded into a character's assembly)
 local function isAttachedToCharacter(weapon: Instance, rootPart: BasePart): boolean
    local assemblyRoot = rootPart.AssemblyRootPart
    return assemblyRoot ~= nil and assemblyRoot ~= rootPart and not assemblyRoot:IsDescendantOf(weapon)
@@ -139,9 +138,8 @@ local function getOwnerFromName(name: string): Player?
    return if player and player:IsA("Player") then player else nil
 end
 
--- // Every boomerang on the field: everything in workspace.Weapons except boomerangs attached to a character (held), whose
--- // hand sway would otherwise shake the camera. A boomerang this client has predicted as caught (hidden, waiting for the
--- // server) is treated as gone.
+-- // Every boomerang on the field: workspace.Weapons except held ones, whose hand sway would shake the camera.
+-- // A boomerang predicted as caught (hidden, awaiting the server) counts as gone.
 local function getFieldWeapons(): { [any]: { Position: Vector3, Owner: Player? } }
    local ownerByHost: { [Instance]: Player } = {}
    local hiddenHosts: { [Instance]: true } = {}
@@ -176,9 +174,9 @@ local function getOwnerPosition(owner: Player?): Vector3?
    return if root then toFocalHeight(root.Position) else nil
 end
 
--- // Moves every boomerang's point toward its boomerang: it speeds up over CameraWeaponAccelerationSeconds to at most
--- // CameraWeaponFollowSpeed, and slows the same way as it arrives (no overshoot). A new point starts at the thrower; a point
--- // whose boomerang left the field stays CameraWeaponHoldSeconds, then eases back to its owner and is dropped.
+-- // Moves each point toward its boomerang: accelerates over CameraWeaponAccelerationSeconds to at most
+-- // CameraWeaponFollowSpeed and decelerates the same way on arrival. A new point starts at the thrower; a point whose
+-- // boomerang left the field stays CameraWeaponHoldSeconds, then eases back to its owner and is dropped.
 local function updateWeaponAnchors(deltaTime: number)
    local now = os.clock()
    local topSpeed = getWeaponSetting("WeaponFollowSpeed", GlobalConfig.CameraWeaponFollowSpeed)
@@ -218,7 +216,7 @@ local function updateWeaponAnchors(deltaTime: number)
 
       local offset = target - anchor.Position
       local distance = offset.Magnitude
-      -- // Fastest speed that can still slow to a stop by the target, capped at the top speed
+      -- // Fastest speed that can still stop by the target, capped at the top speed
       local arrivingSpeed = math.min(topSpeed, math.sqrt(2 * acceleration * distance))
       anchor.Speed = math.min(anchor.Speed + acceleration * deltaTime, arrivingSpeed)
       local step = anchor.Speed * deltaTime
@@ -234,7 +232,7 @@ local function updateWeaponAnchors(deltaTime: number)
    end
 end
 
--- // Get parameters for the Overhead camera to have these desired objects within its view
+-- // Overhead camera parameters that fit the desired objects in view
 local function getAllSubjectsBoundingBox()
    local min = Vector3.new(math.huge, math.huge, math.huge)
    local max = Vector3.new(-math.huge, -math.huge, -math.huge)
@@ -295,8 +293,7 @@ local function getAllSubjectsBoundingBox()
          end
       end
 
-      -- // Previous version: framed the weapon models in workspace.Weapons, which include ones held in hand, so the
-      -- // holding animation's sway shook the camera
+      -- // Previous version kept for reference: framed held weapons too, so hand sway shook the camera
       --[[for _, weapon in ipairs(thrownWeaponsFolder:GetChildren()) do
          if ToolController.isHolstered(weapon) then
             continue
@@ -372,7 +369,7 @@ local function getPaddingFraming(viewportSize: Vector2): (number, number, number
    return usableHalfWidthNdc, usableHalfHeightNdc, centerNdcX, centerNdcY
 end
 
--- // Get required camera distance for the camera to possess these subjects within its view
+-- // Camera distance required to fit these subjects in view
 local function getRequiredDistanceForSize(size: Vector3, cameraBasis: CFrame, aspectRatio: number, verticalFovRadians: number, usableHalfWidthNdc: number, usableHalfHeightNdc: number)
    local half = size / 2
    local halfWidth = 0
@@ -410,7 +407,7 @@ local function getFocusOffsetForPadding(cameraBasis: CFrame, distance: number, a
    return cameraBasis.RightVector * rightShift + cameraBasis.UpVector * upShift
 end
 
--- // The top-down camera's tilt and target field of view: Cmdr overrides (TopDownCameraLibrary), else the defaults above
+-- // The top-down camera's tilt and target field of view: Cmdr overrides (TopDownCameraLibrary), else the defaults
 local function getTiltDegrees(): number
    return TopDownCameraLibrary.get("Tilt") or CAMERA_TILT_DEGREES_FROM_VERTICAL
 end
@@ -419,8 +416,8 @@ local function getTargetFieldOfView(): number
    return TopDownCameraLibrary.get("FieldOfView") or OVERHEAD_FIELD_OF_VIEW
 end
 
--- // FAKE ORTHOGRAPHIC (2026-11-02): the furthest the camera may sit from `focusPosition` along `focusToCameraDirection` while
--- // staying within OVERHEAD_MAX_DISTANCE_FROM_CHARACTER of the local character (|F + u*t - C| <= R, solved for the largest t)
+-- // FAKE ORTHOGRAPHIC: the furthest the camera may sit from `focusPosition` along `focusToCameraDirection` while
+-- // within OVERHEAD_MAX_DISTANCE_FROM_CHARACTER of the local character (|F + u*t - C| <= R, solved for the largest t)
 local function getMaxCameraDistance(focusPosition: Vector3, focusToCameraDirection: Vector3): number
    local character = localPlayer.Character
    local root = character and character.PrimaryPart
@@ -432,13 +429,13 @@ local function getMaxCameraDistance(focusPosition: Vector3, focusToCameraDirecti
    local c = fromCharacter:Dot(fromCharacter) - OVERHEAD_MAX_DISTANCE_FROM_CHARACTER * OVERHEAD_MAX_DISTANCE_FROM_CHARACTER
    local discriminant = b * b - c
    if discriminant < 0 then
-      return 1 -- // The focus itself is out of reach of the character: stay as close as possible
+      return 1 -- // Focus is out of reach of the character: stay as close as possible
    end
    return math.max(-b + math.sqrt(discriminant), 1)
 end
 
--- // FAKE ORTHOGRAPHIC (2026-11-02): the camera distance, vertical field of view (degrees) and padded focus that show every
--- // subject: the narrow OVERHEAD_FIELD_OF_VIEW when it fits within the distance limit, else the narrowest wider one that does
+-- // FAKE ORTHOGRAPHIC: the camera distance, vertical field of view (degrees) and padded focus that show every subject:
+-- // OVERHEAD_FIELD_OF_VIEW if it fits within the distance limit, else the narrowest wider one that does
 local function getOverheadFraming(focusPosition: Vector3, boxSize: Vector3, focusToCameraDirection: Vector3, viewportSize: Vector2): (number, number, Vector3)
    local aspectRatio = viewportSize.X / viewportSize.Y
    local usableHalfWidthNdc, usableHalfHeightNdc, centerNdcX, centerNdcY = getPaddingFraming(viewportSize)
@@ -454,10 +451,10 @@ local function getOverheadFraming(focusPosition: Vector3, boxSize: Vector3, focu
 
    local maxDistance = getMaxCameraDistance(focusPosition, focusToCameraDirection)
    local fieldOfView = getTargetFieldOfView()
-   local fixedDistance = TopDownCameraLibrary.get("Distance") -- // Cmdr override: a fixed distance, no fitting
+   local fixedDistance = TopDownCameraLibrary.get("Distance") -- // Cmdr override: fixed distance, no fitting
    local distance = if fixedDistance then math.min(fixedDistance, maxDistance) else distanceAt(fieldOfView)
    if not fixedDistance and distance > maxDistance then
-      -- // Too far: find the narrowest field of view that fits within the limit (binary search)
+      -- // Too far: binary search for the narrowest field of view within the limit
       local low, high = fieldOfView, math.max(OVERHEAD_MAX_FIELD_OF_VIEW, fieldOfView)
       for _ = 1, 12 do
          local middle = (low + high) / 2
@@ -475,7 +472,7 @@ local function getOverheadFraming(focusPosition: Vector3, boxSize: Vector3, focu
    return distance, fieldOfView, focusPosition + focusOffset
 end
 
--- // Smoothing functions for smooth camera motion
+-- // Camera smoothing
 local function expSmoothingAlpha(rate: number, deltaTime: number): number
    return 1 - math.exp(-rate * deltaTime)
 end
@@ -522,7 +519,7 @@ local function applyParryShake(baseCFrame: CFrame, now: number): CFrame
       math.noise(0, 0, shakeSeed)
    ) * (PARRY_SHAKE_POSITION * alpha)
 
-   -- // FAKE ORTHOGRAPHIC (2026-11-02): a turn of the camera looks bigger in a narrower view, so it scales with the field of view
+   -- // FAKE ORTHOGRAPHIC: a camera turn looks bigger in a narrower view, so it scales with the field of view
    local camera = workspace.CurrentCamera
    local rotationDegrees = PARRY_SHAKE_ROTATION_DEGREES * (if camera then camera.FieldOfView / REFERENCE_FIELD_OF_VIEW else 1)
    local rotation = CFrame.fromOrientation(
@@ -534,7 +531,7 @@ local function applyParryShake(baseCFrame: CFrame, now: number): CFrame
    return baseCFrame * CFrame.new(offset) * rotation
 end
 
--- // Instantly place overhead camera to fit all visible subjects with no smoothing
+-- // Places the overhead camera to fit all visible subjects, without smoothing
 local function placeCameraInstantly()
    if not currentCamera then
       return
@@ -567,7 +564,7 @@ local function placeCameraInstantly()
    currentCamera.Focus = CFrame.new(paddedFocusPosition)
 end
 
--- // Update camera for overhead position
+-- // Updates the overhead camera
 local function updateCamera(deltaTime: number)
    if not currentCamera then
       return
@@ -597,7 +594,7 @@ local function updateCamera(deltaTime: number)
       smoothedCameraDistance = targetDistance
       smoothedFieldOfView = targetFieldOfView
    else
-      -- // FAKE ORTHOGRAPHIC (2026-11-02): the field of view eases like the distance does
+      -- // FAKE ORTHOGRAPHIC: the field of view eases like the distance
       smoothedFieldOfView = stepSmoothNumber(
          smoothedFieldOfView,
          targetFieldOfView,
@@ -624,13 +621,13 @@ local function updateCamera(deltaTime: number)
       )
    end
 
-   -- // FAKE ORTHOGRAPHIC (2026-11-02): never further than the limit from the character, even mid-smoothing
+   -- // FAKE ORTHOGRAPHIC: never further than the limit from the character, even mid-smoothing
    local cameraDistance = math.min(smoothedCameraDistance, getMaxCameraDistance(smoothedFocusPosition, focusToCameraDirection))
    currentCamera.FieldOfView = smoothedFieldOfView
    local cameraPosition = smoothedFocusPosition + focusToCameraDirection * cameraDistance
    local now = os.clock()
 
-	-- Keep orientation stable by deriving camera position from fixed yaw/tilt and smoothed focus+distance.
+	-- Stable orientation: position derives from fixed yaw/tilt and smoothed focus + distance.
 	currentCamera.CFrame = applyParryShake(CFrame.lookAt(cameraPosition, smoothedFocusPosition, Vector3.yAxis), now)
 	currentCamera.Focus = CFrame.new(smoothedFocusPosition)
 end
@@ -660,7 +657,7 @@ local function startOverheadMode()
          character = localPlayer.Character
       until character
    end
-   -- // The mode may have changed while waiting for the character (e.g. the lobby forced Regular): don't turn top-down back on
+   -- // The mode may have changed while waiting for the character (e.g. lobby forced Regular): don't re-enable top-down
    if overheadCameraConnection or CustomCameraController.Mode ~= "Overhead" then
       return
    end
@@ -701,7 +698,7 @@ local function stopOverheadMode()
    end
 
    currentCamera.CameraType = Enum.CameraType.Custom
-   currentCamera.FieldOfView = REFERENCE_FIELD_OF_VIEW -- // FAKE ORTHOGRAPHIC (2026-11-02): the over-the-shoulder camera keeps the old 60
+   currentCamera.FieldOfView = REFERENCE_FIELD_OF_VIEW -- // FAKE ORTHOGRAPHIC: the over-the-shoulder camera uses 60
    smoothedFocusPosition = nil
    smoothedCameraDistance = nil
    smoothedFieldOfView = nil
@@ -722,14 +719,14 @@ local function applyMode(mode: CameraMode)
    end
 end
 
--- // In the lobby: always over-the-shoulder, with a free mouse
+-- // Lobby: over-the-shoulder with a free mouse
 local function applyLobbyMode()
    applyMode("Regular")
    UserInputService.MouseBehavior = Enum.MouseBehavior.Default
    UserInputService.MouseIconEnabled = true
 end
 
--- // Sets the player's arena camera mode. In the lobby it's only remembered (applied when they leave); the lobby stays Regular.
+-- // Sets the arena camera mode. In the lobby it's only stored (applied on leaving); the lobby stays Regular.
 function CustomCameraController.setMode(mode: "Overhead" | "Regular")
    lastModeSet = mode
    if LobbyController.isInLobby() then
@@ -778,13 +775,13 @@ function CustomCameraController.init()
 
    LobbyController.ClientIsInLobbyChangedTasks:Add(function(isInLobby)
       if isInLobby then
-         applyLobbyMode() -- // lastModeSet (the arena preference) is kept for when they leave
+         applyLobbyMode() -- // lastModeSet (arena preference) is kept for leaving
       else
          applyMode(lastModeSet)
       end
    end)
 
-   -- // Safety net: whatever order joining/spawning/lobby detection happen in, the lobby is never top-down
+   -- // Safety net: the lobby is never top-down regardless of join/spawn/lobby detection order
    RunService.Heartbeat:Connect(function()
       if LobbyController.isInLobby() and CustomCameraController.Mode ~= "Regular" then
          applyLobbyMode()
@@ -821,7 +818,7 @@ function CustomCameraController.start()
          return
       end
       if inputState == Enum.UserInputState.Begin then
-         -- // Changes the Camera Mode setting (saved); its change handler in init() switches the camera
+         -- // Changes the saved Camera Mode setting; its handler in init() switches the camera
          SettingsController.setValue("OverShoulderCamera", CustomCameraController.Mode == "Overhead")
       end
    end, false, Enum.KeyCode.C)

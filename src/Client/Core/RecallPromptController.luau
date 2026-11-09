@@ -2,22 +2,20 @@
 	RecallPromptController
 
 	Description:
-	PC and console: when the local player's boomerang is dead (or dying) on the field, a small green "[E] Recall" prompt
-	pops up above their head, telling them to hold the recall key. It goes away (pop out) once they start recalling, when
-	the boomerang is back, or when they switch to touch (touch players have the Manual Recall button instead).
+	PC and console: while the local player's boomerang is dead (or dying) on the field, a small green "[E] Recall" prompt
+	pops up above their head. It pops out once they start recalling, when the boomerang is back, or when they switch to
+	touch (touch players have the Manual Recall button).
 
-	- A BillboardGui on its own invisible host part (client-only, under the camera) that this controller moves every frame:
-	  it follows the player's root horizontally, but its height is smoothed (small ups and downs from walking or
-	  prediction corrections are eased out; a jump or a step up is followed quickly), so the prompt stays level instead of
-	  wiggling with the character. StudsOffsetWorldSpace puts the anchor just above the head (the head's height over the
-	  root is measured once each time it pops in), and SizeOffset (0, 0.5) raises the prompt by half its height in SCREEN
-	  space, so its bottom edge sits on that point and it reads as "above the head" from the top-down camera (looking
-	  down at the head) and the over-the-shoulder camera alike.
-	- Its size is in studs (Scale), recomputed every frame from the camera's distance and field of view, so it's the same
-	  size on screen in both camera modes (SCREEN_HEIGHT_FRACTION of the screen's height).
-	- Everything sits in a CanvasGroup, so the pop animations fade the whole prompt at once (GroupTransparency) and scale
-	  it with a UIScale (never below MIN_SCALE: a CanvasGroup shrunk to nothing breaks).
-	- The key shown is the platform's own label / button image for the recall key (WeaponController's recall keys).
+	- A BillboardGui on its own invisible host part (client-only, under the camera) moved every frame: it follows the
+	  player's root horizontally, while its height is smoothed (walk bob and prediction corrections are eased out; jumps
+	  and steps are followed quickly) so the prompt stays level. StudsOffsetWorldSpace puts the anchor just above the head
+	  (head height over the root is measured once per pop-in), and SizeOffset (0, 0.5) raises the prompt by half its height
+	  in SCREEN space so its bottom edge sits on that point, reading as "above the head" in both camera modes.
+	- Its size is in studs (Scale), recomputed every frame from camera distance and field of view, so it has the same
+	  on-screen size in both camera modes (SCREEN_HEIGHT_FRACTION of the screen height).
+	- Everything sits in a CanvasGroup so the pop animations fade the whole prompt (GroupTransparency) and scale it with a
+	  UIScale (never below MIN_SCALE: a CanvasGroup shrunk to nothing breaks).
+	- The key shown is the platform's label / button image for the recall key (WeaponController's recall keys).
 ]]
 
 local RecallPromptController = {}
@@ -46,24 +44,24 @@ local FRAME_COLOR = Color3.fromRGB(80, 190, 70)
 local OUTLINE_COLOR = Color3.fromRGB(60, 35, 15) -- // The HUD's dark brown outline
 local KEY_BOX_COLOR = Color3.fromRGB(55, 140, 50)
 local TEXT_COLOR = Color3.fromRGB(255, 255, 255)
-local RECALLING_TEXT_COLOR = Color3.fromRGB(255, 228, 150) -- // Light gold: the text turns this as the player starts recalling
+local RECALLING_TEXT_COLOR = Color3.fromRGB(255, 228, 150) -- // Light gold: the text turns this when recalling starts
 local PROMPT_ASPECT_RATIO = 2.7 -- // Width / height
-local SCREEN_HEIGHT_FRACTION = 0.065 -- // The prompt's height as a fraction of the screen's height
-local HEAD_CLEARANCE = 0.6 -- // Studs between the top of the head and the prompt's bottom edge
+local SCREEN_HEIGHT_FRACTION = 0.065 -- // Prompt height as a fraction of screen height
+local HEAD_CLEARANCE = 0.6 -- // Studs between the head's top and the prompt's bottom edge
 local DEFAULT_HEAD_TOP_ABOVE_ANCHOR = 2.3 -- // Head top over the root's centre when the rendered head can't be measured
--- // The host's height follows the root slowly for small changes (walk bob, prediction jitter) and quickly for big ones
+-- // Host height follows the root slowly for small changes (walk bob, prediction jitter) and quickly for big ones
 local LEVEL_FOLLOW_RATE = 3 -- // Per second, for height changes within LEVEL_DEADBAND
 local LEVEL_CATCHUP_RATE = 18 -- // Per second, for bigger changes (jumps, steps, falls)
 local LEVEL_DEADBAND = 1 -- // Studs
-local RENDER_PRIORITY = Enum.RenderPriority.Last.Value -- // After the camera and the character have moved this frame
+local RENDER_PRIORITY = Enum.RenderPriority.Last.Value -- // After the camera and character have moved this frame
 
--- // Pop in: from MIN_SCALE and invisible, overshoot to POP_IN_OVERSHOOT_SCALE while fading in fast, settle to 1
+-- // Pop in: from MIN_SCALE and invisible, overshoot to POP_IN_OVERSHOOT_SCALE while fading in, settle to 1
 local MIN_SCALE = 0.8
 local POP_IN_OVERSHOOT_SCALE = 1.3
 local POP_IN_GROW = TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local POP_IN_SETTLE = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
 local POP_IN_FADE = TweenInfo.new(0.1, Enum.EasingStyle.Linear)
--- // Pop out: expand to POP_OUT_EXPAND_SCALE, then shrink to MIN_SCALE, fading out the whole time
+-- // Pop out: expand to POP_OUT_EXPAND_SCALE, then shrink to MIN_SCALE, fading out throughout
 local POP_OUT_EXPAND_SCALE = 1.25
 local POP_OUT_EXPAND = TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local POP_OUT_SHRINK = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
@@ -77,7 +75,7 @@ local localPlayer = Players.LocalPlayer
 
 local billboard: BillboardGui
 local host: Part -- // The invisible part the billboard hangs from (see the header)
-local hostY: number? = nil -- // Its smoothed height (nil = jump straight to the root next frame)
+local hostY: number? = nil -- // Its smoothed height (nil = jump to the root next frame)
 local canvas: CanvasGroup
 local uiScale: UIScale
 local keyLabel: TextLabel
@@ -119,7 +117,7 @@ local function build()
 		Name = "KeyBox",
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.fromScale(0.07, 0.5),
-		Size = UDim2.fromScale(0.62, 0.62), -- // Square (the aspect constraint keeps it so): 62% of the height
+		Size = UDim2.fromScale(0.62, 0.62), -- // Square (kept by the aspect constraint): 62% of the height
 		SizeConstraint = Enum.SizeConstraint.RelativeYY,
 		BackgroundColor3 = KEY_BOX_COLOR,
 		BorderSizePixel = 0,
@@ -157,7 +155,7 @@ local function build()
 
 	uiScale = CreateElement("UIScale", { Scale = MIN_SCALE }) :: UIScale
 
-	-- // Inset a little so the outline and the overshoot aren't clipped by the billboard's edges
+	-- // Inset so the outline and overshoot aren't clipped by the billboard's edges
 	canvas = CreateElement("CanvasGroup", {
 		Name = "Prompt",
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -188,7 +186,7 @@ local function build()
 	host.CastShadow = false
 	host.Transparency = 1
 	host.Size = Vector3.new(0.2, 0.2, 0.2)
-	host.Parent = workspace.CurrentCamera -- // Local only: never replicated, never hit by anything
+	host.Parent = workspace.CurrentCamera -- // Local only: never replicated or hit
 	billboard.Adornee = host
 end
 
@@ -212,7 +210,7 @@ local function updateKeyDisplay(scheme: string)
 	end
 end
 
--- // The part whose position the host follows: the player's root (physics character), else the rendered one
+-- // The part the host follows: the player's root (physics character), else the rendered one
 local function getAnchor(): BasePart?
 	local character = localPlayer.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
@@ -224,7 +222,7 @@ local function getAnchor(): BasePart?
 	return if renderedRoot and renderedRoot:IsA("BasePart") then renderedRoot else nil
 end
 
--- // How far the top of the (rendered) head is above the anchor; measured once per pop-in, so the walk bob doesn't move it
+-- // Height of the rendered head's top above the anchor; measured once per pop-in so walk bob doesn't move it
 local function measureHeadTop(anchor: BasePart): number
 	local rendered = CharacterRenderController.getCharacterModel(localPlayer, false)
 	local head = rendered and rendered:FindFirstChild("Head")
@@ -330,7 +328,7 @@ local function update(deltaTime: number)
 			hostY = nil -- // Start level with the player
 			popIn()
 		else
-			-- // Hidden because they started recalling: the text turns gold as it pops out
+			-- // Hidden because recalling started: the text turns gold as it pops out
 			local deadWeaponData = DeadWeapons.Data[localPlayer]
 			if WeaponController.isRecallHeld() or (deadWeaponData and DeadWeaponLogic.isRecallCharging(deadWeaponData)) then
 				setTextColor(RECALLING_TEXT_COLOR)
@@ -347,7 +345,7 @@ local function update(deltaTime: number)
 	moveHost(anchor, deltaTime)
 	billboard.StudsOffsetWorldSpace = Vector3.new(0, headTopAboveAnchor + HEAD_CLEARANCE, 0)
 
-	-- // Same size on screen at any camera distance (top-down is far away, over-the-shoulder is close)
+	-- // Same on-screen size at any camera distance (top-down is far, over-the-shoulder is close)
 	local camera = workspace.CurrentCamera
 	if camera then
 		local distance = (camera.CFrame.Position - host.Position).Magnitude

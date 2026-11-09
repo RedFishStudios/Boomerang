@@ -1,5 +1,5 @@
 local ProductLogicsUtil = {}
-ProductLogicsUtil.NotActive = true -- Prevent from registration as a product logic handler
+ProductLogicsUtil.NotActive = true -- Not registered as a product logic handler
 
 local ServerStorage = game:GetService("ServerStorage")
 

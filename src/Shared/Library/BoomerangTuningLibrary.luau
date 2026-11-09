@@ -21,8 +21,9 @@ local BoomerangTuningLibrary = {}
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
--- // Kept short: Roblox attribute names are limited to 50 characters, and "BoomerangTuning_ClassicBoomerang_RecallAcceleration"
--- // was 51. Names look like "BT_ClassicBoomerang_RecallFullSpeedDistance" (longest tool id + setting must stay within 50).
+-- // Kept short: Roblox attribute names are limited to 50 characters. Names look like
+-- // "BT_ClassicBoomerang_RecallFullSpeedDistance"
+-- // (longest tool id + setting must stay within 50).
 local ATTRIBUTE_PREFIX = "BT"
 
 -------------------------------------------------------------------------------
@@ -99,7 +100,7 @@ BoomerangTuningLibrary.SETTINGS = {
 			return toolData.Boomerang.ManualRecallSpeed
 		end,
 	},
-	-- // How strongly a manual recall's heading swings toward the player (formerly called RecallAcceleration)
+	-- // How strongly a manual recall's heading swings toward the player
 	RecallCurveAcceleration = {
 		Description = "how quickly a manual recall turns toward the player (1 = normal recall)",
 		getDefault = function(_toolData)
@@ -133,7 +134,7 @@ BoomerangTuningLibrary.SETTINGS = {
 			return GlobalConfig.BoomerangRecallBounceRecoverySeconds
 		end,
 	},
-	-- // How fast a dying boomerang stops sliding and falls (formerly DyingSpeedMultiplier) (Dead.luau; client and server both read it)
+	-- // How fast a dying boomerang stops sliding and falls (Dead.luau; client and server both read it)
 	DeadWeaponDeceleration = {
 		Description = "how much faster a dying boomerang loses its slide and falls (1 = original pace)",
 		getDefault = function(_toolData)

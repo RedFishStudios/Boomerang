@@ -2,7 +2,7 @@
 	EconomyController
 
 	Description:
-	Handles the economy on the client. The game has a single currency: the profile's `Currency` number.
+	Client-side economy. The single currency is the profile's `Currency` number.
 
 	Author:
 	@SixthAtom

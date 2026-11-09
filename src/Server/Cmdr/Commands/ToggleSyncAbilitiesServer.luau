@@ -2,8 +2,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local GlobalConfig = require(ReplicatedStorage.Shared.Constants.GlobalConfig)
 
--- // AbilityService and WeaponService read GlobalConfig.SyncAbilitiesToEveryPlayer on the server each time, so setting it here takes
--- // effect straight away (server only; it goes back to the GlobalConfig default when the server restarts)
+-- // AbilityService and WeaponService read GlobalConfig.SyncAbilitiesToEveryPlayer each time, so this applies at once
+-- // (server only; resets to the GlobalConfig default on restart)
 return function(_context, enabled: boolean)
 	GlobalConfig.SyncAbilitiesToEveryPlayer = enabled
 	return if enabled

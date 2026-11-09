@@ -1,18 +1,18 @@
 --[[
 	StatsPanel
 
-	A small panel on the right edge of the screen (centred vertically on PC, top-right corner on touch devices) that replaces
-	Roblox's player list (StarterGuiController turns that off). Only its arrow tab shows until it is opened: clicking the tab,
-	or pressing Tab, slides it out (and back in). Always present, in the lobby and in rounds.
+	A panel on the right edge of the screen (centred vertically on PC, top-right corner on touch) that replaces Roblox's
+	player list (StarterGuiController turns that off). Only its arrow tab shows until opened: clicking the tab or pressing
+	Tab slides it out and back. Always present, in the lobby and in rounds.
 
 	Contents, under the "Stats" header:
 	- This round: every player's elims and defeats (columns Name / Elims / Defeats), most elims first.
 	- A divider line.
-	- All time: every player's total elims, defeats, wins and losses (two lines per player: the name, then the numbers), the local
-	  player first, then the best elims-to-defeats ratio.
+	- All time: every player's total elims, defeats, wins and losses (two lines per player: name, then numbers), the
+	  local player first, then the best elims-to-defeats ratio.
 
-	Built in code with CreateElement; the frame art is one image (FRAME_IMAGE, with the arrow tab and header plank in it). The numbers
-	come from attributes the server puts on each Player (Shared/Constants/PlayerStatAttributes, LifetimeStatsService).
+	Built in code with CreateElement; the frame art is one image (FRAME_IMAGE, including the arrow tab and header plank).
+	Numbers come from attributes the server puts on each Player (Shared/Constants/PlayerStatAttributes, LifetimeStatsService).
 ]]
 
 local StatsPanelGui = {}
@@ -32,7 +32,7 @@ local CreateElement = require(ReplicatedStorage.Shared.Utils.CreateElement)
 local PlayerStatAttributes = require(ReplicatedStorage.Shared.Constants.PlayerStatAttributes)
 local PlatformController = require(ReplicatedStorage.Client.Core.PlatformController)
 
--- // CreateElement also returns its cleanup list; only the instance is wanted here (so it can sit in a children list)
+-- // CreateElement also returns its cleanup list; only the instance is returned here (so it can sit in a children list)
 local function create(className: string, properties: { [string]: any }, children: { Instance }?): any
 	local element = CreateElement(className, properties, children)
 	return element
@@ -52,7 +52,7 @@ local HEADER_POSITION = UDim2.fromScale(0.37, 0.025) -- // The plank at the top
 local HEADER_SIZE = UDim2.fromScale(0.43, 0.09)
 local CONTENT_POSITION = UDim2.fromScale(0.29, 0.155) -- // The parchment
 local CONTENT_SIZE = UDim2.fromScale(0.66, 0.655)
-local CLOSED_SLIDE = 0.81 -- // When closed the image slides right by this much of its width, leaving only the tab on screen
+local CLOSED_SLIDE = 0.81 -- // When closed, the image slides right by this share of its width, leaving only the tab on screen
 
 local PC_HEIGHT = 0.55 -- // Panel height as a fraction of the screen height
 local TOUCH_HEIGHT = 0.45
@@ -64,13 +64,13 @@ local LOCAL_ROW_COLOR = Color3.fromRGB(245, 225, 190)
 local DIVIDER_COLOR = Color3.fromRGB(150, 95, 45)
 local FONT = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
 
--- // Text sizes, as a share of the panel's height (cells shrink below this only when their text doesn't fit)
+-- // Text sizes as a share of the panel height (cells shrink below this only if their text doesn't fit)
 local ROW_TEXT_SIZE = 0.034
 local HEADER_TEXT_SIZE = 0.032
 
-local ROUND_VISIBLE_ROWS = 10 -- // Listings that fit in a list before it scrolls (each is this share of the list's height)
+local ROUND_VISIBLE_ROWS = 10 -- // Listings that fit before the list scrolls
 local ALL_TIME_VISIBLE_ROWS = 6 -- // All-time listings are two lines each (name, then the numbers)
-local REFRESH_INTERVAL = 0.2 -- // Seconds: changes are gathered and the lists rebuilt at most this often
+local REFRESH_INTERVAL = 0.2 -- // Seconds: changes are batched and lists rebuilt at most this often
 
 -- // Columns: the name column takes what the numbers leave
 local ROUND_COLUMNS = { { Label = "Name", Width = 0.56 }, { Label = "Elims", Width = 0.22 }, { Label = "Defeats", Width = 0.22 } }
@@ -121,7 +121,7 @@ local function updateTextSizes()
 	end
 end
 
--- // Cells laid out left to right by the columns' widths, on one line of a listing (top and height are shares of the listing)
+-- // Cells laid out left to right by column width on one line of a listing (top and height are shares of the listing)
 local function addCells(cells: { Instance }, columns, values: { string }, top: number, height: number, isHeader: boolean, firstLeft: boolean)
 	local x = 0
 	for index, column in ipairs(columns) do
@@ -266,7 +266,7 @@ Gui = create("ScreenGui", {
 	Name = "StatsPanel",
 	ResetOnSpawn = false,
 	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-	IgnoreGuiInset = true, -- // Uses the whole screen, including behind Roblox's top bar (this also sets ScreenInsets to None)
+	IgnoreGuiInset = true, -- // Uses the whole screen, including behind Roblox's top bar (also sets ScreenInsets to None)
 	Enabled = false,
 }, { holder }) :: ScreenGui
 
@@ -276,7 +276,7 @@ Gui = create("ScreenGui", {
 
 local isOut = false
 
--- // PC: centred on the right edge. Touch: the top-right corner (the right side lower down is the aim stick and buttons).
+-- // PC: centred on the right edge. Touch: top-right corner (lower down is the aim stick and buttons).
 local function applyPlacement()
 	if PlatformController.getDominantControlScheme() == "Touch" then
 		holder.AnchorPoint = Vector2.new(1, 0)
@@ -321,8 +321,9 @@ local function clearRows(list: Instance)
 	end
 end
 
--- // Each listing is 1/visibleRows of the list's height; the canvas grows past the list when there are more (all in Scale:
--- // a child's Scale inside a ScrollingFrame is a share of the canvas, so the row's share is divided by the canvas's)
+-- // Each listing is 1/visibleRows of the list height; the canvas grows past the list when there are more. All in
+-- // Scale:
+-- // a child's Scale in a ScrollingFrame is a share of the canvas, so the row's share is divided by the canvas's.
 local function setRows(list: ScrollingFrame, rows: { Instance }, visibleRows: number)
 	local canvasScale = math.max(1, #rows / visibleRows)
 	list.CanvasSize = UDim2.fromScale(0, canvasScale)
@@ -335,7 +336,7 @@ end
 local function rebuild()
 	local players = Players:GetPlayers()
 
-	-- // This round: most elims first (fewer defeats, then name, break ties)
+	-- // This round: most elims first, ties broken by fewer defeats, then name
 	local byRound = table.clone(players)
 	table.sort(byRound, function(a, b)
 		local elimsA, elimsB = getStat(a, PlayerStatAttributes.RoundElims), getStat(b, PlayerStatAttributes.RoundElims)
@@ -359,7 +360,7 @@ local function rebuild()
 	end
 	setRows(roundList, roundRows, ROUND_VISIBLE_ROWS)
 
-	-- // All time: the local player first, then the best elims-to-defeats ratio (no defeats: the elims themselves)
+	-- // All time: local player first, then best elims-to-defeats ratio (no defeats: the elims themselves)
 	local function ratio(player: Player): number
 		return getStat(player, PlayerStatAttributes.Elims) / math.max(1, getStat(player, PlayerStatAttributes.Defeats))
 	end
@@ -387,7 +388,7 @@ local function rebuild()
 	setRows(allTimeList, allTimeRows, ALL_TIME_VISIBLE_ROWS)
 end
 
--- // Many attribute changes can arrive at once (a round starting resets everyone): rebuild at most every REFRESH_INTERVAL
+-- // Many attribute changes can arrive at once (a round start resets everyone): rebuild at most every REFRESH_INTERVAL
 local dirty = true
 local lastRebuildAt = 0
 local function markDirty()

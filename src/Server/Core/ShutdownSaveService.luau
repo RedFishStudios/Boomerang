@@ -6,9 +6,6 @@
 
   Author:
   @SixthAtom
-
-  Date:
-  12-03-2026
 ]]
 
 local SoftSDService = {}

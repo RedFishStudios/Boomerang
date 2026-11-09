@@ -1,12 +1,5 @@
 --[[
-  Handles player team assignment
-
-  TODO:
-  - When a player joins, if currently in a team-based match, assign to the team with the least players
-
-TODO: figure out how teams should work
-do i want to deal with default roblox bs or do i want to override it completely
-dealing with default roblox system might be good for an MVP since it visualizes in the UI. it should just be very easy to modify for the future.
+  Creates and manages player hitboxes
 
   Author:
   @Soulsplosion

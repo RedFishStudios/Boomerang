@@ -1,5 +1,3 @@
--- // TEST: Fires throw remote when player presses E
-
 local WeaponController = {}
 
 local Players = game:GetService("Players")
@@ -71,11 +69,11 @@ local UNRELIABLE_CODES = RemoteCodes.Weapon.Unreliable
 local SOFT_CORRECTION_RATE = 14
 local HARD_SNAP_DISTANCE = 8 -- // A position error this large is a teleport, not drift: snap instead of easing
 local MAX_SNAPSHOT_CATCHUP = 0.35
-local PORTAL_SNAPSHOT_GRACE = 0.5 -- // Seconds after the local boomerang goes through a portal during which far-off snapshots are treated as stale
+local PORTAL_SNAPSHOT_GRACE = 0.5 -- // Seconds after the local boomerang passes a portal during which far-off snapshots count as stale
 
 local chargeUpEffects: {
    [Player]: {
-      Handle: ChargeUpEffectLibrary.ChargeUpEffectHandle, -- // The charge up effect applied when the aim began (fixed for the whole aim)
+      Handle: ChargeUpEffectLibrary.ChargeUpEffectHandle, -- // Charge up effect applied when the aim began (fixed for the whole aim)
       AimStart: number
    }
 } = {}
@@ -85,7 +83,7 @@ local pendingLocalThrow: {
    Host: Model,
 }? = nil
 local isAiming = false
--- // For code where a local variable named isAiming shadows this one (e.g. the aim state event handler)
+-- // For code where a local isAiming shadows this one (e.g. the aim state event handler)
 local function isLocalAimingNow(): boolean
    return isAiming
 end
@@ -152,9 +150,11 @@ end
 
 local stopAiming -- // Defined below (removes a player's aim arrow)
 
--- // The local player's aim. The aim arrow follows it: it's removed whenever this goes false, and only created
--- // (on the server's confirmation) while it's true. notifyServer: we're leaving aim without a throw, so the server must
--- // end its aim too (otherwise it keeps the player aiming and shows the arrow to everyone).
+-- // The local player's aim. The aim arrow follows it: removed when this goes false, created (on server confirmation)
+-- // only
+-- // while true. notifyServer: leaving aim without a throw, so the server must end its aim too (else it keeps the
+-- // player
+-- // aiming and shows the arrow to everyone).
 local function setLocalAimState(nextState: boolean, notifyServer: boolean?)
    if isAiming == nextState then
       return
@@ -227,9 +227,10 @@ local function beginEquippedToolAim(): boolean
    return true
 end
 
--- // PC: what the mouse is on: another player's character (their UserId) or a bot such as a decoy (its BotId), by their
--- // hitbox. The server curves the throw toward it if it's an enemy it can reach (ThrowTargetLibrary). Only a direct click
--- // counts, not a near miss.
+-- // PC: what the mouse is on: another player's character (their UserId) or a bot such as a decoy (its BotId), by
+-- // hitbox.
+-- // The server curves the throw toward it if it's a reachable enemy (ThrowTargetLibrary). Only a direct click counts,
+-- // not a near miss.
 local function getEnemyUnderMouse(): (number | string)?
 	local camera = workspace.CurrentCamera
 	if not camera then
@@ -277,8 +278,9 @@ local function throwEquippedTool(forcedDirection: Vector3?): boolean
 	local localCharacter = CharacterRenderController.getCharacterModel(localPlayer, true)
 	local pendingHost, releasePosition = ToolController.prepareToolForThrow(Players.LocalPlayer)
 
-	 -- // Aim from the character (like the aim arrow does), not from the tool model. Under Server authority the
-	 -- // tool's pivot can be stale (it reported a spot ~40 studs away), which sent every throw the same way.
+	 -- // Aim from the character (like the aim arrow), not the tool model: under Server authority the tool's pivot can
+	 -- // be
+	 -- // stale (reported ~40 studs away), which sent every throw the same way.
 	 local characterRoot = localCharacter and localCharacter.PrimaryPart
 	 local throwOrigin = if characterRoot then characterRoot.Position else releasePosition
 	 if releasePosition and characterRoot and (releasePosition - characterRoot.Position).Magnitude > MAX_RELEASE_DISTANCE_FROM_CHARACTER then
@@ -289,8 +291,9 @@ local function throwEquippedTool(forcedDirection: Vector3?): boolean
       if forcedDirection and forcedDirection.Magnitude > 1e-5 then
          direction = getHorizontalDirection(forcedDirection)
       else
-         -- // Throw exactly where the aim arrow points (the client's facing from CharacterController), so the
-         -- // throw never depends on the rendered model's physics rotation or the mouse behaviour at release.
+         -- // Throw exactly where the aim arrow points (the client's facing from CharacterController), independent of
+         -- // the rendered
+         -- // model's physics rotation and mouse behaviour at release.
          direction = getHorizontalDirection(CharacterController.LastCFrame.LookVector)
       end
 
@@ -298,8 +301,9 @@ local function throwEquippedTool(forcedDirection: Vector3?): boolean
 		releasePosition = throwOrigin + direction * 3
 	 end
 
-	 -- // The point aimed at, so the server can curve the throw through it (BoomerangCurveLibrary). PC mouse aim (top-down
-	 -- // camera) only for now: the mouse's spot on the floor. Other aim modes send none and the server picks the distance.
+	 -- // The point aimed at, so the server can curve the throw through it (BoomerangCurveLibrary). Only PC mouse aim
+	 -- // (top-down
+	 -- // camera) sends one: the mouse's spot on the floor. Other aim modes send none and the server picks the distance.
 	 local aimTarget: Vector3? = nil
 	 local clickedTarget: (number | string)? = nil
 	 if not forcedDirection and UserInputService.MouseBehavior == Enum.MouseBehavior.Default
@@ -331,11 +335,11 @@ local function throwEquippedTool(forcedDirection: Vector3?): boolean
    return true
 end
 
--- // Manual recall input: press/release are both sent to the server (it decides; see WeaponService).
+-- // Manual recall input: press and release are both sent to the server (it decides; see WeaponService).
 -- // A live boomerang only needs the press; a dying/dead one returns only while held.
 local isRecallHeld = false
 
--- // The recall keys (hold to recall a dead boomerang). The recall prompt above the player's head shows these.
+-- // The recall keys (hold to recall a dead boomerang), shown by the recall prompt
 WeaponController.RECALL_KEY = Enum.KeyCode.E
 WeaponController.RECALL_GAMEPAD_KEY = Enum.KeyCode.ButtonY
 
@@ -361,11 +365,12 @@ function WeaponController.endRecallInput()
    isRecallHeld = false
    recallEvent:FireServer(false)
 
-   -- // Letting go of a charged manual recall drops the boomerang. The server decides, but waiting for its reply would let the
-   -- // boomerang keep flying here for a round trip and then snap back, so drop it right away the same way the server does.
+   -- // Letting go of a charged manual recall drops the boomerang. Dropped locally at once, like the server, since
+   -- // waiting for
+   -- // its reply would let the boomerang fly on for a round trip and then snap back.
    local localPlayer = Players.LocalPlayer
    local thrownWeaponData = ThrownWeapons.Data[localPlayer]
-   -- // Not if this client already predicted the catch: the server decides (it counts a release that close as a catch too)
+   -- // Not if this client already predicted the catch: the server decides (it counts a release that close as a catch)
    if thrownWeaponData and thrownWeaponData.RecallFromDead == true and thrownWeaponData.State == ThrownWeapons.StateEnum.Returning
       and not thrownWeaponData.PendingCatchAt then
       local toolData = Tools[thrownWeaponData.ToolId]
@@ -404,13 +409,13 @@ function WeaponController.handleEquippedToolButton(): string
    return getWeaponState()
 end
 
--- // Register a snapshot of a server-authoritative position
+-- // Registers a snapshot of a server-authoritative position
 -- // Players whose boomerang the server has despawned since its last Spawned. A Dying/Dead snapshot for a boomerang this client
--- // doesn't have rebuilds it (see onSnapshot), but never for one of these: those snapshots are just stale (sent before the despawn).
+-- // lacks rebuilds it (see onSnapshot), but never for these: those snapshots are stale (sent before the despawn).
 -- // Weak keys: entries go away with the Player.
 local despawnedSinceSpawn: { [Player]: boolean } = setmetatable({}, { __mode = "k" }) :: any
 
--- // Rebuild a dead boomerang this client is missing from the server's snapshot (Boomerang.restoreDeadFromSnapshot)
+-- // Rebuilds a dead boomerang this client is missing from the server's snapshot (Boomerang.restoreDeadFromSnapshot)
 local function restoreMissingDeadWeapon(forPlayer: Player, position: Vector3, direction: Vector3, speed: number, state: number)
    local toolId = SkinLibrary.getWeaponClass(forPlayer)
    local toolData = toolId and Tools[toolId]
@@ -444,7 +449,7 @@ end
 local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vector3, speed: number, state: number, serverTime: number, targetPosition: Vector3?, curvature: number?, recallTravelled: number?)
    local thrownWeaponData = ThrownWeapons.Data[forPlayer]
 
-   -- // The server says this boomerang clashed with another one and was knocked onto a new direction (it keeps flying)
+   -- // The server says this boomerang clashed with another and was knocked onto a new direction (it keeps flying)
    if state == ThrownWeapons.StateEnum.Deflected then
       local deflectedToolData = thrownWeaponData and Tools[thrownWeaponData.ToolId]
       local deflectedLogic = deflectedToolData and getLogic(deflectedToolData.LogicClass)
@@ -456,8 +461,10 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
    if not thrownWeaponData or not thrownWeaponData.Host or not thrownWeaponData.Host.Parent then
       -- // The server started returning a dying/dead boomerang (manual recall): follow it
       local deadWeaponData = DeadWeapons.Data[forPlayer]
-      -- // Returning snapshots the server sent before it received the owner's release are stale: ignore them, or the dropped boomerang
-      -- // would take off again here. A genuinely new recall needs a fresh charge, so its snapshots are much later.
+      -- // Returning snapshots sent before the server received the owner's release are stale: ignore them, or the
+      -- // dropped
+      -- // boomerang would take off again. A genuinely new recall needs a fresh charge, so its snapshots are much
+      -- // later.
       local releasedAt = deadWeaponData and deadWeaponData.ReleasedAtServerTime
       if releasedAt and state == ThrownWeapons.StateEnum.Returning
          and serverTime < releasedAt + 2 * Players.LocalPlayer:GetNetworkPing() + 0.15 then
@@ -468,12 +475,15 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
          local deadLogic = deadToolData and getLogic(deadToolData.LogicClass)
          if deadLogic and deadLogic.recallFromDead then
             -- // A manual recall is always the end of a charge (the RecallCharge event started one on this client too);
-            -- // otherwise the server is recalling it by itself (sliding away, player back in sight...): an automatic recall, which
-            -- // has no SelectionRing, Summon animation or beams. This used to always say "manual", so automatic recalls showed them.
+            -- // otherwise the
+            -- // server is recalling it by itself (sliding away, player back in sight...): an automatic recall, which
+            -- // has no
+            -- // SelectionRing, Summon animation or beams.
             local isManualRecall = DeadWeaponLogic.isRecallCharging(deadWeaponData)
             deadLogic.recallFromDead(forPlayer, deadWeaponData, isManualRecall)
-            -- // This client starts the recall when the server's word arrives, after the server already started flying it:
-            -- // ease it to where the server has it by now (the eased-in part doesn't count toward a hard snap)
+            -- // This client starts the recall when the server's word arrives, after the server already started flying
+            -- // it: ease it to
+            -- // where the server has it now (the eased-in part doesn't count toward a hard snap)
             local recalledData = ThrownWeapons.Data[forPlayer]
             if recalledData and recalledData.CFrame and targetPosition and deadLogic.advanceReturn then
                local recallCatchup = math.clamp(workspace:GetServerTimeNow() - serverTime, 0, MAX_SNAPSHOT_CATCHUP)
@@ -495,7 +505,7 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
          end
          return
       end
-      -- // The server has a dying/dead boomerang this client doesn't (a desync, or this player joined after the throw): rebuild it
+      -- // The server has a dying/dead boomerang this client lacks (desync, or joined after the throw): rebuild it
       if not thrownWeaponData and not deadWeaponData and not despawnedSinceSpawn[forPlayer]
          and (state == DeadWeapons.StateEnum.Dying or state == DeadWeapons.StateEnum.Dead) then
          restoreMissingDeadWeapon(forPlayer, position, direction, speed, state)
@@ -512,10 +522,11 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
    local advancedReturnVelocity: Vector3? = nil -- // A thrown boomerang's return, caught up to now (heading/speed for its loop)
    local returnCatchUpStart = false
    -- // A returning boomerang speeds up and steers toward the thrower, so a straight line is far off at high speed: replay the
-   -- // server's own return movement over the catch-up time, and hand the result to the local simulation
+   -- // server's return movement over the catch-up time and hand the result to the local simulation.
    -- // Only from the return loop's own snapshots (it has started flying, recallTravelled > 0): the snapshot sent as a return
-   -- // starts carries a heading straight at the thrower, not the boomerang's real velocity (it is still flying outward and
-   -- // turning around), and replaying from it sent the local boomerang back early, 20-40 studs off under lag
+   -- // starts has a heading straight at the thrower, not the real velocity (still flying outward and turning around),
+   -- // and
+   -- // replaying it sent the local boomerang back early, 20-40 studs off under lag
    if state == ThrownWeapons.StateEnum.Returning and previousStateIsReturning(thrownWeaponData) and recallTravelled and recallTravelled > 0 and targetPosition then
       local returnToolData = Tools[thrownWeaponData.ToolId]
       local returnLogic = returnToolData and getLogic(returnToolData.LogicClass)
@@ -536,10 +547,13 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
       end
    elseif state == ThrownWeapons.StateEnum.Returning and thrownWeaponData.RecallFromDead == nil
       and (recallTravelled == nil or recallTravelled < 0) and targetPosition then
-      -- // A thrown boomerang returning on its own (the throw's loop steers it home): the same steering, without the manual
-      -- // recall's speed-up. Its loop adopts the caught-up heading and speed through SnapshotDirection / SnapshotSpeed (set
-      -- // below). The first Returning snapshot is where it turns around: this client held it still at 0 energy until the
-      -- // server's verdict arrived, so the distance the server has already flown back is eased in, not snapped.
+      -- // A thrown boomerang returning on its own (the throw's loop steers it home): same steering, without the manual
+      -- // recall's
+      -- // speed-up. Its loop adopts the caught-up heading and speed through SnapshotDirection / SnapshotSpeed (set
+      -- // below).
+      -- // The first Returning snapshot is where it turns around: this client held it at 0 energy until the server's
+      -- // verdict arrived,
+      -- // so the distance the server has already flown back is eased in, not snapped.
       returnCatchUpStart = not previousStateIsReturning(thrownWeaponData)
       local returnToolData = Tools[thrownWeaponData.ToolId]
       local returnLogic = returnToolData and getLogic(returnToolData.LogicClass)
@@ -560,8 +574,8 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
          end
       end
    end
-   -- // A curving boomerang has kept turning since the server sent this: advance it along its arc instead (position and
-   -- // heading), so the prediction lines up with where the server has it now
+   -- // A curving boomerang has kept turning since the snapshot: advance it along its arc (position and heading) so the
+   -- // prediction matches the server's current state
    if curvature and state ~= ThrownWeapons.StateEnum.Returning then
       local maxCurvature = BoomerangCurveLibrary.getMaxCurvature()
       curvature = if curvature == curvature then math.clamp(curvature, -maxCurvature, maxCurvature) else 0
@@ -574,7 +588,8 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
    end
 
    -- // Just went through a portal locally: snapshots sent before the server's own crossing are stale (still on the
-   -- // entry side). Skip them briefly instead of snapping the boomerang back through the portal.
+   -- // entry
+   -- // side). Skip them briefly instead of snapping the boomerang back through the portal.
    local simulatedPosition = if thrownWeaponData.CFrame then thrownWeaponData.CFrame.Position else thrownWeaponData.Host:GetPivot().Position
    local recentlyCrossedPortal = thrownWeaponData.PortalExitAt ~= nil and os.clock() - thrownWeaponData.PortalExitAt < PORTAL_SNAPSHOT_GRACE
    if recentlyCrossedPortal and previousState == state and (authoritativePosition - simulatedPosition).Magnitude >= HARD_SNAP_DISTANCE then
@@ -618,7 +633,7 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
 
    thrownWeaponData.State = state
 
-   -- // Already caught on this client (hidden while the server confirms): its last moments are invisible, don't correct them
+   -- // Already caught on this client (hidden until the server confirms): don't correct its invisible last moments
    if thrownWeaponData.PendingCatchAt then
       return
    end
@@ -630,15 +645,16 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
       BoomerangDebugController.recordSnapshot(forPlayer, thrownWeaponData, 0, speed, state, false, catchup, positionError.Magnitude)
       return
    end
-   -- // A correction still being eased in (e.g. a fresh throw catching up to where the server already has it) is where the
-   -- // boomerang is already headed, not drift: only the error beyond it decides a hard snap
+   -- // A correction still being eased in (e.g. a fresh throw catching up to the server) is where the boomerang is
+   -- // already
+   -- // headed, not drift: only the error beyond it decides a hard snap
    local pendingCorrection = thrownWeaponData.SyncCorrection or Vector3.zero
    local errorDistance = (positionError - pendingCorrection).Magnitude
    BoomerangDebugController.recordSnapshot(forPlayer, thrownWeaponData, errorDistance, speed, state, errorDistance >= HARD_SNAP_DISTANCE, catchup, pendingCorrection.Magnitude)
    if errorDistance >= HARD_SNAP_DISTANCE then
       local currentPivot = thrownWeaponData.Host:GetPivot()
       local snappedCFrame = (currentPivot - currentPivot.Position) + authoritativePosition
-      -- // A hard snap is a teleport: let the old trail fade where it is instead of stretching it across the jump
+      -- // A hard snap is a teleport: let the old trail fade in place instead of stretching across the jump
       local snapToolData = Tools[thrownWeaponData.ToolId]
       local snapLogic = snapToolData and getLogic(snapToolData.LogicClass)
       if snapLogic and snapLogic.retireTrail then
@@ -651,11 +667,12 @@ local function onSnapshot(forPlayer: Player, position: Vector3, direction: Vecto
       return
    end
 
-   -- // Not a position to drag toward (the boomerang keeps moving meanwhile) but the error left to ease out, a little each frame
+   -- // Not a position to drag toward (the boomerang keeps moving) but the remaining error to ease out each frame
    thrownWeaponData.SyncCorrection = positionError
 end
 
--- // Ease each boomerang's remaining position error (from the latest snapshot) out of its simulated position, a fraction per frame
+-- // Eases each boomerang's remaining position error (from the latest snapshot) out of its simulated position, a
+-- // fraction per frame
 local function updateSmoothing(deltaTime: number)
    for _, thrownWeaponData in pairs(ThrownWeapons.Data) do
       local correction = thrownWeaponData.SyncCorrection
@@ -679,8 +696,8 @@ local function updateSmoothing(deltaTime: number)
    end
 end
 
--- // Bumped on every stop/begin, so a beginAiming that yielded (waiting for the character model) can tell it
--- // was overtaken by a stop and must not create a leftover arrow
+-- // Bumped on every stop/begin, so a beginAiming that yielded (waiting for the character model) can tell it was
+-- // overtaken by a stop and must not create a leftover arrow
 local chargeUpEffectGeneration: { [Player]: number } = {}
 
 function stopAiming(player: Player)
@@ -802,7 +819,7 @@ local function renderChargeUpEffects()
       end
       for p, arrows in pairs(chargeUpEffects) do
          if p == Players.LocalPlayer and not isAiming then
-            stopAiming(p) -- // The local arrow never outlives the local aim, whatever path created it
+            stopAiming(p) -- // The local arrow never outlives the local aim, whatever created it
             continue
          end
 
@@ -821,13 +838,14 @@ local function renderChargeUpEffects()
          local timeSinceAimStart = os.clock() - arrows.AimStart
          local aimStrengthAlpha = math.clamp(timeSinceAimStart / BoomerangTuningLibrary.getForAnyTool(SkinLibrary.getWeaponClass(Players.LocalPlayer), "ChargeTime"), 0, 1) 
          local characterCFrame = if p == Players.LocalPlayer then CharacterController.LastCFrame else humanoidRootPart.CFrame
-         -- // The held boomerang, which the throw leaves from (a pivot too far from the character is stale: none, like the throw)
+         -- // The held boomerang the throw leaves from (a pivot too far from the character is stale: none, like the
+         -- // throw)
          local throwOrigin = ToolController.getToolPivotPosition(p)
          if throwOrigin and (throwOrigin - humanoidRootPart.Position).Magnitude > MAX_RELEASE_DISTANCE_FROM_CHARACTER then
             throwOrigin = nil
          end
 
-         -- // The effect's own logic module animates it from the charge progress (see Shared/Logics/ChargeUpEffects)
+         -- // The effect's logic module animates it from the charge progress (see Shared/Logics/ChargeUpEffects)
          arrows.Handle:update({
             Alpha = aimStrengthAlpha,
             RootPart = humanoidRootPart,
@@ -846,7 +864,7 @@ local function beginAiming(player: Player)
    if not character then
       return
    end
-   -- // While we waited, the aim may have ended (throw/cancel) or a newer begin may have started
+   -- // The aim may have ended (throw/cancel) or a newer begin started while waiting
    if chargeUpEffectGeneration[player] ~= generation or (player == Players.LocalPlayer and not isAiming) then
       return
    end
@@ -863,9 +881,12 @@ local function beginAiming(player: Player)
    AnimationController.playCoreAnimation(player, "Charging")
 
    -- // Every client applies each player's charge up effect locally. The equipped id is replicated on the Player and
-   -- // validated by ChargeUpEffectLibrary (an unknown or not-yet-replicated value uses the default effect); the id names
-   -- // the logic module in Shared/Logics/ChargeUpEffects that applies and animates the effect
-   -- // Others' Cosmetic Effects setting off: other players charge with the default effect (this player's own still shows)
+   -- // validated
+   -- // by ChargeUpEffectLibrary (an unknown or not-yet-replicated value uses the default effect); it names the logic
+   -- // module
+   -- // in Shared/Logics/ChargeUpEffects that applies and animates the effect.
+   -- // With others' Cosmetic Effects setting off, other players charge with the default effect (this player's own
+   -- // still shows)
    local showsEquipped = player == Players.LocalPlayer or SettingsController.getValue("ShowCosmeticEffects") == true
    local logic = if showsEquipped then ChargeUpEffectLibrary.getLogicFor(player) else ChargeUpEffectLibrary.getLogic(ChargeUpEffectLibrary.getDefaultId())
    chargeUpEffects[player] = {
@@ -909,7 +930,7 @@ end
 
 function WeaponController.setThumbstickAimDirection(angle: number?)
    if Telekinesis.isLocalSteering() then
-      Telekinesis.setTouchAngle(angle) -- // Feed the steer direction; don't begin aiming
+      Telekinesis.setTouchAngle(angle) -- // Feeds the steer direction; doesn't begin aiming
       return
    end
    if typeof(angle) == "number" then
@@ -923,7 +944,7 @@ end
 
 function WeaponController.releaseThumbstickAim(lastAngle: number?): boolean
    if Telekinesis.isLocalSteering() then
-      Telekinesis.setTouchAngle(nil) -- // Stop steering; no throw
+      Telekinesis.setTouchAngle(nil) -- // Stops steering; no throw
       return false
    end
    if typeof(lastAngle) == "number" then
@@ -1085,17 +1106,17 @@ function WeaponController.init()
       state, offset = BufferUtil.readu8(payload, offset)
       local serverTime
       serverTime, offset = BufferUtil.readf64(payload, offset)
-      -- // The thrower's position follows the time (the dead-weapon snapshots don't carry it)
+      -- // The thrower's position follows the time (dead-weapon snapshots don't carry it)
       local targetPosition: Vector3? = nil
       if buffer.len(payload) >= offset + 12 then
          targetPosition, offset = BufferUtil.readVector3_96(payload, offset)
       end
-      -- // The boomerang's current curve (the dead-weapon snapshots don't carry it)
+      -- // The boomerang's current curve (dead-weapon snapshots don't carry it)
       local curvature: number? = nil
       if buffer.len(payload) >= offset + 4 then
          curvature, offset = BufferUtil.readf32(payload, offset)
       end
-      -- // How far a returning boomerang has flown since its recall started (-1 = not returning)
+      -- // Distance a returning boomerang has flown since its recall started (-1 = not returning)
       local recallTravelled: number? = nil
       if buffer.len(payload) >= offset + 4 then
          recallTravelled = BufferUtil.readf32(payload, offset)
@@ -1112,11 +1133,11 @@ function WeaponController.init()
    RunService.PreSimulation:Connect(function(deltaTime)
       updateSmoothing(deltaTime)
       DeadWeaponLogic.updateSmoothing(deltaTime)
-      getLogic("Boomerang").updatePendingCatches() -- // Show a boomerang again if the server never confirmed the catch this client predicted
-      DeadWeaponLogic.updateRecallCharges(deltaTime) -- // Lift / drop charging dead boomerangs (same timestamps as the server)
+      getLogic("Boomerang").updatePendingCatches() -- // Shows a boomerang again if the server never confirmed the predicted catch
+      DeadWeaponLogic.updateRecallCharges(deltaTime) -- // Lifts / drops charging dead boomerangs (same timestamps as the server)
    end)
 
-   -- // The server says a player's dead boomerang started charging a recall (it lifts) or the charge was released (it drops)
+   -- // The server says a dead boomerang started charging a recall (it lifts) or the charge was released (it drops)
    recallChargeEvent.OnClientEvent:Connect(function(playerUserId: number, action: string, serverTime: number, a: number?, b: number?, c: number?)
       local chargingPlayer = Players:GetPlayerByUserId(playerUserId)
       if chargingPlayer then
@@ -1147,7 +1168,7 @@ function WeaponController.init()
 		end
 	end)
 
-   -- NOTE: Parrying is registered as an Ability and handled via AbilityController
+   -- Parrying is registered as an Ability and handled via AbilityController
 
    UserInputService.InputEnded:Connect(function(input: InputObject, gameProcessed: boolean)
       -- // Always deliver the recall release (even if a gui took the input), so a held recall can't get stuck

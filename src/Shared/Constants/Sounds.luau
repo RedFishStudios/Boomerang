@@ -7,8 +7,7 @@ type SoundProperties = {
    Looping: boolean?, -- true = sound will loop
    IsMusic: boolean?, -- true = music: plays through the Music sound group (Music setting) instead of Sound Effects
 
-   DoNotPreload: boolean?, -- true = sound will not be preloaded. Only use for sounds that play very infrequently for the purpose of saving user memory space. This indicates that the sound is not 'remembered' by the client and is re-loaded every time it is played.
-   -- etc
+   DoNotPreload: boolean?, -- true = not preloaded; re-loaded on every play. Only for rarely played sounds (saves client memory).
 }
 
 type SoundData = {

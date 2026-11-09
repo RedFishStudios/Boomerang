@@ -88,8 +88,8 @@ local function _init()
       WeaponController.handleEquippedToolButton()
    end)
 
-   -- // Recall mode (boomerang on the field): press and hold. Track the exact touch/click so another finger lifting
-   -- // (e.g. the joystick) doesn't end the recall.
+   -- // Recall mode (boomerang on the field): press and hold. Tracks the exact touch/click so other fingers lifting
+   -- // (e.g. the joystick) don't end the recall.
    local recallInput: InputObject? = nil
    BoomerangThrowButton.InputBegan:Connect(function(input: InputObject)
       if input.UserInputType ~= Enum.UserInputType.Touch and input.UserInputType ~= Enum.UserInputType.MouseButton1 then

@@ -26,7 +26,7 @@ export type Template = {
       [string]: number -- Pickup class id : times picked up
    },
    MonthlyStats: { -- // This month's Elims/Wins for the monthly leaderboards; reset when MonthKey changes
-      MonthKey: string, -- UTC month, e.g. "2026-10" ("" = never set)
+      MonthKey: string, -- UTC month, e.g. "YYYY-MM" ("" = never set)
       Elims: number,
       Wins: number,
    },

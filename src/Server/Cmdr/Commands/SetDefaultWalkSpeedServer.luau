@@ -21,9 +21,9 @@ return function(_context, speed: number?)
 
 	WalkSpeedLibrary.setDefault(speed)
 
-	-- // Apply to everyone now. RunSpeed only takes effect on WalkSpeed while a player is in free motion (not aiming), and is
-	-- // replicated to the client. A player with an active Speedup keeps their boosted speed until it ends, then returns
-	-- // to the new default.
+	-- // Applies to everyone. RunSpeed only affects WalkSpeed in free motion (not aiming) and replicates to the
+	-- // client.
+	-- // An active Speedup keeps its boosted speed until it ends, then returns to the new default.
 	for _, player in Players:GetPlayers() do
 		if not PickupLibrary.hasPickupEffectActive(player.UserId, "Speedup") then
 			PlayerStatsLibrary.setStat(player, "RunSpeed", speed)

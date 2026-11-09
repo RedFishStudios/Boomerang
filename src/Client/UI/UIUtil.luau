@@ -16,7 +16,7 @@ export type Input = Enum.UserInputType | Enum.KeyCode | nil
 -- PRIVATE VARIABLES
 -------------------------------------------------------------------------------
 
--- // The listing card art has transparent margins around the card itself; this is the share of the image the card fills
+-- // Share of the card art image the visible card fills (the rest is transparent margin)
 local LISTING_CARD_VISIBLE_SCALE = Vector2.new(0.949, 0.567)
 
 local tweenInfoIn = TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
@@ -77,8 +77,8 @@ function UIUtil.bulkTweenCreate(instance: GuiObject, tweens: { { TweenInfo: Twee
 	return unpack(createdTweens)
 end
 
--- // Card art for a listing (a quest, a setting row): parent it to a transparent frame and the visible card fills that
--- // frame. The art is grayscale, so color is a tint (same as the Shop and Inventory listing art).
+-- // Card art for a listing (quest, setting row). Parent it to a transparent frame; the visible card fills that frame.
+-- // The art is grayscale; color tints it.
 function UIUtil.createListingCardArt(color: Color3): ImageLabel
 	local art = Instance.new("ImageLabel")
 	art.Name = "CardArt"

@@ -8,9 +8,6 @@
 
   Author:
   @SixthAtom
-
-  Date:
-  01-04-2026
 ]]
 
 local GlobalInstanceService = {}

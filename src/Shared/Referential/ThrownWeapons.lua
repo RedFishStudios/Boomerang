@@ -39,7 +39,7 @@ export type Data = {
    ReturnRescued: boolean?, -- // A returning boomerang that ran out of energy was already saved from dying once (see Boomerang.canAvoidDying)
    ReturnSpeedMultiplier: number?, -- // Max recall speed multiplier for a returning boomerang (Explosive effect), set by Boomerang.recall
    PendingDirection: Vector3?, -- // A new flight direction to adopt on the next step (set by a clash)
-   Curvature: number?, -- // T-141: the throw's curve, radians turned per stud flown out (+ = left); decided by the server, 0 = straight (BoomerangCurveLibrary)
+   Curvature: number?, -- // The throw's curve, radians turned per stud flown out (+ = left); decided by the server, 0 = straight (BoomerangCurveLibrary)
    TelekinesisBias: Vector3?, -- // Telekinesis: the direction (horizontal unit) the owner wants this weapon to head; nil = no steering (see Telekinesis.getBias)
    TelekinesisBiasAt: number?, -- // os.clock() when TelekinesisBias was last set; an old bias expires
    ReuseEquippedHost: boolean?,
@@ -50,16 +50,16 @@ export type Data = {
    RecallFromDead: boolean?, -- // Recalled off the ground: true = the player's charged manual recall (only while recall is held), false = automatic (recovered)
    RecallTiltAngle: number?, -- // Client visual: current manual-recall tilt (radians)
    RecallTilt: CFrame?, -- // Client visual: rotation applied to the model while a manual recall lifts it
-   PendingCatchAt: number?, -- // T-100 (client): os.clock() when this client predicted the catch; hidden until the server confirms (Boomerang.luau CATCHING)
-   PendingCatchExpired: boolean?, -- // T-100 (client): the server never confirmed a predicted catch; this client stops predicting catches for it
-   CatchEffectsPlayed: boolean?, -- // T-100 (client): the catch animation/sound already played for the predicted catch (not repeated on Despawned)
-   HostHidden: boolean?, -- // T-100 (client): the model is hidden (LocalTransparencyModifier) while a predicted catch waits for the server
-   HasBeenDead: boolean?, -- // It has been fully Dead at least once (T-093): it never recalls by itself again, only by the owner's manual recall
+   PendingCatchAt: number?, -- // Client: os.clock() when this client predicted the catch; hidden until the server confirms (Boomerang.luau CATCHING)
+   PendingCatchExpired: boolean?, -- // Client: the server never confirmed a predicted catch; this client stops predicting catches for it
+   CatchEffectsPlayed: boolean?, -- // Client: the catch animation/sound already played for the predicted catch (not repeated on Despawned)
+   HostHidden: boolean?, -- // Client: the model is hidden (LocalTransparencyModifier) while a predicted catch waits for the server
+   HasBeenDead: boolean?, -- // It has been fully Dead at least once: it never recalls by itself again, only by the owner's manual recall
    RecallSpinScale: number?, -- // 0..1: how much of the full spin rate a manually recalled boomerang has built up (nil = full)
    VisualYOffset: number?, -- // Client drawing only: how far the freshly thrown boomerang is still drawn above/below its physics height (eases to 0)
    VisualYOffsetStartedAt: number?, -- // os.clock() of the throw
-   VisualYOffsetByDistance: boolean?, -- // GROUND APPROACH (2026-11-02): the offset eases by RecallTravelled, not by time
-   RecallTravelled: number?, -- // GROUND APPROACH (2026-11-02): studs a manual recall has flown so far
+   VisualYOffsetByDistance: boolean?, -- // Ground approach: the offset eases by RecallTravelled, not by time
+   RecallTravelled: number?, -- // Ground approach: studs a manual recall has flown so far
    PortalExitAt: number?, -- // os.clock() of the last portal exit (Environment/Portal)
    PortalExitPart: BasePart?, -- // The portal it last came out of
    TrailObject: {

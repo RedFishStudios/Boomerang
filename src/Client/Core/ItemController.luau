@@ -2,8 +2,8 @@
 	ItemController
 
 	Description:
-	Client-side view of the local player's `Inventory` (item id -> amount owned), kept up to date by PlayerDataController.
-	Item data comes from Shared/Referential/Items.
+	Client-side view of the local player's `Inventory` (item id -> amount owned), updated by PlayerDataController.
+	Item data is in Shared/Referential/Items.
 
 	Author:
 	@SixthAtom
@@ -26,7 +26,7 @@ type ItemEventTask = (itemId: string, deltaAmount: number) -> ()
 -- PRIVATE VARIABLES
 -------------------------------------------------------------------------------
 
--- // Last known amounts, since UpdatedTasks only provides the new value
+-- // Last known amounts; UpdatedTasks only provides the new value
 local knownAmounts: { [string]: number } = {}
 
 -------------------------------------------------------------------------------

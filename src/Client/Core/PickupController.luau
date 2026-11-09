@@ -223,7 +223,7 @@ function PickupController.init()
          --end
       --end
 
-      -- // Simulate removal of expired pickup effects
+      -- // Simulates removal of expired pickup effects
       for userId, activePickups in pairs(PickupLibrary.UserPickupEffectsActive) do
          for livePickupId, activePickupData in pairs(activePickups) do
             if activePickupData.EndsAt and activePickupData.EndsAt <= now then

@@ -6,7 +6,7 @@ local ProductLogicsUtil = require(script.Parent.ProductLogicsUtil)
 
 local PlaceholderProduct = {}
 PlaceholderProduct.ProductId = MarketplaceLibrary.getItemId("Placeholder")
-PlaceholderProduct.NotActive = true -- // ExampleItem1 was removed (skins replaced the Example items); kept as a reference
+PlaceholderProduct.NotActive = true -- // Not registered as a product logic handler
 
 function PlaceholderProduct.grant(Player: Player): boolean
    return ProductLogicsUtil.grantGenericItemToPlayer(Player, "ExampleItem1")

@@ -2,9 +2,8 @@
 	CmdrController
 
 	Description:
-	Loads the Cmdr developer console on the client, only for players the server marked with the
-	"CmdrAdmin" attribute (everyone in Studio). Open/close it with F2.
-	Permissions are enforced on the server by CmdrService; this only hides the console from everyone else.
+	Loads the Cmdr console for players with the "CmdrAdmin" attribute (everyone in Studio). Toggle with F2.
+	Permissions are enforced by CmdrService on the server.
 ]]
 
 local CmdrController = {}
@@ -39,8 +38,8 @@ local function refresh()
 		cmdrClient = require(ReplicatedStorage:WaitForChild("CmdrClient"))
 		cmdrClient:SetActivationKeys(ACTIVATION_KEYS)
 
-		-- // Cmdr blocks every command in live games unless a BeforeRun hook exists on this side too.
-		-- // The real permission check is CmdrService's hook on the server; this one only mirrors it.
+		-- // Cmdr blocks all commands in live games unless a client BeforeRun hook exists.
+		-- // The real permission check is CmdrService's server hook.
 		cmdrClient.Registry:RegisterHook("BeforeRun", function(_context)
 			if player:GetAttribute(ADMIN_ATTRIBUTE) ~= true then
 				return "You don't have permission to run this command."

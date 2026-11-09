@@ -2,9 +2,9 @@
 	Emotes tab (Inventory)
 
 	Description:
-	The Emotes tab of the Inventory menu: lists the emotes the player owns (Shared/Referential/Emotes), the default
-	emote included. Equip equips the selected emote. Each emote is previewed on the EmotesRig playing its animation
-	(ItemViewport.renderEmote). Follows the InventoryTab shape in Inventory/init.luau.
+	Inventory tab listing the emotes the player owns (Shared/Referential/Emotes), including the default emote.
+	Equip equips the selected emote. Each emote is previewed on the EmotesRig (ItemViewport.renderEmote).
+	Follows the InventoryTab shape in Inventory/init.luau.
 ]]
 
 local EmotesTab = {}

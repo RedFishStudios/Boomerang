@@ -257,8 +257,7 @@ function SoundLibrary.init()
 
    didInitclient = true
 
-   -- // Roblox memory clears sounds that are not currently loaded onto any sound instance
-   -- This would create lag as the player would have to re-load a sound every time it is played
+   -- // Roblox unloads sounds not held by any Sound instance, which would make each play re-load the sound
    local preloadedSounds = {}
    for _, soundData in pairs(Sounds.Data) do
       if soundData.DoNotPreload then

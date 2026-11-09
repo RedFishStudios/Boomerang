@@ -19,13 +19,13 @@ local Template = script:WaitForChild("Template") :: CanvasGroup
 local NOTIFICATION_LIFETIME = 2
 local MAX_VISIBLE_NOTIFICATIONS = 3
 
--- Template authoring values; all runtime sizes derive from these so the width/height ratio is preserved.
+-- Template authoring values; runtime sizes derive from these to preserve the width/height ratio
 local BASE_MARGIN = Vector2.new(10, 10)
 local BASE_VIEWPORT = Vector2.new(1280, 720)
 local MIN_SCALE = 0.6
 local MAX_SCALE = 1.5
 
--- Fraction of size/opacity each notification loses for every position it is pushed back in the stack
+-- Fraction of size/opacity lost per stack position
 local SIZE_LOST_PER_POSITION = 0.1
 local TRANSPARENCY_LOST_PER_POSITION = 0.25
 
@@ -101,20 +101,20 @@ local function getNotificationPosition(index: number): UDim2
 	local maxHeight = viewport.Y / 3.5
 	local baseHeight = math.min(maxWidth / 2.48, maxHeight)
 	
-	-- Calculate the height of the first notification
+	-- Height of the first notification
 	local firstNotifHeight = baseHeight * getPositionScale(1)
 	
-	-- Calculate total height needed for all notifications above this one
+	-- Total height of the notifications above this one
 	local heightAbove = 0
 	for i = 1, index - 1 do
 		heightAbove += (baseHeight * getPositionScale(i)) / 1.5
 	end
 	
-	-- Position centered on the right side
+	-- Centered vertically
 	local centerY = viewport.Y / 2
 	local yOffset = centerY - (firstNotifHeight / 2) - heightAbove
 	
-	-- Anchor on the right side: X=1 moves to right edge
+	-- Anchored to the right edge (X=1)
 	return UDim2.new(1, -math.round(BASE_MARGIN.X * currentScale), 0, math.round(yOffset))
 end
 
@@ -178,8 +178,8 @@ local function getPlayerBustImage(userId: number): string
    return "rbxthumb://type=AvatarBust&id=" .. userId .. "&w=420&h=420"
 end
 
--- Color gradients for different relationship types
--- RED (enemy) - current colors
+-- Color gradients per relationship type
+-- RED (enemy)
 local RED_COLOR_GRADIENT = ColorSequence.new({
 	ColorSequenceKeypoint.new(0, Color3.fromRGB(125, 12, 42)),
 	ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 20, 63))
@@ -203,26 +203,24 @@ local GREEN_TEXT_COLOR = Color3.fromRGB(14, 255, 90)
 
 local function getRelationshipColor(playerA: Player, playerB: Player)
 	if playerA == Player then
-		-- Local player eliminated someone - GREEN
+		-- Local player eliminated someone: GREEN
 		return GREEN_COLOR_GRADIENT, GREEN_STROKE_GRADIENT, GREEN_TEXT_COLOR
 	elseif playerB == Player then
-		-- Local player was eliminated
-		-- Check if they were eliminated by an enemy or ally
+		-- Local player was eliminated: by an enemy or an ally
 		if GameTeamLibrary.areEnemies(playerA, playerB) then
-			-- Eliminated by enemy - RED
+			-- Eliminated by enemy: RED
 			return RED_COLOR_GRADIENT, RED_STROKE_GRADIENT, RED_TEXT_COLOR
 		else
-			-- Eliminated by ally - BLUE
+			-- Eliminated by ally: GREEN
 			return GREEN_COLOR_GRADIENT, GREEN_STROKE_GRADIENT, GREEN_TEXT_COLOR
 		end
 	else
-		-- Neither player is local player
-		-- Check if playerA and playerB are enemies
+		-- Neither player is the local player
 		if GameTeamLibrary.areEnemies(playerA, playerB) then
-			-- Enemy eliminated another enemy or neutral - RED (default enemy perspective)
+			-- Enemy eliminated another enemy or neutral: RED
 			return RED_COLOR_GRADIENT, RED_STROKE_GRADIENT, RED_TEXT_COLOR
 		else
-			-- Ally eliminated ally - BLUE
+			-- Ally eliminated ally: GREEN
 			return GREEN_COLOR_GRADIENT, GREEN_STROKE_GRADIENT, GREEN_TEXT_COLOR
 		end
 	end
@@ -265,10 +263,9 @@ local function showElimMessage(userIdA: number, userIdB: number, elimType: strin
       elimTypeLabel.Text = elimType
    end
    
-   -- Get colors based on relationship
    local colorGradient, strokeGradient, textColor = getRelationshipColor(playerA, playerB)
    
-   -- Set Color frame gradient and stroke
+   -- Color frame gradient and stroke
    local colorFrame = frame:FindFirstChild("Color")
    local colorFrameGradient = colorFrame:FindFirstChild("UIGradient")
    colorFrameGradient.Color = colorGradient
@@ -277,7 +274,6 @@ local function showElimMessage(userIdA: number, userIdB: number, elimType: strin
    local strokeGradientChild = colorStroke:FindFirstChild("UIGradient")
    strokeGradientChild.Color = strokeGradient
    
-   -- Set ElimType text color
    elimTypeLabel.TextColor3 = textColor
 
 	table.insert(activeNotifications, 1, frame)
@@ -340,7 +336,6 @@ local function _init()
          end
    end, false, Enum.KeyCode.Z)
    
-   -- Listen for elim messages from the server
    local elimMessageRemote = SimpleRemotes.getEvent("ElimMessage")
    elimMessageRemote.OnClientEvent:Connect(function(userIdA: number, userIdB: number, elimType: string)
       ElimMessageGui.showElimMessage(userIdA, userIdB, elimType)

@@ -2,10 +2,10 @@
 	ChargeUpEffectController
 
 	Description:
-	Client side of charge up effects: which arrows the local player owns and has equipped, equip requests, and the
-	"New charge up effect acquired!" popup. Ownership comes from the replicated profile (`OwnedChargeUpEffects`); any player's
-	equipped arrow (the local player's too) comes from ChargeUpEffectLibrary / the `EquippedChargeUpEffect` Player attribute that
-	ChargeUpEffectService sets and Roblox replicates. WeaponController reads it when a player starts aiming.
+	Client side of charge up effects: owned and equipped arrows, equip requests, and the "New charge up effect acquired!" popup.
+	Ownership comes from the replicated profile (`OwnedChargeUpEffects`); each player's equipped arrow comes from
+	ChargeUpEffectLibrary / the `EquippedChargeUpEffect` Player attribute set by ChargeUpEffectService.
+	WeaponController reads it when a player starts aiming.
 ]]
 
 local ChargeUpEffectController = {}
@@ -33,7 +33,7 @@ type ChargeUpEffectTask = (chargeUpEffectId: string) -> ()
 local localPlayer = Players.LocalPlayer
 local equipChargeUpEffectRemoteFunction = SimpleRemotes.getFunction("EquipChargeUpEffect")
 
--- // Charge up effects known to be owned, so only new ones show the popup
+-- // Known owned effects, so only new ones show the popup
 local knownOwnedChargeUpEffects: { [string]: boolean } = {}
 
 -------------------------------------------------------------------------------
@@ -55,7 +55,7 @@ function ChargeUpEffectController.getEquippedId(): string
 	return ChargeUpEffectLibrary.getEquippedId(localPlayer)
 end
 
---- Asks the server to equip an owned charge up effect. Yields; returns whether it worked.
+--- Asks the server to equip an owned effect. Yields; returns whether it succeeded.
 function ChargeUpEffectController.requestEquip(chargeUpEffectId: string): boolean
 	return equipChargeUpEffectRemoteFunction:InvokeServer(chargeUpEffectId) == true
 end

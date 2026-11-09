@@ -1,5 +1,5 @@
 --[[
-  Relays round-related functionality and utilities for the client
+  Client round functionality and utilities
 
   Author:
   @Soulsplosion

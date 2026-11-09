@@ -1,10 +1,10 @@
 --[[
 	GamemodeHud
 
-	The in-round HUD: one line of text at the top of the screen, in the topbar row, showing the gamemode and the time left
-	("Team Elimination • 01:24"). Shown while a round is running; hidden while a menu supersedes it.
+	In-round HUD: one line of text in the topbar row showing the gamemode and time left ("Team Elimination • 01:24").
+	Shown while a round is running; hidden while a menu supersedes it.
 
-	The previous banner HUD (Gamemode.rbxmx) is kept, commented out, in LegacyBannerHud.luau.
+	The previous banner HUD is kept for reference in LegacyBannerHud.luau.
 ]]
 
 local GamemodeHudGui = {}
@@ -29,8 +29,8 @@ local FONT = Enum.Font.FredokaOne -- // Same as the topbar
 local TEXT_COLOR = Color3.new(1, 1, 1)
 local OUTLINE_COLOR = Color3.new(0, 0, 0)
 local OUTLINE_THICKNESS = 2.5
-local TEXT_HEIGHT_SCALE = 0.75 -- // Text height as a share of the topbar row's height
-local TEXT_WIDTH_SCALE = 0.4 -- // Widest the text may get, as a share of the screen (long names shrink to fit)
+local TEXT_HEIGHT_SCALE = 0.75 -- // Text height as a share of the topbar row height
+local TEXT_WIDTH_SCALE = 0.4 -- // Max text width as a share of the screen (long names shrink to fit)
 local SEPARATOR = " • "
 
 -------------------------------------------------------------------------------
@@ -50,7 +50,7 @@ local isSuperceded = false
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
 
--- // Centered on the screen, vertically centered in the topbar row (GuiService.TopbarInset)
+-- // Centers the label on the screen and vertically in the topbar row (GuiService.TopbarInset)
 local function placeLabel()
 	local topbar = GuiService.TopbarInset
 	local rowHeight = topbar.Height
@@ -93,7 +93,7 @@ local function updateTimer()
 	end
 end
 
--- // `fallbackText` shows instead of a countdown when the round has no timer
+-- // `fallbackText` replaces the countdown when the round has no timer
 local function startCountdown(fallbackText: string)
 	stopCountdown()
 	if typeof(GameStateLibrary.getGameStateData().CurrentTimerEndsAt:Get()) ~= "number" then

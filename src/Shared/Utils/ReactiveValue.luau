@@ -29,14 +29,12 @@ end
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Methods
 
--- // Get value
 function ReactiveValue:Get()
 	return self.Value
 end
 
--- // Set value (fire listeners) if not debounced!
+-- // Sets the value and fires listeners, unless debounced
 function ReactiveValue:Set(newValue: any)
-	-- If debouncable -> Debounce
 	if self.Debounce then
 		if self.Debounced then
 			print("Reactive value debounced!")
@@ -48,7 +46,6 @@ function ReactiveValue:Set(newValue: any)
 			self.Debounced = nil
 		end)
 	end
-	-- Set
    if newValue == self.Value then
       return
    end
@@ -59,12 +56,12 @@ function ReactiveValue:Set(newValue: any)
 	return newValue
 end
 
--- // Set value without firing listeners
+-- // Sets the value without firing listeners
 function ReactiveValue:SilentSet(newValue: any)
 	self.Value = newValue
 end
 
--- // Subscribe to value changes. Returns cleaner function.
+-- // Returns a function that unsubscribes
 function ReactiveValue:Subscribe(callback: (newValue: any)->()): ()->()
 	table.insert(self.Listeners, callback)
 	return function()

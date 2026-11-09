@@ -2,24 +2,22 @@
 	PedestalController
 
 	Description:
-	Displays a player's avatar on every pedestal in the world and plays the player's equipped emote on it.
+	Displays a player's avatar on every pedestal and plays the player's equipped emote on it.
 
-	A pedestal is any BasePart or Model tagged "PlayerPedestal". Its `UserId` attribute (number) says whose avatar
-	to show. The avatar is a standalone clone of that player's client-rendered character (see
-	CharacterRenderController.getFreshCharacterModelForUserId), stood on the top surface of the pedestal, facing the
-	pedestal's front (-Z, the way its LookVector points). The animation comes from the player's equipped "WinningEmote"
-	cosmetic, which the server (PedestalService) publishes on the pedestal as its EMOTE_ATTRIBUTE ("EmoteAnimationId");
-	this controller plays whatever that attribute says and follows later changes of it.
+	A pedestal is any BasePart or Model tagged "PlayerPedestal". Its `UserId` attribute (number) says whose avatar to
+	show. The avatar is a standalone clone of that player's client-rendered character (see
+	CharacterRenderController.getFreshCharacterModelForUserId), placed on the pedestal's top surface facing its front
+	(-Z, its LookVector). The animation comes from the player's "WinningEmote" cosmetic, which the server (PedestalService)
+	publishes on the pedestal as EMOTE_ATTRIBUTE ("EmoteAnimationId"); changes to it are followed.
 
-	The cosmetic's value may be an Animation, an animation asset id (digits, as a string or number) or a "rbxassetid://"
-	string. If it can't be retrieved or understood, WinningEmoteLibrary's default animation plays instead.
+	The value may be an Animation, an animation asset id (digits, as a string or number) or a "rbxassetid://" string.
+	If it can't be retrieved or understood, WinningEmoteLibrary's default animation plays.
 
-	Pedestals are detected as they stream in (and out), and the avatar is rebuilt when `UserId` is added or changed.
+	Pedestals are detected as they stream in and out; the avatar is rebuilt when `UserId` is added or changed.
 
-	The server (PedestalService) creates each pedestal's label, a BillboardGui named LABEL_NAME. This controller
-	adorns it to the pedestal itself (so it stays still while the avatar animates) and offsets it up to just above the
-	top of the avatar as measured when the avatar was placed, plus a margin for animations that reach higher.
-	It hides the label while the pedestal has no avatar.
+	PedestalService creates each pedestal's label (a BillboardGui named LABEL_NAME). It is adorned to the pedestal (so it
+	stays still while the avatar animates) and offset to just above the avatar's top as measured at placement, plus a
+	margin for animations that reach higher. It is hidden while the pedestal has no avatar.
 ]]
 
 local PedestalController = {}
@@ -35,9 +33,9 @@ local WinningEmoteLibrary = require(ReplicatedStorage.Shared.Library.WinningEmot
 -------------------------------------------------------------------------------
 
 type PedestalState = {
-	Request: number, -- // Bumped on every refresh/release; an async build that finds a newer number discards itself
+	Request: number, -- // Bumped on every refresh/release; an async build finding a newer number discards itself
 	Model: Model?,
-	AvatarTopY: number?, -- // World Y of the top of the avatar when it was placed (before animating)
+	AvatarTopY: number?, -- // World Y of the avatar's top when placed (before animating)
 	Track: AnimationTrack?,
 	AttributeConnection: RBXScriptConnection?,
 	EmoteConnection: RBXScriptConnection?,
@@ -53,7 +51,7 @@ local USER_ID_ATTRIBUTE = "UserId"
 local EMOTE_ATTRIBUTE = "EmoteAnimationId"
 local ASSET_ID_PREFIX = "rbxassetid://"
 local LABEL_NAME = "PedestalLabel"
-local LABEL_PADDING = 2.25 -- // Studs between the top of the avatar (at rest) and the bottom of the label; room for raised arms
+local LABEL_PADDING = 2.25 -- // Studs between the avatar's top (at rest) and the label's bottom; room for raised arms
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
@@ -87,7 +85,7 @@ local function toAnimation(value: any): Animation?
 	return animation
 end
 
--- // A part of the pedestal that doesn't move: the pedestal itself, or a part of it that isn't the avatar
+-- // A static part of the pedestal: the pedestal itself, or a part that isn't the avatar
 local function getLabelAdornee(pedestal: Instance, avatar: Model): BasePart?
 	if pedestal:IsA("BasePart") then
 		return pedestal
@@ -103,8 +101,8 @@ local function getLabelAdornee(pedestal: Instance, avatar: Model): BasePart?
 	return nil
 end
 
--- // Shows the pedestal's label above the avatar, or hides it when there is no avatar. The label is adorned to the
---   pedestal (static) and offset upward, so it doesn't follow the animation.
+-- // Shows the label above the avatar, or hides it when there is no avatar. It is adorned to the static pedestal and
+--   offset upward, so it doesn't follow the animation.
 local function updateLabel(pedestal: Instance, state: PedestalState)
 	local label = pedestal:FindFirstChild(LABEL_NAME)
 	if not label or not label:IsA("BillboardGui") then
@@ -143,7 +141,7 @@ local function clearAvatar(pedestal: Instance, state: PedestalState)
 	updateLabel(pedestal, state)
 end
 
--- // Plays the pedestal's emote animation on the model; the default emote if the attribute is missing or unusable
+-- // Plays the pedestal's emote on the model; the default emote if the attribute is missing or unusable
 local function playEmote(pedestal: Instance, state: PedestalState, model: Model)
 	stopAnimation(state)
 
@@ -179,7 +177,7 @@ local function playEmote(pedestal: Instance, state: PedestalState, model: Model)
 	state.Track = track
 end
 
--- // The center of the pedestal's top surface; its up vector is the pedestal's, its front the pedestal's front
+-- // Center of the pedestal's top surface; up and front match the pedestal's
 local function getTopCFrame(pedestal: Instance): CFrame?
 	if pedestal:IsA("Model") then
 		local boxCFrame, boxSize = pedestal:GetBoundingBox()
@@ -190,7 +188,7 @@ local function getTopCFrame(pedestal: Instance): CFrame?
 	return nil
 end
 
--- // Makes the clone purely visual and stands it on the pedestal. Returns the world Y of the top of the model at rest,
+-- // Makes the clone purely visual and stands it on the pedestal. Returns the world Y of the model's top at rest,
 --   or nil if it can't be placed.
 local function placeModel(pedestal: Instance, model: Model): number?
 	local topCFrame = getTopCFrame(pedestal)
@@ -273,7 +271,7 @@ local function onPedestalAdded(pedestal: Instance)
 	state.AttributeConnection = pedestal:GetAttributeChangedSignal(USER_ID_ATTRIBUTE):Connect(function()
 		refresh(pedestal)
 	end)
-	-- // The server changes the emote when the displayed player equips another one
+	-- // The server changes the emote when the displayed player equips another
 	state.EmoteConnection = pedestal:GetAttributeChangedSignal(EMOTE_ATTRIBUTE):Connect(function()
 		if state.Model then
 			playEmote(pedestal, state, state.Model)

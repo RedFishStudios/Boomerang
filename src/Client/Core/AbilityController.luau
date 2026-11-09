@@ -27,7 +27,7 @@ local AbilityLogicModules = {}
 -------------------------------------------------------------------------------
 
 local abilityUsed = SimpleRemotes.getEvent("AbilityUsed")
-local abilityReplication = SimpleRemotes.getEvent("AbilityReplication") -- // Reliable: another player's ability use is never lost
+local abilityReplication = SimpleRemotes.getEvent("AbilityReplication") -- // Reliable, so no ability use is lost
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -88,9 +88,8 @@ end
 -- CORE FUNCTIONS
 -------------------------------------------------------------------------------
 
--- // The jump/dash input (Space, mobile jump/dash button): jumps in the lobby, dashes in the arena.
--- // In the arena the dash is started by the replicated jump input inside the simulation (Dash), which Space and the
--- // gamepad already press; the on-screen buttons press it through Dash.pressInput.
+-- // Jump/dash input: jumps in the lobby, dashes in the arena.
+-- // In the arena, Space and gamepad already press the replicated jump input; on-screen buttons use Dash.pressInput.
 function AbilityController.useMovementInput()
    if LobbyController.isInLobby() then
       local character = localPlayer.Character
@@ -107,7 +106,7 @@ function AbilityController.useMovementInput()
 end
 
 function AbilityController.init()
-   -- // Dash runs inside the simulation from the jump input, so it must be loaded before it's first used
+   -- // Dash runs inside the simulation, so load it before first use
    task.spawn(getLogic, "Dash")
 
    UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessed: boolean)
@@ -115,7 +114,7 @@ function AbilityController.init()
 			return
 		end
 
-      -- // Space in the arena presses the jump input itself (the dash); only the lobby needs it handled here
+      -- // In the arena Space presses the jump input itself; only the lobby needs handling here
       if input.KeyCode == Enum.KeyCode.Space and LobbyController.isInLobby() then
          AbilityController.useMovementInput()
 		end

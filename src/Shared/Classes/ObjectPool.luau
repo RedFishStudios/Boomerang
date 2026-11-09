@@ -88,7 +88,6 @@ function ObjectPool.Draw<T>(self: ObjectPool<T>, parent: Instance?, beforeParent
 		object.Parent = parent
 	end
 
-	-- Handle connection
 	local oldConnection = self._connections[index]
 	if oldConnection then
 		oldConnection:Disconnect()

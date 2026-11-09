@@ -50,25 +50,24 @@ end
 -------------------------------------------------------------------------------
 
 local STAB_COOLDOWN = .5
-local SERVER_COOLDOWN_GRACE = .1 -- // The server accepts a swing this much before its cooldown ends (the player's game may have ended it a moment sooner)
-local SWING_STALE_SECONDS = 1 -- // Clients: another player's swing heard about later than this isn't shown at all (e.g. after the game was in the background)
-local SWEEP_MAX_SKIP_FRACTION = .5 -- // Clients: a late swing's sweep skips ahead at most this much of itself, so it always shows
+local SERVER_COOLDOWN_GRACE = .1 -- // The server accepts a swing this long before its cooldown ends (the player's game may have ended it sooner)
+local SWING_STALE_SECONDS = 1 -- // Clients: another player's swing heard about later than this isn't shown (e.g. after backgrounding)
+local SWEEP_MAX_SKIP_FRACTION = .5 -- // Clients: a late swing's sweep skips ahead at most this fraction of itself
 
--- // The swing is ONE check, at the moment the blade lands (IMPACT_DELAY after the click), of a wedge in front of the player:
--- // anyone whose Hitbox (a 10-stud-tall cylinder) reaches into it, with no wall in between, is hit. It is checked against where everyone
--- // is now AND where the swinging player saw them (LagCompensationLibrary rewind: their ping plus the interpolation delay), so a swing
--- // that looked like a hit on their screen counts. The client sends where it was facing; where the player is comes only from the server
--- // (server authority: the server's character is the truth, and the player's own game predicts the same position).
+-- // The swing is ONE check at the blade's impact (IMPACT_DELAY after the click) of a wedge in front of the player:
+-- // anyone whose Hitbox (10-stud-tall cylinder) reaches into it with no wall between is hit. Checked against everyone
+-- // now AND where the swinger saw them (LagCompensationLibrary rewind: ping plus interpolation delay). The client
+-- // sends its facing; position comes only from the server.
 local IMPACT_DELAY = .08 -- // Seconds from the click to the hit check (the blade landing in the animation)
 local SWING_DURATION = .2 -- // Seconds a swing lasts on clients
 local SWING_RANGE = 3 -- // Studs from the swinging player's centre to the edge of a target's Hitbox
 local SWING_HALF_ANGLE = math.rad(55) -- // Half the wedge's width: 55 degrees to each side of where they face (110 total)
-local SWING_HALF_HEIGHT = 2.5 -- // The wedge's half height around the swinging player's centre (a target's Hitbox adds its own)
-local SWING_MAX_DIRECTION_DEVIATION = math.rad(120) -- // The most the client's reported facing may turn from the server's last known one
--- // Server authority: no client clock is trusted. When a player clicked is estimated by the server: the click's arrival less half their
--- // ping (the trip from them to the server), and the impact and parries are timed from that.
+local SWING_HALF_HEIGHT = 2.5 -- // Wedge half height around the swinger's centre (a target's Hitbox adds its own)
+local SWING_MAX_DIRECTION_DEVIATION = math.rad(120) -- // Max the client's reported facing may turn from the server's last known one
+-- // No client clock is trusted: the server estimates the click time as its arrival less half the ping; impact and
+-- // parries are timed from that.
 local SWING_MAX_ONE_WAY_LATENCY = .3 -- // The most the server takes off a click's arrival time (half the ping, capped)
-local PARRY_WINDOW = .2 -- // Two swings clicked this close together (server-estimated) clash: a parry, if they face each other
+local PARRY_WINDOW = .2 -- // Two swings clicked this close together (server-estimated) clash as a parry if they face each other
 local STAB_KILL_DAMAGE = 100000
 local PARRY_DISTANCE = 6 -- // Centre to centre; beyond any reach of a swing (SWING_RANGE plus a Hitbox radius)
 
@@ -78,24 +77,24 @@ local PARRY_STAGGER_TOTAL_DURATION = .3
 local PARRY_STAGGER_MIN_DIRECTION_DISTANCE = .05
 local PARRY_FACING_DOT_THRESHOLD = .4
 
--- // The swing's look. Every swing (yours at the click, others' when the server tells this client) shows the SlashAbility
--- // crescent (Shared/Assets/Particles/SlashAbility: one part, attachments "1" and "2" at its tips carrying the trails) sweeping
--- // forward in front of the player and fading out. Purely visual: the kill effect (Slash particle) is only ever played by the server.
+-- // The swing's look: every swing shows the SlashAbility crescent (Shared/Assets/Particles/SlashAbility: one part,
+-- // attachments "1" and "2" at its tips carrying the trails) sweeping forward and fading. Visual only; the kill effect
+-- // (Slash particle) is played only by the server.
 local SWEEP_ASSET_NAME = "SlashAbility"
 local SWEEP_DURATION = .2 -- // Seconds the crescent sweeps and fades
-local SWEEP_DELAY = .08 -- // Seconds after the click before the crescent appears (in step with the swing animation)
+local SWEEP_DELAY = .08 -- // Seconds after the click before the crescent appears (in step with the animation)
 local SWEEP_SCALE = 0.616 -- // Size relative to the asset
-local SWEEP_START_DISTANCE = 0.5 -- // Studs in front of the player's centre the crescent's centre starts
+local SWEEP_START_DISTANCE = 0.5 -- // Studs in front of the player's centre where the crescent's centre starts
 local SWEEP_END_DISTANCE = 1.5 -- // ...and ends (its front edge then reaches about as far as a swing hits)
-local SWEEP_HEIGHT_ABOVE_HAND = 2.7 -- // Studs above where the weapon is held in the player's hand when the swing starts. The slash
--- // animation raises the hand about 1.7 studs during the sweep (BoomerangSlash_R15), so this keeps the crescent 1 stud above it
+local SWEEP_HEIGHT_ABOVE_HAND = 2.7 -- // Studs above the held weapon at swing start; the slash animation raises the hand ~1.7 studs (BoomerangSlash_R15), so this keeps the crescent 1 stud above it
 local SWEEP_HEIGHT_OFFSET = 0 -- // Studs above the player's centre, if the held weapon can't be found
 local SWEEP_START_TRANSPARENCY = .2
 
--- // A slash also knocks away an enemy's weapon in flight (outgoing or returning; never a dying/dead one, nor your own): a clash
--- // (same energy cost and Deflected snapshot as two weapons colliding), straight away from the slasher. The weapon is caught if its path
--- // through the wedge comes within its own HitboxRadius. Clients run thrown weapons ahead to the server's present, so no rewind is
--- // needed; a click that arrived after its impact moment checks the weapon's path back to where it was at that moment.
+-- // A slash also knocks away an enemy's weapon in flight (outgoing or returning; not dying/dead or your own) as a
+-- // clash (same energy cost and Deflected snapshot as two weapons colliding), straight away from the slasher. Caught
+-- // if its path through the wedge comes within its HitboxRadius. Clients run thrown weapons ahead to the server's
+-- // present, so no rewind; a click that arrived after its impact moment checks the path back to where the weapon was
+-- // then.
 local DEFLECT_PATH_STEP = .5 -- // Studs between the points tested along a weapon's path
 local DEFLECT_MAX_PATH_POINTS = 24
 local DEFLECT_MARKER_SIZE = 1.5 -- // viewhitbox: the ball marking where a weapon was knocked away
@@ -103,7 +102,7 @@ local DEFLECT_MARKER_SIZE = 1.5 -- // viewhitbox: the ball marking where a weapo
 local swingVisualizerEnabled = GlobalConfig.ParryVisualizersEnabled -- // Server: draw each swing's hit wedge; Cmdr `viewhitbox` changes it live
 
 local SWING_VISUALIZER_COLOR = Color3.new(0.164706, 0.960784, 0.007843)
-local SWING_VISUALIZER_LIFETIME = .15 -- // Seconds the wedge takes to fade out: a flash marking the instant the swing was checked
+local SWING_VISUALIZER_LIFETIME = .15 -- // Seconds the wedge takes to fade: a flash marking the instant of the check
 local SWING_VISUALIZER_ARC_SEGMENTS = 10
 
 local Cooldowns: {[Player]: number} = {}
@@ -300,8 +299,8 @@ local function hasLineOfSight(origin: Vector3, targetPosition: Vector3, targetRa
    return RaycastsUtility.raycastProjectileObstruction(origin, reach.Unit, reach.Magnitude, raycastParams) == nil
 end
 
--- // Server: the facing the client reported with the swing, checked against the server's own view (falls back to it if missing or
--- // implausible). Where the player is and when they clicked are never taken from the client.
+-- // Server: the facing the client reported, checked against the server's own view (falls back to it if missing or
+-- // implausible). Position and click time never come from the client.
 local function readSwingParams(player: Player, rootPart: BasePart, params: any): Vector3
    local serverDirection = getLookDirection(player, rootPart)
    local direction = serverDirection
@@ -339,10 +338,11 @@ local function disconnect(player: Player)
    SwingClickTimes[player] = nil
 end
 
--- // Client: the SlashAbility crescent sweeping out in front of `player`, facing where they swung. `elapsed` skips ahead when the
--- // swing was heard about late (another player's swing), so it ends when it would have.
+-- // Client: the SlashAbility crescent sweeping in front of `player`, facing where they swung. `elapsed` skips ahead
+-- // when the swing was heard late, so it ends when it would have.
 local sweepTemplate: BasePart? = nil
--- // `direction` and `heightOffset` are taken when the swing starts (the click), even though the crescent appears SWEEP_DELAY later.
+-- // `direction` and `heightOffset` are taken at swing start (the click), though the crescent appears SWEEP_DELAY
+-- // later.
 local function playSwingSweep(player: Player, elapsed: number, direction: Vector3, heightOffset: number)
    if isServer or elapsed >= SWEEP_DURATION then
       return
@@ -365,7 +365,7 @@ local function playSwingSweep(player: Player, elapsed: number, direction: Vector
    local sweep = (sweepTemplate :: BasePart):Clone()
    for _, descendant in ipairs(sweep:GetDescendants()) do
       if descendant:IsA("BodyMover") or descendant:IsA("Constraint") then
-         descendant:Destroy() -- // Moved by this code, not by physics
+         descendant:Destroy() -- // Moved by this code, not physics
       elseif descendant:IsA("Attachment") then
          descendant.Position *= SWEEP_SCALE -- // Attachments don't scale with the part: keep the trails on the tips
       end
@@ -578,8 +578,8 @@ function Stab.onPickup(userId: number, timestamp: number)
       return
    end
 
-   -- // Every swing is shown, even one heard about late (another player's, sent over the reliable AbilityReplication event): the
-   -- // animation and sound play now, and the sweep skips ahead a little so it ends about when it would have
+   -- // Every swing is shown, even one heard about late (another player's, over the reliable AbilityReplication event):
+   -- // animation and sound play now, the sweep skips ahead so it ends when it would have
    local lateness = math.max(0, workspace:GetServerTimeNow() - timestamp)
    if lateness > SWING_STALE_SECONDS then
       return
@@ -595,8 +595,8 @@ function Stab.onPickup(userId: number, timestamp: number)
       AnimationController.playCoreAnimation(player, "Stab")
    end
 
-   -- // The crescent: facing where they swung (it doesn't turn with them), at the height of the weapon in their hand plus a little
-   -- // (kept relative to them while they move), both taken now; it appears SWEEP_DELAY after the click
+   -- // The crescent faces where they swung (doesn't turn with them), at the held weapon's height plus a little (kept
+   -- // relative to them while they move), both taken now; it appears SWEEP_DELAY after the click
    local sweepDirection = getLookDirection(player, rootPart)
    local sweepHeightOffset = SWEEP_HEIGHT_OFFSET
    local heldWeaponPosition = ToolController and ToolController.getToolPivotPosition(player)
@@ -679,8 +679,8 @@ function Stab.canActivate(player: Player): boolean
       return false
    end
 
-   -- // The server forgives a swing that arrives just before its cooldown ends (SERVER_COOLDOWN_GRACE), so a swing the player's game
-   -- // allowed isn't thrown away over a tiny timing difference. The player's own game stays strict.
+   -- // The server forgives a swing arriving just before its cooldown ends (SERVER_COOLDOWN_GRACE), so a swing the
+   -- // player's game allowed isn't dropped over timing differences. The player's own game stays strict.
    local cooldown = Cooldowns[player]
    local grace = if isServer then SERVER_COOLDOWN_GRACE else 0
    if cooldown and os.clock() < cooldown - grace then
@@ -708,8 +708,8 @@ function Stab.getParams()
    }
 end
 
--- // Server: the first point along a weapon's path (from -> to) where it reaches into the swing's wedge, or nil. Height is ignored
--- // (weapons fly at a fixed height); the wall check is made from the slasher at their own height.
+-- // Server: first point along a weapon's path (from -> to) where it reaches into the wedge, or nil. Height is ignored
+-- // (weapons fly at a fixed height); the wall check is from the slasher at their own height.
 local function getWeaponContact(origin: Vector3, direction: Vector3, from: Vector3, to: Vector3, radius: number, raycastParams: RaycastParams): Vector3?
    local path = Vector3.new(to.X - from.X, 0, to.Z - from.Z)
    local points = math.clamp(math.ceil(path.Magnitude / DEFLECT_PATH_STEP), 1, DEFLECT_MAX_PATH_POINTS)
@@ -765,9 +765,10 @@ local function deflectWeapons(player: Player, origin: Vector3, direction: Vector
    end
 end
 
--- // Server: a swing clicked at `clickTime` reached `victimPlayer`. If the victim also swung within PARRY_WINDOW of it, and they are close
--- // and facing each other, it's a parry; otherwise the victim is hit. A victim who could still have swung in time (close and facing, but
--- // their click not here yet because of their ping) is waited for, until their latest possible click would have arrived.
+-- // Server: a swing clicked at `clickTime` reached `victimPlayer`. If the victim also swung within PARRY_WINDOW and
+-- // they are close and facing each other, it's a parry; otherwise the victim is hit. A victim who could still have
+-- // swung in time (click not yet here because of ping) is waited for until their latest possible click would have
+-- // arrived.
 local function settleHit(player: Player, character: Model, victimPlayer: Player, clickTime: number)
    local victimCharacter = victimPlayer.Character
    local deadline = clickTime + PARRY_WINDOW + getOneWayLatency(victimPlayer)
@@ -889,8 +890,9 @@ local function resolveSwing(player: Player, character: Model, direction: Vector3
    end
 
    for _, model in ipairs(hitBots) do
-      -- // Only a bot whose owner is an enemy (another team, or the same team with friendly fire on). The owner's own bot is left to
-      -- // the bot's rules (a decoy: GlobalConfig.CanHitSelfDecoy). BotService pops it (despawn, with its vanish effect).
+      -- // Only a bot whose owner is an enemy (another team, or same team with friendly fire on). The owner's own bot
+      -- // follows the bot's rules (a decoy: GlobalConfig.CanHitSelfDecoy). BotService pops it (despawn, with vanish
+      -- // effect).
       local ownerUserId = model:GetAttribute("OwnerUserId")
       local owner = if typeof(ownerUserId) == "number" then Players:GetPlayerByUserId(ownerUserId) else nil
       if owner and owner ~= player and not GameTeamLibrary.areEnemies(player, owner) then
@@ -913,7 +915,8 @@ function Stab.activate(player: Player, _activatedAt: number?, params: any)
       return
    end
 
-   -- // From the end of the previous cooldown if this swing was let in a little early (the grace never adds up to faster swinging)
+   -- // From the end of the previous cooldown if this swing was let in early (the grace never adds up to faster
+   -- // swinging)
    Cooldowns[player] = math.max(os.clock(), Cooldowns[player] or 0) + STAB_COOLDOWN
    stabCount[player] = (stabCount[player] or 0) + 1
 

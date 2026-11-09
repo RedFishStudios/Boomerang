@@ -1,9 +1,6 @@
 --[[
   - Manages the game lobby
 
-  TODO:
-  - What other stuff does a lobby have? score boards, donation boards, etc...
-
   Author:
   @Soulsplosion
 ]]

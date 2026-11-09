@@ -4,13 +4,13 @@
 	Description:
 	The Settings menu (opened from the lobby's Settings button). One row per setting in SettingConstants.SettingOrder:
 	a toggle button or a slider. Changes go through SettingsController (applied at once, saved by the server).
-	Built in code with a placeholder look (borrowed frame art) until the settings art exists.
+	Built in code with a placeholder look (borrowed frame art).
 ]]
 
 local SettingsGui = {}
 SettingsGui.Type = "HUD"
 SettingsGui.Open = false
-SettingsGui.RequiresMouse = true -- // Clickable menu: frees the mouse in the locked camera (MouseUnlockController)
+SettingsGui.RequiresMouse = true -- // Frees the mouse in a locked camera (MouseUnlockController)
 
 -------------------------------------------------------------------------------
 -- SERVICES / MODULES
@@ -36,11 +36,11 @@ local UIUtil = require(ReplicatedStorage.Client.UI.UIUtil)
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
--- // Look: listing card art behind rows; borrowed shop art (wide button) for toggles and the slider track. All grayscale,
--- // tinted with ImageColor3
+-- // Look: listing card art behind rows; shop wide-button art for toggles and the slider track. All grayscale, tinted
+-- // with ImageColor3
 local TEXT_COLOR = Color3.fromRGB(92, 52, 20)
-local OUTLINE_COLOR = Color3.fromRGB(45, 28, 12) -- // Same as the shop's text outline
-local ROW_COLOR = GuiColors.CommonItemFrame -- // Same tan as owned listings in the Shop and Inventory
+local OUTLINE_COLOR = Color3.fromRGB(45, 28, 12) -- // The shop's text outline color
+local ROW_COLOR = GuiColors.CommonItemFrame -- // Tan of owned listings in the Shop and Inventory
 local TOGGLE_ON_COLOR = Color3.fromRGB(150, 255, 90) -- // The shop's currency button tint
 local TOGGLE_OFF_COLOR = Color3.fromRGB(150, 150, 150) -- // The shop's "owned" button tint
 local TRACK_COLOR = Color3.fromRGB(120, 85, 50)
@@ -50,14 +50,14 @@ local FONT = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWeig
 local CONTAINER_IMAGE = "rbxassetid://107079429198573" -- // Borrowed from the Stats menu (placeholder)
 local EXIT_IMAGE = "rbxassetid://83841981001141"
 local CONTAINER_ASPECT_RATIO = 1.46190941
-local ROW_ASPECT_RATIO = 11 -- // Row width / height (rows span the list's width)
+local ROW_ASPECT_RATIO = 11 -- // Row width / height (rows span the list width)
 local HEADER_ASPECT_RATIO = 20 -- // Section header width / height
--- // Every label in a group shares one text size: the largest at which all of the group's texts fit their labels,
--- // but no bigger than this fraction of the row height (so short words don't come out huge)
+-- // A group's labels share one text size: the largest at which all texts fit, capped at this fraction of the row
+-- // height
 local ROW_TEXT_MAX_HEIGHT_FRACTION = 0.42
 local HEADER_TEXT_MAX_HEIGHT_FRACTION = 0.8
-local TEXT_FONT = Enum.Font.FredokaOne -- // Same font as FONT, for measuring with TextService
-local LIST_PADDING_PIXELS = 6 -- // Gap between rows in the list
+local TEXT_FONT = Enum.Font.FredokaOne -- // Same font as FONT, for TextService measuring
+local LIST_PADDING_PIXELS = 6 -- // Gap between list rows
 local SCROLLBAR_THICKNESS = 6
 
 local CONTAINER_TWEEN_INFO_IN = TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
@@ -94,7 +94,7 @@ local rowUpdaters: { [string]: RowUpdater } = {}
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
 
--- // TextLabel with the menu's shared text look; [properties] override the defaults
+-- // TextLabel with the menu's shared text look; [properties] override defaults
 local function createLabel(properties: { [string]: any }, children: { Instance }?)
 	local merged = {
 		BackgroundTransparency = 1,
@@ -368,7 +368,7 @@ local function updateTextSizes()
 	applySharedTextSize(headerTextLabels, headerHeight * HEADER_TEXT_MAX_HEIGHT_FRACTION)
 end
 
--- // After a resize the labels' AbsoluteSize updates once the frame is laid out: measure after that
+-- // Labels' AbsoluteSize updates after the frame is laid out; measure after that
 local function queueTextSizes()
 	if textSizeQueued then
 		return
@@ -381,7 +381,7 @@ local function queueTextSizes()
 	end)
 end
 
--- // Rows have pixel heights (a scrolling list can't size them by scale): kept in proportion to the list's width
+-- // Rows use pixel heights (a scrolling list can't size by scale), kept proportional to the list width
 local function resizeList()
 	local width = List.AbsoluteSize.X - SCROLLBAR_THICKNESS * 2
 	for _, header in headers do
@@ -400,7 +400,7 @@ local function refreshAll()
 end
 
 local function createGui(): ScreenGui
-	-- // The parchment inside the brick border of the (borrowed) frame image, as in the Stats and Quests menus
+	-- // The parchment inside the brick border of the frame image, as in the Stats and Quests menus
 	List = CreateElement("ScrollingFrame", {
 		Name = "List",
 		Position = UDim2.fromScale(0.118, 0.24),
@@ -501,7 +501,7 @@ function SettingsGui.open()
 	Container.Position = containerOffscreenPosition
 	playContainerTween(CONTAINER_TWEEN_INFO_IN, containerGoalPosition)
 	UIController.supercede("Settings", "GamemodeHud")
-	UIController.closeOtherMenus("Settings") -- // After superceding, so the closing menu doesn't bring the HUD back
+	UIController.closeOtherMenus("Settings") -- // After superceding, so the closing menu doesn't restore the HUD
 end
 
 function SettingsGui.close()
@@ -549,8 +549,8 @@ function SettingsGui.start()
 		end
 	end)
 
-	-- // Closes when the player goes into the arena (the lobby buttons hide then). It can still be opened during a round
-	-- // from its topbar button, so it only closes on the way in, not whenever the arena's players change.
+	-- // Closes only when the player enters the arena, not on every arena player change; it can still be opened during a
+	-- // round from its topbar button.
 	local wasInArena = false
 	GameStateLibrary.getGameStateData().LivingPlayersInArena:Subscribe(function(livingPlayers)
 		local isInArena = table.find(livingPlayers or {}, player) ~= nil

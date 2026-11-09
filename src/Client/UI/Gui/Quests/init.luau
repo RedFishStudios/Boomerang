@@ -2,20 +2,19 @@
 	Quests
 
 	Description:
-	The Quests menu, opened from the Quests button in the left lobby menu (MenuButtons). A vertical scrolling list: each
-	quest pool in order (Daily, then Weekly) gets a header with its name and reset countdown, then one full-width card
-	per quest: what to do, a progress bar, the reward and a Reroll button. The reward itself becomes a green button
-	once the quest is finished: clicking it claims the reward. Reroll swaps that quest (in its place) for a new one.
-	PLACEHOLDER LOOK: there's no quests art yet, so it borrows the Stats menu's frame and exit button and draws
-	everything else as plain frames. The layout is a first draft to decide the real art from.
-	Built entirely in code with CreateElement. Reads the replicated profile through QuestController; claiming asks the
-	server (QuestService), which decides.
+	The Quests menu, opened from the Quests button in the left lobby menu (MenuButtons). A scrolling list: each quest
+	pool in order (Daily, then Weekly) has a header with its name and reset countdown, then one full-width card per
+	quest: task, progress bar, reward and a Reroll button. The reward becomes a green button once the quest is
+	finished; clicking it claims the reward. Reroll replaces that quest in place with a new one.
+	PLACEHOLDER LOOK: borrows the Stats menu's frame and exit button; everything else is plain frames.
+	Built entirely in code with CreateElement. Reads the replicated profile through QuestController; the server
+	(QuestService) decides claims.
 ]]
 
 local QuestsGui = {}
 QuestsGui.Type = "HUD"
 QuestsGui.Open = false
-QuestsGui.RequiresMouse = true -- // Clickable menu: frees the mouse in the locked camera (MouseUnlockController)
+QuestsGui.RequiresMouse = true -- // Frees the mouse in a locked camera (MouseUnlockController)
 
 -------------------------------------------------------------------------------
 -- SERVICES / MODULES
@@ -39,10 +38,10 @@ local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibra
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
--- // Look (placeholders until the quests art exists)
+-- // Look (placeholders)
 local TEXT_COLOR = Color3.fromRGB(92, 52, 20)
-local CARD_COLOR = GuiColors.CommonItemFrame -- // Same tan as owned listings in the Shop and Inventory
-local CARD_DONE_COLOR = Color3.fromRGB(130, 215, 80) -- // Same green as an equipped listing in the Inventory
+local CARD_COLOR = GuiColors.CommonItemFrame -- // Tan of owned listings in the Shop and Inventory
+local CARD_DONE_COLOR = Color3.fromRGB(130, 215, 80) -- // Green of an equipped Inventory listing
 local BAR_BACK_COLOR = Color3.fromRGB(200, 170, 130)
 local BAR_FILL_COLOR = Color3.fromRGB(110, 200, 90)
 local CLAIM_COLOR = Color3.fromRGB(90, 190, 70)
@@ -52,10 +51,10 @@ local FONT = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWeig
 local CONTAINER_IMAGE = "rbxassetid://107079429198573" -- // Borrowed from the Stats menu (placeholder)
 local EXIT_IMAGE = "rbxassetid://83841981001141"
 local CONTAINER_ASPECT_RATIO = 1.46190941
-local CARDS_PER_POOL = 3 -- // Card slots drawn per pool (a pool with more quests shows its first ones)
-local CARD_ASPECT_RATIO = 6.5 -- // Card width / height (cards span the list's width)
+local CARDS_PER_POOL = 3 -- // Card slots per pool (extra quests are not shown)
+local CARD_ASPECT_RATIO = 6.5 -- // Card width / height (cards span the list width)
 local HEADER_ASPECT_RATIO = 13 -- // Pool header width / height
-local LIST_PADDING_PIXELS = 6 -- // Gap between rows in the list
+local LIST_PADDING_PIXELS = 6 -- // Gap between list rows
 local SCROLLBAR_THICKNESS = 6
 
 local CONTAINER_TWEEN_INFO_IN = TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
@@ -75,7 +74,7 @@ type Card = {
 	Description: TextLabel,
 	Fill: Frame,
 	ProgressText: TextLabel,
-	Reward: TextButton, -- // The reward; a green button while it can be claimed
+	Reward: TextButton, -- // Green button while claimable
 	RewardText: TextLabel,
 	RewardIcon: ImageLabel,
 	Reroll: ImageButton,
@@ -102,13 +101,13 @@ local containerGoalPosition: UDim2
 local containerOffscreenPosition: UDim2
 local activeTween: Tween?
 local refreshQueued = false
-local busySlot: string? = nil -- // "<pool>/<index>" while its claim or reroll request is out
+local busySlot: string? = nil -- // "<pool>/<index>" while its claim or reroll request is pending
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
 
--- // TextLabel with the menu's shared text look; [properties] override the defaults
+-- // TextLabel with the menu's shared text look; [properties] override defaults
 local function createLabel(properties: { [string]: any }, children: { Instance }?)
 	local merged = {
 		BackgroundTransparency = 1,
@@ -134,7 +133,7 @@ local function formatTimeLeft(seconds: number): string
 	return `{math.floor(seconds / SECONDS_IN_MINUTE)}m {seconds % SECONDS_IN_MINUTE}s`
 end
 
--- // Sends a claim or reroll request for one quest (one request at a time), then redraws
+-- // Sends a claim or reroll request for a quest (one at a time), then redraws
 local function requestForSlot(poolName: string, slotIndex: number, canRequest: (slot: QuestLibrary.QuestSlot) -> boolean, request: (poolName: string, slotIndex: number) -> boolean)
 	if busySlot then
 		return
@@ -218,7 +217,7 @@ local function createCard(poolName: string, slotIndex: number): Card
 		Text = "",
 	})
 
-	-- // The reward: a plain label until the quest is finished, then a green button that claims it
+	-- // Plain label until the quest is finished, then a green claim button
 	local reward = CreateElement("TextButton", {
 		Name = "Reward",
 		AnchorPoint = Vector2.new(1, 0.5),
@@ -290,7 +289,7 @@ local function createCard(poolName: string, slotIndex: number): Card
 	}
 end
 
--- // A pool's header row and its cards, laid out in the list from `order` (headers and cards share the list's LayoutOrder)
+-- // A pool's header row and cards, laid out in the list from `order` (headers and cards share LayoutOrder)
 local function createSection(poolName: string, order: number): Section
 	local pool = QuestLibrary.getPool(poolName)
 	local cards: { Card } = {}
@@ -327,7 +326,7 @@ local function createSection(poolName: string, order: number): Section
 	return { PoolName = poolName, Header = header, Timer = timer, Cards = cards }
 end
 
--- // Rows have pixel heights (a scrolling list can't size them by scale): kept in proportion to the list's width
+-- // Rows use pixel heights (a scrolling list can't size by scale), kept proportional to the list width
 local function resizeList()
 	local width = List.AbsoluteSize.X - SCROLLBAR_THICKNESS * 2
 	for _, section in sections do
@@ -339,7 +338,7 @@ local function resizeList()
 end
 
 local function createGui(): ScreenGui
-	-- // The parchment inside the brick border of the (borrowed) frame image, as in the Stats menu
+	-- // The parchment inside the brick border of the frame image, as in the Stats menu
 	List = CreateElement("ScrollingFrame", {
 		Name = "List",
 		Position = UDim2.fromScale(0.118, 0.24),
@@ -434,7 +433,7 @@ local function updateCard(card: Card, poolName: string, slotIndex: number, slot:
 	local canClaim = QuestLibrary.isClaimable(slot)
 	card.Art.ImageColor3 = if isComplete then CARD_DONE_COLOR else CARD_COLOR
 
-	-- // Reward: green button only while it can be claimed
+	-- // Reward: green button only while claimable
 	card.Reward.Active = canClaim and not isBusy
 	card.Reward.BackgroundTransparency = if canClaim then 0 else 1
 	card.Reward.AutoButtonColor = canClaim
@@ -447,7 +446,7 @@ local function updateCard(card: Card, poolName: string, slotIndex: number, slot:
 	card.RewardText.TextColor3 = if canClaim then Color3.new(1, 1, 1) else TEXT_COLOR
 	card.RewardText.TextTransparency = if slot.Claimed then CLAIMED_TEXT_TRANSPARENCY else 0
 
-	-- // Reroll: not for a quest whose reward was already claimed
+	-- // Reroll: hidden once the reward is claimed
 	card.Reroll.Visible = QuestLibrary.canReroll(slot)
 	card.Reroll.Active = not isBusy
 	card.Reroll.ImageTransparency = if isBusy then 0.5 else 0
@@ -493,7 +492,7 @@ function QuestsGui.open()
 	Container.Position = containerOffscreenPosition
 	playContainerTween(CONTAINER_TWEEN_INFO_IN, containerGoalPosition)
 	UIController.supercede("Quests", "GamemodeHud")
-	UIController.closeOtherMenus("Quests") -- // After superceding, so the closing menu doesn't bring the HUD back
+	UIController.closeOtherMenus("Quests") -- // After superceding, so the closing menu doesn't restore the HUD
 end
 
 function QuestsGui.close()
@@ -531,7 +530,7 @@ local function _init()
 end
 
 function QuestsGui.start()
-	-- // Many changes arrive together (e.g. new quests): refresh once, on the next resumption cycle
+	-- // Changes arrive together (e.g. new quests): refresh once on the next resumption cycle
 	QuestController.QuestsChangedTasks:Add(function()
 		if not QuestsGui.Open or refreshQueued then
 			return
@@ -543,8 +542,8 @@ function QuestsGui.start()
 		end)
 	end)
 
-	-- // Closes when the player goes into the arena (the lobby buttons hide then). It can still be opened during a round
-	-- // from its topbar button, so it only closes on the way in, not whenever the arena's players change.
+	-- // Closes only when the player enters the arena, not on every arena player change; it can still be opened during a
+	-- // round from its topbar button.
 	local wasInArena = false
 	GameStateLibrary.getGameStateData().LivingPlayersInArena:Subscribe(function(livingPlayers)
 		local isInArena = table.find(livingPlayers or {}, player) ~= nil

@@ -19,7 +19,7 @@ local Template = script:WaitForChild("Template") :: CanvasGroup
 local NOTIFICATION_LIFETIME = 5
 local MAX_VISIBLE_NOTIFICATIONS = 3
 
--- Template authoring values; all runtime sizes derive from these so the width/height ratio is preserved.
+-- Template authoring values; runtime sizes derive from these to preserve the width/height ratio
 local BASE_WIDTH = Template.Size.X.Offset
 local BASE_HEIGHT = Template.Size.Y.Offset
 local BASE_PADDING = 10
@@ -28,7 +28,7 @@ local BASE_VIEWPORT = Vector2.new(1280, 720)
 local MIN_SCALE = 0.6
 local MAX_SCALE = 1.5
 
--- Fraction of size/opacity each notification loses for every position it is pushed back in the stack
+-- Fraction of size/opacity lost per stack position
 local SIZE_LOST_PER_POSITION = 0.1
 local TRANSPARENCY_LOST_PER_POSITION = 0.25
 
@@ -66,7 +66,7 @@ local function getNotificationTransparency(index: number): number
 end
 
 local function getNotificationPosition(index: number): UDim2
-	-- Stacked upwards from the bottom margin, accounting for each lower notification's shrunken height
+	-- Stacks upward from the bottom margin, accounting for each lower notification's scaled height
 	local stackOffset = 0
 	for lowerIndex = 1, index - 1 do
 		stackOffset += BASE_HEIGHT * getPositionScale(lowerIndex) + BASE_PADDING * currentScale
@@ -127,7 +127,7 @@ local function beginDestruction(frame: CanvasGroup)
 	end)
 end
 
--- // The icon is a model render when `modelName` is given (a Shared/Assets/Tools model), otherwise the image
+-- // The icon is a render of `modelName` (a Shared/Assets/Tools model) if given, otherwise the image
 local function acquiredItem(image: (string | number)?, modelName: string?, title: string, subtitle: string)
 	ItemAcquiredGui.open()
 
@@ -199,7 +199,7 @@ function ItemAcquiredGui.acquiredCustomItem(image: (string | number)?, title: st
 	acquiredItem(image, nil, title, subtitle)
 end
 
--- // Shows a render of a model from Shared/Assets/Tools (a skin / weapon the player acquired) instead of an image
+-- // Shows a render of a Shared/Assets/Tools model (acquired skin / weapon) instead of an image
 function ItemAcquiredGui.acquiredModelItem(modelName: string?, title: string, subtitle: string)
 	acquiredItem(nil, modelName, title, subtitle)
 end

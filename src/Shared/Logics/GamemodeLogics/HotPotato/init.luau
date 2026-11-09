@@ -49,7 +49,8 @@ local initialHolderSet = false
 local currentHolder: Player? = nil
 local Particles: {[Player]: Part} = {}
 local Elims: {[Player]: number} = {}
--- // workspace:GetServerTimeNow() timestamp the current bomb explodes at. Shown to the holder as the HotPotato pickup effect timer; nil while no bomb is live
+-- // workspace:GetServerTimeNow() time the current bomb explodes at; shown to the holder as the HotPotato pickup effect
+-- // timer; nil while no bomb is live
 local bombExplodesAt: number? = nil
 local nextHolderElapsed = 0
 local nextHolderRoundId: number? = nil
@@ -218,7 +219,8 @@ function HotPotatoRoundLogic.setup()
          end
       end))
 
-      -- Race condition failsafe: If this runs before anyone loads into the arena (meaning no one was immediately granted the bomb), then grant the bomb to the first player to load in
+      -- Race condition failsafe: if this runs before anyone loads into the arena (no one was immediately granted the
+      -- bomb), grant it to the first player to load in
       table.insert(PerMatchDestroyerFunctions, CurrentGameState.PlayerAddedToArenaTasks:Add(function(player: Player)
          if not currentHolder and not initialHolderSet then
             grantHolderEffect(player)

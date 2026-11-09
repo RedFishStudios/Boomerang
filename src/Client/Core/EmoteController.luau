@@ -2,9 +2,9 @@
 	EmoteController
 
 	Description:
-	Client side of emotes: which emotes the local player owns and has equipped, equip requests, and the
-	"New emote acquired!" popup. Ownership comes from the replicated profile (`OwnedEmotes`); the equipped emote comes
-	from the `WinningEmote` Player attribute that EmoteService sets (EmoteLibrary). Same shape as ChargeUpEffectController.
+	Client side of emotes: owned and equipped emotes, equip requests, and the "New emote acquired!" popup.
+	Ownership comes from the replicated profile (`OwnedEmotes`); the equipped emote comes from the `WinningEmote`
+	Player attribute set by EmoteService (EmoteLibrary).
 ]]
 
 local EmoteController = {}
@@ -32,7 +32,7 @@ type EmoteTask = (emoteId: string) -> ()
 local localPlayer = Players.LocalPlayer
 local equipEmoteRemoteFunction = SimpleRemotes.getFunction("EquipEmote")
 
--- // Emotes known to be owned, so only new ones show the popup
+-- // Known owned emotes, so only new ones show the popup
 local knownOwnedEmotes: { [string]: boolean } = {}
 
 -------------------------------------------------------------------------------
@@ -54,7 +54,7 @@ function EmoteController.getEquippedId(): string
 	return EmoteLibrary.getEquippedId(localPlayer)
 end
 
---- Asks the server to equip an owned emote. Yields; returns whether it worked.
+--- Asks the server to equip an owned emote. Yields; returns whether it succeeded.
 function EmoteController.requestEquip(emoteId: string): boolean
 	return equipEmoteRemoteFunction:InvokeServer(emoteId) == true
 end

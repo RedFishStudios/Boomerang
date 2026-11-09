@@ -1,7 +1,5 @@
 --[==[
-	The previous gamemode HUD: the "Gamemode" banner (Gamemode.rbxmx: header art, gamemode name and timer with gradients,
-	grayscale while dead) sliding in at the top. Replaced by the plain text label in init.luau; kept here, commented out, in
-	case it comes back. To restore it, put this code back in init.luau.
+	Previous banner HUD (Gamemode.rbxmx), kept for reference. Replaced by the text label in init.luau.
 
 local GamemodeHudGui = {}
 GamemodeHudGui.Type = "HUD"

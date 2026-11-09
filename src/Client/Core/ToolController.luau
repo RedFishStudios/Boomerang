@@ -36,7 +36,7 @@ local nextParticlePlayId = 0
 local activeHighlight: Highlight? = nil
 local activeHighlightTween: Tween? = nil
 local activeHighlightColor: Color3? = nil
-local HIGHLIGHT_FADE_IN_SECONDS = 0.25 -- // Highlights always tween into existence
+local HIGHLIGHT_FADE_IN_SECONDS = 0.25 -- // Highlights always tween in
 local HIGHLIGHT_FADE_OUT_SECONDS = 0.1
 
 local ToolAssets = ToolLibrary.getToolAssetsFolder()
@@ -46,7 +46,7 @@ local WeaponsFolder = workspace:WaitForChild("Weapons")
 -- Local functions
 ----------------------------------------------------------------------------------------------------------------------------------
 
--- // Functions to observe changes to the C0 attribute for the purpose of adjusting attachment points during editing
+-- // Observe the C0 attribute to adjust attachment points during editing
 local function disconnectMotorC0Observer(player: Player)
 	local connection = MotorC0ObserverConnections[player]
 	if connection then
@@ -142,8 +142,8 @@ local function syncToolParticles(player: Player, toolModel: Model)
 	end
 end
 
--- // While a Disguise is active the player's real avatar is taken out of the workspace (CharacterRenderController),
---    so the held weapon goes inside it: hidden with the avatar, and back in the hand when the avatar returns.
+-- // While a Disguise is active the real avatar is removed from the workspace (CharacterRenderController), so the held
+--    weapon goes inside it: hidden with the avatar and back in the hand when the avatar returns.
 local function attachToolModelToCharacter(player: Player, character: Model, toolModel: Model)
    --print(`ToolController: Attaching tool model {toolModel.Name} to character {character.Name} for player {player.Name}`)
 	local isDisguised = Disguise.isActive(player)
@@ -380,9 +380,8 @@ end
 -- Public functions
 ----------------------------------------------------------------------------------------------------------------------------------
 
--- // Apply tool to this character
---    > Correctly adjusts to any current aim state
---    > Correctly adjusts to any current tool equipped state, updating out-of-date tools and not touching accurate tools
+-- // Applies the tool to this character, adjusting to the current aim and equipped state (updates out-of-date tools,
+--    leaves accurate ones)
 function ToolController.updateTool(player: Player)
    if ApplyingToolInProcess[player] then
 		PendingToolUpdate[player] = true
@@ -425,8 +424,7 @@ function ToolController.updateTool(player: Player)
 	end
 	syncToolParticles(player, toolModel)
 
-	-- Detach/attach is not driven by aiming state
-	-- While aiming/charging, tools remain attached; detachment occurs only during throw flow
+	-- Not driven by aiming state: tools stay attached while aiming/charging and detach only during the throw flow
 	if DetachedTools[player] and DetachedTools[player] == toolModel and (ThrownWeapons.Data[player] or DeadWeapons.Data[player]) and GameStateLibrary.getGameStateData().CurrentRoundData:Get() ~= nil then
 		DetachedToolCharacters[player] = character
 		finish()
@@ -533,7 +531,7 @@ function ToolController.finishToolThrow(player: Player)
 	end
 end
 
--- // fadeOutSeconds: optional slower fade when the highlight goes away (e.g. a dead boomerang starting a manual recall)
+-- // fadeOutSeconds: optional slower fade-out (e.g. a dead boomerang starting a manual recall)
 function ToolController.applyHighlight(isObstructed: boolean, isDeadOrDying: boolean?, fadeOutSeconds: number?)
 	local outlineColor = if isObstructed
 		then Color3.new(0.976471, 0.247059, 1)
@@ -552,7 +550,7 @@ function ToolController.applyHighlight(isObstructed: boolean, isDeadOrDying: boo
 		return
 	end
 
-	-- // Already fading out: let it finish (this is called every frame; restarting the tween would never complete it)
+	-- // Already fading out: let it finish (called every frame; restarting the tween would never complete it)
 	if (not outlineColor or not myTool) and activeHighlight and activeHighlightColor == nil and activeHighlightTween then
 		return
 	end

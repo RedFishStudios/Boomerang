@@ -5,7 +5,7 @@
 	Owns emotes on the server: granting, buying and equipping them (profile `OwnedEmotes` / `EquippedEmote`).
 	Publishes the equipped emote's animation asset id as the `WinningEmote` Player attribute (CosmeticLibrary), which
 	replicates to every client; the winner pedestal plays it (PedestalController / WinningEmoteLibrary).
-	Same shape as ChargeUpEffectService. Emote data: Shared/Referential/Emotes.
+	Emote data: Shared/Referential/Emotes.
 ]]
 
 local EmoteService = {}

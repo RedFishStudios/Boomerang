@@ -1,6 +1,6 @@
 --[[
-	Roblox group membership, client side. Shows Roblox's join prompt when GroupMembershipService asks for it,
-	and reports a join back so the server can verify it.
+	Roblox group membership, client side. Shows the join prompt when GroupMembershipService asks and
+	reports a join so the server can verify it.
 
 	Author:
 	@Soulsplosion

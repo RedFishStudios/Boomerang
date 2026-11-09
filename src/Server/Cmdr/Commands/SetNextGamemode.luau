@@ -1,5 +1,4 @@
 -- // Cmdr command definition (replicated to clients for autocomplete). Server logic is in SetNextGamemodeServer.
--- // Replaces the old /setnextgamemode chat command.
 return {
 	Name = "setnextgamemode",
 	Aliases = { "nextgamemode" },

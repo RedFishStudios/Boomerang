@@ -2,13 +2,11 @@
 	ItemViewport
 
 	Description:
-	Shows a model in a ViewportFrame, posed and framed so it fits entirely inside a square render.
-	For any GUI that displays items (Inventory, Shop, Daily Claims, Item Acquired notification).
-	- renderTool: a weapon/skin model from Shared/Assets/Tools (the same model the character holds),
-	  posed with its Viewport data in Shared/Constants/Tools.
+	Shows a model in a ViewportFrame, posed and framed to fit a square render.
+	- renderTool: a model from Shared/Assets/Tools, posed by its Viewport data in Shared/Constants/Tools.
 	- renderModel: any model, with an explicit rotation.
-	- setDisplay: fills an ImageLabel's spot with either an image id or a model render (or nothing).
-	Give the ViewportFrame a UIAspectRatioConstraint of 1 so the render stays square.
+	- setDisplay: fills an ImageLabel's spot with an image id or a model render (or nothing).
+	Give the ViewportFrame a UIAspectRatioConstraint of 1 to keep the render square.
 ]]
 
 local ItemViewport = {}
@@ -23,11 +21,11 @@ local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
 -------------------------------------------------------------------------------
 
 local FIELD_OF_VIEW = 30
-local EMOTES_RIG_NAME = "EmotesRig" -- // Model in ReplicatedStorage: the blank character that previews emotes
+local EMOTES_RIG_NAME = "EmotesRig" -- // Model in ReplicatedStorage: blank character used to preview emotes
 local EMOTES_RIG_ROTATION = CFrame.Angles(0, math.pi, 0) -- // Characters face -Z; the camera looks from +Z
-local EMOTES_RIG_ZOOM = 0.85 -- // <1 leaves extra room around the rig for emotes that move outside its standing pose
-local MARGIN = 1.08 -- // Camera distance multiplier: >1 leaves a little space around the model
-local DEFAULT_ROTATION = CFrame.Angles(math.rad(75), 0, 0) -- // Flat models (local Y thin) face the camera, tilted a little
+local EMOTES_RIG_ZOOM = 0.85 -- // <1 leaves room for emotes that move outside the standing pose
+local MARGIN = 1.08 -- // Camera distance multiplier; >1 adds space around the model
+local DEFAULT_ROTATION = CFrame.Angles(math.rad(75), 0, 0) -- // Flat models (thin local Y) face the camera, tilted
 local CORNER_SIGNS = {
 	Vector3.new(-1, -1, -1), Vector3.new(-1, -1, 1), Vector3.new(-1, 1, -1), Vector3.new(-1, 1, 1),
 	Vector3.new(1, -1, -1), Vector3.new(1, -1, 1), Vector3.new(1, 1, -1), Vector3.new(1, 1, 1),
@@ -46,7 +44,7 @@ local function clear(viewport: ViewportFrame)
 	viewport.CurrentCamera = nil
 end
 
--- // Camera looking along -Z, close enough that every corner of every part fits in a square view
+-- // Camera looking along -Z, close enough that every part corner fits in a square view
 local function getFittingCameraCFrame(model: Model, zoom: number): CFrame
 	local corners = {}
 	local minCorner = Vector3.one * math.huge
@@ -79,7 +77,7 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
--- // Replaces the viewport's content with a copy of the model, rotated and framed. Returns the copy.
+-- // Replaces the viewport's content with a rotated, framed copy of the model. Returns the copy.
 function ItemViewport.renderModel(viewport: ViewportFrame, sourceModel: Model, rotation: CFrame?, zoom: number?): Model
 	clear(viewport)
 
@@ -96,7 +94,7 @@ function ItemViewport.renderModel(viewport: ViewportFrame, sourceModel: Model, r
 	return model
 end
 
--- // Shows a model from Shared/Assets/Tools, posed by Tools[modelName].Viewport. Returns the copy, or nil if not found.
+-- // Shows a Shared/Assets/Tools model posed by Tools[modelName].Viewport. Returns the copy, or nil if not found.
 function ItemViewport.renderTool(viewport: ViewportFrame, modelName: string): Model?
 	local asset = ToolLibrary.getToolAssetsFolder():FindFirstChild(modelName)
 	if not (asset and asset:IsA("Model")) then
@@ -115,8 +113,9 @@ function ItemViewport.renderTool(viewport: ViewportFrame, modelName: string): Mo
 	)
 end
 
--- // A ViewportFrame laid out exactly where `placeholder` is (e.g. an ImageLabel in a template), created once and reused.
--- // The caller decides which of the two is visible. Aspect ratio constraints are copied so the render keeps the placeholder's shape.
+-- // A ViewportFrame matching `placeholder`'s layout, created once and reused. The caller decides which of the two is
+-- // visible.
+-- // Aspect ratio constraints are copied to keep the placeholder's shape.
 function ItemViewport.getOrCreate(placeholder: GuiObject): ViewportFrame
 	local viewportName = `{placeholder.Name}Viewport`
 	local existing = placeholder.Parent:FindFirstChild(viewportName)
@@ -144,8 +143,9 @@ function ItemViewport.getOrCreate(placeholder: GuiObject): ViewportFrame
 	return viewport
 end
 
--- // Fills the spot of `placeholder` (an ImageLabel) with a model render if `modelName` is given (a Shared/Assets/Tools model),
--- // otherwise with the image (an asset id or a full image string), otherwise hides both.
+-- // Fills `placeholder`'s spot with a render of `modelName` (a Shared/Assets/Tools model), else with `image` (asset id
+-- // or full
+-- // image string), else hides both.
 function ItemViewport.setDisplay(placeholder: ImageLabel, image: (string | number)?, modelName: string?)
 	if modelName then
 		placeholder.Visible = false
@@ -155,7 +155,7 @@ function ItemViewport.setDisplay(placeholder: ImageLabel, image: (string | numbe
 		return
 	end
 
-	-- // Only look for an existing viewport: none is created when there is no model to show
+	-- // Only looks up an existing viewport; none is created without a model
 	local existing = placeholder.Parent and placeholder.Parent:FindFirstChild(`{placeholder.Name}Viewport`)
 	if existing and existing:IsA("ViewportFrame") then
 		existing.Visible = false
@@ -173,7 +173,7 @@ function ItemViewport.setDisplay(placeholder: ImageLabel, image: (string | numbe
 	placeholder.Visible = true
 end
 
--- // Loads and plays the animation on the model's Animator on a loop
+-- // Loops the animation on the model's Animator
 local function playLooped(model: Model, animationId: string | number)
 	local humanoid = model:FindFirstChildOfClass("Humanoid")
 	local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
@@ -189,11 +189,10 @@ local function playLooped(model: Model, animationId: string | number)
 	track:Play()
 end
 
--- // Shows a copy of the EmotesRig (a blank character, fully visible) playing the animation on a loop. Returns the copy, or nil if
--- // the rig is missing. Animations in a ViewportFrame need the rig inside a WorldModel, and the viewport has to be part of the
--- // game (assigned into the GUI, not parented to nil) before the animation is loaded and played, so the animation starts as soon
--- // as the viewport is in the game, which can be right away or later when the caller parents it. The animation stops when the
--- // viewport's content is replaced or cleared.
+-- // Shows a copy of the EmotesRig looping the animation. Returns the copy, or nil if the rig is missing.
+-- // The rig must be inside a WorldModel, and the viewport must be in the game before the animation loads, so playback
+-- // starts
+-- // once the viewport is parented. Stops when the viewport's content is replaced or cleared.
 function ItemViewport.renderEmote(viewport: ViewportFrame, animationId: string | number): Model?
 	local rig = ReplicatedStorage:FindFirstChild(EMOTES_RIG_NAME) or ReplicatedStorage:WaitForChild(EMOTES_RIG_NAME, 5)
 	if not (rig and rig:IsA("Model")) then
@@ -230,7 +229,7 @@ function ItemViewport.renderEmote(viewport: ViewportFrame, animationId: string |
 				playLooped(model, animationId)
 			end
 		end)
-		-- // The content was replaced or the viewport destroyed before it ever joined the game
+		-- // Content was replaced or the viewport destroyed before joining the game
 		model.Destroying:Once(function()
 			connection:Disconnect()
 		end)
@@ -245,9 +244,10 @@ end
 
 local IMAGE_PLACEHOLDER_NAME = "ImagePlaceholder"
 
--- // For items that aren't a model (charge up effects): fills the viewport with an ImageLabel showing `image` (an asset id), or, while
--- // there is no art yet, a placeholder label showing `glyph`. Pass nothing to remove it (and then render a model as usual).
--- // IMAGE PLACEHOLDER: replace by setting the item's Icon (e.g. ChargeUpEffects.Icon) once its GUI image exists.
+-- // For non-model items (charge up effects): fills the viewport with an ImageLabel of `image` (asset id), or a label
+-- // showing
+-- // `glyph` while there is no art. Pass nothing to remove it.
+-- // IMAGE PLACEHOLDER: set the item's Icon (e.g. ChargeUpEffects.Icon) once its image exists.
 function ItemViewport.setImagePlaceholder(viewport: ViewportFrame, image: number?, glyph: string?, label: string?)
 	local existing = viewport:FindFirstChild(IMAGE_PLACEHOLDER_NAME)
 	if image == nil and glyph == nil then

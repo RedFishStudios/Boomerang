@@ -1,21 +1,20 @@
 --[[
-	Inventory (formerly the Skins menu)
+	Inventory
 
 	Description:
 	The Inventory menu, opened from the Skins button in the left lobby menu (MenuButtons).
-	The tab column on the left (TABS) picks what the listing grid shows. A tab's content comes from the module
-	with the same name in Tabs/ (shape: InventoryTab below); a tab without a module is shown but does nothing yet.
-	Each listing is a button: clicking an owned item selects it and shows it in the Detail panel on the right
-	(the equipped item is selected when the menu opens). The Detail panel shows "Equipped", or an Equip button.
-	The equipped item's listing is green. Models are shown with ItemViewport (Client/UI/ItemViewport).
-	Built from Inventory.rbxmx, InventoryListingTemplate.rbxmx and InventoryTabTemplate.rbxmx.
-	The tabs' ICON image labels are empty placeholders until icon art exists.
+	The tab column (TABS) picks what the listing grid shows. A tab's content comes from the module with the same name
+	in Tabs/ (shape: InventoryTab below); a tab without a module is shown but inert.
+	Clicking an owned item's listing selects it and shows it in the Detail panel, which shows "Equipped" or an Equip
+	button. The equipped item is selected when the menu opens and its listing is green.
+	Models are shown with ItemViewport. Built from Inventory.rbxmx, InventoryListingTemplate.rbxmx and
+	InventoryTabTemplate.rbxmx. Tab ICON image labels stay empty when a tab has no Icon.
 ]]
 
 local InventoryGui = {}
 InventoryGui.Type = "HUD"
 InventoryGui.Open = false
-InventoryGui.RequiresMouse = true -- // Clickable menu: frees the mouse in the locked camera (MouseUnlockController)
+InventoryGui.RequiresMouse = true -- // Frees the mouse in a locked camera (MouseUnlockController)
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -36,7 +35,7 @@ export type InventoryItem = {
 	Rarity: string?, -- // Shown under the name in the Detail panel
 	ModelName: string?, -- // Model in Shared/Assets/Tools shown in the viewports (posed by its Tools entry)
 	IconImage: number?, -- // Instead of a model (charge up effects): GUI image asset id
-	IconGlyph: string?, -- // Instead of a model (charge up effects): placeholder label shown while there is no image yet
+	IconGlyph: string?, -- // Instead of a model (charge up effects): placeholder label while there is no image
 	EmoteAnimationId: string?, -- // Instead of a model (emotes): animation asset id played by the EmotesRig
 	Owned: boolean,
 	Equipped: boolean,
@@ -45,27 +44,27 @@ export type InventoryItem = {
 export type InventoryTab = {
 	Title: string, -- // Title on the plank while the tab is open
 	getItems: () -> { InventoryItem }, -- // In display order
-	equipItem: (itemId: string) -> (), -- // The Equip button was clicked for an owned item (may yield)
-	subscribe: (onChanged: () -> ()) -> (), -- // Called once; onChanged runs whenever the items change
+	equipItem: (itemId: string) -> (), -- // Equip button clicked for an owned item (may yield)
+	subscribe: (onChanged: () -> ()) -> (), -- // Called once; onChanged runs when the items change
 }
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
--- // The tab column, top to bottom. A tab's content is Tabs/<Id>; tabs without a module aren't set up yet.
+-- // The tab column, top to bottom. A tab's content is Tabs/<Id>; tabs without a module are inert.
 -- // Icon: image for the tab's ICON label (tabs without one keep the empty placeholder)
 local TABS = {
-	{ Id = "Skins", Text = "Weapons", Color = Color3.fromRGB(165, 95, 200), Icon = Icons.InventoryButton }, -- // Same boomerang icon as the Inventory HUD button
+	{ Id = "Skins", Text = "Weapons", Color = Color3.fromRGB(165, 95, 200), Icon = Icons.InventoryButton },
 	{ Id = "Emotes", Text = "Emotes", Color = Color3.fromRGB(55, 170, 180) },
-	{ Id = "Arrows", Text = "Charges", Color = Color3.fromRGB(240, 165, 50), Icon = Icons.ChargeUpEffects }, -- // Charge up effects (module id stays "Arrows"); same icon as the Cosmetics Shop's Charge Effects tab
-	{ Id = "Strikes", Text = "Strikes", Color = Color3.fromRGB(215, 70, 70), Icon = Icons.Eliminations }, -- // Elimination cosmetics (was "Effects", then "Eliminations"); same icon as the Stats menu's Eliminations card
+	{ Id = "Arrows", Text = "Charges", Color = Color3.fromRGB(240, 165, 50), Icon = Icons.ChargeUpEffects }, -- // Charge up effects (module id is "Arrows")
+	{ Id = "Strikes", Text = "Strikes", Color = Color3.fromRGB(215, 70, 70), Icon = Icons.Eliminations }, -- // Elimination cosmetics
 }
 local DEFAULT_TAB = "Skins"
-local INACTIVE_TAB_DARKEN = 0.25 -- // How much darker the tabs that aren't open are
+local INACTIVE_TAB_DARKEN = 0.25 -- // Darkening applied to tabs that aren't open
 
--- // Listing colors (the listing frame art, listing.Art, is grayscale and tinted with ImageColor3)
-local COLOR_OWNED = GuiColors.CommonItemFrame -- // Owned items of Common rarity (the only rarity colored so far)
+-- // Listing colors (listing.Art is grayscale, tinted with ImageColor3)
+local COLOR_OWNED = GuiColors.CommonItemFrame -- // Owned Common items (the only rarity colored)
 local COLOR_EQUIPPED = Color3.fromRGB(130, 215, 80)
 local COLOR_SELECTED = Color3.fromRGB(255, 225, 165) -- // Selected but not equipped
 local COLOR_LOCKED = Color3.fromRGB(140, 140, 140)
@@ -108,7 +107,7 @@ local equipRequestPending = false
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
 
--- // Grows the button a little while hovered (through its UIScale, so it works inside layouts)
+-- // Grows the button while hovered (through its UIScale, so it works inside layouts)
 local function setupButtonHover(button: GuiButton)
 	local uiScale = button:FindFirstChildOfClass("UIScale") or Instance.new("UIScale")
 	uiScale.Parent = button
@@ -148,7 +147,8 @@ local function getEquippedItem(): InventoryItem?
 	return nil
 end
 
--- // An item shows as a model render, (charge up effects) as an image / placeholder label, or (emotes) as the EmotesRig playing the emote
+-- // Shows an item as a model render, an image / placeholder label (charge up effects), or the EmotesRig playing the
+-- // emote (emotes)
 local function showItem(viewport: ViewportFrame, item: InventoryItem?)
 	if item and item.ModelName then
 		ItemViewport.setImagePlaceholder(viewport) -- // Removes a leftover placeholder from the previous item
@@ -218,7 +218,7 @@ local function onEquipClicked()
 	equipRequestPending = false
 end
 
--- // Rebuilds the listing grid from the open tab's items (keeps the selection when it still exists)
+-- // Rebuilds the listing grid from the open tab's items (keeps the selection if it still exists)
 local function refreshListings()
 	for _, listing in listings do
 		listing:Destroy()
@@ -227,7 +227,7 @@ local function refreshListings()
 
 	local tab = currentTabId and tabModules[currentTabId]
 	currentItems = if tab then tab.getItems() else {}
-	detailItemId = nil -- // Redraw the Detail model: the item data may have changed
+	detailItemId = nil -- // Forces a Detail model redraw; the item data may have changed
 
 	for order, item in currentItems do
 		local listing = ListingTemplate:Clone()
@@ -289,7 +289,7 @@ local function buildTabs()
 
 		local moduleScript = TabModules:FindFirstChild(tabInfo.Id)
 		if not moduleScript then
-			continue -- // TODO: tab not set up yet
+			continue -- // Tab has no module
 		end
 
 		local tab = require(moduleScript) :: InventoryTab
@@ -329,7 +329,7 @@ function InventoryGui.open()
 	Container.Position = containerOffscreenPosition
 	playContainerTween(CONTAINER_TWEEN_INFO_IN, containerGoalPosition)
 	UIController.supercede("Inventory", "GamemodeHud")
-	UIController.closeOtherMenus("Inventory") -- // After superceding, so the closing menu doesn't bring the HUD back
+	UIController.closeOtherMenus("Inventory") -- // After superceding, so the closing menu doesn't restore the HUD
 end
 
 function InventoryGui.close()

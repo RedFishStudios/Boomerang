@@ -55,8 +55,8 @@ local function drownPlayer(player: Player, character: Model, waterPart: BasePart
       return
    end
 
-   -- // Water kills through shields: TakeDamage is a no-op while the character has a ForceField,
-   -- // so set Health directly and send the death reason ourselves (same as applyDamageToHumanoid)
+   -- // Water kills through shields (TakeDamage is a no-op under a ForceField): set Health directly and send the death
+   -- // reason ourselves (as applyDamageToHumanoid does)
    character:SetAttribute(DROWNED_ATTRIBUTE, true)
    humanoid.Health = 0
    getCombatLibrary().notifyDeathReason(player, nil, DROWN_CAUSE_LABEL)

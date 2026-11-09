@@ -2,9 +2,9 @@
 	ShopListings
 
 	Description:
-	Turns a ShopItems listing ({ Type = "Item" | "Skin" | "ChargeUpEffect", Id }) into what the Shop shows for it. A skin's data comes from
-	Shared/Referential/Skins (through SkinLibrary / SkinController, the same system as the Inventory's Skins tab), an
-	item's from Shared/Referential/Items. Used by every tab, so a tab only has to say which listings it has.
+	Turns a ShopItems listing ({ Type = "Item" | "Skin" | "ChargeUpEffect", Id }) into what the Shop shows for it.
+	A skin's data comes from Shared/Referential/Skins (through SkinLibrary / SkinController), an item's from
+	Shared/Referential/Items. Used by every tab.
 ]]
 
 local ShopListings = {}
@@ -48,9 +48,8 @@ export type ListingDisplay = {
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
 
--- // RARITY INSERTION POINT: the rarity of a listing is the Rarity of its model's entry in Shared/Constants/Tools.
--- // Rarities aren't really in use yet (every tool there is a "Common" placeholder), so every listing is Common until
--- // they are. RarityStyles decides the colors; nothing else in the Shop has to change when real rarities land.
+-- // RARITY INSERTION POINT: a listing's rarity is the Rarity of its model's entry in Shared/Constants/Tools.
+-- // Every tool there is a "Common" placeholder, so every listing is Common. RarityStyles decides the colors.
 local function getRarity(modelName: string?): string
 	local tool = if modelName then Tools[modelName] else nil
 	return (tool and tool.Rarity) or RarityStyles.DEFAULT_RARITY
@@ -60,7 +59,7 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
--- // What a listing shows; nil when it doesn't exist or is off sale
+-- // What a listing shows; nil if it doesn't exist or is off sale
 function ShopListings.getDisplay(listing: { Type: string, Id: string }): ListingDisplay?
 	if listing.Type == "Skin" then
 		local skin = SkinLibrary.getSkin(listing.Id)
@@ -97,7 +96,7 @@ function ShopListings.getDisplay(listing: { Type: string, Id: string }): Listing
 		}
 	end
 
-	-- // A weapon crate (gives a random weapon of its category); can be bought again and again
+	-- // A weapon crate (gives a random weapon of its category); can be bought repeatedly
 	if listing.Type == "Crate" then
 		local crate = CrateLibrary.getCrate(listing.Id)
 		if not crate or crate.OffSale then

@@ -2,11 +2,10 @@
 	LeaderboardController
 
 	Description:
-	Draws the lobby leaderboards on the physical boards in workspace.Lobby.Leaderboards.
-	Each board has one SurfaceGui (in PlayerGui, adorned to the board part): a static background, and one
-	CanvasGroup ("Fader") holding each period's title and entries (Monthly / All-Time). Every
-	LeaderboardConstants.DisplaySwapInterval the Fader fades out, swaps period and fades back in.
-	Entries come from LeaderboardService.
+	Draws the lobby leaderboards on the boards in workspace.Lobby.Leaderboards.
+	Each board has one SurfaceGui (in PlayerGui, adorned to the board part): a static background and one CanvasGroup
+	("Fader") holding each period's title and entries (Monthly / All-Time). Every LeaderboardConstants.DisplaySwapInterval
+	the Fader fades out, swaps period and fades back in. Entries come from LeaderboardService.
 ]]
 
 local LeaderboardController = {}
@@ -22,10 +21,9 @@ local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
--- // Visuals match the Shop GUI: wooden frame, parchment panel, tan cards with brown outlines,
--- // dark brown FredokaOne text, lime-green chips with outlined white text, purple accent
+-- // Visuals match the Shop GUI
 local PIXELS_PER_STUD = 100
-local MAX_DISTANCE = 200 -- // The boards aren't drawn beyond this many studs
+local MAX_DISTANCE = 200 -- // Boards aren't drawn beyond this many studs
 local ROWS_PER_COLUMN = 15
 local HEADER_HEIGHT = 0.16 -- // Fraction of the board height
 local FRAME_COLOR = Color3.fromRGB(110, 60, 30) -- // Wooden frame
@@ -39,7 +37,7 @@ local TEXT_COLOR = Color3.fromRGB(64, 38, 20) -- // Dark brown, as the item name
 local CHIP_STROKE_COLOR = Color3.fromRGB(66, 92, 14)
 local CHIP_GRADIENT = ColorSequence.new(Color3.fromRGB(122, 168, 30), Color3.fromRGB(170, 212, 50)) -- // Price buttons
 local OUTLINED_TEXT_STROKE_COLOR = Color3.fromRGB(40, 24, 12)
-local RANK_COLORS = { -- // Top 3 get outlined coloured text, like "SALE!"
+local RANK_COLORS = { -- // Top 3 get outlined coloured text
 	[1] = Color3.fromRGB(255, 230, 40),
 	[2] = Color3.fromRGB(235, 235, 245),
 	[3] = Color3.fromRGB(240, 150, 70),
@@ -69,7 +67,7 @@ local localPlayer = Players.LocalPlayer
 
 local boardGuis: { [string]: BoardGui } = {}
 local shownPeriodIndex = 1
-local swapCount = 0 -- // Lets a fade that was overtaken by a newer swap stop early
+local swapCount = 0 -- // Lets a fade overtaken by a newer swap stop early
 local nextSwapTime = 0
 
 -------------------------------------------------------------------------------
@@ -146,7 +144,7 @@ local function createRow(entry: LeaderboardConstants.Entry): Frame
 
 	createLabel("PlayerName", entry.DisplayName, UDim2.fromScale(0.46, 0.7), UDim2.fromScale(0.27, 0.15), Enum.TextXAlignment.Left).Parent = row
 
-	-- // Value in a lime-green chip, like the shop's price buttons
+	-- // Value in a lime-green chip
 	local chip = Instance.new("Frame")
 	chip.Name = "ValueChip"
 	chip.BackgroundColor3 = Color3.new(1, 1, 1)
@@ -166,7 +164,7 @@ local function createRow(entry: LeaderboardConstants.Entry): Frame
 	return row
 end
 
--- // Static board background: wooden frame, banner and parchment panel (the same for every period)
+-- // Static board background: wooden frame, banner and parchment panel (same for every period)
 local function createBoardFrame(): Frame
 	local root = Instance.new("Frame")
 	root.Name = "Board"
@@ -199,7 +197,7 @@ local function createBoardFrame(): Frame
 	return root
 end
 
--- // One period's contents (title + entries), laid over the static banner and panel. Lives inside the board's Fader.
+-- // One period's contents (title + entries), over the static banner and panel. Lives inside the board's Fader.
 local function createPeriodGroup(board: { Title: string }, period: string): (Frame, Frame)
 	local group = Instance.new("Frame")
 	group.Name = period
@@ -260,9 +258,8 @@ local function createBoardGui(boardId: string, board: { Title: string, Face: Enu
 
 	createBoardFrame().Parent = gui
 
-	-- // A single CanvasGroup per board, holding only what changes between periods. Fading it out, swapping the
-	-- // period and fading it back in halves CanvasGroup texture memory (was one per period): when that budget runs out, Roblox
-	-- // draws CanvasGroups as plain frames and GroupTransparency stops working (the swap then looks instant).
+	-- // A single CanvasGroup per board, holding only what changes between periods, to limit CanvasGroup texture memory:
+	-- // when that budget runs out, Roblox draws CanvasGroups as plain frames and GroupTransparency stops working.
 	local fader = Instance.new("CanvasGroup")
 	fader.Name = "Fader"
 	fader.Size = UDim2.fromScale(1, 1)
@@ -315,7 +312,7 @@ local function tweenFader(fader: CanvasGroup, transparency: number): Tween
 	return tween
 end
 
--- // Fade each board's contents out, show the next period, then fade back in
+-- // Fades each board's contents out, shows the next period, then fades back in
 local function swapPeriods()
 	local periods = LeaderboardConstants.Periods
 	shownPeriodIndex = shownPeriodIndex % #periods + 1
@@ -329,7 +326,7 @@ local function swapPeriods()
 				fadeOut.Completed:Wait()
 			end
 			if thisSwap ~= swapCount then
-				return -- // A newer swap (e.g. from Cmdr) took over this board's fade
+				return -- // A newer swap (e.g. from Cmdr) took over this fade
 			end
 			for i, period in periods do
 				boardGui.Groups[period].Visible = i == shownPeriodIndex
@@ -339,7 +336,7 @@ local function swapPeriods()
 	end
 end
 
--- // The board parts can stream in and out (StreamingEnabled), so re-adorn whenever one appears
+-- // Board parts can stream in and out (StreamingEnabled), so re-adorn whenever one appears
 local function watchBoardParts()
 	local folder = workspace:WaitForChild("Lobby"):WaitForChild("Leaderboards")
 	local function adorn(child: Instance)
@@ -372,7 +369,7 @@ function LeaderboardController.start()
 		applyData(SimpleRemotes.getFunction("GetLeaderboards"):InvokeServer())
 	end)
 	task.spawn(function()
-		-- // A swap (timed or from Cmdr) pushes nextSwapTime back, so each period always shows for the full interval
+		-- // A swap (timed or from Cmdr) pushes nextSwapTime back, so each period shows for the full interval
 		nextSwapTime = os.clock() + LeaderboardConstants.DisplaySwapInterval
 		while true do
 			local remaining = nextSwapTime - os.clock()

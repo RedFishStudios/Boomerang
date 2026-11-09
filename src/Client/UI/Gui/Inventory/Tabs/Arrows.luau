@@ -2,9 +2,9 @@
 	Arrows tab (Inventory)
 
 	Description:
-	The Arrows tab of the Inventory menu: lists the charge up effects the player owns (Shared/Referential/ChargeUpEffects).
-	Equip equips the selected arrow. Charge up effects have no GUI image yet, so their listings show a placeholder label
-	(ItemViewport.setImagePlaceholder) until an arrow's Icon is set. Follows the InventoryTab shape in Inventory/init.luau.
+	Inventory tab listing the charge up effects the player owns (Shared/Referential/ChargeUpEffects).
+	Equip equips the selected arrow. Listings show a placeholder label (ItemViewport.setImagePlaceholder) until an arrow's
+	Icon is set. Follows the InventoryTab shape in Inventory/init.luau.
 ]]
 
 local ArrowsTab = {}

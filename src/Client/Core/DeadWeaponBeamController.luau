@@ -1,30 +1,29 @@
 --[[
 	DeadWeaponBeamController
 
-	Two beams between the LOCAL player and their OWN boomerang. Only the local client ever sees them: other players' boomerangs
-	never get a beam.
+	Two beams between the LOCAL player and their OWN boomerang, visible only to the local client.
 
-	  1. "Dead" beam (BeamToDeadWeapon): while the boomerang is Dead, resting on the field, waiting for a manual recall. It
-	     is created once, when the boomerang first dies, and destroyed when it is back in the player's hands. In between it is the same
-	     beam: it fades in once the boomerang has landed (GlobalConfig.DeadBeamFadeSeconds), fades out gradually as the recall charges and
-	     is completely invisible exactly when the charge peaks, stays invisible while the boomerang flies back, and fades back in if the
-	     recall is released/cancelled or the boomerang is dead again. It fades out the same way when it goes away for any other reason, if it can still be drawn (if the boomerang or
-	     the player's character is gone it is removed at once).
-	  2. "Returning" beam (BeamToReturningWeapon): from the moment the charged recall starts moving the boomerang until it is
-	     caught. It fades in over GlobalConfig.RecallReturnBeamFadeInSeconds.
+	  1. "Dead" beam (BeamToDeadWeapon): while the boomerang is Dead and waiting for a manual recall. Created once when the
+	     boomerang first dies, destroyed when it is back in the player's hands. It fades in once the boomerang lands
+	     (GlobalConfig.DeadBeamFadeSeconds), fades out as the recall charges (invisible exactly at the charge peak), stays
+	     invisible while the boomerang flies back, and fades back in if the recall is released/cancelled or the boomerang
+	     is dead again. It fades out the same way when removed for other reasons, unless the boomerang or character is gone
+	     (then it is removed at once).
+	  2. "Returning" beam (BeamToReturningWeapon): from when a charged recall starts moving the boomerang until it is
+	     caught. Fades in over GlobalConfig.RecallReturnBeamFadeInSeconds.
 
-	Both are built from scratch here (the `BeamToDeadWeapon` / `BeamToReturningWeapon` instances in the Studio workspace are
-	only visual references and are never used at runtime):
-	  - Attachment0 sits on the local character's `Hitbox` (HitboxService), at offset (0, 0, 0). (PLAYER_ATTACHMENT_OFFSET is in
-	    world-upright terms and converted into the Hitbox's own space, since the Hitbox cylinder is rotated 90 degrees.)
-	  - Attachment1 sits on the boomerang's PrimaryPart (or the first BasePart found in its model), offset (0, 1, 0).
+	Both are built here at runtime; the `BeamToDeadWeapon` / `BeamToReturningWeapon` instances in the Studio workspace are
+	visual references only:
+	  - Attachment0 is on the local character's `Hitbox` (HitboxService) at offset (0, 0, 0). PLAYER_ATTACHMENT_OFFSET is in
+	    world-upright terms, converted to the Hitbox's space because the Hitbox cylinder is rotated 90 degrees.
+	  - Attachment1 is on the boomerang's PrimaryPart (or the first BasePart in its model), offset (0, 1, 0).
 
-	One beam of each kind at a time, by design (a "single source of truth" instead of event-driven create/destroy):
-	  - Every frame `reconcile()` compares what SHOULD exist (derived from DeadWeapons.Data / ThrownWeapons.Data) with what DOES
-	    exist and fixes the difference. Late, duplicated or missing events therefore can't leave a stray beam or a missing one.
-	  - Everything a kind creates is tagged with that kind's own tag. Before building a beam, and whenever it is torn down,
-	    every instance with the kind's tag is destroyed, so even a leaked beam from an earlier (failed) build is swept up.
-	  - Set DEBUG to true to print every create/destroy and to warn if more than one beam of a kind is ever found.
+	One beam of each kind at a time. Every frame `reconcile()` compares what SHOULD exist (from DeadWeapons.Data /
+	ThrownWeapons.Data) with what DOES and fixes the difference, so late, duplicated or missing events can't leave a stray or
+	missing beam.
+	  - Everything a kind creates carries that kind's tag; before building and on teardown every tagged instance is destroyed,
+	    sweeping up leaked beams.
+	  - DEBUG = true prints every create/destroy and warns if more than one beam of a kind is found.
 ]]
 
 local DeadWeaponBeamController = {}
@@ -48,11 +47,10 @@ local DEBUG = false
 local CONTAINER_NAME = "DeadWeaponBeams"
 local CONTAINER_TAG = "DeadWeaponBeamContainer"
 
--- // Attachment offsets (from the BeamToDeadWeapon / BeamToReturningWeapon references): boomerang (0, 1, 0), player (0, 0, 0)
--- // (the player one was moved from (0, 2, 0) to the Hitbox's center)
-local WEAPON_ATTACHMENT_OFFSET = Vector3.new(0, 1, 0) -- // In the boomerang part's own space (the dead beam: a stud above it)
-local RETURNING_WEAPON_ATTACHMENT_OFFSET = Vector3.zero -- // The returning beam attaches directly on the boomerang itself
-local PLAYER_ATTACHMENT_OFFSET = Vector3.zero -- // In WORLD-upright terms, converted to the Hitbox's space (zero = the Hitbox's center)
+-- // Attachment offsets (from the BeamToDeadWeapon / BeamToReturningWeapon references)
+local WEAPON_ATTACHMENT_OFFSET = Vector3.new(0, 1, 0) -- // In the boomerang part's space (the dead beam: a stud above it)
+local RETURNING_WEAPON_ATTACHMENT_OFFSET = Vector3.zero -- // The returning beam attaches on the boomerang itself
+local PLAYER_ATTACHMENT_OFFSET = Vector3.zero -- // In world-upright terms, converted to the Hitbox's space (zero = Hitbox center)
 
 -- // Look shared by both beams
 local BEAM_SEGMENTS = 100
@@ -63,18 +61,19 @@ local BEAM_Z_OFFSET = 0
 local BEAM_TEXTURE_SPEED = 1
 local BEAM_COLOR = ColorSequence.new(Color3.new(1, 1, 1))
 
--- // Dead beam (copied from the BeamToDeadWeapon reference)
+-- // Dead beam (from the BeamToDeadWeapon reference)
 local DEAD_TEXTURE = "rbxassetid://75521069157462"
 local DEAD_WIDTH = 6
-local DEAD_TEXTURE_ASPECT_RATIO = 1 -- // The texture image is square (1:1): one tile is as long as it is wide
--- // Transparency flows 1 -> middle -> 1 so the beam fades in at the start and out at the end. The two middle values come from the
--- // reference. The whole beam is then scaled by an opacity (1 = the reference look, 0 = invisible), see deadOpacity.
+local DEAD_TEXTURE_ASPECT_RATIO = 1 -- // Square (1:1) texture: one tile is as long as it is wide
+-- // Transparency runs 1 -> middle -> 1 so the beam fades in at the start and out at the end; the middle values are
+-- // from the
+-- // reference. Scaled by an opacity (1 = reference look, 0 = invisible), see deadOpacity.
 local DEAD_TRANSPARENCY_START_TIME = 0.10109288990497589
 local DEAD_TRANSPARENCY_END_TIME = 0.8989070653915405
 local DEAD_NORMAL_MIDDLE_A = 0.5061728358268738
 local DEAD_NORMAL_MIDDLE_B = 0.4938271641731262
 
--- // Returning beam (copied from the BeamToReturningWeapon reference: no texture, width 1, Wrap mode, TextureLength 1)
+-- // Returning beam (from the BeamToReturningWeapon reference: no texture, width 1, Wrap mode, TextureLength 1)
 local RETURNING_WIDTH = 1
 local RETURNING_TEXTURE_LENGTH = 1
 local RETURNING_TRANSPARENCY: { { Time: number, Value: number } } = {
@@ -95,28 +94,28 @@ type ActiveBeam = {
 	PlayerAttachment: Attachment,
 	WeaponPart: BasePart,
 	Hitbox: BasePart,
-	CreatedAt: number, -- // os.clock() when it was built
-	FadeDone: boolean?, -- // Returning beam: its fade-in has finished (nothing more to update)
+	CreatedAt: number, -- // os.clock() when built
+	FadeDone: boolean?, -- // Returning beam: fade-in finished (nothing more to update)
 }
 
 type BeamKind = {
 	Id: string,
-	Tag: string, -- // On everything this kind creates (beam + attachments), used to sweep leftovers
+	Tag: string, -- // On everything this kind creates (beam + attachments), to sweep leftovers
 	BeamName: string,
 	AttachmentName: string,
-	WeaponAttachmentOffset: Vector3, -- // Where this kind's beam attaches, in the boomerang part's own space
+	WeaponAttachmentOffset: Vector3, -- // Where the beam attaches, in the boomerang part's space
 	Active: ActiveBeam?,
-	-- // The boomerang part this kind's beam should point at right now, or nil if it should not exist
+	-- // The boomerang part the beam should point at, or nil if it should not exist
 	getWeaponPart: () -> BasePart?,
-	-- // Sets the constant look of a freshly created beam
+	-- // Sets the constant look of a new beam
 	configure: (beam: Beam) -> (),
-	-- // The transparency to show right now (called on creation and every frame while the beam exists)
+	-- // The current transparency (called on creation and every frame while the beam exists)
 	getTransparency: (active: ActiveBeam, deltaTime: number) -> NumberSequence?,
 	-- // Resets per-beam state when there is no beam
 	reset: (() -> ())?,
-	-- // Called right before a fresh beam is built
+	-- // Called right before a new beam is built
 	onCreate: (() -> ())?,
-	-- // The beam fades in and out: when its boomerang goes away it keeps fading out (if it still can) before it is removed
+	-- // When the boomerang goes away the beam keeps fading out (if it still can) before removal
 	step: ((wanted: boolean, deltaTime: number) -> ())?,
 	-- // True once a fading-out beam is invisible and can be removed
 	isFadedOut: (() -> boolean)?,
@@ -128,7 +127,7 @@ type BeamKind = {
 
 local localPlayer = Players.LocalPlayer
 local container: Folder? = nil
-local deadOpacity = 0 -- // Dead beam: 1 = fully shown, 0 = invisible. Fades in when it appears, out as the recall charges (see getDeadTarget)
+local deadOpacity = 0 -- // Dead beam: 1 = fully shown, 0 = invisible (see getDeadTarget)
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -144,7 +143,7 @@ local function getContainer(): Folder
 	if container and container.Parent then
 		return container
 	end
-	-- // Reuse a folder left in the workspace if our reference was lost, so we never end up with two
+	-- // Reuse a leftover folder if the reference was lost, to avoid duplicates
 	local existing = workspace:FindFirstChild(CONTAINER_NAME)
 	if existing and existing:IsA("Folder") then
 		container = existing
@@ -158,7 +157,7 @@ local function getContainer(): Folder
 	return folder
 end
 
--- // The part the boomerang's attachment goes on: the part itself, or a model's PrimaryPart / first BasePart found
+-- // The part the attachment goes on: the part itself, or a model's PrimaryPart / first BasePart
 local function getWeaponPart(host: Instance?): BasePart?
 	if not host or not host.Parent then
 		return nil
@@ -184,14 +183,16 @@ local function getLocalHitbox(): BasePart?
 	return nil
 end
 
--- // In Static (and Wrap) texture mode, TextureLength is the length of ONE texture tile in studs (verified in Studio). It does
--- // not depend on how far apart the ends are: the pattern simply repeats along the beam, and the last tile is cut off.
--- // For a square (1:1) image to look undistorted, a tile must be as long as the beam is wide, so with width 6 it is 6 studs.
+-- // In Static (and Wrap) texture mode, TextureLength is the length of ONE tile in studs, independent of beam length;
+-- // the
+-- // pattern repeats and the last tile is cut off. A square (1:1) image is undistorted when a tile is as long as the
+-- // beam is
+-- // wide (width 6 -> 6 studs).
 local function getDeadTileLength(): number
 	return DEAD_WIDTH * DEAD_TEXTURE_ASPECT_RATIO
 end
 
--- // opacity 1 = the reference's transparency, 0 = completely invisible
+-- // opacity 1 = reference transparency, 0 = invisible
 local function buildDeadTransparency(opacity: number): NumberSequence
 	return NumberSequence.new({
 		NumberSequenceKeypoint.new(0, 1),
@@ -201,9 +202,10 @@ local function buildDeadTransparency(opacity: number): NumberSequence
 	})
 end
 
--- // How visible the dead beam should be right now, and whether that value is a smooth countdown that opacity should follow exactly.
--- //   charging a recall: 1 -> 0 over the recall charge time (GlobalConfig.RecallCharge, tunable), reaching 0 exactly when the charge peaks (server time, so every
--- //     machine agrees, and releasing or restarting the charge simply changes this value; the beam never jumps)
+-- // Target opacity of the dead beam, and whether it is a smooth countdown that opacity should follow exactly.
+-- //   charging a recall: 1 -> 0 over GlobalConfig.RecallCharge, reaching 0 exactly at the charge peak (server time, so
+-- // all
+-- //     machines agree; releasing or restarting the charge just changes the value)
 -- //   otherwise: 1 while the boomerang rests dead, 0 when the beam shouldn't be shown
 local function getDeadTarget(wanted: boolean): (number, boolean)
 	if not wanted then
@@ -211,7 +213,7 @@ local function getDeadTarget(wanted: boolean): (number, boolean)
 	end
 	local deadWeaponData = DeadWeapons.Data[localPlayer]
 	if not deadWeaponData or deadWeaponData.State ~= DeadWeapons.StateEnum.Dead then
-		return 0, false -- // Still dying (sliding to a stop), or flying back to the player: the beam exists but is invisible
+		return 0, false -- // Still dying (sliding to a stop) or flying back: the beam exists but is invisible
 	end
 	if DeadWeaponLogic.isRecallCharging(deadWeaponData) and deadWeaponData.RecallChargeStart then
 		local progress = (workspace:GetServerTimeNow() - deadWeaponData.RecallChargeStart) / DeadWeaponLogic.getRecallChargeSeconds(deadWeaponData)
@@ -220,7 +222,8 @@ local function getDeadTarget(wanted: boolean): (number, boolean)
 	return 1, false
 end
 
--- // Moves deadOpacity toward the target: never up while a charge is in progress (it just follows the countdown down), otherwise at
+-- // Moves deadOpacity toward the target: never up while a charge is in progress (it follows the countdown down),
+-- // otherwise at
 -- // a fixed rate (GlobalConfig.DeadBeamFadeSeconds for a full fade) in both directions
 local function stepDeadOpacity(wanted: boolean, deltaTime: number)
 	local target, charging = getDeadTarget(wanted)
@@ -236,7 +239,7 @@ local function stepDeadOpacity(wanted: boolean, deltaTime: number)
 	end
 end
 
--- // fadeAlpha 0 = fully transparent, 1 = the reference's transparency
+-- // fadeAlpha 0 = fully transparent, 1 = reference transparency
 local function buildReturningTransparency(fadeAlpha: number): NumberSequence
 	local keypoints = {}
 	for _, point in RETURNING_TRANSPARENCY do
@@ -245,7 +248,7 @@ local function buildReturningTransparency(fadeAlpha: number): NumberSequence
 	return NumberSequence.new(keypoints)
 end
 
--- // Destroys the kind's tracked beam AND every instance carrying its tag. Safe to call at any time, any number of times.
+-- // Destroys the kind's tracked beam and every instance carrying its tag. Safe to call repeatedly.
 local function destroyAll(kind: BeamKind, reason: string)
 	local hadSomething = kind.Active ~= nil
 	kind.Active = nil
@@ -261,7 +264,7 @@ local function destroyAll(kind: BeamKind, reason: string)
 end
 
 local function createBeam(kind: BeamKind, weaponPart: BasePart, hitbox: BasePart)
-	-- // Never build on top of an existing beam: clear the tracked one and anything tagged first
+	-- // Never build on an existing beam: clear the tracked one and anything tagged first
 	destroyAll(kind, "rebuild")
 
 	local weaponAttachment = Instance.new("Attachment")
@@ -317,7 +320,7 @@ local function createBeam(kind: BeamKind, weaponPart: BasePart, hitbox: BasePart
 	debugPrint(kind.Id, "created")
 end
 
--- // True if the kind's tracked beam is still exactly what we built for these inputs and nothing in it has been lost
+-- // True if the tracked beam still matches what was built for these inputs and nothing in it was lost
 local function isActiveBeamValid(kind: BeamKind, weaponPart: BasePart, hitbox: BasePart): boolean
 	local active = kind.Active
 	if not active then
@@ -354,19 +357,20 @@ local deadKind: BeamKind = {
 	WeaponAttachmentOffset = WEAPON_ATTACHMENT_OFFSET,
 	Active = nil,
 
-	-- // The beam's whole life cycle: ONE beam exists from the moment the local player's boomerang dies until it is back in
-	-- // their hands. It is the same beam through every dead -> recall charge -> returning -> dropped (released) -> dead again round, so
-	-- // it is only built the first time (the boomerang's host part stays the same, so isActiveBeamValid keeps matching it) and it
-	-- // only turns invisible in between (getDeadTarget). It is removed once the boomerang is neither dead nor being recalled
-	-- // from the dead, i.e. caught / removed.
+	-- // Life cycle: ONE beam exists from the boomerang's death until it is back in the player's hands. It persists
+	-- // through
+	-- // every dead -> recall charge -> returning -> dropped -> dead round: built once (the host part stays the same, so
+	-- // isActiveBeamValid keeps matching) and only invisible in between (getDeadTarget). Removed once the boomerang is
+	-- // neither dead nor being recalled from the dead (caught / removed).
 	getWeaponPart = function(): BasePart?
 		local deadWeaponData = DeadWeapons.Data[localPlayer]
 		if deadWeaponData then
 			return getWeaponPart(deadWeaponData.Host)
 		end
 		local thrownWeaponData = ThrownWeapons.Data[localPlayer]
-		-- // Only a manual (charged) recall keeps the dead beam (invisible while it flies back, in case it is dropped again).
-		-- // An automatic recall (RecallFromDead == false) has no beam: it fades out and is removed.
+		-- // Only a manual (charged) recall keeps the dead beam (invisible while flying back, in case it is dropped
+		-- // again).
+		-- // An automatic recall (RecallFromDead == false) fades it out and removes it.
 		if thrownWeaponData and thrownWeaponData.RecallFromDead == true then
 			return getWeaponPart(thrownWeaponData.Host)
 		end
@@ -381,7 +385,7 @@ local deadKind: BeamKind = {
 		beam.Width1 = DEAD_WIDTH
 	end,
 
-	-- // The current opacity, advanced once per frame by `step` (called from reconcileKind)
+	-- // Current opacity, advanced once per frame by `step` (called from reconcileKind)
 	getTransparency = function(_active: ActiveBeam, _deltaTime: number): NumberSequence?
 		return buildDeadTransparency(deadOpacity)
 	end,
@@ -411,10 +415,10 @@ local returningKind: BeamKind = {
 	WeaponAttachmentOffset = RETURNING_WEAPON_ATTACHMENT_OFFSET,
 	Active = nil,
 
-	-- // The local player's own boomerang while a charged manual recall is moving it back to them, until it is caught
+	-- // The local boomerang while a charged manual recall moves it back, until caught
 	getWeaponPart = function(): BasePart?
 		local thrownWeaponData = ThrownWeapons.Data[localPlayer]
-		-- // A predicted catch hides the boomerang until the server confirms it: the beam goes with it
+		-- // A predicted catch hides the boomerang until the server confirms; the beam goes with it
 		if thrownWeaponData and thrownWeaponData.RecallFromDead == true and not thrownWeaponData.HostHidden then
 			return getWeaponPart(thrownWeaponData.Host)
 		end
@@ -428,7 +432,7 @@ local returningKind: BeamKind = {
 		beam.Width1 = RETURNING_WIDTH
 	end,
 
-	-- // Fades in from fully transparent to the reference's transparency
+	-- // Fades in from fully transparent to the reference transparency
 	getTransparency = function(active: ActiveBeam, _deltaTime: number): NumberSequence?
 		local fadeSeconds = math.max(GlobalConfig.RecallReturnBeamFadeInSeconds, 0.001)
 		local fadeAlpha = math.clamp((os.clock() - active.CreatedAt) / fadeSeconds, 0, 1)
@@ -452,9 +456,10 @@ local function reconcileKind(kind: BeamKind, deltaTime: number)
 	local hitbox: BasePart? = if weaponPart then getLocalHitbox() else nil
 
 	if not weaponPart or not hitbox then
-		-- // Nothing should be shown any more. A fading beam whose parts still exist keeps fading out before it is removed (it comes back
-		-- // smoothly if the boomerang is Dead again in the meantime: the branch below then finds it valid); otherwise, e.g. the
-		-- // boomerang was removed or the player died, it can't be drawn any more and goes at once.
+		-- // Nothing should be shown. A fading beam whose parts still exist keeps fading out before removal (it comes
+		-- // back
+		-- // smoothly if the boomerang is Dead again meanwhile); otherwise (boomerang removed, player died) it goes at
+		-- // once.
 		local active = kind.Active
 		if kind.step and active and active.Beam.Parent and active.WeaponPart.Parent and active.Hitbox.Parent
 			and active.WeaponAttachment.Parent == active.WeaponPart and active.PlayerAttachment.Parent == active.Hitbox then
@@ -467,7 +472,7 @@ local function reconcileKind(kind: BeamKind, deltaTime: number)
 				return
 			end
 		end
-		-- // Remove the tracked beam, and any untracked leftover of this kind
+		-- // Remove the tracked beam and any untracked leftover of this kind
 		if kind.Active or #CollectionService:GetTagged(kind.Tag) > 0 then
 			destroyAll(kind, "no weapon")
 		end
@@ -509,7 +514,7 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
--- // Debug helper: how many beams exist right now (should be 0, or 1 of each kind; never both at the same time in practice)
+-- // Debug helper: number of beams that exist (expected 0, or 1 per kind)
 function DeadWeaponBeamController.getBeamCount(): number
 	local total = 0
 	for _, kind in beamKinds do
@@ -523,7 +528,7 @@ end
 -------------------------------------------------------------------------------
 
 function DeadWeaponBeamController.init()
-	-- // Clean slate (e.g. leftovers from a previous run of this script in Studio)
+	-- // Clean slate (e.g. Studio leftovers from a previous run)
 	for _, kind in beamKinds do
 		destroyAll(kind, "init")
 	end

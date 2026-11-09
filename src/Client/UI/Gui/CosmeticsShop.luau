@@ -2,10 +2,8 @@
 	CosmeticsShop
 
 	Description:
-	The Cosmetics Shop. Tabs: Charge Effects (the old Arrows tab, charge up effects), Strike Effects (elimination effects) and Emotes.
-	Elim Effects has no system behind it yet, so its tab opens blank. Built by ShopCommon/ShopBuilder.
-	Opened by the Shop button (lobby and topbar, MenuButtons); the Weapons Shop has its own topbar button (in Studio
-	the B key also toggles the Weapons Shop, N this one).
+	The Cosmetics Shop. Tabs: Charge Effects, Strike Effects (elimination effects) and Emotes. Built by ShopCommon/ShopBuilder.
+	Opened by the Shop button (lobby and topbar, MenuButtons). In Studio, N toggles this shop and B the Weapons Shop.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -28,22 +26,22 @@ return ShopBuilder.create({
 		{
 			Id = "ChargeEffects",
 			Name = "Charge Effects",
-			Icon = "⬆️", -- // Only shown if IconImage is removed
-			IconImage = Icons.ChargeUpEffects, -- // Same icon as the Inventory's Charges tab
+			Icon = "⬆️", -- // Shown only if IconImage is removed
+			IconImage = Icons.ChargeUpEffects,
 			AutoSelect = true,
 			Tab = ChargeEffectsTab,
 		},
 		{
 			Id = "ElimEffects",
 			Name = "Strike Effects",
-			Icon = "✨", -- // Only shown if IconImage is removed
-			IconImage = Icons.Eliminations, -- // Same icon as the Inventory's Strikes tab
-			-- // No Tab: eliminations have no effects system yet, so this tab stays empty
+			Icon = "✨", -- // Shown only if IconImage is removed
+			IconImage = Icons.Eliminations,
+			-- // No Tab: the tab stays empty (no elimination effects system)
 		},
 		{
 			Id = "Emotes",
 			Name = "Emotes",
-			Icon = "🎵", -- // PLACEHOLDER emoji, replace with an image later
+			Icon = "🎵", -- // PLACEHOLDER emoji
 			Tab = EmotesTab,
 		},
 	},

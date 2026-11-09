@@ -1,5 +1,4 @@
 -- // Cmdr command definition (replicated to clients for autocomplete). Server logic is in EndRoundServer.
--- // Replaces the old /endround chat command.
 return {
 	Name = "endround",
 	Aliases = {},

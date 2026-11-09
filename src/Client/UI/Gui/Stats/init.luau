@@ -3,18 +3,17 @@
 
 	Description:
 	The Stats menu, opened from the Stats button in the left lobby menu (MenuButtons).
-	Left: six cards with the player's main lifetime stats (time played, eliminations, defeats, games played,
-	games won, throws). Right: a scrolling list of smaller stats (times each ability was used, times each pickup was collected).
-	Built entirely in code with CreateElement (no GUI instances stored under this script); the card art and frame
-	are image assets. Card icons are image assets from Icons (CARD_DEFS); row icons are image assets from Icons (LISTING_ICONS)
-	where one exists, otherwise an emoji TextLabel (LISTING_EMOJIS).
-	Reads the replicated profile (PlayerDataController); the stats are written by LifetimeStatsService on the server.
+	Left: six cards with main lifetime stats (time played, eliminations, defeats, games played, games won, throws).
+	Right: a scrolling list of smaller stats (uses of each ability, collections of each pickup).
+	Built entirely in code with CreateElement; card art and frame are image assets. Card icons come from Icons
+	(CARD_DEFS); row icons come from Icons (LISTING_ICONS) where one exists, otherwise an emoji TextLabel (LISTING_EMOJIS).
+	Reads the replicated profile (PlayerDataController); LifetimeStatsService writes the stats on the server.
 ]]
 
 local StatsGui = {}
 StatsGui.Type = "HUD"
 StatsGui.Open = false
-StatsGui.RequiresMouse = true -- // Clickable menu: frees the mouse in the locked camera (MouseUnlockController)
+StatsGui.RequiresMouse = true -- // Frees the mouse in a locked camera (MouseUnlockController)
 
 -------------------------------------------------------------------------------
 -- SERVICES / MODULES
@@ -48,7 +47,7 @@ local CONTAINER_ASPECT_RATIO = 1.46190941
 
 -- // The six cards on the left, in display order. Field = profile field shown; Name = card instance name
 local CARD_DEFS = {
-	-- // Icon: image asset id from Icons (change it there, not here)
+	-- // Icon: image asset id from Icons
 	{ Name = "TimePlayed", Field = "TimePlayed", Label = "Time Played", Icon = Icons.StatsTimePlayed },
 	{ Name = "Elims", Field = "Elims", Label = "Eliminations", Icon = Icons.Eliminations },
 	{ Name = "Defeats", Field = "Defeats", Label = "Defeats", Icon = Icons.StatsLosses },
@@ -62,7 +61,6 @@ local ABILITY_ORDER_OFFSET = 0
 local PICKUP_ORDER_OFFSET = 1000 -- // Pickups are listed after abilities
 
 -- // Image icon on each right-hand row, keyed by ability / pickup id; takes priority over LISTING_EMOJIS
--- // (change the asset id in Icons, not here)
 local LISTING_ICONS = {
 	ElectricBoomerang = Icons.ElectricBoomerang,
 	ExplosiveBoomerang = Icons.ExplosiveBoomerang,
@@ -78,7 +76,7 @@ local LISTING_ICONS = {
 	Dash = Icons.DashCooldown, -- // Same art as the Dash cooldown in the effects bar
 }
 
--- // Emoji shown as the icon on each right-hand row when it has no LISTING_ICONS entry, keyed by ability / pickup id (no entry = blank icon)
+-- // Emoji icon on right-hand rows with no LISTING_ICONS entry, keyed by ability / pickup id (no entry = blank icon)
 local LISTING_EMOJIS = {
 	BattleRoyale = "👑",
 	DashNoclip = "👻",
@@ -132,8 +130,8 @@ local function formatTimePlayed(seconds: number): string
 	return `{formatNumber(hours)} {if hours == 1 then "Hour" else "Hours"}`
 end
 
--- // The title the item-acquired notification uses (AcquirableThingData); ids without an entry
--- // (e.g. abilities) fall back to the spaced-out id: "FireBoomerang" -> "Fire Boomerang"
+-- // Title used by the item-acquired notification (AcquirableThingData); ids without an entry (e.g. abilities)
+-- // fall back to the spaced-out id: "FireBoomerang" -> "Fire Boomerang"
 local function toDisplayName(id: string): string
 	local data = AcquirableThingData[id]
 	if data and data.Title then
@@ -162,7 +160,7 @@ local function getListedIds(): { { Field: string, Id: string, Offset: number } }
 	return entries
 end
 
--- // TextLabel with the menu's shared text look; [properties] override the defaults
+-- // TextLabel with the menu's shared text look; [properties] override defaults
 local function createLabel(properties: { [string]: any }, children: { Instance }?)
 	local merged = {
 		BackgroundTransparency = 1,
@@ -450,7 +448,7 @@ function StatsGui.open()
 	Container.Position = containerOffscreenPosition
 	playContainerTween(CONTAINER_TWEEN_INFO_IN, containerGoalPosition)
 	UIController.supercede("Stats", "GamemodeHud")
-	UIController.closeOtherMenus("Stats") -- // After superceding, so the closing menu doesn't bring the HUD back
+	UIController.closeOtherMenus("Stats") -- // After superceding, so the closing menu doesn't restore the HUD
 end
 
 function StatsGui.close()
@@ -490,7 +488,7 @@ end
 function StatsGui.start()
 	buildListings()
 
-	-- // Keep the numbers current while the menu is open (e.g. time played is saved every minute)
+	-- // Keeps numbers current while the menu is open (e.g. time played is saved every minute)
 	PlayerDataController.UpdatedTasks:Add(function()
 		if StatsGui.Open then
 			updateStats()

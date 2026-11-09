@@ -143,7 +143,7 @@ local function horizontalDistanceToSegment(point: Vector3, a: Vector3, b: Vector
 end
 
 -------------------------------------------------------------------------------
--- DASH RULE (balanced, favors the dasher). Change how dashes interact with rewinding HERE and nowhere else.
+-- DASH RULE: how dashes interact with rewinding
 -------------------------------------------------------------------------------
 
 -- // A rewound hit is skipped when the target was immune (dashing, spawn protection) at the rewound moment or just around it

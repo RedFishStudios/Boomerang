@@ -2,9 +2,9 @@
 	RarityStyles
 
 	Description:
-	How the Shop colors a listing by rarity. The rarity itself is the Rarity of the item's entry in
-	Shared/Constants/Tools (see ShopListings). The listing art is grayscale and tinted with `Color`, so the colors
-	are bright on purpose (a tint can only darken the art). Rarities that aren't listed here use Common.
+	Shop listing colors by rarity. The rarity is the Rarity of the item's entry in Shared/Constants/Tools (see ShopListings).
+	The listing art is grayscale and tinted with `Color`, which can only darken it, so colors are bright.
+	Rarities not listed here use Common.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

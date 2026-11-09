@@ -2,13 +2,10 @@
   ChatController
 
   Description:
-  Handles client player data state
+  Displays server chat messages on the client
 
   Author:
   @SixthAtom
-
-  Date:
-  20-02-2026
 ]]
 
 local ChatController = {}
@@ -49,7 +46,7 @@ local GeneralChannel: TextChannel = TextChannels:WaitForChild("RBXGeneral")
 
 function ChatController.init()
    printMessageEvent.OnClientEvent:Connect(function(message: string, color: string)
-      -- Print the message with the color or a default color to the default chat channel
+      -- Prints the message in the given or default (white) color to the general channel
       local chatColor = color or Color3.fromRGB(255, 255, 255):ToHex()
       message = `<font color=\"#{chatColor}\">{message}</font>`
       GeneralChannel:DisplaySystemMessage(message)

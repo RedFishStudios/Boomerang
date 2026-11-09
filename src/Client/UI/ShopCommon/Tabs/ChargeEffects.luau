@@ -2,8 +2,8 @@
 	Charge Effects tab (Cosmetics Shop)
 
 	Description:
-	Every charge up effect on sale, in the same order as the Inventory's Arrows tab (ChargeUpEffectLibrary / ChargeUpEffectController, data in
-	Shared/Referential/ChargeUpEffects). Arrows that are off sale are left out by ShopListings. Scrolls past 6 listings.
+	Every charge up effect on sale, in the Inventory Arrows tab's order (ChargeUpEffectLibrary / ChargeUpEffectController,
+	data in Shared/Referential/ChargeUpEffects). ShopListings omits off-sale arrows. Scrolls past 6 listings.
 	Follows the ShopTab shape in ShopCommon/ShopBuilder.
 ]]
 

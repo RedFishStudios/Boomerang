@@ -2,11 +2,10 @@
 	PlayerCosmeticController
 
 	Description:
-	The client's one cache of every player's equipped cosmetics (the local player's too), for any clientside system that
-	renders other players (effects, emotes, skins...). The raw ids come from the `Equipped*` Player attributes in
-	CosmeticLibrary, which the server sets and Roblox replicates. This controller keeps, per player and per category, the
-	resolved value (what the category's resolver makes of the raw id, e.g. a validated id or a template; the raw id
-	itself when the category has no resolver) and tells listeners when it changes.
+	The client's cache of every player's equipped cosmetics (the local player's too), for client systems that render
+	players (effects, emotes, skins...). Raw ids come from the `Equipped*` Player attributes in CosmeticLibrary. Per player
+	and category it keeps the resolved value (the category resolver's result for the raw id, e.g. a validated id or a
+	template; the raw id itself if there is no resolver) and notifies listeners of changes.
 
 	A category's Library registers a resolver with `registerResolver`. A resolver gets the raw id (nil when unset) and
 	must always return a usable value, falling back to the category's default.
@@ -43,7 +42,7 @@ local resolvers: { [Category]: Resolver } = {}
 -- PUBLIC VARIABLES
 -------------------------------------------------------------------------------
 
--- // Fires when a player's resolved value for a category changes. Not fired for the first fill of a new entry.
+-- // Fires when a player's resolved value for a category changes (not on the first fill of a new entry)
 PlayerCosmeticController.Changed = TasksList.new() :: TasksList.TasksList<ChangedTask>
 
 -------------------------------------------------------------------------------
@@ -59,7 +58,7 @@ local function resolve(player: Player, category: Category): any
 	return rawId
 end
 
--- // Re-resolves one category for a player and announces it when the value changed
+-- // Re-resolves one category for a player and announces a change
 local function refresh(player: Player, category: Category)
 	local entry = cache[player]
 	if not entry then
@@ -116,15 +115,15 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
---- The player's resolved value for a category: the category resolver's result, or the raw equipped id (nil when unset)
---- if the category has no resolver. Also nil for a player who has left.
+--- The player's resolved value for a category: the resolver's result, or the raw equipped id (nil when unset) if there is
+--- no resolver. Nil for a player who has left.
 function PlayerCosmeticController.get(player: Player, category: Category): any
 	local entry = track(player)
 	return if entry then entry[category] else nil
 end
 
---- Sets how a category turns a raw id into its usable value, and re-resolves everyone already cached (announcing any
---- value that changed). Called by the category's Library.
+--- Sets how a category turns a raw id into its usable value and re-resolves everyone cached (announcing changes).
+--- Called by the category's Library.
 function PlayerCosmeticController.registerResolver(category: Category, resolver: Resolver)
 	resolvers[category] = resolver
 	for player in cache do

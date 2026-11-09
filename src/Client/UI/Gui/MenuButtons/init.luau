@@ -1,22 +1,20 @@
 --[[
 	MenuButtons
 
-	The player's menu buttons on the left side of the screen, laid out like the mockup:
-		[      Currency      ]   <- as wide as two buttons: boomerang icon + balance; click = Currency shop (later)
+	The menu buttons on the left side of the screen:
+		[      Currency      ]   <- as wide as two buttons: boomerang icon + balance; click = Currency shop
 		[ Shop ] [ Daily ]
 		[ Skins] [ Stats]
 		[Quests] [Settings]
-	Buttons sit in a 2-column grid; hidden buttons are skipped, so the grid closes up.
-	Only these buttons exist in the left bar. A later feature that needs one adds it to the BUTTONS table.
+	Buttons sit in a 2-column grid; hidden buttons are skipped, so the grid closes up. New buttons go in the BUTTONS table.
 
-	Art: the wooden frame + recolorable grayscale interior for the buttons, and the currency bar image. The button icons
-	and the currency coin are custom images. Every size, color, icon and the art's layout rectangles are in
-	the constants / BUTTONS table below.
-	Hidden while the local player is alive in the arena (it's a lobby menu; the round camera locks the mouse anyway).
+	Art: a wooden frame over a recolorable grayscale interior for the buttons, and a currency bar image. Sizes, colors,
+	icons and the art's layout rectangles are in the constants / BUTTONS table below.
+	Hidden while the local player is alive in the arena (lobby menu).
 ]]
 
 local MenuButtonsGui = {}
-MenuButtonsGui.Type = "Dynamic" -- // Manages its own visibility (lobby only); not opened/closed with the other HUD guis
+MenuButtonsGui.Type = "Dynamic" -- // Manages its own visibility (lobby only)
 MenuButtonsGui.Open = true
 
 -------------------------------------------------------------------------------
@@ -43,17 +41,18 @@ local FONT = Enum.Font.FredokaOne
 local TEXT_COLOR = Color3.fromRGB(255, 255, 255)
 local TEXT_STROKE_COLOR = Color3.fromRGB(60, 35, 15)
 
--- // Sizes at a 900 px tall screen; everything scales with the screen height (UIScale), clamped below
+-- // Sizes are for a 900 px tall screen; everything scales with screen height (UIScale), clamped below
 local REFERENCE_SCREEN_HEIGHT = 900
 local MIN_SCALE, MAX_SCALE = 0.55, 1.2
 local BUTTON_SIZE = Vector2.new(100, 90) -- // Same proportions as the frame art (838 x 753)
 local GAP = 10
 local CURRENCY_WIDTH = BUTTON_SIZE.X * 2 + GAP -- // Two small buttons wide
 local LEFT_MARGIN = 14
-local VERTICAL_POSITION = 0.42 -- // Center of the menu, as a fraction of screen height (clear of the mobile thumbstick)
+local VERTICAL_POSITION = 0.42 -- // Menu center as a fraction of screen height (clear of the mobile thumbstick)
 
--- // The image assets. All the rectangles below are in pixels of the source image and get converted to Scale, so the
--- // text and icons stay inside the art's free space at any size.
+-- // Image assets. The rectangles below are in source-image pixels and converted to Scale, so text and icons stay
+-- // inside
+-- // the art's free space at any size.
 local FRAME_IMAGE = "rbxassetid://78059494085912" -- // Hollow wooden frame with a name board at the bottom
 local FRAME_IMAGE_SIZE = Vector2.new(838, 753)
 local FRAME_FULL = Rect.new(0, 0, 838, 753)
@@ -61,28 +60,28 @@ local FRAME_ICON_AREA = Rect.new(160, 120, 680, 510) -- // Free window inside th
 local FRAME_BOARD_TEXT = Rect.new(145, 560, 700, 695) -- // Free space on the name board, between the two rivets
 local INTERIOR_IMAGE = "rbxassetid://138558379535634" -- // Grayscale interior, recolored live with ImageColor3
 local INTERIOR_IMAGE_SIZE = Vector2.new(686, 674)
-local INTERIOR_BLEED = Rect.new(70, 60, 770, 572) -- // Drawn bigger than the window so the frame covers its edges
--- // The interior is cropped (ImageRectOffset/Size, centered) to the bleed rectangle's proportions instead of stretched, so
--- // its stone detail keeps its proportions. The cropped-off top and bottom end up under the wooden frame.
+local INTERIOR_BLEED = Rect.new(70, 60, 770, 572) -- // Drawn larger than the window so the frame covers its edges
+-- // The interior is cropped (ImageRectOffset/Size, centered) to the bleed rectangle's proportions instead of
+-- // stretched,
+-- // keeping its stone detail undistorted. The cropped-off top and bottom end up under the frame.
 local INTERIOR_CROP_HEIGHT = INTERIOR_IMAGE_SIZE.X * INTERIOR_BLEED.Height / INTERIOR_BLEED.Width
 
 local BAR_IMAGE = "rbxassetid://97631724752812" -- // Currency bar (transparent margin around the painted part)
 local BAR_IMAGE_SIZE = Vector2.new(1024, 512)
-local BAR_CONTENT = Rect.new(32, 56, 1006, 464) -- // The painted part; this is what gets CURRENCY_WIDTH wide
-local CURRENCY_ICON_IMAGE = "rbxassetid://110596837298294" -- // Boomerang coin, placed as in the Studio mockup (CURRENCY_ICON)
+local BAR_CONTENT = Rect.new(32, 56, 1006, 464) -- // The painted part, scaled to CURRENCY_WIDTH
+local CURRENCY_ICON_IMAGE = "rbxassetid://110596837298294" -- // Boomerang coin
 local BAR_TEXT_AREA = Rect.new(360, 140, 860, 372) -- // Free space for the balance
 local CURRENCY_HEIGHT = math.round(CURRENCY_WIDTH * BAR_CONTENT.Height / BAR_CONTENT.Width)
 
 -- // The buttons, in grid order. Enabled = shown from the start.
--- // Color is a tint multiplied over the grayscale interior (average gray is about 50%), so it can't make the interior
--- // brighter than the source art. Keep channels as high as they can go and vary the others.
+-- // Color tints the grayscale interior (average gray is about 50%) and can't brighten it past the source art, so keep
+-- // channels as high as possible and vary the others.
 local BUTTONS = {
 	{ Id = "Shop", Text = "Shop", Icon = "rbxassetid://95884415147706", Color = Color3.fromRGB(255, 120, 95), Enabled = true },
 	{ Id = "Daily", Text = "Daily", Icon = "rbxassetid://126765785652910", Color = Color3.fromRGB(205, 130, 255), Enabled = true },
 	{ Id = "Skins", Text = "Inventory", Icon = `rbxassetid://{Icons.InventoryButton}`, Color = Color3.fromRGB(110, 175, 255), Enabled = true }, 
 	{ Id = "Stats", Text = "Stats", Icon = "rbxassetid://124985088272789", Color = Color3.fromRGB(100, 255, 225), Enabled = true }, 
-	-- // Quests opens the Quests menu, Settings the Settings menu
-	{ Id = "Quests", Text = "Quests", Icon = "rbxassetid://83981048085676", Color = Color3.fromRGB(255, 215, 90), Enabled = true },
+		{ Id = "Quests", Text = "Quests", Icon = "rbxassetid://83981048085676", Color = Color3.fromRGB(255, 215, 90), Enabled = true },
 	{ Id = "Settings", Text = "Settings", Icon = "rbxassetid://118835487029221", Color = Color3.fromRGB(190, 200, 215), Enabled = true },
 }
 
@@ -109,7 +108,8 @@ local function formatNumber(value: number): string
 	return text
 end
 
--- // Where a rectangle of an image's free space lands inside a GUI object that shows that image (or its painted part)
+-- // Maps a rectangle of an image's free space to a position inside the GUI object showing that image (or its painted
+-- // part)
 local function rectInRegion(rect: Rect, region: Rect): (UDim2, UDim2)
 	local position = UDim2.fromScale((rect.Min.X - region.Min.X) / region.Width, (rect.Min.Y - region.Min.Y) / region.Height)
 	local size = UDim2.fromScale(rect.Width / region.Width, rect.Height / region.Height)
@@ -130,7 +130,7 @@ local function newLabel(name: string, text: string, parent: Instance): TextLabel
 	return label
 end
 
--- // Small press feedback, shared by every button
+-- // Press feedback shared by every button
 local function addPressFeedback(button: GuiButton)
 	local scale = Instance.new("UIScale")
 	scale.Parent = button
@@ -155,7 +155,7 @@ local function toggleGui(guiName: string)
 	end
 end
 
--- // Placeholder: the Robux shop for buying Currency doesn't exist yet. Wire it here when it does.
+-- // Placeholder: no Robux shop for buying Currency exists yet
 local function openCurrencyShop()
 	if RunService:IsStudio() then
 		print("[MenuButtons] Currency shop isn't built yet (placeholder)")
@@ -183,12 +183,12 @@ local function buildCurrency(parent: Instance)
 	button.Parent = parent
 	addPressFeedback(button)
 
-	-- // The image has a transparent margin: stretch it so its painted part exactly fills the button
+	-- // The image has a transparent margin: stretch it so the painted part fills the button
 	local bar = newImage("Bar", BAR_IMAGE, button, 1)
 	bar.Position = UDim2.fromScale(-BAR_CONTENT.Min.X / BAR_CONTENT.Width, -BAR_CONTENT.Min.Y / BAR_CONTENT.Height)
 	bar.Size = UDim2.fromScale(BAR_IMAGE_SIZE.X / BAR_CONTENT.Width, BAR_IMAGE_SIZE.Y / BAR_CONTENT.Height)
 
-	-- // Boomerang coin on the left: 70% of the bar's height, square (RelativeYY), centered vertically
+	-- // Boomerang coin on the left: square (RelativeYY), 70% of the bar's height, vertically centered
 	local icon = newImage("CURRENCY_ICON", CURRENCY_ICON_IMAGE, button, 2)
 	icon.AnchorPoint = Vector2.new(0, 0.5)
 	icon.Position = UDim2.fromScale(0.05, 0.5)
@@ -303,7 +303,7 @@ local function build()
 	screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 end
 
--- // Lobby menu: hidden while the local player is alive in the arena
+-- // Hidden while the local player is alive in the arena
 local function updateVisibility()
 	local livingPlayersInArena = GameStateLibrary.getGameStateData().LivingPlayersInArena:Get() or {}
 	screenGui.Enabled = table.find(livingPlayersInArena, LocalPlayer) == nil
@@ -353,8 +353,8 @@ function MenuButtonsGui.start()
 		toggleGui("Settings")
 	end
 
-	-- // The same menus from compact icon buttons in Roblox's topbar, which (unlike this lobby grid) are always there.
-	-- // The two shops sit on the left; Daily, Inventory, Stats, Quests and Settings on the right (before the currency).
+	-- // The same menus as compact topbar buttons, which are always visible (unlike the lobby grid).
+	-- // The two shops go on the left; Daily, Inventory, Stats, Quests and Settings on the right (before the currency).
 	local RIGHT_SIDE_BUTTONS = { Daily = true, Skins = true, Stats = true, Quests = true, Settings = true }
 	for order, entry in BUTTONS do
 		if entry.Enabled then
@@ -372,10 +372,10 @@ function MenuButtonsGui.start()
 			})
 		end
 	end
-	-- // Weapons Shop: topbar only, right after the Shop (Cosmetics) button
+	-- // Weapons Shop: topbar only, right after the Shop button
 	TopbarGui.addButton({
 		Id = "MenuWeaponsShop",
-		Icon = `rbxassetid://{Icons.StatsThrows}`, -- // A boomerang being thrown (borrowed from the Stats menu)
+		Icon = `rbxassetid://{Icons.StatsThrows}`, -- // A boomerang being thrown
 		Side = "Left",
 		Order = 15,
 		onActivated = function()
@@ -384,13 +384,13 @@ function MenuButtonsGui.start()
 	})
 
 	currencyLabel.Text = formatNumber(EconomyController.getBalance())
-	-- // The player's currency in the topbar too (coin + amount), always visible; clicking it does what the lobby's currency bar does
+	-- // Currency (coin + amount) in the topbar, always visible; clicking it does what the lobby currency bar does
 	TopbarGui.addButton({
 		Id = "Currency",
 		Text = formatNumber(EconomyController.getBalance()),
 		Icon = `rbxassetid://{Icons.CurrencyIcon}`,
 		Side = "Right",
-		Order = 1000, -- // The far right of the right-side buttons, next to Roblox's own
+		Order = 1000, -- // Far right of the right-side buttons, next to Roblox's own
 		onActivated = openCurrencyShop,
 	})
 	EconomyController.CurrencyChangedTasks:Add(function(value: number)

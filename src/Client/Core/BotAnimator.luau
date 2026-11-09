@@ -1,28 +1,21 @@
 --[[
 	BotAnimator -- bot / NPC animation
 
-	Drives a bot's client-rendered avatar from a replicated "pose" string. This is the same
-	contract players use under Server Authority: the authoritative root carries a "pose" attribute
-	(Standing / Running / FreeFall / ...) that maps to the Animate animation folders, and the
-	rendered model is animated from that attribute. BotService sets the pose on each bot's
-	server rig root every step; the rig replicates, and this animates the cloned avatar to match --
-	idle, walk and fall, like a player.
+	Animates a bot's client-rendered avatar from a replicated "pose" attribute on the server rig root
+	(Standing / Running / FreeFall / ...), mapped to the Animate animation folders. BotService sets the
+	pose every step.
 
-	It is a plain helper (not a *Controller / *Screen / *Library), so the client bootstrap does not
-	auto-require or init it -- BotController owns an instance per rendered bot. Every bot renders
-	through BotController, so every bot/NPC gets this animation for free; a behavior can drive extra
-	states by setting the pose on the server (BotService).
+	Plain helper (not a *Controller / *Screen / *Library), so the client bootstrap does not require or
+	init it. BotController owns one instance per rendered bot.
 
-	The pose/blend logic mirrors CharacterRenderController's player path on purpose; it is kept
-	separate so the bot/NPC layer owns its animation and the working player path is left untouched.
-	A later task could factor the two into one shared pose animator.
+	The pose/blend logic mirrors CharacterRenderController's player path.
 ]]
 
 local BotAnimator = {}
 BotAnimator.__index = BotAnimator
 
 -------------------------------------------------------------------------------
--- CONSTANTS (same mapping/blend as the Server-authority Animate + CharacterRenderController)
+-- CONSTANTS (same mapping/blend as CharacterRenderController)
 -------------------------------------------------------------------------------
 
 local POSE_TO_ANIMATION_NAME = {
@@ -65,8 +58,7 @@ export type BotAnimator = typeof(setmetatable(
 -- CONSTRUCTOR
 -------------------------------------------------------------------------------
 
--- // Build an animator for a cloned avatar. Returns nil if the clone lacks the pieces we need
---    (Humanoid + Animator + an Animate container), in which case the caller just skips animation.
+-- // Builds an animator for a cloned avatar. Returns nil if the clone lacks a Humanoid, Animator or Animate container.
 function BotAnimator.new(visual: Model): BotAnimator?
 	local humanoid = visual:FindFirstChildOfClass("Humanoid")
 	local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
@@ -75,8 +67,7 @@ function BotAnimator.new(visual: Model): BotAnimator?
 		return nil
 	end
 
-	-- // The clone's own Animate LocalScript would re-animate the Humanoid and fight our manual
-	--    pose driving. Keep the script (for its animation folders) but stop it running.
+	-- // Disabled so the clone's Animate script doesn't fight the manual pose driving; kept for its animation folders
 	if animate:IsA("LocalScript") then
 		(animate :: LocalScript).Disabled = true
 	end
@@ -139,7 +130,7 @@ end
 -- PUBLIC
 -------------------------------------------------------------------------------
 
--- // Called every frame with the bot's replicated pose and its root velocity (for the walk/run blend).
+-- // Called every frame with the replicated pose and root velocity (for the walk/run blend)
 function BotAnimator.update(self: BotAnimator, pose: string?, velocity: Vector3?)
 	pose = pose or "Standing"
 
@@ -152,14 +143,14 @@ function BotAnimator.update(self: BotAnimator, pose: string?, velocity: Vector3?
 		wanted.run = true
 	end
 
-	-- // Stop what's no longer wanted (unknown poses like "Dead" stop everything)
+	-- // Stop unwanted tracks (unknown poses like "Dead" stop everything)
 	for name, track in pairs(self.Tracks) do
 		if not wanted[name] and track.IsPlaying then
 			track:Stop(POSE_TRANSITION_TIME)
 		end
 	end
 
-	-- // Start what's newly wanted; restart looped tracks stopped by something else
+	-- // Start wanted tracks; restart looped tracks stopped externally
 	for name in pairs(wanted) do
 		local track = getPoseTrack(self, name)
 		if track and not track.IsPlaying and (not self.Active[name] or track.Looped) then

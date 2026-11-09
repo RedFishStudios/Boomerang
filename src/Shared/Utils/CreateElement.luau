@@ -1,5 +1,5 @@
--- // Extremely simple, pooped inspiration of Roact
---    Cooperative with ReactiveValues for menu elements that need to update live
+-- // Minimal Roact-inspired element builder
+--    Works with ReactiveValues for menu elements that update live
 
 export type Element = {
 	Instance: Instance,
@@ -15,7 +15,7 @@ function Element:Destroy()
 
 end
 
--- // Create [classname] with [properties]. [Children] can consist of any combination of [instance] or [cleaner function]
+-- // Creates [ClassName] with [Properties]. [Children] may be instances and/or cleaner functions
 return function(ClassName: string, Properties: {[string]: any}, Children: {Instance | ()->()}?): (Instance, {()->()})
 	local Element = Instance.new(ClassName)
 	local Connections: {RBXScriptConnection | ()->()} = {}
@@ -25,12 +25,10 @@ return function(ClassName: string, Properties: {[string]: any}, Children: {Insta
 		for Property, Value in pairs(Properties) do
 			local prop = Element[Property]
 			if typeof(prop) == "RBXScriptSignal" then
-				-- // Connect a signal value
 				table.insert(Connections, prop:Connect(function(...)
 					Value(Element, ...)
 				end))
 			elseif typeof(Value) == "table" and Value._isReactive then
-				-- // Connect a reactive value
 				Element[Property] = Value:Get()
 				local connection = Value:Subscribe(function(newValue)
 					if Element.Parent then 
@@ -41,20 +39,18 @@ return function(ClassName: string, Properties: {[string]: any}, Children: {Insta
 				end)
 				table.insert(Connections, connection)
 			else
-				-- // Set a normal property
 				--print(Property, Value)
 				Element[Property] = Value
 			end
 		end
 	end
 
-	-- // Assign children
 	if Children then
 		for _, Child in pairs(Children) do
 			if typeof(Child) == "Instance" then
 				Child.Parent = Element
 			elseif typeof(Child) == "function" then
-				table.insert(Destroyers, Child) -- Destroyer function from child elements
+				table.insert(Destroyers, Child) -- child's destroyer
 			elseif typeof(Child) == "table" then
 				-- Nested destroyers from a nested element
 				for _, nestedChild in pairs(Child) do
@@ -71,9 +67,9 @@ return function(ClassName: string, Properties: {[string]: any}, Children: {Insta
 	table.insert(Destroyers, function()
 		for _, Connection in pairs(Connections) do
 			if typeof(Connection) == "function" then
-				Connection() -- Reactive Value cleaner function
+				Connection() -- ReactiveValue unsubscribe
 			elseif typeof(Connection) == "RBXScriptConnection" then
-				Connection:Disconnect() -- Connection
+				Connection:Disconnect()
 			end
 		end
 		table.clear(Connections)

@@ -6,10 +6,7 @@ local Signal = require(ReplicatedStorage.Shared.Classes.Signal)
 
 --[[
 	Written by SixthAtom,
-	a modern, type-checked, very lightweight and optimized reactive state listener.
-
-	Designed to provide simple and efficient state management for (mainly UI) updates, 
-	data syncing and event-driven systems in Roblox projects.
+	a lightweight, type-checked reactive state container for UI updates, data syncing and events.
 ]]
 
 local Atom = {}

@@ -6,9 +6,6 @@
 
   Author:
   @SixthAtom
-
-  Date:
-  14-04-2026
 ]]
 
 local InputScreen = {}
@@ -256,7 +253,7 @@ end
 -------------------------------------------------------------------------------
 
 function InputScreen.init()
-	-- // Follows the player's current input, so the buttons appear/disappear when they switch between touch and keyboard/mouse
+	-- // Buttons show only while the player's input is touch
 	local function onControlSchemeChanged()
 		updateMobileVisibility()
 		refreshRegisteredButtonLayouts()

@@ -1,17 +1,14 @@
 --[[
 	BotService
 
-	A thin server-authoritative "bot" layer. A bot is a minimal INVISIBLE Humanoid rig:
-	a HumanoidRootPart (in the Bots collision group, so it collides with the environment like a
-	player but passes through players), a Humanoid (moved with Humanoid:Move), and a welded Hitbox
-	part that boomerangs can detect. Clients build the
-	visible avatar themselves (BotController), so the server stays lightweight -- it only owns the
-	small rig + its hitbox and lets Roblox replicate the rig's transform.
+	A thin server-authoritative "bot" layer. A bot is an invisible Humanoid rig:
+	a HumanoidRootPart (Bots collision group: collides with the environment, passes through players),
+	a Humanoid (moved with Humanoid:Move), and a welded Hitbox part that boomerangs can detect.
+	Clients build the visible avatar (BotController); the server only owns the rig and its hitbox.
 
 	Each bot runs a BotBehavior ({ start, update, shouldDespawn }); the Decoy is the first behavior.
 
-	NOTE (needs Studio verification): a limbless Humanoid's standing/grounding may need HIP_HEIGHT
-	tuning, and the fixed facing (AutoRotate off) may drift under physics. Marked TODO:VITAL below.
+	Gotcha: a limbless Humanoid may need HIP_HEIGHT tuning, and the fixed facing (AutoRotate off) may drift under physics.
 ]]
 
 local BotService = {}
@@ -33,9 +30,9 @@ local ParticlesLibrary = require(ReplicatedStorage.Shared.Library.ParticlesLibra
 -------------------------------------------------------------------------------
 
 local BOTS_FOLDER_NAME = "Bots"
-local BOTS_COLLISION_GROUP = CollisionGroupConstants.Players -- // match players: same collision group as player characters/hitboxes
+local BOTS_COLLISION_GROUP = CollisionGroupConstants.Players -- // Same group as player characters/hitboxes
 local ROOT_SIZE = Vector3.new(2, 2, 1)
-local HIP_HEIGHT = 2 -- // TODO:VITAL Studio-tune so the rootless rig stands on the floor at the right height
+local HIP_HEIGHT = 2 -- // TODO:VITAL tune in Studio so the rootless rig stands at floor height
 local HITBOX_SIZE = Vector3.new(10, 2.2, 10) -- // matches HitboxService's player hitbox cylinder
 local MOVING_SPEED_THRESHOLD = 0.5 -- // studs/s (horizontal); below this the bot animates as "Standing"
 
@@ -274,10 +271,9 @@ end
 -- CORE FUNCTIONS
 -------------------------------------------------------------------------------
 
--- // Animation state published as a replicated "pose" attribute on the rig root -- the same
---    contract players use under Server Authority. BotController renders walk / idle / fall
---    from it, so every bot animates without per-behavior work. A behavior can force a state via
---    bot.Pose; otherwise it is derived from the rig's Humanoid state and horizontal speed.
+-- // Animation state is published as a replicated "pose" attribute on the rig root (same contract as players under
+--    Server Authority); BotController renders walk / idle / fall from it.
+--    A behavior can force a state via bot.Pose; otherwise it is derived from the Humanoid state and horizontal speed.
 local function derivePose(bot: Bot): string
 	if bot.Pose then
 		return bot.Pose

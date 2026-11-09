@@ -2,17 +2,15 @@
 	ShopBuilder
 
 	Description:
-	Builds a shop menu: ShopBuilder.create(config) returns a Gui module for UIController. Used by the Weapons Shop and the
-	Cosmetics Shop (Client/UI/Gui), which differ only in their config: name, title, background art and tabs.
-	The tab row at the top picks what the listing grid shows (config.Tabs, in order). A tab's content is its Tab module
-	(shape: ShopTab below); a tab without one is selectable but opens blank (placeholder until the feature exists).
-	The grid shows 3x2 listings at once. A tab with Scrollable = true scrolls past 6 listings; the others show at most 6.
-	A listing's data comes from ShopListings (skins: the same system as the Inventory's Skins tab) and is tinted by
-	rarity with RarityStyles. Models are shown with ItemViewport (Client/UI/ItemViewport).
+	Builds a shop menu: ShopBuilder.create(config) returns a Gui module for UIController. Used by the Weapons Shop and
+	Cosmetics Shop (Client/UI/Gui), which differ only in config: name, title, background art and tabs.
+	The tab row picks what the listing grid shows (config.Tabs, in order). A tab's content is its Tab module (shape:
+	ShopTab below); a tab without one is selectable but opens blank.
+	The grid shows 3x2 listings. A tab with Scrollable = true scrolls past 6 listings; the others show at most 6.
+	Listing data comes from ShopListings and is tinted by rarity with RarityStyles. Models are shown with ItemViewport.
 	The balance plank at the bottom shows the player's Currency (EconomyController).
-	Built entirely in code with CreateElement (no GUI instances stored under this script); the frame, tab, listing, balance
-	and button art are image assets (Shared/Constants/Icons). The emoji beside the tab names are placeholders in their own
-	labels (ICON_EmojiPlaceholder), ready to be replaced with images.
+	Built entirely in code with CreateElement; the frame, tab, listing, balance and button art are image assets
+	(Shared/Constants/Icons). The emoji beside tab names are placeholders in their own labels (ICON_EmojiPlaceholder).
 ]]
 
 -------------------------------------------------------------------------------
@@ -45,21 +43,21 @@ export type ShopTab = {
 	Scrollable: boolean, -- // Whether the grid scrolls past 6 listings (false: only the first MaxListings are shown)
 	MaxListings: number?, -- // Cap on the listings shown (the Featured tab shows 6)
 	getListings: () -> { ShopItems.ShopListing }, -- // In display order
-	subscribe: (onChanged: () -> ()) -> (), -- // Called once; onChanged runs whenever the listings or their ownership change
+	subscribe: (onChanged: () -> ()) -> (), -- // Called once; onChanged runs when the listings or their ownership change
 }
 
 export type ShopTabDefinition = {
 	Id: string,
 	Name: string,
-	Icon: string, -- // Emoji placeholder shown beside the name, for tabs without IconImage
-	IconImage: number?, -- // Image asset id shown beside the name instead of the emoji (from Icons)
-	AutoSelect: boolean?, -- // Whether this tab is the one selected when the gui is opened
-	Tab: ShopTab?, -- // Its content; nil opens blank (placeholder until the feature exists)
+	Icon: string, -- // Emoji placeholder beside the name, for tabs without IconImage
+	IconImage: number?, -- // Image asset id (from Icons) shown beside the name instead of the emoji
+	AutoSelect: boolean?, -- // Whether this tab is selected when the gui opens
+	Tab: ShopTab?, -- // Its content; nil opens blank
 }
 
--- // Optional layout overrides for a frame art that differs from the default (tabbed) one. Scales are of the Container.
+-- // Optional layout overrides for frame art that differs from the default (tabbed) one. Scales are of the Container.
 export type ShopLayout = {
-	HideTabs: boolean?, -- // No tab row (a single-tab shop); the first / AutoSelect tab is shown
+	HideTabs: boolean?, -- // No tab row (single-tab shop); the first / AutoSelect tab is shown
 	ListingsPosition: UDim2?,
 	ListingsSize: UDim2?,
 	GridColumns: number?, -- // Default 3
@@ -101,15 +99,15 @@ local OWNED_BUTTON_COLOR = Color3.fromRGB(150, 150, 150)
 local OWNED_TEXT = "Owned"
 local FREE_TEXT = "Free"
 
--- // Layout (all scales; the grid's pixel sizes are measured in layoutGrid). Columns / rows: config.Layout, default 3 x 2.
+-- // Layout (all scales; pixel sizes are measured in layoutGrid). Columns / rows: config.Layout, default 3 x 2.
 local DEFAULT_GRID_COLUMNS = 3
 local DEFAULT_GRID_ROWS = 2 -- // Rows visible at once
-local GRID_GAP_FRACTION = 0.012 -- // Gap between listings, as a fraction of the grid's width
-local SCROLLBAR_FRACTION = 0.022 -- // Scroll bar thickness, as a fraction of the grid's width
-local BUTTONS_SIZE = UDim2.fromScale(0.88, 0.215) -- // The price / gift / Robux row under a listing, in its listing
-local BUTTON_GAP = 0.03 -- // Gap between the buttons under a listing, as a fraction of their row's width
+local GRID_GAP_FRACTION = 0.012 -- // Gap between listings, as a fraction of grid width
+local SCROLLBAR_FRACTION = 0.022 -- // Scroll bar thickness, as a fraction of grid width
+local BUTTONS_SIZE = UDim2.fromScale(0.88, 0.215) -- // The price / gift / Robux button row under a listing
+local BUTTON_GAP = 0.03 -- // Gap between listing buttons, as a fraction of their row width
 
--- // Gifting isn't implemented yet: the square gift button is built and positioned, but hidden until it does something
+-- // Gifting isn't implemented: the gift button is built and positioned but hidden
 local GIFTING_ENABLED = false
 
 local CONTAINER_TWEEN_INFO_IN = TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
@@ -127,7 +125,7 @@ function ShopBuilder.create(config: ShopConfig)
 	local ShopGui = {}
 	ShopGui.Type = "HUD"
 	ShopGui.Open = false
-	ShopGui.RequiresMouse = true -- // Clickable menu: frees the mouse in the locked camera (MouseUnlockController)
+	ShopGui.RequiresMouse = true -- // Frees the mouse in a locked camera (MouseUnlockController)
 
 	-------------------------------------------------------------------------------
 	-- PRIVATE VARIABLES
@@ -138,7 +136,7 @@ function ShopBuilder.create(config: ShopConfig)
 	local GRID_COLUMNS = layout.GridColumns or DEFAULT_GRID_COLUMNS
 	local GRID_ROWS = layout.GridRows or DEFAULT_GRID_ROWS
 	local crateAssetsFolder = ReplicatedStorage.Shared:WaitForChild("Assets"):FindFirstChild("Crates")
-	local purchaseInFlight: { [string]: boolean } = {} -- // One crate purchase at a time per crate (no double charges)
+	local purchaseInFlight: { [string]: boolean } = {} -- // One purchase at a time per crate (prevents double charges)
 
 	local ShopScreenGui: ScreenGui
 	local Container: ImageLabel
@@ -159,13 +157,13 @@ function ShopBuilder.create(config: ShopConfig)
 	local listingStates: { [GuiObject]: ListingState } = {}
 	local listingCount = 0
 	local giftFraction = 0.18 -- // Width of the square gift button relative to its row; measured in layoutGrid
-	local refreshId = 0 -- // Bumped on every refresh so stale async work (policy, Robux prices) can tell
+	local refreshId = 0 -- // Bumped on every refresh so stale async work (policy, Robux prices) can detect it
 
 	-------------------------------------------------------------------------------
 	-- PRIVATE FUNCTIONS
 	-------------------------------------------------------------------------------
 
-	-- // CreateElement returns the instance and its destroyers; only the instance is wanted here
+	-- // CreateElement returns the instance and its destroyers; only the instance is returned here
 	local function new(className: string, properties: { [string]: any }, children: { any }?): any
 		local element = CreateElement(className, properties, children)
 		return element
@@ -202,7 +200,7 @@ function ShopBuilder.create(config: ShopConfig)
 		return (reversed:gsub("^,", ""))
 	end
 
-	-- // Grows the button a little while hovered (through its UIScale, so it works inside layouts)
+	-- // Grows the button while hovered (through its UIScale, so it works inside layouts)
 	local function setupButtonHover(button: GuiButton)
 		local uiScale = button:FindFirstChildOfClass("UIScale") or Instance.new("UIScale")
 		uiScale.Parent = button
@@ -371,7 +369,7 @@ function ShopBuilder.create(config: ShopConfig)
 			ZIndex = 2,
 		}, {
 			new("UIScale", {}),
-			-- // The tab's icon: its image (IconImage) or, until it has one, an emoji in its own label (ICON PLACEHOLDER)
+			-- // The tab's icon: IconImage, else an emoji in its own label (ICON PLACEHOLDER)
 			if tabInfo.IconImage then
 				new("ImageLabel", {
 					Name = "ICON",
@@ -434,7 +432,7 @@ function ShopBuilder.create(config: ShopConfig)
 		})
 	end
 
-	-- // One grid cell: name, rarity, the model, and the price / gift / Robux buttons. Its size comes from the GridLayout.
+	-- // One grid cell: name, rarity, model, and price / gift / Robux buttons. Its size comes from the GridLayout.
 	local function createListing(display: ShopListings.ListingDisplay, order: number): ImageLabel
 		local style = RarityStyles.get(display.Rarity)
 
@@ -561,8 +559,9 @@ function ShopBuilder.create(config: ShopConfig)
 		end
 	end
 
-	-- // Sizes the 3x2 grid from the grid's measured size (the Container keeps a fixed aspect ratio, so this only changes
-	-- // when the screen does). A scroll bar, when the tab has more than 6 listings, takes its width out of the cells.
+	-- // Sizes the 3x2 grid from its measured size (the Container has a fixed aspect ratio, so this changes only with
+	-- // the
+	-- // screen). A scroll bar (tabs with more than 6 listings) takes its width out of the cells.
 	local function layoutGrid()
 		local size = ListingsFrame.AbsoluteSize
 		if size.X <= 0 or size.Y <= 0 then
@@ -619,7 +618,7 @@ function ShopBuilder.create(config: ShopConfig)
 			setupButtonHover(currencyButton)
 			currencyButton.MouseButton1Click:Connect(function()
 				if display.Type == "Crate" then
-					-- // One at a time; the result popup is shown by ShopController / SkinController
+					-- // One at a time; ShopController / SkinController show the result popup
 					if purchaseInFlight[display.Id] then
 						return
 					end
@@ -628,7 +627,7 @@ function ShopBuilder.create(config: ShopConfig)
 						local bought = ShopController.requestPurchaseCrate(display.Id)
 						purchaseInFlight[display.Id] = nil
 						if bought and ShopGui.Open then
-							ShopGui.close() -- // The crate is waiting next to the player, to be clicked open
+							ShopGui.close() -- // The crate waits next to the player to be clicked open
 						end
 					end)
 					return
@@ -675,7 +674,7 @@ function ShopBuilder.create(config: ShopConfig)
 		listingCount = 0
 	end
 
-	-- // Rebuilds the grid from the open tab. A tab without content (not set up yet) opens blank.
+	-- // Rebuilds the grid from the open tab. A tab without content opens blank.
 	local function refreshListings()
 		refreshId += 1
 		local thisRefreshId = refreshId
@@ -709,7 +708,7 @@ function ShopBuilder.create(config: ShopConfig)
 		end
 
 		listingCount = #displays
-		layoutGrid() -- // Before the listings exist, so the cell size is right for them
+		layoutGrid() -- // Before the listings exist, so the cell size is right
 		for order, display in displays do
 			buildListing(display, order, thisRefreshId).Parent = ListingsFrame
 		end
@@ -751,7 +750,7 @@ function ShopBuilder.create(config: ShopConfig)
 			button.Parent = TabsFrame
 			tabButtons[tabId] = button
 
-			-- // Every tab can be opened; one without content (not set up yet) just shows blank content
+			-- // Every tab can be opened; one without content shows blank
 			local tab = tabDefinitions[tabId].Tab
 			if tab then
 				tabModules[tabId] = tab
@@ -791,7 +790,7 @@ function ShopBuilder.create(config: ShopConfig)
 		selectTab(getDefaultTabId(), true)
 		playContainerTween(CONTAINER_TWEEN_INFO_IN, containerGoalPosition)
 		UIController.supercede(config.Name, "GamemodeHud")
-		UIController.closeOtherMenus(config.Name) -- // After superceding, so the closing menu doesn't bring the HUD back
+		UIController.closeOtherMenus(config.Name) -- // After superceding, so the closing menu doesn't restore the HUD
 	end
 
 	function ShopGui.close()
@@ -802,7 +801,7 @@ function ShopBuilder.create(config: ShopConfig)
 		task.delay(CONTAINER_TWEEN_INFO_OUT.Time, function()
 			if not ShopGui.Open then
 				ShopScreenGui.Enabled = false
-				refreshId += 1 -- // Drop any async work still running for the listings
+				refreshId += 1 -- // Invalidates async listing work still running
 				clearListings()
 			end
 		end)

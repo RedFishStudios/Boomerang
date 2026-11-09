@@ -75,7 +75,7 @@ local NotCompatible: {
    }
 }
 
--- Fullfill reverse lookups from what is manually defined in NotCompatible
+-- Fill in reverse lookups from what is manually defined in NotCompatible
 local function instantiateReverseCompatibility()
    for k, v in pairs(NotCompatible) do
       for _, incompatible in ipairs(v) do
@@ -542,7 +542,6 @@ function PickupService.init()
 
       -- Despawn expired live pickups
       --[[for livePickupId, livePickup in pairs(PickupLibrary.LivePickups) do
-         -- man idk if pickups even need to be despawned. they probably dont.
          if livePickup.DespawnsAt <= now then
             PickupLibrary.LivePickups[livePickupId] = nil
             -- Replicate

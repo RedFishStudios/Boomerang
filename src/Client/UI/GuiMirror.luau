@@ -2,11 +2,10 @@
 	GuiMirror
 
 	Description:
-	Flips a GuiObject to the other side of its parent horizontally (for the left-handed touch layout): its Position's X
-	and AnchorPoint's X are mirrored, so it sits the same distance from the opposite edge. The original values are
-	remembered, so mirroring twice or un-mirroring always comes back to exactly where it was. If something else moves
-	the object while it's mirrored (e.g. Roblox re-laying out its touch controls), call setMirrored again: the new
-	position is taken as the new original.
+	Mirrors a GuiObject horizontally within its parent (left-handed touch layout) by flipping Position X and
+	AnchorPoint X. Original values are stored, so un-mirroring restores them exactly. If something else moves the
+	object while mirrored (e.g. Roblox re-laying out touch controls), call setMirrored again to take the new position
+	as the original.
 ]]
 
 local GuiMirror = {}
@@ -41,10 +40,10 @@ function GuiMirror.setMirrored(guiObject: GuiObject, mirrored: boolean)
 		return
 	end
 	if mirrored then
-		-- // Wherever it is now (not one of our mirrored values) is its original place
+		-- // Current values become the originals
 		local position, anchorPoint = guiObject.Position, guiObject.AnchorPoint
 		if state and anchorPoint == state.MirroredAnchorPoint then
-			anchorPoint = state.OriginalAnchorPoint -- // Only its Position was changed since: the anchor is still ours
+			anchorPoint = state.OriginalAnchorPoint -- // Only Position changed; the anchor is still the mirrored one
 		end
 		state = {
 			OriginalPosition = position,

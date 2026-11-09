@@ -1,5 +1,5 @@
 --[[
-	These I use in remotes so they're easily bufferized
+	Numeric remote codes, so they serialize easily into buffers
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

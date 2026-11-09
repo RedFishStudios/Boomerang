@@ -173,8 +173,8 @@ local function toHorizontalUnit(v: Vector3): Vector3?
 end
 
 -- // For projectiles (e.g. thrown boomerangs): if the step from origin along direction for distance enters a portal,
--- // returns where it comes out of the paired portal and its new direction. Keeps the projectile's height.
--- // lastExitAt/ lastExitPart (optional) stop a projectile from immediately re-entering the portal it just left.
+-- // returns where it exits the paired portal and its new direction, keeping the projectile's height.
+-- // lastExitAt/lastExitPart (optional) stop immediate re-entry into the portal it just left.
 function Portal.getProjectileExit(origin: Vector3, direction: Vector3, distance: number, radius: number, lastExitAt: number?, lastExitPart: BasePart?): ProjectileExit?
    local nearestT, nearestEntry, nearestPair = math.huge, nil, nil
    local isCoolingDown = lastExitAt ~= nil and os.clock() - lastExitAt < PROJECTILE_PORTAL_COOLDOWN

@@ -1,6 +1,6 @@
--- // While active, the player can explode their boomerang with the on-screen button (UsePickupButtons GUI) while it is out
--- // of their hand, once per throw, and it returns faster. It no longer explodes by itself (end of the throw / first kill).
--- // The faster return is applied in WeaponLogics/Boomerang.recall (speed) and below (shorter weapon lock after an explosion).
+-- // While active, the player can explode their boomerang with the on-screen button (UsePickupButtons GUI) while it is
+-- // out of their hand, once per throw, and it returns faster (speed in WeaponLogics/Boomerang.recall; shorter weapon
+-- // lock after an explosion below).
 
 local ExplosiveBoomerang = {}
 
@@ -33,8 +33,8 @@ else
    ToolController = require(ReplicatedStorage.Client.Core.ToolController)
 end
 
--- // One explosion per throw: the instance id of the boomerang that already exploded (each throw has a new one). Both sides
--- // keep it (the client marks its own press right away, so the button dims without waiting for the server).
+-- // One explosion per throw: instance id of the boomerang that already exploded. Both sides keep it (the client marks
+-- // its own press at once so the button dims without waiting for the server).
 local explodedInstanceId: {[Player]: string} = {}
 
 ExplosiveBoomerang.ExplosionOccurred = TasksList.new() :: TasksList.TasksList<(player: Player, explosionCFrame: CFrame) -> ()>
@@ -77,7 +77,7 @@ local function applyExplosion(player: Player, position: Vector3)
          CombatLibrary.attackHitPlayer(player, "ExplosiveBoomerang", p, nil, 10000, true)
       end
    end
-   -- // The effect stays active until it times out (onEnd); it no longer ends after the first explosion
+   -- // The effect stays active until it times out (onEnd)
 end
 
 -- // Usable while the player's boomerang is out of their hand and hasn't exploded yet this throw

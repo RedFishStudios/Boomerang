@@ -42,7 +42,6 @@ local function updateIsInLobby()
       return
    end
 
-   -- Check using volume check
    if LobbyLibrary.isCharacterInLobby(character) then
       if not isInLobby then
          isInLobby = true

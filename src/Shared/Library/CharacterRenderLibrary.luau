@@ -131,7 +131,7 @@ end
 function CharacterRenderLibrary.removeReplicatedModelFromFolder(replicationFolder: Folder, userId: number)
    local modelName = CharacterRenderLibrary.getModelNameForUserId(userId)
 
-   -- There should only ever be one model, but make destruction absolute to fight any possible race condition
+   -- Destroy every matching model, in case a race created duplicates
    for _, child in pairs(replicationFolder:GetChildren()) do
       if child:IsA("Model") and child.Name == modelName then
          child:Destroy()

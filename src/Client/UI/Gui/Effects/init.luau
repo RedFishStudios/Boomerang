@@ -23,7 +23,7 @@ local Gui = script:WaitForChild("Effects") :: ScreenGui
 local RootFrame = Gui:WaitForChild("Root") :: Frame
 local EffectFrameTemplate = script:WaitForChild("EffectFrameTemplate") :: CanvasGroup
 
-local EFFECT_FRAME_PADDING = 0.15 -- Gap between frames, as a fraction of RootFrame's width
+local EFFECT_FRAME_PADDING = 0.15 -- Gap between frames, as a fraction of RootFrame width
 local PERMANENT_EFFECT_TEXT = "-"
 local MOVE_TWEEN_INFO = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local FADE_IN_TWEEN_INFO = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
@@ -44,7 +44,7 @@ local effectOrder: {PickupLibrary.LivePickupId} = {} -- Acquisition order; left 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Layout
--- // Simulates a centered horizontal list; frames glide to new slots, except a just-added frame which snaps into place
+-- // Simulates a centered horizontal list; frames glide to new slots, except a just-added frame, which snaps
 
 local function getEffectFramePosition(index: number, count: number): UDim2
    local offsetFromCenter = (index - (count + 1) / 2) * (1 + EFFECT_FRAME_PADDING)
@@ -97,7 +97,7 @@ local function fadeOutAndDestroy(effect: ActiveEffect)
       effect.MoveTween = nil
    end
    local fadeTween = playFade(effect, FADE_OUT_TWEEN_INFO, 1)
-   -- // Fires on cancellation too, so the frame is never orphaned
+   -- // Also fires on cancellation, so the frame is never orphaned
    fadeTween.Completed:Once(function()
       destroyEffectFrame(effect)
    end)
@@ -181,7 +181,7 @@ local function removeEffect(livePickupId: PickupLibrary.LivePickupId)
    layoutEffectFrames()
 end
 
--- // Refresh hud display using current game state data
+-- // Opens or closes the HUD based on game state
 local function refreshUiFromGameState()
    if GameStateLibrary.getGameStateData().CurrentRoundData:Get() == nil then
       EffectsGui.close()

@@ -1,4 +1,4 @@
--- // Manages clientside replication of player characters, including their own
+-- // Manages client-side rendering of player characters, including the local one
 
 local CharacterRenderController = {}
 
@@ -37,18 +37,17 @@ local characterPositionOffsets: {[Player]: Vector3} = {}
 local ragdollApplied: {[Player]: true} = {}
 local disguiseModels: {[Player]: Model} = {}
 
--- // [authoritativeAnimationId]: [customCharacterAnimationTrack]
---    The authoritative model is used as the reference point for animations and animations are synced to that authoritative model
+-- // [authoritativeAnimationId]: [customCharacterAnimationTrack], synced to the authoritative model's tracks
 local syncedAnimationTracks: {
    [Player]: {
       [string]: AnimationTrack
    }
 } = {}
 
--- // Server authority (Workspace.AuthorityMode = Server): Roblox's Animate is a ModuleScript that keeps its state in
---    HumanoidRootPart attributes ("pose", "currentAnimId", ...). Those attributes replicate to every client, so the rendered
---    model is animated from the authoritative character's "pose" attribute instead of mirroring its tracks.
---    When the attribute is missing (AuthorityMode = Automatic, classic Animate LocalScript), the old track mirroring is used.
+-- // Server authority (Workspace.AuthorityMode = Server): the Animate ModuleScript keeps its state in replicated
+--    HumanoidRootPart attributes ("pose", "currentAnimId", ...), so the rendered model is animated from "pose".
+--    Without that attribute (AuthorityMode = Automatic, classic Animate LocalScript), the authoritative tracks are
+-- mirrored.
 type PoseAnimationData = {
    Animate: Instance, -- // the rendered model's Animate (LocalScript or ModuleScript); holds the animation folders
    Animator: Animator,
@@ -208,7 +207,7 @@ local function applyRagdoll(player: Player, model: Model)
       repeat
          RunService.Stepped:Wait()
         	for index, descendant in pairs(model:GetDescendants()) do
-            -- // Joints: AnimationConstraints, and the Motor6Ds KeyframeClipTrack turns them into
+            -- // Joints: AnimationConstraints, and the Motor6Ds KeyframeClipTrack converts them to
             if descendant:IsA("AnimationConstraint") or (descendant:IsA("Motor6D") and descendant:GetAttribute("ConvertedFromAnimationConstraint")) then
                descendant:Destroy()
             elseif descendant:IsA("BasePart") or descendant:IsA("MeshPart") then
@@ -301,7 +300,7 @@ local function extractAnimations(player: Player, customCharacter: Model)
    end
 end
 
--- // Loads (once) the rendered model's track for an Animate folder such as "walk"; picks the variant with the highest Weight
+-- // Loads (once) the rendered model's track for an Animate folder such as "walk"; picks the highest-Weight variant
 local function getPoseTrack(data: PoseAnimationData, animationName: string): AnimationTrack?
    local track = data.Tracks[animationName]
    if track then
@@ -346,7 +345,7 @@ local function getRenderedHeightScale(data: PoseAnimationData): number
    return hipHeight / HUMANOID_HIP_HEIGHT
 end
 
--- // Drives the rendered model from the authoritative character's replicated "pose" attribute (Server authority)
+-- // Animates the rendered model from the authoritative character's "pose" attribute (Server authority)
 local function syncPoseAnimations(player: Player, authorityCharacter: Model, authorityRoot: BasePart, pose: string)
    local data = poseAnimationData[player]
    if not data then
@@ -365,14 +364,14 @@ local function syncPoseAnimations(player: Player, authorityCharacter: Model, aut
       wanted.toolnone = true
    end
 
-   -- // Stop what's no longer wanted ("Dead", "PlatformStanding", etc. stop everything)
+   -- // Stop unwanted tracks ("Dead", "PlatformStanding", etc. stop everything)
    for name, track in pairs(data.Tracks) do
       if not wanted[name] and track.IsPlaying then
          track:Stop(POSE_TRANSITION_TIME)
       end
    end
 
-   -- // Start what's newly wanted; restart looped tracks that were stopped by something else
+   -- // Start wanted tracks; restart looped tracks stopped externally
    for name in pairs(wanted) do
       local track = getPoseTrack(data, name)
       if track and not track.IsPlaying and (not data.Active[name] or track.Looped) then
@@ -383,7 +382,7 @@ local function syncPoseAnimations(player: Player, authorityCharacter: Model, aut
    if pose == "Running" then
       local velocity = authorityRoot.AssemblyLinearVelocity
       local horizontalSpeed = Vector3.new(velocity.X, 0, velocity.Z).Magnitude
-      -- // The Animate first normalizes studs/s by WALK_SPEED_SCALE (16 for R15), then applies root motion compensation
+      -- // Matches the Animate: studs/s normalized by WALK_SPEED_SCALE (16 for R15), then root motion compensation
       local runSpeed = (horizontalSpeed / R15_WALK_SPEED_SCALE) * 1.25 / getRenderedHeightScale(data)
       local walkWeight, runWeight, timeWarp = 0.0001, 0.0001, 1
       if runSpeed <= NORMALIZED_WALK_SPEED then
@@ -428,12 +427,12 @@ local function setAuthoritativeCharacterTransparency(player: Player, transparenc
    end
 end
 
--- // The server-authoritative character is never meant to be seen; only the client-rendered model is
+-- // The server-authoritative character is hidden; only the client-rendered model is seen
 local function getHiddenAuthoritativeTransparency(): number
    return if GlobalConfig.AuthoritativeCharacterDebugVisible then 0.5 else 1
 end
 
--- // Create fabricated character model
+-- // Creates the fabricated character model
 local function createCharacterModel(player: Player, canYield: boolean?)
    creatingCharacterModels[player] = true
 
@@ -485,8 +484,8 @@ local function createCharacterModel(player: Player, canYield: boolean?)
    local model = sourceModel:Clone()
    model.Name = `{player.UserId}_LocalModel`
 
-   -- // The rendered model is visual only and is placed with PivotTo every frame. Unanchored, its physics
-   -- // (animation constraints, Humanoid AutoRotate) turned it away from the aim while charging. Ragdoll unanchors it.
+   -- // The model is visual only and placed with PivotTo every frame. Its root stays anchored because physics
+   -- // (animation constraints, Humanoid AutoRotate) would turn it away from the aim. Ragdoll unanchors it.
    local renderedRoot = model:FindFirstChild("HumanoidRootPart")
    if renderedRoot and renderedRoot:IsA("BasePart") then
       renderedRoot.Anchored = true
@@ -538,7 +537,7 @@ local function createCharacterModel(player: Player, canYield: boolean?)
             return
          end
 
-         -- // Sync any playing track to the custom character if not already playing
+         -- // Sync playing tracks to the custom character
          for _, track in pairs(playingTracks) do
             local syncedTrack = syncedTracks[track.Animation.AnimationId]
             local speed = track.Speed
@@ -550,7 +549,7 @@ local function createCharacterModel(player: Player, canYield: boolean?)
             end
          end
 
-         -- // Stop any synced track that is no longer playing on the authoritative character
+         -- // Stop synced tracks no longer playing on the authoritative character
          for mappedAnimationId, track in pairs(syncedTracks) do
             if not track.IsPlaying then
                continue
@@ -601,7 +600,7 @@ local function createCharacterModel(player: Player, canYield: boolean?)
 	return model
 end
 
--- // Sync fabricated character model to the authoritative character root without inheriting animation bob
+-- // Syncs the fabricated model to the authoritative root without inheriting animation bob
 local function syncCharacterPositions(player, character, targetModel)
    local targetHumanoid = targetModel:FindFirstChildOfClass("Humanoid")
    if not targetHumanoid then
@@ -649,14 +648,13 @@ local function syncCharacterPositions(player, character, targetModel)
    character:PivotTo(currentRotation + adjustedPosition)
 end
 
--- // Retrieve fabricated character model, creating it if necessary
+-- // Returns the fabricated character model, creating it if necessary
 local function getCharacterModel(player: Player, canYield: boolean?): Model?
    if not player.Character or not player.Character.PrimaryPart then
       return nil
    end
 
-   -- If the previous render model is in ragdoll state but the authoritative character is alive,
-   -- that render model is stale (from the previous life) and must be rebuilt.
+   -- A ragdolled render model with a living authoritative character is stale and must be rebuilt.
    if localCharacterModels[player] and ragdollApplied[player] then
       local authorityHumanoid = player.Character:FindFirstChildOfClass("Humanoid")
       if authorityHumanoid and authorityHumanoid.Health > 0 then
@@ -704,7 +702,7 @@ local function everyFrame(deltaTime)
 
       local model = getCharacterModel(p, false)
       if not model then
-         -- // Still loading: stay hidden. Load failed: fall back to showing the authoritative character so the player isn't invisible
+         -- // Still loading: stay hidden. Load failed: show the authoritative character so the player isn't invisible
          local renderFailed = lastCreationLoadFailure[p] ~= nil and GlobalConfig.ShowAuthoritativeCharacterOnRenderFailure
          setAuthoritativeCharacterTransparency(p, if renderFailed then 0 else getHiddenAuthoritativeTransparency())
          continue
@@ -725,8 +723,8 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
--- // canAcceptDisguise: true to get the Disguise model while one is active (what the player looks like to others). Otherwise the
---    real avatar is returned: the Disguise model has no Humanoid, Animator or arms, so callers that need those would wait on it.
+-- // canAcceptDisguise: true returns the Disguise model while one is active. Otherwise the real avatar is returned;
+--    the Disguise model has no Humanoid, Animator or arms.
 function CharacterRenderController.getCharacterModel(player: Player, canYield: boolean?, canAcceptDisguise: boolean?): Model?
    if canAcceptDisguise and disguiseModels[player] then
       return disguiseModels[player]
@@ -734,27 +732,23 @@ function CharacterRenderController.getCharacterModel(player: Player, canYield: b
    return getCharacterModel(player, canYield)
 end
 
--- // The player's real (cached) avatar render model, ignoring any active Disguise. Use this when the avatar itself is
---    wanted (e.g. a Decoy clone), not whatever the player currently looks like to others.
+-- // The player's real (cached) avatar render model, ignoring any active Disguise (e.g. for a Decoy clone)
 function CharacterRenderController.getUndisguisedCharacterModel(player: Player, canYield: boolean?): Model?
    return getCharacterModel(player, canYield)
 end
 
--- // Returns a fresh, standalone clone of a player's client-rendered character model (not driven by the controller:
---    not synced to the player's character, not tracked, not parented anywhere). The caller owns it and must parent and
---    destroy it. Yields. Returns nil when the user isn't in the server or no model could be built.
---    Reuses the player's existing rendered model when there is one, waits for it when it is being created,
---    and starts creating it otherwise (all handled by getCharacterModel). If the rendered model can't be had (e.g. the
---    character is missing or ragdolled), the pristine replicated model is cloned instead.
+-- // Returns a standalone clone of a player's client-rendered model (unsynced, untracked, unparented); the caller must
+--    parent and destroy it. Yields. Returns nil when the user isn't in the server or no model could be built.
+--    If the rendered model isn't available (character missing or ragdolled), the replicated model is cloned instead.
 function CharacterRenderController.getFreshCharacterModelForUserId(userId: number): Model?
    local player = Players:GetPlayerByUserId(userId)
    if not player then
       return nil
    end
 
-   -- // Start creation if nothing exists or is pending (no-op otherwise), then wait for the model to appear. The per-frame
-   --    loop keeps retrying creation, and the replicated source can arrive well after boot, so a single yielding
-   --    creation attempt (5s limit, strict descendant count) is not used here.
+   -- // Starts creation if none exists or is pending, then waits for the model. The per-frame loop keeps retrying,
+   -- // since the
+   --    replicated source can arrive well after boot; a single yielding attempt (5s limit) is not used.
    local source = getCharacterModel(player, false)
    local elapsed = 0
    while not source and elapsed < FRESH_MODEL_WAIT_TIMEOUT and player.Parent do
@@ -775,7 +769,7 @@ function CharacterRenderController.getFreshCharacterModelForUserId(userId: numbe
 
    local model = source:Clone()
    model.Name = `{userId}_FreshModel`
-   -- // Animate scripts and their animation folders belong to the live render; the clone is driven by its new owner
+   -- // Animate scripts and animation folders belong to the live render; the clone's new owner drives it
    for _, child in pairs(model:GetChildren()) do
       if child:IsA("LuaSourceContainer") then
          child:Destroy()
@@ -831,16 +825,8 @@ end
 return CharacterRenderController
 
 --[[
-DYING AND SUCH PLAN
-- When a character spawns, they should have a completely new character render and animation tracks.
-  - Destroy all old ones when they die
-- When a character dies:
-  - Their custom model should ragdoll
-  This means:
-  - Animation sync stops
-  - All animaton stops
-  - Custom model is rendered into a "Dead" state with ragdoll joints
-  - Custom model should cease syncing to the authoritative model position
-  - Custom model should collide with map objects, but NOT be considered an object that the authoritative model stands on  
-
+Death handling:
+- On spawn, a character gets a new render model and animation tracks; the old ones are destroyed on death.
+- On death, the render model ragdolls ("Dead" state with ragdoll joints): animation and position sync stop,
+  and it collides with map objects but is not something the authoritative model stands on.
 ]]

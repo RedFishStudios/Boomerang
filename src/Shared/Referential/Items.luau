@@ -14,7 +14,7 @@ export type ItemClass = {
    Model: string?, -- // Model in Shared/Assets/Tools shown in GUI viewports (Shop, Daily Rewards)
 }
 
--- // No items yet: boomerang skins live in Shared/Referential/Skins (the Example placeholders were removed for skins)
+-- // No items yet; boomerang skins are in Shared/Referential/Skins
 return {
 } :: {
    [ItemClassId]: ItemClass

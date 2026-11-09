@@ -2,13 +2,12 @@
 	GuiInsetController
 
 	Description:
-	The player controls how far every GUI stays from the screen's edges (Settings: Left / Right / Top / Bottom Inset,
-	in pixels). Roblox's own safe-area insets are turned off on every ScreenGui in the PlayerGui (ScreenInsets = None,
-	IgnoreGuiInset = true), and each one gets a UIPadding named PlayerGuiInsets with the player's insets instead.
-	ScreenGuis added later (cloned GUIs, Cmdr...) are handled when they appear.
+	Applies the player's GUI insets (Settings: Left / Right / Top / Bottom Inset, in pixels). On every ScreenGui in the
+	PlayerGui, Roblox's safe-area insets are turned off (ScreenInsets = None, IgnoreGuiInset = true) and a UIPadding named
+	PlayerGuiInsets applies the player's insets. ScreenGuis added later (cloned GUIs, Cmdr...) are handled as they appear.
 
-	A ScreenGui with the attribute KeepRobloxInsets = true (set before it's parented) is left alone: it keeps Roblox's
-	insets and ignores the player's. The Topbar uses this, so its buttons line up with Roblox's own topbar buttons.
+	A ScreenGui with attribute KeepRobloxInsets = true (set before parenting) is left alone, keeping Roblox's insets.
+	The Topbar uses this to line up with Roblox's own topbar buttons.
 ]]
 
 local GuiInsetController = {}

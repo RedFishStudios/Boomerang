@@ -1,5 +1,5 @@
--- // While active, the player can teleport to their boomerang with the on-screen button (UsePickupButtons GUI) while it is
--- // out of their hand. One use: the effect ends when they teleport (or when it times out). It no longer triggers by itself.
+-- // While active, the player can teleport to their boomerang with the on-screen button (UsePickupButtons GUI) while it
+-- // is out of their hand. One use: the effect ends on teleport or timeout.
 
 local TeleportBoomerang = {}
 
@@ -40,7 +40,7 @@ function TeleportBoomerang.onUse(player: Player)
    if not position or not character or not character.PrimaryPart then
       return
    end
-   -- // At the boomerang's spot, at flight height (where the boomerang's physics is), like the old end-of-throw teleport
+   -- // At the boomerang's spot, at flight height (where its physics is)
    local destination = Vector3.new(position.X, GlobalConfig.BoomerangFlightHeight, position.Z)
    character:PivotTo(CFrame.new(destination) * character:GetPivot().Rotation)
    -- // Required lazily to avoid a load-time cycle (PickupService requires this module)

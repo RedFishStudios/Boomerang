@@ -45,7 +45,7 @@ local MarketplaceItems: {
 	ByName: { [string]: RobuxItem }, -- // Products and gamepasses
 	ProductsById: { [number]: RobuxItem },
 	GamepassesById: { [number]: RobuxItem },
-	ById: { [number]: RobuxItem }, -- // Same table as ProductsById (kept for older code)
+	ById: { [number]: RobuxItem }, -- // Same table as ProductsById
 } = {
 	ByName = {},
 	ProductsById = {},

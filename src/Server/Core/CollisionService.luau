@@ -2,13 +2,10 @@
   CollisionService
 
   Description:
-  Service responsible for handling collision groups
+  Handles collision groups
 
   Author:
   @SixthAtom
-
-  Date:
-  23-03-2026
 ]]
 
 local CollisionService = {}

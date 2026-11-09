@@ -2,8 +2,8 @@
 	Crates tab (Weapons Shop)
 
 	Description:
-	Every weapon crate on sale (Shared/Referential/Crates), in their Order. The Weapons Shop is a single window with only
-	this tab (its tab row is hidden). Crates can be bought again and again, so nothing changes their listing.
+	Every weapon crate on sale (Shared/Referential/Crates), in their Order. The Weapons Shop has only this tab (its tab
+	row is hidden). Crates can be bought repeatedly, so their listing never changes.
 	Follows the ShopTab shape in ShopCommon/ShopBuilder.
 ]]
 

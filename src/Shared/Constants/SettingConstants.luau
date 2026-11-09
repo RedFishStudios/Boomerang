@@ -2,10 +2,9 @@
 	SettingConstants
 
 	Description:
-	Every player setting: its type, how it's shown in the Settings menu, and its default per device. Players' changes are
-	saved in the profile (`Settings`: setting id -> value, only for settings they changed); a setting with no saved value
-	uses the default for the device they're on. SettingsService (server) saves changes, SettingsController (client) reads
-	and applies them.
+	Every player setting: its type, Settings menu display and per-device default. Changes are saved in the profile
+	(`Settings`: setting id -> value, changed settings only); an unsaved setting uses the device default.
+	SettingsService (server) saves changes, SettingsController (client) applies them.
 
 	Setting ids are saved: never rename or reuse one.
 ]]

@@ -1,20 +1,16 @@
 --[[
 	RecallChargeController
 
-	The visuals of a manual recall of a dead boomerang, for EVERY player (each client renders them from the replicated state, so
-	everyone sees the same thing):
-	  - the "Summon" animation on the player, and
-	  - the SelectionRing around their boomerang, tinted like their boomerang trail (BoomerangColorUtil).
-	Both exist exactly while DeadWeaponLogic.isRecallChargeActive(player): the recall is being held on a dead boomerang (it is
-	lifting), or the charged boomerang is flying back. They end when the recall is released early (the ring shrinks away) or when
-	the boomerang is caught / removed (the ring is destroyed at once and the animation stops).
-	(The lift itself and the charge timing live in Dead.luau; the player-to-boomerang beam is DeadWeaponBeamController.)
+	Visuals of a manual recall of a dead boomerang, for EVERY player (rendered on each client from replicated state):
+	  - the "Summon" animation on the player, with pale-yellow pulse rings at the pulling (right) hand
+	  - the SelectionRing around their boomerang, tinted like their boomerang trail (BoomerangColorUtil)
+	Both exist exactly while DeadWeaponLogic.isRecallChargeActive(player): the recall is held on a dead boomerang (lifting),
+	or the charged boomerang is flying back. They end when the recall is released early (the ring shrinks away) or the
+	boomerang is caught / removed (the ring is destroyed at once and the animation stops). An automatic return shows neither.
+	(The lift and charge timing are in Dead.luau; the player-to-boomerang beam is DeadWeaponBeamController.)
 
-	While the manual recall lasts, the recall pose ("Summon") plays with pale-yellow pulse rings at the pulling (right) hand.
-	An automatic return shows neither.
-
-	Like the beam controller, nothing here reacts to events: every frame it compares what should exist with what does, so a
-	late, duplicated or missing event can't leave a stray ring or a stuck animation.
+	Like the beam controller, nothing reacts to events: every frame it compares what should exist with what does, so late,
+	duplicated or missing events can't leave a stray ring or stuck animation.
 ]]
 
 local RecallChargeController = {}
@@ -40,7 +36,7 @@ local CharacterRenderController = require(ReplicatedStorage.Client.Core.Characte
 local CONTAINER_NAME = "RecallSelectionRings"
 local RING_START_SIZE = Vector3.new(0.001, 0.001, 0.001)
 local RING_START_TRANSPARENCY = 1
--- // Grow: the size overshoots a little (Back) and settles; transparency fades in smoothly alongside
+-- // Grow: size overshoots slightly (Back) and settles; transparency fades in alongside
 local GROW_SIZE_EASING = Enum.EasingStyle.Back
 local GROW_TRANSPARENCY_EASING = Enum.EasingStyle.Quad
 
@@ -66,7 +62,7 @@ type RingEntry = {
 -------------------------------------------------------------------------------
 
 local rings: { [Player]: RingEntry } = {}
--- // Rings shrinking away after an early release, still following their player's boomerang until they are gone
+-- // Rings shrinking away after an early release, following their player's boomerang until gone
 local vanishingRings: { [MeshPart]: Player } = {}
 local summonPlaying: { [Player]: boolean } = {}
 local handPulses: { [Player]: { Gui: BillboardGui, Hand: BasePart, Rings: { UIStroke }, StartedAt: number } } = {}
@@ -95,7 +91,7 @@ local function getContainer(): Folder
 	return folder
 end
 
--- // Where the player's boomerang model is drawn right now (dead or dying, or flying back), whatever the recall state
+-- // Where the player's boomerang model is drawn now (dead, dying or flying back), regardless of recall state
 local function getAnyWeaponPosition(player: Player): Vector3?
 	local deadWeaponData = DeadWeapons.Data[player]
 	local thrownWeaponData = ThrownWeapons.Data[player]
@@ -106,7 +102,7 @@ local function getAnyWeaponPosition(player: Player): Vector3?
 	return nil
 end
 
--- // The part the ring follows: the boomerang's pivot (dead boomerang, or the charged one flying back)
+-- // The part the ring follows: the boomerang's pivot (dead, or charged and flying back)
 local function getWeaponPosition(player: Player): Vector3?
 	local host: Instance? = nil
 	local deadWeaponData = DeadWeapons.Data[player]
@@ -157,7 +153,7 @@ local function createRing(player: Player, position: Vector3)
 	rings[player] = { Ring = ring, Tweens = { sizeTween, transparencyTween } }
 end
 
--- // immediate = the boomerang was caught / removed: destroy it now. Otherwise (released early) it shrinks away quickly.
+-- // immediate = the boomerang was caught / removed: destroy now. Otherwise (released early) it shrinks away quickly.
 local function removeRing(player: Player, immediate: boolean)
 	local entry = rings[player]
 	if not entry then
@@ -175,13 +171,13 @@ local function removeRing(player: Player, immediate: boolean)
 	local vanishSeconds = GlobalConfig.SelectionRingVanishSeconds
 	local info = TweenInfo.new(vanishSeconds, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 	local vanishTween = TweenService:Create(ring, info, { Size = RING_START_SIZE, Transparency = 1 })
-	vanishingRings[ring] = player -- // Keeps clinging to the boomerang as it drops and slides after the release
+	vanishingRings[ring] = player -- // Keeps following the boomerang as it drops and slides after release
 	vanishTween.Completed:Once(function()
 		vanishingRings[ring] = nil
 		ring:Destroy()
 	end)
 	vanishTween:Play()
-	Debris:AddItem(ring, vanishSeconds + 1) -- // Safety net: never leaves a ring behind even if the tween is cancelled
+	Debris:AddItem(ring, vanishSeconds + 1) -- // Safety net: no ring is left behind if the tween is cancelled
 end
 
 local function setSummon(player: Player, wanted: boolean)
@@ -266,7 +262,7 @@ local function updateHandPulse(player: Player, wanted: boolean)
 		local frame = stroke.Parent :: Frame
 		local scale = 0.38 + phase * 0.6
 		frame.Size = UDim2.fromScale(scale, scale)
-		stroke.Transparency = 1 - math.sin(phase * math.pi) * 0.8 -- // Fades in and out, so a ring never pops when it restarts
+		stroke.Transparency = 1 - math.sin(phase * math.pi) * 0.8 -- // Fades in and out so a restarting ring doesn't pop
 	end
 end
 
@@ -287,7 +283,7 @@ local function reconcilePlayer(player: Player)
 			createRing(player, position :: Vector3)
 		end
 	elseif entry then
-		-- // Still has a (resting) dead boomerang = the recall was released early: shrink away. Otherwise it was caught.
+		-- // A resting dead boomerang means the recall was released early: shrink away. Otherwise it was caught.
 		removeRing(player, DeadWeapons.Data[player] == nil)
 	end
 end
@@ -296,7 +292,7 @@ local function reconcile()
 	for _, player in Players:GetPlayers() do
 		reconcilePlayer(player)
 	end
-	-- // Shrinking rings follow the boomerang too, until they are gone
+	-- // Shrinking rings follow the boomerang until gone
 	for ring, player in vanishingRings do
 		if not ring.Parent then
 			vanishingRings[ring] = nil
@@ -325,13 +321,14 @@ end
 
 function RecallChargeController.start()
 	task.spawn(function()
-		-- // The asset lives in ReplicatedStorage.Shared.Assets; its current size is the ring's full (100%) size
+		-- // The asset is in ReplicatedStorage.Shared.Assets; its size is the ring's full (100%) size
 		local template = ReplicatedStorage.Shared:WaitForChild("Assets"):WaitForChild("SelectionRing") :: MeshPart
 		ringTemplate = template
 		ringFullSize = template.Size
 		ringRotation = template.CFrame.Rotation
-		-- // After the frame's movement (boomerangs move in Stepped / PreSimulation), so the ring is placed on where the
-		-- // boomerang is drawn this frame instead of lagging a frame behind it (RenderStepped runs before they move)
+		-- // After the frame's movement (boomerangs move in Stepped / PreSimulation), so the ring tracks the boomerang's
+		-- // drawn
+		-- // position without lagging a frame (RenderStepped runs before they move)
 		RunService.Heartbeat:Connect(reconcile)
 	end)
 end

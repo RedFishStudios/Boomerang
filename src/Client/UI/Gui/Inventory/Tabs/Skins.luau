@@ -2,7 +2,7 @@
 	Skins tab (Inventory)
 
 	Description:
-	The Skins tab of the Inventory menu: lists the boomerang skins the player owns (Shared/Referential/Skins).
+	Inventory tab listing the boomerang skins the player owns (Shared/Referential/Skins).
 	A skin's rarity is the Rarity of its model's entry in Shared/Constants/Tools.
 	Equip equips the selected skin. Follows the InventoryTab shape in Inventory/init.luau.
 ]]

@@ -97,7 +97,7 @@ CharacterController.LastCFrame = CFrame.new()
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
 
--- // Apply local yaw to alleviate conflicts with server authoritative yaw
+-- // Applies local yaw to avoid conflicts with the server-authoritative yaw
 local function applyLocalAuthoritativeRotation(yawAngle: number)
 	if not PlayersUtil.isAlive(player) then
 		return
@@ -190,7 +190,6 @@ local function solveMotorsForCharacter(character: GameTypes.R15Character, solver
 	local lookVector = CharacterLogic.getLookVectorFromYaw(solverState.RenderYaw)
 	local lookAt = instances.HumanoidRootPart.Position + lookVector * 100
 
-	-- compute waist
 	local waistTarget = (waistM6D.Part0.CFrame * waistBaseC0):PointToObjectSpace(lookAt)
 	local waistYawAngle = math.clamp(math.atan2(-waistTarget.X, -waistTarget.Z), -ANGLE_LIMITS.WaistYaw, ANGLE_LIMITS.WaistYaw)
 	--local waistPitchAngle = math.clamp(math.atan2(waistTarget.Y, Vector2.new(waistTarget.X, waistTarget.Z).Magnitude), -ANGLE_LIMITS.WaistPitch, ANGLE_LIMITS.WaistPitch)

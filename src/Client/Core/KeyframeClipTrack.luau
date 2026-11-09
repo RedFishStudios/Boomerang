@@ -1,30 +1,28 @@
 --[[
 	KeyframeClipTrack
 
-	Plays unpublished animation data (a KeyframeSequence, e.g. from Shared/AnimationClips) on a character, with no
-	animation asset id. It works like an AnimationTrack for the parts AnimationController uses: Play(fadeIn),
-	Stop(fadeOut), IsPlaying, Looped, Destroy() and GetMarkerReachedSignal(name).
+	Plays unpublished animation data (a KeyframeSequence, e.g. from Shared/AnimationClips) on a character without an
+	animation asset id. Mimics the AnimationTrack members AnimationController uses: Play(fadeIn), Stop(fadeOut),
+	IsPlaying, Looped, Destroy() and GetMarkerReachedSignal(name).
 
-	How it plays: every frame (PreSimulation), each joint named by the clip is blended from the pose the Animator gave it
-	(the joint's Transform) toward the clip's pose, by the clip's Pose.Weight times the fade. A joint the clip doesn't
-	name, or names with weight 0, keeps the Animator's pose; that is how an upper-body clip (the aim) leaves walking legs
-	alone. Clips played later on the same character apply over earlier ones.
+	Every frame (PreSimulation), each joint named by the clip is blended from the Animator's pose (the joint's Transform)
+	toward the clip's pose by Pose.Weight times the fade. Joints the clip doesn't name, or names with weight 0, keep the
+	Animator's pose (so an upper-body clip leaves walking legs alone). Later clips apply over earlier ones.
 
-	Writing Transform from Luau has no effect on our rendered characters (their root is anchored, and the engine only
-	takes Transform from the Animator), so the blend is applied through the joint's C0 instead:
-	C0 = restC0 * wantedPose * animatorPose:Inverse(), which the engine turns back into restC0 * wantedPose. C0 goes back
-	to rest when no clip uses the joint. Rendered characters use AnimationConstraint joints, which ignore this too, so
-	the first clip played on a character turns its AnimationConstraints into equivalent Motor6Ds (the Animator plays
-	asset animations on those the same way).
+	Writing Transform from Luau has no effect on rendered characters (anchored root; the engine only takes Transform from
+	the Animator), so the blend goes through the joint's C0:
+	C0 = restC0 * wantedPose * animatorPose:Inverse(), which the engine turns into restC0 * wantedPose. C0 returns to
+	rest when no clip uses the joint. AnimationConstraint joints ignore this too, so the first clip played on a character
+	converts its AnimationConstraints to equivalent Motor6Ds.
 
 	Optional:
-	  - an intro clip, played once before the main clip (the main clip then loops if Looped), and
-	  - LowerBodyWhileMoving = false: while the character moves, the clip lets go of the hips and legs (the walk shows
-	    through) and passes the hip turn up to the waist, so a full-body clip like the throw still reads on the run.
+	  - an intro clip, played once before the main clip (which then loops if Looped)
+	  - LowerBodyWhileMoving = false: while the character moves, the clip releases the hips and legs (the walk shows
+	    through) and passes the hip turn up to the waist, so a full-body clip still reads while running.
 
-	Poses are applied as authored (same as a published animation would), with translations scaled by the character's
-	body scale. Pose easing: Constant holds, every other style plays linear (the client's clips are all linear).
-	Each client runs this for every character it renders, like the rest of AnimationController's tracks.
+	Poses are applied as authored, with translations scaled by the character's body scale. Easing: Constant holds; every
+	other style plays linear (all clips are linear).
+	Each client runs this for every character it renders.
 ]]
 
 local KeyframeClipTrack = {}
@@ -53,8 +51,8 @@ local LOWER_BODY_JOINTS = {
 
 local CONVERTED_JOINT_ATTRIBUTE = "ConvertedFromAnimationConstraint"
 
-local MOVING_FULL_SPEED = 4 -- // Studs/second at which a moving character counts as fully moving (lower body fully let go)
-local MOVING_RESPONSE = 12 -- // How quickly the moving amount follows the character's speed (per second)
+local MOVING_FULL_SPEED = 4 -- // Studs/second at which a character counts as fully moving (lower body fully released)
+local MOVING_RESPONSE = 12 -- // How fast the moving amount follows speed (per second)
 
 -------------------------------------------------------------------------------
 -- TYPES
@@ -82,7 +80,7 @@ type RigState = {
 	Root: BasePart?,
 	Motors: { [string]: Motor6D },
 	RestC0: { [Motor6D]: CFrame },
-	Bent: { [Motor6D]: true }, -- // Joints whose C0 is currently off its rest
+	Bent: { [Motor6D]: true }, -- // Joints whose C0 is currently off rest
 	Scale: Vector3,
 	Tracks: { any }, -- // KeyframeClipTrack, in play order
 	LastRootPosition: Vector3?,
@@ -150,7 +148,7 @@ local function compileClip(sequence: KeyframeSequence): CompiledClip
 		for _, descendant in keyframe:GetDescendants() do
 			if descendant:IsA("Pose") then
 				if descendant.Name == "HumanoidRootPart" then
-					continue -- // The root itself is never animated (only a container for the hierarchy)
+					continue -- // The root is never animated (only a hierarchy container)
 				end
 				local keys = joints[descendant.Name]
 				if not keys then
@@ -217,7 +215,7 @@ local function getBodyScale(character: Model): Vector3
 	return Vector3.new(scaleValue("BodyWidthScale"), scaleValue("BodyHeightScale"), scaleValue("BodyDepthScale"))
 end
 
--- // An AnimationConstraint joint becomes the Motor6D it stands for (same parts, same offsets, same name and parent)
+-- // Converts an AnimationConstraint to the equivalent Motor6D (same parts, offsets, name and parent)
 local function convertToMotor(constraint: AnimationConstraint): Motor6D?
 	local attachment0, attachment1 = constraint.Attachment0, constraint.Attachment1
 	if not attachment0 or not attachment1 then
@@ -233,7 +231,7 @@ local function convertToMotor(constraint: AnimationConstraint): Motor6D?
 	motor.Part1 = part1
 	motor.C0 = attachment0.CFrame
 	motor.C1 = attachment1.CFrame
-	motor:SetAttribute(CONVERTED_JOINT_ATTRIBUTE, true) -- // So the ragdoll frees it like the constraint it replaced
+	motor:SetAttribute(CONVERTED_JOINT_ATTRIBUTE, true) -- // So the ragdoll frees it like the constraint
 	local parent = constraint.Parent
 	constraint:Destroy()
 	motor.Parent = parent
@@ -279,7 +277,7 @@ local function fireMarkers(track: KeyframeClipTrack, clip: CompiledClip, fromTim
 	end
 end
 
--- // Moves the track's clock forward. Returns false once a non-looping track has run past its end.
+-- // Advances the track's clock. Returns false once a non-looping track passes its end.
 local function advance(track: KeyframeClipTrack, dt: number): boolean
 	local delta = dt * track.Speed
 	local intro = track._intro
@@ -331,7 +329,7 @@ end
 local function stepRig(rig: RigState, dt: number)
 	updateMovingAmount(rig, dt)
 
-	-- // Each touched joint's wanted pose, starting from the Animator's pose (Transform) and layered by every track
+	-- // Each touched joint's wanted pose, starting from the Animator's pose (Transform), layered by every track
 	local wanted: { [Motor6D]: CFrame } = {}
 	for _, track in rig.Tracks do
 		local clip = if track._inIntro then track._intro else track._clip
@@ -349,7 +347,7 @@ local function stepRig(rig: RigState, dt: number)
 			if LOWER_BODY_JOINTS[jointName] then
 				weight *= 1 - letGoOfLowerBody
 			elseif jointName == "UpperTorso" and letGoOfLowerBody > 0 then
-				-- // The hips stop turning while moving; keep the clip's body turn by turning the waist instead
+				-- // Hips don't turn while moving; the waist keeps the clip's body turn
 				local hipKeys = clip.Joints.LowerTorso
 				if hipKeys then
 					local hipPose = sampleJoint(hipKeys, track.TimePosition)
@@ -370,7 +368,7 @@ local function stepRig(rig: RigState, dt: number)
 		motor.C0 = rig.RestC0[motor] * pose * motor.Transform:Inverse()
 		rig.Bent[motor] = true
 	end
-	-- // Joints no clip is posing this frame go back to rest
+	-- // Joints no clip poses this frame return to rest
 	for motor in rig.Bent do
 		if not wanted[motor] then
 			motor.C0 = rig.RestC0[motor]
@@ -402,7 +400,7 @@ local function onPreSimulation(dt: number)
 		stepRig(rig, dt)
 
 		if #rig.Tracks == 0 then
-			rigs[character] = nil -- // Its joints were returned to rest on this last step (it keeps its Motor6Ds)
+			rigs[character] = nil -- // Joints returned to rest on this last step (keeps its Motor6Ds)
 		end
 	end
 
@@ -460,7 +458,7 @@ function KeyframeClipTrack.Play(self: KeyframeClipTrack, fadeTime: number?, _wei
 		rigs[self.Character] = rig
 	end
 
-	-- // Restart from the beginning, on top of anything else playing on this character
+	-- // Restart from the beginning, on top of anything else playing
 	local index = table.find(rig.Tracks, self)
 	if index then
 		table.remove(rig.Tracks, index)
@@ -490,7 +488,7 @@ function KeyframeClipTrack.Stop(self: KeyframeClipTrack, fadeTime: number?)
 		self._fade = 0
 		self._fadeRate = 0
 	end
-	-- // IsPlaying turns false (and the track leaves its character) once the fade-out finishes
+	-- // IsPlaying turns false (and the track leaves its character) when the fade-out finishes
 end
 
 function KeyframeClipTrack.AdjustSpeed(self: KeyframeClipTrack, speed: number)
@@ -515,7 +513,7 @@ function KeyframeClipTrack.Destroy(self: KeyframeClipTrack)
 	if rig then
 		local index = table.find(rig.Tracks, self)
 		if index then
-			-- // Leave on the next step (not now), so its joints are returned to rest
+			-- // Leaves on the next step, so its joints return to rest
 			self._stopping = true
 			self._fade = 0
 			self._fadeRate = 0

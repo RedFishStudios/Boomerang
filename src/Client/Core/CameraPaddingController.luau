@@ -1,6 +1,4 @@
--- // Handles measuring the offsets for the sides of the screen that should be used by the custom camera
-
--- // TEST: Fires throw remote when player presses E
+-- // Measures the screen-side offsets used as padding by the custom camera
 
 local CameraPaddingController = {}
 
@@ -29,7 +27,7 @@ local HudButtonsGui = require(ReplicatedStorage.Client.UI.Gui.HudButtons)
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
--- // The topbar row (Roblox's buttons, ours and the gamemode text) is drawn over the 3D view, so it's padding too
+-- // The topbar row is drawn over the 3D view, so it counts as padding
 function CameraPaddingController.getTopPadding(): number
    local topbar = GuiService.TopbarInset
    return math.max(GamemodeHudGui.getCameraPadding(), topbar.Min.Y + topbar.Height)

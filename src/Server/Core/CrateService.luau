@@ -11,7 +11,7 @@
 	owner's client (CrateOpened event: skin id + whether it was new); the client shows the clicks left, a hit bounce and the
 	opening pop (Client/Core/CrateOpeningController).
 	A crate never opened is still given: when the player leaves (ProfileRemovingTasks, while the data still saves).
-	Duplicates: rolling a weapon the player already owns still costs the crate and gives nothing more for now.
+	Duplicates: rolling a weapon the player already owns still costs the crate and gives nothing more.
 	TODO: decide what a duplicate gives (refund, currency, shards...).
 ]]
 

@@ -1,17 +1,17 @@
 --[[
 	UsePickupButtons
 
-	A column of round buttons on the left of the screen, one per held pickup that is used by the player (its logic has
+	A column of round buttons on the left of the screen, one per held pickup the player uses (its logic has
 	`UseButton = true`: Explosive Boomerang, Teleport Boomerang, Decoy). Pressing a button asks the server to use the pickup
 	(PickupLibrary.USE_PICKUP_BUTTON_EVENT -> PickupService, which checks and runs the logic's onUse).
 
-	- A button appears as soon as the pickup is acquired, and is removed whenever the pickup is lost for any reason (used up,
-	  timed out, death, round end): it follows PickupLibrary's effect added/removed tasks, like the Effects HUD.
-	- Each frame the logic's canUse decides whether it can be pressed; when it can't, the icon is at 50% and non-interactive.
-	- A pickup that is used up by one press (ConsumedOnUse) stays non-interactive after the press until the server removes it.
-	- Each button gets a slot number, also its keyboard key (1-9): a new pickup takes the lowest free slot, and a pickup
-	  keeps its slot until it is lost (so slots can have gaps, and a later pickup can fill slot 1 again). Buttons are listed by
-	  slot, and show their number in a small label on their right (only on devices with a keyboard).
+	- A button appears when the pickup is acquired and is removed when it is lost (used up, timed out, death, round end),
+	  following PickupLibrary's effect added/removed tasks, like the Effects HUD.
+	- Each frame the logic's canUse decides whether it can be pressed; otherwise the icon is at 50% and non-interactive.
+	- A ConsumedOnUse pickup stays non-interactive after the press until the server removes it.
+	- Each button has a slot number, also its keyboard key (1-9): a new pickup takes the lowest free slot and keeps it
+	  until lost (slots can have gaps). Buttons are listed by slot and show their number in a small label on their
+	  right (only on devices with a keyboard).
 ]]
 
 local UsePickupButtonsGui = {}
@@ -48,7 +48,7 @@ local RootFrame = Gui:WaitForChild("Root") :: Frame
 local ButtonTemplate = script:WaitForChild("ButtonTemplate") :: ImageButton
 
 local UNUSABLE_IMAGE_TRANSPARENCY = 0.5
-local USED_PENDING_TIMEOUT_SECONDS = 2 -- // A used-up press the server never answered becomes pressable again after this long
+local USED_PENDING_TIMEOUT_SECONDS = 2 -- // Seconds before a used-up press the server never answered becomes pressable again
 
 -- // Number keys for slots 1-9 (a 10th+ pickup at once still gets a button, just no key)
 local SLOT_KEYS: { Enum.KeyCode } = {
@@ -61,7 +61,7 @@ type UseButton = {
 	ClassId: PickupLibrary.PickupClassId,
 	Logic: PickupLibrary.PickupLogic,
 	Slot: number, -- // 1 = top of the list and key 1
-	UsedAt: number?, -- // os.clock() of a ConsumedOnUse press still waiting for the server to remove the pickup
+	UsedAt: number?, -- // os.clock() of a ConsumedOnUse press awaiting the server's removal of the pickup
 }
 
 local buttons: { [PickupLibrary.LivePickupId]: UseButton } = {}
@@ -133,7 +133,7 @@ local function onButtonPressed(useButton: UseButton)
 	updateButton(useButton)
 end
 
--- // The lowest slot no current button holds
+-- // The lowest slot not held by a button
 local function getFreeSlot(): number
 	local taken: { [number]: boolean } = {}
 	for _, useButton in pairs(buttons) do
@@ -169,7 +169,7 @@ local function addButton(livePickupId: PickupLibrary.LivePickupId, pickupClassId
 	local button = ButtonTemplate:Clone()
 	button.Name = pickupClassId
 	button.Image = if thingData then `rbxassetid://{thingData.Img}` else ""
-	button.LayoutOrder = slot -- // Listed by slot, not by when it was picked up
+	button.LayoutOrder = slot -- // Ordered by slot, not pickup time
 	local keyLabel = button:FindFirstChild("KeyLabel") :: TextLabel?
 	if keyLabel then
 		keyLabel.Text = tostring(slot)
@@ -200,7 +200,7 @@ local function removeButton(livePickupId: PickupLibrary.LivePickupId)
 	useButton.Button:Destroy()
 end
 
--- // Refresh hud display using current game state data
+-- // Opens or closes the HUD based on game state
 local function refreshUiFromGameState()
 	if GameStateLibrary.getGameStateData().CurrentRoundData:Get() == nil then
 		UsePickupButtonsGui.close()
@@ -240,7 +240,7 @@ local function _init()
 end
 _init()
 
--- // Left-handed touch layout (Touch Controls setting): the buttons move to the right side, away from the aim thumbstick
+-- // Left-handed touch layout (Touch Controls setting): buttons move to the right side, away from the aim thumbstick
 local function updateSide()
 	local leftHanded = SettingsController.getValue("LeftHandedTouch") == true
 	GuiMirror.setMirrored(RootFrame, leftHanded and PlatformController.getDominantControlScheme() == "Touch")

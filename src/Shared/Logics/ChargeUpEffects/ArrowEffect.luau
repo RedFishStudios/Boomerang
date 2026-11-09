@@ -2,11 +2,9 @@
 	ArrowEffect
 
 	Description:
-	The shared implementation of arrow-style charge up effects: the arrow shown on the ground in front of a player while
-	they charge a throw. It is not an effect id itself; an effect module (e.g. DefaultChargeUpEffect) calls
-	`ArrowEffect.apply` with its own arrow template, so different effects can show a different arrow visual.
-	Returns the handle shape described by ChargeUpEffectLibrary.ChargeUpEffectHandle.
-	Client only in practice (it makes instances in Workspace); the effect modules call it from `apply`.
+	Shared implementation of arrow-style charge up effects: the arrow shown in front of a player while they charge a throw.
+	Effect modules (e.g. DefaultChargeUpEffect) call `ArrowEffect.apply` with their own arrow template.
+	Returns the handle shape described by ChargeUpEffectLibrary.ChargeUpEffectHandle. Client only in practice.
 ]]
 
 local ArrowEffect = {}
@@ -28,8 +26,8 @@ local SHAKE_MAX_OFFSET_SCALE = 0.35 -- // Shake amplitude as a fraction of the a
 local SHAKE_MAX_ROTATION_DEGREES = 4 -- // The arrow also wobbles side to side by up to this much at full charge
 local SHAKE_SPEED = 9
 local SHAKE_NOISE_SCALE = 0.11
--- // The arrow is moved sideways onto the line the boomerang leaves along (under the held boomerang), not the
--- // character's centre. This is how quickly it follows the hand as the charge animation moves it (higher = snappier).
+-- // The arrow moves sideways onto the line the boomerang leaves along (under the held boomerang) instead of the
+-- // character's centre; this is how quickly it follows the hand (higher = snappier).
 local THROW_LINE_FOLLOW_RATE = 18
 
 -------------------------------------------------------------------------------
@@ -57,9 +55,8 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
---- Clones `template` (a Model with a Part holding a SurfaceGui > CanvasGroup > Arrows frame; the Part is the PrimaryPart,
---- or the first Part when none is set) into Workspace for the player and returns its handle. `update` sizes, fades, places and shakes the arrow from the charge progress;
---- `remove` destroys it.
+--- Clones `template` (a Model whose PrimaryPart, or first Part, holds a SurfaceGui > CanvasGroup > Arrows frame) into Workspace for the player and returns its handle.
+--- `update` sizes, fades, places and shakes the arrow from the charge progress; `remove` destroys it.
 function ArrowEffect.apply(template: Model, player: Player): ChargeUpEffectLibrary.ChargeUpEffectHandle
 	local arrow = template:Clone()
 	arrow.Name = `ChargeUpEffect_{player.UserId}`

@@ -281,8 +281,8 @@ function CharacterController.setAiming(nextIsAiming: boolean)
 	isAiming = nextIsAiming
 end
 
--- // Where the mouse cursor points on the arena floor (nil until the mouse has first moved). The character faces this in the top-down
--- // camera, and Telekinesis steers a thrown boomerang toward it.
+-- // Where the mouse points on the arena floor (nil until it first moves). The top-down camera character faces it;
+-- // Telekinesis steers toward it.
 function CharacterController.getMouseGroundPosition(): Vector3?
 	local lastInWorld = PlatformController.getLastMousePositionInWorld()
 	if lastInWorld then -- // nil until the mouse first moves

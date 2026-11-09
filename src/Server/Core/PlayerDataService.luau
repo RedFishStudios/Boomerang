@@ -6,9 +6,6 @@
 
   Author:
   @SixthAtom
-
-  Date:
-  20-02-2026
 ]]
 
 local PlayerDataService = {}

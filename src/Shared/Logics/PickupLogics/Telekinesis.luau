@@ -1,7 +1,6 @@
 --[[
 	Telekinesis (pickup)
-
-	While the effect is active, the owner steers their THROWN boomerang while it flies out. Everyone sees a bright cyan SelectionRing
+	While active, the owner steers their THROWN boomerang while it flies out. Everyone sees a cyan SelectionRing around it (same asset as the manual recall).
 	around it (the same asset the manual recall uses).
 
 	How the player steers:
@@ -12,14 +11,10 @@
 	  - Console: nothing yet (TODO).
 
 	How it works (same on every machine that steers, so they agree):
-	  - The owner's client works out the direction it wants every frame and streams it to the server (about 20 per second, "TelekinesisSteer"),
-	    and also applies it to its own boomerang at once so the owner sees no delay.
-	  - The server validates it (the effect is active, a boomerang is thrown) and keeps it on the thrown weapon with the time it arrived.
-	    A direction that stops arriving expires on its own (STEER_STALE_SECONDS), so letting go always stops the steering.
+	  - The owner's client works out the wanted direction every frame, streams it to the server (about 20/s, "TelekinesisSteer"), and applies it to its own boomerang at once.
+	  - The server validates it (effect active, boomerang thrown) and stores it on the thrown weapon with its arrival time. A direction that stops arriving expires (STEER_STALE_SECONDS), so letting go stops the steering.
 	  - Both flight loops (WeaponLogics/Boomerang) call Telekinesis.steer() each fixed step with the current direction (Telekinesis.getBias).
-	  - Other clients don't steer: they follow the server's snapshots like any boomerang. The owner's client keeps its own heading
-	    while it steers (see Boomerang.luau) because the server's heading is always a little behind the owner's input; the server's position
-	    corrections keep the two together.
+	  - Other clients follow the server's snapshots like any boomerang. The owner's client keeps its own heading while steering (see Boomerang.luau) because the server's heading lags the input; position corrections keep the two together.
 ]]
 
 local Telekinesis = {}
@@ -38,14 +33,12 @@ local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons
 -- SETTINGS (tune here)
 -------------------------------------------------------------------------------
 
--- // How strongly a Telekinesis boomerang turns toward the direction the player wants, per second.
--- //   Higher = sharper turns: the boomerang swings quickly to point exactly where the player wants.
--- //   Lower = a gentle nudge: the player only bends its path, without precise control.
--- // (It is the rate at which the remaining turn closes, so the boomerang needs about 1 / STRENGTH seconds to cover most of a turn:
--- // 2 = half a second, 8 = an eighth of a second, 15 = nearly instant.)
+-- // Turn rate toward the wanted direction, per second (the rate at which the remaining turn closes). Higher = sharper
+-- // turns; lower = a gentle nudge. About 1 / STRENGTH seconds covers most of a turn: 2 = 0.5 s, 8 = 0.125 s, 15 =
+-- // nearly instant.
 Telekinesis.STEER_STRENGTH = 8
 
-local STEER_STALE_SECONDS = 0.35 -- // A steer direction older than this is ignored (the owner let go, or the updates stopped arriving)
+local STEER_STALE_SECONDS = 0.35 -- // A steer direction older than this is ignored (owner let go or updates stopped)
 local STEER_SEND_INTERVAL = 0.05 -- // Seconds between streamed steer updates (caps network traffic)
 local STEER_RESEND_DOT = 0.9995 -- // Also send sooner when the wanted direction turns by more than about 1.8 degrees
 local MIN_CURSOR_DISTANCE = 1 -- // Studs: a cursor this close to the boomerang gives no direction
@@ -113,8 +106,8 @@ function Telekinesis.getBias(thrownWeaponData: ThrownWeapons.Data): Vector3?
 	return bias
 end
 
--- // `direction` turned toward `bias` for one step of `deltaTime` seconds (both horizontal). Frame-rate independent, and it turns the
--- // short way round (including when the wanted direction is straight behind).
+-- // `direction` turned toward `bias` for one step of `deltaTime` seconds (both horizontal). Frame-rate independent;
+-- // turns the short way round, including when the wanted direction is straight behind.
 function Telekinesis.steer(direction: Vector3, bias: Vector3, deltaTime: number): Vector3
 	local current = getHorizontalUnit(direction)
 	local wanted = getHorizontalUnit(bias)
@@ -244,8 +237,8 @@ local function stopLocalSteering()
 	end
 end
 
--- // True while the local player's Telekinesis is active and their boomerang is steerable. WeaponController then sends the mobile aim
--- // button here instead of starting a throw.
+-- // True while the local player's Telekinesis is active and their boomerang is steerable; WeaponController then sends
+-- // the mobile aim button here instead of starting a throw.
 function Telekinesis.isLocalSteering(): boolean
 	if isServer or localSteeringConnection == nil then
 		return false

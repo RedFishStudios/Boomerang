@@ -2,13 +2,12 @@
 	TouchControlsSideController
 
 	Description:
-	Left-handed touch layout (Settings: Touch Controls): moves Roblox's own touch controls (the default PlayerModule's
-	movement thumbstick area and jump button, in PlayerGui.TouchGui.TouchControlFrame) to the opposite side, so they
-	don't overlap the game's aim thumbstick and buttons, which move to the left (CustomTouchscreen).
+	Left-handed touch layout (Settings: Touch Controls): moves Roblox's touch controls (the PlayerModule's movement
+	thumbstick area and jump button, in PlayerGui.TouchGui.TouchControlFrame) to the opposite side so they don't overlap
+	the game's aim thumbstick and buttons, which move left (CustomTouchscreen).
 
-	This relies on Roblox's TouchGui layout (frame names, and its thumbstick reading its frame's on-screen area), which
-	Roblox could change. Roblox re-lays these frames out (e.g. when the screen resizes), so they're mirrored again
-	whenever they move.
+	Relies on Roblox's TouchGui layout (frame names, thumbstick reading its frame's on-screen area). Roblox re-lays these
+	frames out (e.g. on screen resize), so they're mirrored again whenever they move.
 ]]
 
 local TouchControlsSideController = {}
@@ -23,8 +22,8 @@ local GuiMirror = require(ReplicatedStorage.Client.UI.GuiMirror)
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
--- // Roblox's touch control frames that sit on one side of the screen. Not the Classic thumbstick's frame
--- // ("ThumbstickFrame"): it moves to wherever the finger lands, so it can't be mirrored this way.
+-- // Roblox's touch control frames on one side of the screen. Excludes the Classic thumbstick's "ThumbstickFrame",
+-- // which follows the finger and can't be mirrored this way.
 local MIRRORED_FRAME_NAMES = {
 	DynamicThumbstickFrame = true,
 	JumpButton = true,

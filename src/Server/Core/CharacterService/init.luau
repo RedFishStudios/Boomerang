@@ -163,9 +163,9 @@ local function loadCharacterRemotes()
 	}, SimpleRemotesUtil.DecodeActionBuffer)
 end
 
--- // The part a character physically collides with (R6). It must collide on the server too: the player's own client has
--- // its Humanoid switch it on, so with it off here the server simulated the character as a ghost (moving platforms passed
--- // straight through it) and corrected the client back each time (the character "popped" back to where it stood).
+-- // The part a character physically collides with (R6). It must collide on the server too: the client's Humanoid
+-- // switches it on, so with it off here the server would simulate the character as a ghost (moving platforms pass
+-- // straight through it) and correct the client back (the character "pops" back).
 local COLLIDING_PART_NAME = "Torso"
 
 local function onCharacterLoaded(player: Player, character: Model, humanoid: Humanoid, _rootPart: BasePart)

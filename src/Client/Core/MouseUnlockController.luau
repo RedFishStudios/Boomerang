@@ -3,8 +3,8 @@
 
 	Description:
 	Frees the mouse while any gui with `RequiresMouse = true` is open (see UIController.isMouseRequired).
-	The in-game over-the-shoulder ("Regular") camera locks and hides the mouse, so without this a menu that opens
-	during a round can't be clicked or closed. A visible Modal button is Roblox's standard way to free a locked mouse.
+	The over-the-shoulder ("Regular") camera locks and hides the mouse, so menus opened mid-round couldn't be used.
+	A visible Modal button is Roblox's standard way to free a locked mouse.
 ]]
 
 local MouseUnlockController = {}
@@ -65,7 +65,7 @@ local function update()
 
 	if isRequired then
 		getModalButton().Visible = true
-		-- // Enforced every frame: the camera can re-hide the cursor (e.g. switching camera mode while a menu is open)
+		-- // Enforced every frame: the camera can re-hide the cursor (e.g. switching camera mode with a menu open)
 		UserInputService.MouseIconEnabled = true
 		isUnlocked = true
 	elseif isUnlocked then

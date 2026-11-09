@@ -7,7 +7,7 @@ function ToolLibrary.getToolAssetsFolder()
 end
 
 function ToolLibrary.init()
-   -- // For some reason, rbxmx models loaded via rojo don't seem to have their primary part set
+   -- // rbxmx models loaded via Rojo have no PrimaryPart set
    local function setupToolModel(model: Model)
       if not model.PrimaryPart then
          local primary = model:WaitForChild("Handle", 30)

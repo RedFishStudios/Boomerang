@@ -2,7 +2,7 @@
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
--- // Player-facing wording: "Eliminations", never "Kills" (see CLAUDE.md)
+-- // Player-facing wording is "Eliminations", never "Kills"
 local LeaderboardConstants = {
 	RefreshInterval = 10 * 60, -- // Seconds between saving scores and reloading the top players
 	DisplaySwapInterval = 10, -- // Seconds each board shows Monthly / All-Time before fading to the other
@@ -50,7 +50,7 @@ export type LeaderboardData = { [string]: { [string]: { Entry } } }
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
--- // The current month in UTC, e.g. "2026-10". Monthly boards reset when this changes
+-- // The current month in UTC, e.g. "YYYY-MM". Monthly boards reset when this changes
 function LeaderboardConstants.getMonthKey(): string
 	return os.date("!%Y-%m") :: string
 end

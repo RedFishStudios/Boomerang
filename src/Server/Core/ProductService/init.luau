@@ -29,9 +29,9 @@ local PROCESSED_RECEIPTS_KEPT = 50
 
 type ReceiptInfo = {
    PurchaseId: string, -- Unique identifier for this purchase
-   PlayerId: number, -- Player id
-   ProductId: number, -- Product id
-   PlaceIdWherePurchased: number, -- Place id where the purchase was made
+   PlayerId: number,
+   ProductId: number,
+   PlaceIdWherePurchased: number,
    ProductPurchaseChannel: Enum.ProductPurchaseChannel
 }
 
@@ -47,7 +47,6 @@ local function getLogic(productId: number): ProductLogic?
    return nil
 end
 
--- // Process receipt
 local function processReceipt(receiptInfo: ReceiptInfo)
 	local logic = getLogic(receiptInfo.ProductId)
 

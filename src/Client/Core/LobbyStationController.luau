@@ -1,12 +1,10 @@
 --[[
 	Lobby station framework, client side. See LobbyStationLibrary for the tag and attributes.
 
-	For every tagged station: draws the world-space title, makes the pad glow (brighter while the
-	prompt is shown, dimmed when the station's state isn't "Active"), and applies this player's
-	per-station state from the server to the prompt and title.
+	For every tagged station: draws the world-space title, makes the pad glow (brighter while the prompt is shown,
+	dimmed when the station's state isn't "Active"), and applies this player's server state to the prompt and title.
 
-	Station code can react through ApproachedTasks / LeftTasks (e.g. show an odds panel) and
-	StateChangedTasks.
+	Station code can react through ApproachedTasks / LeftTasks (e.g. show an odds panel) and StateChangedTasks.
 
 	Author:
 	@Soulsplosion
@@ -186,7 +184,7 @@ local function setupStation(station: Instance)
 
 	local promptPart = LobbyStationLibrary.getPromptPart(station)
 	if not promptPart then
-		-- // Not streamed in yet: try again when a part arrives
+		-- // Not streamed in yet: retry when a part arrives
 		if not pendingConnections[station] then
 			pendingConnections[station] = station.DescendantAdded:Connect(function(descendant)
 				if descendant:IsA("BasePart") and LobbyStationLibrary.getPromptPart(station) then

@@ -1,11 +1,9 @@
 --[[
 	BotController
 
-	Renders bots. The server owns each bot's (invisible) rig under workspace.Bots (BotService).
-	For every bot, this client clones the OWNER'S rendered avatar (the same model
-	CharacterRenderController builds for players) and makes the clone follow the bot's root every
-	frame. The server never replicates the avatar's accessories -- only the small rig -- so the
-	look is produced entirely on the client.
+	Renders bots. The server owns each bot's invisible rig under workspace.Bots (BotService).
+	Each bot's visual is a clone of its owner's rendered avatar (as built by CharacterRenderController)
+	that follows the bot's root every frame. Accessories don't replicate, so the look is client-only.
 ]]
 
 local BotController = {}
@@ -47,13 +45,13 @@ local botDespawnedEvent = SimpleRemotes.getEvent("BotDespawned")
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
 
--- // Clone the owner's rendered avatar for use as the bot's visual (root-anchored, non-interactive)
+-- // Clones the owner's rendered avatar as the bot's visual (root-anchored, non-interactive)
 local function buildVisual(ownerUserId: number): Model?
 	local owner = Players:GetPlayerByUserId(ownerUserId)
 	if not owner then
 		return nil
 	end
-	-- // Never the owner's Disguise model: a decoy always looks like the real avatar
+	-- // Never the owner's Disguise model: a decoy looks like the real avatar
 	local ownerModel = CharacterRenderController.getUndisguisedCharacterModel(owner, true)
 	if not ownerModel then
 		return nil
@@ -61,9 +59,7 @@ local function buildVisual(ownerUserId: number): Model?
 	local clone = ownerModel:Clone()
 	clone.Name = `Bot_{ownerUserId}_Visual`
 
-	-- // Visual-only avatar, placed with PivotTo every frame. Anchor ONLY the root; the limbs stay
-	--    unanchored so the Animator can pose them -- anchoring every part freezes the animation.
-	--    Mirrors CharacterRenderController's player render model.
+	-- // Visual-only avatar, placed with PivotTo every frame. Anchor ONLY the root; anchored limbs freeze the animation.
 	local renderedRoot = clone:FindFirstChild("HumanoidRootPart")
 	if renderedRoot and renderedRoot:IsA("BasePart") then
 		renderedRoot.Anchored = true
@@ -89,10 +85,8 @@ local function buildVisual(ownerUserId: number): Model?
 	end
 	clone.Parent = visualsFolder
 
-	-- // Keep the cosmetic avatar non-interactive EVERY frame. Its Humanoid rebuilds body parts when it
-	--    scales / applies appearance, which resets them to CanCollide = true / CanQuery = true -- that made
-	--    thrown boomerangs physically bounce off (and raycast-hit) the decoy's body. Mirror the persistent
-	--    guard CharacterRenderController keeps on the player's render model.
+	-- // Re-applied EVERY frame: the Humanoid resets body parts to CanCollide/CanQuery = true when it scales or
+	--    applies appearance, which makes boomerangs bounce off and hit the decoy.
 	task.spawn(function()
 		repeat
 			for _, d in pairs(clone:GetDescendants()) do
@@ -139,7 +133,7 @@ local function onBotAdded(botModel: Instance)
 	task.spawn(function()
 		local visual = buildVisual(ownerUserId)
 		if not rendered[botModel] then
-			-- // the bot was removed while we were building its visual
+			-- // the bot was removed while its visual was being built
 			if visual then
 				visual:Destroy()
 			end
@@ -185,8 +179,7 @@ function BotController.init()
 	end)
 
 	botDespawnedEvent.OnClientEvent:Connect(function(_botId: string, _reason: string?)
-		-- // TODO: when reason == "eliminated", play the smoke poof at the bot's
-		-- // last position before it's destroyed.
+		-- // TODO: when reason == "eliminated", play a smoke poof at the bot's last position
 	end)
 
 	RunService.RenderStepped:Connect(everyFrame)

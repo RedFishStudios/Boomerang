@@ -2,9 +2,9 @@
 	SkinController
 
 	Description:
-	Client side of boomerang skins: which skins the local player owns and has equipped, equip requests,
-	and the "New skin acquired!" popup. Ownership comes from the replicated profile (`OwnedSkins`),
-	the equipped skin from the `EquippedSkin` Player attribute (set by SkinService).
+	Client side of boomerang skins: owned and equipped skins, equip requests, and the "New skin acquired!" popup.
+	Ownership comes from the replicated profile (`OwnedSkins`), the equipped skin from the `EquippedSkin` Player
+	attribute (set by SkinService).
 ]]
 
 local SkinController = {}
@@ -31,7 +31,7 @@ type SkinTask = (skinId: string) -> ()
 local localPlayer = Players.LocalPlayer
 local equipSkinRemoteFunction = SimpleRemotes.getFunction("EquipSkin")
 
--- // Skins known to be owned, so only new ones show the popup
+-- // Known owned skins, so only new ones show the popup
 local knownOwnedSkins: { [string]: boolean } = {}
 
 -------------------------------------------------------------------------------
@@ -53,7 +53,7 @@ function SkinController.getEquippedSkinId(): string
 	return SkinLibrary.getEquippedSkinId(localPlayer)
 end
 
---- Asks the server to equip an owned skin. Yields; returns whether it worked.
+--- Asks the server to equip an owned skin. Yields; returns whether it succeeded.
 function SkinController.requestEquip(skinId: string): boolean
 	return equipSkinRemoteFunction:InvokeServer(skinId) == true
 end

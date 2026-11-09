@@ -94,7 +94,7 @@ local function displayWinnerInfo(winnerInfo: WinnerInfo?)
 		winningPlayerLabel.Visible = false
 		playerUsernameLabel.Visible = false
 	else
-		-- // No winning player/team: fall back to the team container with a generic message
+		-- // No winning player/team: generic message in the team container
 		winningTeamLabel.Text = "No winner"
 		winningTeamLabel.Visible = true
 		winningPlayerLabel.Visible = false

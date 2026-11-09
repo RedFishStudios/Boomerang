@@ -31,7 +31,7 @@ local InputsToGadget: {[Enum.UserInputType]: Gadget} = {
 }
 
 local GadgetsUsed: {
-	[Gadget]: number? -- os.clock() representing the last time this gadget was detected as being used
+	[Gadget]: number? -- os.clock() of the last detected use of this gadget
 } = {
 	Mouse = nil,
 	Keyboard = nil,
@@ -39,10 +39,10 @@ local GadgetsUsed: {
 	Touchscreen = nil
 }
 
--- Keyboard/Mouse devices are treated as the same control scheme when it comes to displaying keybinds
+-- Keyboard and Mouse count as one control scheme for displaying keybinds
 local dominantControlScheme: "PC" | "Console" | "Touch" | nil = nil
 
--- Last position of touch or mouse movement which was not obstructed by a gui
+-- Last touch or mouse position not obstructed by a gui
 local lastValidMousePositionInWorld: Vector3? = nil
 
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -103,7 +103,7 @@ local function getInitialControlScheme(): "PC" | "Console" | "Touch"
 		return gadgetToScheme(gadget)
 	end
 
-	-- // No input yet: fall back to the device's preferred input
+	-- // No input yet: use the device's preferred input
 	local preferredInput = UserInputService.PreferredInput
 	if preferredInput == Enum.PreferredInput.Touch then
 		return "Touch"
@@ -148,10 +148,10 @@ local function _init()
 
 		if inputType == Enum.UserInputType.MouseMovement or inputType == Enum.UserInputType.Touch then
 			local position = input.Position
-			-- // The mouse always counts, even over a GUI: the character keeps facing the cursor (aiming) whatever it hovers.
+			-- // The mouse always counts, even over a GUI, so the character keeps facing the cursor.
 			-- // A touch on a GUI (a button) doesn't, or tapping an on-screen button would turn the character toward it.
 			if inputType == Enum.UserInputType.MouseMovement or not gameProcessedEvent then
-				lastValidMousePositionInWorld = position + Vector3.new(0, 60, 0) -- offset to account for topbar
+				lastValidMousePositionInWorld = position + Vector3.new(0, 60, 0) -- offset for the topbar
 			end
 		end
 	end

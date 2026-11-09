@@ -4,7 +4,7 @@
 	Description:
 	Owns charge up effects on the server: granting, buying and equipping them (profile `OwnedChargeUpEffects` / `EquippedChargeUpEffect`).
 	Publishes the equipped arrow as the `EquippedChargeUpEffect` Player attribute (CosmeticLibrary), which replicates to every
-	client so each one can render the other players' arrows. Same shape as SkinService.
+	client so each one can render the other players' arrows.
 	Charge up effect data: Shared/Referential/ChargeUpEffects.
 ]]
 

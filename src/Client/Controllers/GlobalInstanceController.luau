@@ -6,9 +6,6 @@
 
   Author:
   @SixthAtom
-
-  Date:
-  04-04-2026
 ]]
 
 local GlobalInstanceController = {}

@@ -64,56 +64,54 @@ local thrownWeaponReplicationRemote = SimpleRemotes.getUnreliableEvent("ThrownWe
 
 local SLOW_RATE = 5
 local UP_VECTOR = Vector3.new(0, 1, 0)
-local REPLICATION_RATE = 1 / 30 -- // Seconds between snapshots (bounces, portals, recalls and clashes also send one at once)
-local FIXED_STEP = 1 / 60 -- // The flight simulation always advances in steps of exactly this long, on the server and on every client
-local MAX_STEPS_PER_FRAME = 4 -- // After a long hitch at most this many steps are run in one frame (the rest of the time is dropped)
-local MAX_SPAWN_CATCHUP = 0.35 -- // Seconds a newly spawned boomerang may be eased forward to where the server already has it
+local REPLICATION_RATE = 1 / 30 -- // Seconds between snapshots (bounces, portals, recalls and clashes also send one immediately)
+local FIXED_STEP = 1 / 60 -- // Fixed simulation step (seconds), identical on server and clients
+local MAX_STEPS_PER_FRAME = 4 -- // Max steps per frame after a hitch; remaining time is dropped
+local MAX_SPAWN_CATCHUP = 0.35 -- // Max seconds a new boomerang is eased forward to the server's position
 local AIM_START_SPEED_BONUS_MULTIPLIER = 1.0
 local AIM_SPEED_FADE_RATE = 2.0
 local RECALL_CATCH_RADIUS_MIN = 1.5
--- // The server catches a returning boomerang at a slightly larger radius than the client. The server can keep the
--- // boomerang orbiting a hair outside the catch radius (it appears to graze the player and circle) while the client
--- // already caught it; this small server-only bonus closes that gap so the two agree. Tunable.
+-- // Extra server-only catch radius so server and client agree on catches (the server could otherwise orbit just
+-- // outside the client's radius)
 local SERVER_RECALL_CATCH_BONUS = 0.5
-local PENDING_CATCH_TIMEOUT = 1.5 -- // Seconds a client waits for the server to confirm a catch it predicted before showing the boomerang again
-local RELEASE_CATCH_GRACE_STUDS = 1 -- // A manual recall released this close to being caught (plus the ping distance) counts as caught
-local RELEASE_CATCH_GRACE_MAX_PING = 0.3 -- // Cap on the owner's ping used for that grace distance (seconds)
+local PENDING_CATCH_TIMEOUT = 1.5 -- // Seconds a client waits for the server to confirm a predicted catch
+local RELEASE_CATCH_GRACE_STUDS = 1 -- // Studs: a manual recall released this close to being caught (plus ping distance) counts as caught
+local RELEASE_CATCH_GRACE_MAX_PING = 0.3 -- // Max owner ping (seconds) used for that grace distance
 
--- // Defined in the CATCHING section below (forward-declared so the movement loops above it can call them)
+-- // Forward-declared; defined in CATCHING
 local setHostHidden: (thrownWeaponData: ThrownWeapons.Data, hidden: boolean) -> ()
 local catchWeapon: (player: Player, thrownWeaponData: ThrownWeapons.Data) -> boolean
-local RETURN_STEER_TIGHTNESS = 3 -- // How sharply a returning boomerang turns into the player up close (1 = circles them; higher = more direct)
+local RETURN_STEER_TIGHTNESS = 3 -- // Up-close turn sharpness of a returning boomerang (1 = circles the player; higher = more direct)
 local DEATH_SPEED_SCALE = 0.5
 local DEATH_MINIMUM_SPEED = 12
 local OBSTRUCTION_BLOCKCAST_SKIN = ObstructionCastLibrary.BLOCKCAST_SKIN
 local BLOCKCAST_VISUALIZER_LIFETIME = 0.05
-local RECALL_BOUNCE_MIN_SPEED_FRACTION = 0.5 -- // A returning boomerang that bounces leaves the wall at no less than this fraction of its max recall speed
-local LOS_VISUALIZER_LIFETIME = 3 -- // Seconds a line-of-sight cast stays drawn (it is only made once, at 0 energy)
+local RECALL_BOUNCE_MIN_SPEED_FRACTION = 0.5 -- // Min fraction of max recall speed a returning boomerang keeps after a bounce
+local LOS_VISUALIZER_LIFETIME = 3 -- // Seconds a line-of-sight cast stays drawn
 
 local WEAPON_UNRELIABLE_CODES = RemoteCodes.Weapon.Unreliable
 local WEAPON_RAYCAST_COLLISION_GROUP = CollisionGroupConstants.ThrownWeapons
 
 local SPAWN_PACKET_SIZE = 8 + 12 + 12 + 4 + 8 + 4 -- // ... + the curvature
 local DESPAWN_PACKET_SIZE = 8 + 1
-local SNAPSHOT_PACKET_SIZE = 1 + 8 + 12 + 12 + 4 + 1 + 8 + 12 + 4 + 4 -- // ... + the thrower's position + the curvature + the recall's distance flown (Dead.luau's snapshots omit these)
-local RETURN_PREDICTION_STEP = 1 / 60 -- // Seconds per step when a client replays a returning boomerang's movement to catch a snapshot up
-local raycastVisualizersEnabled = GlobalConfig.RaycastVisualizersEnabled -- // The boomerang's hit sweep drawn each step; Cmdr `viewhitbox` changes it live (server)
-local projectileVisualizerEnabled = GlobalConfig.ProjectileHitboxVisualizerEnabled -- // Server only; Cmdr `toggleprojectilevisualizer` changes it live. Read when a boomerang is thrown
+local SNAPSHOT_PACKET_SIZE = 1 + 8 + 12 + 12 + 4 + 1 + 8 + 12 + 4 + 4 -- // ... + thrower position + curvature + recall distance flown (Dead.luau snapshots omit these)
+local RETURN_PREDICTION_STEP = 1 / 60 -- // Seconds per step when replaying a returning boomerang to catch a snapshot up
+local raycastVisualizersEnabled = GlobalConfig.RaycastVisualizersEnabled -- // Server: draws each hit sweep; Cmdr `viewhitbox` toggles it live
+local projectileVisualizerEnabled = GlobalConfig.ProjectileHitboxVisualizerEnabled -- // Server only: Cmdr `toggleprojectilevisualizer` toggles it; read when a boomerang is thrown
 
 -- ============================================================================================================================
 -- INTERNAL CONFIG (manual recall of a dead boomerang)
 -- ============================================================================================================================
--- // Seconds for a manually recalled boomerang to go from standing still to its full recall movement speed AND full spin rate once it
--- // starts moving toward the player. Both build up gradually but quickly over this time. (Cmdr `tune RecallAcceleration` scales it: seconds = this / RecallAcceleration.)
+-- // Seconds for a manual recall to go from rest to full speed and spin (Cmdr `tune RecallAcceleration` divides it)
 local MANUAL_RECALL_FULL_SPEED_SECONDS = 0.2
--- // The charge now lifts the boomerang to flight height before it starts moving (Dead.luau). If true, the older timed rise during the
--- // flight itself (GlobalConfig.ManualRecallRiseSeconds, with the tilt toward the player) runs as well: kept in case it returns.
+-- // If true, the timed rise during flight (GlobalConfig.ManualRecallRiseSeconds, with tilt toward the player) also
+-- // runs; the recall charge normally lifts the boomerang (Dead.luau)
 local MANUAL_RECALL_RISES_DURING_FLIGHT = false
 
 local BOOMERANG_SPIN_SPEED = math.rad(1080)
-local RECALL_FROM_DEAD_LIFT_RATE = 8 -- // UNUSED (physics starts at flight height; the drawn height eases up with VisualYOffset) -- // How fast a boomerang that recovers by itself (automatic recall off the ground) rises to flight height
-local MANUAL_RECALL_TILT_HEIGHT = 2 -- // Height still to rise (studs) at which the manual-recall tilt is at its maximum
-local MANUAL_RECALL_TILT_RESPONSE = 6 -- // How quickly the tilt eases toward its target
+local RECALL_FROM_DEAD_LIFT_RATE = 8 -- // UNUSED. Rise rate of an automatic recall off the ground
+local MANUAL_RECALL_TILT_HEIGHT = 2 -- // Studs of remaining rise at which the recall tilt is maximal
+local MANUAL_RECALL_TILT_RESPONSE = 6 -- // How quickly the tilt eases to its target
 
 type ThrowInitOptions = {
    StartPosition: Vector3?,
@@ -124,9 +122,9 @@ type ThrowInitOptions = {
    TimeSinceAiming: number?,
    AimStrengthAlpha: number?,
    ExistingHost: Model?,
-   TargetPosition: Vector3?, -- // (server): the point the player aimed at (clamped; only sets how far ahead the curve crosses the aim line)
-   ClickedTarget: (number | string)?, -- // Server: the enemy the PC client says was clicked, a UserId or a BotId (ThrowTargetLibrary checks it)
-   Curvature: number?, -- // (client): the curve the server decided, from the spawn event
+   TargetPosition: Vector3?, -- // Server: point the player aimed at (clamped); sets how far ahead the curve crosses the aim line
+   ClickedTarget: (number | string)?, -- // Server: enemy the PC client reports as clicked (UserId or BotId)
+   Curvature: number?, -- // Client: curve decided by the server, from the spawn event
 }
 
 type RecallInitOptions = {
@@ -207,7 +205,7 @@ local function getNearestEnemyDirection(player: Player, position: Vector3): Vect
       end
    end
 
-   -- // Decoys (and other bots) count too, unless they're the thrower's own or an ally's (ThrowTargetLibrary)
+   -- // Decoys and other bots count, except the thrower's own or an ally's (ThrowTargetLibrary)
    for _, botRoot in ThrowTargetLibrary.getEnemyBotRoots(player) do
       local toTarget = Vector3.new(botRoot.Position.X - position.X, 0, botRoot.Position.Z - position.Z)
       local distance = toTarget.Magnitude
@@ -220,8 +218,7 @@ local function getNearestEnemyDirection(player: Player, position: Vector3): Vect
    return nearestDirection
 end
 
--- // Update the rotation of the trail based on the boomerang's movement
---    This ensures the trail leaves fully broad streak behind the boomerang
+-- // Rotate the trail to match movement so it leaves a full-width streak
 local function updateTrailOrientation(thrownWeaponData: ThrownWeapons.Data)
 	local positions = thrownWeaponData.LastMovementPositions
 	if not positions or #positions < 2 then
@@ -244,8 +241,7 @@ local function updateTrailOrientation(thrownWeaponData: ThrownWeapons.Data)
 
 	movement = movement.Unit
 
-	-- Get a direction perpendicular to the movement.
-	-- This gives us the width direction of the trail.
+	-- Perpendicular to the movement: the trail's width direction.
 	local perpendicular = Vector3.new(-movement.Z, 0, movement.X)
 
 	-- Position the attachments on either side of the object.
@@ -255,8 +251,8 @@ local function updateTrailOrientation(thrownWeaponData: ThrownWeapons.Data)
 	thrownWeaponData.TrailObject.Attachment1.Position = perpendicular * width
 end
 
--- // Leave the current trail where it is so it fades out over its Lifetime, and let addTrail start a fresh one
--- // (used when the boomerang teleports, e.g. through a portal, so the trail doesn't stretch across the jump)
+-- // Detach the current trail so it fades over its Lifetime and let addTrail start a new one (used on teleports so it
+-- // doesn't stretch)
 local function retireTrail(thrownWeaponData: ThrownWeapons.Data)
    local trailObject = thrownWeaponData.TrailObject
    if not trailObject then
@@ -275,11 +271,9 @@ end
 Boomerang.retireTrail = retireTrail
 
 -- // Add trail
-local getVisualYOffset: (thrownWeaponData: ThrownWeapons.Data) -> number -- // Defined below (the drawn height offset)
+local getVisualYOffset: (thrownWeaponData: ThrownWeapons.Data) -> number -- // Defined below
 
--- // Where the boomerang is DRAWN: its physics position plus the visual height offset (getVisualYOffset). The trail follows
--- // this, so it stays on the visible boomerang while that eases to the physics height (after a throw, or a recall that
--- // rises from the ground).
+-- // Where the boomerang is drawn: physics position plus getVisualYOffset. The trail follows this.
 local function getDrawnPosition(thrownWeaponData: ThrownWeapons.Data): Vector3
    return thrownWeaponData.CFrame.Position + Vector3.new(0, getVisualYOffset(thrownWeaponData), 0)
 end
@@ -362,14 +356,14 @@ local function getObstructionBlockcastCFrame(rayOrigin: Vector3, direction: Vect
    return ObstructionCastLibrary.getCastCFrame(rayOrigin, direction)
 end
 
--- // The flat block every obstruction cast uses: bounce detection in flight and the line-of-sight cast. Its height is the one
--- // shared cast height (GlobalConfig.BoomerangRaycastHeight, tunable with Cmdr `setboomerangcastheight`).
+-- // Flat block used by all obstruction casts (flight bounces, line of sight); height is
+-- // GlobalConfig.BoomerangRaycastHeight (Cmdr `setboomerangcastheight`)
 local function getObstructionCastSize(hitboxRadius: number): Vector3
    return ObstructionCastLibrary.getCastSize(hitboxRadius)
 end
 
--- // The part that stands for a player's position in line-of-sight checks: the Hitbox HitboxService puts in their character
--- // (it replicates, so clients find it too). Falls back to the HumanoidRootPart, where it is centered, if it isn't there yet.
+-- // Part standing for a player's position in line-of-sight checks: their replicated Hitbox (HitboxService), else the
+-- // HumanoidRootPart
 local function getPlayerTargetPart(character: Model): BasePart?
    local hitbox = character:FindFirstChild("Hitbox")
    if hitbox and hitbox:IsA("BasePart") then
@@ -379,8 +373,8 @@ local function getPlayerTargetPart(character: Model): BasePart?
    return if rootPart and rootPart:IsA("BasePart") then rootPart else nil
 end
 
--- // Server only. Draws a line-of-sight cast for a few seconds (ObstructionCastLibrary / Cmdr `togglelosvisualizer`):
--- // the swept block (green = clear, red = blocked) and a marker where it hit.
+-- // Server only. Draws a line-of-sight cast for a few seconds (green = clear, red = blocked, plus hit marker); Cmdr
+-- // `togglelosvisualizer`
 local function visualizeLineOfSight(castCFrame: CFrame, castSize: Vector3, castDistance: number, result: RaycastResult?)
    if not isServer or not ObstructionCastLibrary.isLosVisualizerEnabled() then
       return
@@ -419,12 +413,11 @@ local function visualizeLineOfSight(castCFrame: CFrame, castSize: Vector3, castD
    end
 end
 
--- // True if the boomerang could fly straight to the player: a flat block (the same shape and height it bounces with in flight)
--- // swept from the boomerang to the player's Hitbox, at the boomerang's own height, so only horizontal obstructions count
--- //. Characters are ignored. Same result on client and server, it only depends on replicated state.
+-- // True if a flat block swept from the boomerang to the player's Hitbox, at the boomerang's height, is unobstructed
+-- // (characters ignored). Same on client and server.
 local function hasLineOfSightToPlayer(player: Player, position: Vector3, toolData: Tools.Tool, thrownWeaponData: ThrownWeapons.Data, skipVisualizer: boolean?): boolean
    if BoomerangDebugLibrary.get("NoReturn") >= 1 then
-      return false -- // Dev testing (Cmdr `boomerangdebug noreturn 1`): always die, so manual recalls can be tested anywhere
+      return false -- // Dev testing (Cmdr `boomerangdebug noreturn 1`): always die
    end
    local character = player.Character
    local targetPart = character and getPlayerTargetPart(character)
@@ -432,7 +425,7 @@ local function hasLineOfSightToPlayer(player: Player, position: Vector3, toolDat
       return false
    end
 
-   -- // Flatten to the boomerang's height: this is a top-down check against walls, not against the player's body height
+   -- // Flatten to the boomerang's height (top-down check against walls)
    local targetPosition = targetPart.Position
    local toPlayer = Vector3.new(targetPosition.X - position.X, 0, targetPosition.Z - position.Z)
    local distance = toPlayer.Magnitude
@@ -457,8 +450,8 @@ local function hasLineOfSightToPlayer(player: Player, position: Vector3, toolDat
    return result == nil
 end
 
--- // In sight AND within GlobalConfig.DyingBoomerangRecallDistance (horizontal) of its player: the test a dying boomerang
--- // passes to resume its recall. No visualizer, it runs often.
+-- // True if in sight and within GlobalConfig.DyingBoomerangRecallDistance (horizontal) of the player: lets a dying
+-- // boomerang resume its recall. No visualizer (runs often).
 local function isPlayerInRecallReach(player: Player, position: Vector3, toolData: Tools.Tool, weaponData: any): boolean
    local character = player.Character
    local targetPart = character and getPlayerTargetPart(character)
@@ -473,9 +466,8 @@ local function isPlayerInRecallReach(player: Player, position: Vector3, toolData
    return hasLineOfSightToPlayer(player, position, toolData, weaponData, true)
 end
 
--- // Server only. Called right before a boomerang would die: true if it would resume its recall anyway, now or at some point of the
--- // slide it is about to make (predicted over DyingBoomerangRecallLookaheadSeconds with the real dying movement). Then it never
--- // dies at all, instead of dying and being revived a moment later. The dying-state check stays as the safety net.
+-- // Server only. Called before dying: true if it would resume its recall now or during the slide it is about to make
+-- // (predicted over DyingBoomerangRecallLookaheadSeconds); then it never dies.
 local function canAvoidDying(player: Player, toolData: Tools.Tool, thrownWeaponData: ThrownWeapons.Data, position: Vector3, direction: Vector3, speed: number): boolean
    if not isServer then
       return false
@@ -499,8 +491,8 @@ end
 local function getWeaponCFrame(thrownWeaponData: ThrownWeapons.Data): CFrame?
    local host = thrownWeaponData.Host
    if host and host.Parent then
-      -- // Client: the simulated position is thrownWeaponData.CFrame; the model (host) is only drawn from it, interpolated
-      -- // between steps (see the flight loop), so it never is the source of truth
+      -- // Client: the simulated position is thrownWeaponData.CFrame; the host model is only drawn from it
+      -- // (interpolated), never the source of truth
       if not isServer and thrownWeaponData.CFrame then
          return thrownWeaponData.CFrame
       end
@@ -509,15 +501,15 @@ local function getWeaponCFrame(thrownWeaponData: ThrownWeapons.Data): CFrame?
    return thrownWeaponData.CFrame
 end
 
--- // Client drawing only: how far above (+) / below (-) the physics height a freshly thrown boomerang is still DRAWN. It starts at the
--- // thrower's height and eases to 0 within GlobalConfig.BoomerangVisualHeightSyncSeconds; the simulation never sees it.
+-- // Client drawing only: height offset (+/-) of the drawn boomerang from its physics height. Starts at the thrower's
+-- // height and eases to 0 within GlobalConfig.BoomerangVisualHeightSyncSeconds.
 getVisualYOffset = function(thrownWeaponData: ThrownWeapons.Data): number
    local startOffset = thrownWeaponData.VisualYOffset
    local startedAt = thrownWeaponData.VisualYOffsetStartedAt
    if not startOffset or not startedAt then
       return 0
    end
-   -- // GROUND APPROACH (2026-11-02): a manual recall's drawn height rises with the distance flown, slow-fast-slow (smoothstep)
+   -- // Ground approach: a manual recall's drawn height rises with distance flown (smoothstep)
    if thrownWeaponData.VisualYOffsetByDistance then
       local riseAlpha = math.clamp((thrownWeaponData.RecallTravelled or 0) / math.max(GlobalConfig.ManualRecallRiseDistance, 0.01), 0, 1)
       if riseAlpha >= 1 then
@@ -541,7 +533,7 @@ end
 local function setWeaponCFrame(thrownWeaponData: ThrownWeapons.Data, cframe: CFrame, deltaTime: number?)
    thrownWeaponData.LastPosition = thrownWeaponData.CFrame.Position
    thrownWeaponData.CFrame = cframe
-   AuthorityViewLibrary.update(thrownWeaponData.OwnerUserId, thrownWeaponData.ToolId, cframe.Position) -- // Server only (no-op elsewhere)
+   AuthorityViewLibrary.update(thrownWeaponData.OwnerUserId, thrownWeaponData.ToolId, cframe.Position) -- // Server only
 
    local host = thrownWeaponData.Host
    if host and host.Parent then
@@ -549,7 +541,7 @@ local function setWeaponCFrame(thrownWeaponData: ThrownWeapons.Data, cframe: CFr
          -- Spin is constant and flat regardless of movement direction, speed, or state
          local visualRotation = (thrownWeaponData.VisualRotation or 0) + (BOOMERANG_SPIN_SPEED * (thrownWeaponData.RecallSpinScale or 1) * (deltaTime or 0))
          thrownWeaponData.VisualRotation = visualRotation
-         -- // RecallTilt: visual tilt while a manual recall drags it up off the ground (set in Boomerang.recall)
+         -- // RecallTilt: visual tilt while a manual recall lifts it (set in Boomerang.recall)
          host:PivotTo(CFrame.new(cframe.Position + Vector3.new(0, getVisualYOffset(thrownWeaponData), 0)) * (thrownWeaponData.RecallTilt or CFrame.identity) * CFrame.Angles(0, visualRotation, 0))
       else
          host:PivotTo(cframe)
@@ -560,7 +552,7 @@ local function setWeaponCFrame(thrownWeaponData: ThrownWeapons.Data, cframe: CFr
    end
 end
 
--- // Spawns temporary parts showing the swept blockcast volume and, if any, the hit position; both self-destruct after a frame
+-- // Temporary parts showing the swept blockcast volume and hit position; destroyed after a frame
 local function updateRaycastVisualizers(castCFrame: CFrame, castSize: Vector3, rayDistance: number, result: RaycastResult?)
    if not raycastVisualizersEnabled then
       return
@@ -610,7 +602,7 @@ local function fireSpawned(ownerUserId: number, boomerangId: string, instanceId:
    offset = BufferUtil.writeVector3_96(payload, offset, direction)
    offset = BufferUtil.writef32(payload, offset, speed)
    offset = BufferUtil.writef64(payload, offset, throwServerTime)
-   BufferUtil.writef32(payload, offset, curvature) -- // The curve the server decided (BoomerangCurveLibrary)
+   BufferUtil.writef32(payload, offset, curvature) -- // Curve decided by the server (BoomerangCurveLibrary)
 
    thrownBoomerangSpawnedRemote:FireAllClients(boomerangId, payload, instanceId)
 end
@@ -627,7 +619,7 @@ local function fireDespawned(ownerUserId: number, returnToPlayer: boolean)
 end
 
 -- // Notify all users of a boomerang simulation snapshot
--- // `recallTravelled`: studs a returning boomerang has flown since its recall started (clients replay its speed-up from it)
+-- // `recallTravelled`: studs flown since the recall started (clients replay the speed-up from it)
 local function fireSnapshot(ownerUserId: number, position: Vector3, direction: Vector3, speed: number, state: number, curvature: number?, recallTravelled: number?)
    if not isServer then
       return
@@ -642,18 +634,18 @@ local function fireSnapshot(ownerUserId: number, position: Vector3, direction: V
    offset = BufferUtil.writef32(payload, offset, speed)
    offset = BufferUtil.writeu8(payload, offset, state)
    offset = BufferUtil.writef64(payload, offset, workspace:GetServerTimeNow())
-   -- // Where the thrower is: remote clients see them slightly in the past, so a returning boomerang steers toward this instead
+   -- // Thrower position: remote clients see them slightly in the past, so a returning boomerang steers toward this
    local ownerPlayer = Players:GetPlayerByUserId(ownerUserId)
    local ownerRoot = ownerPlayer and ownerPlayer.Character and ownerPlayer.Character.PrimaryPart
    offset = BufferUtil.writeVector3_96(payload, offset, if ownerRoot then ownerRoot.Position else position)
-   offset = BufferUtil.writef32(payload, offset, curvature or 0) -- // The current curve (0 once straightened by a bounce, homing, Telekinesis...)
+   offset = BufferUtil.writef32(payload, offset, curvature or 0) -- // Current curve (0 once straightened by a bounce, homing, Telekinesis)
    BufferUtil.writef32(payload, offset, recallTravelled or -1) -- // -1 = not returning
 
    thrownWeaponReplicationRemote:FireAllClients(payload)
 end
 
--- // Sweeping a single flat, horizontal block for obstructions along the boomerang's path
--- The cast origin is pulled back by a skin margin so consecutive frames overlap, preventing tunneling through thin/concave corners
+-- // Sweep a flat horizontal block for obstructions along the boomerang's path
+-- Origin is pulled back by a skin margin so consecutive casts overlap (prevents tunneling through thin/concave corners)
 local function blockcastWithHorizontalHitbox(
    rayOrigin: Vector3,
    direction: Vector3,
@@ -666,9 +658,8 @@ local function blockcastWithHorizontalHitbox(
    return result
 end
 
--- // A sphere cast ignores anything it already overlaps where it starts, so a player standing next to a thrower, walking into the
--- // boomerang, or beside a bounce / portal exit would never be hit. This invisible ball is moved to the start of each step and asked
--- // what it touches (an exact test; the cheaper bounds queries are looser than the cylinder). One ball is shared, used one step at a time.
+-- // A sphere cast ignores parts it already overlaps, so this shared invisible ball is moved to each step's start and
+-- // queried for exact overlaps (one step at a time).
 local overlapProbe: Part? = nil
 
 local function getOverlapProbe(radius: number): Part
@@ -705,14 +696,14 @@ local function addLivingModel(hitModels: {Model}, seen: {[Model]: boolean}, inst
    end
 end
 
--- // The characters (and bots) a boomerang touches this step: everyone already overlapping it at the start of the step, plus the first
--- // one its sweep runs into. With lag compensation on, also everyone the sweep would hit if they were where `thrower` saw them
--- // (LagCompensationLibrary; a thrower is passed on the server only).
+-- // Characters and bots touched this step: all overlapping at step start plus the first the sweep hits. With lag
+-- // compensation, also everyone the sweep would hit at `thrower`'s view positions (LagCompensationLibrary; thrower
+-- // passed on server only).
 local function spherecastCharacterHitbox(rayOrigin: Vector3, direction: Vector3, rayDistance: number, hitboxRadius: number, thrower: Player?): {Model}
    local characterRaycastParams = RaycastParams.new()
    characterRaycastParams.FilterType = Enum.RaycastFilterType.Include
    local hitFilter = {Characters}
-   local botsFolder = workspace:FindFirstChild("Bots") -- // bots (e.g. the decoy) live here, not under Characters
+   local botsFolder = workspace:FindFirstChild("Bots") -- // Bots (e.g. the decoy) live here, not under Characters
    if botsFolder then
       table.insert(hitFilter, botsFolder)
    end
@@ -723,7 +714,7 @@ local function spherecastCharacterHitbox(rayOrigin: Vector3, direction: Vector3,
    local hitModels: {Model} = {}
    local seen: {[Model]: boolean} = {}
 
-   -- // Already overlapping at the start of the step (parts that can't be queried, like the Torso, don't count, same as for the cast)
+   -- // Already overlapping at step start (unqueryable parts like the Torso don't count, same as the cast)
    local overlapParams = OverlapParams.new()
    overlapParams.FilterType = Enum.RaycastFilterType.Include
    overlapParams.FilterDescendantsInstances = hitFilter
@@ -821,11 +812,11 @@ local function updateOwnWeaponHighlight(player: Player, thrownWeaponData: Thrown
 end
 
 local function damagedPlayer(player: Player, boomerangId: string, thrownWeaponData: ThrownWeapons.Data, victimModel: Model): boolean
-   -- // Bots (e.g. the decoy) aren't players. Route them to the bot layer, which applies the
-   --    behavior's hit rules and eliminates server-side. No stat crediting for bot kills.
+   -- // Bots (e.g. the decoy) are routed to the bot layer, which applies hit rules and eliminates server-side. No stat
+   -- // crediting.
    if victimModel:GetAttribute("BotId") ~= nil then
       if isServer and BotService then
-         -- // The boomerang checks what it overlaps every step, so one bot is reported many times in a row: same per-target cooldown as players
+         -- // Bots are reported every step, so the same per-target cooldown as players applies
          if not thrownWeaponData.HitBots then
             thrownWeaponData.HitBots = {}
          end
@@ -868,15 +859,15 @@ local function damagedPlayer(player: Player, boomerangId: string, thrownWeaponDa
    local healthBeforeDamage = Humanoid.Health
    local hitResult = CombatLibrary.attackHitPlayer(player, boomerangId, victimPlayer, Humanoid, 100000)
 
-   -- // A dash / spawn-protection dodge (or a hit that does nothing in this mode) is not a strike: no cooldown and no energy cost, so a
-   -- // boomerang still overlapping a player whose dash just ended can hit them on the next step.
+   -- // A dash/spawn-protection dodge (or a no-op hit in this mode) isn't a strike: no cooldown or energy cost, so an
+   -- // overlapping boomerang can hit on the next step after the dash ends.
    if hitResult == "Immune" or hitResult == "Ignored" then
       return false
    end
    thrownWeaponData.HitPlayers[victimPlayer] = now
 
-   -- // A boomerang (outgoing or returning) loses energy for each player it strikes (not for a shield block). Server only: the client's
-   -- // prediction keeps a little more energy than the server and the server's Returning / Dying snapshot decides the rest.
+   -- // Each player struck (not shield blocks) costs energy, outgoing or returning. Server only: client prediction
+   -- // keeps a little more energy; the server's Returning/Dying snapshot decides the rest.
    if hitResult ~= "Blocked" and isServer and thrownWeaponData.Energy then
       thrownWeaponData.Energy -= BoomerangTuningLibrary.get(thrownWeaponData.ToolId, "PlayerHitEnergyCost")
    end
@@ -914,34 +905,33 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       speed = defaultSpeed * (1 + aimStrengthAlpha * AIM_START_SPEED_BONUS_MULTIPLIER)
    end 
    local hitboxRadius = toolData.Boomerang.HitboxRadius
-   local isRetuning = false -- // True after a live Cmdr change of ThrowSpeed, until the speed has reached the new value
-   -- // Energy: MinEnergy for a tap up to MaxEnergy for a full charge (aimStrengthAlpha 0..1, the same charge that drives the aim
-   -- // arrow). It drains as the boomerang flies (see simulateStep); at 0 it recalls itself if it can see its player, else dies.
+   local isRetuning = false -- // True after a live Cmdr ThrowSpeed change, until the speed reaches the new value
+   -- // Energy: MinEnergy (tap) to MaxEnergy (full charge) by aimStrengthAlpha 0..1. Drains in flight (see
+   -- // simulateStep); at 0 it recalls if it sees its player, else dies.
    local minEnergy = BoomerangTuningLibrary.get(tuningToolId, "MinEnergy")
    local maxEnergy = math.max(BoomerangTuningLibrary.get(tuningToolId, "MaxEnergy"), minEnergy)
    thrownWeaponData.Energy = minEnergy + (maxEnergy - minEnergy) * aimStrengthAlpha
    thrownWeaponData.EnergyDepletedHandled = false
 
    local startPosition = (options and options.StartPosition) or (character.PrimaryPart.Position + character.PrimaryPart.CFrame.LookVector * 3)
-   -- // The PHYSICS always runs at the one configured height, wherever the player is (jumping, dashing): every obstruction cast and
-   -- // victim cast uses it (GlobalConfig.BoomerangFlightHeight). Clients only DRAW the boomerang from the thrower's height at first
-   -- // and ease it down/up to the physics height (see getVisualYOffset), so it leaves the hand seamlessly.
+   -- // Physics always runs at GlobalConfig.BoomerangFlightHeight regardless of player height; clients draw from the
+   -- // thrower's height and ease to it (getVisualYOffset).
    startPosition = Vector3.new(startPosition.X, GlobalConfig.BoomerangFlightHeight, startPosition.Z)
 
-   -- // The curve. The server decides it (side and angle from the thrower's movement on the server, the arc through the
-   -- // aimed point) and turns the launch direction off the aim line; clients fly the curve the spawn event carries.
+   -- // The server decides the curve (side/angle from thrower movement, arc through the aimed point) and turns the
+   -- // launch off the aim line; clients fly the curve from the spawn event.
    if isServer then
       local aimDistance: number? = nil
       local targetPosition = options and options.TargetPosition
-      if typeof(targetPosition) == "Vector3" and targetPosition == targetPosition then -- // (NaN check)
+      if typeof(targetPosition) == "Vector3" and targetPosition == targetPosition then -- // NaN check
          local toTarget = Vector3.new(targetPosition.X - startPosition.X, 0, targetPosition.Z - startPosition.Z)
          aimDistance = toTarget:Dot(direction)
       end
       local humanoid = character:FindFirstChildOfClass("Humanoid")
       local energyPerStud = BoomerangTuningLibrary.get(tuningToolId, "EnergyPerStud")
       local maxDistance = if energyPerStud > 1e-3 then thrownWeaponData.Energy / energyPerStud else math.huge
-      -- // An enemy to curve toward: the one clicked on (PC), else the closest to the aim within a cone (ThrowTargetLibrary).
-      -- // The arc then goes through that enemy's position on the server instead of through the aimed point.
+      -- // Enemy to curve toward: the clicked one (PC), else the closest to the aim within a cone (ThrowTargetLibrary);
+      -- // on the server the arc goes through that enemy.
       local curveDirection = direction
       local clickedTarget = options and options.ClickedTarget
       local targetEnemyPosition = ThrowTargetLibrary.findTarget(player, startPosition, direction,
@@ -1005,7 +995,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       fireSpawned(player.UserId, boomerangId, boomerangInstanceId, startPosition, direction, speed, throwServerTime, thrownWeaponData.Curvature or 0)
       thrownWeaponData.State = ThrownWeapons.StateEnum.Outgoing
       if projectileVisualizerEnabled then
-         -- Server creates and monitors a simple representation part for debugging.
+         -- Server creates a simple representation part for debugging.
          local partHost = ThrownWeaponReplicationPart:Clone()
          partHost.Name = `BoomerangReplication_{player.Name}`
          partHost.Position = startPosition
@@ -1052,7 +1042,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
    end
    local raycastParams = RaycastsUtility.getProjectileObstructionParams(obstructionFilter)
    local nextReplicationAt = 0
-   local bounceWeight = 0 -- // 1 right after a returning boomerang bounces, fading to 0 as it steers back toward the player
+   local bounceWeight = 0 -- // 1 right after a returning boomerang bounces, fading to 0 as it steers back to the player
 
    -- // Simulate a frame of boomerang movement
    local function simulateStep(deltaTime: number, shouldRecallTransitions: boolean)
@@ -1078,7 +1068,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       end]]
 
       if isServer then
-         if thrownWeaponData.Host then -- // Only boomerangs thrown with the visualizer on have a server part
+         if thrownWeaponData.Host then -- // Only exists when the visualizer is on
             if not thrownWeaponData.Host.Parent then
                return false
             end
@@ -1090,32 +1080,30 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          updateOwnWeaponHighlight(player, thrownWeaponData, pivot.Position)
       end
 
-      -- // Live tuning: pick up Cmdr changes while the boomerang is in flight
+      -- // Live tuning: pick up Cmdr changes mid-flight
       local tunedSpeed = BoomerangTuningLibrary.get(tuningToolId, "ThrowSpeed")
       if tunedSpeed ~= defaultSpeed then
          defaultSpeed = tunedSpeed
          isRetuning = true
       end
-      -- // A clash knocked it onto a new direction (server: Boomerang.clash; clients: the server's Deflected snapshot)
+      -- // A clash (server: Boomerang.clash; clients: Deflected snapshot) set a new direction
       local isReturning = thrownWeaponData.State == ThrownWeapons.StateEnum.Returning
       local returnMaxSpeed = BoomerangTuningLibrary.get(tuningToolId, "ThrowSpeed") * (thrownWeaponData.ReturnSpeedMultiplier or 1)
       if thrownWeaponData.PendingDirection then
          direction = thrownWeaponData.PendingDirection
          thrownWeaponData.PendingDirection = nil
          if not BoomerangCurveLibrary.KEEP_CURVE_AFTER_BOUNCE then
-            thrownWeaponData.Curvature = 0 -- // A clash straightens it out
+            thrownWeaponData.Curvature = 0 -- // A clash straightens it
          end
          if isReturning then
-            -- // Knocked off course by a clash while returning: same as a bounce, the knock overrides the steering for a moment
+            -- // Knocked off course while returning: like a bounce, the knock overrides steering briefly
             speed = math.max(speed, returnMaxSpeed * RECALL_BOUNCE_MIN_SPEED_FRACTION)
             bounceWeight = 1
          end
       end
 
-      -- // Client: the server's latest heading and speed replace ours (position is eased separately, see WeaponController), so a bounce,
-      -- // a homing or steering turn or a recall that only the server saw can't leave us flying off in another direction
-      -- // (Not while this client is steering the boomerang with Telekinesis: the server's heading is always a little behind the player's input,
-      -- // so it keeps its own and relies on the position corrections.)
+      -- // Client: the server's latest heading and speed replace ours (position is eased separately, see
+      -- // WeaponController). Skipped while this client steers with Telekinesis (the server's heading lags the input).
       if not isServer and thrownWeaponData.SnapshotDirection then
          if not Telekinesis.getBias(thrownWeaponData) then
             direction = thrownWeaponData.SnapshotDirection
@@ -1134,18 +1122,16 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          end
       end
 
-      -- // Out of energy while flying OUT: the one recall-or-die decision. Over open air it can't die (nothing to land on), so it
-      -- // returns to the player whether or not it can see them. Over ground: a clear line of sight to its player means it
-      -- // returns; none means it dies. Either way a recall refills it to the recall reserve (GlobalConfig.BoomerangRecallEnergy).
-      -- // The server decides death. A client predicts the return; one that has ground and no line of sight just slows down
-      -- // (Exhausted) and waits for the server's verdict (a Returning or Dying snapshot).
-      -- //
-      -- // Out of energy while RETURNING (the reserve, or what a manual recall had left, is spent): it dies, with no line of
-      -- // sight question (it already had its one). Over open air it keeps heading for the player and dies once over ground.
+      -- // Out of energy flying OUT: over open air it returns regardless of sight; over ground it returns with a clear
+      -- // line of sight to the player, else dies. A recall refills to GlobalConfig.BoomerangRecallEnergy.
+      -- // The server decides death; a client predicts the return, or with ground and no sight slows (Exhausted) and
+      -- // waits for the server's Returning/Dying snapshot.
+      -- // Out of energy while RETURNING: dies (no new sight check); over open air it keeps heading to the player and
+      -- // dies once over ground.
       if isReturning then
          if isServer and (thrownWeaponData.Energy or 0) <= 0 and DeadWeaponLogic.hasGroundBelow(pivot.Position, thrownWeaponData.Host) then
-            -- // It would die, but if it would be back in sight and in range right away (now or along its slide) it keeps returning on a
-            -- // fresh reserve. Once per throw, so a boomerang can't be bounced around forever.
+            -- // About to die, but if back in sight and range now (or along its slide) it keeps returning on a fresh
+            -- // reserve, once per throw.
             if not thrownWeaponData.ReturnRescued and canAvoidDying(player, toolData, thrownWeaponData, pivot.Position, direction, speed) then
                thrownWeaponData.ReturnRescued = true
                thrownWeaponData.Energy = BoomerangTuningLibrary.get(tuningToolId, "RecallEnergy")
@@ -1162,18 +1148,18 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          if shouldRecallTransitions and not thrownWeaponData.EnergyDepletedHandled then
             thrownWeaponData.EnergyDepletedHandled = true
             if isServer and WeaponService then
-               -- // The end of its flight (Explosive / Teleport boomerang effects fire here)
+               -- // End of flight (Explosive / Teleport boomerang effects fire here)
                WeaponService.WeaponReachedEventPoint:Execute("parallel", player, thrownWeaponData.ToolId, pivot.Position)
             end
             if ThrownWeapons.Data[player] ~= thrownWeaponData then
-               return true -- // Removed by an event-point effect (e.g. explosive boomerang)
+               return true -- // Removed by an event-point effect
             end
             if DeadWeaponLogic.hasGroundBelow(pivot.Position, thrownWeaponData.Host) then
                if Boomerang.autoRecallOrDie(player, boomerangId, toolData, thrownWeaponData, pivot.Position, direction, speed) then
                   return true
                end
             else
-               -- // Open air: it can't die here. Head back regardless of line of sight.
+               -- // Open air: can't die; head back regardless of sight
                thrownWeaponData.Energy = BoomerangTuningLibrary.get(tuningToolId, "RecallEnergy")
                Boomerang.recall(player, boomerangId, toolData, thrownWeaponData)
                return true
@@ -1182,16 +1168,15 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          thrownWeaponData.State = ThrownWeapons.StateEnum.Exhausted
          speed = speed - (speed * SLOW_RATE * deltaTime)
          if speed <= .1 then
-            -- // Stopped and waiting for the server's verdict (Returning or Dying snapshot). The loop stays alive so a
-            -- // recall can steer this same boomerang home with the same movement code.
+            -- // Waiting for the server's verdict (Returning or Dying snapshot); the loop stays alive so a recall can
+            -- // steer it home.
             speed = 0
             thrownWeaponData.Speed = 0
             return true
          end
       end
 
-      -- // Returning: steer the velocity toward the player. The outgoing movement below (energy, players, bounces, portals) then
-      -- // applies unchanged; the only difference from flying out is where the boomerang is heading.
+      -- // Returning: steer toward the player; the outgoing movement below then applies unchanged.
       if isReturning then
          local character = player.Character
          local rootPart = character and character.PrimaryPart
@@ -1202,9 +1187,8 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
             return false
          end
 
-         -- // The server steers toward where it has the thrower. The thrower's own client steers toward its own character (it feels
-         -- // right, and nothing it decides here counts), every other client toward the position the server sent (their view of the
-         -- // thrower is slightly in the past), so the path they draw matches the server's.
+         -- // Server steers toward its thrower position; the thrower's client toward its own character; other clients
+         -- // toward the server-sent position (their view lags), so drawn paths match the server.
          local targetPosition = rootPart.Position
          if not isServer and player ~= Players.LocalPlayer and thrownWeaponData.ServerTargetPosition then
             targetPosition = thrownWeaponData.ServerTargetPosition
@@ -1217,10 +1201,9 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          end
          local targetDirection = getHorizontalDirection(toPlayer)
 
-         -- // A bounce (or clash) put its momentum in charge; that fades back to full steering over the recovery time. While it
-         -- // fades the velocity is split relative to the player each frame, so any bounce direction blends in: bounced toward
-         -- // the player, the forward speed just builds back up; bounced away, the forward speed shrinks through zero (it slows)
-         -- // and any sideways part bleeds off (it curves around), however the player has moved meanwhile.
+         -- // A bounce or clash makes its momentum override steering, fading back over the recovery time. Velocity is
+         -- // split relative to the player each frame: toward them the forward speed rebuilds; away it shrinks through
+         -- // zero, and sideways speed bleeds off.
          local recoverySeconds = math.max(BoomerangTuningLibrary.get(tuningToolId, "RecallBounceRecovery"), 0.01)
          bounceWeight = math.max(bounceWeight - deltaTime / recoverySeconds, 0)
          local steerScale = 1 - bounceWeight * bounceWeight * (3 - 2 * bounceWeight)
@@ -1233,7 +1216,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          local forwardSpeed = travelVelocity:Dot(targetDirection)
          local sidewaysVelocity = travelVelocity - targetDirection * forwardSpeed
          forwardSpeed += (returnMaxSpeed - forwardSpeed) * transitionAlpha
-         -- // Up close the sideways part must go at least fast enough to close in on the player, or it would circle them
+         -- // Up close the sideways part must drop fast enough to close in, or it would circle the player
          local steerRate = math.max(transitionRate, RETURN_STEER_TIGHTNESS * travelVelocity.Magnitude / math.max(horizontalDistance, catchRadius))
          sidewaysVelocity *= math.exp(-steerRate * steerScale * deltaTime)
          travelVelocity = targetDirection * forwardSpeed + sidewaysVelocity
@@ -1247,7 +1230,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       local dynamicDisplacement = getDynamicDisplacement(rayOrigin, hitboxRadius, deltaTime)
       rayOrigin += dynamicDisplacement
 
-      local steeredThisStep = false -- // Homing or Telekinesis took over the heading (the curve stops)
+      local steeredThisStep = false -- // Homing or Telekinesis took over the heading (curve stops)
       if isServer and thrownWeaponData.Homing and not isReturning then
          local targetDirection = getNearestEnemyDirection(player, rayOrigin)
          if targetDirection then
@@ -1257,8 +1240,8 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          end
       end
 
-      -- // Telekinesis: turn toward the direction the owner wants (Telekinesis.lua). The server steers from what the owner's client streamed;
-      -- // the owner's client steers from its own live input (prediction). Remote clients never have a bias and just follow snapshots.
+      -- // Telekinesis (Telekinesis.lua): turns toward the owner's wanted direction; the server uses the owner client's
+      -- // streamed input, the owner client its live input. Remote clients follow snapshots.
       if not isReturning then
          local telekinesisBias = Telekinesis.getBias(thrownWeaponData)
          if telekinesisBias then
@@ -1267,8 +1250,8 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          end
       end
 
-      -- // The throw's curve (BoomerangCurveLibrary): a constant turn per stud flown out, the same on the server and every
-      -- // client. Homing or Telekinesis steering ends it for good (the server's next snapshot tells the other clients).
+      -- // Throw curve (BoomerangCurveLibrary): constant turn per stud flown out, same on all machines. Homing or
+      -- // Telekinesis ends it permanently.
       local curvature = thrownWeaponData.Curvature
       if curvature and curvature ~= 0 and not isReturning then
          if steeredThisStep then
@@ -1280,7 +1263,7 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
 
       local rayDistance = speed * deltaTime
 
-      -- // Portals: the boomerang passes through and comes out of the paired portal (same on server and client)
+      -- // Portals: passes through and exits the paired portal (same on server and client)
       local portalExit = Portal.getProjectileExit(rayOrigin, direction, rayDistance, hitboxRadius, thrownWeaponData.PortalExitAt, thrownWeaponData.PortalExitPart)
       if portalExit then
          direction = portalExit.Direction
@@ -1292,24 +1275,24 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
          end
          setWeaponCFrame(thrownWeaponData, CFrame.new(portalExit.Position), deltaTime)
          if not isServer then
-            thrownWeaponData.LastPosition = portalExit.Position -- // A teleport: the drawn position must not slide through the gap
+            thrownWeaponData.LastPosition = portalExit.Position -- // Teleport: the drawn position must not slide through the gap
          end
-         -- // Only the part flown before entering costs energy; the jump isn't flight. Distance is free on the way back.
+         -- // Only the distance flown before entering costs energy; distance is free on the way back.
          if not isReturning then
             thrownWeaponData.Energy = (thrownWeaponData.Energy or 0) - portalExit.EntryDistance * BoomerangTuningLibrary.get(tuningToolId, "EnergyPerStud")
          end
          thrownWeaponData.Direction = direction
          thrownWeaponData.Speed = speed
          if isServer then
-            fireSnapshot(player.UserId, portalExit.Position, direction, speed, thrownWeaponData.State, thrownWeaponData.Curvature) -- // Keyframe: clients come out at the same spot
+            fireSnapshot(player.UserId, portalExit.Position, direction, speed, thrownWeaponData.State, thrownWeaponData.Curvature) -- // Keyframe: clients exit at the same spot
          end
          return true
       end
 
       local obstructionRaycastResult = blockcastWithHorizontalHitbox(rayOrigin, direction, rayDistance, hitboxRadius, raycastParams)
 
-      -- // Only the server decides hits (a client's boomerang never hits anyone, so it can't show a hit the server rejects). The sweep
-      -- // stops where the boomerang meets a wall this step, so a player behind a wall isn't struck through it.
+      -- // Only the server decides hits (a client boomerang never hits, so it can't show a rejected hit). The sweep
+      -- // stops at walls so players behind them aren't struck.
       if isServer then
          local sweepDistance = rayDistance
          if obstructionRaycastResult then
@@ -1335,10 +1318,10 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
             direction = getHorizontalDirection(direction)
          end
          if not BoomerangCurveLibrary.KEEP_CURVE_AFTER_BOUNCE then
-            thrownWeaponData.Curvature = 0 -- // A bounce straightens it out
+            thrownWeaponData.Curvature = 0 -- // A bounce straightens it
          end
          if isReturning then
-            -- // The bounce momentum takes over from the steering toward the player, then fades back into it (see above)
+            -- // Bounce momentum replaces steering, then fades back into it (see above)
             speed = math.max(speed, returnMaxSpeed * RECALL_BOUNCE_MIN_SPEED_FRACTION)
             bounceWeight = 1
          end
@@ -1355,8 +1338,8 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       local currentCFrame = pivot
       setWeaponCFrame(thrownWeaponData, currentCFrame + dynamicDisplacement + direction * rayDistance, deltaTime)
       if not isReturning then
-         -- // Flying out costs energy per stud; the way back is free, so an unobstructed return always makes it home (only bounces,
-         -- // player hits and clashes cost energy while returning)
+         -- // Flying out costs energy per stud; the way back is free (only bounces, player hits and clashes cost energy
+         -- // while returning)
          thrownWeaponData.Energy = (thrownWeaponData.Energy or 0) - rayDistance * BoomerangTuningLibrary.get(tuningToolId, "EnergyPerStud")
       end
       thrownWeaponData.Direction = direction
@@ -1364,12 +1347,12 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       return true
    end
 
-   -- // A newly spawned boomerang arrives one network trip after the server threw it. Instead of jumping it forward (or running steps in
-   -- // one frame), the distance the server has already flown is eased in through the same correction the snapshots use.
+   -- // A new boomerang arrives one network trip late: the distance the server already flew is eased in through the
+   -- // snapshot correction instead of jumping.
    if not isServer and options and options.ThrowServerTime then
       local catchup = math.clamp(workspace:GetServerTimeNow() - options.ThrowServerTime, 0, MAX_SPAWN_CATCHUP)
       if catchup > 0 then
-         -- // Along the arc it has been flying, and turned as far as the server has turned it meanwhile
+         -- // Along the arc flown so far, turned as far as the server has turned it
          local displacement, caughtUpDirection = BoomerangCurveLibrary.advanceAlongArc(direction, thrownWeaponData.Curvature or 0, speed * catchup)
          thrownWeaponData.SyncCorrection = displacement
          direction = caughtUpDirection
@@ -1377,8 +1360,8 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       end
    end
 
-   -- // Client only: draw the model between the last two simulated positions, so the motion is smooth at any frame rate and the picture
-   -- // never goes past where the simulation has actually checked for walls
+   -- // Client only: draw between the last two simulated positions so motion is smooth and never passes where walls
+   -- // were checked
    local function drawHost(stepAccumulator: number)
       local host = thrownWeaponData.Host
       local simCFrame = thrownWeaponData.CFrame
@@ -1399,8 +1382,8 @@ function Boomerang.throw(player: Player, boomerangId: string, toolData: Tools.To
       end
    end
 
-   -- // Fixed timestep: the server and every client advance in identical FIXED_STEP slices, so frame rate can't change where a bounce or
-   -- // a recall turn happens. Leftover time carries to the next frame (and is only used to draw smoothly).
+   -- // Fixed timestep: server and clients advance in identical FIXED_STEP slices so frame rate can't change where
+   -- // bounces or turns happen. Leftover time carries to the next frame (used only for smooth drawing).
    local stepAccumulator = 0
    thrownWeaponData.MovementConnection = RunService.Stepped:Connect(function(time, deltaTime)
       stepAccumulator = math.min(stepAccumulator + deltaTime, FIXED_STEP * MAX_STEPS_PER_FRAME)
@@ -1440,17 +1423,15 @@ end
 -- // Restore to player / remove from field
 -------------------------------------------------------------------------------
 -- CATCHING: only the server decides that a boomerang has been caught
--- A client that sees its returning boomerang reach the player only *predicts* the catch: it hides the boomerang and plays
--- the catch animation and sound right away (so it feels instant), but keeps the boomerang's data and keeps simulating it
--- (hidden). Then:
---   * the server agrees: its Despawned event removes it for real (WeaponController > removeFromField, effects not repeated)
---   * the server drops it instead (Dying snapshot, e.g. recall released just before the server's catch): Boomerang.die shows
---     it again where the server says, so it can't become an invisible boomerang only the server has
---   * no verdict within PENDING_CATCH_TIMEOUT: it is shown again and the client stops predicting catches for it (the server's
---     own catch will still despawn it)
+-- A client only predicts a catch: it hides the boomerang and plays the catch animation and sound at once, but keeps the
+-- data and keeps simulating it hidden. Then:
+--   * the server agrees: its Despawned event removes it (WeaponController > removeFromField, effects not repeated)
+--   * the server drops it (Dying snapshot): Boomerang.die shows it again where the server says
+--   * no verdict within PENDING_CATCH_TIMEOUT: it is shown again and catch prediction stops for it (the server's catch
+-- still despawns it)
 -------------------------------------------------------------------------------
 
--- // Client-side visibility of a thrown boomerang's model (LocalTransparencyModifier, so nothing else's transparency is touched)
+-- // Client-side visibility of the model (LocalTransparencyModifier, leaving other transparency untouched)
 setHostHidden = function(thrownWeaponData: ThrownWeapons.Data, hidden: boolean)
    if not hidden and not thrownWeaponData.HostHidden then
       return
@@ -1471,10 +1452,9 @@ setHostHidden = function(thrownWeaponData: ThrownWeapons.Data, hidden: boolean)
    end
 end
 
--- // A returning boomerang reached its player. Server: it is caught (removed). Client: the catch is predicted only (see above).
--- // Returns true if the boomerang was removed (the caller's movement loop must stop).
--- // Normal or heavy catch (CatchLibrary), from the boomerang's motion just before contact. Only a manual recall has these
--- // (and the heavy catch's push); any other return is never heavy
+-- // A returning boomerang reached its player. Server: caught (removed). Client: the catch is only predicted. Returns
+-- // true if removed (the caller's movement loop must stop).
+-- // Normal or heavy catch (CatchLibrary) from the motion before contact; only a manual recall can be heavy (and push)
 local function resolveCatch(player: Player, thrownWeaponData: ThrownWeapons.Data): CatchLibrary.CatchInfo
    if thrownWeaponData.RecallFromDead ~= true then
       return { Heavy = false, ClosingSpeed = 0, Direction = Vector3.zero }
@@ -1484,7 +1464,7 @@ local function resolveCatch(player: Player, thrownWeaponData: ThrownWeapons.Data
    return CatchLibrary.resolve(player, thrownWeaponData.ToolId, position, velocity)
 end
 
--- // The catch animation: the light or heavy catch for a manual recall, the original catch for any other return
+-- // Catch animation: light or heavy for a manual recall, the original catch for any other return
 local function getCatchAnimation(thrownWeaponData: ThrownWeapons.Data, catchInfo: CatchLibrary.CatchInfo): string
    if thrownWeaponData.RecallFromDead ~= true then
       return "ReturnCatch"
@@ -1512,7 +1492,7 @@ catchWeapon = function(player: Player, thrownWeaponData: ThrownWeapons.Data): bo
       AnimationController.playCoreAnimation(player, getCatchAnimation(thrownWeaponData, catchInfo))
    end
    if catchInfo.Heavy then
-      CatchLibrary.push(player, catchInfo.Direction) -- // Only does anything for the local player (its prediction)
+      CatchLibrary.push(player, catchInfo.Direction) -- // Only affects the local player (prediction)
    end
    SoundLibrary.play(thrownWeaponData.InstanceId, Sounds.Data.BoomerangCatch.Name, player.Character) -- // Replaces the flight loop
    thrownWeaponData.CatchEffectsPlayed = true
@@ -1520,7 +1500,7 @@ catchWeapon = function(player: Player, thrownWeaponData: ThrownWeapons.Data): bo
 end
 
 -- // Client: the server didn't take the predicted catch (it dropped the boomerang, or no verdict in time). Show it again.
--- // expired: no verdict arrived; it also stops predicting catches for this boomerang and resumes its flight sound.
+-- // expired: no verdict arrived; stops catch prediction for this boomerang and resumes its flight sound.
 function Boomerang.cancelPendingCatch(_player: Player, thrownWeaponData: ThrownWeapons.Data, expired: boolean?)
    if isServer or not thrownWeaponData.PendingCatchAt then
       return
@@ -1559,12 +1539,12 @@ function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapo
       ToolController.applyHighlight(false, false)
    end
 
-   -- // A client that already showed the catch (pending catch) doesn't play the animation/sound a second time
+   -- // A client that already showed the catch doesn't repeat the animation/sound
    if returnToPlayer and AnimationController and not thrownWeaponData.CatchEffectsPlayed then
       AnimationController.playCoreAnimation(player, getCatchAnimation(thrownWeaponData, resolveCatch(player, thrownWeaponData)))
    end
    if shouldReattachLocally then
-      setHostHidden(thrownWeaponData, false) -- // The hidden host goes back into the hand, visible again
+      setHostHidden(thrownWeaponData, false) -- // The hidden host returns to the hand, visible
    end
 
    if thrownWeaponData.Host then
@@ -1609,16 +1589,14 @@ function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapo
    end
 end
 
--- // The recall-or-die question for a boomerang that is out of energy and over ground: it returns on its own (with a fresh
--- // recall energy reserve) if there is a clear
--- // line of sight to its player (a flat block cast to the player's Hitbox), otherwise loses momentum and drops into the
--- // dying/dead state (Dead.luau) and must be manually recalled. Over open air nothing dies: the caller just returns it.
--- // Distance from the player plays no part, and this is the only way a thrown boomerang dies.
--- // Only the server decides death: with no line of sight on the client, nothing happens (returns false) and the boomerang
--- // keeps flying until the server's Dying snapshot arrives (WeaponController.onSnapshot then calls die), so a
--- // disagreement can't leave the client showing a dead boomerang the server is recalling.
+-- // Recall-or-die for a boomerang out of energy over ground: with a clear line of sight to the player (flat block cast
+-- // to their Hitbox) it returns on a fresh recall energy reserve, else it drops into dying/dead (Dead.luau) and needs
+-- // a manual recall. Over open air it simply returns.
+-- // Distance from the player is irrelevant; this is the only way a thrown boomerang dies.
+-- // Only the server decides death: on a client with no line of sight nothing happens (returns false) and it keeps
+-- // flying until the server's Dying snapshot (WeaponController.onSnapshot calls die).
 function Boomerang.autoRecallOrDie(player: Player, boomerangId: string, toolData: Tools.Tool, thrownWeaponData: ThrownWeapons.Data, position: Vector3, direction: Vector3, speed: number): boolean
-   -- // Line of sight right now, or (server) in sight and in range at some point of the slide it is about to make
+   -- // Line of sight now, or (server) in sight and range at some point of the slide it is about to make
    if not thrownWeaponData.HasBeenDead and (hasLineOfSightToPlayer(player, position, toolData, thrownWeaponData) or canAvoidDying(player, toolData, thrownWeaponData, position, direction, speed)) then
       -- // The return gets its own small energy reserve; if bounces and hits use it up, the boomerang dies
       thrownWeaponData.Energy = BoomerangTuningLibrary.get(thrownWeaponData.ToolId or boomerangId, "RecallEnergy")
@@ -1636,9 +1614,9 @@ function Boomerang.autoRecallOrDie(player: Player, boomerangId: string, toolData
    return true
 end
 
--- // Manual recall of a dying or dead boomerang: it becomes a thrown boomerang again and returns.
--- // isManualRecall: the player's charged recall: it keeps returning only while the player holds recall (
--- // Boomerang.stopRecallFromDead puts it back). false = the automatic recovery.
+-- // Manual recall of a dying or dead boomerang: it becomes thrown again and returns.
+-- // isManualRecall: the charged recall; it returns only while the player holds recall (Boomerang.stopRecallFromDead
+-- // undoes it). false = automatic recovery.
 -- // Server: called from WeaponService on recall press (and by the out-of-bounds failsafe / sliding-away hooks, without hold).
 -- // Client: called from WeaponController.onSnapshot when the server's snapshot says it is Returning.
 function Boomerang.recallFromDead(player: Player, deadWeaponData: DeadWeapons.Data, isManualRecall: boolean)
@@ -1660,7 +1638,7 @@ function Boomerang.recallFromDead(player: Player, deadWeaponData: DeadWeapons.Da
       deadWeaponData.MovementConnection = nil
    end
 
-   -- // A returning boomerang's physics is always at flight height, whatever height the model is drawn at
+   -- // A returning boomerang's physics is always at flight height, whatever its drawn height
    local physicsCFrame = (pivot - pivot.Position) + Vector3.new(pivot.Position.X, GlobalConfig.BoomerangFlightHeight, pivot.Position.Z)
 
    local thrownWeaponData: ThrownWeapons.Data = {
@@ -1678,10 +1656,11 @@ function Boomerang.recallFromDead(player: Player, deadWeaponData: DeadWeapons.Da
       VisualRotation = deadWeaponData.VisualRotation,
       RecallFromDead = isManualRecall,
       HasBeenDead = deadWeaponData.HasBeenDead,
-      -- // Client: drawn where the model is now, easing to the physics height (getVisualYOffset), like a throw leaving the hand
+      -- // Client: drawn where the model is now, easing to physics height (getVisualYOffset), like a throw leaving the
+      -- // hand
       VisualYOffset = if isServer then nil else pivot.Position.Y - GlobalConfig.BoomerangFlightHeight,
       VisualYOffsetStartedAt = if isServer then nil else os.clock(),
-      -- // GROUND APPROACH (2026-11-02): a manual recall starts on the ground and rises with the distance flown
+      -- // Ground approach: a manual recall starts on the ground and rises with distance flown
       VisualYOffsetByDistance = if not isServer and isManualRecall and GlobalConfig.ManualRecallGroundApproach then true else nil,
    } :: any
 
@@ -1695,8 +1674,8 @@ function Boomerang.recallFromDead(player: Player, deadWeaponData: DeadWeapons.Da
    Boomerang.recall(player, thrownWeaponData.ToolId, toolData, thrownWeaponData, { InitialSpeed = 0 })
 end
 
--- // Recall button released while a charged boomerang flies back: it loses momentum and drops again (server only; clients
--- // follow the Dying snapshot). Ignored for boomerangs that weren't recalled from the dead state.
+-- // Recall released while a charged boomerang flies back: it loses momentum and drops (server only; clients follow the
+-- // Dying snapshot). Ignored unless recalled from dead.
 function Boomerang.stopRecallFromDead(player: Player, thrownWeaponData: ThrownWeapons.Data)
    if not isServer or not thrownWeaponData.RecallFromDead or thrownWeaponData.State ~= ThrownWeapons.StateEnum.Returning then
       return
@@ -1704,9 +1683,8 @@ function Boomerang.stopRecallFromDead(player: Player, thrownWeaponData: ThrownWe
    if ThrownWeapons.Data[player] ~= thrownWeaponData then
       return
    end
-   -- // The release can arrive just after the owner's client already caught it (the client sees its character a little ahead of
-   -- // the server). If it is about to be caught here too (within the catch radius plus the distance it covers in the owner's ping),
-   -- // count it as caught instead of dropping it next to the player.
+   -- // The release can arrive after the owner's client already caught it (it sees its character slightly ahead). If it
+   -- // is within the catch radius plus its travel in the owner's ping, count it as caught instead of dropping it.
    local toolData = Tools[thrownWeaponData.ToolId]
    local pivot = getWeaponCFrame(thrownWeaponData)
    local character = player.Character
@@ -1725,15 +1703,15 @@ function Boomerang.stopRecallFromDead(player: Player, thrownWeaponData: ThrownWe
    end
    Boomerang.die(player, thrownWeaponData, {
       Direction = direction,
-      -- // Never less than the fully-charged release momentum (Dead.luau INTERNAL CONFIG: RELEASE_MOMENTUM)
+      -- // At least the fully-charged release momentum (Dead.luau RELEASE_MOMENTUM)
       Speed = math.max(thrownWeaponData.Speed or 0, DeadWeaponLogic.getReleaseMomentum(1)),
    })
 end
 
--- // Two thrown boomerangs struck each other mid-air (server only: ClashService > WeaponService.clashWeapon). It costs
--- // ClashEnergyCost and knocks the boomerang away along options.Direction; it does NOT kill it. If that was the last of its
--- // energy, the usual 0-energy decision (recall or die) follows on its next step. A returning boomerang is knocked off
--- // course the same way (its bounce momentum, then back to steering home). Clients learn of the new direction from the Deflected snapshot (Boomerang.deflect).
+-- // Two thrown boomerangs struck mid-air (server only: ClashService > WeaponService.clashWeapon). Costs
+-- // ClashEnergyCost and knocks it along options.Direction without killing it; at 0 energy the usual recall-or-die
+-- // decision follows next step. A returning boomerang is knocked off course like a bounce. Clients learn the direction
+-- // from the Deflected snapshot (Boomerang.deflect).
 function Boomerang.clash(player: Player, thrownWeaponData: ThrownWeapons.Data, options: ClashInitOptions)
    if not isServer or ThrownWeapons.Data[player] ~= thrownWeaponData then
       return
@@ -1749,7 +1727,7 @@ function Boomerang.clash(player: Player, thrownWeaponData: ThrownWeapons.Data, o
    thrownWeaponData.Energy -= BoomerangTuningLibrary.get(thrownWeaponData.ToolId, "ClashEnergyCost")
    thrownWeaponData.PendingDirection = newDirection
 
-   -- // Snapshots are unreliable, so the event is sent a few times; the client applies the same direction each time
+   -- // Snapshots are unreliable, so the event is sent a few times with the same direction
    local function sendDeflection()
       if ThrownWeapons.Data[player] ~= thrownWeaponData then
          return
@@ -1764,7 +1742,7 @@ function Boomerang.clash(player: Player, thrownWeaponData: ThrownWeapons.Data, o
    task.delay(0.1, sendDeflection)
 end
 
--- // Client: the server's Deflected snapshot (the boomerang clashed with another): fly off in the direction it says
+-- // Client: Deflected snapshot (clashed with another boomerang): fly off in the given direction
 function Boomerang.deflect(player: Player, thrownWeaponData: ThrownWeapons.Data, direction: Vector3)
    if ThrownWeapons.Data[player] ~= thrownWeaponData then
       return
@@ -1772,9 +1750,9 @@ function Boomerang.deflect(player: Player, thrownWeaponData: ThrownWeapons.Data,
    thrownWeaponData.PendingDirection = getHorizontalDirection(direction)
 end
 
--- // (client): the server sent a Dying/Dead snapshot for a player whose boomerang this client doesn't have (a desync, or a
--- // player who joined after the throw). Build that dead boomerang from the snapshot so it is visible and can be picked up / recalled.
--- // options.ExistingHost: the local player's held model to reuse (like a throw), so catching it puts it back in the hand.
+-- // Client: a Dying/Dead snapshot arrived for a player whose boomerang this client lacks (desync or late join). Builds
+-- // the dead boomerang so it can be seen, picked up and recalled.
+-- // options.ExistingHost: the local player's held model to reuse, so catching it puts it back in the hand.
 function Boomerang.restoreDeadFromSnapshot(player: Player, toolId: string, options: {
    Position: Vector3,
    Direction: Vector3,
@@ -1817,7 +1795,7 @@ function Boomerang.restoreDeadFromSnapshot(player: Player, toolId: string, optio
       OwnerUserId = player.UserId,
       ToolId = toolId,
       State = DeadWeapons.StateEnum.Dying,
-      InstanceId = HttpService:GenerateGUID(false), -- // Local only (the snapshot doesn't carry the server's id); used for sound channels
+      InstanceId = HttpService:GenerateGUID(false), -- // Local only (the snapshot has no server id); used for sound channels
       Host = host,
       LastPosition = options.Position,
       CFrame = startCFrame,
@@ -1842,12 +1820,12 @@ function Boomerang.restoreDeadFromSnapshot(player: Player, toolId: string, optio
    end
 end
 
--- // A thrown boomerang dies: it loses its flight and drops into the dying/dead state (Dead.luau)
+-- // A thrown boomerang dies: it loses flight and drops into dying/dead (Dead.luau)
 function Boomerang.die(player: Player, thrownWeaponData: ThrownWeapons.Data, options: DieInitOptions)
    if DeadWeapons.Data[player] then
       return
    end
-   -- // The client predicted a catch but the server dropped the boomerang instead: show it again where it drops
+   -- // Client predicted a catch but the server dropped the boomerang: show it again where it drops
    Boomerang.cancelPendingCatch(player, thrownWeaponData)
 
    local pivot = getWeaponCFrame(thrownWeaponData)
@@ -1882,7 +1860,7 @@ function Boomerang.die(player: Player, thrownWeaponData: ThrownWeapons.Data, opt
       ReuseEquippedHost = thrownWeaponData.ReuseEquippedHost,
       ExistingHost = thrownWeaponData.ExistingHost,
       VisualRotation = thrownWeaponData.VisualRotation,
-      HasBeenDead = thrownWeaponData.HasBeenDead, -- // Carried along for good (see DeadWeapons.Data)
+      HasBeenDead = thrownWeaponData.HasBeenDead, -- // Carried along permanently (see DeadWeapons.Data)
    }
 
    thrownWeaponData.Host = nil
@@ -1893,7 +1871,7 @@ function Boomerang.die(player: Player, thrownWeaponData: ThrownWeapons.Data, opt
       Direction = direction,
       Speed = speed,
       Position = options.Position,
-      PhysicsY = GlobalConfig.BoomerangFlightHeight, -- // A flying boomerang's physics is always at flight height, whatever its drawn height
+      PhysicsY = GlobalConfig.BoomerangFlightHeight, -- // Flying physics is always at flight height, whatever the drawn height
    })
 end
 
@@ -1916,16 +1894,14 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
 
    thrownWeaponData.State = ThrownWeapons.StateEnum.Returning
 
-   -- // A boomerang that was thrown (it has energy) keeps the throw's own movement loop: that loop sees the Returning state and
-   -- // steers toward the player while doing everything outgoing flight does (bouncing, players, energy, dying at 0 energy).
-   -- // Only a boomerang recalled off the ground (dying/dead, no energy) uses the separate loop below.
+   -- // A thrown boomerang (has energy) keeps the throw's movement loop, which steers to the player while doing
+   -- // everything outgoing flight does. Only a boomerang recalled off the ground (dying/dead, no energy) uses the
+   -- // separate loop below.
    if thrownWeaponData.MovementConnection and thrownWeaponData.Energy ~= nil and thrownWeaponData.RecallFromDead == nil then
-      -- // Explosive boomerang returns faster while its effect is active (effect state is replicated, so both sides agree)
+      -- // Explosive boomerang returns faster while its replicated effect is active
       thrownWeaponData.ReturnSpeedMultiplier = if PickupLibrary.hasPickupEffectActive(player.UserId, "ExplosiveBoomerang") then GlobalConfig.ExplosiveBoomerangReturnSpeedMultiplier else 1
       if isServer and hostPivot then
-         -- // Its real heading: it turns toward the player gradually in that loop. (This used to send a heading straight at the
-         -- // player, which clients extrapolated and adopted at once while the server was still turning: under lag that put
-         -- // them 20-40 studs off, a hard snap at every turnaround.)
+         -- // Its real heading; it turns toward the player gradually in that loop.
          local currentDirection = thrownWeaponData.Direction or Vector3.zero
          fireSnapshot(player.UserId, hostPivot.Position, currentDirection, thrownWeaponData.Speed or 0, thrownWeaponData.State, thrownWeaponData.Curvature)
       end
@@ -1938,21 +1914,21 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
    end
 
    local tuningToolId = thrownWeaponData.ToolId or boomerangId
-   -- // Explosive boomerang returns faster while its effect is active (effect state is replicated, so both sides agree)
+   -- // Explosive boomerang returns faster while its replicated effect is active
    local returnSpeedMultiplier = if PickupLibrary.hasPickupEffectActive(player.UserId, "ExplosiveBoomerang") then GlobalConfig.ExplosiveBoomerangReturnSpeedMultiplier else 1
-   -- // Held manual recall of a dying/dead boomerang: capped speed and heavy momentum
+   -- // Held manual recall of a dying/dead boomerang: capped speed, heavy momentum
    local isManualRecallFromDead = thrownWeaponData.RecallFromDead == true
    local maximumSpeed, momentumMultiplier = 0, 1
    local rampSeconds, rampPower = MANUAL_RECALL_FULL_SPEED_SECONDS, GlobalConfig.ManualRecallRampPower
-   local rampElapsed = 0 -- // Seconds since this recall started (drives the manual recall's speed-up curve)
-   local recallTravelled = 0 -- // GROUND APPROACH (2026-11-02): studs flown since this recall started (drives its speed-up and rise)
-   local riseStartY: number? = nil -- // Manual recall: the height it started rising from
+   local rampElapsed = 0 -- // Seconds since this recall started (drives the manual recall speed-up curve)
+   local recallTravelled = 0 -- // Studs flown since this recall started (drives speed-up and rise)
+   local riseStartY: number? = nil -- // Manual recall: height it started rising from
    -- // Tools/GlobalConfig values unless changed with Cmdr; re-read every frame so live changes apply mid-recall
    local function updateRecallTuning()
       if isManualRecallFromDead then
          maximumSpeed = BoomerangTuningLibrary.get(tuningToolId, "RecallSpeed") * returnSpeedMultiplier
          momentumMultiplier = BoomerangTuningLibrary.get(tuningToolId, "RecallCurveAcceleration")
-         -- // Old recall only (ManualRecallGroundApproach off): read straight from GlobalConfig, no longer tunable with Cmdr
+         -- // Used only when ManualRecallGroundApproach is off: read straight from GlobalConfig, not tunable with Cmdr
          rampSeconds = MANUAL_RECALL_FULL_SPEED_SECONDS / math.max(GlobalConfig.ManualRecallAcceleration, 0.01)
          rampPower = GlobalConfig.ManualRecallRampPower
       else
@@ -2002,8 +1978,8 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       end
 
       updateRecallTuning()
-      -- // Client: adopt the server's movement state from the latest snapshot (caught up to now by Boomerang.advanceReturn), so
-      -- // the local simulation keeps the same speed-up and heading instead of drifting off it between snapshots
+      -- // Client: adopt the server's movement state from the latest snapshot (caught up by Boomerang.advanceReturn) so
+      -- // speed-up and heading don't drift between snapshots
       if not isServer and thrownWeaponData.SnapshotReturnVelocity then
          travelVelocity = thrownWeaponData.SnapshotReturnVelocity
          speed = math.clamp(travelVelocity.Magnitude, 0, maximumSpeed)
@@ -2014,7 +1990,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          thrownWeaponData.SnapshotRecallTravelled = nil
       end
       rampElapsed += deltaTime
-      recallTravelled += speed * deltaTime -- // GROUND APPROACH (2026-11-02)
+      recallTravelled += speed * deltaTime
       thrownWeaponData.RecallTravelled = recallTravelled
 
       -- // Prioritize movement towards the player
@@ -2025,34 +2001,33 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          return
       end
 
-      -- // Recalled off the ground: rise smoothly to GlobalConfig.BoomerangFlightHeight while returning (the same height a thrown boomerang
-      -- // flies at; it never depends on the player's height, or a jump would carry it over the arena walls). A manual recall rises
-      -- // slowly and tilts toward the player while it does, then levels out as it settles at flight height.
+      -- // Recalled off the ground: rise to GlobalConfig.BoomerangFlightHeight while returning (independent of player
+      -- // height, so jumps can't carry it over arena walls). A manual recall rises slowly and tilts toward the player,
+      -- // leveling out at flight height.
       if thrownWeaponData.RecallFromDead ~= nil then
          if isManualRecallFromDead and not MANUAL_RECALL_RISES_DURING_FLIGHT then
             -- // Already lifted to flight height by the recall charge: nothing to do
          elseif isManualRecallFromDead then
-            -- // Manual recall: a timed, eased rise from where it rests to flight height, starting slowly, speeding up
-            -- // and settling softly (smoothstep over GlobalConfig.ManualRecallRiseSeconds), so it lifts off gradually as it starts to move
+            -- // Manual recall: timed smoothstep rise from rest to flight height (GlobalConfig.ManualRecallRiseSeconds)
             riseStartY = riseStartY or hostPivot.Position.Y
             local riseAlpha = math.clamp(rampElapsed / math.max(GlobalConfig.ManualRecallRiseSeconds, 0.01), 0, 1)
             local easedRise = riseAlpha * riseAlpha * (3 - 2 * riseAlpha)
             local risenY = riseStartY + (GlobalConfig.BoomerangFlightHeight - riseStartY) * easedRise
             hostPivot = (hostPivot - hostPivot.Position) + Vector3.new(hostPivot.Position.X, risenY, hostPivot.Position.Z)
          else
-            -- // An automatic recall's physics is already at flight height (Boomerang.recallFromDead); clients ease the drawn
-            -- // height up to it with VisualYOffset, so nothing to lift here
+            -- // Automatic recall: physics already at flight height (Boomerang.recallFromDead); clients ease the drawn
+            -- // height with VisualYOffset
          end
 
-         -- // Visual only: tilt up toward the player while still being dragged up, easing flat as it reaches flight height
+         -- // Visual only: tilt toward the player while being lifted, easing flat at flight height
          if not isServer and isManualRecallFromDead then
-            -- // The tilt is exactly 0 once the lift stops (the lift above stops within 0.05 studs of flight height)
+            -- // Exactly 0 once the lift stops (within 0.05 studs of flight height)
             local remainingRise = math.max(GlobalConfig.BoomerangFlightHeight - hostPivot.Position.Y, 0)
             local riseAlpha = math.clamp((remainingRise - 0.05) / (MANUAL_RECALL_TILT_HEIGHT - 0.05), 0, 1)
             local targetTilt = math.rad(GlobalConfig.ManualRecallMaxTiltDegrees) * riseAlpha * riseAlpha * (3 - 2 * riseAlpha) -- // smoothstep
             local currentTilt = thrownWeaponData.RecallTiltAngle or 0
             if targetTilt < currentTilt then
-               currentTilt = targetTilt -- // Leveling out follows the rise directly (no lag), so it's flat by the peak
+               currentTilt = targetTilt -- // Leveling out follows the rise directly (no lag)
             else
                currentTilt += (targetTilt - currentTilt) * (1 - math.exp(-MANUAL_RECALL_TILT_RESPONSE * deltaTime)) -- // Tilting in eases
             end
@@ -2064,7 +2039,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          end
       end
 
-      -- // Leaving the dead state into a manual recall: the dead highlight fades away slowly, matching the sluggish lift
+      -- // Leaving dead into a manual recall: the dead highlight fades out slowly to match the lift
       updateOwnWeaponHighlight(player, thrownWeaponData, hostPivot.Position, nil, if isManualRecallFromDead then GlobalConfig.ManualRecallHighlightFadeOutSeconds else nil)
 
       local toPlayer = (rootPart.Position - hostPivot.Position)
@@ -2082,31 +2057,28 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
       local transitionRate = (if alignment < -0.25 then 11 elseif alignment < 0.5 then 8 else 5) * momentumMultiplier
       local transitionAlpha = 1 - math.exp(-transitionRate * deltaTime)
 
-      -- // Split the velocity into the part heading at the player and the sideways part. The forward part builds up at
-      -- // the normal (momentum-scaled) rate. The sideways part is what makes it circle the player, so it's removed at
-      -- // least fast enough to close in: a turn rate of speed/distance is exactly a circle around the player, so
-      -- // RETURN_STEER_TIGHTNESS times that always spirals inward, even if the player runs in circles.
-      -- // Far away this changes nothing (the normal rate is already higher); it only tightens the turn up close.
+      -- // Split velocity into the part heading at the player and the sideways part. Forward builds at the normal
+      -- // momentum-scaled rate. Sideways is what makes it circle, so it is removed at least fast enough to close in:
+      -- // RETURN_STEER_TIGHTNESS x (speed/distance) always spirals inward. Only tightens the turn up close.
       local forwardSpeed = travelVelocity:Dot(targetDirection)
       local sidewaysVelocity = travelVelocity - targetDirection * forwardSpeed
       if isManualRecallFromDead and GlobalConfig.ManualRecallGroundApproach then
-         -- // GROUND APPROACH (2026-11-02, reshaped 2026-11-04): the speed grows in a straight line with the distance flown, from
-         -- // ManualRecallApproachStartFraction of max speed to full speed after ManualRecallFullSpeedDistance studs. Over time that is
-         -- // exponential: a slow creep, then a big late surge (a constant acceleration instead put most of the speed-up at the start)
-         -- // Tunable live with Cmdr: tune RecallStartSpeed / RecallFullSpeedDistance / RecallSpeedCurve
+         -- // Ground approach: speed grows linearly with distance flown, from ManualRecallApproachStartFraction of max
+         -- // speed to full speed at ManualRecallFullSpeedDistance studs (over time: slow creep, then late surge).
+         -- // Cmdr: tune RecallStartSpeed / RecallFullSpeedDistance / RecallSpeedCurve
          local startSpeed = maximumSpeed * math.clamp(BoomerangTuningLibrary.get(tuningToolId, "RecallStartSpeed"), 0, 1)
          local fullSpeedDistance = math.max(BoomerangTuningLibrary.get(tuningToolId, "RecallFullSpeedDistance"), 0.01)
          local curve = math.max(BoomerangTuningLibrary.get(tuningToolId, "RecallSpeedCurve"), 0.05)
          local progress = math.clamp(recallTravelled / fullSpeedDistance, 0, 1) ^ curve
          forwardSpeed = startSpeed + (maximumSpeed - startSpeed) * progress
          local speedAlpha = if maximumSpeed > 1e-3 then forwardSpeed / maximumSpeed else 1
-         thrownWeaponData.RecallSpinScale = speedAlpha * speedAlpha -- // The spin builds up with the speed
+         thrownWeaponData.RecallSpinScale = speedAlpha * speedAlpha -- // Spin builds up with the speed
       elseif isManualRecallFromDead then
-         -- // Manual recall: visibly slow at first, then a steep surge up to full speed (convex curve over time, not a lag toward max)
+         -- // Manual recall: slow at first, then a steep surge to full speed (convex curve over time)
          local rampAlpha = math.clamp(rampElapsed / rampSeconds, 0, 1)
          local startFraction = GlobalConfig.ManualRecallRampStartFraction
          forwardSpeed = maximumSpeed * (startFraction + (1 - startFraction) * rampAlpha ^ rampPower)
-         thrownWeaponData.RecallSpinScale = rampAlpha * rampAlpha -- // The spin builds up over the same time, gradually then quickly
+         thrownWeaponData.RecallSpinScale = rampAlpha * rampAlpha -- // Spin builds up over the same time
       else
          forwardSpeed += (maximumSpeed - forwardSpeed) * transitionAlpha
       end
@@ -2154,9 +2126,8 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          local slideMagnitude = slideDirection.Magnitude
 
          if slideMagnitude < 0.01 then
-            -- A near head-on hit against a convex corner's tip gives a degenerate (near-zero) tangent
-            -- off the normal; fall back to the tangents of the travel direction itself so the
-            -- boomerang isn't stuck forever waiting on a usable slide direction
+            -- Near head-on hit on a convex corner tip gives a near-zero tangent; fall back to the travel direction's
+            -- tangents so it isn't stuck
             local rightTangent = direction:Cross(UP_VECTOR).Unit
             local rightBlocked = blockcastWithHorizontalHitbox(rayOrigin, rightTangent, rayDistance, hitboxRadius*.5, raycastParams)
             local leftBlocked = blockcastWithHorizontalHitbox(rayOrigin, -rightTangent, rayDistance, hitboxRadius*.5, raycastParams)
@@ -2187,8 +2158,7 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          local slideHit = blockcastWithHorizontalHitbox(rayOrigin, slideDirection, rayDistance, hitboxRadius*.5, raycastParams)
 
          if slideHit and not slideHit.Instance:IsDescendantOf(Characters) then
-            -- The chosen slide direction is itself obstructed (common at convex corners); try the
-            -- opposite tangent instead of getting stuck
+            -- Slide direction is obstructed (common at convex corners); try the opposite tangent
             slideDirection = -slideDirection
             slideHit = blockcastWithHorizontalHitbox(rayOrigin, slideDirection, rayDistance, hitboxRadius*.5, raycastParams)
 
@@ -2207,8 +2177,8 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
          local blendedSpeed = slideSpeed * slideMomentum + speed * (1 - slideMomentum)
          local blendedDistance = math.min(blendedSpeed * deltaTime, horizontalDistance)
 
-         -- blendedDirection can diverge from the already-tested `direction` while momentum decays;
-         -- re-check it so the boomerang can't clip into a corner along the untested blend
+         -- blendedDirection can diverge from the tested `direction` while momentum decays; re-check it to avoid
+         -- clipping into a corner
          local blendedObstruction = blockcastWithHorizontalHitbox(rayOrigin, blendedDirection, blendedDistance, hitboxRadius, raycastParams)
          if blendedObstruction then
             blendedDistance = math.max((blendedObstruction.Position - rayOrigin).Magnitude - hitboxRadius, 0)
@@ -2259,27 +2229,26 @@ function Boomerang.recall(player: Player, boomerangId: string, toolData: Tools.T
    end
 end
 
--- // Hook: the owner held recall on a dead boomerang for the full GlobalConfig.RecallCharge: it starts returning
+-- // Hook: owner held recall on a dead boomerang for GlobalConfig.RecallCharge: it starts returning
 DeadWeaponLogic.onRecallCharged = function(player: Player, deadWeaponData: DeadWeapons.Data)
    Boomerang.recallFromDead(player, deadWeaponData, true)
 end
 
--- // Hook: a dying boomerang that keeps sliding with nothing to land on returns on its own (Dead.luau can't require this module)
+-- // Hook: a dying boomerang sliding with nothing to land on returns on its own (Dead.luau can't require this module)
 DeadWeaponLogic.onSlidingAway = function(player: Player, deadWeaponData: DeadWeapons.Data)
    if deadWeaponData.HasBeenDead then
-      return -- // Once Dead, never an automatic recall again
+      return -- // Once Dead, never an automatic recall
    end
    Boomerang.recallFromDead(player, deadWeaponData, false)
 end
 
--- // Hook: while a boomerang is dying it keeps looking for its player. With line of sight and within DyingBoomerangRecallDistance
--- // (horizontal) it resumes its recall even at 0 energy. Same recall as the sliding-away one above (Dead.luau can't require this module).
+-- // Hook: a dying boomerang with line of sight within DyingBoomerangRecallDistance (horizontal) resumes its recall
+-- // even at 0 energy. Same recall as the sliding-away hook (Dead.luau can't require this module).
 DeadWeaponLogic.checkRecallWhileDying = function(player: Player, deadWeaponData: DeadWeapons.Data, position: Vector3): boolean
    if DeadWeapons.Data[player] ~= deadWeaponData or deadWeaponData.State ~= DeadWeapons.StateEnum.Dying then
       return false
    end
-   -- // Once a boomerang has been Dead it never recalls by itself again, e.g. when the owner lets go of a manual recall and it
-   -- // drops back down in reach
+   -- // Once Dead it never recalls by itself again (e.g. when a manual recall is released and it drops back in reach)
    if deadWeaponData.HasBeenDead then
       return false
    end
@@ -2308,10 +2277,10 @@ function Boomerang.setProjectileVisualizerEnabled(value: boolean)
    projectileVisualizerEnabled = value
 end
 
--- // Client: where a returning boomerang is after `seconds` more of the server's return movement, from a snapshot. Replays the
--- // same speed-up (manual recall: by distance flown) and steering toward the thrower as the recall loop below, in small steps,
--- // without obstructions (a bounce sends its own snapshot). Used to catch snapshots up to now instead of a straight line.
--- // Returns the position, velocity and distance flown since the recall started.
+-- // Client: position of a returning boomerang after `seconds` more of the server's return movement, from a snapshot.
+-- // Replays the recall loop's speed-up (manual recall: by distance flown) and steering in small steps, without
+-- // obstructions (a bounce sends its own snapshot). Returns position, velocity and distance flown since the recall
+-- // started.
 function Boomerang.advanceReturn(options: {
    ToolId: string,
    Position: Vector3,

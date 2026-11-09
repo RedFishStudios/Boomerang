@@ -2,11 +2,8 @@
   Author:
   @Soulsplosion
 
-  Handles custom character animations
-
-  NOTE: DOES NOT HANDLE LOCOMOTION OR EMOTE ANIMATIONS FOR THE PLAYER'S DEFAULT CHARACTER!
-  Check CharacterRenderController for animations for locomotion/emotes that match roblox default animation functionality
-  This is only for custom, game-context animations
+  Handles custom, game-context character animations.
+  Locomotion and emotes for the default character are in CharacterRenderController.
 ]]
 
 local AnimationController = {}
@@ -32,7 +29,7 @@ local KeyframeClipTrack = require(ReplicatedStorage.Client.Core.KeyframeClipTrac
 export type CoreTrackNames = "Charging" | "Throw" | "Catch" | "HeavyCatch" | "ReturnCatch" | "Stab" | "Dash" | "Summon"
 
 type TrackEntry = {
-   Track: any, -- // AnimationTrack, or a KeyframeClipTrack for Clip animations (same Play/Stop/IsPlaying use)
+   Track: any, -- // AnimationTrack, or KeyframeClipTrack for Clip animations
    LoadedAnimationKey: string,
    AnimationObject: Animation?, -- // nil for Clip animations
    Character: Model,
@@ -70,7 +67,7 @@ local DefaultCoreTrackNames: { CoreTrackNames } = { "Charging", "Throw", "Catch"
 
 local function destroyTrackEntry(entry: TrackEntry)
    if not entry.AnimationObject then
-      entry.Track:Destroy() -- // Clip track: lets go of its joints
+      entry.Track:Destroy() -- // Clip track: releases its joints
       table.clear(entry)
       return
    end
@@ -134,7 +131,7 @@ local function createTrackEntry(animator: Animator, trackName: string, animation
    local track = animator:LoadAnimation(animation)
    track.Name = trackName
    track.Looped = animationData.Looping
-   -- always set explicitly so an asset's published default priority can't silently override intended layering
+   -- Set explicitly so the asset's published priority can't override it
    track.Priority = animationData.Priority or Enum.AnimationPriority.Action
 
    return {
@@ -206,7 +203,7 @@ local function areTracksCurrentForPlayer(player: Player, character: Model, anima
       if not entry then
          return false
       end
-      -- Do not enable or add this. This causes bugs and the code works well without it.
+      -- Do not enable: causes bugs.
       --if not entry.Track:IsDescendantOf(animator) then
       --   return false
       --end

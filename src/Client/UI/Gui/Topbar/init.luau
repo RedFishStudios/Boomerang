@@ -20,7 +20,7 @@
 ]]
 
 local TopbarGui = {}
-TopbarGui.Type = "Dynamic" -- // Always on screen; not opened/closed with the other HUD guis
+TopbarGui.Type = "Dynamic" -- // Always on screen
 TopbarGui.Open = true
 
 -------------------------------------------------------------------------------
@@ -31,10 +31,9 @@ local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 
 local FONT = Enum.Font.FredokaOne
--- // Temporarily hidden: the bar and its buttons are still built (MenuButtons adds them as usual), just never shown.
--- // Set to false to bring the top bar back.
+-- // true: the bar and its buttons are built but never shown
 local TOPBAR_HIDDEN = true
-local TEXT_SIZE = 20 -- // Shared by every topbar button, so their text always matches
+local TEXT_SIZE = 20 -- // Shared by every topbar button
 local ICON_SIZE = 22
 local TEXT_COLOR = Color3.fromRGB(255, 255, 255)
 local BACKGROUND_COLOR = Color3.fromRGB(18, 18, 21) -- // Close to Roblox's own topbar buttons
@@ -45,7 +44,7 @@ local HORIZONTAL_PADDING = 14 -- // Space between the button's edge and its cont
 local CONTENT_GAP = 6 -- // Space between the icon and the text
 local BUTTON_GAP = 12 -- // Space between buttons (and between Roblox's buttons and ours)
 local BUTTON_HEIGHT = 44 -- // Roblox's topbar buttons are 44 px tall (in a 58 px topbar)
-local ICON_ONLY_PADDING = (BUTTON_HEIGHT - ICON_SIZE) / 2 -- // Icon-only buttons come out round (as wide as tall)
+local ICON_ONLY_PADDING = (BUTTON_HEIGHT - ICON_SIZE) / 2 -- // Makes icon-only buttons round (as wide as tall)
 local TOP_OFFSET = 12 -- // Roblox's topbar buttons sit 12 px from the top of the screen
 
 -------------------------------------------------------------------------------
@@ -204,8 +203,7 @@ function TopbarGui.addButton(config: ButtonConfig): TextButton
 		})
 	end
 
-	-- // Hover / press feedback
-	local hovered = false
+		local hovered = false
 	button.MouseEnter:Connect(function()
 		hovered = true
 		button.BackgroundTransparency = HOVER_TRANSPARENCY

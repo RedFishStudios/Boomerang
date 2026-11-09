@@ -22,8 +22,9 @@ local ArenaLibrary = require(ReplicatedStorage.Shared.Library.ArenaLibrary)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local MapDataConstants = require(ReplicatedStorage.Shared.Constants.MapData)
 
--- // Can't require CombatLibrary here: it (transitively, via PickupService) requires ArenaService,
--- // and RoundCyclingService also requires ArenaService, so this stays a direct remote fire (no round-ending suppression check).
+-- // Can't require CombatLibrary here (circular: it requires ArenaService via PickupService), so this fires the remote
+-- // directly,
+-- // without the round-ending suppression check.
 local playerDeathReasonRemote = SimpleRemotes.getEvent("PlayerDeathReason")
 
 -------------------------------------------------------------------------------
@@ -94,7 +95,7 @@ function ArenaService.getPickupSpawns(): {BasePart}
    return pickupSpawnsFolder:GetChildren()
 end
 
--- // Return set of map names that can be chosen from for voting
+-- // Map names available for voting
 function ArenaService.getAvailableMaps(forGamemode: string): {string}
    local availableMapNames = {}
    for mapName, mapData in pairs(MapDataConstants) do
@@ -113,7 +114,6 @@ function ArenaService.getSpawnPoint(player: Player): BasePart?
    local currentRoundData = gameStateData.CurrentRoundData:Get()
    local forRoundId = if currentRoundData then currentRoundData.CurrentRoundId else nil
 
-   -- Get character
    if not player.Character then
       local elapsed = 0
       repeat
@@ -131,7 +131,6 @@ function ArenaService.getSpawnPoint(player: Player): BasePart?
       end
    end
 
-   -- Get primary part
    if not player.Character.PrimaryPart then
       local elapsed = 0
       repeat
@@ -160,7 +159,6 @@ function ArenaService.getSpawnPoint(player: Player): BasePart?
       return
    end
 
-   -- Choose a spawn point
    local MIN_DISTANCE = 75
    local spawnPoints = currentArenaModel:FindFirstChild("SpawnPoints"):GetChildren()
    local chosenSpawn = nil

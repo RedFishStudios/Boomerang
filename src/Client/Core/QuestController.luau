@@ -2,8 +2,8 @@
 	QuestController
 
 	Description:
-	Client side of quests: the local player's current quests (from the replicated profile's `Quests`, written by
-	QuestService on the server) and claim requests. The server decides everything; this only reads and asks.
+	Client side of quests: the local player's current quests (replicated profile `Quests`, written by QuestService)
+	and claim requests. The server decides everything; this only reads and asks.
 ]]
 
 local QuestController = {}
@@ -34,14 +34,14 @@ QuestController.QuestsChangedTasks = TasksList.new() :: TasksList.TasksList<() -
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
--- // The local player's saved state for a pool, or nil before it's loaded
+-- // The local player's saved state for a pool, or nil before it loads
 function QuestController.getPoolData(poolName: string): QuestLibrary.PoolData?
 	local data = PlayerDataController.get()
 	local quests = data and (data :: any).Quests
 	return quests and quests[poolName]
 end
 
--- // Whether any quest is finished and waiting to be claimed
+-- // Whether any quest is finished and unclaimed
 function QuestController.hasClaimable(): boolean
 	for _, poolName in QuestLibrary.getPoolNames() do
 		local poolData = QuestController.getPoolData(poolName)
@@ -59,9 +59,8 @@ function QuestController.claim(poolName: string, slotIndex: number): boolean
 	return claimQuestFunction:InvokeServer(poolName, slotIndex) == true
 end
 
---- Buying a reroll for this quest. The server first reserves the quest (it stops counting progress), then the
---- QuestReroll purchase prompt opens; the server swaps the quest when the purchase goes through. Yields until the
---- prompt is answered; returns whether it was bought.
+--- Buys a reroll for this quest. The server reserves the quest (it stops counting progress), the QuestReroll purchase
+--- prompt opens, and the server swaps the quest on purchase. Yields until the prompt is answered; returns whether it was bought.
 function QuestController.reroll(poolName: string, slotIndex: number): boolean
 	if reserveQuestRerollFunction:InvokeServer(poolName, slotIndex) ~= true then
 		return false

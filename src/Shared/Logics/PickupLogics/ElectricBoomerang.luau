@@ -76,7 +76,8 @@ local startChain: (thrower: Player?, victim: Player, origin: Vector3) -> ()
 
 -- // Eliminates every living enemy of the thrower within CHAIN_RADIUS of origin. Each elimination goes through
 -- // CombatLibrary.attackHitPlayer, which fires PlayerKilledPlayerTasks again and continues the chain from that player.
--- // With no thrower (the zapchain command on yourself), everyone in range is hit, nobody is credited, and the chain continues here.
+-- // With no thrower (zapchain on yourself), everyone in range is hit, nobody is credited, and the chain continues
+-- // here.
 local function chainFrom(thrower: Player?, victim: Player, origin: Vector3)
 	task.delay(CHAIN_LINK_DELAY, function()
 		local gameStateData = GameStateLibrary.getGameStateData()
@@ -233,8 +234,8 @@ function ElectricBoomerang.onPickup(player: Player, startedAt: number?): number
 	return (startedAt or workspace:GetServerTimeNow()) + EFFECT_DURATION_SECONDS
 end
 
--- // Server, dev testing (zapchain command): eliminates victim as if by an Electric boomerang and starts a chain from them.
--- // With a thrower, the eliminations are credited to them and their teammates are skipped; the thrower never needs the pickup.
+-- // Server, dev testing (zapchain command): eliminates victim as if by an Electric boomerang and starts a chain from
+-- // them. With a thrower, eliminations are credited to them, teammates are skipped, and the thrower needs no pickup.
 function ElectricBoomerang.triggerChain(victim: Player, thrower: Player?): (boolean, string)
 	if not isServer then
 		return false, "triggerChain is server-only."
@@ -277,8 +278,8 @@ if isServer then
 			return
 		end
 
-		-- // A chain starts from a thrown-boomerang or Explosive explosion elimination while the pickup is active;
-		-- // once started, it runs to the end
+		-- // A chain starts from a thrown-boomerang or Explosive explosion elimination while the pickup is active; once
+		-- // started, it runs to the end
 		local isChainLink = weaponId == CHAIN_WEAPON_ID
 		local tool = Tools[weaponId]
 		local isElectricHit = (weaponId == EXPLOSION_WEAPON_ID or (tool ~= nil and tool.LogicClass == "Boomerang"))

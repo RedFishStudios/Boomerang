@@ -76,7 +76,7 @@ function GeneralUtil.isDebouncing(key: any, duration: number)
 	return false
 end
 
---- Always returns a result, Instance & Normal might be missing depending on if :Raycast hit something.
+--- Always returns a result; Instance and Normal are nil if the raycast hit nothing.
 function GeneralUtil.customCast(
 	origin: Vector3,
 	direction: Vector3,

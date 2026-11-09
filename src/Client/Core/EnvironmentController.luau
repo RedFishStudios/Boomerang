@@ -1,5 +1,5 @@
 --[[
-  Root of handling environment logics for the client
+  Root of the client environment logic
 ]]
 
 local EnvironmentController = {}

@@ -1,5 +1,3 @@
--- NOTE: THIS IS NOW FUNCTIONAL AND ITS USE SHOULD BE UNIVERSALIZED
-
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
 
@@ -7,13 +5,13 @@ local UIController = {}
 
 local UIModules = {}
 
--- // Opt-in notification for gui modules that explicitly fire it from their own open()/close(); NOT automatically fired for every gui
+-- // Fired only by gui modules that call it from their own open()/close()
 UIController.GuiToggledTasks = TasksList.new() :: TasksList.TasksList<(guiName: string, isOpen: boolean) -> ()>
 
 export type UiType =
 	  "Primary"   -- Full screen
 	| "Secondary" -- Full screen but only accessible from within other full-screen UIs
-	| "Hover"     -- Internal UI which hovers over other UI, such as small secondary internal menus
+	| "Hover"     -- Hovers over other UI, e.g. small secondary menus
    | "Popup"     -- Small-scale UI which appears over other UI; similar to Hover but doesn't typically conflict with Hover-type UIs
 	| "HUD"       -- UI which is almost constantly visible on the screen
 	| "Dynamic"   -- Exempt from expected module values/functions; manages UI functionality in some other way
@@ -21,7 +19,7 @@ export type UiType =
 export type UIModule = {
 	Type: UiType,
 	Rendered: boolean?,
-	RequiresMouse: boolean?, -- // While Open, the mouse is freed even in a mouse-locked camera (see MouseUnlockController)
+	RequiresMouse: boolean?, -- // While Open, the mouse is freed even with a mouse-locked camera (see MouseUnlockController)
 	open: (any, any, any)->any,
 	close: (any)->any,
 	[any]: any
@@ -56,7 +54,7 @@ function UIController.get(moduleName: string): UIModule
 	return UIModules[moduleName]
 end
 
--- Close all UIs of a Type
+-- Closes all open UIs of a Type
 function UIController.closeAll(uiType: UiType, Instant: boolean?)
 	for i, m in pairs(UIModules) do
 		if m.Open and m.Type == uiType then
@@ -65,10 +63,10 @@ function UIController.closeAll(uiType: UiType, Instant: boolean?)
 	end
 end
 
--- // The menus (the lobby menu buttons and the shops): only one is open at a time
+-- // Lobby menus and shops; only one is open at a time
 UIController.MENUS = { "CosmeticsShop", "WeaponsShop", "DailyClaims", "Inventory", "Stats", "Quests", "Settings" }
 
--- // Called by a menu as it opens: closes every other open menu
+-- // Called by a menu as it opens; closes every other open menu
 function UIController.closeOtherMenus(openingGuiName: string)
 	for _, name in UIController.MENUS do
 		local m = UIModules[name]
@@ -78,7 +76,7 @@ function UIController.closeOtherMenus(openingGuiName: string)
 	end
 end
 
--- // Returns true if any menu of the specified types are open
+-- // Returns true if any open menu is of the specified types
 function UIController.inMenuOfType(types: {UiType})
 	for i, m in pairs(UIModules) do
 		if m.Open then
@@ -92,7 +90,7 @@ function UIController.inMenuOfType(types: {UiType})
 	return false
 end
 
--- // Returns true if any open gui has RequiresMouse set (it has buttons the player must be able to click)
+-- // Returns true if any open gui has RequiresMouse set
 function UIController.isMouseRequired(): boolean
 	for _, m in pairs(UIModules) do
 		if m.Open and m.RequiresMouse then
@@ -102,7 +100,6 @@ function UIController.isMouseRequired(): boolean
 	return false
 end
 
--- // Easy UI toggle access
 function UIController.toggleUI(uiName: string, toggle: boolean, ...)
 	if toggle then
 		UIModules[uiName].open(...)
@@ -111,7 +108,7 @@ function UIController.toggleUI(uiName: string, toggle: boolean, ...)
 	end
 end
 
--- // The superceding gui forces the superceded gui to close while the superceding gui is open
+-- // Forces the superceded gui closed while the superceding gui is open
 function UIController.supercede(supercedingGuiName: string, supercededGuiName: string)
    local Superceded = UIModules[supercededGuiName]
 	if UIModules[supercedingGuiName] and UIModules[supercededGuiName] then
@@ -127,7 +124,7 @@ function UIController.supercede(supercedingGuiName: string, supercededGuiName: s
    end
 end
 
--- // A superceding gui is closed, no longer obscuring the superceded gui
+-- // Removes the superceding gui; reopens the superceded gui if no others remain
 function UIController.unSupercede(supercedingGuiName: string, supercededGuiName: string)
    local Superceded = UIModules[supercededGuiName]
    if Superceded then
