@@ -64,6 +64,7 @@ local OBSTRUCTION_MARGIN = 0.1 -- // Studs a dash stops short of a wall
 -- // When a dash ends, its leftover speed is cut to walking speed, so it really ends where it was planned to (at 80 studs/s
 -- // the momentum used to slide the player several studs further, e.g. off the edge the dash had just stopped short of)
 local DASH_END_CLAMPS_SPEED = true
+local MOVING_PLATFORM_CLASS_NAME = "MovingPlatform" -- // The ClassName attribute of a moving platform (MovingPlatform environment logic)
 
 local COOLDOWN_EFFECT_ID = "DashCooldown"
 local ABILITY_ID = "Dash"
@@ -335,7 +336,12 @@ local function getBlockReason(player: Player): string?
    raycastParams.CollisionGroup = CollisionGroupConstants.ArenaFloorDetector
    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
    if not workspace:Raycast(humanoidRootPart.Position, Vector3.new(0, -5, 0), raycastParams) then
-      return "not grounded"
+      -- // A moving platform is in the walls' collision group (boomerangs bounce off it), which the floor detector doesn't
+      -- // see: standing on one counts as grounded too
+      local platformHit = workspace:Raycast(humanoidRootPart.Position, Vector3.new(0, -5, 0), getBodyCastParams(character))
+      if not platformHit or platformHit.Instance:GetAttribute("ClassName") ~= MOVING_PLATFORM_CLASS_NAME then
+         return "not grounded"
+      end
    end
    return nil
 end
