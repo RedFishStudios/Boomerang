@@ -4,7 +4,7 @@ local isStudio = RunService:IsStudio()
 
 local GlobalConfig = {
    WeaponHeight = 21.081,
-   DeathHeight = 14.207,
+   DeathHeight = 14.207, -- // Fallback for a map without its own Config.DeathHeight
 
   --PlayersRequiredToStart = if isStudio then 1 else 2,
   PlayersRequiredToStart = 1,

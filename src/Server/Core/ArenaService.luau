@@ -272,6 +272,13 @@ function ArenaService.sendToArena(player: Player)
 end
 
 -- // Set the arena to this map name
+-- // A map's fall death height: the height of its Config.DeathHeight part (a wide, flat, invisible part under the map)
+local function getMapDeathHeight(map: Instance): number?
+   local config = map:FindFirstChild("Config")
+   local part = config and config:FindFirstChild("DeathHeight")
+   return if part and part:IsA("BasePart") then part.Position.Y else nil
+end
+
 function ArenaService.setArena(mapName: string)
    local map = registeredMaps[mapName]
    if not map then
@@ -382,18 +389,22 @@ function ArenaService.init()
          else
             stormclose.Transparency = 1
          end
+         if not getMapDeathHeight(c) then
+            warn(`map {c.Name} is missing a Config.DeathHeight part (falls are only caught at GlobalConfig.DeathHeight)`)
+         end
       end
 
       registeredMaps[c.Name] = c
 	end
 
-   -- Register players falling too low
-   local DEATH_Y = GlobalConfig.DeathHeight
+   -- // Players falling below the current map's DeathHeight (a few studs under its lowest floor) die in the air
    RunService.Heartbeat:Connect(function()
+      local arenaModel = arenaFolder:FindFirstChildWhichIsA("Model")
+      local deathY = (arenaModel and getMapDeathHeight(arenaModel)) or GlobalConfig.DeathHeight
       for _, player in ipairs(Players:GetPlayers()) do
          local character = player.Character
          if character and character.PrimaryPart then
-            if character.PrimaryPart.Position.Y < DEATH_Y then
+            if character.PrimaryPart.Position.Y < deathY then
                local humanoid = character:FindFirstChildOfClass("Humanoid")
                if humanoid and humanoid.Health > 0 then -- only fire once, before Health hits 0 and the character gets destroyed
                   humanoid.Health = 0
