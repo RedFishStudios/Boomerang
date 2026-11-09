@@ -37,6 +37,21 @@ local MapData = {
       },
       DisguiseAssets = {},
    },
+   -- // Dev testing: moving platforms players can stand on. Spawns on a still platform; a moving platform shuttles across
+   -- // the gap beside it to a second platform
+   ["MovingPlatformTest"] = {
+      Id = "MovingPlatformTest",
+      Debug = true,
+      ForGamemodes = {
+         Gamemodes.Classic.Id,
+         Gamemodes.Elimination.Id,
+         Gamemodes.HotPotato.Id,
+         Gamemodes.TeamElimination.Id,
+         Gamemodes.TeamClassic.Id,
+         Gamemodes.Assassin.Id
+      },
+      DisguiseAssets = {},
+   },
    ["GenericA"] = {
       Id = "GenericA",
       ForGamemodes = {
