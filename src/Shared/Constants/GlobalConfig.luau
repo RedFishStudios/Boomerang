@@ -85,7 +85,7 @@ local GlobalConfig = {
    CameraWeaponFollowSpeed = 55, -- // Top speed (studs/s) of the camera's point chasing each boomerang
    CameraWeaponAccelerationSeconds = 0.4, -- // Seconds that point takes to speed up from rest to top speed (it slows the same way)
    CameraWeaponHoldSeconds = 0.5, -- // Seconds a boomerang's point stays after it leaves the field, before easing back to its owner
-   CameraWeaponMaxRange = 100, -- // Studs from the nearest living player beyond which a boomerang isn't framed
+   CameraWeaponMaxRange = 232, -- // Studs from the nearest living player beyond which a boomerang isn't framed
 
    LagCompensationMilliseconds = 200, -- // Max server rewind for hit checks (0 = off)
 
