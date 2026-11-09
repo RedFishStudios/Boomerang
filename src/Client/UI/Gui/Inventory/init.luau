@@ -329,6 +329,7 @@ function InventoryGui.open()
 	Container.Position = containerOffscreenPosition
 	playContainerTween(CONTAINER_TWEEN_INFO_IN, containerGoalPosition)
 	UIController.supercede("Inventory", "GamemodeHud")
+	UIController.closeOtherMenus("Inventory") -- // After superceding, so the closing menu doesn't bring the HUD back
 end
 
 function InventoryGui.close()

@@ -450,6 +450,7 @@ function StatsGui.open()
 	Container.Position = containerOffscreenPosition
 	playContainerTween(CONTAINER_TWEEN_INFO_IN, containerGoalPosition)
 	UIController.supercede("Stats", "GamemodeHud")
+	UIController.closeOtherMenus("Stats") -- // After superceding, so the closing menu doesn't bring the HUD back
 end
 
 function StatsGui.close()

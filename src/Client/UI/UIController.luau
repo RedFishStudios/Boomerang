@@ -65,6 +65,19 @@ function UIController.closeAll(uiType: UiType, Instant: boolean?)
 	end
 end
 
+-- // The menus (the lobby menu buttons and the shops): only one is open at a time
+UIController.MENUS = { "CosmeticsShop", "WeaponsShop", "DailyClaims", "Inventory", "Stats", "Quests", "Settings" }
+
+-- // Called by a menu as it opens: closes every other open menu
+function UIController.closeOtherMenus(openingGuiName: string)
+	for _, name in UIController.MENUS do
+		local m = UIModules[name]
+		if name ~= openingGuiName and m and m.Open then
+			m.close()
+		end
+	end
+end
+
 -- // Returns true if any menu of the specified types are open
 function UIController.inMenuOfType(types: {UiType})
 	for i, m in pairs(UIModules) do
