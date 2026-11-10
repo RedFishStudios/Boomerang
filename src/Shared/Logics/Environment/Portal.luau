@@ -8,6 +8,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local ArenaLibrary = require(ReplicatedStorage.Shared.Library.ArenaLibrary)
+local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 
 -- // A portal is a direct child of the arena's "Functional" folder with attribute ClassName = "Portal".
 -- // It is a Part (entry A) containing an Attachment and a child Part (entry B) with its own Attachment.
@@ -242,6 +243,18 @@ function Portal.cleanup()
    SessionConnections = {}
    table.clear(TeleportDebounces)
    table.clear(AwaitingDebounce)
+   table.clear(ValidPortals)
+   cachedArenaModel = nil
+   cachedPairs = {}
+end
+
+-- // Round end (players back in the lobby): the arena's portals are done
+function Portal.init()
+   GameStateLibrary.getGameStateData().CurrentRoundData:Subscribe(function(currentRoundData)
+      if currentRoundData == nil then
+         Portal.cleanup()
+      end
+   end)
 end
 
 return Portal
