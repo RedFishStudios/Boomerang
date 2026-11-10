@@ -21,6 +21,10 @@ function CustomObjectBecomesPickup.onObjectAdded(functionalChild: Instance)
          CustomObjectBecomesPickup.cleanup(functionalChild)
       end
    end))
+   -- // An object that's never hit goes with the map
+   functionalChild.Destroying:Once(function()
+      CustomObjectBecomesPickup.cleanup(functionalChild)
+   end)
 end
 
 function CustomObjectBecomesPickup.cleanup(functionalChild: Instance)
