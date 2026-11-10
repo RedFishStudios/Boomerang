@@ -4,6 +4,7 @@ local SessionConnections: {[Instance]: RBXScriptConnection} = {}
 
 local TasksList = require(game:GetService("ReplicatedStorage").Shared.Classes.TasksList)
 local CollisionGroupConstants = require(game:GetService("ReplicatedStorage").Shared.Constants.CollisionGroupConstants)
+local GameStateLibrary = require(game:GetService("ReplicatedStorage").Shared.Library.GameStateLibrary)
 
 PermanentFire.PlayerTouchedFire = TasksList.new() :: TasksList.TasksList<(player: Player, permanentfirePart: Instance) -> ()>
 
@@ -57,6 +58,15 @@ function PermanentFire.cleanup()
       end
    end
    SessionConnections = {}
+end
+
+-- // Round end (players back in the lobby): the arena's fire is done
+function PermanentFire.init()
+   GameStateLibrary.getGameStateData().CurrentRoundData:Subscribe(function(currentRoundData)
+      if currentRoundData == nil then
+         PermanentFire.cleanup()
+      end
+   end)
 end
 
 return PermanentFire
