@@ -64,29 +64,32 @@ function Portal.onObjectAdded(functionalChild: Instance)
          return
       end
 
+      local function isStillTouching(): boolean
+         for _, part in sourcePart:GetTouchingParts() do
+            if part:IsDescendantOf(character) then
+               return true
+            end
+         end
+         return false
+      end
+
       local now = workspace:GetServerTimeNow()
       if TeleportDebounces[player] and TeleportDebounces[player] > now then
+         -- // On cooldown: retry once it ends, as long as the player keeps touching this portal
          local thisDebounceId = (AwaitingDebounce[player] or 0) + 1
          AwaitingDebounce[player] = thisDebounceId
          repeat
             task.wait(.1)
-         until AwaitingDebounce[player] ~= thisDebounceId or TeleportDebounces[player] > now or not player.Parent
-         if not player.Parent then
-            AwaitingDebounce[player] = nil
-            return
-         end
+            now = workspace:GetServerTimeNow()
+         until AwaitingDebounce[player] ~= thisDebounceId
+            or not player.Parent
+            or not isStillTouching()
+            or now >= (TeleportDebounces[player] or 0)
          if AwaitingDebounce[player] ~= thisDebounceId then
-            -- A different thread began awaiting debounce
-            return
+            return -- // A newer touch is waiting instead
          end
-         local touching = sourcePart:GetTouchingParts()
-         local yep = false
-         for _, part in ipairs(touching) do
-            if part == hit then
-               yep = true
-            end
-         end
-         if not yep then 
+         AwaitingDebounce[player] = nil
+         if not player.Parent or not isStillTouching() then
             return
          end
       end
