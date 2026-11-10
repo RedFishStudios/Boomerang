@@ -426,12 +426,15 @@ function QuestService.init()
 	PlayerDataService.ProfileAddedTasks:Add(function(player: Player)
 		refreshPools(player)
 	end)
-	PlayerDataService.ProfileRemovingTasks:Add(function(player: Player)
+	local function clearPlayer(player: Player)
 		roundParticipants[player] = nil
 		secondsInArena[player] = nil
 		claiming[player] = nil
 		rerollReservations[player] = nil
-	end)
+	end
+	PlayerDataService.ProfileRemovingTasks:Add(clearPlayer)
+	-- // Also for a player whose profile never loaded (no ProfileRemoving for them)
+	Players.PlayerRemoving:Connect(clearPlayer)
 
 	-- // Eliminations: another player, or a bot whose behavior counts (decoys don't)
 	CombatLibrary.PlayerKilledPlayerTasks:Add(function(killer: Player, victim: Player, _weaponId: string)
