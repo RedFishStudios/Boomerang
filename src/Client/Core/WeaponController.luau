@@ -1212,10 +1212,13 @@ function WeaponController.init()
       end
    end)
 
-   -- // A leaving player's boomerang is removed here: the server's despawn for it can't be matched to them once they're gone
+   -- // A leaving player's boomerangs are removed here: the server's despawn for them can't be matched to them once they're gone
    PlayersUtil.PlayerRemoving:Add(function(player: Player)
       if ThrownWeapons.Data[player] then
          clearThrownWeapon(player, false)
+      end
+      if DeadWeapons.Data[player] then
+         clearDeadWeapon(player, false)
       end
    end)
 
