@@ -260,10 +260,15 @@ local function claimQuest(player: Player, poolName: any, slotIndex: any): boolea
 	claiming[player] = true
 	local slot = poolData.Slots[slotIndex]
 	slot.Claimed = true
-	local granted = RewardService.grant(player, QuestLibrary.getReward(quest))
-	if not granted then
+	-- // pcall: an error in the grant must not leave the player unable to claim. After an error the reward may be partly
+	-- // given, so the quest stays claimed; a clean failure undoes it
+	local ok, result = pcall(RewardService.grant, player, QuestLibrary.getReward(quest))
+	local granted = ok and result == true
+	if ok and not granted then
 		slot.Claimed = false
 		warn(`QuestService: failed to grant the reward for {quest.Id} to {player.Name}`)
+	elseif not ok then
+		warn(`QuestService: error granting the reward for {quest.Id} to {player.Name}: {result}`)
 	end
 	claiming[player] = nil
 	return granted
