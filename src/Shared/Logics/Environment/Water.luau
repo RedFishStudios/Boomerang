@@ -5,6 +5,7 @@ local SessionConnections: {[Instance]: RBXScriptConnection} = {}
 local TasksList = require(game:GetService("ReplicatedStorage").Shared.Classes.TasksList)
 local CollisionGroupConstants = require(game:GetService("ReplicatedStorage").Shared.Constants.CollisionGroupConstants)
 local ParticlesLibrary = require(game:GetService("ReplicatedStorage").Shared.Library.ParticlesLibrary)
+local GameStateLibrary = require(game:GetService("ReplicatedStorage").Shared.Library.GameStateLibrary)
 
 local isServer = game:GetService("RunService"):IsServer()
 
@@ -167,6 +168,12 @@ function Water.init()
    if isServer and not drownCheckConnection then
       drownCheckConnection = game:GetService("RunService").Heartbeat:Connect(checkDrowning)
    end
+   -- // Round end (players back in the lobby): the arena's water is done
+   GameStateLibrary.getGameStateData().CurrentRoundData:Subscribe(function(currentRoundData)
+      if currentRoundData == nil then
+         Water.cleanup()
+      end
+   end)
 end
 
 function Water.cleanup()
