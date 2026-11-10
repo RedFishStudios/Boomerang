@@ -288,6 +288,14 @@ if not isServer then
       end
    end)
 
+   -- // A holder who leaves can't be matched to the server's next update
+   Players.PlayerRemoving:Connect(function(player: Player)
+      if Particles[player] then
+         ParticlesLibrary.destroy(Particles[player])
+         Particles[player] = nil
+      end
+   end)
+
    explodePlayerRemote.OnClientEvent:Connect(function(player: Player)
       SoundLibrary.play(`{player.UserId}_HotPotato_Explode`, "Explosion", player.Character.PrimaryPart, nil, true)
       if Particles[player] then
