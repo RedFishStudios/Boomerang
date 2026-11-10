@@ -40,6 +40,14 @@ function PermanentFire.onObjectAdded(functionalChild: Instance)
          PermanentFire.PlayerTouchedFire:Execute("serial", player, functionalChild)
       end
    end)
+   -- // The entry goes with the map
+   functionalChild.Destroying:Once(function()
+      local connection = SessionConnections[functionalChild]
+      if connection then
+         connection:Disconnect()
+         SessionConnections[functionalChild] = nil
+      end
+   end)
 end
 
 function PermanentFire.cleanup()
