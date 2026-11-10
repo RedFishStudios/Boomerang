@@ -26,9 +26,10 @@ local EVENT_CODES = RemoteCodes.Instances.Events
 -- TYPES
 -------------------------------------------------------------------------------
 
+type IdPair = { any } -- // { id, instance }; the instance is nil if this client doesn't have it
+
 type UpdatePayload = {
-	Add: { Instance },
-	Id: number?,
+	Add: { IdPair },
 	Remove: { number },
 }
 
@@ -52,13 +53,11 @@ local idLUT: { [Instance]: number } = {}
 local function loadRemotes()
 	SimpleRemotesUtil.bindRemoteEventActions(remoteEvent, {
 		[EVENT_CODES.Update] = function(data: UpdatePayload)
-			if data.Id ~= nil then
-				local id = data.Id
-
-				for _, instance in next, data.Add do
+			for _, pair in data.Add do
+				local id, instance = pair[1], pair[2]
+				if instance then
 					idList[id] = instance
 					idLUT[instance] = id
-					id += 1
 				end
 			end
 
@@ -72,10 +71,13 @@ local function loadRemotes()
 			end
 		end,
 
-		[EVENT_CODES.SendAll] = function(data: { [number]: Instance })
-			for id, instance in next, data do
-				idList[id] = instance
-				idLUT[instance] = id
+		[EVENT_CODES.SendAll] = function(data: { IdPair })
+			for _, pair in data do
+				local id, instance = pair[1], pair[2]
+				if instance then
+					idList[id] = instance
+					idLUT[instance] = id
+				end
 			end
 		end,
 	})

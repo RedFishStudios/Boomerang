@@ -45,7 +45,8 @@ local idCounter = Counter.new(1)
 
 local idList: { [number]: Instance } = {}
 local idLUT: { [Instance]: number } = {}
-local thisFrameFireBuffer: { Add: { Instance }, Id: nil, Remove: { number } } = { Add = {}, Id = nil, Remove = {} }
+-- // Add holds { id, instance } pairs, so an instance a client doesn't have can't shift the ids of the others
+local thisFrameFireBuffer: { Add: { { any } }, Remove: { number } } = { Add = {}, Remove = {} }
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -74,10 +75,7 @@ local function addInstance(instance: Instance)
 	idList[id] = instance
 	idLUT[instance] = id
 
-	table.insert(thisFrameFireBuffer.Add, instance)
-	if not thisFrameFireBuffer.Id then
-		thisFrameFireBuffer.Id = id
-	end
+	table.insert(thisFrameFireBuffer.Add, { id, instance })
 end
 
 local function replicate()
@@ -85,7 +83,6 @@ local function replicate()
 
 	thisFrameFireBuffer = {
 		Add = {},
-		Id = nil,
 		Remove = {},
 	}
 end
@@ -120,11 +117,15 @@ end
 
 function GlobalInstanceService.init()
 	PlayersUtil.PlayerAdded:Add(function(player)
-		remoteEvent:FireClient(player, EVENT_CODES.SendAll, idList)
+		local pairsList = {}
+		for id, instance in idList do
+			table.insert(pairsList, { id, instance })
+		end
+		remoteEvent:FireClient(player, EVENT_CODES.SendAll, pairsList)
 	end)
 
 	RunService.PostSimulation:Connect(function()
-		if thisFrameFireBuffer.Id == nil and #thisFrameFireBuffer.Remove == 0 then
+		if #thisFrameFireBuffer.Add == 0 and #thisFrameFireBuffer.Remove == 0 then
 			return
 		end
 
