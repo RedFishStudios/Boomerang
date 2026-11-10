@@ -128,6 +128,14 @@ function Water.onObjectAdded(functionalChild: Instance)
          Water.PlayerEnteredWater:Execute("serial", player, functionalChild)
       end
    end)
+   -- // The entry goes with the map
+   functionalChild.Destroying:Once(function()
+      local connection = SessionConnections[functionalChild]
+      if connection then
+         connection:Disconnect()
+         SessionConnections[functionalChild] = nil
+      end
+   end)
 end
 
 -- // Server only: drown players once the centre of their body (root) is in the water.
