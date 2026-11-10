@@ -22,7 +22,7 @@ local LISTING_CARD_VISIBLE_SCALE = Vector2.new(0.949, 0.567)
 local tweenInfoIn = TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 local tweenInfoOut = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 
-local actualSizesCache: { [GuiObject]: UDim2 } = {}
+local actualSizesCache: { [GuiObject]: UDim2 } = setmetatable({}, { __mode = "k" }) :: any -- // Weak: entries go with their frames
 
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
