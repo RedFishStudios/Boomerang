@@ -321,4 +321,30 @@ function PickupLibrary.init()
    initiated = true
 end
 
+-- // A leaving player's effects end while their Player still exists: their data is removed and each pickup's onEnd runs,
+-- // so the pickups' own per-player state is cleared (the usual end paths skip players who have already left)
+Players.PlayerRemoving:Connect(function(player: Player)
+   local userEffects = PickupLibrary.UserPickupEffectsActive[player.UserId]
+   if not userEffects then
+      return
+   end
+   PickupLibrary.UserPickupEffectsActive[player.UserId] = nil
+   for livePickupId, activePickupData in pairs(userEffects) do
+      PickupLibrary.PickupEffectRemovedTasks:Execute("parallel", player.UserId, livePickupId, activePickupData.ClassId)
+      if PickupLibrary.isDataOnlyEffect(activePickupData.ClassId) then
+         continue
+      end
+      local logicModule = PickupLogics:FindFirstChild(activePickupData.ClassId, true)
+      if logicModule and logicModule:IsA("ModuleScript") then
+         local loaded, logic = pcall(require, logicModule)
+         if loaded and logic.onEnd then
+            local ended, endError = pcall(logic.onEnd, player)
+            if not ended then
+               warn(`PickupLibrary: Failed to end {activePickupData.ClassId} for leaving {player.Name}: {endError}`)
+            end
+         end
+      end
+   end
+end)
+
 return PickupLibrary 
