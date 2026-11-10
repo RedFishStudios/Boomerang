@@ -36,6 +36,11 @@ function ClassicRoundLogic.setup()
          LeaderstatService.setValue(attacker, "Round", Elims[attacker])
       end))
 
+      -- // A player who leaves mid-round loses their score (can't win)
+      table.insert(PerMatchDestroyerFunctions, PlayersUtil.PlayerRemoving:Add(function(player: Player)
+         Elims[player] = nil
+      end))
+
       -- // Highest-elims winner naturally stays nil if no one has scored an elim yet
       table.insert(PerMatchDestroyerFunctions, PlayersUtil.GameEnteredTooFewPlayers:Add(function()
          ClassicRoundLogic.teardown()

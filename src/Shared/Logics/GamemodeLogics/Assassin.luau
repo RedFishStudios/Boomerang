@@ -316,6 +316,10 @@ function AssassinRoundLogic.setup()
 
    table.insert(PerMatchDestroyerFunctions, GameStateLibrary.PlayerAddedToArenaTasks:Add(addMember))
    table.insert(PerMatchDestroyerFunctions, GameStateLibrary.PlayerRemovedFromArenaTasks:Add(removeMember))
+   -- // A player who leaves mid-round loses their points (can't win)
+   table.insert(PerMatchDestroyerFunctions, PlayersUtil.PlayerRemoving:Add(function(player: Player)
+      Points[player] = nil
+   end))
 
    table.insert(PerMatchDestroyerFunctions, PlayersUtil.GameEnteredTooFewPlayers:Add(function()
       AssassinRoundLogic.teardown()
