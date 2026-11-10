@@ -109,6 +109,18 @@ function Portal.onObjectAdded(functionalChild: Instance)
    SessionConnections[otherPart] = otherPart.Touched:Connect(function(hit)
       teleportFrom(functionalAttachment, hit, otherPart)
    end)
+
+   -- // The pair's entries go with the map
+   functionalChild.Destroying:Once(function()
+      for _, part in { functionalChild, otherPart } do
+         local connection = SessionConnections[part]
+         if connection then
+            connection:Disconnect()
+            SessionConnections[part] = nil
+         end
+      end
+      ValidPortals[functionalChild :: any] = nil
+   end)
 end
 
 -- // Portal pairs of the current arena, found from the map itself so the server and clients agree without replication
@@ -215,6 +227,11 @@ function Portal.getProjectileExit(origin: Vector3, direction: Vector3, distance:
       EntryDistance = nearestT, -- // How far along the step it flew before entering (the teleport itself isn't flight)
    }
 end
+
+Players.PlayerRemoving:Connect(function(player)
+   TeleportDebounces[player] = nil
+   AwaitingDebounce[player] = nil
+end)
 
 function Portal.cleanup()
    for _, connection in pairs(SessionConnections) do
