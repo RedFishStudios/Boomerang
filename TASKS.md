@@ -141,6 +141,35 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
+### T-156 · Left HUD reskin with the client art, AFK toggle
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client UI / Server
+- **Files:** `Client/UI/Gui/MenuButtons/init.luau`, `Client/UI/ClientArt/` (new: `Kit`, `Theme`, `Assets`), `Server/Core/PlayerSessionService.luau`, `Client/UI/Gui/Inventory/init.luau` + `Tabs/*.luau` (Index mode)
+
+**Problem / goal**
+Use the client's left HUD art (coin plank, Inventory / Shop / Index / Quests tiles, AFK toggle, Stats button) for the lobby menu, with a working AFK toggle and an Index.
+
+**Done when**
+- [ ] The lobby menu shows the client's art; every tile opens its menu; the coins show the balance
+- [ ] The AFK toggle sits the player out of the next rounds and shows the current state
+- [ ] The Index tile opens the Inventory showing every item, owned or not
+- [ ] Daily and Settings are still reachable
+
+**Test in Studio**
+- Lobby: the left column shows coins, Inventory / Shop / Index / Quests tiles, AFK and Stats, with Daily and Settings in the old style underneath. Check at a small and a large window size.
+- Each tile and button opens its menu; hover grows / press squashes. Coins update after `givecurrency`.
+- AFK on with two players: the next round starts without you; AFK off: you're back in. `optout true` in Cmdr also flips the toggle.
+- Index: every weapon / emote / charge / strike / taunt on sale, unowned ones grey; clicking one shows it without an Equip button. Pressing the Inventory tile while the Index is open switches back.
+
+**Notes**
+- Sol, 2026-11-11: use the client's uploaded image ids (no re-upload); keep Daily and Settings as our older buttons under the new column; the Index tile opens the Inventory showing every item.
+- `MenuButtons` now builds the client's `LeftHud` layout (mockup pixels, scaled to 240 px wide at a 900 px tall screen) with the package's `Kit` helpers, ported to `Client/UI/ClientArt/` for the other reskins (T-157 to T-160). Art ids are in `ClientArt/Assets`. The topbar buttons are unchanged.
+- AFK: new `SetOptOut` remote and a replicated `OptedOut` Player attribute in `PlayerSessionService`; the toggle flips at once and then follows the attribute.
+- Index: each Inventory tab's `getItems(includeUnowned)` also lists items on sale the player doesn't own (off-sale items such as Legacy skins only show when owned).
+- Not syntax-checked (no Luau tooling here) and not tested in Studio.
+- Branch `agent/T-156-left-hud`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`.
+
 ### T-150 · Six new fan skins from the modeller's concept art
 - **Priority:** P1
 - **Owner:** Agent
@@ -591,28 +620,6 @@ In Server mode the aim direction shows correctly on the player's own screen, but
 ## Backlog
 
 > **Client package UI reskins (T-156 to T-160).** Reskin our existing GUIs with the client's art from `Downloads/Boomerang-ScripterPackage/SourceAssets/UIArtwork` (layout reference: the package's screen modules, extracted in T-152). Keep our controllers and data. Image ids are in the package's `AssetManifest.csv` (check ownership, T-152). Any art with baked-in text that says "Kill" must be redrawn or covered.
-
-### T-156 · Left HUD reskin with the client art, AFK toggle
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Client UI / Server
-- **Files:** `Client/UI/Gui/MenuButtons/init.luau`, `Server/Core/PlayerSessionService.luau`, a new remote for the toggle
-
-**Problem / goal**
-Use the package's left HUD art (`UIArtwork/left-hud`: coin plank, Inventory / Shop / Index / Quests tiles with ribbons, AFK toggle, Stats button). The coin plank shows our `Currency`. The **AFK toggle** is a player-facing switch for our existing OptOut state (`PlayerSessionService`, T-057): on = sits out the next rounds.
-
-**Open questions (ask Sol first)**
-- Our menu has buttons the art doesn't (Daily, Settings...). Where do they go?
-- "Index" tile: what does it open (the package uses the Inventory in a read-only "all items" mode)?
-
-**Done when**
-- [ ] The HUD uses the client art and every tile opens its menu
-- [ ] AFK toggle sets OptOut and reflects it
-
-**Test in Studio**
-- Toggle AFK on with two players: the next round starts without you; toggle off: you're back in.
-
-**Notes**
 
 ### T-157 · Inventory reskin with the client art
 - **Priority:** P2
@@ -1147,7 +1154,7 @@ Fill the empty "Strikes" (Inventory) and "Strike Effects" (Cosmetics Shop) tabs 
 - Not done: quest/reward support for effects (`RewardLibrary`), Robux products.
 - Not syntax-checked (no Luau tooling here) and not tested in Studio.
 - Branch `agent/T-153-strike-effects` (built on `agent/T-152-scripter-package`, so it includes T-152), lane `Github/Boomerang-lanes/T-151-round-ended-phase`.
-- Sol, 2026-11-11: tested, passed (Shark Attack waits for the rescaled shark model to be saved).
+- Sol, 2026-11-11: tested, passed. Shark Attack tested and working after the rescaled shark was saved (1a2c10d).
 
 ### T-155 · Fan trails from the client package
 - **Priority:** P2

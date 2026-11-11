@@ -29,20 +29,20 @@ StrikesTab.Title = "My Strike Effects"
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
-function StrikesTab.getItems()
+function StrikesTab.getItems(includeUnowned: boolean?)
 	local equippedId = ElimEffectController.getEquippedId()
 	local items = {}
 
 	for _, elimEffectId in ElimEffectLibrary.getSortedIds() do
 		local elimEffect = ElimEffectLibrary.getElimEffect(elimEffectId)
-		if elimEffect and ElimEffectController.ownsElimEffect(elimEffectId) then
+		if elimEffect and (ElimEffectController.ownsElimEffect(elimEffectId) or (includeUnowned and not elimEffect.OffSale)) then
 			table.insert(items, {
 				Id = elimEffectId,
 				Name = elimEffect.Name,
 				Rarity = elimEffect.Rarity or DEFAULT_RARITY,
 				IconImage = elimEffect.Icon,
 				IconGlyph = elimEffect.PlaceholderGlyph or "?",
-				Owned = true,
+				Owned = ElimEffectController.ownsElimEffect(elimEffectId),
 				Equipped = elimEffectId == equippedId,
 			})
 		end

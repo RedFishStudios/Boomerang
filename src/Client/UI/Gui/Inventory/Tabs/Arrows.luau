@@ -30,20 +30,20 @@ ArrowsTab.Title = "My Charge Up Effects"
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
-function ArrowsTab.getItems()
+function ArrowsTab.getItems(includeUnowned: boolean?)
 	local equippedId = ChargeUpEffectController.getEquippedId()
 	local items = {}
 
 	for _, chargeUpEffectId in ChargeUpEffectLibrary.getSortedIds() do
 		local chargeUpEffect = ChargeUpEffectLibrary.getChargeUpEffect(chargeUpEffectId)
-		if chargeUpEffect and ChargeUpEffectController.ownsChargeUpEffect(chargeUpEffectId) then
+		if chargeUpEffect and (ChargeUpEffectController.ownsChargeUpEffect(chargeUpEffectId) or (includeUnowned and not chargeUpEffect.OffSale)) then
 			table.insert(items, {
 				Id = chargeUpEffectId,
 				Name = chargeUpEffect.Name,
 				Rarity = chargeUpEffect.Rarity or DEFAULT_RARITY,
 				IconImage = chargeUpEffect.Icon,
 				IconGlyph = chargeUpEffect.PlaceholderGlyph or "?",
-				Owned = true,
+				Owned = ChargeUpEffectController.ownsChargeUpEffect(chargeUpEffectId),
 				Equipped = chargeUpEffectId == equippedId,
 			})
 		end

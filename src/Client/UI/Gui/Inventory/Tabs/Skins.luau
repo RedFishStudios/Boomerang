@@ -31,20 +31,20 @@ SkinsTab.Title = "My Weapons"
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
-function SkinsTab.getItems()
+function SkinsTab.getItems(includeUnowned: boolean?)
 	local equippedSkinId = SkinController.getEquippedSkinId()
 	local items = {}
 
 	for _, skinId in SkinLibrary.getSortedSkinIds() do
 		local skin = SkinLibrary.getSkin(skinId)
-		if skin and SkinController.ownsSkin(skinId) then
+		if skin and (SkinController.ownsSkin(skinId) or (includeUnowned and not skin.OffSale)) then
 			local tool = Tools[skin.Model]
 			table.insert(items, {
 				Id = skinId,
 				Name = skin.Name,
 				Rarity = (tool and tool.Rarity) or DEFAULT_RARITY,
 				ModelName = skin.Model,
-				Owned = true,
+				Owned = SkinController.ownsSkin(skinId),
 				Equipped = skinId == equippedSkinId,
 			})
 		end

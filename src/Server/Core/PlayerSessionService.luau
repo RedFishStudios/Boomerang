@@ -4,7 +4,9 @@
 	PlayerStatsLibrary.
 
 	- OptOut: the player doesn't take part in rounds. They aren't added to a round when it starts and
-	  can't (re)spawn into one. Cmdr: `optout`.
+	  can't (re)spawn into one. Players set it themselves with the AFK toggle in the lobby menu (SetOptOut remote,
+	  MenuButtons); the current value is mirrored on the Player as the `OptedOut` attribute for the toggle.
+	  Cmdr: `optout`.
 ]]
 
 local PlayerSessionService = {}
@@ -13,6 +15,11 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
+local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
+
+local OPTED_OUT_ATTRIBUTE = "OptedOut" -- // On the Player, replicated: whether they're opted out (AFK)
+
+local setOptOutRemote = SimpleRemotes.getEvent("SetOptOut")
 
 -------------------------------------------------------------------------------
 -- TYPES
@@ -74,6 +81,7 @@ function PlayerSessionService.setOptOut(player: Player, optOut: boolean)
 		return
 	end
 	session.OptOut = optOut
+	player:SetAttribute(OPTED_OUT_ATTRIBUTE, optOut)
 	PlayerSessionService.OptOutChangedTasks:Execute("parallel", player, optOut)
 end
 
@@ -88,6 +96,13 @@ function PlayerSessionService.init()
 
 	PlayersUtil.PlayerRemoving:Add(function(player: Player)
 		sessions[player] = nil
+	end)
+
+	-- // The AFK toggle in the lobby menu
+	setOptOutRemote.OnServerEvent:Connect(function(player: Player, optOut: unknown)
+		if type(optOut) == "boolean" then
+			PlayerSessionService.setOptOut(player, optOut)
+		end
 	end)
 end
 

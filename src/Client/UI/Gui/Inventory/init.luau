@@ -2,7 +2,8 @@
 	Inventory
 
 	Description:
-	The Inventory menu, opened from the Skins button in the left lobby menu (MenuButtons).
+	The Inventory menu, opened from the Inventory tile in the left lobby menu (MenuButtons). The Index tile opens the
+	same menu as the Index (toggleIndex): every item on sale, owned or not; unowned ones are grey and can be looked at.
 	The tab column (TABS) picks what the listing grid shows. A tab's content comes from the module with the same name
 	in Tabs/ (shape: InventoryTab below); a tab without a module is shown but inert.
 	Clicking an owned item's listing selects it and shows it in the Detail panel, which shows "Equipped" or an Equip
@@ -43,7 +44,7 @@ export type InventoryItem = {
 
 export type InventoryTab = {
 	Title: string, -- // Title on the plank while the tab is open
-	getItems: () -> { InventoryItem }, -- // In display order
+	getItems: (includeUnowned: boolean?) -> { InventoryItem }, -- // In display order. includeUnowned (Index): also every item on sale the player doesn't own (Owned = false)
 	equipItem: (itemId: string) -> (), -- // Equip button clicked for an owned item (may yield)
 	subscribe: (onChanged: () -> ()) -> (), -- // Called once; onChanged runs when the items change
 }
@@ -103,6 +104,7 @@ local currentItems: { InventoryItem } = {}
 local selectedItemId: string? = nil
 local detailItemId: string? = nil -- // Item whose model the Detail viewport shows
 local equipRequestPending = false
+local indexMode = false -- // Index (the Index tile): every item, owned or not; unowned ones can be looked at but not equipped
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -190,10 +192,10 @@ local function updateSelection()
 		local listing = listings[item.Id]
 		if item.Equipped then
 			listing.Art.ImageColor3 = COLOR_EQUIPPED
-		elseif not item.Owned then
-			listing.Art.ImageColor3 = COLOR_LOCKED
 		elseif item.Id == selectedItemId then
 			listing.Art.ImageColor3 = COLOR_SELECTED
+		elseif not item.Owned then
+			listing.Art.ImageColor3 = COLOR_LOCKED
 		else
 			listing.Art.ImageColor3 = COLOR_OWNED
 		end
@@ -227,7 +229,7 @@ local function refreshListings()
 	table.clear(listings)
 
 	local tab = currentTabId and tabModules[currentTabId]
-	currentItems = if tab then tab.getItems() else {}
+	currentItems = if tab then tab.getItems(indexMode) else {}
 	detailItemId = nil -- // Forces a Detail model redraw; the item data may have changed
 
 	for order, item in currentItems do
@@ -237,12 +239,13 @@ local function refreshListings()
 		listing.ItemName.Text = item.Name
 		showItem(listing.Viewport, item)
 
-		if item.Owned then
+		if item.Owned or indexMode then
 			listing.MouseButton1Click:Connect(function()
 				onListingClicked(item.Id)
 			end)
 			setupButtonHover(listing)
-		else
+		end
+		if not item.Owned then
 			listing.ItemName.TextTransparency = LOCKED_TEXT_TRANSPARENCY
 		end
 
@@ -270,7 +273,7 @@ local function selectTab(tabId: string)
 
 	currentTabId = tabId
 	selectedItemId = nil -- // Starts on the tab's equipped item
-	TitleLabel.Text = tab.Title
+	TitleLabel.Text = if indexMode then "Index" else tab.Title
 	ListingsFrame.CanvasPosition = Vector2.zero
 	updateTabColors()
 	refreshListings()
@@ -322,11 +325,22 @@ end
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
+-- // Switches between the Inventory (owned items) and the Index (every item), keeping the open tab
+local function setIndexMode(value: boolean)
+	indexMode = value
+	local tab = currentTabId and tabModules[currentTabId]
+	if tab then
+		TitleLabel.Text = if indexMode then "Index" else tab.Title
+	end
+	selectedItemId = nil -- // Starts on the equipped item
+	refreshListings()
+end
+
+-- // Opens the Inventory showing the player's items
 function InventoryGui.open()
 	InventoryGui.Open = true
 	InventoryScreenGui.Enabled = true
-	selectedItemId = nil -- // Opens on the equipped item
-	refreshListings()
+	setIndexMode(false)
 	Container.Position = containerOffscreenPosition
 	playContainerTween(CONTAINER_TWEEN_INFO_IN, containerGoalPosition)
 	UIController.supercede("Inventory", "GamemodeHud")
@@ -346,10 +360,24 @@ function InventoryGui.close()
 end
 
 function InventoryGui.toggle()
-	if InventoryGui.Open then
+	if InventoryGui.Open and indexMode then
+		setIndexMode(false) -- // The Index is open: show the Inventory instead
+	elseif InventoryGui.Open then
 		InventoryGui.close()
 	else
 		InventoryGui.open()
+	end
+end
+
+-- // The Index (the Index tile in the lobby menu): the same menu showing every item, owned or not
+function InventoryGui.toggleIndex()
+	if InventoryGui.Open and not indexMode then
+		setIndexMode(true) -- // The Inventory is open: show the Index instead
+	elseif InventoryGui.Open then
+		InventoryGui.close()
+	else
+		InventoryGui.open()
+		setIndexMode(true)
 	end
 end
 

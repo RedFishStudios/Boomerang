@@ -30,19 +30,19 @@ EmotesTab.Title = "My Emotes"
 -- PUBLIC FUNCTIONS
 -------------------------------------------------------------------------------
 
-function EmotesTab.getItems()
+function EmotesTab.getItems(includeUnowned: boolean?)
 	local equippedId = EmoteController.getEquippedId()
 	local items = {}
 
 	for _, emoteId in EmoteLibrary.getSortedIds() do
 		local emote = EmoteLibrary.getEmote(emoteId)
-		if emote and EmoteController.ownsEmote(emoteId) then
+		if emote and (EmoteController.ownsEmote(emoteId) or (includeUnowned and not emote.OffSale)) then
 			table.insert(items, {
 				Id = emoteId,
 				Name = emote.Name,
 				Rarity = emote.Rarity or DEFAULT_RARITY,
 				EmoteAnimationId = emote.AnimationId,
-				Owned = true,
+				Owned = EmoteController.ownsEmote(emoteId),
 				Equipped = emoteId == equippedId,
 			})
 		end
