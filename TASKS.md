@@ -250,7 +250,8 @@ The package's scripts live inside `.rbxm` files, which agents can't read without
 **Notes**
 - Sol, 2026-11-10: folder `reference/ScripterPackage/` (repo root, outside `src/`).
 - **Agent part done:** all 57 scripts from the six `.rbxm` files extracted (`Name.luau` / `.client.luau` / `.server.luau`, `init.*` for scripts with child scripts), a `_tree.txt` per package listing every instance, the package README (`PACKAGE_README.md`) and `AssetManifest.csv`, plus our own `README.md` with the layout. Added to CLAUDE.md's reference list and "Not mapped by Rojo" line. `rojo sourcemap` contains nothing from it.
-- **Sol's part still open:** import the shark FBX and save it with the three taunt props into `Shared/Assets`; check the image / sound owner.
+- The three taunt props were already plain part models, so they were copied as is into `Shared/Assets/Taunts/` (`DeckChair`, `RoyalCrown`, `TauntBoomerang`; in Studio `ReplicatedStorage.Shared.Assets.Taunts`). `TauntBoomerang` uses the client's decal image 82042595323457.
+- **Sol's part still open:** import the shark FBX in Studio and save it to `src/Shared/Assets/StrikeEffects/Shark.rbxmx`; check the image / sound owner.
 - The Luau LSP and Selene may report warnings in these files (they `require` paths that don't exist here). They're reference only; ignore them.
 - Branch `agent/T-152-scripter-package`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`. This branch also moves T-151 to Done.
 
