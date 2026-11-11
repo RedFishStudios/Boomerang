@@ -13,7 +13,7 @@ export type RoundType = {
    PickupsDisabled: boolean?
 }
 
-local FIVE_MINUTES = 5 * 60 * 1000
+local ROUND_LENGTH = 10 -- // Seconds every round lasts (RoundCyclingService adds TimeLasts to server time in seconds)
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -28,7 +28,7 @@ local Gamemodes: {
       CanRespawn = true,
       LateJoinEnabled = true,
       StormClose = false,
-      TimeLasts = FIVE_MINUTES
+      TimeLasts = ROUND_LENGTH
    },
    TeamClassic = {
       Id = "TeamClassic",
@@ -37,7 +37,7 @@ local Gamemodes: {
       CanRespawn = true,
       LateJoinEnabled = true,
       StormClose = false,
-      TimeLasts = FIVE_MINUTES
+      TimeLasts = ROUND_LENGTH
    },
    Elimination = {
       Id = "Elimination",
@@ -45,7 +45,7 @@ local Gamemodes: {
       CanRespawn = false,
       LateJoinEnabled = false,
       StormClose = true,
-      TimeLasts = FIVE_MINUTES
+      TimeLasts = ROUND_LENGTH
    },
    TeamElimination = {
       Id = "TeamElimination",
@@ -54,7 +54,7 @@ local Gamemodes: {
       CanRespawn = false,
       LateJoinEnabled = false,
       StormClose = false,
-      TimeLasts = FIVE_MINUTES
+      TimeLasts = ROUND_LENGTH
    },
    HotPotato = {
       Id = "HotPotato",
@@ -64,7 +64,7 @@ local Gamemodes: {
       LateJoinEnabled = false,
       StormClose = false,
       PickupsDisabled = true,
-      TimeLasts = FIVE_MINUTES
+      TimeLasts = ROUND_LENGTH
    },
    Assassin = {
       Id = "Assassin",
@@ -73,14 +73,14 @@ local Gamemodes: {
       LateJoinEnabled = true,
       StormClose = false,
       PickupsDisabled = true,
-      TimeLasts = FIVE_MINUTES
+      TimeLasts = ROUND_LENGTH
    },
    --[[ThrowBoomerang = {
       Id = "ThrowBoomerang",
       Display = "Throw Boomerang",
       Subheader = "Throw the boomerang 5 times (test)",
       CanRespawn = true,
-      TimeLasts = FIVE_MINUTES,
+      TimeLasts = ROUND_LENGTH,
       --DashDisabled = true
    },]]
 }
