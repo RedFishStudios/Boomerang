@@ -52,6 +52,119 @@ What's wrong, or what should exist.
 
 > **Urgent: instructed by Sol to do today (2026-10-03).** T-062 to T-067 come before everything else in Ready.
 
+> **Client scripter package (T-151 to T-160).** The client sent a package of taunts, elimination effects, fan trails and UI art (`Downloads/Boomerang-ScripterPackage`, with its own README). Sol's decisions (2026-11-10): port it onto **our** systems only (`PlayerDataService`, single `Currency`, `CosmeticLibrary`, `SimpleRemotes`): none of its own data code, DataStore (`PlayerStats_v1`), Gems, remotes, quests or install script. Reskin our existing GUIs with its art instead of using its code-built screens. Player-facing text never says "kill". Paid random items stay as they are for the prototype (to review before launch). Order: T-151 and T-152 first; then T-153 → T-154 (both touch `ProfileTemplate`, `CosmeticLibrary` and the Inventory); T-155 can run alongside them; the UI reskins (Backlog, T-156 to T-160) come after.
+
+### T-152 · Bring in the client package's sources and models
+- **Priority:** P1
+- **Owner:** Sol → Agent
+- **Area:** Tooling / Assets
+- **Files:** a reference folder not mapped by Rojo (proposed `reference/ScripterPackage/`), `Shared/Assets/` (models), `CLAUDE.md` ("Leftover and reference modules")
+
+**Problem / goal**
+The package's scripts live inside `.rbxm` files, which agents can't read without a decompressor, so every later task needs a readable copy.
+
+- **Agent:** extract every script's source from the six `.rbxm` files into `reference/ScripterPackage/<Package>/<path>.luau` (reference only, never required or mapped by Rojo), plus the README and `AssetManifest.csv`. Add the folder to CLAUDE.md's reference list (Sol said yes when approving this task).
+- **Sol:** import the shark FBX (`SourceAssets/Models/SharkKit/boomerang-shark.fbx`, Root + Jaw bones) with Studio's 3D Importer; save it with the three taunt props (`DeckChair`, `RoyalCrown`, `TauntBoomerang` from `SourceAssets/Models/*.rbxmx`) into `Shared/Assets` as `.rbxmx`. The shark replaces the package's runtime EditableMesh shark (Sol, 2026-11-10).
+- **Sol:** check who owns the images and sounds in `AssetManifest.csv`. They were uploaded by the client's account; if the experience owner is different, they may need re-uploading under the owner.
+
+**Open questions (ask Sol first)**
+- Folder name and location for the extracted sources.
+
+**Done when**
+- [ ] Every package script is readable as a `.luau` file in the reference folder, which Rojo doesn't map
+- [ ] Shark and taunt prop models are in `Shared/Assets`
+
+**Test in Studio**
+- `rojo serve` from the branch: nothing from the reference folder appears in the DataModel.
+
+**Notes**
+
+### T-153 · Strike Effects: the package's elimination effects as a cosmetic
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared / Server / Client / Data
+- **Files:** `Shared/Referential/StrikeEffects.luau` (new), `Shared/Library/StrikeEffectLibrary.luau` (new), `Server/Core/StrikeEffectService.luau` (new), `Client/Core/StrikeEffectController.luau` (new) + its effect modules, `Shared/Data/ProfileTemplate.luau`, `Shared/Library/CosmeticLibrary.luau`, `Shared/Constants/Sounds.luau`, `Client/UI/Gui/Inventory/` (the `Strikes` tab), `Client/UI/Gui/CosmeticsShop.luau` (the `ElimEffects` tab), `Server/Cmdr/Commands/GrantStrikeEffect*.luau` (new)
+
+**Problem / goal**
+The Inventory's `Strikes` tab and the Cosmetics Shop's "Strike Effects" tab already exist but are empty. Fill them with the package's four effects: **Stone Statue, Ashes, Sakura, Shark Attack** (3 s each, played on the eliminated player's body). The default is no effect (the package's "Skull" item).
+
+- Same shape as skins / charge up effects: data in `Referential`, `OwnedStrikeEffects` / `EquippedStrikeEffect` in the profile (update the `Profile` type and `ProfileTemplate.get()` together), an `Equipped*` attribute in `CosmeticLibrary`, service / controller / library.
+- Trigger from `CombatLibrary.PlayerKilledPlayerTasks` with the **eliminator's** equipped effect, not the package's `creator` ObjectValue. Deaths with no eliminator play nothing.
+- Port the effect code from the package (`KillEffects` client modules, `Fx`, `Rig`); textures and sound ids go where we register assets (`Sounds.luau` and an asset table), not inline.
+- Shark Attack uses the imported shark model (T-152), animating its Jaw bone, instead of `SharkModel` / EditableMesh.
+- Fit with what already happens on death: the client ragdoll (`CharacterRenderController`), `DeathScreen`, and the package's muting of the default death sound (check whether we need it).
+- Player-facing names never say "kill" (use "Strike Effects" / "elimination").
+- Cmdr `grantstrikeeffect <players> <effect>`.
+
+**Open questions (ask Sol first)**
+- Prices and rarities in the Cosmetics Shop (the package's are placeholders: Stone Rare, Ashes Epic, Sakura Epic, Shark Legendary)? Use `-- TODO:RELEASE placeholder` until then.
+- Ragdoll vs effect: the effects freeze the body in its death pose. Skip the ragdoll when an effect plays?
+
+**Done when**
+- [ ] Each of the four effects plays for everyone when a player with it equipped eliminates someone, then cleans up
+- [ ] Owned / equipped effects save, show in the Inventory `Strikes` tab and can be bought in the Cosmetics Shop
+- [ ] No "kill" in player-facing text
+
+**Test in Studio**
+- `grantstrikeeffect me Shark` (etc.), equip it, eliminate a bot or second player: the effect plays; repeat for all four.
+
+**Notes**
+
+### T-154 · Taunts: the package's four taunts as a cosmetic, in the end-of-round window
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared / Server / Client / Data
+- **Files:** `Shared/Referential/Taunts.luau` (new), `Shared/Library/TauntLibrary.luau` (new), `Server/Core/TauntService.luau` (new), `Client/Core/TauntController.luau` (new) + taunt modules (`Pose`, `Props`, `Effects`), `Shared/Data/ProfileTemplate.luau`, `Shared/Library/CosmeticLibrary.luau`, `Shared/Constants/InputConstants.luau`, `Client/UI/Screens/InputScreen` (touch button), `Client/UI/Gui/Inventory/` (new Taunts tab), `Server/Cmdr/Commands/GrantTaunt*.luau` (new)
+
+**Problem / goal**
+Port **Too Easy, Bonk!, Royal Treatment, Nap Time** from the package. Taunts are their **own** cosmetic category, separate from Emotes (winner pedestal), which stay as they are (Sol, 2026-11-10).
+
+- `OwnedTaunts` / `EquippedTaunt` in the profile, an `Equipped*` attribute in `CosmeticLibrary`, a Taunts tab in the Inventory.
+- Played with **T**, gamepad **Y**, or a touch button. Allowed **only in the end-of-round window** (T-151: round over, players still in the arena), never during a round or in the lobby. The server checks the phase and that the player is alive, then tells every client to play it.
+- Keep the package's scripted playback (`Pose.run` from keyframe tables): no animation uploads. Props from `Shared/Assets` (T-152). Bonk! uses the player's equipped skin.
+- Movement lock and clean-up as in the package (everything removed on finish, death or respawn), and also when the window ends.
+- Cmdr `granttaunt <players> <taunt>`; reach the window with `endround`.
+
+**Open questions (ask Sol first)**
+- The window is 5 s (`PRE_INTERMISSION_DURATION`) but every taunt is 6 s. Lengthen the window, shorten the taunts, or cut them off when players go back to the lobby?
+- Default taunt: does everyone own one (the package defaults to Too Easy)? Prices / rarities (placeholders until decided)?
+- Can players still be eliminated in the window? (If so, taunting there is safe only if no one can hit them.)
+
+**Done when**
+- [ ] Each taunt plays for everyone when its owner presses the key/button in the end-of-round window, and is refused at other times
+- [ ] Owned / equipped taunts save and show in the Inventory
+
+**Test in Studio**
+- `granttaunt me NapTime`, equip, `endround`, press T: the taunt plays and cleans up. Press T mid-round and in the lobby: nothing happens.
+
+**Notes**
+
+### T-155 · Fan trails from the client package
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared / Client
+- **Files:** `Shared/...` (FanTrails module with `Ribbon`, `Decor`, `Styles/`; location to choose), `Shared/Referential/Skins.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau` (thrown-weapon lifecycle), `Client/Core/WeaponController.luau` or `BoomerangRenderController.luau`
+
+**Problem / goal**
+The package has six trail styles for the six new fan skins (T-150): Bamboo, Sunset Pop, Tidal Surge, Sakura Drift, Moonsong, Sunfire Phoenix.
+
+- Add a `TrailStyle` field to those fan entries in `Skins.luau` instead of the package's model-name lookup (`StyleForFan`), because our model names differ (e.g. `BambooBreezeFan`).
+- On every client: `FanTrails.new(weapon, style)` + `Start()` on throw, `Stop()` when caught / landed, `Reset()` on teleport / removal, `Destroy()` after the fade. Replaces our plain trail for those skins only.
+- Skip the package's `FanTrailsExample` and the test bench.
+- The Bamboo leaf uses EditableMesh and falls back to parts when it isn't available; keep the fallback.
+
+**Open questions (ask Sol first)**
+- Should other players see the trail with team colours, or always in the skin's own colours?
+
+**Done when**
+- [ ] Each of the six fans shows its own trail while flying out and back, for every player, and it fades after the catch
+- [ ] Other skins keep the current trail
+
+**Test in Studio**
+- `grantskin` each fan, throw / recall / let it land / respawn mid-flight: the trail starts at the fan, fades on catch, never stretches across a teleport.
+
+**Notes**
+
 ### T-005 · Convert space-indented files to tabs
 - **Priority:** P2
 - **Owner:** Agent
@@ -138,6 +251,30 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 
 ## Review
+
+### T-151 · Make the end-of-round phase obvious (rename PreIntermission)
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared / Server / Docs
+- **Files:** `Shared/Constants/Enums/GameplayPhases.luau`, `Server/Core/RoundCyclingService.luau`, `Client/UI/Gui/PreIntermission/init.luau`, `Client/UI/Gui/DeathScreen/init.luau` (comment), `Shared/Library/CombatLibrary.luau` (comment), `CLAUDE.md`
+
+**Problem / goal**
+After a round ends, players stay in the arena for 5 s before going back to the lobby. That window was `GameplayPhases.PreIntermission` (value 1), and agents kept missing it: the name didn't say "round over, players still in the arena", and `RoundCyclingService` empties `LivingPlayersInArena` the moment it starts. Taunts (T-154) are only allowed in this window.
+
+**Done when**
+- [ ] No `GameplayPhases.PreIntermission` left in `src/`; the phase is `RoundEnded` and still has value 1
+- [ ] CLAUDE.md explains the window
+
+**Test in Studio**
+- Play a round to the end: the winner screen shows, players stay in the arena ~5 s, then voting starts in the lobby. No errors.
+- Use `endround` mid-round: same.
+- With fewer players than `PlayersRequiredToStart` when a round ends: the winner screen still plays out, then the pending-players state.
+
+**Notes**
+- Sol, 2026-11-10: name `RoundEnded`; keep the winner-screen GUI named `PreIntermission` (no `.rbxmx` change).
+- Enum key renamed (value 1 unchanged, so nothing on the network changes); `PRE_INTERMISSION_DURATION` renamed `ROUND_ENDED_DURATION`; comments updated, including one on `LivingPlayersInArena = {}` saying players are still in the arena. Players go to the lobby when `SpawnService` sees `LobbyVoting` / `PendingPlayers`.
+- CLAUDE.md "Round cycle" now has a sub-bullet about the phase.
+- Branch `agent/T-151-round-ended-phase`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`. Not tested in Studio (rename only; no Luau tooling here). This branch also adds tasks T-152 to T-160 to the board.
 
 ### T-150 · Six new fan skins from the modeller's concept art
 - **Priority:** P1
@@ -587,6 +724,106 @@ In Server mode the aim direction shows correctly on the player's own screen, but
 
 
 ## Backlog
+
+> **Client package UI reskins (T-156 to T-160).** Reskin our existing GUIs with the client's art from `Downloads/Boomerang-ScripterPackage/SourceAssets/UIArtwork` (layout reference: the package's screen modules, extracted in T-152). Keep our controllers and data. Image ids are in the package's `AssetManifest.csv` (check ownership, T-152). Any art with baked-in text that says "Kill" must be redrawn or covered.
+
+### T-156 · Left HUD reskin with the client art, AFK toggle
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client UI / Server
+- **Files:** `Client/UI/Gui/MenuButtons/init.luau`, `Server/Core/PlayerSessionService.luau`, a new remote for the toggle
+
+**Problem / goal**
+Use the package's left HUD art (`UIArtwork/left-hud`: coin plank, Inventory / Shop / Index / Quests tiles with ribbons, AFK toggle, Stats button). The coin plank shows our `Currency`. The **AFK toggle** is a player-facing switch for our existing OptOut state (`PlayerSessionService`, T-057): on = sits out the next rounds.
+
+**Open questions (ask Sol first)**
+- Our menu has buttons the art doesn't (Daily, Settings...). Where do they go?
+- "Index" tile: what does it open (the package uses the Inventory in a read-only "all items" mode)?
+
+**Done when**
+- [ ] The HUD uses the client art and every tile opens its menu
+- [ ] AFK toggle sets OptOut and reflects it
+
+**Test in Studio**
+- Toggle AFK on with two players: the next round starts without you; toggle off: you're back in.
+
+**Notes**
+
+### T-157 · Inventory reskin with the client art
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client UI
+- **Files:** `Client/UI/Gui/Inventory/`
+
+**Problem / goal**
+Use the package's Inventory art (`UIArtwork/inventory`: window, tabs, item cards normal / selected / equipped, Equip button). Comes after T-153 and T-154, which add Strike Effects and Taunts.
+
+- The art has four tabs (Skins, Taunts, Arrows, Kill Effects); ours are Weapons, Emotes, Charges, Strikes, plus Taunts after T-154. The "Kill Effects" tab art (`tab_killeffects.png`, and the label baked into `window.png`) must say "Strike Effects" or similar.
+
+**Open questions (ask Sol first)**
+- Tab list and names; art for the extra tabs (Emotes)?
+
+**Done when**
+- [ ] The Inventory uses the client art with all our tabs, and no "kill" text
+
+**Notes**
+
+### T-158 · Shop reskin with the client art
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client UI
+- **Files:** `Client/UI/Gui/CosmeticsShop.luau` / `WeaponsShop.luau` / `ShopCommon/`, crate data if a Garbage Egg is added
+
+**Problem / goal**
+Use the package's Shop art (`UIArtwork/shop`: window, skin cards with odds, Buy and Gift buttons, the "Limited Garbage Egg Skins" banner). The blue Gems pill shows nothing or our `Currency`: there are no Gems.
+
+- The Garbage Egg (Robux, random skin at 61 / 29 / 9 / 1 %) maps onto our crates (`Crates.luau`, `CrateService`, `LootBoxRates`). Paid random items stay as they are for the prototype; review before launch (odds disclosure, `PolicyLibrary`).
+- Its four skins (Paper Mecha, Lunch Bag Spy, Cpt. Red, Para Bottler) only exist as icons: placeholder models and product ids (`-- TODO:RELEASE placeholder`).
+
+**Open questions (ask Sol first)**
+- Which of our shops gets this art? Is the Garbage Egg wanted now? Gift: build it or hide the button?
+
+**Done when**
+- [ ] The chosen shop uses the client art with our data and `Currency`
+
+**Notes**
+
+### T-159 · Quests menu reskin with the client art
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client UI
+- **Files:** `Client/UI/Gui/Quests/init.luau`
+
+**Problem / goal**
+Replace the placeholder look from T-144 with the package's Quests art (`UIArtwork/quests`: window, Daily / Weekly / Season tabs, cards, green / grey buttons). Data stays our `QuestService` pools.
+
+- Don't port the package's quests (`QuestData`). In particular **no "Open N Eggs" quests** (Sol, 2026-11-10).
+- The art's reward badges are XP and coins; we have no XP.
+
+**Open questions (ask Sol first)**
+- Season tab: hide it, or is a Season pool wanted? XP badge: replace with the coin badge?
+
+**Done when**
+- [ ] The Quests menu uses the client art with Daily and Weekly working as before
+
+**Notes**
+
+### T-160 · Stats menu reskin with the client art
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client UI
+- **Files:** `Client/UI/Gui/Stats/` / `StatsPanel/`
+
+**Problem / goal**
+Use the package's Stats art (`UIArtwork/stats`, positions in `layout.txt`): avatar, name, current-match row (Elims, Defeats) and all-time cards (Elims, Defeats, Wins, Losses). Values come from `LifetimeStatsService` / `PlayerStatsLibrary`, not the package's `Stats` module or its DataStore.
+
+**Open questions (ask Sol first)**
+- `Losses` has shipped in the profile but was never tracked. Start counting it (a round played and not won?), or show something else in that card?
+
+**Done when**
+- [ ] The Stats menu uses the client art with our live values
+
+**Notes**
 
 ### T-078 · Smoke particle for the decoy poof
 - **Priority:** P2

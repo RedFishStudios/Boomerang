@@ -92,7 +92,7 @@ function CombatLibrary.applyDamageToHumanoid(player: Player, humanoid: Humanoid,
    end
 end
 
--- // Single chokepoint for the death screen notification; skipped when this player's death is what ends the round (PreIntermission covers that case instead)
+-- // Single chokepoint for the death screen notification; skipped when this player's death is what ends the round (the RoundEnded winner screen covers that case instead)
 function CombatLibrary.notifyDeathReason(player: Player, killer: Player?, causeLabel: string?)
    local roundCyclingService = isServer and getRoundCyclingService()
    if roundCyclingService and roundCyclingService.willKillEndRound(player) then

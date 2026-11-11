@@ -75,7 +75,7 @@ end
 local instanceKey = nil
 
 function DeathScreen.open()
-   -- // Never show over PreIntermission (e.g. a final elimination death that also ends the round)
+   -- // Never show over the PreIntermission winner screen (RoundEnded phase; e.g. a final elimination death that also ends the round)
    if UIController.get("PreIntermission").Open then
       return
    end

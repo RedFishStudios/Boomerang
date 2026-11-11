@@ -33,10 +33,10 @@ local GamemodeLogicModules = {}
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
--- // PRE_INTERMISSION is the end-of-round screen while players are still in the arena (not lobby time).
+-- // ROUND_ENDED_DURATION: how long the RoundEnded phase lasts (winner screen, players still in the arena; not lobby time).
 local INTERMISSION_DURATION = 20
 local VOTE_DURATION = 60
-local PRE_INTERMISSION_DURATION = 5
+local ROUND_ENDED_DURATION = 5
 
 -------------------------------------------------------------------------------
 -- TYPES
@@ -198,7 +198,7 @@ local function transitionToPendingPlayers()
    GameStateLibrary.applySnapshot(snapshot)
 end
 
--- // Ends whatever round is active (timer expiry or forced); the resulting RoundFinishedTasks callback drives PreIntermission
+-- // Ends whatever round is active (timer expiry or forced); the resulting RoundFinishedTasks callback enters RoundEnded
 local function endActiveRound()
    local currentRoundData = GameStateLibrary.getGameStateData().CurrentRoundData:Get()
    local currentGamemode = if currentRoundData then currentRoundData.Gamemode else nil
@@ -295,8 +295,8 @@ local function updateGameStateEveryFrame(_dt: number)
    local timerElapsed = timerEndsAt ~= nil and workspace:GetServerTimeNow() >= timerEndsAt
 
    if playerCount < GlobalConfig.PlayersRequiredToStart then
-      -- // Let normal round teardown display PreIntermission before returning to the pending-player state.
-      if currentPhase == GameplayPhases.PreIntermission then
+      -- // Let the RoundEnded phase play out before returning to the pending-player state.
+      if currentPhase == GameplayPhases.RoundEnded then
          if timerElapsed then
             transitionToPendingPlayers()
          end
@@ -310,7 +310,7 @@ local function updateGameStateEveryFrame(_dt: number)
       if timerElapsed then
          endActiveRound()
       end
-   elseif currentPhase == GameplayPhases.PreIntermission then
+   elseif currentPhase == GameplayPhases.RoundEnded then
       if timerElapsed then
          local intermissionData = gameStateData.IntermissionData:Get()
          enterLobbyVoting(intermissionData and intermissionData.WinnerInfo)
@@ -495,7 +495,7 @@ end
 
 function RoundCyclingService.start()
    GameStateLibrary.RoundFinishedTasks:Add(function(winner: Player?, winningTeam: Team?, isTie: boolean?)
-      -- // Pre-Intermission; the per-frame gate advances to voting once PRE_INTERMISSION_DURATION elapses
+      -- // RoundEnded: players stay in the arena; the per-frame gate advances to voting once ROUND_ENDED_DURATION elapses
       local winnerInfo = if isTie
          then { Type = "Tie" }
          elseif winningTeam then { Type = "Team", TeamName = winningTeam.Name }
@@ -503,15 +503,15 @@ function RoundCyclingService.start()
          else nil
       local snapshot = GameStateLibrary.getSnapshot()
       snapshot.CurrentRoundData = nil
-      snapshot.CurrentTimerEndsAt = workspace:GetServerTimeNow() + PRE_INTERMISSION_DURATION
+      snapshot.CurrentTimerEndsAt = workspace:GetServerTimeNow() + ROUND_ENDED_DURATION
       snapshot.IntermissionData = {
          WinnerInfo = winnerInfo,
          VoteOptions = {},
          VoteCount = {0, 0},
          ChosenGamemode = nil,
       }
-      snapshot.GameplayPhase = GameplayPhases.PreIntermission
-      snapshot.LivingPlayersInArena = {}
+      snapshot.GameplayPhase = GameplayPhases.RoundEnded
+      snapshot.LivingPlayersInArena = {} -- // Emptied, but the players are still physically in the arena until voting starts
       GameStateLibrary.applySnapshot(snapshot)
    end)
 

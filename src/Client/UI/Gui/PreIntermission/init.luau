@@ -158,7 +158,7 @@ function PreIntermissionGui.start()
          return
       end
       lastRegisteredGameplayPhase = gameplayPhase
-      if gameplayPhase == GameplayPhases.PreIntermission then
+      if gameplayPhase == GameplayPhases.RoundEnded then
          local intermissionData = snapshot.IntermissionData
          displayWinnerInfo(intermissionData and intermissionData.WinnerInfo)
          PreIntermissionGui.open()
