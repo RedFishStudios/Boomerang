@@ -108,14 +108,16 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
          ManualRecallSpeed = 200
       }
    },
-   -- // Fan skins: stats copied from ClassicFan; CrateWeight by rarity (Fan Crate)
+   -- // Fan skins: stats copied from ClassicFan; CrateWeight by rarity (Fan Crate).
+   -- // Their patterned side is the opposite face to ClassicFan's, so the viewport adds a 180 degree turn about the canopy axis
+   -- // (the models' MotorC0 grip has the same turn).
    SunsetPopFan = {
       Id = "SunsetPopFan",
       Category = "Fan",
       LogicClass = "Boomerang",
       Rarity = "Common",
       CrateWeight = 70, -- TODO:RELEASE placeholder
-      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) },
+      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) * CFrame.Angles(math.pi, 0, 0) },
       Boomerang = {
          HitboxRadius = 3,
          Speed = 75,
@@ -128,7 +130,7 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
       LogicClass = "Boomerang",
       Rarity = "Common",
       CrateWeight = 70, -- TODO:RELEASE placeholder
-      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) },
+      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) * CFrame.Angles(math.pi, 0, 0) },
       Boomerang = {
          HitboxRadius = 3,
          Speed = 75,
@@ -141,7 +143,7 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
       LogicClass = "Boomerang",
       Rarity = "Rare",
       CrateWeight = 25, -- TODO:RELEASE placeholder
-      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) },
+      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) * CFrame.Angles(math.pi, 0, 0) },
       Boomerang = {
          HitboxRadius = 3,
          Speed = 75,
@@ -154,7 +156,7 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
       LogicClass = "Boomerang",
       Rarity = "Rare",
       CrateWeight = 25, -- TODO:RELEASE placeholder
-      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) },
+      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) * CFrame.Angles(math.pi, 0, 0) },
       Boomerang = {
          HitboxRadius = 3,
          Speed = 75,
@@ -167,7 +169,7 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
       LogicClass = "Boomerang",
       Rarity = "Epic",
       CrateWeight = 8, -- TODO:RELEASE placeholder
-      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) },
+      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) * CFrame.Angles(math.pi, 0, 0) },
       Boomerang = {
          HitboxRadius = 3,
          Speed = 75,
@@ -180,7 +182,7 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
       LogicClass = "Boomerang",
       Rarity = "Legendary",
       CrateWeight = 2, -- TODO:RELEASE placeholder
-      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) },
+      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) * CFrame.Angles(math.pi, 0, 0) },
       Boomerang = {
          HitboxRadius = 3,
          Speed = 75,

@@ -165,6 +165,7 @@ Add the six fans from "Modeller Official Boomerang Weapons #1" as Fans skins: Su
 - Fan Crate (2026-11-11): the six now have a `CrateWeight` by rarity: Common 70, Rare 25, Epic 8, Legendary 2. With ClassicFan (70) and PlaceholderFan (30) the crate's total is 300, so the odds are about 23.3% per Common, 10% PlaceholderFan, 8.3% per Rare, 2.7% Moonsong, 0.7% Sunfire Phoenix.
 - `TODO:RELEASE placeholder`: `WeaponClass = "ClassicBoomerang"` (same as every skin), prices 1000 / 2500 / 5000 / 10000 by rarity, and the crate weights.
 - `rojo build` passes. Not lint-checked (Selene isn't set up in this repo's rokit manifest). The `.rbxmx` files need a look in Studio.
+- Flip (2026-11-11, Sol: the patterned side faced inward when held): each model's `MotorC0` is now ClassicFan's grip turned 180° about the fan's canopy axis (same grip point), and the six `Tools.luau` viewport rotations got the same turn so previews show the patterned side. Not changed: thrown fans (posed by the weapon logic, not the grip), so check which side shows when thrown.
 
 ---
 
