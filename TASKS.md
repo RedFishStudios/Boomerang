@@ -139,6 +139,33 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
+### T-150 · Six new fan skins from the modeller's concept art
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared / Assets
+- **Files:** `Shared/Assets/Tools/{SunsetPop,BambooBreeze,TidalSurge,SakuraDrift,Moonsong,SunfirePhoenix}Fan.rbxmx`, `Shared/Referential/Skins.luau`, `Shared/Constants/Tools.luau`
+
+**Problem / goal**
+Add the six fans from "Modeller Official Boomerang Weapons #1" as Fans skins: Sunset Pop and Bamboo Breeze (Common), Tidal Surge and Sakura Drift (Rare), Moonsong (Epic), Sunfire Phoenix (Legendary).
+
+**Done when**
+- [ ] All six show in the Weapons Shop's Fan tab with the right rarity colours, can be bought and equipped, and are held and thrown like ClassicFan.
+
+**Test in Studio**
+- Weapons Shop → Fan tab: six new listings after Placeholder Fan, with the right rarities and models in the viewports.
+- `grantskin <you> SunsetPopFan` (and the other ids), equip each: check how it sits in the hand, how it looks thrown, and that the canopy faces the same way as ClassicFan.
+
+**Notes**
+- Branch `agent/T-150-fan-skins`, lane `Github/Boomerang-lanes/T-150-fan-skins`.
+- Skin ids / model names / Tools ids: `SunsetPopFan`, `BambooBreezeFan`, `TidalSurgeFan`, `SakuraDriftFan`, `MoonsongFan`, `SunfirePhoenixFan`.
+- Models are built from `ClassicFan.rbxmx`: same `MotorC0` grip attribute and handle orientation, each with its own MeshId/TextureID/size. The texture is a plain `TextureID` (no SurfaceAppearance); ClassicFan's mesh-specific physics cache was removed, so Studio recomputes it.
+- Meshes and textures are group assets (group 293180599), uploaded from the art pipeline in `C:\MY FILES\Projects\Boomerang\Assets\ArtPipeline\Fans` (per-skin `status.md` has the asset ids).
+- Rarity comes from each model's `Tools.luau` entry (the shop reads it there). Stats copied from ClassicFan. No `CrateWeight`, so they aren't in any crate yet.
+- `TODO:RELEASE placeholder`: `WeaponClass = "ClassicBoomerang"` (same as every skin) and prices 1000 / 2500 / 5000 / 10000 by rarity.
+- `rojo build` passes. Not lint-checked (Selene isn't set up in this repo's rokit manifest). The `.rbxmx` files need a look in Studio.
+
+---
+
 ### T-081 · Decoy can be hit → eliminate + smoke poof
 - **Priority:** P0
 - **Owner:** Agent

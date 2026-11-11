@@ -108,6 +108,79 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
          ManualRecallSpeed = 200
       }
    },
+   -- // Fan skins: stats copied from ClassicFan, not in any crate (no CrateWeight)
+   SunsetPopFan = {
+      Id = "SunsetPopFan",
+      Category = "Fan",
+      LogicClass = "Boomerang",
+      Rarity = "Common",
+      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) },
+      Boomerang = {
+         HitboxRadius = 3,
+         Speed = 75,
+         ManualRecallSpeed = 200
+      }
+   },
+   BambooBreezeFan = {
+      Id = "BambooBreezeFan",
+      Category = "Fan",
+      LogicClass = "Boomerang",
+      Rarity = "Common",
+      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) },
+      Boomerang = {
+         HitboxRadius = 3,
+         Speed = 75,
+         ManualRecallSpeed = 200
+      }
+   },
+   TidalSurgeFan = {
+      Id = "TidalSurgeFan",
+      Category = "Fan",
+      LogicClass = "Boomerang",
+      Rarity = "Rare",
+      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) },
+      Boomerang = {
+         HitboxRadius = 3,
+         Speed = 75,
+         ManualRecallSpeed = 200
+      }
+   },
+   SakuraDriftFan = {
+      Id = "SakuraDriftFan",
+      Category = "Fan",
+      LogicClass = "Boomerang",
+      Rarity = "Rare",
+      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) },
+      Boomerang = {
+         HitboxRadius = 3,
+         Speed = 75,
+         ManualRecallSpeed = 200
+      }
+   },
+   MoonsongFan = {
+      Id = "MoonsongFan",
+      Category = "Fan",
+      LogicClass = "Boomerang",
+      Rarity = "Epic",
+      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) },
+      Boomerang = {
+         HitboxRadius = 3,
+         Speed = 75,
+         ManualRecallSpeed = 200
+      }
+   },
+   SunfirePhoenixFan = {
+      Id = "SunfirePhoenixFan",
+      Category = "Fan",
+      LogicClass = "Boomerang",
+      Rarity = "Legendary",
+      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) },
+      Boomerang = {
+         HitboxRadius = 3,
+         Speed = 75,
+         ManualRecallSpeed = 200
+      }
+   },
 
    -- // Special Weapons // --
 })

@@ -75,6 +75,49 @@ local Skins: { [SkinId]: Skin } = {
 		Price = 1000, -- TODO:RELEASE placeholder
 		Order = 6,
 	},
+	-- // Fan skins (rarity is the Rarity of the model's entry in Shared/Constants/Tools)
+	SunsetPopFan = {
+		Name = "Sunset Pop",
+		Model = "SunsetPopFan",
+		WeaponClass = "ClassicBoomerang", -- TODO:RELEASE placeholder (every skin uses the Classic stats for now)
+		Price = 1000, -- TODO:RELEASE placeholder
+		Order = 7,
+	},
+	BambooBreezeFan = {
+		Name = "Bamboo Breeze",
+		Model = "BambooBreezeFan",
+		WeaponClass = "ClassicBoomerang", -- TODO:RELEASE placeholder (every skin uses the Classic stats for now)
+		Price = 1000, -- TODO:RELEASE placeholder
+		Order = 8,
+	},
+	TidalSurgeFan = {
+		Name = "Tidal Surge",
+		Model = "TidalSurgeFan",
+		WeaponClass = "ClassicBoomerang", -- TODO:RELEASE placeholder (every skin uses the Classic stats for now)
+		Price = 2500, -- TODO:RELEASE placeholder
+		Order = 9,
+	},
+	SakuraDriftFan = {
+		Name = "Sakura Drift",
+		Model = "SakuraDriftFan",
+		WeaponClass = "ClassicBoomerang", -- TODO:RELEASE placeholder (every skin uses the Classic stats for now)
+		Price = 2500, -- TODO:RELEASE placeholder
+		Order = 10,
+	},
+	MoonsongFan = {
+		Name = "Moonsong",
+		Model = "MoonsongFan",
+		WeaponClass = "ClassicBoomerang", -- TODO:RELEASE placeholder (every skin uses the Classic stats for now)
+		Price = 5000, -- TODO:RELEASE placeholder
+		Order = 11,
+	},
+	SunfirePhoenixFan = {
+		Name = "Sunfire Phoenix",
+		Model = "SunfirePhoenixFan",
+		WeaponClass = "ClassicBoomerang", -- TODO:RELEASE placeholder (every skin uses the Classic stats for now)
+		Price = 10000, -- TODO:RELEASE placeholder
+		Order = 12,
+	},
 }
 
 return Skins
