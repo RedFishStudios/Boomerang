@@ -141,129 +141,6 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
-### T-154 · Taunts: the package's four taunts as a cosmetic, in the end-of-round window
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Shared / Server / Client / Data
-- **Files:** `Shared/Referential/Taunts.luau`, `Shared/Library/TauntLibrary.luau`, `Server/Core/TauntService.luau`, `Client/Core/TauntController/` (init + `Taunts/`: `TooEasy`, `Bonk`, `RoyalTreatment`, `NapTime`, helpers `Pose`, `Props`, `Effects`), `Client/UI/Gui/Inventory/Tabs/Taunts.luau`, `Client/UI/ShopCommon/Tabs/Taunts.luau`, `Server/Cmdr/Types/TauntType.luau`, `Server/Cmdr/Commands/GrantTaunt*.luau`, `Server/Cmdr/Commands/Taunt*.luau` (new); `Shared/Data/ProfileTemplate.luau`, `Shared/Library/CosmeticLibrary.luau`, `Server/Core/RoundCyclingService.luau`, `Client/UI/Gui/Inventory/init.luau`, `Client/UI/Gui/CosmeticsShop.luau`, shop listing files (`ShopItems`, `ShopListings`, `ShopController`, `ShopService`), `CLAUDE.md`
-
-**Problem / goal**
-Port **Too Easy, Bonk!, Royal Treatment, Nap Time** from the package as their own cosmetic category (separate from the winner-pedestal Emotes), played only in the end-of-round window (`RoundEnded`, T-151).
-
-**Done when**
-- [ ] Each taunt plays for everyone when its owner presses T (gamepad Y, or the touch button) right after a round, and is refused at other times
-- [ ] The taunting player can't move, jump or turn while it plays
-- [ ] Too Easy is owned and equipped by everyone; the others can be bought in Cosmetics Shop > Taunts; owned / equipped taunts save and show in Inventory > Taunts
-
-**Test in Studio**
-- Finish a round (or `endround`), press T within the first ~4 s of the winner screen: Too Easy plays (yawn, hands behind head, shoulder brush, big "EZ"). Press T mid-round and in the lobby: nothing.
-- `granttaunt me Bonk` (then `RoyalTreatment`, `NapTime`), equip in Inventory > Taunts, taunt again. Bonk! throws a small copy of your equipped weapon skin and it bonks your head; Royal Treatment lowers a crown; Nap Time puts you on a beach chair with Zzz.
-- `taunt` plays your equipped taunt anywhere (e.g. in the lobby) for quick looks.
-- Two players: each sees the other's taunt. Gamepad Y still recalls during rounds.
-- Watch for: the body pose matching the package's screenshots (`Downloads/.../Verification/03-06`); Nap Time's seat height on small/large avatars.
-
-**Notes**
-- Sol, 2026-11-10/11: taunts are separate from Emotes; only in the end-of-round window, which is now **10 s** (`ROUND_ENDED_DURATION` in `RoundCyclingService`, was 5); Too Easy is free and equipped by default. Players can't be eliminated in that window (hits are ignored once the round data is cleared), so taunting there is safe.
-- A taunt can start only with at least 6 s of the window left (`TauntLibrary.canTauntNow`), so it always finishes before players go back to the lobby.
-- Our rendered characters ignore joint `Transform` written from scripts, which is how the package animates. So `Pose.run` now samples each taunt's keyframes (and its procedural extras) at 30 fps into a KeyframeSequence, built once per taunt (Nap Time: once per avatar size) in `Shared.AnimationClips` on each client, and plays it with `KeyframeClipTrack`. The package's recorded 1.2 MB clip files weren't needed.
-- Bonk!'s prop is a scaled copy of the player's equipped weapon skin model (the package drew 2D skin art on a card). The taunt prop models in `Shared/Assets/Taunts` stay as reference; the package builds the chair and crown in code.
-- The taunter's own client plants them (it owns their movement); the server sets a `Taunting` attribute on the character for 6 s.
-- Placeholders (`-- TODO:RELEASE placeholder`): prices (500 / 1000 / 2500), rarities, Nap Time's icon (the package reused the Laugh card), the shop tab's emoji.
-- Not syntax-checked (no Luau tooling here) and not tested in Studio.
-- Sol, 2026-11-11: the winner screen (PreIntermission GUI) covered the taunts, so it's temporarily off: `GlobalConfig.ShowRoundEndedScreen = false` (set it back to true to show it again).
-- Branch `agent/T-154-taunts`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`.
-
-### T-155 · Fan trails from the client package
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Shared / Client
-- **Files:** `Shared/Utils/FanTrails/` (new: `init`, `Ribbon`, `Decor`, `Styles/`), `Shared/Referential/Skins.luau`, `Shared/Referential/ThrownWeapons.lua`, `Shared/Logics/WeaponLogics/Boomerang.luau`, `Client/Core/WeaponController.luau`
-
-**Problem / goal**
-The package has six trail styles for the six new fan skins (T-150): Bamboo, Sunset Pop, Tidal Surge, Sakura Drift, Moonsong, Sunfire Phoenix. Each fan shows its own decorative trail while thrown.
-
-**Done when**
-- [ ] Each of the six fans shows its own decorative trail while flying out and back, for every player, and it fades after the catch
-- [ ] The owner-coloured trail still shows under it; other skins are unchanged
-
-**Test in Studio**
-- `grantskin me SunsetPopFan` (then `BambooBreezeFan`, `TidalSurgeFan`, `SakuraDriftFan`, `MoonsongFan`, `SunfirePhoenixFan`), equip, throw: the decorative trail starts at the fan and stays short (about 2 fan lengths).
-- Catch it: the trail shrinks and fades in under a second. Recall, let it land / die, respawn mid-flight: no trail left behind.
-- Throw through a portal: no line drawn across the jump.
-- With a second player: their fan trail shows on your screen too.
-- Bamboo: leaves are a mesh where EditableMesh is allowed, small part leaves otherwise. Both are fine.
-
-**Notes**
-- Sol, 2026-11-10: keep the owner-coloured trail and draw the fan's trail on top (both).
-- Ported from `reference/ScripterPackage/Trails` into `Shared/Utils/FanTrails/` (client-only cosmetic; not auto-loaded). Only change to it: the package's model-name lookup (`StyleForFan`) was removed, so a style name is now required. Styles are unchanged.
-- New `TrailStyle` field on skins (`Skins.luau`). Set on the six fans and also on their six `Legacy` versions (same style each).
-- `Boomerang.luau` (client): the fan trail follows the `TrailHost` part (the drawn position, not the spinning model), so it never spirals. Started when the trail host is created; `retireTrail` (catch, portal, hard sync snap) stops it; the next `TrailHost` restarts it, and the jump is cleared instead of drawn. `removeFromField` and the dead-weapon path call `finishFanTrail` (stop, then destroy once faded, max 3 s). Not restarted while a predicted catch hides the model; resumes if the server turns the catch down. The fan's span is measured from the thrown model.
-- `WeaponController`'s unknown-tool clean-up also destroys it.
-- Not syntax-checked (no Luau tooling here) and not tested in Studio.
-- Branch `agent/T-155-fan-trails`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`.
-
-### T-153 · Strike Effects: the package's elimination effects as a cosmetic
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Shared / Server / Client / Data
-- **Files:** `Shared/Referential/ElimEffects.luau`, `Shared/Constants/ElimEffectAssets.luau`, `Shared/Library/ElimEffectLibrary.luau`, `Server/Core/ElimEffectService.luau`, `Client/Core/ElimEffectController/` (init + `Effects/`: `StoneStatue`, `Ashes`, `Sakura`, `SharkAttack`, helpers `Fx`, `Rig`, `SharkRig`), `Shared/Data/ProfileTemplate.luau`, `Shared/Library/CombatLibrary.luau`, `Client/Core/CharacterRenderController.luau`, `Client/UI/Gui/Inventory/Tabs/Strikes.luau`, `Client/UI/ShopCommon/Tabs/ElimEffects.luau`, `Client/UI/Gui/CosmeticsShop.luau`, `Client/UI/ShopCommon/ShopListings.luau`, `Client/Core/ShopController.luau`, `Server/Core/ShopService.luau`, `Shared/Referential/ShopItems.luau`, `Server/Cmdr/Types/ElimEffectType.luau`, `Server/Cmdr/Commands/GrantElimEffect*.luau` (all new except the edited ones)
-
-**Problem / goal**
-Fill the empty "Strikes" (Inventory) and "Strike Effects" (Cosmetics Shop) tabs with the package's four effects: **Stone Statue, Ashes, Sakura, Shark Attack** (3 s each, on the eliminated player's body). The default plays nothing.
-
-**Done when**
-- [ ] Each of the four effects plays for everyone when a player with it equipped eliminates another player, then cleans up
-- [ ] With an effect, the body doesn't ragdoll; with the default (no effect), it ragdolls as before
-- [ ] Owned / equipped effects save, show in the Inventory Strikes tab and can be bought in the Cosmetics Shop
-- [ ] No "kill" in player-facing text
-
-**Test in Studio**
-- Two players (local server). Player A: `grantelimeffect me StoneStatue`, equip it in Inventory > Strikes, eliminate B in a round: B turns to stone and crumbles (both screens). Repeat with `Ashes`, `Sakura`, `SharkAttack`.
-- Shark Attack: the shark rises under B with its mouth open round them and its jaw shuts over them. If the jaw opens upwards into the head, set `JAW_OPEN_SIGN = -1` in `Effects/SharkRig.luau`; if the shark is turned the wrong way, tell the agent.
-- With the default equipped, B ragdolls as before. After B respawns, B is visible again.
-- Cosmetics Shop > Strike Effects: buy one with Currency (`givecurrency`), the "New strike effect acquired!" popup shows, it appears in Inventory.
-- Output: no "Failed to load" for the effect images and sounds (they're the client's uploads / Creator Store sounds).
-
-**Notes**
-- Sol, 2026-11-10: with an effect equipped, skip the ragdoll (the ragdoll code stays and still runs when there's no effect); effects only for players, not bots.
-- Code names use `ElimEffect` (the existing `CosmeticLibrary` category, attribute `EquippedElimEffect`, and the Cosmetics Shop tab id `ElimEffects`); players see "Strike Effects" / "Strikes". New profile fields `OwnedElimEffects`, `EquippedElimEffect` (filled in by Reconcile). Ids: `DefaultElimEffect`, `StoneStatue`, `Ashes`, `Sakura`, `SharkAttack`.
-- How it plays: `CombatLibrary.applyDamageToHumanoid` calls `ElimEffectLibrary.markLethalHit` before the damage. If the hit is lethal and from a player with an effect, the victim's Humanoid gets the `ElimEffect` attribute. Every client sees it before the death, so `CharacterRenderController` skips the ragdoll (but still flags the body as dead so it's rebuilt on respawn). `ElimEffectService` watches each Humanoid's `Died` and fires `PlayElimEffect(victim, id)` to all; `ElimEffectController` plays it on the visible render model (`CharacterRenderController.getCharacterModel`, Disguise included). Any lethal hit with a killer counts, including Fire Boomerang burn.
-- Effects ported from `reference/ScripterPackage/KillEffects` with only path changes; `Rig`'s death-pose snapshot watcher was removed (it watched `player.Character`, which is hidden in our game). The package's default death-sound muting wasn't ported (our hits play their own Kill sound).
-- Shark: Sol imported the FBX; it came in at ~570 studs (cm scale), so the agent rescaled the Workspace copy in Studio to the package's 14.55 studs (`ScaleTo`, factor 0.02551). At that scale the Jaw bone sits exactly where the package's kit data puts it, so `SharkRig` reuses the package's mouth measurements: kit frame = Root bone, nose = bone +X, back = +Y; the jaw turns about the bone's -Z. **Sol: save the rescaled Workspace.boomerang-shark over `src/Shared/Assets/StrikeEffects/Shark.rbxm`** (the committed file is still the unscaled one).
-- Placeholders (`-- TODO:RELEASE placeholder`): prices (500 / 1000 / 1000 / 2500) and rarities (the package's: Rare / Epic / Epic / Legendary).
-- Not done: quest/reward support for effects (`RewardLibrary`), Robux products.
-- Not syntax-checked (no Luau tooling here) and not tested in Studio.
-- Branch `agent/T-153-strike-effects` (built on `agent/T-152-scripter-package`, so it includes T-152), lane `Github/Boomerang-lanes/T-151-round-ended-phase`.
-
-### T-152 · Bring in the client package's sources and models
-- **Priority:** P1
-- **Owner:** Sol → Agent
-- **Area:** Tooling / Assets
-- **Files:** `reference/ScripterPackage/` (new, not mapped by Rojo), `Shared/Assets/` (models), `CLAUDE.md` ("Leftover and reference modules")
-
-**Problem / goal**
-The package's scripts live inside `.rbxm` files, which agents can't read without a decompressor, so every later task needs a readable copy.
-
-- **Agent:** extract every script's source from the six `.rbxm` files into `reference/ScripterPackage/<Package>/<path>.luau` (reference only, never required or mapped by Rojo), plus the README and `AssetManifest.csv`. Add the folder to CLAUDE.md's reference list (Sol said yes when approving this task).
-- **Sol:** import the shark FBX (`SourceAssets/Models/SharkKit/boomerang-shark.fbx`, Root + Jaw bones) with Studio's 3D Importer; save it with the three taunt props (`DeckChair`, `RoyalCrown`, `TauntBoomerang` from `SourceAssets/Models/*.rbxmx`) into `Shared/Assets` as `.rbxmx`. The shark replaces the package's runtime EditableMesh shark (Sol, 2026-11-10).
-- **Sol:** check who owns the images and sounds in `AssetManifest.csv`. They were uploaded by the client's account; if the experience owner is different, they may need re-uploading under the owner.
-
-**Done when**
-- [x] Every package script is readable as a `.luau` file in the reference folder, which Rojo doesn't map
-- [x] Shark and taunt prop models are in `Shared/Assets`
-
-**Test in Studio**
-- `rojo serve` from the branch: nothing from the reference folder appears in the DataModel.
-
-**Notes**
-- Sol, 2026-11-10: folder `reference/ScripterPackage/` (repo root, outside `src/`).
-- **Agent part done:** all 57 scripts from the six `.rbxm` files extracted (`Name.luau` / `.client.luau` / `.server.luau`, `init.*` for scripts with child scripts), a `_tree.txt` per package listing every instance, the package README (`PACKAGE_README.md`) and `AssetManifest.csv`, plus our own `README.md` with the layout. Added to CLAUDE.md's reference list and "Not mapped by Rojo" line. `rojo sourcemap` contains nothing from it.
-- The three taunt props were already plain part models, so they were copied as is into `Shared/Assets/Taunts/` (`DeckChair`, `RoyalCrown`, `TauntBoomerang`; in Studio `ReplicatedStorage.Shared.Assets.Taunts`). `TauntBoomerang` uses the client's decal image 82042595323457.
-- Shark imported by Sol (2026-11-10) and saved as `Shared/Assets/StrikeEffects/Shark.rbxm` (binary, the only `.rbxm` in `src/`; Rojo names it `Shark` after the file). Contents: Model with one MeshPart `BoomerangShark` holding bones `Root` > `Jaw`, an `AnimationController`, the importer's `InitialPoses` folder and an empty `AnimSaves`. No scripts.
-- Asset owner check: Sol saw no missing assets (2026-11-10). It moves to the tasks that first use the images and sounds (T-153, T-154, T-156 to T-160): watch for blank images or "Failed to load" in Output there, and re-upload the PNGs under the group if needed.
-- The Luau LSP and Selene may report warnings in these files (they `require` paths that don't exist here). They're reference only; ignore them.
-- Branch `agent/T-152-scripter-package`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`. This branch also moves T-151 to Done.
-
 ### T-150 · Six new fan skins from the modeller's concept art
 - **Priority:** P1
 - **Owner:** Agent
@@ -1207,6 +1084,133 @@ Players enter a code to receive a reward. Server: validates the code (case-insen
 ---
 
 ## Done
+
+### T-152 · Bring in the client package's sources and models
+- **Priority:** P1
+- **Owner:** Sol → Agent
+- **Area:** Tooling / Assets
+- **Files:** `reference/ScripterPackage/` (new, not mapped by Rojo), `Shared/Assets/` (models), `CLAUDE.md` ("Leftover and reference modules")
+
+**Problem / goal**
+The package's scripts live inside `.rbxm` files, which agents can't read without a decompressor, so every later task needs a readable copy.
+
+- **Agent:** extract every script's source from the six `.rbxm` files into `reference/ScripterPackage/<Package>/<path>.luau` (reference only, never required or mapped by Rojo), plus the README and `AssetManifest.csv`. Add the folder to CLAUDE.md's reference list (Sol said yes when approving this task).
+- **Sol:** import the shark FBX (`SourceAssets/Models/SharkKit/boomerang-shark.fbx`, Root + Jaw bones) with Studio's 3D Importer; save it with the three taunt props (`DeckChair`, `RoyalCrown`, `TauntBoomerang` from `SourceAssets/Models/*.rbxmx`) into `Shared/Assets` as `.rbxmx`. The shark replaces the package's runtime EditableMesh shark (Sol, 2026-11-10).
+- **Sol:** check who owns the images and sounds in `AssetManifest.csv`. They were uploaded by the client's account; if the experience owner is different, they may need re-uploading under the owner.
+
+**Done when**
+- [x] Every package script is readable as a `.luau` file in the reference folder, which Rojo doesn't map
+- [x] Shark and taunt prop models are in `Shared/Assets`
+
+**Test in Studio**
+- `rojo serve` from the branch: nothing from the reference folder appears in the DataModel.
+
+**Notes**
+- Sol, 2026-11-10: folder `reference/ScripterPackage/` (repo root, outside `src/`).
+- **Agent part done:** all 57 scripts from the six `.rbxm` files extracted (`Name.luau` / `.client.luau` / `.server.luau`, `init.*` for scripts with child scripts), a `_tree.txt` per package listing every instance, the package README (`PACKAGE_README.md`) and `AssetManifest.csv`, plus our own `README.md` with the layout. Added to CLAUDE.md's reference list and "Not mapped by Rojo" line. `rojo sourcemap` contains nothing from it.
+- The three taunt props were already plain part models, so they were copied as is into `Shared/Assets/Taunts/` (`DeckChair`, `RoyalCrown`, `TauntBoomerang`; in Studio `ReplicatedStorage.Shared.Assets.Taunts`). `TauntBoomerang` uses the client's decal image 82042595323457.
+- Shark imported by Sol (2026-11-10) and saved as `Shared/Assets/StrikeEffects/Shark.rbxm` (binary, the only `.rbxm` in `src/`; Rojo names it `Shark` after the file). Contents: Model with one MeshPart `BoomerangShark` holding bones `Root` > `Jaw`, an `AnimationController`, the importer's `InitialPoses` folder and an empty `AnimSaves`. No scripts.
+- Asset owner check: Sol saw no missing assets (2026-11-10). It moves to the tasks that first use the images and sounds (T-153, T-154, T-156 to T-160): watch for blank images or "Failed to load" in Output there, and re-upload the PNGs under the group if needed.
+- The Luau LSP and Selene may report warnings in these files (they `require` paths that don't exist here). They're reference only; ignore them.
+- Branch `agent/T-152-scripter-package`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`. This branch also moves T-151 to Done.
+- Sol, 2026-11-11: tested, passed.
+
+### T-153 · Strike Effects: the package's elimination effects as a cosmetic
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared / Server / Client / Data
+- **Files:** `Shared/Referential/ElimEffects.luau`, `Shared/Constants/ElimEffectAssets.luau`, `Shared/Library/ElimEffectLibrary.luau`, `Server/Core/ElimEffectService.luau`, `Client/Core/ElimEffectController/` (init + `Effects/`: `StoneStatue`, `Ashes`, `Sakura`, `SharkAttack`, helpers `Fx`, `Rig`, `SharkRig`), `Shared/Data/ProfileTemplate.luau`, `Shared/Library/CombatLibrary.luau`, `Client/Core/CharacterRenderController.luau`, `Client/UI/Gui/Inventory/Tabs/Strikes.luau`, `Client/UI/ShopCommon/Tabs/ElimEffects.luau`, `Client/UI/Gui/CosmeticsShop.luau`, `Client/UI/ShopCommon/ShopListings.luau`, `Client/Core/ShopController.luau`, `Server/Core/ShopService.luau`, `Shared/Referential/ShopItems.luau`, `Server/Cmdr/Types/ElimEffectType.luau`, `Server/Cmdr/Commands/GrantElimEffect*.luau` (all new except the edited ones)
+
+**Problem / goal**
+Fill the empty "Strikes" (Inventory) and "Strike Effects" (Cosmetics Shop) tabs with the package's four effects: **Stone Statue, Ashes, Sakura, Shark Attack** (3 s each, on the eliminated player's body). The default plays nothing.
+
+**Done when**
+- [ ] Each of the four effects plays for everyone when a player with it equipped eliminates another player, then cleans up
+- [ ] With an effect, the body doesn't ragdoll; with the default (no effect), it ragdolls as before
+- [ ] Owned / equipped effects save, show in the Inventory Strikes tab and can be bought in the Cosmetics Shop
+- [ ] No "kill" in player-facing text
+
+**Test in Studio**
+- Two players (local server). Player A: `grantelimeffect me StoneStatue`, equip it in Inventory > Strikes, eliminate B in a round: B turns to stone and crumbles (both screens). Repeat with `Ashes`, `Sakura`, `SharkAttack`.
+- Shark Attack: the shark rises under B with its mouth open round them and its jaw shuts over them. If the jaw opens upwards into the head, set `JAW_OPEN_SIGN = -1` in `Effects/SharkRig.luau`; if the shark is turned the wrong way, tell the agent.
+- With the default equipped, B ragdolls as before. After B respawns, B is visible again.
+- Cosmetics Shop > Strike Effects: buy one with Currency (`givecurrency`), the "New strike effect acquired!" popup shows, it appears in Inventory.
+- Output: no "Failed to load" for the effect images and sounds (they're the client's uploads / Creator Store sounds).
+
+**Notes**
+- Sol, 2026-11-10: with an effect equipped, skip the ragdoll (the ragdoll code stays and still runs when there's no effect); effects only for players, not bots.
+- Code names use `ElimEffect` (the existing `CosmeticLibrary` category, attribute `EquippedElimEffect`, and the Cosmetics Shop tab id `ElimEffects`); players see "Strike Effects" / "Strikes". New profile fields `OwnedElimEffects`, `EquippedElimEffect` (filled in by Reconcile). Ids: `DefaultElimEffect`, `StoneStatue`, `Ashes`, `Sakura`, `SharkAttack`.
+- How it plays: `CombatLibrary.applyDamageToHumanoid` calls `ElimEffectLibrary.markLethalHit` before the damage. If the hit is lethal and from a player with an effect, the victim's Humanoid gets the `ElimEffect` attribute. Every client sees it before the death, so `CharacterRenderController` skips the ragdoll (but still flags the body as dead so it's rebuilt on respawn). `ElimEffectService` watches each Humanoid's `Died` and fires `PlayElimEffect(victim, id)` to all; `ElimEffectController` plays it on the visible render model (`CharacterRenderController.getCharacterModel`, Disguise included). Any lethal hit with a killer counts, including Fire Boomerang burn.
+- Effects ported from `reference/ScripterPackage/KillEffects` with only path changes; `Rig`'s death-pose snapshot watcher was removed (it watched `player.Character`, which is hidden in our game). The package's default death-sound muting wasn't ported (our hits play their own Kill sound).
+- Shark: Sol imported the FBX; it came in at ~570 studs (cm scale), so the agent rescaled the Workspace copy in Studio to the package's 14.55 studs (`ScaleTo`, factor 0.02551). At that scale the Jaw bone sits exactly where the package's kit data puts it, so `SharkRig` reuses the package's mouth measurements: kit frame = Root bone, nose = bone +X, back = +Y; the jaw turns about the bone's -Z. **Sol: save the rescaled Workspace.boomerang-shark over `src/Shared/Assets/StrikeEffects/Shark.rbxm`** (the committed file is still the unscaled one).
+- Placeholders (`-- TODO:RELEASE placeholder`): prices (500 / 1000 / 1000 / 2500) and rarities (the package's: Rare / Epic / Epic / Legendary).
+- Not done: quest/reward support for effects (`RewardLibrary`), Robux products.
+- Not syntax-checked (no Luau tooling here) and not tested in Studio.
+- Branch `agent/T-153-strike-effects` (built on `agent/T-152-scripter-package`, so it includes T-152), lane `Github/Boomerang-lanes/T-151-round-ended-phase`.
+- Sol, 2026-11-11: tested, passed (Shark Attack waits for the rescaled shark model to be saved).
+
+### T-155 · Fan trails from the client package
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared / Client
+- **Files:** `Shared/Utils/FanTrails/` (new: `init`, `Ribbon`, `Decor`, `Styles/`), `Shared/Referential/Skins.luau`, `Shared/Referential/ThrownWeapons.lua`, `Shared/Logics/WeaponLogics/Boomerang.luau`, `Client/Core/WeaponController.luau`
+
+**Problem / goal**
+The package has six trail styles for the six new fan skins (T-150): Bamboo, Sunset Pop, Tidal Surge, Sakura Drift, Moonsong, Sunfire Phoenix. Each fan shows its own decorative trail while thrown.
+
+**Done when**
+- [ ] Each of the six fans shows its own decorative trail while flying out and back, for every player, and it fades after the catch
+- [ ] The owner-coloured trail still shows under it; other skins are unchanged
+
+**Test in Studio**
+- `grantskin me SunsetPopFan` (then `BambooBreezeFan`, `TidalSurgeFan`, `SakuraDriftFan`, `MoonsongFan`, `SunfirePhoenixFan`), equip, throw: the decorative trail starts at the fan and stays short (about 2 fan lengths).
+- Catch it: the trail shrinks and fades in under a second. Recall, let it land / die, respawn mid-flight: no trail left behind.
+- Throw through a portal: no line drawn across the jump.
+- With a second player: their fan trail shows on your screen too.
+- Bamboo: leaves are a mesh where EditableMesh is allowed, small part leaves otherwise. Both are fine.
+
+**Notes**
+- Sol, 2026-11-10: keep the owner-coloured trail and draw the fan's trail on top (both).
+- Ported from `reference/ScripterPackage/Trails` into `Shared/Utils/FanTrails/` (client-only cosmetic; not auto-loaded). Only change to it: the package's model-name lookup (`StyleForFan`) was removed, so a style name is now required. Styles are unchanged.
+- New `TrailStyle` field on skins (`Skins.luau`). Set on the six fans and also on their six `Legacy` versions (same style each).
+- `Boomerang.luau` (client): the fan trail follows the `TrailHost` part (the drawn position, not the spinning model), so it never spirals. Started when the trail host is created; `retireTrail` (catch, portal, hard sync snap) stops it; the next `TrailHost` restarts it, and the jump is cleared instead of drawn. `removeFromField` and the dead-weapon path call `finishFanTrail` (stop, then destroy once faded, max 3 s). Not restarted while a predicted catch hides the model; resumes if the server turns the catch down. The fan's span is measured from the thrown model.
+- `WeaponController`'s unknown-tool clean-up also destroys it.
+- Not syntax-checked (no Luau tooling here) and not tested in Studio.
+- Branch `agent/T-155-fan-trails`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`.
+- Sol, 2026-11-11: tested, passed.
+
+### T-154 · Taunts: the package's four taunts as a cosmetic, in the end-of-round window
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared / Server / Client / Data
+- **Files:** `Shared/Referential/Taunts.luau`, `Shared/Library/TauntLibrary.luau`, `Server/Core/TauntService.luau`, `Client/Core/TauntController/` (init + `Taunts/`: `TooEasy`, `Bonk`, `RoyalTreatment`, `NapTime`, helpers `Pose`, `Props`, `Effects`), `Client/UI/Gui/Inventory/Tabs/Taunts.luau`, `Client/UI/ShopCommon/Tabs/Taunts.luau`, `Server/Cmdr/Types/TauntType.luau`, `Server/Cmdr/Commands/GrantTaunt*.luau`, `Server/Cmdr/Commands/Taunt*.luau` (new); `Shared/Data/ProfileTemplate.luau`, `Shared/Library/CosmeticLibrary.luau`, `Server/Core/RoundCyclingService.luau`, `Client/UI/Gui/Inventory/init.luau`, `Client/UI/Gui/CosmeticsShop.luau`, shop listing files (`ShopItems`, `ShopListings`, `ShopController`, `ShopService`), `CLAUDE.md`
+
+**Problem / goal**
+Port **Too Easy, Bonk!, Royal Treatment, Nap Time** from the package as their own cosmetic category (separate from the winner-pedestal Emotes), played only in the end-of-round window (`RoundEnded`, T-151).
+
+**Done when**
+- [ ] Each taunt plays for everyone when its owner presses T (gamepad Y, or the touch button) right after a round, and is refused at other times
+- [ ] The taunting player can't move, jump or turn while it plays
+- [ ] Too Easy is owned and equipped by everyone; the others can be bought in Cosmetics Shop > Taunts; owned / equipped taunts save and show in Inventory > Taunts
+
+**Test in Studio**
+- Finish a round (or `endround`), press T within the first ~4 s of the winner screen: Too Easy plays (yawn, hands behind head, shoulder brush, big "EZ"). Press T mid-round and in the lobby: nothing.
+- `granttaunt me Bonk` (then `RoyalTreatment`, `NapTime`), equip in Inventory > Taunts, taunt again. Bonk! throws a small copy of your equipped weapon skin and it bonks your head; Royal Treatment lowers a crown; Nap Time puts you on a beach chair with Zzz.
+- `taunt` plays your equipped taunt anywhere (e.g. in the lobby) for quick looks.
+- Two players: each sees the other's taunt. Gamepad Y still recalls during rounds.
+- Watch for: the body pose matching the package's screenshots (`Downloads/.../Verification/03-06`); Nap Time's seat height on small/large avatars.
+
+**Notes**
+- Sol, 2026-11-10/11: taunts are separate from Emotes; only in the end-of-round window, which is now **10 s** (`ROUND_ENDED_DURATION` in `RoundCyclingService`, was 5); Too Easy is free and equipped by default. Players can't be eliminated in that window (hits are ignored once the round data is cleared), so taunting there is safe.
+- A taunt can start only with at least 6 s of the window left (`TauntLibrary.canTauntNow`), so it always finishes before players go back to the lobby.
+- Our rendered characters ignore joint `Transform` written from scripts, which is how the package animates. So `Pose.run` now samples each taunt's keyframes (and its procedural extras) at 30 fps into a KeyframeSequence, built once per taunt (Nap Time: once per avatar size) in `Shared.AnimationClips` on each client, and plays it with `KeyframeClipTrack`. The package's recorded 1.2 MB clip files weren't needed.
+- Bonk!'s prop is a scaled copy of the player's equipped weapon skin model (the package drew 2D skin art on a card). The taunt prop models in `Shared/Assets/Taunts` stay as reference; the package builds the chair and crown in code.
+- The taunter's own client plants them (it owns their movement); the server sets a `Taunting` attribute on the character for 6 s.
+- Placeholders (`-- TODO:RELEASE placeholder`): prices (500 / 1000 / 2500), rarities, Nap Time's icon (the package reused the Laugh card), the shop tab's emoji.
+- Not syntax-checked (no Luau tooling here) and not tested in Studio.
+- Sol, 2026-11-11: the winner screen (PreIntermission GUI) covered the taunts, so it's temporarily off: `GlobalConfig.ShowRoundEndedScreen = false` (set it back to true to show it again).
+- Branch `agent/T-154-taunts`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`.
+- Shipped to `main` (4ec9ebe, 8e3754c). Sol, 2026-11-11: tested, taunts work.
 
 ### T-151 · Make the end-of-round phase obvious (rename PreIntermission)
 - **Priority:** P1
