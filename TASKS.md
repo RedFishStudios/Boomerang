@@ -139,32 +139,6 @@ Port **Too Easy, Bonk!, Royal Treatment, Nap Time** from the package. Taunts are
 
 **Notes**
 
-### T-155 · Fan trails from the client package
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Shared / Client
-- **Files:** `Shared/...` (FanTrails module with `Ribbon`, `Decor`, `Styles/`; location to choose), `Shared/Referential/Skins.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau` (thrown-weapon lifecycle), `Client/Core/WeaponController.luau` or `BoomerangRenderController.luau`
-
-**Problem / goal**
-The package has six trail styles for the six new fan skins (T-150): Bamboo, Sunset Pop, Tidal Surge, Sakura Drift, Moonsong, Sunfire Phoenix.
-
-- Add a `TrailStyle` field to those fan entries in `Skins.luau` instead of the package's model-name lookup (`StyleForFan`), because our model names differ (e.g. `BambooBreezeFan`).
-- On every client: `FanTrails.new(weapon, style)` + `Start()` on throw, `Stop()` when caught / landed, `Reset()` on teleport / removal, `Destroy()` after the fade. Replaces our plain trail for those skins only.
-- Skip the package's `FanTrailsExample` and the test bench.
-- The Bamboo leaf uses EditableMesh and falls back to parts when it isn't available; keep the fallback.
-
-**Open questions (ask Sol first)**
-- Should other players see the trail with team colours, or always in the skin's own colours?
-
-**Done when**
-- [ ] Each of the six fans shows its own trail while flying out and back, for every player, and it fades after the catch
-- [ ] Other skins keep the current trail
-
-**Test in Studio**
-- `grantskin` each fan, throw / recall / let it land / respawn mid-flight: the trail starts at the fan, fades on catch, never stretches across a teleport.
-
-**Notes**
-
 ### T-005 · Convert space-indented files to tabs
 - **Priority:** P2
 - **Owner:** Agent
@@ -251,6 +225,35 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 
 ## Review
+
+### T-155 · Fan trails from the client package
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared / Client
+- **Files:** `Shared/Utils/FanTrails/` (new: `init`, `Ribbon`, `Decor`, `Styles/`), `Shared/Referential/Skins.luau`, `Shared/Referential/ThrownWeapons.lua`, `Shared/Logics/WeaponLogics/Boomerang.luau`, `Client/Core/WeaponController.luau`
+
+**Problem / goal**
+The package has six trail styles for the six new fan skins (T-150): Bamboo, Sunset Pop, Tidal Surge, Sakura Drift, Moonsong, Sunfire Phoenix. Each fan shows its own decorative trail while thrown.
+
+**Done when**
+- [ ] Each of the six fans shows its own decorative trail while flying out and back, for every player, and it fades after the catch
+- [ ] The owner-coloured trail still shows under it; other skins are unchanged
+
+**Test in Studio**
+- `grantskin me SunsetPopFan` (then `BambooBreezeFan`, `TidalSurgeFan`, `SakuraDriftFan`, `MoonsongFan`, `SunfirePhoenixFan`), equip, throw: the decorative trail starts at the fan and stays short (about 2 fan lengths).
+- Catch it: the trail shrinks and fades in under a second. Recall, let it land / die, respawn mid-flight: no trail left behind.
+- Throw through a portal: no line drawn across the jump.
+- With a second player: their fan trail shows on your screen too.
+- Bamboo: leaves are a mesh where EditableMesh is allowed, small part leaves otherwise. Both are fine.
+
+**Notes**
+- Sol, 2026-11-10: keep the owner-coloured trail and draw the fan's trail on top (both).
+- Ported from `reference/ScripterPackage/Trails` into `Shared/Utils/FanTrails/` (client-only cosmetic; not auto-loaded). Only change to it: the package's model-name lookup (`StyleForFan`) was removed, so a style name is now required. Styles are unchanged.
+- New `TrailStyle` field on skins (`Skins.luau`). Set on the six fans and also on their six `Legacy` versions (same style each).
+- `Boomerang.luau` (client): the fan trail follows the `TrailHost` part (the drawn position, not the spinning model), so it never spirals. Started when the trail host is created; `retireTrail` (catch, portal, hard sync snap) stops it; the next `TrailHost` restarts it, and the jump is cleared instead of drawn. `removeFromField` and the dead-weapon path call `finishFanTrail` (stop, then destroy once faded, max 3 s). Not restarted while a predicted catch hides the model; resumes if the server turns the catch down. The fan's span is measured from the thrown model.
+- `WeaponController`'s unknown-tool clean-up also destroys it.
+- Not syntax-checked (no Luau tooling here) and not tested in Studio.
+- Branch `agent/T-155-fan-trails`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`.
 
 ### T-151 · Make the end-of-round phase obvious (rename PreIntermission)
 - **Priority:** P1

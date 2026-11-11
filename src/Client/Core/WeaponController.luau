@@ -195,6 +195,9 @@ local function clearThrownWeapon(forPlayer: Player, returnToPlayer: boolean?)
       if trailHost then
          trailHost:Destroy()
       end
+      if thrownWeaponData.FanTrail then
+         thrownWeaponData.FanTrail:Destroy()
+      end
       ThrownWeapons.Data[forPlayer] = nil
       return
    end

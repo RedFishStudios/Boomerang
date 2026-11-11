@@ -22,6 +22,7 @@ local CollisionGroupConstants = require(ReplicatedStorage.Shared.Constants.Colli
 local BufferUtil = require(ReplicatedStorage.Shared.Utils.BufferUtil)
 local RaycastsUtility = require(ReplicatedStorage.Shared.Utils.RaycastsUtility)
 local BoomerangColorUtil = require(ReplicatedStorage.Shared.Utils.BoomerangColorUtil)
+local FanTrails = require(ReplicatedStorage.Shared.Utils.FanTrails)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local RemoteCodes = require(ReplicatedStorage.Shared.Networking.RemoteCodes)
 local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
@@ -251,9 +252,54 @@ local function updateTrailOrientation(thrownWeaponData: ThrownWeapons.Data)
 	thrownWeaponData.TrailObject.Attachment1.Position = perpendicular * width
 end
 
+-- // Skin decorative trail (FanTrails, Skins.TrailStyle), drawn on top of the owner-coloured trail. Client only.
+-- // It follows the TrailHost (the drawn position, not the spinning model), so addTrail moves it to each new TrailHost.
+local FAN_TRAIL_MAX_FADE = 3 -- // Seconds a stopped fan trail may keep fading before it's destroyed anyway
+
+local function startFanTrail(thrownWeaponData: ThrownWeapons.Data, trailHost: BasePart)
+   local fanTrail = thrownWeaponData.FanTrail
+   if fanTrail then
+      fanTrail:SetWeapon(trailHost)
+      fanTrail:Start() -- // After a teleport, Start clears the old path instead of joining it to the new position
+      return
+   end
+   local ownerPlayer = Players:GetPlayerByUserId(thrownWeaponData.OwnerUserId)
+   local skin = ownerPlayer and SkinLibrary.getSkin(SkinLibrary.getEquippedSkinId(ownerPlayer))
+   local styleName = skin and skin.TrailStyle
+   local host = thrownWeaponData.Host
+   if not styleName or not host then
+      return
+   end
+   fanTrail = FanTrails.new(trailHost, styleName, { Span = FanTrails.measureSpan(host) })
+   thrownWeaponData.FanTrail = fanTrail
+   fanTrail:Start()
+end
+
+-- // The throw is over (caught, removed, died): stop adding to the fan trail and destroy it once it has faded
+local function finishFanTrail(thrownWeaponData: ThrownWeapons.Data)
+   local fanTrail = thrownWeaponData.FanTrail
+   if not fanTrail then
+      return
+   end
+   thrownWeaponData.FanTrail = nil
+   fanTrail:Stop()
+   task.spawn(function()
+      local giveUpAt = os.clock() + FAN_TRAIL_MAX_FADE
+      while fanTrail:IsBusy() and os.clock() < giveUpAt do
+         task.wait(0.25)
+      end
+      fanTrail:Destroy()
+   end)
+end
+
+Boomerang.finishFanTrail = finishFanTrail
+
 -- // Detach the current trail so it fades over its Lifetime and let addTrail start a new one (used on teleports so it
 -- // doesn't stretch)
 local function retireTrail(thrownWeaponData: ThrownWeapons.Data)
+   if thrownWeaponData.FanTrail then
+      thrownWeaponData.FanTrail:Stop()
+   end
    local trailObject = thrownWeaponData.TrailObject
    if not trailObject then
       return
@@ -296,6 +342,11 @@ local function addTrail(thrownWeaponData: ThrownWeapons.Data)
    if thrownWeaponData.TrailObject then
       thrownWeaponData.TrailObject.TrailHost:PivotTo(CFrame.new(getDrawnPosition(thrownWeaponData)))
       updateTrailOrientation(thrownWeaponData)
+      -- // A predicted catch the server turned down: the boomerang shows again, so its fan trail resumes
+      local fanTrail = thrownWeaponData.FanTrail
+      if fanTrail and not fanTrail.emitting and not thrownWeaponData.HostHidden then
+         startFanTrail(thrownWeaponData, thrownWeaponData.TrailObject.TrailHost)
+      end
       return
    end
    
@@ -341,6 +392,9 @@ local function addTrail(thrownWeaponData: ThrownWeapons.Data)
       Attachment0 = attachment0,
       Attachment1 = attachment1
    }
+   if not thrownWeaponData.HostHidden then -- // Hidden while a predicted catch waits for the server: no new fan trail
+      startFanTrail(thrownWeaponData, trailHost)
+   end
 
 	updateTrailOrientation(thrownWeaponData)
 end
@@ -1569,6 +1623,7 @@ function Boomerang.removeFromField(player: Player, thrownWeaponData: ThrownWeapo
    thrownWeaponData.CFrame = nil
    ThrownWeapons.Data[player] = nil
 
+   finishFanTrail(thrownWeaponData)
    if thrownWeaponData.TrailObject then
       if thrownWeaponData.TrailObject.TrailHost and thrownWeaponData.TrailObject.TrailHost.Parent then
          thrownWeaponData.TrailObject.TrailHost:Destroy()
@@ -1840,6 +1895,7 @@ function Boomerang.die(player: Player, thrownWeaponData: ThrownWeapons.Data, opt
    local direction = getHorizontalDirection(options.Direction)
    local speed = options.Speed or math.max((thrownWeaponData.Speed or 0) * DEATH_SPEED_SCALE, DEATH_MINIMUM_SPEED)
 
+   finishFanTrail(thrownWeaponData)
    if thrownWeaponData.TrailObject then
       if thrownWeaponData.TrailObject.TrailHost and thrownWeaponData.TrailObject.TrailHost.Parent then
          thrownWeaponData.TrailObject.TrailHost:Destroy()

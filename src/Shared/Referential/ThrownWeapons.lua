@@ -68,6 +68,7 @@ export type Data = {
       Attachment0: Attachment,
       Attachment1: Attachment
    },
+   FanTrail: any?, -- // Client: the skin's decorative trail (Shared/Utils/FanTrails Trail), if the skin has a TrailStyle
    
    MovementConnection: RBXScriptConnection?,
 }
