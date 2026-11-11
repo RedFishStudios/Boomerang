@@ -141,6 +141,31 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
+### T-160 · Stats menu reskin with the client art
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client UI
+- **Files:** `Client/UI/Gui/Stats/init.luau`, `Client/UI/ClientArt/Assets.luau`
+
+**Problem / goal**
+Use the client's Stats art: avatar, name, a "Current match" row (elims, defeats) and all-time cards (Elims, Defeats, Wins, Losses).
+
+**Done when**
+- [ ] The Stats menu shows the client's window with the local player's headshot, names, this round's elims / defeats and all-time Elims / Defeats / Wins / Losses
+- [ ] The numbers update while it's open
+
+**Test in Studio**
+- Open Stats from the lobby menu: the window fits the screen; headshot, display name and @username show.
+- Play a round: the Current match numbers follow your elims / defeats; all-time numbers match the right-hand Stats panel.
+- Close with the X, the Stats button or another menu.
+
+**Notes**
+- Sol, 2026-11-11: Losses stays as now (rounds played minus wins, ties count as losses; the saved `Losses` field stays unused); use the client's layout first and review it after it ships.
+- The menu is rebuilt in code with the ClientArt `Kit` window (the package's `StatsScreen`); values come from the `PlayerStatAttributes` attributes. No uploads: it uses the client's window and close-button ids.
+- No longer shown here (still saved): time played, games played, throws, ability uses, pickups. The card icons in `Icons` (`Stats*`) are now unused by this menu.
+- Not syntax-checked (no Luau tooling here) and not tested in Studio.
+- Branch `agent/T-160-stats`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`.
+
 ### T-157 · Inventory reskin with the client art
 - **Priority:** P2
 - **Owner:** Agent
@@ -654,23 +679,6 @@ Replace the placeholder look from T-144 with the package's Quests art (`UIArtwor
 
 **Done when**
 - [ ] The Quests menu uses the client art with Daily and Weekly working as before
-
-**Notes**
-
-### T-160 · Stats menu reskin with the client art
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Client UI
-- **Files:** `Client/UI/Gui/Stats/` / `StatsPanel/`
-
-**Problem / goal**
-Use the package's Stats art (`UIArtwork/stats`, positions in `layout.txt`): avatar, name, current-match row (Elims, Defeats) and all-time cards (Elims, Defeats, Wins, Losses). Values come from `LifetimeStatsService` / `PlayerStatsLibrary`, not the package's `Stats` module or its DataStore.
-
-**Open questions (ask Sol first)**
-- `Losses` has shipped in the profile but was never tracked. Start counting it (a round played and not won?), or show something else in that card?
-
-**Done when**
-- [ ] The Stats menu uses the client art with our live values
 
 **Notes**
 

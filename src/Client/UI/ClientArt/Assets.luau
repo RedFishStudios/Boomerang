@@ -58,4 +58,10 @@ return {
 		CardEquipped = "rbxassetid://92633980617370",
 		Check = "rbxassetid://103175301119608", -- // Equipped badge
 	},
+
+	-- // Stats menu (the client's own uploads): the window has its labels and icons painted in; numbers are live text
+	StatsScreen = {
+		Window = "rbxassetid://117972552516440",
+		Close = "rbxassetid://99387041915365",
+	},
 }
