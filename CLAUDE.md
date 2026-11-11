@@ -85,7 +85,7 @@ Roblox game written in Luau, synced into Studio with Rojo. A fast-paced, round-b
 
 `ServerStorage.Server.Assets` is declared in the project file (not on disk) so that Rojo leaves the map package alone (see below).
 
-**Not mapped by Rojo** (they never reach the game): `src/ReferencePlayerModule/` and `src/Animate/`. `.gitignore` also excludes `/src/PlayerModule/**`.
+**Not mapped by Rojo** (they never reach the game): `src/ReferencePlayerModule/`, `src/Animate/` and everything in `reference/` (outside `src/`). `.gitignore` also excludes `/src/PlayerModule/**`.
 
 ### Leftover and reference modules: don't touch
 
@@ -100,6 +100,7 @@ These files are outdated or unused, and Sol keeps them **as references only**. D
 | `src/Server/Core/CharacterService/Old.luau` | Previous CharacterService. |
 | `src/Client/Core/CharacterController/old.luau` | Previous CharacterController. |
 | `src/Client/UI/Gui/ItemAcquired/OldTemplate.rbxmx` | Previous ItemAcquired template. |
+| `reference/ScripterPackage/` | Readable copy of the client's scripter package (taunts, elimination effects, fan trails, UI), extracted from its `.rbxm` files. Port from it into `src/`; see its README. Not mapped by Rojo. |
 
 Add a file to this list only when Sol says so.
 

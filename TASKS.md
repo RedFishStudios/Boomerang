@@ -54,31 +54,6 @@ What's wrong, or what should exist.
 
 > **Client scripter package (T-151 to T-160).** The client sent a package of taunts, elimination effects, fan trails and UI art (`Downloads/Boomerang-ScripterPackage`, with its own README). Sol's decisions (2026-11-10): port it onto **our** systems only (`PlayerDataService`, single `Currency`, `CosmeticLibrary`, `SimpleRemotes`): none of its own data code, DataStore (`PlayerStats_v1`), Gems, remotes, quests or install script. Reskin our existing GUIs with its art instead of using its code-built screens. Player-facing text never says "kill". Paid random items stay as they are for the prototype (to review before launch). Order: T-151 and T-152 first; then T-153 → T-154 (both touch `ProfileTemplate`, `CosmeticLibrary` and the Inventory); T-155 can run alongside them; the UI reskins (Backlog, T-156 to T-160) come after.
 
-### T-152 · Bring in the client package's sources and models
-- **Priority:** P1
-- **Owner:** Sol → Agent
-- **Area:** Tooling / Assets
-- **Files:** a reference folder not mapped by Rojo (proposed `reference/ScripterPackage/`), `Shared/Assets/` (models), `CLAUDE.md` ("Leftover and reference modules")
-
-**Problem / goal**
-The package's scripts live inside `.rbxm` files, which agents can't read without a decompressor, so every later task needs a readable copy.
-
-- **Agent:** extract every script's source from the six `.rbxm` files into `reference/ScripterPackage/<Package>/<path>.luau` (reference only, never required or mapped by Rojo), plus the README and `AssetManifest.csv`. Add the folder to CLAUDE.md's reference list (Sol said yes when approving this task).
-- **Sol:** import the shark FBX (`SourceAssets/Models/SharkKit/boomerang-shark.fbx`, Root + Jaw bones) with Studio's 3D Importer; save it with the three taunt props (`DeckChair`, `RoyalCrown`, `TauntBoomerang` from `SourceAssets/Models/*.rbxmx`) into `Shared/Assets` as `.rbxmx`. The shark replaces the package's runtime EditableMesh shark (Sol, 2026-11-10).
-- **Sol:** check who owns the images and sounds in `AssetManifest.csv`. They were uploaded by the client's account; if the experience owner is different, they may need re-uploading under the owner.
-
-**Open questions (ask Sol first)**
-- Folder name and location for the extracted sources.
-
-**Done when**
-- [ ] Every package script is readable as a `.luau` file in the reference folder, which Rojo doesn't map
-- [ ] Shark and taunt prop models are in `Shared/Assets`
-
-**Test in Studio**
-- `rojo serve` from the branch: nothing from the reference folder appears in the DataModel.
-
-**Notes**
-
 ### T-153 · Strike Effects: the package's elimination effects as a cosmetic
 - **Priority:** P2
 - **Owner:** Agent
@@ -252,29 +227,32 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
-### T-151 · Make the end-of-round phase obvious (rename PreIntermission)
+### T-152 · Bring in the client package's sources and models
 - **Priority:** P1
-- **Owner:** Agent
-- **Area:** Shared / Server / Docs
-- **Files:** `Shared/Constants/Enums/GameplayPhases.luau`, `Server/Core/RoundCyclingService.luau`, `Client/UI/Gui/PreIntermission/init.luau`, `Client/UI/Gui/DeathScreen/init.luau` (comment), `Shared/Library/CombatLibrary.luau` (comment), `CLAUDE.md`
+- **Owner:** Sol → Agent
+- **Area:** Tooling / Assets
+- **Files:** `reference/ScripterPackage/` (new, not mapped by Rojo), `Shared/Assets/` (models), `CLAUDE.md` ("Leftover and reference modules")
 
 **Problem / goal**
-After a round ends, players stay in the arena for 5 s before going back to the lobby. That window was `GameplayPhases.PreIntermission` (value 1), and agents kept missing it: the name didn't say "round over, players still in the arena", and `RoundCyclingService` empties `LivingPlayersInArena` the moment it starts. Taunts (T-154) are only allowed in this window.
+The package's scripts live inside `.rbxm` files, which agents can't read without a decompressor, so every later task needs a readable copy.
+
+- **Agent:** extract every script's source from the six `.rbxm` files into `reference/ScripterPackage/<Package>/<path>.luau` (reference only, never required or mapped by Rojo), plus the README and `AssetManifest.csv`. Add the folder to CLAUDE.md's reference list (Sol said yes when approving this task).
+- **Sol:** import the shark FBX (`SourceAssets/Models/SharkKit/boomerang-shark.fbx`, Root + Jaw bones) with Studio's 3D Importer; save it with the three taunt props (`DeckChair`, `RoyalCrown`, `TauntBoomerang` from `SourceAssets/Models/*.rbxmx`) into `Shared/Assets` as `.rbxmx`. The shark replaces the package's runtime EditableMesh shark (Sol, 2026-11-10).
+- **Sol:** check who owns the images and sounds in `AssetManifest.csv`. They were uploaded by the client's account; if the experience owner is different, they may need re-uploading under the owner.
 
 **Done when**
-- [ ] No `GameplayPhases.PreIntermission` left in `src/`; the phase is `RoundEnded` and still has value 1
-- [ ] CLAUDE.md explains the window
+- [x] Every package script is readable as a `.luau` file in the reference folder, which Rojo doesn't map
+- [ ] Shark and taunt prop models are in `Shared/Assets`
 
 **Test in Studio**
-- Play a round to the end: the winner screen shows, players stay in the arena ~5 s, then voting starts in the lobby. No errors.
-- Use `endround` mid-round: same.
-- With fewer players than `PlayersRequiredToStart` when a round ends: the winner screen still plays out, then the pending-players state.
+- `rojo serve` from the branch: nothing from the reference folder appears in the DataModel.
 
 **Notes**
-- Sol, 2026-11-10: name `RoundEnded`; keep the winner-screen GUI named `PreIntermission` (no `.rbxmx` change).
-- Enum key renamed (value 1 unchanged, so nothing on the network changes); `PRE_INTERMISSION_DURATION` renamed `ROUND_ENDED_DURATION`; comments updated, including one on `LivingPlayersInArena = {}` saying players are still in the arena. Players go to the lobby when `SpawnService` sees `LobbyVoting` / `PendingPlayers`.
-- CLAUDE.md "Round cycle" now has a sub-bullet about the phase.
-- Branch `agent/T-151-round-ended-phase`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`. Not tested in Studio (rename only; no Luau tooling here). This branch also adds tasks T-152 to T-160 to the board.
+- Sol, 2026-11-10: folder `reference/ScripterPackage/` (repo root, outside `src/`).
+- **Agent part done:** all 57 scripts from the six `.rbxm` files extracted (`Name.luau` / `.client.luau` / `.server.luau`, `init.*` for scripts with child scripts), a `_tree.txt` per package listing every instance, the package README (`PACKAGE_README.md`) and `AssetManifest.csv`, plus our own `README.md` with the layout. Added to CLAUDE.md's reference list and "Not mapped by Rojo" line. `rojo sourcemap` contains nothing from it.
+- **Sol's part still open:** import the shark FBX and save it with the three taunt props into `Shared/Assets`; check the image / sound owner.
+- The Luau LSP and Selene may report warnings in these files (they `require` paths that don't exist here). They're reference only; ignore them.
+- Branch `agent/T-152-scripter-package`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`. This branch also moves T-151 to Done.
 
 ### T-150 · Six new fan skins from the modeller's concept art
 - **Priority:** P1
@@ -1219,6 +1197,31 @@ Players enter a code to receive a reward. Server: validates the code (case-insen
 ---
 
 ## Done
+
+### T-151 · Make the end-of-round phase obvious (rename PreIntermission)
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared / Server / Docs
+- **Files:** `Shared/Constants/Enums/GameplayPhases.luau`, `Server/Core/RoundCyclingService.luau`, `Client/UI/Gui/PreIntermission/init.luau`, `Client/UI/Gui/DeathScreen/init.luau` (comment), `Shared/Library/CombatLibrary.luau` (comment), `CLAUDE.md`
+
+**Problem / goal**
+After a round ends, players stay in the arena for 5 s before going back to the lobby. That window was `GameplayPhases.PreIntermission` (value 1), and agents kept missing it: the name didn't say "round over, players still in the arena", and `RoundCyclingService` empties `LivingPlayersInArena` the moment it starts. Taunts (T-154) are only allowed in this window.
+
+**Done when**
+- [ ] No `GameplayPhases.PreIntermission` left in `src/`; the phase is `RoundEnded` and still has value 1
+- [ ] CLAUDE.md explains the window
+
+**Test in Studio**
+- Play a round to the end: the winner screen shows, players stay in the arena ~5 s, then voting starts in the lobby. No errors.
+- Use `endround` mid-round: same.
+- With fewer players than `PlayersRequiredToStart` when a round ends: the winner screen still plays out, then the pending-players state.
+
+**Notes**
+- Sol, 2026-11-10: name `RoundEnded`; keep the winner-screen GUI named `PreIntermission` (no `.rbxmx` change).
+- Enum key renamed (value 1 unchanged, so nothing on the network changes); `PRE_INTERMISSION_DURATION` renamed `ROUND_ENDED_DURATION`; comments updated, including one on `LivingPlayersInArena = {}` saying players are still in the arena. Players go to the lobby when `SpawnService` sees `LobbyVoting` / `PendingPlayers`.
+- CLAUDE.md "Round cycle" now has a sub-bullet about the phase.
+- Branch `agent/T-151-round-ended-phase`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`. This branch also added tasks T-152 to T-160 to the board, and set every round to 10 s (`ROUND_LENGTH` in `Gamemodes.luau`; Sol, 2026-11-10).
+- Shipped to `main` (cb0dd9f, ace1899). Sol, 2026-11-10: tested, works.
 
 ### T-140 · Experimental PC control scheme, toggled with P (client test)
 - **Priority:** P2
