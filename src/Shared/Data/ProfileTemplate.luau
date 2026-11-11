@@ -51,6 +51,10 @@ export type Template = {
       [string]: boolean -- Emote id (Shared/Referential/Emotes) : true. The default emote is owned without an entry
    },
    EquippedEmote: string, -- Emote id the player's avatar performs on the winner pedestal
+   OwnedElimEffects: {
+      [string]: boolean -- Elimination effect id (Shared/Referential/ElimEffects) : true. The default is owned without an entry
+   },
+   EquippedElimEffect: string, -- Elimination effect id ("Strike Effect") played on players this player eliminates
    Quests: {
       -- // Quest pool name (Shared/Referential/Quests) : its current quests (QuestLibrary.PoolData). Written only by QuestService
       [string]: {
@@ -100,6 +104,8 @@ function ProfileTemplate.get()
       EquippedChargeUpEffect = "DefaultChargeUpEffect",
       OwnedEmotes = {},
       EquippedEmote = "DefaultEmote",
+      OwnedElimEffects = {},
+      EquippedElimEffect = "DefaultElimEffect",
       Quests = {},
       Settings = {},
       ProcessedReceipts = {},

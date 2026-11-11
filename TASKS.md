@@ -54,62 +54,6 @@ What's wrong, or what should exist.
 
 > **Client scripter package (T-151 to T-160).** The client sent a package of taunts, elimination effects, fan trails and UI art (`Downloads/Boomerang-ScripterPackage`, with its own README). Sol's decisions (2026-11-10): port it onto **our** systems only (`PlayerDataService`, single `Currency`, `CosmeticLibrary`, `SimpleRemotes`): none of its own data code, DataStore (`PlayerStats_v1`), Gems, remotes, quests or install script. Reskin our existing GUIs with its art instead of using its code-built screens. Player-facing text never says "kill". Paid random items stay as they are for the prototype (to review before launch). Order: T-151 and T-152 first; then T-153 → T-154 (both touch `ProfileTemplate`, `CosmeticLibrary` and the Inventory); T-155 can run alongside them; the UI reskins (Backlog, T-156 to T-160) come after.
 
-### T-152 · Bring in the client package's sources and models
-- **Priority:** P1
-- **Owner:** Sol → Agent
-- **Area:** Tooling / Assets
-- **Files:** a reference folder not mapped by Rojo (proposed `reference/ScripterPackage/`), `Shared/Assets/` (models), `CLAUDE.md` ("Leftover and reference modules")
-
-**Problem / goal**
-The package's scripts live inside `.rbxm` files, which agents can't read without a decompressor, so every later task needs a readable copy.
-
-- **Agent:** extract every script's source from the six `.rbxm` files into `reference/ScripterPackage/<Package>/<path>.luau` (reference only, never required or mapped by Rojo), plus the README and `AssetManifest.csv`. Add the folder to CLAUDE.md's reference list (Sol said yes when approving this task).
-- **Sol:** import the shark FBX (`SourceAssets/Models/SharkKit/boomerang-shark.fbx`, Root + Jaw bones) with Studio's 3D Importer; save it with the three taunt props (`DeckChair`, `RoyalCrown`, `TauntBoomerang` from `SourceAssets/Models/*.rbxmx`) into `Shared/Assets` as `.rbxmx`. The shark replaces the package's runtime EditableMesh shark (Sol, 2026-11-10).
-- **Sol:** check who owns the images and sounds in `AssetManifest.csv`. They were uploaded by the client's account; if the experience owner is different, they may need re-uploading under the owner.
-
-**Open questions (ask Sol first)**
-- Folder name and location for the extracted sources.
-
-**Done when**
-- [ ] Every package script is readable as a `.luau` file in the reference folder, which Rojo doesn't map
-- [ ] Shark and taunt prop models are in `Shared/Assets`
-
-**Test in Studio**
-- `rojo serve` from the branch: nothing from the reference folder appears in the DataModel.
-
-**Notes**
-
-### T-153 · Strike Effects: the package's elimination effects as a cosmetic
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Shared / Server / Client / Data
-- **Files:** `Shared/Referential/StrikeEffects.luau` (new), `Shared/Library/StrikeEffectLibrary.luau` (new), `Server/Core/StrikeEffectService.luau` (new), `Client/Core/StrikeEffectController.luau` (new) + its effect modules, `Shared/Data/ProfileTemplate.luau`, `Shared/Library/CosmeticLibrary.luau`, `Shared/Constants/Sounds.luau`, `Client/UI/Gui/Inventory/` (the `Strikes` tab), `Client/UI/Gui/CosmeticsShop.luau` (the `ElimEffects` tab), `Server/Cmdr/Commands/GrantStrikeEffect*.luau` (new)
-
-**Problem / goal**
-The Inventory's `Strikes` tab and the Cosmetics Shop's "Strike Effects" tab already exist but are empty. Fill them with the package's four effects: **Stone Statue, Ashes, Sakura, Shark Attack** (3 s each, played on the eliminated player's body). The default is no effect (the package's "Skull" item).
-
-- Same shape as skins / charge up effects: data in `Referential`, `OwnedStrikeEffects` / `EquippedStrikeEffect` in the profile (update the `Profile` type and `ProfileTemplate.get()` together), an `Equipped*` attribute in `CosmeticLibrary`, service / controller / library.
-- Trigger from `CombatLibrary.PlayerKilledPlayerTasks` with the **eliminator's** equipped effect, not the package's `creator` ObjectValue. Deaths with no eliminator play nothing.
-- Port the effect code from the package (`KillEffects` client modules, `Fx`, `Rig`); textures and sound ids go where we register assets (`Sounds.luau` and an asset table), not inline.
-- Shark Attack uses the imported shark model (T-152), animating its Jaw bone, instead of `SharkModel` / EditableMesh.
-- Fit with what already happens on death: the client ragdoll (`CharacterRenderController`), `DeathScreen`, and the package's muting of the default death sound (check whether we need it).
-- Player-facing names never say "kill" (use "Strike Effects" / "elimination").
-- Cmdr `grantstrikeeffect <players> <effect>`.
-
-**Open questions (ask Sol first)**
-- Prices and rarities in the Cosmetics Shop (the package's are placeholders: Stone Rare, Ashes Epic, Sakura Epic, Shark Legendary)? Use `-- TODO:RELEASE placeholder` until then.
-- Ragdoll vs effect: the effects freeze the body in its death pose. Skip the ragdoll when an effect plays?
-
-**Done when**
-- [ ] Each of the four effects plays for everyone when a player with it equipped eliminates someone, then cleans up
-- [ ] Owned / equipped effects save, show in the Inventory `Strikes` tab and can be bought in the Cosmetics Shop
-- [ ] No "kill" in player-facing text
-
-**Test in Studio**
-- `grantstrikeeffect me Shark` (etc.), equip it, eliminate a bot or second player: the effect plays; repeat for all four.
-
-**Notes**
-
 ### T-154 · Taunts: the package's four taunts as a cosmetic, in the end-of-round window
 - **Priority:** P2
 - **Owner:** Agent
@@ -255,29 +199,67 @@ The package has six trail styles for the six new fan skins (T-150): Bamboo, Suns
 - Not syntax-checked (no Luau tooling here) and not tested in Studio.
 - Branch `agent/T-155-fan-trails`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`.
 
-### T-151 · Make the end-of-round phase obvious (rename PreIntermission)
-- **Priority:** P1
+### T-153 · Strike Effects: the package's elimination effects as a cosmetic
+- **Priority:** P2
 - **Owner:** Agent
-- **Area:** Shared / Server / Docs
-- **Files:** `Shared/Constants/Enums/GameplayPhases.luau`, `Server/Core/RoundCyclingService.luau`, `Client/UI/Gui/PreIntermission/init.luau`, `Client/UI/Gui/DeathScreen/init.luau` (comment), `Shared/Library/CombatLibrary.luau` (comment), `CLAUDE.md`
+- **Area:** Shared / Server / Client / Data
+- **Files:** `Shared/Referential/ElimEffects.luau`, `Shared/Constants/ElimEffectAssets.luau`, `Shared/Library/ElimEffectLibrary.luau`, `Server/Core/ElimEffectService.luau`, `Client/Core/ElimEffectController/` (init + `Effects/`: `StoneStatue`, `Ashes`, `Sakura`, `SharkAttack`, helpers `Fx`, `Rig`, `SharkRig`), `Shared/Data/ProfileTemplate.luau`, `Shared/Library/CombatLibrary.luau`, `Client/Core/CharacterRenderController.luau`, `Client/UI/Gui/Inventory/Tabs/Strikes.luau`, `Client/UI/ShopCommon/Tabs/ElimEffects.luau`, `Client/UI/Gui/CosmeticsShop.luau`, `Client/UI/ShopCommon/ShopListings.luau`, `Client/Core/ShopController.luau`, `Server/Core/ShopService.luau`, `Shared/Referential/ShopItems.luau`, `Server/Cmdr/Types/ElimEffectType.luau`, `Server/Cmdr/Commands/GrantElimEffect*.luau` (all new except the edited ones)
 
 **Problem / goal**
-After a round ends, players stay in the arena for 5 s before going back to the lobby. That window was `GameplayPhases.PreIntermission` (value 1), and agents kept missing it: the name didn't say "round over, players still in the arena", and `RoundCyclingService` empties `LivingPlayersInArena` the moment it starts. Taunts (T-154) are only allowed in this window.
+Fill the empty "Strikes" (Inventory) and "Strike Effects" (Cosmetics Shop) tabs with the package's four effects: **Stone Statue, Ashes, Sakura, Shark Attack** (3 s each, on the eliminated player's body). The default plays nothing.
 
 **Done when**
-- [ ] No `GameplayPhases.PreIntermission` left in `src/`; the phase is `RoundEnded` and still has value 1
-- [ ] CLAUDE.md explains the window
+- [ ] Each of the four effects plays for everyone when a player with it equipped eliminates another player, then cleans up
+- [ ] With an effect, the body doesn't ragdoll; with the default (no effect), it ragdolls as before
+- [ ] Owned / equipped effects save, show in the Inventory Strikes tab and can be bought in the Cosmetics Shop
+- [ ] No "kill" in player-facing text
 
 **Test in Studio**
-- Play a round to the end: the winner screen shows, players stay in the arena ~5 s, then voting starts in the lobby. No errors.
-- Use `endround` mid-round: same.
-- With fewer players than `PlayersRequiredToStart` when a round ends: the winner screen still plays out, then the pending-players state.
+- Two players (local server). Player A: `grantelimeffect me StoneStatue`, equip it in Inventory > Strikes, eliminate B in a round: B turns to stone and crumbles (both screens). Repeat with `Ashes`, `Sakura`, `SharkAttack`.
+- Shark Attack: the shark rises under B with its mouth open round them and its jaw shuts over them. If the jaw opens upwards into the head, set `JAW_OPEN_SIGN = -1` in `Effects/SharkRig.luau`; if the shark is turned the wrong way, tell the agent.
+- With the default equipped, B ragdolls as before. After B respawns, B is visible again.
+- Cosmetics Shop > Strike Effects: buy one with Currency (`givecurrency`), the "New strike effect acquired!" popup shows, it appears in Inventory.
+- Output: no "Failed to load" for the effect images and sounds (they're the client's uploads / Creator Store sounds).
 
 **Notes**
-- Sol, 2026-11-10: name `RoundEnded`; keep the winner-screen GUI named `PreIntermission` (no `.rbxmx` change).
-- Enum key renamed (value 1 unchanged, so nothing on the network changes); `PRE_INTERMISSION_DURATION` renamed `ROUND_ENDED_DURATION`; comments updated, including one on `LivingPlayersInArena = {}` saying players are still in the arena. Players go to the lobby when `SpawnService` sees `LobbyVoting` / `PendingPlayers`.
-- CLAUDE.md "Round cycle" now has a sub-bullet about the phase.
-- Branch `agent/T-151-round-ended-phase`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`. Not tested in Studio (rename only; no Luau tooling here). This branch also adds tasks T-152 to T-160 to the board.
+- Sol, 2026-11-10: with an effect equipped, skip the ragdoll (the ragdoll code stays and still runs when there's no effect); effects only for players, not bots.
+- Code names use `ElimEffect` (the existing `CosmeticLibrary` category, attribute `EquippedElimEffect`, and the Cosmetics Shop tab id `ElimEffects`); players see "Strike Effects" / "Strikes". New profile fields `OwnedElimEffects`, `EquippedElimEffect` (filled in by Reconcile). Ids: `DefaultElimEffect`, `StoneStatue`, `Ashes`, `Sakura`, `SharkAttack`.
+- How it plays: `CombatLibrary.applyDamageToHumanoid` calls `ElimEffectLibrary.markLethalHit` before the damage. If the hit is lethal and from a player with an effect, the victim's Humanoid gets the `ElimEffect` attribute. Every client sees it before the death, so `CharacterRenderController` skips the ragdoll (but still flags the body as dead so it's rebuilt on respawn). `ElimEffectService` watches each Humanoid's `Died` and fires `PlayElimEffect(victim, id)` to all; `ElimEffectController` plays it on the visible render model (`CharacterRenderController.getCharacterModel`, Disguise included). Any lethal hit with a killer counts, including Fire Boomerang burn.
+- Effects ported from `reference/ScripterPackage/KillEffects` with only path changes; `Rig`'s death-pose snapshot watcher was removed (it watched `player.Character`, which is hidden in our game). The package's default death-sound muting wasn't ported (our hits play their own Kill sound).
+- Shark: Sol imported the FBX; it came in at ~570 studs (cm scale), so the agent rescaled the Workspace copy in Studio to the package's 14.55 studs (`ScaleTo`, factor 0.02551). At that scale the Jaw bone sits exactly where the package's kit data puts it, so `SharkRig` reuses the package's mouth measurements: kit frame = Root bone, nose = bone +X, back = +Y; the jaw turns about the bone's -Z. **Sol: save the rescaled Workspace.boomerang-shark over `src/Shared/Assets/StrikeEffects/Shark.rbxm`** (the committed file is still the unscaled one).
+- Placeholders (`-- TODO:RELEASE placeholder`): prices (500 / 1000 / 1000 / 2500) and rarities (the package's: Rare / Epic / Epic / Legendary).
+- Not done: quest/reward support for effects (`RewardLibrary`), Robux products.
+- Not syntax-checked (no Luau tooling here) and not tested in Studio.
+- Branch `agent/T-153-strike-effects` (built on `agent/T-152-scripter-package`, so it includes T-152), lane `Github/Boomerang-lanes/T-151-round-ended-phase`.
+
+### T-152 · Bring in the client package's sources and models
+- **Priority:** P1
+- **Owner:** Sol → Agent
+- **Area:** Tooling / Assets
+- **Files:** `reference/ScripterPackage/` (new, not mapped by Rojo), `Shared/Assets/` (models), `CLAUDE.md` ("Leftover and reference modules")
+
+**Problem / goal**
+The package's scripts live inside `.rbxm` files, which agents can't read without a decompressor, so every later task needs a readable copy.
+
+- **Agent:** extract every script's source from the six `.rbxm` files into `reference/ScripterPackage/<Package>/<path>.luau` (reference only, never required or mapped by Rojo), plus the README and `AssetManifest.csv`. Add the folder to CLAUDE.md's reference list (Sol said yes when approving this task).
+- **Sol:** import the shark FBX (`SourceAssets/Models/SharkKit/boomerang-shark.fbx`, Root + Jaw bones) with Studio's 3D Importer; save it with the three taunt props (`DeckChair`, `RoyalCrown`, `TauntBoomerang` from `SourceAssets/Models/*.rbxmx`) into `Shared/Assets` as `.rbxmx`. The shark replaces the package's runtime EditableMesh shark (Sol, 2026-11-10).
+- **Sol:** check who owns the images and sounds in `AssetManifest.csv`. They were uploaded by the client's account; if the experience owner is different, they may need re-uploading under the owner.
+
+**Done when**
+- [x] Every package script is readable as a `.luau` file in the reference folder, which Rojo doesn't map
+- [x] Shark and taunt prop models are in `Shared/Assets`
+
+**Test in Studio**
+- `rojo serve` from the branch: nothing from the reference folder appears in the DataModel.
+
+**Notes**
+- Sol, 2026-11-10: folder `reference/ScripterPackage/` (repo root, outside `src/`).
+- **Agent part done:** all 57 scripts from the six `.rbxm` files extracted (`Name.luau` / `.client.luau` / `.server.luau`, `init.*` for scripts with child scripts), a `_tree.txt` per package listing every instance, the package README (`PACKAGE_README.md`) and `AssetManifest.csv`, plus our own `README.md` with the layout. Added to CLAUDE.md's reference list and "Not mapped by Rojo" line. `rojo sourcemap` contains nothing from it.
+- The three taunt props were already plain part models, so they were copied as is into `Shared/Assets/Taunts/` (`DeckChair`, `RoyalCrown`, `TauntBoomerang`; in Studio `ReplicatedStorage.Shared.Assets.Taunts`). `TauntBoomerang` uses the client's decal image 82042595323457.
+- Shark imported by Sol (2026-11-10) and saved as `Shared/Assets/StrikeEffects/Shark.rbxm` (binary, the only `.rbxm` in `src/`; Rojo names it `Shark` after the file). Contents: Model with one MeshPart `BoomerangShark` holding bones `Root` > `Jaw`, an `AnimationController`, the importer's `InitialPoses` folder and an empty `AnimSaves`. No scripts.
+- Asset owner check: Sol saw no missing assets (2026-11-10). It moves to the tasks that first use the images and sounds (T-153, T-154, T-156 to T-160): watch for blank images or "Failed to load" in Output there, and re-upload the PNGs under the group if needed.
+- The Luau LSP and Selene may report warnings in these files (they `require` paths that don't exist here). They're reference only; ignore them.
+- Branch `agent/T-152-scripter-package`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`. This branch also moves T-151 to Done.
 
 ### T-150 · Six new fan skins from the modeller's concept art
 - **Priority:** P1
@@ -1222,6 +1204,31 @@ Players enter a code to receive a reward. Server: validates the code (case-insen
 ---
 
 ## Done
+
+### T-151 · Make the end-of-round phase obvious (rename PreIntermission)
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared / Server / Docs
+- **Files:** `Shared/Constants/Enums/GameplayPhases.luau`, `Server/Core/RoundCyclingService.luau`, `Client/UI/Gui/PreIntermission/init.luau`, `Client/UI/Gui/DeathScreen/init.luau` (comment), `Shared/Library/CombatLibrary.luau` (comment), `CLAUDE.md`
+
+**Problem / goal**
+After a round ends, players stay in the arena for 5 s before going back to the lobby. That window was `GameplayPhases.PreIntermission` (value 1), and agents kept missing it: the name didn't say "round over, players still in the arena", and `RoundCyclingService` empties `LivingPlayersInArena` the moment it starts. Taunts (T-154) are only allowed in this window.
+
+**Done when**
+- [ ] No `GameplayPhases.PreIntermission` left in `src/`; the phase is `RoundEnded` and still has value 1
+- [ ] CLAUDE.md explains the window
+
+**Test in Studio**
+- Play a round to the end: the winner screen shows, players stay in the arena ~5 s, then voting starts in the lobby. No errors.
+- Use `endround` mid-round: same.
+- With fewer players than `PlayersRequiredToStart` when a round ends: the winner screen still plays out, then the pending-players state.
+
+**Notes**
+- Sol, 2026-11-10: name `RoundEnded`; keep the winner-screen GUI named `PreIntermission` (no `.rbxmx` change).
+- Enum key renamed (value 1 unchanged, so nothing on the network changes); `PRE_INTERMISSION_DURATION` renamed `ROUND_ENDED_DURATION`; comments updated, including one on `LivingPlayersInArena = {}` saying players are still in the arena. Players go to the lobby when `SpawnService` sees `LobbyVoting` / `PendingPlayers`.
+- CLAUDE.md "Round cycle" now has a sub-bullet about the phase.
+- Branch `agent/T-151-round-ended-phase`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`. This branch also added tasks T-152 to T-160 to the board, and set every round to 10 s (`ROUND_LENGTH` in `Gamemodes.luau`; Sol, 2026-11-10).
+- Shipped to `main` (cb0dd9f, ace1899). Sol, 2026-11-10: tested, works.
 
 ### T-140 · Experimental PC control scheme, toggled with P (client test)
 - **Priority:** P2

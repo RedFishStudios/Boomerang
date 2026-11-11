@@ -23,6 +23,7 @@ local ParticlesLibrary = require(ReplicatedStorage.Shared.Library.ParticlesLibra
 local SoundLibrary = require(ReplicatedStorage.Shared.Library.SoundLibrary)
 local Sounds = require(ReplicatedStorage.Shared.Constants.Sounds)
 local PickupCancelCodeEnum = require(ReplicatedStorage.Shared.Constants.Enums.PickupCancelCodes)
+local ElimEffectLibrary = require(ReplicatedStorage.Shared.Library.ElimEffectLibrary)
 
 local playerDeathReasonRemote = SimpleRemotes.getEvent("PlayerDeathReason")
 
@@ -86,6 +87,7 @@ end
 -------------------------------------------------------------------------------
 
 function CombatLibrary.applyDamageToHumanoid(player: Player, humanoid: Humanoid, damageAmount: number, killer: Player?, causeLabel: string?)
+   ElimEffectLibrary.markLethalHit(humanoid, damageAmount, killer) -- // Before the damage, so clients see the mark first
    humanoid:TakeDamage(damageAmount)
    if humanoid.Health <= 0 then
       CombatLibrary.notifyDeathReason(player, killer, causeLabel)

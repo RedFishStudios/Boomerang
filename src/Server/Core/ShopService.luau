@@ -16,6 +16,7 @@ local PlayerDataService = require(ServerStorage.Server.Core.PlayerDataService)
 local SkinService = require(ServerStorage.Server.Core.SkinService)
 local ChargeUpEffectService = require(ServerStorage.Server.Core.ChargeUpEffectService)
 local EmoteService = require(ServerStorage.Server.Core.EmoteService)
+local ElimEffectService = require(ServerStorage.Server.Core.ElimEffectService)
 local CrateService = require(ServerStorage.Server.Core.CrateService)
 
 -------------------------------------------------------------------------------
@@ -56,7 +57,7 @@ end
 -------------------------------------------------------------------------------
 
 function ShopService.init()
-   -- // listingType is a ShopItems listing Type: "Item" (default), "Skin", "ChargeUpEffect", "Emote" or "Crate"
+   -- // listingType is a ShopItems listing Type: "Item" (default), "Skin", "ChargeUpEffect", "Emote", "ElimEffect" or "Crate"
    requestPurchaseRemoteFunction.OnServerInvoke = function(player: Player, itemId: unknown, listingType: unknown)
       if type(itemId) ~= "string" then
          return false
@@ -69,6 +70,9 @@ function ShopService.init()
       end
       if listingType == "Emote" then
          return EmoteService.purchaseEmote(player, itemId)
+      end
+      if listingType == "ElimEffect" then
+         return ElimEffectService.purchaseElimEffect(player, itemId)
       end
       if listingType == "Crate" then
          -- // The weapon is given when the crate placed next to the player is opened

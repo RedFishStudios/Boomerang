@@ -12,6 +12,7 @@ local ShopBuilder = require(ReplicatedStorage.Client.UI.ShopCommon.ShopBuilder)
 local Icons = require(ReplicatedStorage.Shared.Constants.Icons)
 local ChargeEffectsTab = require(ReplicatedStorage.Client.UI.ShopCommon.Tabs.ChargeEffects)
 local EmotesTab = require(ReplicatedStorage.Client.UI.ShopCommon.Tabs.Emotes)
+local ElimEffectsTab = require(ReplicatedStorage.Client.UI.ShopCommon.Tabs.ElimEffects)
 
 local BACKGROUND_IMAGE = 94533454566099 -- // 1024 x 696
 local ASPECT_RATIO = 1024 / 696
@@ -36,7 +37,7 @@ return ShopBuilder.create({
 			Name = "Strike Effects",
 			Icon = "✨", -- // Shown only if IconImage is removed
 			IconImage = Icons.Eliminations,
-			-- // No Tab: the tab stays empty (no elimination effects system)
+			Tab = ElimEffectsTab,
 		},
 		{
 			Id = "Emotes",
