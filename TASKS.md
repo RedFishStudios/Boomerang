@@ -154,14 +154,16 @@ Add the six fans from "Modeller Official Boomerang Weapons #1" as Fans skins: Su
 **Test in Studio**
 - Weapons Shop → Fan tab: six new listings after Placeholder Fan, with the right rarities and models in the viewports.
 - `grantskin <you> SunsetPopFan` (and the other ids), equip each: check how it sits in the hand, how it looks thrown, and that the canopy faces the same way as ClassicFan.
+- Weapons Shop → Fan Crate: its contents list shows all eight fans with their chances; open a few crates (`givecurrency` for funds) and check you receive the new fans.
 
 **Notes**
 - Branch `agent/T-150-fan-skins`, lane `Github/Boomerang-lanes/T-150-fan-skins`.
 - Skin ids / model names / Tools ids: `SunsetPopFan`, `BambooBreezeFan`, `TidalSurgeFan`, `SakuraDriftFan`, `MoonsongFan`, `SunfirePhoenixFan`.
 - Models are built from `ClassicFan.rbxmx`: same `MotorC0` grip attribute and handle orientation, each with its own MeshId/TextureID/size. The texture is a plain `TextureID` (no SurfaceAppearance); ClassicFan's mesh-specific physics cache was removed, so Studio recomputes it.
 - Meshes and textures are group assets (group 293180599), uploaded from the art pipeline in `C:\MY FILES\Projects\Boomerang\Assets\ArtPipeline\Fans` (per-skin `status.md` has the asset ids).
-- Rarity comes from each model's `Tools.luau` entry (the shop reads it there). Stats copied from ClassicFan. No `CrateWeight`, so they aren't in any crate yet.
-- `TODO:RELEASE placeholder`: `WeaponClass = "ClassicBoomerang"` (same as every skin) and prices 1000 / 2500 / 5000 / 10000 by rarity.
+- Rarity comes from each model's `Tools.luau` entry (the shop reads it there). Stats copied from ClassicFan.
+- Fan Crate (2026-11-11): the six now have a `CrateWeight` by rarity: Common 70, Rare 25, Epic 8, Legendary 2. With ClassicFan (70) and PlaceholderFan (30) the crate's total is 300, so the odds are about 23.3% per Common, 10% PlaceholderFan, 8.3% per Rare, 2.7% Moonsong, 0.7% Sunfire Phoenix.
+- `TODO:RELEASE placeholder`: `WeaponClass = "ClassicBoomerang"` (same as every skin), prices 1000 / 2500 / 5000 / 10000 by rarity, and the crate weights.
 - `rojo build` passes. Not lint-checked (Selene isn't set up in this repo's rokit manifest). The `.rbxmx` files need a look in Studio.
 
 ---
