@@ -18,6 +18,7 @@ local GameStateLibrary = require(SharedMods.Library.GameStateLibrary)
 local _AbilityController = require(ClientMods.Core.AbilityController)
 local _WeaponController = require(ClientMods.Core.WeaponController)
 local GameplayPhases = require(SharedMods.Constants.Enums.GameplayPhases)
+local GlobalConfig = require(SharedMods.Constants.GlobalConfig)
 
 -- // Gui Values // --
 
@@ -158,7 +159,7 @@ function PreIntermissionGui.start()
          return
       end
       lastRegisteredGameplayPhase = gameplayPhase
-      if gameplayPhase == GameplayPhases.RoundEnded then
+      if gameplayPhase == GameplayPhases.RoundEnded and GlobalConfig.ShowRoundEndedScreen then
          local intermissionData = snapshot.IntermissionData
          displayWinnerInfo(intermissionData and intermissionData.WinnerInfo)
          PreIntermissionGui.open()

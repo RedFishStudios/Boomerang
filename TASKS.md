@@ -170,6 +170,7 @@ Port **Too Easy, Bonk!, Royal Treatment, Nap Time** from the package as their ow
 - The taunter's own client plants them (it owns their movement); the server sets a `Taunting` attribute on the character for 6 s.
 - Placeholders (`-- TODO:RELEASE placeholder`): prices (500 / 1000 / 2500), rarities, Nap Time's icon (the package reused the Laugh card), the shop tab's emoji.
 - Not syntax-checked (no Luau tooling here) and not tested in Studio.
+- Sol, 2026-11-11: the winner screen (PreIntermission GUI) covered the taunts, so it's temporarily off: `GlobalConfig.ShowRoundEndedScreen = false` (set it back to true to show it again).
 - Branch `agent/T-154-taunts`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`.
 
 ### T-155 · Fan trails from the client package
