@@ -109,15 +109,14 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
       }
    },
    -- // Fan skins: stats copied from ClassicFan; CrateWeight by rarity (Fan Crate).
-   -- // Their patterned side is the opposite face to ClassicFan's, so the viewport adds a 180 degree turn about the canopy axis
-   -- // (the models' MotorC0 grip has the same turn).
+   -- // Each model's pivot is ClassicFan's handle frame, so they use ClassicFan's viewport rotation.
    SunsetPopFan = {
       Id = "SunsetPopFan",
       Category = "Fan",
       LogicClass = "Boomerang",
       Rarity = "Common",
       CrateWeight = 70, -- TODO:RELEASE placeholder
-      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) * CFrame.Angles(math.pi, 0, 0) },
+      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) },
       Boomerang = {
          HitboxRadius = 3,
          Speed = 75,
@@ -130,7 +129,7 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
       LogicClass = "Boomerang",
       Rarity = "Common",
       CrateWeight = 70, -- TODO:RELEASE placeholder
-      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) * CFrame.Angles(math.pi, 0, 0) },
+      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) },
       Boomerang = {
          HitboxRadius = 3,
          Speed = 75,
@@ -143,7 +142,7 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
       LogicClass = "Boomerang",
       Rarity = "Rare",
       CrateWeight = 25, -- TODO:RELEASE placeholder
-      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) * CFrame.Angles(math.pi, 0, 0) },
+      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) },
       Boomerang = {
          HitboxRadius = 3,
          Speed = 75,
@@ -156,7 +155,7 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
       LogicClass = "Boomerang",
       Rarity = "Rare",
       CrateWeight = 25, -- TODO:RELEASE placeholder
-      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) * CFrame.Angles(math.pi, 0, 0) },
+      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) },
       Boomerang = {
          HitboxRadius = 3,
          Speed = 75,
@@ -169,7 +168,7 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
       LogicClass = "Boomerang",
       Rarity = "Epic",
       CrateWeight = 8, -- TODO:RELEASE placeholder
-      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) * CFrame.Angles(math.pi, 0, 0) },
+      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) },
       Boomerang = {
          HitboxRadius = 3,
          Speed = 75,
@@ -182,6 +181,81 @@ local Tools: {[string]: Tool} = GeneralUtil.deepFreeze({
       LogicClass = "Boomerang",
       Rarity = "Legendary",
       CrateWeight = 2, -- TODO:RELEASE placeholder
+      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) },
+      Boomerang = {
+         HitboxRadius = 3,
+         Speed = 75,
+         ManualRecallSpeed = 200
+      }
+   },
+   -- // Legacy fan skins (first versions, admin-only via grantskin, not in any crate).
+   -- // Their patterned side is the opposite face to ClassicFan's, so the viewport adds a 180 degree turn about the canopy axis
+   -- // (the models' MotorC0 grip has the same turn).
+   SunsetPopFanLegacy = {
+      Id = "SunsetPopFanLegacy",
+      Category = "Fan",
+      LogicClass = "Boomerang",
+      Rarity = "Common",
+      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) * CFrame.Angles(math.pi, 0, 0) },
+      Boomerang = {
+         HitboxRadius = 3,
+         Speed = 75,
+         ManualRecallSpeed = 200
+      }
+   },
+   BambooBreezeFanLegacy = {
+      Id = "BambooBreezeFanLegacy",
+      Category = "Fan",
+      LogicClass = "Boomerang",
+      Rarity = "Common",
+      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) * CFrame.Angles(math.pi, 0, 0) },
+      Boomerang = {
+         HitboxRadius = 3,
+         Speed = 75,
+         ManualRecallSpeed = 200
+      }
+   },
+   TidalSurgeFanLegacy = {
+      Id = "TidalSurgeFanLegacy",
+      Category = "Fan",
+      LogicClass = "Boomerang",
+      Rarity = "Rare",
+      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) * CFrame.Angles(math.pi, 0, 0) },
+      Boomerang = {
+         HitboxRadius = 3,
+         Speed = 75,
+         ManualRecallSpeed = 200
+      }
+   },
+   SakuraDriftFanLegacy = {
+      Id = "SakuraDriftFanLegacy",
+      Category = "Fan",
+      LogicClass = "Boomerang",
+      Rarity = "Rare",
+      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) * CFrame.Angles(math.pi, 0, 0) },
+      Boomerang = {
+         HitboxRadius = 3,
+         Speed = 75,
+         ManualRecallSpeed = 200
+      }
+   },
+   MoonsongFanLegacy = {
+      Id = "MoonsongFanLegacy",
+      Category = "Fan",
+      LogicClass = "Boomerang",
+      Rarity = "Epic",
+      Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) * CFrame.Angles(math.pi, 0, 0) },
+      Boomerang = {
+         HitboxRadius = 3,
+         Speed = 75,
+         ManualRecallSpeed = 200
+      }
+   },
+   SunfirePhoenixFanLegacy = {
+      Id = "SunfirePhoenixFanLegacy",
+      Category = "Fan",
+      LogicClass = "Boomerang",
+      Rarity = "Legendary",
       Viewport = { Rotation = CFrame.Angles(0, 0, math.rad(40)) * CFrame.Angles(math.rad(75), 0, 0) * CFrame.Angles(math.pi, 0, 0) },
       Boomerang = {
          HitboxRadius = 3,

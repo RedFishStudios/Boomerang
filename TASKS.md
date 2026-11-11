@@ -155,6 +155,7 @@ Add the six fans from "Modeller Official Boomerang Weapons #1" as Fans skins: Su
 - Weapons Shop → Fan tab: six new listings after Placeholder Fan, with the right rarities and models in the viewports.
 - `grantskin <you> SunsetPopFan` (and the other ids), equip each: check how it sits in the hand, how it looks thrown, and that the canopy faces the same way as ClassicFan.
 - Weapons Shop → Fan Crate: its contents list shows all eight fans with their chances; open a few crates (`givecurrency` for funds) and check you receive the new fans.
+- Final vs Legacy: the shop and crate show only the final models (no "(Legacy)" entries). `grantskin <you> SunsetPopFanLegacy` (and the other `...Legacy` ids) grants the first versions; equip one and compare with the final one. Check the final fans' size, grip, patterned side outward, and previews.
 
 **Notes**
 - Branch `agent/T-150-fan-skins`, lane `Github/Boomerang-lanes/T-150-fan-skins`.
@@ -165,7 +166,9 @@ Add the six fans from "Modeller Official Boomerang Weapons #1" as Fans skins: Su
 - Fan Crate (2026-11-11): the six now have a `CrateWeight` by rarity: Common 70, Rare 25, Epic 8, Legendary 2. With ClassicFan (70) and PlaceholderFan (30) the crate's total is 300, so the odds are about 23.3% per Common, 10% PlaceholderFan, 8.3% per Rare, 2.7% Moonsong, 0.7% Sunfire Phoenix.
 - `TODO:RELEASE placeholder`: `WeaponClass = "ClassicBoomerang"` (same as every skin), prices 1000 / 2500 / 5000 / 10000 by rarity, and the crate weights.
 - `rojo build` passes. Not lint-checked (Selene isn't set up in this repo's rokit manifest). The `.rbxmx` files need a look in Studio.
-- Flip (2026-11-11, Sol: the patterned side faced inward when held): each model's `MotorC0` is now ClassicFan's grip turned 180° about the fan's canopy axis (same grip point), and the six `Tools.luau` viewport rotations got the same turn so previews show the patterned side. Not changed: thrown fans (posed by the weapon logic, not the grip), so check which side shows when thrown.
+- **Final models (2026-11-11, Sol):** Sol's new models replaced the first versions under the same skin ids, so owners of e.g. `SunsetPopFan` now get the new model, and only these are in the shop and the Fan Crate. Built from the Workspace models `SunsetFan`, `BambooFan`, `Surge`, `SakuraFan`, `MoonsongFan`, `SunfireFan` (their own mesh + SurfaceAppearance maps, uploaded by Sol), scaled by 0.3134 so Sunset Pop matches ClassicFan's 4.22-stud width (proportions between fans kept). Their meshes use different axes from ClassicFan (canopy along +Y; patterned side +Z for four, -X for Moonsong/Sunfire), so each handle is rotated into ClassicFan's frame, `PivotOffset` turns it back (model pivot = ClassicFan's handle frame, so viewports and throws use ClassicFan's rotation) and `MotorC0` is ClassicFan's grip times the same rotation.
+- **Legacy copies:** the first versions are now `<id>Legacy` skins/models/Tools entries (e.g. `SunsetPopFanLegacy`, "Sunset Pop (Legacy)"): `OffSale`, no `CrateWeight`, so they're only reachable with `grantskin` (the Cmdr `skin` type lists every skin id). Model files were renamed with `git mv`.
+- Flip (2026-11-11, Sol: the patterned side faced inward when held; applies to the Legacy models now): each model's `MotorC0` is now ClassicFan's grip turned 180° about the fan's canopy axis (same grip point), and the six `Tools.luau` viewport rotations got the same turn so previews show the patterned side. Not changed: thrown fans (posed by the weapon logic, not the grip), so check which side shows when thrown.
 
 ---
 

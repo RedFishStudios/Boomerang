@@ -2,7 +2,7 @@
 	<Meta name="ExplicitAutoJoints">true</Meta>
 	<External>null</External>
 	<External>nil</External>
-	<Item class="Model" referent="RBX13C1FF8D24FC4F7082D017B4F4EB4481">
+	<Item class="Model" referent="RBX74CE60384A244A64A17E080C0B915D5F">
 		<Properties>
 			<token name="LevelOfDetail">0</token>
 			<CoordinateFrame name="ModelMeshCFrame">
@@ -27,51 +27,51 @@
 			</Vector3>
 			<token name="ModelStreamingMode">0</token>
 			<bool name="NeedsPivotMigration">false</bool>
-			<Ref name="PrimaryPart">RBX3A357FA264EC4F7B89B07F2B0991D27A</Ref>
+			<Ref name="PrimaryPart">RBXDEDB708610F4414CACE91BA7EC3203D1</Ref>
 			<float name="ScaleFactor">1</float>
 			<SharedString name="SlimHash">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			<OptionalCoordinateFrame name="WorldPivotData">
-				<CFrame>
-					<X>350.427704</X>
-					<Y>161.747772</Y>
-					<Z>-493.780792</Z>
-					<R00>2.64697796e-23</R00>
-					<R01>-1.62920685e-07</R01>
-					<R02>-1</R02>
-					<R10>-2.44929371e-16</R10>
-					<R11>1</R11>
-					<R12>-1.62920685e-07</R12>
-					<R20>1</R20>
-					<R21>2.44929371e-16</R21>
-					<R22>-1.34342823e-23</R22>
-				</CFrame>
-			</OptionalCoordinateFrame>
-			<BinaryString name="AttributesSerialize"><![CDATA[AQAAAAcAAABNb3RvckMwFCI7ZD4sKn2/ZafFPgA/PnA+2LNdv24R4r5xEWK/YFMmsUI+8L6FDtA+/f//PuDHQ78=]]></BinaryString>
+<CFrame>
+<X>0</X>
+<Y>0</Y>
+<Z>0</Z>
+<R00>1</R00>
+<R01>0</R01>
+<R02>0</R02>
+<R10>0</R10>
+<R11>1</R11>
+<R12>0</R12>
+<R20>0</R20>
+<R21>0</R21>
+<R22>1</R22>
+</CFrame>
+</OptionalCoordinateFrame>
+			<BinaryString name="AttributesSerialize"><![CDATA[AQAAAAcAAABNb3RvckMwFCI7ZD4sKn2/ZafFPgBxEeK+Pz5wPtezXb9CPvC+cRFivwAAAADfx0O/hQ7QPv///z4=]]></BinaryString>
 			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
 			<bool name="DefinesCapabilities">false</bool>
 			<string name="Name">SunsetPopFan</string>
 			<int64 name="SourceAssetId">-1</int64>
 			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 		</Properties>
-		<Item class="MeshPart" referent="RBX3A357FA264EC4F7B89B07F2B0991D27A">
+		<Item class="MeshPart" referent="RBXDEDB708610F4414CACE91BA7EC3203D1">
 			<Properties>
 				<bool name="DoubleSided">false</bool>
 				<bool name="HasJointOffset">false</bool>
 				<bool name="HasSkinnedMesh">false</bool>
 				<Vector3 name="InitialSize">
-					<X>2.50773811</X>
-					<Y>0.343874961</Y>
-					<Z>4.21772194</Z>
+					<X>373.797791</X>
+<Y>207.620331</Y>
+<Z>30.444801</Z>
 				</Vector3>
 				<Vector3 name="JointOffset">
 					<X>0</X>
 					<Y>0</Y>
 					<Z>0</Z>
 				</Vector3>
-				<Content name="MeshId"><url>rbxassetid://99693334411429</url></Content>
+				<Content name="MeshId"><url>rbxassetid://131999494417817</url></Content>
 				<BinaryString name="PhysicsData"></BinaryString>
 				<token name="RenderFidelity">0</token>
-				<Content name="TextureID"><url>rbxassetid://76984357073408</url></Content>
+				<Content name="TextureID"><null></null></Content>
 				<int name="VertexCount">0</int>
 				<token name="FluidFidelityInternal">0</token>
 				<bool name="InertiaMigrated">false</bool>
@@ -86,19 +86,19 @@
 				<token name="BottomSurface">0</token>
 				<token name="BottomSurfaceInput">0</token>
 				<CoordinateFrame name="CFrame">
-					<X>350.426727</X>
-					<Y>161.670013</Y>
-					<Z>-494.076141</Z>
-					<R00>0</R00>
-					<R01>0</R01>
-					<R02>-1</R02>
-					<R10>0</R10>
-					<R11>1</R11>
-					<R12>0</R12>
-					<R20>1</R20>
-					<R21>0</R21>
-					<R22>0</R22>
-				</CoordinateFrame>
+<X>0</X>
+<Y>0</Y>
+<Z>0</Z>
+<R00>0</R00>
+<R01>1</R01>
+<R02>0</R02>
+<R10>0</R10>
+<R11>0</R11>
+<R12>-1</R12>
+<R20>-1</R20>
+<R21>0</R21>
+<R22>0</R22>
+</CoordinateFrame>
 				<bool name="CanCollide">false</bool>
 				<bool name="CanQuery">false</bool>
 				<bool name="CanTouch">false</bool>
@@ -123,19 +123,19 @@
 				<token name="Material">256</token>
 				<string name="MaterialVariantSerialized"></string>
 				<CoordinateFrame name="PivotOffset">
-					<X>0.295349121</X>
-					<Y>0.0777587891</Y>
-					<Z>-0.0009765625</Z>
-					<R00>1</R00>
-					<R01>2.44929371e-16</R01>
-					<R02>-1.34342823e-23</R02>
-					<R10>-2.44929371e-16</R10>
-					<R11>1</R11>
-					<R12>-1.62920685e-07</R12>
-					<R20>-2.64697796e-23</R20>
-					<R21>1.62920685e-07</R21>
-					<R22>1</R22>
-				</CoordinateFrame>
+<X>0</X>
+<Y>0</Y>
+<Z>0</Z>
+<R00>0</R00>
+<R01>0</R01>
+<R02>-1</R02>
+<R10>1</R10>
+<R11>0</R11>
+<R12>0</R12>
+<R20>0</R20>
+<R21>-1</R21>
+<R22>0</R22>
+</CoordinateFrame>
 				<float name="Reflectance">0</float>
 				<float name="RightParamA">-0.5</float>
 				<float name="RightParamB">0.5</float>
@@ -158,9 +158,9 @@
 					<Z>0</Z>
 				</Vector3>
 				<Vector3 name="size">
-					<X>2.50773811</X>
-					<Y>0.343874961</Y>
-					<Z>4.21772194</Z>
+					<X>4.222752</X>
+<Y>2.345464</Y>
+<Z>0.343932</Z>
 				</Vector3>
 				<BinaryString name="AttributesSerialize"></BinaryString>
 				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -169,6 +169,37 @@
 				<int64 name="SourceAssetId">-1</int64>
 				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 			</Properties>
+			<Item class="SurfaceAppearance" referent="RBX014633DE36024F21A44335EAD1965F42">
+				<Properties>
+					<token name="AlphaMode">0</token>
+					<Color3 name="Color">
+						<R>1</R>
+						<G>1</G>
+						<B>1</B>
+					</Color3>
+					<Content name="ColorMap"><url>rbxassetid://123629765575834</url></Content>
+					<Content name="EmissiveMaskContent">
+						<null></null>
+					</Content>
+					<float name="EmissiveStrength">1</float>
+					<Color3 name="EmissiveTint">
+						<R>1</R>
+						<G>1</G>
+						<B>1</B>
+					</Color3>
+					<Content name="MetalnessMap"><url>rbxassetid://139220959576377</url></Content>
+					<Content name="NormalMap"><url>rbxassetid://78063734314137</url></Content>
+					<token name="ResampleMode">0</token>
+					<Content name="RoughnessMap"><url>rbxassetid://99239757572044</url></Content>
+					<Content name="TexturePack"><null></null></Content>
+					<BinaryString name="AttributesSerialize"></BinaryString>
+					<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+					<bool name="DefinesCapabilities">false</bool>
+					<string name="Name">SurfaceAppearance</string>
+					<int64 name="SourceAssetId">-1</int64>
+					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+				</Properties>
+			</Item>
 		</Item>
 	</Item>
 	<SharedStrings>

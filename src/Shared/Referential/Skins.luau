@@ -118,6 +118,55 @@ local Skins: { [SkinId]: Skin } = {
 		Price = 10000, -- TODO:RELEASE placeholder
 		Order = 12,
 	},
+	-- // Legacy fan skins: the first versions of the fans above. Admin-only (grantskin), so off sale and not in any crate.
+	SunsetPopFanLegacy = {
+		Name = "Sunset Pop (Legacy)",
+		Model = "SunsetPopFanLegacy",
+		WeaponClass = "ClassicBoomerang", -- TODO:RELEASE placeholder (every skin uses the Classic stats for now)
+		Price = 1000, -- TODO:RELEASE placeholder
+		Order = 13,
+		OffSale = true,
+	},
+	BambooBreezeFanLegacy = {
+		Name = "Bamboo Breeze (Legacy)",
+		Model = "BambooBreezeFanLegacy",
+		WeaponClass = "ClassicBoomerang", -- TODO:RELEASE placeholder (every skin uses the Classic stats for now)
+		Price = 1000, -- TODO:RELEASE placeholder
+		Order = 14,
+		OffSale = true,
+	},
+	TidalSurgeFanLegacy = {
+		Name = "Tidal Surge (Legacy)",
+		Model = "TidalSurgeFanLegacy",
+		WeaponClass = "ClassicBoomerang", -- TODO:RELEASE placeholder (every skin uses the Classic stats for now)
+		Price = 2500, -- TODO:RELEASE placeholder
+		Order = 15,
+		OffSale = true,
+	},
+	SakuraDriftFanLegacy = {
+		Name = "Sakura Drift (Legacy)",
+		Model = "SakuraDriftFanLegacy",
+		WeaponClass = "ClassicBoomerang", -- TODO:RELEASE placeholder (every skin uses the Classic stats for now)
+		Price = 2500, -- TODO:RELEASE placeholder
+		Order = 16,
+		OffSale = true,
+	},
+	MoonsongFanLegacy = {
+		Name = "Moonsong (Legacy)",
+		Model = "MoonsongFanLegacy",
+		WeaponClass = "ClassicBoomerang", -- TODO:RELEASE placeholder (every skin uses the Classic stats for now)
+		Price = 5000, -- TODO:RELEASE placeholder
+		Order = 17,
+		OffSale = true,
+	},
+	SunfirePhoenixFanLegacy = {
+		Name = "Sunfire Phoenix (Legacy)",
+		Model = "SunfirePhoenixFanLegacy",
+		WeaponClass = "ClassicBoomerang", -- TODO:RELEASE placeholder (every skin uses the Classic stats for now)
+		Price = 10000, -- TODO:RELEASE placeholder
+		Order = 18,
+		OffSale = true,
+	},
 }
 
 return Skins
