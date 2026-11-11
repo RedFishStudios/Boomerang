@@ -38,4 +38,24 @@ return {
 		AfkTrackOff = "rbxassetid://140404332176286", -- // Red track
 		AfkKnob = "rbxassetid://85483530910661",
 	},
+
+	-- // Inventory (and Index). Window and tabs are placeholders made from the client's art (Sol approved, uploaded to the
+	-- // group 2026-11-11; sources in Projects/Boomerang/Assets/ArtPipeline/InventoryUI): the window with its 4 painted
+	-- // tabs removed, and 5 tabs with their text removed (labels are drawn in-game).
+	InventoryScreen = {
+		Window = "rbxassetid://100569610070069", -- TODO:RELEASE placeholder (decal 80287353389307)
+		TabWeapons = "rbxassetid://115928986191252", -- TODO:RELEASE placeholder (decal 87673002689740)
+		TabEmotes = "rbxassetid://109084628721490", -- TODO:RELEASE placeholder (decal 113081464936121; green copy of Taunts)
+		TabCharges = "rbxassetid://110034879992377", -- TODO:RELEASE placeholder (decal 77204615083214)
+		TabStrikes = "rbxassetid://123322721123126", -- TODO:RELEASE placeholder (decal 132962245504393)
+		TabTaunts = "rbxassetid://137405929782054", -- TODO:RELEASE placeholder (decal 127549647543447)
+		-- // The client's own uploads
+		Close = "rbxassetid://80939948956702",
+		Equip = "rbxassetid://132460269560761", -- // Text painted out
+		Equipped = "rbxassetid://98784855760472", -- // Grey copy of Equip
+		CardNormal = "rbxassetid://116087380238399",
+		CardSelected = "rbxassetid://99224325157096",
+		CardEquipped = "rbxassetid://92633980617370",
+		Check = "rbxassetid://103175301119608", -- // Equipped badge
+	},
 }

@@ -141,34 +141,30 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
-### T-156 · Left HUD reskin with the client art, AFK toggle
+### T-157 · Inventory reskin with the client art
 - **Priority:** P2
 - **Owner:** Agent
-- **Area:** Client UI / Server
-- **Files:** `Client/UI/Gui/MenuButtons/init.luau`, `Client/UI/ClientArt/` (new: `Kit`, `Theme`, `Assets`), `Server/Core/PlayerSessionService.luau`, `Client/UI/Gui/Inventory/init.luau` + `Tabs/*.luau` (Index mode)
+- **Area:** Client UI
+- **Files:** `Client/UI/Gui/Inventory/init.luau`, `Client/UI/ClientArt/Assets.luau`
 
 **Problem / goal**
-Use the client's left HUD art (coin plank, Inventory / Shop / Index / Quests tiles, AFK toggle, Stats button) for the lobby menu, with a working AFK toggle and an Index.
+Use the client's Inventory art (window, tabs, item cards, Equip / Equipped buttons) for the Inventory and the Index, with our 5 tabs.
 
 **Done when**
-- [ ] The lobby menu shows the client's art; every tile opens its menu; the coins show the balance
-- [ ] The AFK toggle sits the player out of the next rounds and shows the current state
-- [ ] The Index tile opens the Inventory showing every item, owned or not
-- [ ] Daily and Settings are still reachable
+- [ ] The Inventory and the Index use the client's window, cards and buttons; 5 tabs (Weapons, Emotes, Charges, Strikes, Taunts) with their names drawn in-game
+- [ ] No "kill" in the tab art or text
 
 **Test in Studio**
-- Lobby: the left column shows coins, Inventory / Shop / Index / Quests tiles, AFK and Stats, with Daily and Settings in the old style underneath. Check at a small and a large window size.
-- Each tile and button opens its menu; hover grows / press squashes. Coins update after `givecurrency`.
-- AFK on with two players: the next round starts without you; AFK off: you're back in. `optout true` in Cmdr also flips the toggle.
-- Index: every weapon / emote / charge / strike / taunt on sale, unowned ones grey; clicking one shows it without an Equip button. Pressing the Inventory tile while the Index is open switches back.
+- Open the Inventory (and the Index) at a small and a large window size: the window, the 5 tabs down the left, the card grid and the detail panel line up with the art.
+- Switch tabs (the open one is bright, the others dimmed); select cards (selected / equipped card art, check badge on the equipped one); equip something.
+- Index: unowned cards are darkened; selecting one shows it without an Equip button.
 
 **Notes**
-- Sol, 2026-11-11: use the client's uploaded image ids (no re-upload); keep Daily and Settings as our older buttons under the new column; the Index tile opens the Inventory showing every item.
-- `MenuButtons` now builds the client's `LeftHud` layout (mockup pixels, scaled to 240 px wide at a 900 px tall screen) with the package's `Kit` helpers, ported to `Client/UI/ClientArt/` for the other reskins (T-157 to T-160). Art ids are in `ClientArt/Assets`. The topbar buttons are unchanged.
-- AFK: new `SetOptOut` remote and a replicated `OptedOut` Player attribute in `PlayerSessionService`; the toggle flips at once and then follows the attribute.
-- Index: each Inventory tab's `getItems(includeUnowned)` also lists items on sale the player doesn't own (off-sale items such as Legacy skins only show when owned).
+- Sol, 2026-11-11: 5 smaller tabs; Sol approved placeholder art made from the client's (the window with its 4 painted tabs removed, and 5 tabs with their text removed; Emotes is a green copy of Taunts, Strikes is the Kill Effects tab without text). Uploaded to group 293180599 (decals 80287353389307, 87673002689740, 113081464936121, 77204615083214, 132962245504393, 127549647543447); their image ids are in `ClientArt/Assets.InventoryScreen`, marked `TODO:RELEASE placeholder`. Sources in `Projects/Boomerang/Assets/ArtPipeline/InventoryUI`. Cards, Equip / Equipped, close and check are the client's own uploads.
+- The `.rbxmx` files aren't changed: `applyClientArt` (run when the menu loads) swaps the images and places everything at the client's layout (the package's `InventoryScreen` mockup rects, as fractions of the window). Card art now shows state (normal / selected / equipped + check); the old colour tints are gone.
+- The window placeholder comes from the 1011 px source, so it's a little softer than the client's original.
 - Not syntax-checked (no Luau tooling here) and not tested in Studio.
-- Branch `agent/T-156-left-hud`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`.
+- Branch `agent/T-157-inventory`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`.
 
 ### T-150 · Six new fan skins from the modeller's concept art
 - **Priority:** P1
@@ -621,25 +617,6 @@ In Server mode the aim direction shows correctly on the player's own screen, but
 
 > **Client package UI reskins (T-156 to T-160).** Reskin our existing GUIs with the client's art from `Downloads/Boomerang-ScripterPackage/SourceAssets/UIArtwork` (layout reference: the package's screen modules, extracted in T-152). Keep our controllers and data. Image ids are in the package's `AssetManifest.csv` (check ownership, T-152). Any art with baked-in text that says "Kill" must be redrawn or covered.
 
-### T-157 · Inventory reskin with the client art
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Client UI
-- **Files:** `Client/UI/Gui/Inventory/`
-
-**Problem / goal**
-Use the package's Inventory art (`UIArtwork/inventory`: window, tabs, item cards normal / selected / equipped, Equip button). Comes after T-153 and T-154, which add Strike Effects and Taunts.
-
-- The art has four tabs (Skins, Taunts, Arrows, Kill Effects); ours are Weapons, Emotes, Charges, Strikes, plus Taunts after T-154. The "Kill Effects" tab art (`tab_killeffects.png`, and the label baked into `window.png`) must say "Strike Effects" or similar.
-
-**Open questions (ask Sol first)**
-- Tab list and names; art for the extra tabs (Emotes)?
-
-**Done when**
-- [ ] The Inventory uses the client art with all our tabs, and no "kill" text
-
-**Notes**
-
 ### T-158 · Shop reskin with the client art
 - **Priority:** P2
 - **Owner:** Agent
@@ -1091,6 +1068,36 @@ Players enter a code to receive a reward. Server: validates the code (case-insen
 ---
 
 ## Done
+
+### T-156 · Left HUD reskin with the client art, AFK toggle
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client UI / Server
+- **Files:** `Client/UI/Gui/MenuButtons/init.luau`, `Client/UI/ClientArt/` (new: `Kit`, `Theme`, `Assets`), `Server/Core/PlayerSessionService.luau`, `Client/UI/Gui/Inventory/init.luau` + `Tabs/*.luau` (Index mode)
+
+**Problem / goal**
+Use the client's left HUD art (coin plank, Inventory / Shop / Index / Quests tiles, AFK toggle, Stats button) for the lobby menu, with a working AFK toggle and an Index.
+
+**Done when**
+- [ ] The lobby menu shows the client's art; every tile opens its menu; the coins show the balance
+- [ ] The AFK toggle sits the player out of the next rounds and shows the current state
+- [ ] The Index tile opens the Inventory showing every item, owned or not
+- [ ] Daily and Settings are still reachable
+
+**Test in Studio**
+- Lobby: the left column shows coins, Inventory / Shop / Index / Quests tiles, AFK and Stats, with Daily and Settings in the old style underneath. Check at a small and a large window size.
+- Each tile and button opens its menu; hover grows / press squashes. Coins update after `givecurrency`.
+- AFK on with two players: the next round starts without you; AFK off: you're back in. `optout true` in Cmdr also flips the toggle.
+- Index: every weapon / emote / charge / strike / taunt on sale, unowned ones grey; clicking one shows it without an Equip button. Pressing the Inventory tile while the Index is open switches back.
+
+**Notes**
+- Sol, 2026-11-11: use the client's uploaded image ids (no re-upload); keep Daily and Settings as our older buttons under the new column; the Index tile opens the Inventory showing every item.
+- `MenuButtons` now builds the client's `LeftHud` layout (mockup pixels, scaled to 240 px wide at a 900 px tall screen) with the package's `Kit` helpers, ported to `Client/UI/ClientArt/` for the other reskins (T-157 to T-160). Art ids are in `ClientArt/Assets`. The topbar buttons are unchanged.
+- AFK: new `SetOptOut` remote and a replicated `OptedOut` Player attribute in `PlayerSessionService`; the toggle flips at once and then follows the attribute.
+- Index: each Inventory tab's `getItems(includeUnowned)` also lists items on sale the player doesn't own (off-sale items such as Legacy skins only show when owned).
+- Not syntax-checked (no Luau tooling here) and not tested in Studio.
+- Branch `agent/T-156-left-hud`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`.
+- Shipped to `main` (0f3fe2c). Sol, 2026-11-11: tested, passed.
 
 ### T-152 · Bring in the client package's sources and models
 - **Priority:** P1

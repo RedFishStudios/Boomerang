@@ -7,9 +7,10 @@
 	The tab column (TABS) picks what the listing grid shows. A tab's content comes from the module with the same name
 	in Tabs/ (shape: InventoryTab below); a tab without a module is shown but inert.
 	Clicking an owned item's listing selects it and shows it in the Detail panel, which shows "Equipped" or an Equip
-	button. The equipped item is selected when the menu opens and its listing is green.
-	Models are shown with ItemViewport. Built from Inventory.rbxmx, InventoryListingTemplate.rbxmx and
-	InventoryTabTemplate.rbxmx. Tab ICON image labels stay empty when a tab has no Icon.
+	button. The equipped item is selected when the menu opens; its card is the green "equipped" card with a check badge.
+	Looks: the client's art and layout (ClientArt/Assets.InventoryScreen), applied over the .rbxmx files when the menu
+	loads (applyClientArt). Models are shown with ItemViewport. Built from Inventory.rbxmx, InventoryListingTemplate.rbxmx and
+	InventoryTabTemplate.rbxmx (their old images and the tab ICON labels are replaced or hidden).
 ]]
 
 local InventoryGui = {}
@@ -23,8 +24,7 @@ local TweenService = game:GetService("TweenService")
 
 local UIController = require(ReplicatedStorage.Client.UI.UIController)
 local ItemViewport = require(ReplicatedStorage.Client.UI.ItemViewport)
-local GuiColors = require(ReplicatedStorage.Shared.Referential.GuiColors)
-local Icons = require(ReplicatedStorage.Shared.Constants.Icons)
+local Art = require(ReplicatedStorage.Client.UI.ClientArt.Assets).InventoryScreen
 
 -------------------------------------------------------------------------------
 -- TYPES
@@ -54,23 +54,43 @@ export type InventoryTab = {
 -------------------------------------------------------------------------------
 
 -- // The tab column, top to bottom. A tab's content is Tabs/<Id>; tabs without a module are inert.
--- // Icon: image for the tab's ICON label (tabs without one keep the empty placeholder)
+-- // Image: the tab's art (ClientArt); its label is drawn over the art's empty lower part
 local TABS = {
-	{ Id = "Skins", Text = "Weapons", Color = Color3.fromRGB(165, 95, 200), Icon = Icons.InventoryButton },
-	{ Id = "Emotes", Text = "Emotes", Color = Color3.fromRGB(55, 170, 180) },
-	{ Id = "Arrows", Text = "Charges", Color = Color3.fromRGB(240, 165, 50), Icon = Icons.ChargeUpEffects }, -- // Charge up effects (module id is "Arrows")
-	{ Id = "Strikes", Text = "Strikes", Color = Color3.fromRGB(215, 70, 70), Icon = Icons.Eliminations }, -- // Elimination cosmetics
-	{ Id = "Taunts", Text = "Taunts", Color = Color3.fromRGB(70, 150, 230) }, -- // Taunts (played after a round)
+	{ Id = "Skins", Text = "Weapons", Image = Art.TabWeapons },
+	{ Id = "Emotes", Text = "Emotes", Image = Art.TabEmotes },
+	{ Id = "Arrows", Text = "Charges", Image = Art.TabCharges }, -- // Charge up effects (module id is "Arrows")
+	{ Id = "Strikes", Text = "Strikes", Image = Art.TabStrikes }, -- // Elimination cosmetics
+	{ Id = "Taunts", Text = "Taunts", Image = Art.TabTaunts }, -- // Taunts (played after a round)
 }
 local DEFAULT_TAB = "Skins"
-local INACTIVE_TAB_DARKEN = 0.25 -- // Darkening applied to tabs that aren't open
+local TAB_DIM = Color3.fromRGB(150, 150, 150) -- // Tint on tabs that aren't open
 
--- // Listing colors (listing.Art is grayscale, tinted with ImageColor3)
-local COLOR_OWNED = GuiColors.CommonItemFrame -- // Owned Common items (the only rarity colored)
-local COLOR_EQUIPPED = Color3.fromRGB(130, 215, 80)
-local COLOR_SELECTED = Color3.fromRGB(255, 225, 165) -- // Selected but not equipped
-local COLOR_LOCKED = Color3.fromRGB(140, 140, 140)
+-- // Listing card art by state; unowned items (Index) use the normal card, dimmed
+local LOCKED_TINT = Color3.fromRGB(120, 110, 105)
 local LOCKED_TEXT_TRANSPARENCY = 0.35
+
+-- // The client's layout, as fractions of the window art (its mockup canvas is 1714 x 1140): {x, y, w, h}
+local CANVAS = Vector2.new(1714, 1140)
+local LAYOUT = {
+	Close = { 1478, 80, 124, 120 },
+	Title = { 640, 60, 570, 104 }, -- // Over the ribbon, right of the star
+	Tabs = { 103, 207, 182, 754 }, -- // The tab column (5 tabs)
+	Listings = { 318, 253, 735, 732 }, -- // Card grid
+	Detail = { 1068, 254, 466, 712 }, -- // Right-hand panel
+}
+local TAB_HEIGHT, TAB_GAP = 0.188, 0.015 -- // Fractions of the tab column (5 tabs + 4 gaps = 1)
+local CARD = Vector2.new(233, 324) -- // Card art size; the grid has 3 columns
+local CARD_GAP = Vector2.new(12, 14)
+local CARD_ART = { 22, 42, 190, 200 } -- // Item preview inside a card
+local CARD_NAME = { 10, 244, 213, 52 }
+local CARD_CHECK = { 160, -4, 74, 74 } -- // Equipped badge over the card's top-right corner
+-- // Inside the Detail panel (canvas pixels, minus the panel's position)
+local DETAIL_NAME = { 24, 18, 422, 72 }
+local DETAIL_RARITY = { 24, 88, 422, 54 }
+local DETAIL_PREVIEW = { 62, 161, 325, 385 }
+local DETAIL_BUTTON = { 37, 541, 395, 135 } -- // Equip / Equipped
+local TEXT_COLOR = Color3.fromRGB(252, 243, 224)
+local TEXT_OUTLINE = Color3.fromRGB(70, 44, 28)
 
 local CONTAINER_TWEEN_INFO_IN = TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 local CONTAINER_TWEEN_INFO_OUT = TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In)
@@ -109,6 +129,105 @@ local indexMode = false -- // Index (the Index tile): every item, owned or not; 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
+
+-- // Cream lettering with a dark brown outline, like the client's art
+local function styleText(label: TextLabel)
+	label.Font = Enum.Font.FredokaOne
+	label.TextColor3 = TEXT_COLOR
+	local stroke = label:FindFirstChildOfClass("UIStroke")
+	if stroke then
+		stroke.Color = TEXT_OUTLINE
+	end
+end
+
+-- // Places a GUI object at a rect given in pixels of `space` ({w, h} of its parent's art). Centre-anchored, so hover
+-- // scaling grows it in place
+local function place(object: GuiObject, rect: { number }, space: Vector2)
+	object.AnchorPoint = Vector2.new(0.5, 0.5)
+	object.Position = UDim2.fromScale((rect[1] + rect[3] / 2) / space.X, (rect[2] + rect[4] / 2) / space.Y)
+	object.Size = UDim2.fromScale(rect[3] / space.X, rect[4] / space.Y)
+end
+
+-- // Restyles the window and templates (built for the old art) with the client's art and layout
+local function applyClientArt(content: Frame)
+	Container.Image = Art.Window
+	local aspect = Container:FindFirstChildOfClass("UIAspectRatioConstraint")
+	if aspect then
+		aspect.AspectRatio = CANVAS.X / CANVAS.Y
+	end
+
+	local exit = Container:WaitForChild("Exit") :: ImageButton
+	exit.Image = Art.Close
+	place(exit, LAYOUT.Close, CANVAS)
+	place(TitleLabel, LAYOUT.Title, CANVAS)
+	styleText(TitleLabel)
+
+	place(TabsFrame, LAYOUT.Tabs, CANVAS)
+	local tabLayout = TabsFrame:FindFirstChildOfClass("UIListLayout")
+	if tabLayout then
+		tabLayout.Padding = UDim.new(TAB_GAP, 0)
+	end
+
+	-- // The listings and the detail panel are placed on the whole window
+	content.Position = UDim2.fromScale(0, 0)
+	content.Size = UDim2.fromScale(1, 1)
+	place(ListingsFrame, LAYOUT.Listings, CANVAS)
+	local grid = ListingsFrame:FindFirstChildOfClass("UIGridLayout")
+	if grid then
+		local width, height = LAYOUT.Listings[3], LAYOUT.Listings[4]
+		grid.CellSize = UDim2.fromScale(CARD.X / width, CARD.Y / height)
+		grid.CellPadding = UDim2.fromScale(CARD_GAP.X / width, CARD_GAP.Y / height)
+		local cellAspect = grid:FindFirstChildOfClass("UIAspectRatioConstraint")
+		if cellAspect then
+			cellAspect.AspectRatio = CARD.X / CARD.Y
+		end
+	end
+
+	local detailSize = Vector2.new(LAYOUT.Detail[3], LAYOUT.Detail[4])
+	place(DetailPanel, LAYOUT.Detail, CANVAS)
+	DetailPanel.Art.Visible = false -- // The window art has the panel painted in
+	place(DetailPanel.ItemName, DETAIL_NAME, detailSize)
+	place(DetailPanel.Rarity, DETAIL_RARITY, detailSize)
+	place(DetailPanel.Viewport, DETAIL_PREVIEW, detailSize)
+	styleText(DetailPanel.ItemName)
+	styleText(DetailPanel.Rarity)
+	local equip = DetailPanel.Equip :: ImageButton
+	equip.Image = Art.Equip
+	place(equip, DETAIL_BUTTON, detailSize)
+	local equipAspect = equip:FindFirstChildOfClass("UIAspectRatioConstraint")
+	if equipAspect then
+		equipAspect.AspectRatio = DETAIL_BUTTON[3] / DETAIL_BUTTON[4]
+	end
+	styleText(equip.Label)
+	-- // "Equipped": the grey button art behind the status text
+	local status = DetailPanel.Status :: TextLabel
+	place(status, DETAIL_BUTTON, detailSize)
+	styleText(status)
+	local statusArt = Instance.new("ImageLabel")
+	statusArt.Name = "StatusArt"
+	statusArt.BackgroundTransparency = 1
+	statusArt.Image = Art.Equipped
+	statusArt.Size = UDim2.fromScale(1, 1)
+	statusArt.ZIndex = status.ZIndex - 1
+	statusArt.Parent = status
+
+	-- // Listing cards: the card art fills the cell; preview, name and the equipped badge on top
+	local cardArt = ListingTemplate.Art :: ImageLabel
+	cardArt.Image = Art.CardNormal
+	cardArt.Position = UDim2.fromScale(0, 0)
+	cardArt.Size = UDim2.fromScale(1, 1)
+	place(ListingTemplate.Viewport, CARD_ART, CARD)
+	place(ListingTemplate.ItemName, CARD_NAME, CARD)
+	styleText(ListingTemplate.ItemName)
+	local check = Instance.new("ImageLabel")
+	check.Name = "Check"
+	check.BackgroundTransparency = 1
+	check.Image = Art.Check
+	check.Visible = false
+	check.ZIndex = cardArt.ZIndex + 5
+	place(check, CARD_CHECK, CARD)
+	check.Parent = ListingTemplate
+end
 
 -- // Grows the button while hovered (through its UIScale, so it works inside layouts)
 local function setupButtonHover(button: GuiButton)
@@ -190,15 +309,13 @@ local function updateSelection()
 
 	for _, item in currentItems do
 		local listing = listings[item.Id]
-		if item.Equipped then
-			listing.Art.ImageColor3 = COLOR_EQUIPPED
-		elseif item.Id == selectedItemId then
-			listing.Art.ImageColor3 = COLOR_SELECTED
-		elseif not item.Owned then
-			listing.Art.ImageColor3 = COLOR_LOCKED
-		else
-			listing.Art.ImageColor3 = COLOR_OWNED
-		end
+		local art = listing.Art :: ImageLabel
+		art.Image = if item.Equipped
+			then Art.CardEquipped
+			elseif item.Id == selectedItemId then Art.CardSelected
+			else Art.CardNormal
+		art.ImageColor3 = if item.Owned or item.Id == selectedItemId then Color3.new(1, 1, 1) else LOCKED_TINT
+		listing.Check.Visible = item.Equipped
 	end
 
 	updateDetail()
@@ -259,9 +376,7 @@ end
 local function updateTabColors()
 	for _, tabInfo in TABS do
 		local button = tabButtons[tabInfo.Id]
-		button.ImageColor3 = if tabInfo.Id == currentTabId
-			then tabInfo.Color
-			else tabInfo.Color:Lerp(Color3.new(0, 0, 0), INACTIVE_TAB_DARKEN)
+		button.ImageColor3 = if tabInfo.Id == currentTabId then Color3.new(1, 1, 1) else TAB_DIM
 	end
 end
 
@@ -285,9 +400,12 @@ local function buildTabs()
 		button.Name = tabInfo.Id
 		button.LayoutOrder = order
 		button.Label.Text = tabInfo.Text
-		if tabInfo.Icon then
-			button.ICON.Image = `rbxassetid://{tabInfo.Icon}`
-		end
+		-- // The art has its icon painted in: the template's ICON label isn't used
+		button.Image = tabInfo.Image
+		button.ScaleType = Enum.ScaleType.Fit
+		button.Size = UDim2.fromScale(1, TAB_HEIGHT)
+		button.ICON.Visible = false
+		styleText(button.Label)
 		button.Parent = TabsFrame
 		tabButtons[tabInfo.Id] = button
 
@@ -395,6 +513,7 @@ local function _init()
 	local content = Container:WaitForChild("Content")
 	ListingsFrame = content:WaitForChild("Listings")
 	DetailPanel = content:WaitForChild("Detail")
+	applyClientArt(content)
 
 	containerGoalPosition = Container.Position
 	containerOffscreenPosition = containerGoalPosition - UDim2.fromScale(0, 1)
