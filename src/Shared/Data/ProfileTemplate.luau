@@ -55,6 +55,10 @@ export type Template = {
       [string]: boolean -- Elimination effect id (Shared/Referential/ElimEffects) : true. The default is owned without an entry
    },
    EquippedElimEffect: string, -- Elimination effect id ("Strike Effect") played on players this player eliminates
+   OwnedTaunts: {
+      [string]: boolean -- Taunt id (Shared/Referential/Taunts) : true. The default taunt is owned without an entry
+   },
+   EquippedTaunt: string, -- Taunt id played with T after a round
    Quests: {
       -- // Quest pool name (Shared/Referential/Quests) : its current quests (QuestLibrary.PoolData). Written only by QuestService
       [string]: {
@@ -106,6 +110,8 @@ function ProfileTemplate.get()
       EquippedEmote = "DefaultEmote",
       OwnedElimEffects = {},
       EquippedElimEffect = "DefaultElimEffect",
+      OwnedTaunts = {},
+      EquippedTaunt = "TooEasy",
       Quests = {},
       Settings = {},
       ProcessedReceipts = {},

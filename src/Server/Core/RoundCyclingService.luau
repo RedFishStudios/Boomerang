@@ -36,7 +36,7 @@ local GamemodeLogicModules = {}
 -- // ROUND_ENDED_DURATION: how long the RoundEnded phase lasts (winner screen, players still in the arena; not lobby time).
 local INTERMISSION_DURATION = 20
 local VOTE_DURATION = 60
-local ROUND_ENDED_DURATION = 5
+local ROUND_ENDED_DURATION = 10 -- // Long enough for a 6 s taunt (TauntLibrary.DURATION)
 
 -------------------------------------------------------------------------------
 -- TYPES

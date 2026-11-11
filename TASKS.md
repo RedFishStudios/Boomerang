@@ -54,35 +54,6 @@ What's wrong, or what should exist.
 
 > **Client scripter package (T-151 to T-160).** The client sent a package of taunts, elimination effects, fan trails and UI art (`Downloads/Boomerang-ScripterPackage`, with its own README). Sol's decisions (2026-11-10): port it onto **our** systems only (`PlayerDataService`, single `Currency`, `CosmeticLibrary`, `SimpleRemotes`): none of its own data code, DataStore (`PlayerStats_v1`), Gems, remotes, quests or install script. Reskin our existing GUIs with its art instead of using its code-built screens. Player-facing text never says "kill". Paid random items stay as they are for the prototype (to review before launch). Order: T-151 and T-152 first; then T-153 → T-154 (both touch `ProfileTemplate`, `CosmeticLibrary` and the Inventory); T-155 can run alongside them; the UI reskins (Backlog, T-156 to T-160) come after.
 
-### T-154 · Taunts: the package's four taunts as a cosmetic, in the end-of-round window
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Shared / Server / Client / Data
-- **Files:** `Shared/Referential/Taunts.luau` (new), `Shared/Library/TauntLibrary.luau` (new), `Server/Core/TauntService.luau` (new), `Client/Core/TauntController.luau` (new) + taunt modules (`Pose`, `Props`, `Effects`), `Shared/Data/ProfileTemplate.luau`, `Shared/Library/CosmeticLibrary.luau`, `Shared/Constants/InputConstants.luau`, `Client/UI/Screens/InputScreen` (touch button), `Client/UI/Gui/Inventory/` (new Taunts tab), `Server/Cmdr/Commands/GrantTaunt*.luau` (new)
-
-**Problem / goal**
-Port **Too Easy, Bonk!, Royal Treatment, Nap Time** from the package. Taunts are their **own** cosmetic category, separate from Emotes (winner pedestal), which stay as they are (Sol, 2026-11-10).
-
-- `OwnedTaunts` / `EquippedTaunt` in the profile, an `Equipped*` attribute in `CosmeticLibrary`, a Taunts tab in the Inventory.
-- Played with **T**, gamepad **Y**, or a touch button. Allowed **only in the end-of-round window** (T-151: round over, players still in the arena), never during a round or in the lobby. The server checks the phase and that the player is alive, then tells every client to play it.
-- Keep the package's scripted playback (`Pose.run` from keyframe tables): no animation uploads. Props from `Shared/Assets` (T-152). Bonk! uses the player's equipped skin.
-- Movement lock and clean-up as in the package (everything removed on finish, death or respawn), and also when the window ends.
-- Cmdr `granttaunt <players> <taunt>`; reach the window with `endround`.
-
-**Open questions (ask Sol first)**
-- The window is 5 s (`PRE_INTERMISSION_DURATION`) but every taunt is 6 s. Lengthen the window, shorten the taunts, or cut them off when players go back to the lobby?
-- Default taunt: does everyone own one (the package defaults to Too Easy)? Prices / rarities (placeholders until decided)?
-- Can players still be eliminated in the window? (If so, taunting there is safe only if no one can hit them.)
-
-**Done when**
-- [ ] Each taunt plays for everyone when its owner presses the key/button in the end-of-round window, and is refused at other times
-- [ ] Owned / equipped taunts save and show in the Inventory
-
-**Test in Studio**
-- `granttaunt me NapTime`, equip, `endround`, press T: the taunt plays and cleans up. Press T mid-round and in the lobby: nothing happens.
-
-**Notes**
-
 ### T-005 · Convert space-indented files to tabs
 - **Priority:** P2
 - **Owner:** Agent
@@ -169,6 +140,37 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 
 ## Review
+
+### T-154 · Taunts: the package's four taunts as a cosmetic, in the end-of-round window
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared / Server / Client / Data
+- **Files:** `Shared/Referential/Taunts.luau`, `Shared/Library/TauntLibrary.luau`, `Server/Core/TauntService.luau`, `Client/Core/TauntController/` (init + `Taunts/`: `TooEasy`, `Bonk`, `RoyalTreatment`, `NapTime`, helpers `Pose`, `Props`, `Effects`), `Client/UI/Gui/Inventory/Tabs/Taunts.luau`, `Client/UI/ShopCommon/Tabs/Taunts.luau`, `Server/Cmdr/Types/TauntType.luau`, `Server/Cmdr/Commands/GrantTaunt*.luau`, `Server/Cmdr/Commands/Taunt*.luau` (new); `Shared/Data/ProfileTemplate.luau`, `Shared/Library/CosmeticLibrary.luau`, `Server/Core/RoundCyclingService.luau`, `Client/UI/Gui/Inventory/init.luau`, `Client/UI/Gui/CosmeticsShop.luau`, shop listing files (`ShopItems`, `ShopListings`, `ShopController`, `ShopService`), `CLAUDE.md`
+
+**Problem / goal**
+Port **Too Easy, Bonk!, Royal Treatment, Nap Time** from the package as their own cosmetic category (separate from the winner-pedestal Emotes), played only in the end-of-round window (`RoundEnded`, T-151).
+
+**Done when**
+- [ ] Each taunt plays for everyone when its owner presses T (gamepad Y, or the touch button) right after a round, and is refused at other times
+- [ ] The taunting player can't move, jump or turn while it plays
+- [ ] Too Easy is owned and equipped by everyone; the others can be bought in Cosmetics Shop > Taunts; owned / equipped taunts save and show in Inventory > Taunts
+
+**Test in Studio**
+- Finish a round (or `endround`), press T within the first ~4 s of the winner screen: Too Easy plays (yawn, hands behind head, shoulder brush, big "EZ"). Press T mid-round and in the lobby: nothing.
+- `granttaunt me Bonk` (then `RoyalTreatment`, `NapTime`), equip in Inventory > Taunts, taunt again. Bonk! throws a small copy of your equipped weapon skin and it bonks your head; Royal Treatment lowers a crown; Nap Time puts you on a beach chair with Zzz.
+- `taunt` plays your equipped taunt anywhere (e.g. in the lobby) for quick looks.
+- Two players: each sees the other's taunt. Gamepad Y still recalls during rounds.
+- Watch for: the body pose matching the package's screenshots (`Downloads/.../Verification/03-06`); Nap Time's seat height on small/large avatars.
+
+**Notes**
+- Sol, 2026-11-10/11: taunts are separate from Emotes; only in the end-of-round window, which is now **10 s** (`ROUND_ENDED_DURATION` in `RoundCyclingService`, was 5); Too Easy is free and equipped by default. Players can't be eliminated in that window (hits are ignored once the round data is cleared), so taunting there is safe.
+- A taunt can start only with at least 6 s of the window left (`TauntLibrary.canTauntNow`), so it always finishes before players go back to the lobby.
+- Our rendered characters ignore joint `Transform` written from scripts, which is how the package animates. So `Pose.run` now samples each taunt's keyframes (and its procedural extras) at 30 fps into a KeyframeSequence, built once per taunt (Nap Time: once per avatar size) in `Shared.AnimationClips` on each client, and plays it with `KeyframeClipTrack`. The package's recorded 1.2 MB clip files weren't needed.
+- Bonk!'s prop is a scaled copy of the player's equipped weapon skin model (the package drew 2D skin art on a card). The taunt prop models in `Shared/Assets/Taunts` stay as reference; the package builds the chair and crown in code.
+- The taunter's own client plants them (it owns their movement); the server sets a `Taunting` attribute on the character for 6 s.
+- Placeholders (`-- TODO:RELEASE placeholder`): prices (500 / 1000 / 2500), rarities, Nap Time's icon (the package reused the Laugh card), the shop tab's emoji.
+- Not syntax-checked (no Luau tooling here) and not tested in Studio.
+- Branch `agent/T-154-taunts`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`.
 
 ### T-155 · Fan trails from the client package
 - **Priority:** P2
@@ -1228,7 +1230,7 @@ After a round ends, players stay in the arena for 5 s before going back to the l
 - Enum key renamed (value 1 unchanged, so nothing on the network changes); `PRE_INTERMISSION_DURATION` renamed `ROUND_ENDED_DURATION`; comments updated, including one on `LivingPlayersInArena = {}` saying players are still in the arena. Players go to the lobby when `SpawnService` sees `LobbyVoting` / `PendingPlayers`.
 - CLAUDE.md "Round cycle" now has a sub-bullet about the phase.
 - Branch `agent/T-151-round-ended-phase`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`. This branch also added tasks T-152 to T-160 to the board, and set every round to 10 s (`ROUND_LENGTH` in `Gamemodes.luau`; Sol, 2026-11-10).
-- Shipped to `main` (cb0dd9f, ace1899). Sol, 2026-11-10: tested, works.
+- Shipped to `main` (4c7416f, 66d673b). Sol, 2026-11-10: tested, works.
 
 ### T-140 · Experimental PC control scheme, toggled with P (client test)
 - **Priority:** P2

@@ -59,6 +59,7 @@ local TABS = {
 	{ Id = "Emotes", Text = "Emotes", Color = Color3.fromRGB(55, 170, 180) },
 	{ Id = "Arrows", Text = "Charges", Color = Color3.fromRGB(240, 165, 50), Icon = Icons.ChargeUpEffects }, -- // Charge up effects (module id is "Arrows")
 	{ Id = "Strikes", Text = "Strikes", Color = Color3.fromRGB(215, 70, 70), Icon = Icons.Eliminations }, -- // Elimination cosmetics
+	{ Id = "Taunts", Text = "Taunts", Color = Color3.fromRGB(70, 150, 230) }, -- // Taunts (played after a round)
 }
 local DEFAULT_TAB = "Skins"
 local INACTIVE_TAB_DARKEN = 0.25 -- // Darkening applied to tabs that aren't open

@@ -2,7 +2,7 @@
 	CosmeticsShop
 
 	Description:
-	The Cosmetics Shop. Tabs: Charge Effects, Strike Effects (elimination effects) and Emotes. Built by ShopCommon/ShopBuilder.
+	The Cosmetics Shop. Tabs: Charge Effects, Strike Effects (elimination effects), Emotes and Taunts. Built by ShopCommon/ShopBuilder.
 	Opened by the Shop button (lobby and topbar, MenuButtons). In Studio, N toggles this shop and B the Weapons Shop.
 ]]
 
@@ -13,6 +13,7 @@ local Icons = require(ReplicatedStorage.Shared.Constants.Icons)
 local ChargeEffectsTab = require(ReplicatedStorage.Client.UI.ShopCommon.Tabs.ChargeEffects)
 local EmotesTab = require(ReplicatedStorage.Client.UI.ShopCommon.Tabs.Emotes)
 local ElimEffectsTab = require(ReplicatedStorage.Client.UI.ShopCommon.Tabs.ElimEffects)
+local TauntsTab = require(ReplicatedStorage.Client.UI.ShopCommon.Tabs.Taunts)
 
 local BACKGROUND_IMAGE = 94533454566099 -- // 1024 x 696
 local ASPECT_RATIO = 1024 / 696
@@ -44,6 +45,12 @@ return ShopBuilder.create({
 			Name = "Emotes",
 			Icon = "🎵", -- // PLACEHOLDER emoji
 			Tab = EmotesTab,
+		},
+		{
+			Id = "Taunts",
+			Name = "Taunts",
+			Icon = "😜", -- // PLACEHOLDER emoji
+			Tab = TauntsTab,
 		},
 	},
 })

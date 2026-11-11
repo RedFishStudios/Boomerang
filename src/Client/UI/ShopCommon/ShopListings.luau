@@ -21,6 +21,8 @@ local EmoteLibrary = require(ReplicatedStorage.Shared.Library.EmoteLibrary)
 local EmoteController = require(ReplicatedStorage.Client.Core.EmoteController)
 local ElimEffectLibrary = require(ReplicatedStorage.Shared.Library.ElimEffectLibrary)
 local ElimEffectController = require(ReplicatedStorage.Client.Core.ElimEffectController)
+local TauntLibrary = require(ReplicatedStorage.Shared.Library.TauntLibrary)
+local TauntController = require(ReplicatedStorage.Client.Core.TauntController)
 local RarityStyles = require(script.Parent.RarityStyles)
 local CrateLibrary = require(ReplicatedStorage.Shared.Library.CrateLibrary)
 
@@ -30,7 +32,7 @@ local CrateLibrary = require(ReplicatedStorage.Shared.Library.CrateLibrary)
 
 export type ListingDisplay = {
 	Id: string,
-	Type: string, -- // "Item" | "Skin" | "ChargeUpEffect" | "Emote" | "ElimEffect" | "Crate"
+	Type: string, -- // "Item" | "Skin" | "ChargeUpEffect" | "Emote" | "ElimEffect" | "Taunt" | "Crate"
 	Name: string,
 	ModelName: string?, -- // Model in Shared/Assets/Tools shown in the listing's viewport
 	IconImage: number?, -- // Charge up effects: GUI image asset id shown instead of a model
@@ -113,6 +115,24 @@ function ShopListings.getDisplay(listing: { Type: string, Id: string }): Listing
 			Price = elimEffect.Price,
 			ProductId = elimEffect.ProductId,
 			Owned = ElimEffectController.ownsElimEffect(listing.Id),
+		}
+	end
+
+	if listing.Type == "Taunt" then
+		local taunt = TauntLibrary.getTaunt(listing.Id)
+		if not taunt or taunt.OffSale then
+			return nil
+		end
+		return {
+			Id = listing.Id,
+			Type = listing.Type,
+			Name = taunt.Name,
+			IconImage = taunt.Icon,
+			IconGlyph = taunt.PlaceholderGlyph or "?",
+			Rarity = taunt.Rarity or RarityStyles.DEFAULT_RARITY,
+			Price = taunt.Price,
+			ProductId = taunt.ProductId,
+			Owned = TauntController.ownsTaunt(listing.Id),
 		}
 	end
 

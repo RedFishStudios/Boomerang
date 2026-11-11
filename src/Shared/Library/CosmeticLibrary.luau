@@ -18,7 +18,7 @@ local CosmeticLibrary = {}
 -- TYPES
 -------------------------------------------------------------------------------
 
-export type Category = "Skin" | "ChargeUpEffect" | "WinningEmote" | "ElimEffect"
+export type Category = "Skin" | "ChargeUpEffect" | "WinningEmote" | "ElimEffect" | "Taunt"
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -30,6 +30,7 @@ CosmeticLibrary.ATTRIBUTES = {
 	ChargeUpEffect = "EquippedChargeUpEffect",
 	WinningEmote = "EquippedWinningEmote",
 	ElimEffect = "EquippedElimEffect",
+	Taunt = "EquippedTaunt",
 } :: { [Category]: string }
 
 -------------------------------------------------------------------------------
