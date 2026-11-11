@@ -19,6 +19,8 @@ local ChargeUpEffectLibrary = require(ReplicatedStorage.Shared.Library.ChargeUpE
 local ChargeUpEffectController = require(ReplicatedStorage.Client.Core.ChargeUpEffectController)
 local EmoteLibrary = require(ReplicatedStorage.Shared.Library.EmoteLibrary)
 local EmoteController = require(ReplicatedStorage.Client.Core.EmoteController)
+local ElimEffectLibrary = require(ReplicatedStorage.Shared.Library.ElimEffectLibrary)
+local ElimEffectController = require(ReplicatedStorage.Client.Core.ElimEffectController)
 local RarityStyles = require(script.Parent.RarityStyles)
 local CrateLibrary = require(ReplicatedStorage.Shared.Library.CrateLibrary)
 
@@ -28,7 +30,7 @@ local CrateLibrary = require(ReplicatedStorage.Shared.Library.CrateLibrary)
 
 export type ListingDisplay = {
 	Id: string,
-	Type: string, -- // "Item" | "Skin" | "ChargeUpEffect" | "Emote" | "Crate"
+	Type: string, -- // "Item" | "Skin" | "ChargeUpEffect" | "Emote" | "ElimEffect" | "Crate"
 	Name: string,
 	ModelName: string?, -- // Model in Shared/Assets/Tools shown in the listing's viewport
 	IconImage: number?, -- // Charge up effects: GUI image asset id shown instead of a model
@@ -93,6 +95,24 @@ function ShopListings.getDisplay(listing: { Type: string, Id: string }): Listing
 			Price = chargeUpEffect.Price,
 			ProductId = chargeUpEffect.ProductId,
 			Owned = ChargeUpEffectController.ownsChargeUpEffect(listing.Id),
+		}
+	end
+
+	if listing.Type == "ElimEffect" then
+		local elimEffect = ElimEffectLibrary.getElimEffect(listing.Id)
+		if not elimEffect or elimEffect.OffSale then
+			return nil
+		end
+		return {
+			Id = listing.Id,
+			Type = listing.Type,
+			Name = elimEffect.Name,
+			IconImage = elimEffect.Icon,
+			IconGlyph = elimEffect.PlaceholderGlyph or "?",
+			Rarity = elimEffect.Rarity or RarityStyles.DEFAULT_RARITY,
+			Price = elimEffect.Price,
+			ProductId = elimEffect.ProductId,
+			Owned = ElimEffectController.ownsElimEffect(listing.Id),
 		}
 	end
 

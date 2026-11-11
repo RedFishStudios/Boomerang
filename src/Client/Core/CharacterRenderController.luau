@@ -13,6 +13,7 @@ local CharacterRenderLibrary = require(ReplicatedStorage.Shared.Library.Characte
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local MapData = require(ReplicatedStorage.Shared.Constants.MapData)
 local Disguise = require(ReplicatedStorage.Shared.Logics.PickupLogics.Disguise)
+local ElimEffectLibrary = require(ReplicatedStorage.Shared.Library.ElimEffectLibrary)
 local CharacterMovementController = require(ReplicatedStorage.Client.Core.CharacterMovementController)
 
 local TasksList = require(ReplicatedStorage.Shared.Classes.TasksList)
@@ -608,7 +609,13 @@ local function syncCharacterPositions(player, character, targetModel)
    end
    if targetHumanoid.Health <= 0 then
       if not ragdollApplied[player] then
-         applyRagdoll(player, character)
+         if ElimEffectLibrary.getMarked(targetHumanoid) then
+            -- // An elimination effect will play on this body (ElimEffectController): no ragdoll, so it keeps its
+            -- // pose. Still flagged, so the model is treated as dead and rebuilt like a ragdolled one.
+            ragdollApplied[player] = true
+         else
+            applyRagdoll(player, character)
+         end
       end
       return
    end
