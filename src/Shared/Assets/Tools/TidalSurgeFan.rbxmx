@@ -46,7 +46,7 @@
 <R22>1</R22>
 </CFrame>
 </OptionalCoordinateFrame>
-			<BinaryString name="AttributesSerialize"><![CDATA[AQAAAAcAAABNb3RvckMwFCI7ZD4sKn2/ZafFPgBxEeK+Pz5wPtezXb9CPvC+cRFivwAAAADfx0O/hQ7QPv///z4=]]></BinaryString>
+			<BinaryString name="AttributesSerialize"><![CDATA[AQAAAAcAAABNb3RvckMwFCI7ZD4sKn2/ZafFPgBuEeI+Pz5wPtizXT9CPvA+cRFivwAAAADgx0M/hQ7QPv3//74=]]></BinaryString>
 			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
 			<bool name="DefinesCapabilities">false</bool>
 			<string name="Name">TidalSurgeFan</string>

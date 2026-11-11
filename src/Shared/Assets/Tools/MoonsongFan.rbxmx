@@ -46,7 +46,7 @@
 <R22>1</R22>
 </CFrame>
 </OptionalCoordinateFrame>
-			<BinaryString name="AttributesSerialize"><![CDATA[AQAAAAcAAABNb3RvckMwFCI7ZD4sKn2/ZafFPgDXs10/Pz5wPnER4r4AAAAAcRFiv0I+8L7///++hQ7QPt/HQ78=]]></BinaryString>
+			<BinaryString name="AttributesSerialize"><![CDATA[AQAAAAcAAABNb3RvckMwFCI7ZD4sKn2/ZafFPgDYs12/Pz5wPm4R4j4AAAAAcRFiv0I+8D79//8+hQ7QPuDHQz8=]]></BinaryString>
 			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
 			<bool name="DefinesCapabilities">false</bool>
 			<string name="Name">MoonsongFan</string>
