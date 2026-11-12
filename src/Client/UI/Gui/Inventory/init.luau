@@ -3,7 +3,8 @@
 
 	Description:
 	The Inventory menu, opened from the Inventory tile in the left lobby menu (MenuButtons). The Index tile opens the
-	same menu as the Index (toggleIndex): every item on sale, owned or not; unowned ones are grey and can be looked at.
+	same menu as the Index (toggleIndex), as in the client's package: every item on sale, owned or not (unowned ones
+	darkened), titled "Index: <tab>", with Owned / Locked instead of Equip and where each item comes from (item.Source).
 	The tab column (TABS) picks what the listing grid shows. A tab's content comes from the module with the same name
 	in Tabs/ (shape: InventoryTab below); a tab without a module is shown but inert.
 	Clicking an owned item's listing selects it and shows it in the Detail panel, which shows "Equipped" or an Equip
@@ -40,6 +41,7 @@ export type InventoryItem = {
 	EmoteAnimationId: string?, -- // Instead of a model (emotes): animation asset id played by the EmotesRig
 	Owned: boolean,
 	Equipped: boolean,
+	Source: string?, -- // Where the item comes from, e.g. "From the Fan Crate" (shown in the Index)
 }
 
 export type InventoryTab = {
@@ -89,6 +91,7 @@ local DETAIL_NAME = { 24, 18, 422, 72 }
 local DETAIL_RARITY = { 24, 88, 422, 54 }
 local DETAIL_PREVIEW = { 62, 161, 325, 385 }
 local DETAIL_BUTTON = { 37, 541, 395, 135 } -- // Equip / Equipped
+local DETAIL_SOURCE = { 24, 488, 422, 48 } -- // Index only: where the item comes from (over the bottom of the preview)
 local TEXT_COLOR = Color3.fromRGB(252, 243, 224)
 local TEXT_OUTLINE = Color3.fromRGB(70, 44, 28)
 
@@ -188,6 +191,13 @@ local function applyClientArt(content: Frame)
 	DetailPanel.Art.Visible = false -- // The window art has the panel painted in
 	place(DetailPanel.ItemName, DETAIL_NAME, detailSize)
 	place(DetailPanel.Rarity, DETAIL_RARITY, detailSize)
+	local source = DetailPanel.Rarity:Clone()
+	source.Name = "Source"
+	source.Text = ""
+	source.Visible = false
+	source.Parent = DetailPanel
+	place(source, DETAIL_SOURCE, detailSize)
+	styleText(source)
 	place(DetailPanel.Viewport, DETAIL_PREVIEW, detailSize)
 	styleText(DetailPanel.ItemName)
 	styleText(DetailPanel.Rarity)
@@ -258,6 +268,20 @@ local function setupButtonHover(button: GuiButton)
 	end)
 end
 
+-- // The title on the ribbon: the tab's own in the Inventory, "Index: <tab name>" in the Index
+local function getTitle(tabId: string): string
+	if indexMode then
+		for _, tabInfo in TABS do
+			if tabInfo.Id == tabId then
+				return `Index: {tabInfo.Text}`
+			end
+		end
+		return "Index"
+	end
+	local tab = tabModules[tabId]
+	return if tab then tab.Title else ""
+end
+
 local function findItem(itemId: string?): InventoryItem?
 	for _, item in currentItems do
 		if item.Id == itemId then
@@ -297,8 +321,21 @@ local function updateDetail()
 	local item = findItem(selectedItemId)
 	DetailPanel.ItemName.Text = if item then item.Name else ""
 	DetailPanel.Rarity.Text = if item then item.Rarity or "" else ""
-	DetailPanel.Status.Visible = item ~= nil and item.Equipped
-	DetailPanel.Equip.Visible = item ~= nil and item.Owned and not item.Equipped
+	if indexMode then
+		-- // The Index only says whether the item is owned, and where it comes from
+		DetailPanel.Status.Text = if item and item.Owned then "Owned" else "Locked"
+		DetailPanel.Status.Visible = item ~= nil
+		DetailPanel.Equip.Visible = false
+	else
+		DetailPanel.Status.Text = "Equipped"
+		DetailPanel.Status.Visible = item ~= nil and item.Equipped
+		DetailPanel.Equip.Visible = item ~= nil and item.Owned and not item.Equipped
+	end
+	local source = DetailPanel:FindFirstChild("Source") :: TextLabel?
+	if source then
+		source.Text = if item and item.Source then item.Source else ""
+		source.Visible = indexMode and item ~= nil and item.Source ~= nil
+	end
 
 	local itemId = item and item.Id
 	if itemId ~= detailItemId then
@@ -395,7 +432,7 @@ local function selectTab(tabId: string)
 
 	currentTabId = tabId
 	selectedItemId = nil -- // Starts on the tab's equipped item
-	TitleLabel.Text = if indexMode then "Index" else tab.Title
+	TitleLabel.Text = getTitle(tabId)
 	ListingsFrame.CanvasPosition = Vector2.zero
 	updateTabColors()
 	refreshListings()
@@ -455,7 +492,7 @@ local function setIndexMode(value: boolean)
 	indexMode = value
 	local tab = currentTabId and tabModules[currentTabId]
 	if tab then
-		TitleLabel.Text = if indexMode then "Index" else tab.Title
+		TitleLabel.Text = getTitle(currentTabId :: string)
 	end
 	selectedItemId = nil -- // Starts on the equipped item
 	refreshListings()

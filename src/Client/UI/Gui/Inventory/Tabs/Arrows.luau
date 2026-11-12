@@ -45,6 +45,7 @@ function ArrowsTab.getItems(includeUnowned: boolean?)
 				IconGlyph = chargeUpEffect.PlaceholderGlyph or "?",
 				Owned = ChargeUpEffectController.ownsChargeUpEffect(chargeUpEffectId),
 				Equipped = chargeUpEffectId == equippedId,
+				Source = if chargeUpEffect.Default then "Everyone has it" elseif chargeUpEffect.OffSale then "Special" else "Sold in the Cosmetics Shop",
 			})
 		end
 	end

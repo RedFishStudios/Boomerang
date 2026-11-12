@@ -14,6 +14,26 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SkinLibrary = require(ReplicatedStorage.Shared.Library.SkinLibrary)
 local SkinController = require(ReplicatedStorage.Client.Core.SkinController)
 local Tools = require(ReplicatedStorage.Shared.Constants.Tools)
+local CrateLibrary = require(ReplicatedStorage.Shared.Library.CrateLibrary)
+
+-- // Where a weapon comes from (shown in the Index): the crate that can give it, else how else it's owned
+local function getSource(skinId: string): string
+	local skin = SkinLibrary.getSkin(skinId)
+	if skin and skin.Default then
+		return "Starter weapon"
+	end
+	for _, crateId in CrateLibrary.getSortedCrateIds() do
+		local crate = CrateLibrary.getCrate(crateId)
+		if crate and not crate.OffSale then
+			for _, entry in CrateLibrary.getEntries(crateId) do
+				if entry.SkinId == skinId then
+					return `From the {crate.Name}`
+				end
+			end
+		end
+	end
+	return if skin and skin.OffSale then "Special" else "Not available yet"
+end
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -46,6 +66,7 @@ function SkinsTab.getItems(includeUnowned: boolean?)
 				ModelName = skin.Model,
 				Owned = SkinController.ownsSkin(skinId),
 				Equipped = skinId == equippedSkinId,
+				Source = getSource(skinId),
 			})
 		end
 	end
