@@ -37,18 +37,30 @@ return {
 		AfkTrackOn = "rbxassetid://128081804518008", -- // Green track
 		AfkTrackOff = "rbxassetid://140404332176286", -- // Red track
 		AfkKnob = "rbxassetid://85483530910661",
+		-- // Blank pieces made from the client's art (Sol approved, uploaded to the group 2026-11-11; sources in
+		-- // Projects/Boomerang/Assets/ArtPipeline/HudUI). No text or icons painted in: those are instances.
+		RibbonBlank = "rbxassetid://84048326857216", -- // Tile ribbon, no label (decal 124770894646124)
+		CoinsBlank = "rbxassetid://121015077879334", -- // Coin plank, no coins (decal 72613805244743)
+		AfkFrameBlank = "rbxassetid://86482601617503", -- // No "AFK" (decal 113107929392068)
+		StatsBlank = "rbxassetid://100091781409398", -- // Teal button, no icon or "Stats" (decal 84108479099038)
+		IconCoins = "rbxassetid://139285801889097", -- // The client's coin icon (decal 104975043270108)
+		IconStats = "rbxassetid://96402700613329", -- // The client's bar-chart icon (decal 126596162842988)
 	},
 
-	-- // Inventory (and Index). Window and tabs are placeholders made from the client's art (Sol approved, uploaded to the
-	-- // group 2026-11-11; sources in Projects/Boomerang/Assets/ArtPipeline/InventoryUI): the window with its 4 painted
-	-- // tabs removed, and 5 tabs with their text removed (labels are drawn in-game).
+	-- // Inventory (and Index). Blank pieces made from the client's art (Sol approved, uploaded to the group 2026-11-11;
+	-- // sources in Projects/Boomerang/Assets/ArtPipeline/InventoryUI): the window with its painted tabs and badge
+	-- // removed, and 5 tab buttons redrawn blank. Tab icons and labels are instances.
 	InventoryScreen = {
-		Window = "rbxassetid://100569610070069", -- TODO:RELEASE placeholder (decal 80287353389307)
-		TabWeapons = "rbxassetid://115928986191252", -- TODO:RELEASE placeholder (decal 87673002689740)
-		TabEmotes = "rbxassetid://109084628721490", -- TODO:RELEASE placeholder (decal 113081464936121; green copy of Taunts)
-		TabCharges = "rbxassetid://110034879992377", -- TODO:RELEASE placeholder (decal 77204615083214)
-		TabStrikes = "rbxassetid://123322721123126", -- TODO:RELEASE placeholder (decal 132962245504393)
-		TabTaunts = "rbxassetid://137405929782054", -- TODO:RELEASE placeholder (decal 127549647543447)
+		Window = "rbxassetid://95342522239169", -- // Blank ribbon, no badge (decal 127693540784571)
+		TabWeapons = "rbxassetid://104470389661279", -- // Purple (decal 93535809841315)
+		TabEmotes = "rbxassetid://95318017172558", -- // Green (decal 98553801748384)
+		TabCharges = "rbxassetid://97480453072272", -- // Yellow (decal 135328828759361)
+		TabStrikes = "rbxassetid://70952811695340", -- // Red (decal 71054766095276)
+		TabTaunts = "rbxassetid://127122996185733", -- // Teal (decal 130342524204446)
+		-- // Tab icons: the client's item icons (Weapons uses the Stats boomerang, StatsScreen.IconElims)
+		IconTaunt = "rbxassetid://95015399525254", -- // Laughing figure, Emotes and Taunts (decal 132804332134419)
+		IconCharge = "rbxassetid://102385757405683", -- // Cream arrow (decal 108994969519196)
+		IconStrike = "rbxassetid://125895051003768", -- // Skull (decal 74646763313831)
 		-- // The client's own uploads
 		Close = "rbxassetid://80939948956702",
 		Equip = "rbxassetid://132460269560761", -- // Text painted out
@@ -59,10 +71,16 @@ return {
 		Check = "rbxassetid://103175301119608", -- // Equipped badge
 	},
 
-	-- // Stats menu (the client's own uploads): the window has its labels and icons painted in; numbers are live text
+	-- // Stats menu: blank window and card icons made from the client's Stats art (Sol approved, uploaded to the group
+	-- // 2026-11-11; sources in Projects/Boomerang/Assets/ArtPipeline/StatsUI). Titles, headers, labels and numbers are
+	-- // instances. Close is the client's own upload.
 	StatsScreen = {
-		Window = "rbxassetid://117972552516440",
+		Window = "rbxassetid://78889924364694", -- // (decal 88993017209910)
 		Close = "rbxassetid://99387041915365",
+		IconElims = "rbxassetid://121421234003952", -- // Boomerang (decal 96451088103144)
+		IconDefeats = "rbxassetid://115317449494823", -- // Broken shield (decal 106974828345175)
+		IconWins = "rbxassetid://112602315457811", -- // Trophy with laurels (decal 83075288880331)
+		IconLosses = "rbxassetid://110184146477831", -- // Red flag (decal 131876269322029)
 	},
 
 	-- // Quests menu: blank pieces made from the client's Quests art (Sol approved, uploaded to the group 2026-11-11; sources in

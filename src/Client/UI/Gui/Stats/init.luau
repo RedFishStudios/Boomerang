@@ -2,9 +2,10 @@
 	Stats
 
 	Description:
-	The Stats menu, opened from the Stats button in the left lobby menu (MenuButtons). The client's Stats art (from the
-	client's scripter package, StatsScreen): the local player's headshot, display name and @username, a "Current match"
-	row (this round's elims and defeats) and four all-time cards (Elims, Defeats, Wins, Losses).
+	The Stats menu, opened from the Stats button in the left lobby menu (MenuButtons). Blank art made from the client's
+	Stats art, with every title, header, icon and number as an instance: the local player's headshot, display name and
+	@username, a "Current match" row (this round's elims and defeats) and four all-time cards (Elims, Defeats, Wins,
+	Losses).
 	Values come from the attributes the server puts on each Player (Shared/Constants/PlayerStatAttributes, written by
 	LifetimeStatsService); Losses is rounds played minus wins. Built in code with the ClientArt Kit; art ids in
 	ClientArt/Assets.StatsScreen.
@@ -29,6 +30,7 @@ local PlayerStatAttributes = require(ReplicatedStorage.Shared.Constants.PlayerSt
 local Kit = require(ReplicatedStorage.Client.UI.ClientArt.Kit)
 local Theme = require(ReplicatedStorage.Client.UI.ClientArt.Theme)
 local Art = require(ReplicatedStorage.Client.UI.ClientArt.Assets).StatsScreen
+local HudArt = require(ReplicatedStorage.Client.UI.ClientArt.Assets).LeftHud -- // The bar-chart icon
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
@@ -42,7 +44,27 @@ local AVATAR_RADIUS = 20
 local DISPLAY_NAME = { 615, 196, 400, 62 }
 local USERNAME = { 615, 262, 400, 38 }
 local MATCH_NAME = { 262, 500, 420, 52 }
-local TEXT_SIZE = { Name = 62, Username = 36, Row = 44, Number = 82 }
+local TEXT_SIZE = { Name = 62, Username = 36, Row = 44, Number = 82, Header = 40, Plaque = 52, Banner = 110 }
+
+-- // Lettering and pictures over the blank art (where the mockup painted them)
+local BANNER_ICON = { 455, 25, 110, 115 }
+local BANNER_TEXT = { 585, 28, 370, 110 }
+local PLAQUES = {
+	{ Text = "Current Match", Rect = { 480, 362, 490, 58 } },
+	{ Text = "All Time", Rect = { 590, 604, 272, 54 } },
+}
+local HEADERS = {
+	{ Text = "Player", Rect = { 262, 437, 200, 46 }, Align = Enum.TextXAlignment.Left },
+	{ Text = "Elims", Rect = { 762, 437, 160, 46 } },
+	{ Text = "Defeats", Rect = { 1027, 437, 160, 46 } },
+}
+-- // The four all-time cards: icon rect (the icon art's own size) and label rect
+local CARDS = {
+	{ Text = "Elims", Icon = "IconElims", IconRect = { 270, 684, 123, 115 }, LabelRect = { 213, 796, 223, 46 } },
+	{ Text = "Defeats", Icon = "IconDefeats", IconRect = { 526, 686, 132, 113 }, LabelRect = { 477, 796, 222, 46 } },
+	{ Text = "Wins", Icon = "IconWins", IconRect = { 764, 684, 184, 115 }, LabelRect = { 745, 796, 222, 46 } },
+	{ Text = "Losses", Icon = "IconLosses", IconRect = { 1055, 683, 137, 116 }, LabelRect = { 1010, 796, 226, 46 } },
+}
 
 -- // Each number on the window: where it goes, its size, and the Player attribute it shows
 local VALUES = {
@@ -135,6 +157,46 @@ local function build()
 	local matchName = printed("MatchName", MATCH_NAME, TEXT_SIZE.Row, Enum.TextXAlignment.Left)
 	matchName.Text = player.DisplayName
 	matchName.Parent = root
+
+	-- // Banner: bar-chart icon and title
+	Kit.image("ImageLabel", HudArt.IconStats, BANNER_ICON[1], BANNER_ICON[2], BANNER_ICON[3], BANNER_ICON[4], {
+		Name = "BannerIcon",
+		ScaleType = Enum.ScaleType.Fit,
+		ZIndex = 2,
+		Parent = root,
+	})
+	Kit.label("STATS", TEXT_SIZE.Banner, {
+		Name = "BannerTitle",
+		Position = UDim2.fromOffset(BANNER_TEXT[1], BANNER_TEXT[2]),
+		Size = UDim2.fromOffset(BANNER_TEXT[3], BANNER_TEXT[4]),
+		ZIndex = 2,
+		Parent = root,
+	})
+	for _, plaque in PLAQUES do
+		Kit.label(string.upper(plaque.Text), TEXT_SIZE.Plaque, {
+			Name = plaque.Text,
+			Position = UDim2.fromOffset(plaque.Rect[1], plaque.Rect[2]),
+			Size = UDim2.fromOffset(plaque.Rect[3], plaque.Rect[4]),
+			ZIndex = 2,
+			Parent = root,
+		})
+	end
+	for _, header in HEADERS do
+		local label = printed(`Header{header.Text}`, header.Rect, TEXT_SIZE.Header, header.Align)
+		label.Text = header.Text
+		label.TextColor3 = Theme.Colors.InkSoft
+		label.Parent = root
+	end
+	for _, card in CARDS do
+		Kit.image("ImageLabel", Art[card.Icon], card.IconRect[1], card.IconRect[2], card.IconRect[3], card.IconRect[4], {
+			Name = `{card.Text}Icon`,
+			ZIndex = 2,
+			Parent = root,
+		})
+		local label = printed(`{card.Text}Label`, card.LabelRect, TEXT_SIZE.Header)
+		label.Text = card.Text
+		label.Parent = root
+	end
 
 	for _, value in VALUES do
 		local label = printed(value.Attribute, value.Rect, value.Size)

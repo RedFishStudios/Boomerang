@@ -26,6 +26,7 @@ local TweenService = game:GetService("TweenService")
 local UIController = require(ReplicatedStorage.Client.UI.UIController)
 local ItemViewport = require(ReplicatedStorage.Client.UI.ItemViewport)
 local Art = require(ReplicatedStorage.Client.UI.ClientArt.Assets).InventoryScreen
+local StatsArt = require(ReplicatedStorage.Client.UI.ClientArt.Assets).StatsScreen -- // The boomerang icon
 
 -------------------------------------------------------------------------------
 -- TYPES
@@ -58,14 +59,15 @@ export type InventoryTab = {
 -- // The tab column, top to bottom. A tab's content is Tabs/<Id>; tabs without a module are inert.
 -- // Image: the tab's art (ClientArt); its label is drawn over the art's empty lower part
 local TABS = {
-	{ Id = "Skins", Text = "Weapons", Image = Art.TabWeapons },
-	{ Id = "Emotes", Text = "Emotes", Image = Art.TabEmotes },
-	{ Id = "Arrows", Text = "Charges", Image = Art.TabCharges }, -- // Charge up effects (module id is "Arrows")
-	{ Id = "Strikes", Text = "Strikes", Image = Art.TabStrikes }, -- // Elimination cosmetics
-	{ Id = "Taunts", Text = "Taunts", Image = Art.TabTaunts }, -- // Taunts (played after a round)
+	{ Id = "Skins", Text = "Weapons", Image = Art.TabWeapons, Icon = StatsArt.IconElims },
+	{ Id = "Emotes", Text = "Emotes", Image = Art.TabEmotes, Icon = Art.IconTaunt },
+	{ Id = "Arrows", Text = "Charges", Image = Art.TabCharges, Icon = Art.IconCharge }, -- // Charge up effects (module id is "Arrows")
+	{ Id = "Strikes", Text = "Strikes", Image = Art.TabStrikes, Icon = Art.IconStrike }, -- // Elimination cosmetics
+	{ Id = "Taunts", Text = "Taunts", Image = Art.TabTaunts, Icon = Art.IconTaunt }, -- // Taunts (played after a round)
 }
 local DEFAULT_TAB = "Skins"
 local TAB_DIM = Color3.fromRGB(150, 150, 150) -- // Tint on tabs that aren't open
+local TAB_ICON = { 0.5, 0.08, 0.7, 0.56 } -- // Icon inside a tab button: centre x, top y, width, height (scale)
 
 -- // Listing card art by state; unowned items (Index) use the normal card, dimmed
 local LOCKED_TINT = Color3.fromRGB(120, 110, 105)
@@ -75,7 +77,7 @@ local LOCKED_TEXT_TRANSPARENCY = 0.35
 local CANVAS = Vector2.new(1714, 1140)
 local LAYOUT = {
 	Close = { 1478, 80, 124, 120 },
-	Title = { 640, 60, 570, 104 }, -- // Over the ribbon, right of the star
+	Title = { 440, 58, 835, 104 }, -- // Centred on the ribbon
 	Tabs = { 103, 207, 182, 754 }, -- // The tab column (5 tabs)
 	Listings = { 318, 253, 735, 732 }, -- // Card grid
 	Detail = { 1068, 254, 466, 712 }, -- // Right-hand panel
@@ -165,6 +167,7 @@ local function applyClientArt(content: Frame)
 	place(exit, LAYOUT.Close, CANVAS)
 	place(TitleLabel, LAYOUT.Title, CANVAS)
 	styleText(TitleLabel)
+	TitleLabel.TextXAlignment = Enum.TextXAlignment.Center
 
 	place(TabsFrame, LAYOUT.Tabs, CANVAS)
 	local tabLayout = TabsFrame:FindFirstChildOfClass("UIListLayout")
@@ -442,7 +445,9 @@ end
 local function updateTabColors()
 	for _, tabInfo in TABS do
 		local button = tabButtons[tabInfo.Id]
-		button.ImageColor3 = if tabInfo.Id == currentTabId then Color3.new(1, 1, 1) else TAB_DIM
+		local color = if tabInfo.Id == currentTabId then Color3.new(1, 1, 1) else TAB_DIM
+		button.ImageColor3 = color
+		button.ICON.ImageColor3 = color
 	end
 end
 
@@ -466,11 +471,18 @@ local function buildTabs()
 		button.Name = tabInfo.Id
 		button.LayoutOrder = order
 		button.Label.Text = tabInfo.Text
-		-- // The art has its icon painted in: the template's ICON label isn't used
+		-- // Blank tab art; the icon is the template's ICON label, over the top of the tab, above the name
 		button.Image = tabInfo.Image
 		button.ScaleType = Enum.ScaleType.Fit
 		button.Size = UDim2.fromScale(1, TAB_HEIGHT)
-		button.ICON.Visible = false
+		local icon = button.ICON
+		icon.Image = tabInfo.Icon
+		icon.BackgroundTransparency = 1
+		icon.ScaleType = Enum.ScaleType.Fit
+		icon.AnchorPoint = Vector2.new(0.5, 0)
+		icon.Position = UDim2.fromScale(TAB_ICON[1], TAB_ICON[2])
+		icon.Size = UDim2.fromScale(TAB_ICON[3], TAB_ICON[4])
+		icon.Visible = true
 		styleText(button.Label)
 		button.Parent = TabsFrame
 		tabButtons[tabInfo.Id] = button

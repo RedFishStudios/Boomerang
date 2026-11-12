@@ -141,119 +141,25 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
-### T-159 · Quests menu reskin with the client art
+### T-161 · Rebuild the HUD, Inventory and Stats menus from blank art
 - **Priority:** P2
-- **Owner:** Agent
-- **Area:** Client UI / Shared
-- **Files:** `Client/UI/Gui/Quests/init.luau`, `Client/UI/ClientArt/Assets.luau`, `Shared/Referential/Quests.luau`, `Shared/Library/QuestLibrary.luau`
+- **Owner:** Agent (Sol approves every image before upload)
+- **Area:** Client UI / Art
+- **Files:** `Client/UI/Gui/MenuButtons/init.luau`, `Client/UI/Gui/Inventory/init.luau`, `Client/UI/Gui/Stats/init.luau`, `Client/UI/ClientArt/Assets.luau`
 
 **Problem / goal**
-Replace the placeholder Quests look (T-144) with the client's Quests design, add a Season quest pool, and build the menu from blank art with all text, icons and pictures as instances.
+Like the Quests menu (T-159): the lobby HUD, Inventory and Stats still use client art with text and icons painted in (the HUD tile ribbons and icons, "AFK", "Stats", the Inventory's tab pictures, the Stats banner, labels and card icons). Cut blank versions (colored backgrounds and frames only, smooth fills, solid edges, transparent outside) and draw all text, icons and pictures as instances.
 
 **Done when**
-- [ ] Daily / Weekly / Season tabs switch the three quest cards; the open pool's countdown shows in the timer
-- [ ] Each card shows the task, the coin reward, progress, a Claim / In-Progress / Claimed button and a reroll button
-- [ ] No text, icon or picture is painted into the uploaded art
-
-**Test in Studio**
-- Open Quests from the lobby: frame, title, tabs with icons, timer and 3 cards line up; check at a small and a large window size.
-- Switch tabs; Season shows 3 quests and a countdown to 1 Jan 2027.
-- `questprogress me` finishes quests: the button turns green "Claim"; claim one (coins go up, "Claimed!"). Reroll one.
+- [x] The three menus look as now, but no text, icon or picture is painted into their art
 
 **Notes**
-- Sol, 2026-11-11: add a Season pool. The client's package only gives a season end date (1 Jan 2027 UTC) and no schedule, so it's that date (`Quests.SEASON_ENDS_AT`, `TODO:RELEASE placeholder`); set a new date to start the next season. 3 slots, 2,500 coins each (placeholder), six placeholder season quests. New reset period `"Season"` in `QuestLibrary` (period key = the end date).
-- Sol, 2026-11-11: the art must be blank: no text, icons or pictures painted in; everything else is a Roblox instance. Agent cut a blank set from the client's Quests art (Sol approved every image): frame (blank ribbon; the emblem stays), card, progress track, tab on / off (drawn fresh), timer pill (drawn fresh), close button, plus the client's standalone X / clock / calendar / season icons. Uploaded to group 293180599; ids in `ClientArt/Assets.QuestsScreen` (with their decal ids). Sources in `Projects/Boomerang/Assets/ArtPipeline/QuestsUI`. The green / grey card buttons are the client's own blank uploads.
-- The client's reward badges were "XP" and a skull; cards now show our coin icon. XP isn't explained anywhere in the client's package (only used as a quest goal and reward).
-- Reroll kept as a small button in each card's blue area (Sol).
-- The card picture area is empty for now (room for a quest picture later).
-- Not syntax-checked (no Luau tooling here) and not tested in Studio.
-- Branch `agent/T-159-quests`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`.
-
-### T-160 · Stats menu reskin with the client art
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Client UI
-- **Files:** `Client/UI/Gui/Stats/init.luau`, `Client/UI/ClientArt/Assets.luau`
-
-**Problem / goal**
-Use the client's Stats art: avatar, name, a "Current match" row (elims, defeats) and all-time cards (Elims, Defeats, Wins, Losses).
-
-**Done when**
-- [ ] The Stats menu shows the client's window with the local player's headshot, names, this round's elims / defeats and all-time Elims / Defeats / Wins / Losses
-- [ ] The numbers update while it's open
-
-**Test in Studio**
-- Open Stats from the lobby menu: the window fits the screen; headshot, display name and @username show.
-- Play a round: the Current match numbers follow your elims / defeats; all-time numbers match the right-hand Stats panel.
-- Close with the X, the Stats button or another menu.
-
-**Notes**
-- Sol, 2026-11-11: Losses stays as now (rounds played minus wins, ties count as losses; the saved `Losses` field stays unused); use the client's layout first and review it after it ships.
-- The menu is rebuilt in code with the ClientArt `Kit` window (the package's `StatsScreen`); values come from the `PlayerStatAttributes` attributes. No uploads: it uses the client's window and close-button ids.
-- No longer shown here (still saved): time played, games played, throws, ability uses, pickups. The card icons in `Icons` (`Stats*`) are now unused by this menu.
-- Not syntax-checked (no Luau tooling here) and not tested in Studio.
-- Branch `agent/T-160-stats`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`.
-
-### T-157 · Inventory reskin with the client art
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Client UI
-- **Files:** `Client/UI/Gui/Inventory/init.luau`, `Client/UI/ClientArt/Assets.luau`
-
-**Problem / goal**
-Use the client's Inventory art (window, tabs, item cards, Equip / Equipped buttons) for the Inventory and the Index, with our 5 tabs.
-
-**Done when**
-- [ ] The Inventory and the Index use the client's window, cards and buttons; 5 tabs (Weapons, Emotes, Charges, Strikes, Taunts) with their names drawn in-game
-- [ ] No "kill" in the tab art or text
-
-**Test in Studio**
-- Open the Inventory (and the Index) at a small and a large window size: the window, the 5 tabs down the left, the card grid and the detail panel line up with the art.
-- Switch tabs (the open one is bright, the others dimmed); select cards (selected / equipped card art, check badge on the equipped one); equip something.
-- Index: unowned cards are darkened; selecting one shows it without an Equip button.
-
-**Notes**
-- Sol, 2026-11-11: 5 smaller tabs; Sol approved placeholder art made from the client's (the window with its 4 painted tabs removed, and 5 tabs with their text removed; Emotes is a green copy of Taunts, Strikes is the Kill Effects tab without text). Uploaded to group 293180599 (decals 80287353389307, 87673002689740, 113081464936121, 77204615083214, 132962245504393, 127549647543447); their image ids are in `ClientArt/Assets.InventoryScreen`, marked `TODO:RELEASE placeholder`. Sources in `Projects/Boomerang/Assets/ArtPipeline/InventoryUI`. Cards, Equip / Equipped, close and check are the client's own uploads.
-- The `.rbxmx` files aren't changed: `applyClientArt` (run when the menu loads) swaps the images and places everything at the client's layout (the package's `InventoryScreen` mockup rects, as fractions of the window). Card art now shows state (normal / selected / equipped + check); the old colour tints are gone.
-- The window placeholder comes from the 1011 px source, so it's a little softer than the client's original.
-- Not syntax-checked (no Luau tooling here) and not tested in Studio.
-- Sol, 2026-11-11: make the Index match the client's package (`InventoryScreen` index mode): title "Index: <tab>", Owned / Locked instead of Equip, and where each item comes from (`Source` from each tab, kept short per Sol: the crate's name for weapons, "Cosmetics Shop", "Default", "Special", "Unavailable"). Status text (Equipped / Owned / Locked) sits in the button's inner text area.
-- Sol, 2026-11-11: list order is the equipped item, then owned items, then unowned ones (each group in the tab's own order); applies to the Inventory and the Index.
-- Branch `agent/T-157-inventory`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`.
-
-### T-150 · Six new fan skins from the modeller's concept art
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Shared / Assets
-- **Files:** `Shared/Assets/Tools/{SunsetPop,BambooBreeze,TidalSurge,SakuraDrift,Moonsong,SunfirePhoenix}Fan.rbxmx`, `Shared/Referential/Skins.luau`, `Shared/Constants/Tools.luau`
-
-**Problem / goal**
-Add the six fans from "Modeller Official Boomerang Weapons #1" as Fans skins: Sunset Pop and Bamboo Breeze (Common), Tidal Surge and Sakura Drift (Rare), Moonsong (Epic), Sunfire Phoenix (Legendary).
-
-**Done when**
-- [ ] All six show in the Weapons Shop's Fan tab with the right rarity colours, can be bought and equipped, and are held and thrown like ClassicFan.
-
-**Test in Studio**
-- Weapons Shop → Fan tab: six new listings after Placeholder Fan, with the right rarities and models in the viewports.
-- `grantskin <you> SunsetPopFan` (and the other ids), equip each: check how it sits in the hand, how it looks thrown, and that the canopy faces the same way as ClassicFan.
-- Weapons Shop → Fan Crate: its contents list shows all eight fans with their chances; open a few crates (`givecurrency` for funds) and check you receive the new fans.
-- Final vs Legacy: the shop and crate show only the final models (no "(Legacy)" entries). `grantskin <you> SunsetPopFanLegacy` (and the other `...Legacy` ids) grants the first versions; equip one and compare with the final one. Check the final fans' size, grip, patterned side outward, and previews.
-
-**Notes**
-- Branch `agent/T-150-fan-skins`, lane `Github/Boomerang-lanes/T-150-fan-skins`.
-- Skin ids / model names / Tools ids: `SunsetPopFan`, `BambooBreezeFan`, `TidalSurgeFan`, `SakuraDriftFan`, `MoonsongFan`, `SunfirePhoenixFan`.
-- Models are built from `ClassicFan.rbxmx`: same `MotorC0` grip attribute and handle orientation, each with its own MeshId/TextureID/size. The texture is a plain `TextureID` (no SurfaceAppearance); ClassicFan's mesh-specific physics cache was removed, so Studio recomputes it.
-- Meshes and textures are group assets (group 293180599), uploaded from the art pipeline in `C:\MY FILES\Projects\Boomerang\Assets\ArtPipeline\Fans` (per-skin `status.md` has the asset ids).
-- Rarity comes from each model's `Tools.luau` entry (the shop reads it there). Stats copied from ClassicFan.
-- Fan Crate (2026-11-11): the six now have a `CrateWeight` by rarity: Common 70, Rare 25, Epic 8, Legendary 2. With ClassicFan (70) and PlaceholderFan (30) the crate's total is 300, so the odds are about 23.3% per Common, 10% PlaceholderFan, 8.3% per Rare, 2.7% Moonsong, 0.7% Sunfire Phoenix.
-- `TODO:RELEASE placeholder`: `WeaponClass = "ClassicBoomerang"` (same as every skin), prices 1000 / 2500 / 5000 / 10000 by rarity, and the crate weights.
-- `rojo build` passes. Not lint-checked (Selene isn't set up in this repo's rokit manifest). The `.rbxmx` files need a look in Studio.
-- **Final models (2026-11-11, Sol):** Sol's new models replaced the first versions under the same skin ids, so owners of e.g. `SunsetPopFan` now get the new model, and only these are in the shop and the Fan Crate. Built from the Workspace models `SunsetFan`, `BambooFan`, `Surge`, `SakuraFan`, `MoonsongFan`, `SunfireFan` (their own mesh + SurfaceAppearance maps, uploaded by Sol), scaled by 0.3134 so Sunset Pop matches ClassicFan's 4.22-stud width (proportions between fans kept). Their meshes use different axes from ClassicFan (canopy along +Y; patterned side +Z for four, -X for Moonsong/Sunfire), so each handle is rotated into ClassicFan's frame, `PivotOffset` turns it back (model pivot = ClassicFan's handle frame, so viewports and throws use ClassicFan's rotation) and `MotorC0` is ClassicFan's grip times the same rotation.
-- Grip flip on the final models (2026-11-11, Sol: "handles need to be flipped 180 degrees again"): their `MotorC0` is now ClassicFan's grip × 180° about the canopy axis × R (same grip point). Viewports unchanged (Sol said the rest looked good). Legacy models unchanged.
-- **Legacy copies:** the first versions are now `<id>Legacy` skins/models/Tools entries (e.g. `SunsetPopFanLegacy`, "Sunset Pop (Legacy)"): `OffSale`, no `CrateWeight`, so they're only reachable with `grantskin` (the Cmdr `skin` type lists every skin id). Model files were renamed with `git mv`.
-- Flip (2026-11-11, Sol: the patterned side faced inward when held; applies to the Legacy models now): each model's `MotorC0` is now ClassicFan's grip turned 180° about the fan's canopy axis (same grip point), and the six `Tools.luau` viewport rotations got the same turn so previews show the patterned side. Not changed: thrown fans (posed by the weapon logic, not the grip), so check which side shows when thrown.
-
----
+- Sol, 2026-11-11: do this after T-159, as its own task. Show every image before uploading.
+- 2026-11-11: done, in **Review**. Branch `agent/T-161-blank-art`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`. All new art was approved by Sol and uploaded to the group; ids in `ClientArt/Assets` (sources in `Projects/Boomerang/Assets/ArtPipeline/HudUI`, `StatsUI`, `InventoryUI`).
+  - HUD: blank tile ribbon (tile names are text), coin plank (coin icon is an image), AFK frame ("AFK" is text), Stats button (icon + text).
+  - Stats: blank window; banner icon/title, plaque titles, column headers, card icons (cut from the client's window) and card labels are instances.
+  - Inventory: blank window (badge removed, title centred on the ribbon); 5 tab buttons redrawn blank; tab icons are the client's item icons (Weapons uses the Stats boomerang).
+  - **Check in Studio:** placement and size of all new lettering and icons (HUD tiles, AFK, Stats button, Stats menu, Inventory tabs and title). No syntax check was run (Selene/StyLua aren't set up for this project).
 
 ### T-081 · Decoy can be hit → eliminate + smoke poof
 - **Priority:** P0
@@ -669,21 +575,6 @@ In Server mode the aim direction shows correctly on the player's own screen, but
 
 
 ## Backlog
-
-### T-161 · Rebuild the HUD, Inventory and Stats menus from blank art
-- **Priority:** P2
-- **Owner:** Agent (Sol approves every image before upload)
-- **Area:** Client UI / Art
-- **Files:** `Client/UI/Gui/MenuButtons/init.luau`, `Client/UI/Gui/Inventory/init.luau`, `Client/UI/Gui/Stats/init.luau`, `Client/UI/ClientArt/Assets.luau`
-
-**Problem / goal**
-Like the Quests menu (T-159): the lobby HUD, Inventory and Stats still use client art with text and icons painted in (the HUD tile ribbons and icons, "AFK", "Stats", the Inventory's tab pictures, the Stats banner, labels and card icons). Cut blank versions (colored backgrounds and frames only, smooth fills, solid edges, transparent outside) and draw all text, icons and pictures as instances.
-
-**Done when**
-- [ ] The three menus look as now, but no text, icon or picture is painted into their art
-
-**Notes**
-- Sol, 2026-11-11: do this after T-159, as its own task. Show every image before uploading.
 
 > **Client package UI reskins (T-156 to T-160).** Reskin our existing GUIs with the client's art from `Downloads/Boomerang-ScripterPackage/SourceAssets/UIArtwork` (layout reference: the package's screen modules, extracted in T-152). Keep our controllers and data. Image ids are in the package's `AssetManifest.csv` (check ownership, T-152). Any art with baked-in text that says "Kill" must be redrawn or covered.
 
@@ -1101,6 +992,124 @@ Players enter a code to receive a reward. Server: validates the code (case-insen
 ---
 
 ## Done
+
+### T-150 · Six new fan skins from the modeller's concept art
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared / Assets
+- **Files:** `Shared/Assets/Tools/{SunsetPop,BambooBreeze,TidalSurge,SakuraDrift,Moonsong,SunfirePhoenix}Fan.rbxmx`, `Shared/Referential/Skins.luau`, `Shared/Constants/Tools.luau`
+
+**Problem / goal**
+Add the six fans from "Modeller Official Boomerang Weapons #1" as Fans skins: Sunset Pop and Bamboo Breeze (Common), Tidal Surge and Sakura Drift (Rare), Moonsong (Epic), Sunfire Phoenix (Legendary).
+
+**Done when**
+- [ ] All six show in the Weapons Shop's Fan tab with the right rarity colours, can be bought and equipped, and are held and thrown like ClassicFan.
+
+**Test in Studio**
+- Weapons Shop → Fan tab: six new listings after Placeholder Fan, with the right rarities and models in the viewports.
+- `grantskin <you> SunsetPopFan` (and the other ids), equip each: check how it sits in the hand, how it looks thrown, and that the canopy faces the same way as ClassicFan.
+- Weapons Shop → Fan Crate: its contents list shows all eight fans with their chances; open a few crates (`givecurrency` for funds) and check you receive the new fans.
+- Final vs Legacy: the shop and crate show only the final models (no "(Legacy)" entries). `grantskin <you> SunsetPopFanLegacy` (and the other `...Legacy` ids) grants the first versions; equip one and compare with the final one. Check the final fans' size, grip, patterned side outward, and previews.
+
+**Notes**
+- Branch `agent/T-150-fan-skins`, lane `Github/Boomerang-lanes/T-150-fan-skins`.
+- Skin ids / model names / Tools ids: `SunsetPopFan`, `BambooBreezeFan`, `TidalSurgeFan`, `SakuraDriftFan`, `MoonsongFan`, `SunfirePhoenixFan`.
+- Models are built from `ClassicFan.rbxmx`: same `MotorC0` grip attribute and handle orientation, each with its own MeshId/TextureID/size. The texture is a plain `TextureID` (no SurfaceAppearance); ClassicFan's mesh-specific physics cache was removed, so Studio recomputes it.
+- Meshes and textures are group assets (group 293180599), uploaded from the art pipeline in `C:\MY FILES\Projects\Boomerang\Assets\ArtPipeline\Fans` (per-skin `status.md` has the asset ids).
+- Rarity comes from each model's `Tools.luau` entry (the shop reads it there). Stats copied from ClassicFan.
+- Fan Crate (2026-11-11): the six now have a `CrateWeight` by rarity: Common 70, Rare 25, Epic 8, Legendary 2. With ClassicFan (70) and PlaceholderFan (30) the crate's total is 300, so the odds are about 23.3% per Common, 10% PlaceholderFan, 8.3% per Rare, 2.7% Moonsong, 0.7% Sunfire Phoenix.
+- `TODO:RELEASE placeholder`: `WeaponClass = "ClassicBoomerang"` (same as every skin), prices 1000 / 2500 / 5000 / 10000 by rarity, and the crate weights.
+- `rojo build` passes. Not lint-checked (Selene isn't set up in this repo's rokit manifest). The `.rbxmx` files need a look in Studio.
+- **Final models (2026-11-11, Sol):** Sol's new models replaced the first versions under the same skin ids, so owners of e.g. `SunsetPopFan` now get the new model, and only these are in the shop and the Fan Crate. Built from the Workspace models `SunsetFan`, `BambooFan`, `Surge`, `SakuraFan`, `MoonsongFan`, `SunfireFan` (their own mesh + SurfaceAppearance maps, uploaded by Sol), scaled by 0.3134 so Sunset Pop matches ClassicFan's 4.22-stud width (proportions between fans kept). Their meshes use different axes from ClassicFan (canopy along +Y; patterned side +Z for four, -X for Moonsong/Sunfire), so each handle is rotated into ClassicFan's frame, `PivotOffset` turns it back (model pivot = ClassicFan's handle frame, so viewports and throws use ClassicFan's rotation) and `MotorC0` is ClassicFan's grip times the same rotation.
+- Grip flip on the final models (2026-11-11, Sol: "handles need to be flipped 180 degrees again"): their `MotorC0` is now ClassicFan's grip × 180° about the canopy axis × R (same grip point). Viewports unchanged (Sol said the rest looked good). Legacy models unchanged.
+- **Legacy copies:** the first versions are now `<id>Legacy` skins/models/Tools entries (e.g. `SunsetPopFanLegacy`, "Sunset Pop (Legacy)"): `OffSale`, no `CrateWeight`, so they're only reachable with `grantskin` (the Cmdr `skin` type lists every skin id). Model files were renamed with `git mv`.
+- Flip (2026-11-11, Sol: the patterned side faced inward when held; applies to the Legacy models now): each model's `MotorC0` is now ClassicFan's grip turned 180° about the fan's canopy axis (same grip point), and the six `Tools.luau` viewport rotations got the same turn so previews show the patterned side. Not changed: thrown fans (posed by the weapon logic, not the grip), so check which side shows when thrown.
+
+---
+- Sol, 2026-11-11: passed review.
+
+### T-159 · Quests menu reskin with the client art
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client UI / Shared
+- **Files:** `Client/UI/Gui/Quests/init.luau`, `Client/UI/ClientArt/Assets.luau`, `Shared/Referential/Quests.luau`, `Shared/Library/QuestLibrary.luau`
+
+**Problem / goal**
+Replace the placeholder Quests look (T-144) with the client's Quests design, add a Season quest pool, and build the menu from blank art with all text, icons and pictures as instances.
+
+**Done when**
+- [ ] Daily / Weekly / Season tabs switch the three quest cards; the open pool's countdown shows in the timer
+- [ ] Each card shows the task, the coin reward, progress, a Claim / In-Progress / Claimed button and a reroll button
+- [ ] No text, icon or picture is painted into the uploaded art
+
+**Test in Studio**
+- Open Quests from the lobby: frame, title, tabs with icons, timer and 3 cards line up; check at a small and a large window size.
+- Switch tabs; Season shows 3 quests and a countdown to 1 Jan 2027.
+- `questprogress me` finishes quests: the button turns green "Claim"; claim one (coins go up, "Claimed!"). Reroll one.
+
+**Notes**
+- Sol, 2026-11-11: add a Season pool. The client's package only gives a season end date (1 Jan 2027 UTC) and no schedule, so it's that date (`Quests.SEASON_ENDS_AT`, `TODO:RELEASE placeholder`); set a new date to start the next season. 3 slots, 2,500 coins each (placeholder), six placeholder season quests. New reset period `"Season"` in `QuestLibrary` (period key = the end date).
+- Sol, 2026-11-11: the art must be blank: no text, icons or pictures painted in; everything else is a Roblox instance. Agent cut a blank set from the client's Quests art (Sol approved every image): frame (blank ribbon; the emblem stays), card, progress track, tab on / off (drawn fresh), timer pill (drawn fresh), close button, plus the client's standalone X / clock / calendar / season icons. Uploaded to group 293180599; ids in `ClientArt/Assets.QuestsScreen` (with their decal ids). Sources in `Projects/Boomerang/Assets/ArtPipeline/QuestsUI`. The green / grey card buttons are the client's own blank uploads.
+- The client's reward badges were "XP" and a skull; cards now show our coin icon. XP isn't explained anywhere in the client's package (only used as a quest goal and reward).
+- Reroll kept as a small button in each card's blue area (Sol).
+- The card picture area is empty for now (room for a quest picture later).
+- Not syntax-checked (no Luau tooling here) and not tested in Studio.
+- Branch `agent/T-159-quests`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`.
+- Sol, 2026-11-11: passed review.
+
+### T-160 · Stats menu reskin with the client art
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client UI
+- **Files:** `Client/UI/Gui/Stats/init.luau`, `Client/UI/ClientArt/Assets.luau`
+
+**Problem / goal**
+Use the client's Stats art: avatar, name, a "Current match" row (elims, defeats) and all-time cards (Elims, Defeats, Wins, Losses).
+
+**Done when**
+- [ ] The Stats menu shows the client's window with the local player's headshot, names, this round's elims / defeats and all-time Elims / Defeats / Wins / Losses
+- [ ] The numbers update while it's open
+
+**Test in Studio**
+- Open Stats from the lobby menu: the window fits the screen; headshot, display name and @username show.
+- Play a round: the Current match numbers follow your elims / defeats; all-time numbers match the right-hand Stats panel.
+- Close with the X, the Stats button or another menu.
+
+**Notes**
+- Sol, 2026-11-11: Losses stays as now (rounds played minus wins, ties count as losses; the saved `Losses` field stays unused); use the client's layout first and review it after it ships.
+- The menu is rebuilt in code with the ClientArt `Kit` window (the package's `StatsScreen`); values come from the `PlayerStatAttributes` attributes. No uploads: it uses the client's window and close-button ids.
+- No longer shown here (still saved): time played, games played, throws, ability uses, pickups. The card icons in `Icons` (`Stats*`) are now unused by this menu.
+- Not syntax-checked (no Luau tooling here) and not tested in Studio.
+- Branch `agent/T-160-stats`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`.
+- Sol, 2026-11-11: passed review.
+
+### T-157 · Inventory reskin with the client art
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client UI
+- **Files:** `Client/UI/Gui/Inventory/init.luau`, `Client/UI/ClientArt/Assets.luau`
+
+**Problem / goal**
+Use the client's Inventory art (window, tabs, item cards, Equip / Equipped buttons) for the Inventory and the Index, with our 5 tabs.
+
+**Done when**
+- [ ] The Inventory and the Index use the client's window, cards and buttons; 5 tabs (Weapons, Emotes, Charges, Strikes, Taunts) with their names drawn in-game
+- [ ] No "kill" in the tab art or text
+
+**Test in Studio**
+- Open the Inventory (and the Index) at a small and a large window size: the window, the 5 tabs down the left, the card grid and the detail panel line up with the art.
+- Switch tabs (the open one is bright, the others dimmed); select cards (selected / equipped card art, check badge on the equipped one); equip something.
+- Index: unowned cards are darkened; selecting one shows it without an Equip button.
+
+**Notes**
+- Sol, 2026-11-11: 5 smaller tabs; Sol approved placeholder art made from the client's (the window with its 4 painted tabs removed, and 5 tabs with their text removed; Emotes is a green copy of Taunts, Strikes is the Kill Effects tab without text). Uploaded to group 293180599 (decals 80287353389307, 87673002689740, 113081464936121, 77204615083214, 132962245504393, 127549647543447); their image ids are in `ClientArt/Assets.InventoryScreen`, marked `TODO:RELEASE placeholder`. Sources in `Projects/Boomerang/Assets/ArtPipeline/InventoryUI`. Cards, Equip / Equipped, close and check are the client's own uploads.
+- The `.rbxmx` files aren't changed: `applyClientArt` (run when the menu loads) swaps the images and places everything at the client's layout (the package's `InventoryScreen` mockup rects, as fractions of the window). Card art now shows state (normal / selected / equipped + check); the old colour tints are gone.
+- The window placeholder comes from the 1011 px source, so it's a little softer than the client's original.
+- Not syntax-checked (no Luau tooling here) and not tested in Studio.
+- Sol, 2026-11-11: make the Index match the client's package (`InventoryScreen` index mode): title "Index: <tab>", Owned / Locked instead of Equip, and where each item comes from (`Source` from each tab, kept short per Sol: the crate's name for weapons, "Cosmetics Shop", "Default", "Special", "Unavailable"). Status text (Equipped / Owned / Locked) sits in the button's inner text area.
+- Sol, 2026-11-11: list order is the equipped item, then owned items, then unowned ones (each group in the tab's own order); applies to the Inventory and the Index.
+- Branch `agent/T-157-inventory`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`.
+- Sol, 2026-11-11: passed review.
 
 ### T-156 · Left HUD reskin with the client art, AFK toggle
 - **Priority:** P2

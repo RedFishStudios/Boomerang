@@ -59,12 +59,17 @@ local COLUMN_WIDTH = 240
 local COLUMN_SCALE = COLUMN_WIDTH / CANVAS.X
 local COINS = { 23, 0, 930, 374 } -- // {x, y, w, h}
 local COIN_TEXT = { 427, 95, 410, 215 } -- // Inside COINS: where the balance goes
+local COIN_ICON = { 168, 98, 235, 215 } -- // Inside COINS: the coin icon
 local TILES = {
-	{ Id = "Skins", Art = "Inventory", Rect = { 16, 406, 484, 478 } },
-	{ Id = "Shop", Art = "Shop", Rect = { 512, 406, 488, 478 } },
-	{ Id = "Index", Art = "Index", Rect = { 16, 905, 484, 473 } },
-	{ Id = "Quests", Art = "Quests", Rect = { 512, 905, 488, 473 } },
+	{ Id = "Skins", Art = "Inventory", Text = "Inventory", Rect = { 16, 406, 484, 478 } },
+	{ Id = "Shop", Art = "Shop", Text = "Shop", Rect = { 512, 406, 488, 478 } },
+	{ Id = "Index", Art = "Index", Text = "Index", Rect = { 16, 905, 484, 473 } },
+	{ Id = "Quests", Art = "Quests", Text = "Quests", Rect = { 512, 905, 488, 473 } },
 }
+-- // The name on a tile's ribbon, in the blank ribbon's own pixels (RIBBON_ART), scaled to each tile
+local RIBBON_ART = Vector2.new(484, 478)
+local RIBBON_TEXT = { 95, 330, 305, 82 }
+local LABEL_TEXT_SIZE = 120 -- // Over 100: the lettering fills its box (Kit.label)
 -- // AFK slide toggle, in the toggle art's own pixels (AFK_ART), scaled to AFK's width
 local AFK = { 0, 1388, 1011, 371 }
 local AFK_ART = Vector2.new(1580, 580)
@@ -73,12 +78,15 @@ local AFK_TRACK = { 208, 163, 600, 269 }
 local AFK_KNOB_SIZE = 226
 local AFK_KNOB_Y = 297 -- // Knob centre
 local AFK_KNOB_X = { [false] = 345, [true] = 671 }
+local AFK_TEXT = { 870, 160, 555, 260 }
 local AFK_SLIDE = TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local OPTED_OUT_ATTRIBUTE = "OptedOut" -- // Set by PlayerSessionService
 -- // Stats button (same frame size as AFK), directly beneath it
 local STATS = { 0, 1779, 1011, 371 }
 local STATS_ART = Vector2.new(948, 348)
 local STATS_HIT = { 30, 28, 888, 300 }
+local STATS_ICON = { 145, 95, 195, 185 } -- // In STATS_ART pixels
+local STATS_TEXT = { 395, 85, 415, 200 }
 
 -- // Older wooden-frame buttons, for the menus the client's art doesn't cover (Daily, Settings)
 local OLD_BUTTON_WIDTH = (COLUMN_WIDTH - GAP) / 2
@@ -183,9 +191,14 @@ local function addOverlayFeedback(hit: GuiButton, target: GuiObject)
 end
 
 local function buildCoins(root: Frame)
-	local coins = Kit.image("ImageButton", Art.Coins, COINS[1], COINS[2], COINS[3], COINS[4], {
+	local coins = Kit.image("ImageButton", Art.CoinsBlank, COINS[1], COINS[2], COINS[3], COINS[4], {
 		Name = "Currency",
 		Parent = root,
+	})
+	Kit.image("ImageLabel", Art.IconCoins, COIN_ICON[1], COIN_ICON[2], COIN_ICON[3], COIN_ICON[4], {
+		Name = "Icon",
+		ScaleType = Enum.ScaleType.Fit,
+		Parent = coins,
 	})
 	coinsAmount = Kit.label("0", 150, {
 		Name = "Amount",
@@ -207,14 +220,22 @@ local function buildTiles(root: Frame)
 	for _, tile in TILES do
 		local x, y, w, h = table.unpack(tile.Rect)
 		local art = Art[tile.Art]
-		-- // Three stacked layers: framed background, icon, name ribbon (always over the icon)
+		-- // Stacked layers: framed background, icon, blank ribbon (always over the icon), name text
 		local button = Kit.image("ImageButton", art.Bg, x + w / 2, y + h / 2, w, h, {
 			Name = tile.Id,
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Parent = root,
 		})
 		Kit.image("ImageLabel", art.Icon, 0, 0, w, h, { Name = "Icon", ZIndex = 2, Parent = button })
-		Kit.image("ImageLabel", art.Ribbon, 0, 0, w, h, { Name = "Ribbon", ZIndex = 3, Parent = button })
+		Kit.image("ImageLabel", Art.RibbonBlank, 0, 0, w, h, { Name = "Ribbon", ZIndex = 3, Parent = button })
+		local sx, sy = w / RIBBON_ART.X, h / RIBBON_ART.Y
+		Kit.label(tile.Text, LABEL_TEXT_SIZE, {
+			Name = "Label",
+			Position = UDim2.fromOffset(RIBBON_TEXT[1] * sx, RIBBON_TEXT[2] * sy),
+			Size = UDim2.fromOffset(RIBBON_TEXT[3] * sx, RIBBON_TEXT[4] * sy),
+			ZIndex = 4,
+			Parent = button,
+		})
 		Kit.pressable(button)
 		button.Activated:Connect(function()
 			runCallback(tile.Id)
@@ -241,7 +262,14 @@ local function buildAfkToggle(root: Frame)
 	}, {
 		Kit.create("UIScale", { Scale = k }),
 	})
-	Kit.image("ImageLabel", Art.AfkFrame, 0, 0, AFK_ART.X, AFK_ART.Y, { Name = "Frame", Parent = art })
+	Kit.image("ImageLabel", Art.AfkFrameBlank, 0, 0, AFK_ART.X, AFK_ART.Y, { Name = "Frame", Parent = art })
+	Kit.label("AFK", LABEL_TEXT_SIZE, {
+		Name = "Label",
+		Position = UDim2.fromOffset(AFK_TEXT[1], AFK_TEXT[2]),
+		Size = UDim2.fromOffset(AFK_TEXT[3], AFK_TEXT[4]),
+		ZIndex = 2,
+		Parent = art,
+	})
 	Kit.image("ImageLabel", Art.AfkTrackOff, AFK_TRACK[1], AFK_TRACK[2], AFK_TRACK[3], AFK_TRACK[4], {
 		Name = "TrackOff",
 		ZIndex = 2,
@@ -298,13 +326,24 @@ local function buildStats(root: Frame)
 	local sk = STATS[3] / STATS_ART.X
 	local stats = Kit.image(
 		"ImageLabel",
-		Art.Stats,
+		Art.StatsBlank,
 		STATS[1] + STATS[3] / 2,
 		STATS[2] + STATS[4] / 2,
 		STATS_ART.X * sk,
 		STATS_ART.Y * sk,
 		{ Name = "Stats", AnchorPoint = Vector2.new(0.5, 0.5), Parent = root }
 	)
+	Kit.image("ImageLabel", Art.IconStats, STATS_ICON[1] * sk, STATS_ICON[2] * sk, STATS_ICON[3] * sk, STATS_ICON[4] * sk, {
+		Name = "Icon",
+		ScaleType = Enum.ScaleType.Fit,
+		Parent = stats,
+	})
+	Kit.label("Stats", LABEL_TEXT_SIZE, {
+		Name = "Label",
+		Position = UDim2.fromOffset(STATS_TEXT[1] * sk, STATS_TEXT[2] * sk),
+		Size = UDim2.fromOffset(STATS_TEXT[3] * sk, STATS_TEXT[4] * sk),
+		Parent = stats,
+	})
 	local hit = Kit.create("TextButton", {
 		Name = "Hit",
 		AutoButtonColor = false,
@@ -312,7 +351,7 @@ local function buildStats(root: Frame)
 		Text = "",
 		Position = UDim2.fromOffset(STATS_HIT[1] * sk, STATS_HIT[2] * sk),
 		Size = UDim2.fromOffset(STATS_HIT[3] * sk, STATS_HIT[4] * sk),
-		ZIndex = 2,
+		ZIndex = 3,
 		Parent = stats,
 	})
 	addOverlayFeedback(hit, stats)
