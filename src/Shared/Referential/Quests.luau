@@ -49,12 +49,13 @@ export type Quest = {
 	Reward: RewardLibrary.Reward?, -- // nil = the pool's Reward
 }
 
-export type ResetPeriod = "Day" | "Week" | "Never"
+export type ResetPeriod = "Day" | "Week" | "Season" | "Never"
 
 export type Pool = {
 	DisplayName: string,
 	Slots: number, -- // Quests a player has from this pool at once
-	ResetPeriod: ResetPeriod, -- // Day: UTC midnight. Week: UTC midnight between Sunday and Monday. Never: event pools
+	ResetPeriod: ResetPeriod, -- // Day: UTC midnight. Week: UTC midnight between Sunday and Monday. Season: SEASON_ENDS_AT.
+	-- // Never: event pools
 	Reward: RewardLibrary.Reward, -- // Default reward for the pool's quests
 	Order: number, -- // Display order in the Quests menu
 }
@@ -62,6 +63,10 @@ export type Pool = {
 -------------------------------------------------------------------------------
 -- POOLS
 -------------------------------------------------------------------------------
+
+-- // When the current season ends (UTC). Season quests are drawn again once a new date is set here. From the client's
+-- // package (QuestData.SeasonEndsAt), which gives no season length or schedule.
+local SEASON_ENDS_AT = DateTime.fromUniversalTime(2027, 1, 1, 0, 0, 0).UnixTimestamp -- TODO:RELEASE placeholder
 
 local Pools: { [string]: Pool } = {
 	Daily = {
@@ -77,6 +82,13 @@ local Pools: { [string]: Pool } = {
 		ResetPeriod = "Week",
 		Reward = { Type = "Currency", Value = 500 },
 		Order = 2,
+	},
+	Season = {
+		DisplayName = "Season Quests",
+		Slots = 3,
+		ResetPeriod = "Season",
+		Reward = { Type = "Currency", Value = 2500 }, -- TODO:RELEASE placeholder
+		Order = 3,
 	},
 }
 
@@ -105,6 +117,14 @@ local List: { Quest } = {
 	{ Id = "WeeklyShields", Pool = "Weekly", Objective = { Type = "Pickups", PickupId = "Shield", Goal = 5 } },
 	{ Id = "WeeklyEliminationWins", Pool = "Weekly", Objective = { Type = "Wins", Gamemode = "Elimination", Goal = 2 } },
 	{ Id = "WeeklyTeamClassicWins", Pool = "Weekly", Objective = { Type = "Wins", Gamemode = "TeamClassic", Goal = 3 } },
+
+	-- // Season (goals are TODO:RELEASE placeholders)
+	{ Id = "SeasonEliminations", Pool = "Season", Objective = { Type = "Eliminations", Goal = 250 } },
+	{ Id = "SeasonWins", Pool = "Season", Objective = { Type = "Wins", Goal = 40 } },
+	{ Id = "SeasonRounds", Pool = "Season", Objective = { Type = "RoundsPlayed", Goal = 120 } },
+	{ Id = "SeasonMinutes", Pool = "Season", Objective = { Type = "MinutesPlayed", Goal = 600 } },
+	{ Id = "SeasonThrows", Pool = "Season", Objective = { Type = "Throws", Goal = 2000 } },
+	{ Id = "SeasonPickups", Pool = "Season", Objective = { Type = "Pickups", Goal = 150 } },
 }
 
 -- // "Use <pickup> N times" quests, one per pickup in each pool (ids "DailyUse<Pickup>" / "WeeklyUse<Pickup>").
@@ -135,4 +155,5 @@ end
 return {
 	Pools = Pools,
 	List = List,
+	SEASON_ENDS_AT = SEASON_ENDS_AT,
 }

@@ -64,4 +64,22 @@ return {
 		Window = "rbxassetid://117972552516440",
 		Close = "rbxassetid://99387041915365",
 	},
+
+	-- // Quests menu: blank pieces made from the client's Quests art (Sol approved, uploaded to the group 2026-11-11; sources in
+	-- // Projects/Boomerang/Assets/ArtPipeline/QuestsUI). No text, pictures or icons are painted in: those are instances.
+	QuestsScreen = {
+		Window = "rbxassetid://78889150296184", -- // Frame, blank ribbon (decal 84702135989032)
+		Card = "rbxassetid://140351739945319", -- // Quest card: blue picture area + cream panel (decal 97830752685452)
+		ProgressTrack = "rbxassetid://95965897865817", -- // (decal 133451808661104)
+		TabOn = "rbxassetid://106912657786737", -- // Blue (decal 81853756394493)
+		TabOff = "rbxassetid://105871291966317", -- // Brown (decal 134088098120919)
+		TimerPill = "rbxassetid://120463473178963", -- // (decal 131291387486580)
+		CloseBlank = "rbxassetid://128672243656040", -- // (decal 138197375252098)
+		IconClose = "rbxassetid://123889382158521", -- // X (decal 70842151483207)
+		IconClock = "rbxassetid://94571370410645", -- // (decal 74364736211234)
+		IconCalendar = "rbxassetid://78940266549548", -- // (decal 108687862133996)
+		IconSeason = "rbxassetid://98310102306740", -- // (decal 92803166890777)
+		ButtonGreen = "rbxassetid://87354740878901", -- // The client's own (already blank)
+		ButtonGrey = "rbxassetid://131710866567888", -- // The client's own (already blank)
+	},
 }

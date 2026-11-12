@@ -2,13 +2,13 @@
 	Quests
 
 	Description:
-	The Quests menu, opened from the Quests button in the left lobby menu (MenuButtons). A scrolling list: each quest
-	pool in order (Daily, then Weekly) has a header with its name and reset countdown, then one full-width card per
-	quest: task, progress bar, reward and a Reroll button. The reward becomes a green button once the quest is
-	finished; clicking it claims the reward. Reroll replaces that quest in place with a new one.
-	PLACEHOLDER LOOK: borrows the Stats menu's frame and exit button; everything else is plain frames.
-	Built entirely in code with CreateElement. Reads the replicated profile through QuestController; the server
-	(QuestService) decides claims.
+	The Quests menu, opened from the Quests button in the left lobby menu (MenuButtons). Laid out like the client's
+	Quests art: a tab per quest pool (Daily, Weekly, Season), the open pool's reset countdown, and one card per quest
+	(task, reward, progress bar, and a Claim / In-Progress / Claimed button), plus a small Reroll button on each card.
+	Art: blank pieces made from the client's art (ClientArt/Assets.QuestsScreen): frame, card, tabs, timer pill, progress
+	track, buttons. Every text, icon and picture is a Roblox instance on top, so nothing is painted into the images.
+	The window is laid out in the frame image's own pixels (CANVAS) and fitted to the screen by the ClientArt Kit.
+	Reads the replicated profile through QuestController; the server (QuestService) decides claims and rerolls.
 ]]
 
 local QuestsGui = {}
@@ -28,78 +28,82 @@ local UIController = require(ReplicatedStorage.Client.UI.UIController)
 local QuestController = require(ReplicatedStorage.Client.Core.QuestController)
 local QuestLibrary = require(ReplicatedStorage.Shared.Library.QuestLibrary)
 local RewardLibrary = require(ReplicatedStorage.Shared.Library.RewardLibrary)
-local Icons = require(ReplicatedStorage.Shared.Constants.Icons)
-local GuiColors = require(ReplicatedStorage.Shared.Referential.GuiColors)
-local UIUtil = require(ReplicatedStorage.Client.UI.UIUtil)
-local CreateElement = require(ReplicatedStorage.Shared.Utils.CreateElement)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
+local Icons = require(ReplicatedStorage.Shared.Constants.Icons)
+local Kit = require(ReplicatedStorage.Client.UI.ClientArt.Kit)
+local Theme = require(ReplicatedStorage.Client.UI.ClientArt.Theme)
+local Art = require(ReplicatedStorage.Client.UI.ClientArt.Assets).QuestsScreen
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
--- // Look (placeholders)
-local TEXT_COLOR = Color3.fromRGB(92, 52, 20)
-local CARD_COLOR = GuiColors.CommonItemFrame -- // Tan of owned listings in the Shop and Inventory
-local CARD_DONE_COLOR = Color3.fromRGB(130, 215, 80) -- // Green of an equipped Inventory listing
-local BAR_BACK_COLOR = Color3.fromRGB(200, 170, 130)
-local BAR_FILL_COLOR = Color3.fromRGB(110, 200, 90)
-local CLAIM_COLOR = Color3.fromRGB(90, 190, 70)
-local REROLL_COLOR = Color3.fromRGB(70, 140, 235)
-local CLAIMED_TEXT_TRANSPARENCY = 0.4
-local FONT = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
-local CONTAINER_IMAGE = "rbxassetid://107079429198573" -- // Borrowed from the Stats menu (placeholder)
-local EXIT_IMAGE = "rbxassetid://83841981001141"
-local CONTAINER_ASPECT_RATIO = 1.46190941
-local CARDS_PER_POOL = 3 -- // Card slots per pool (extra quests are not shown)
-local CARD_ASPECT_RATIO = 6.5 -- // Card width / height (cards span the list width)
-local HEADER_ASPECT_RATIO = 13 -- // Pool header width / height
-local LIST_PADDING_PIXELS = 6 -- // Gap between list rows
-local SCROLLBAR_THICKNESS = 6
+-- // Layout, in the frame image's pixels: {x, y, w, h}
+local CANVAS = Vector2.new(1011, 568)
+local TITLE = { 395, 16, 245, 54 } -- // Over the blank ribbon, right of the emblem
+local CLOSE = { 871, 32, 64, 63 }
+local CLOSE_ICON_INSET = 0.22 -- // X icon inset inside the close button
+local TAB_RECTS = { { 106, 103, 189, 52 }, { 303, 103, 183, 52 }, { 494, 103, 185, 52 } }
+local TAB_ICON = { 14, 8, 38, 38 } -- // Inside a tab
+local TAB_TEXT = { 56, 6, 120, 42 }
+local TIMER_PILL = { 732, 112, 162, 38 }
+local TIMER_ICON = { 712, 104, 50, 50 }
+local TIMER_TEXT = { 766, 114, 120, 34 }
+local CARD_X = { 113, 379, 644 }
+local CARD_Y = 170
+local CARD_SIZE = Vector2.new(252, 307)
+-- // Inside a card
+local CARD_TITLE = { 14, 12, 224, 60 } -- // The quest's task, over the blue area
+local CARD_REROLL = { 214, 112, 30, 30 } -- // Bottom-right corner of the blue area
+local REWARD_LABEL = { 24, 158, 92, 26 }
+local REWARD_ICON = { 128, 156, 30, 30 }
+local REWARD_AMOUNT = { 160, 157, 80, 28 }
+local PROGRESS_LABEL = { 13, 186, 226, 24 }
+local TRACK = { 18, 212, 216, 24 }
+local TRACK_INSET = 3 -- // Fill inset inside the track
+local BUTTON = { 17, 244, 218, 50 }
+local BUTTON_TEXT_INSET = { 0.1, 0.12 } -- // Text box inset inside a button (x, y)
 
-local CONTAINER_TWEEN_INFO_IN = TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-local CONTAINER_TWEEN_INFO_OUT = TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+local TEXT_SIZE = { Title = 40, Tab = 22, Timer = 20, CardTitle = 20, Label = 17, Amount = 18, Bar = 15, Button = 24 }
+local FILL_COLOR = Color3.fromRGB(110, 196, 52)
+local AMOUNT_COLOR = Color3.fromRGB(255, 214, 64)
+local CARDS_PER_POOL = 3
 
-local SECONDS_IN_MINUTE = 60
-local SECONDS_IN_HOUR = 3600
-local SECONDS_IN_DAY = 86400
+-- // Tab icon per pool (pools without one show only their name)
+local POOL_ICONS = {
+	Daily = Art.IconClock,
+	Weekly = Art.IconCalendar,
+	Season = Art.IconSeason,
+}
 
 -------------------------------------------------------------------------------
 -- TYPES
 -------------------------------------------------------------------------------
 
 type Card = {
-	Frame: Frame,
-	Art: ImageLabel,
-	Description: TextLabel,
-	Fill: Frame,
-	ProgressText: TextLabel,
-	Reward: TextButton, -- // Green button while claimable
-	RewardText: TextLabel,
+	Frame: ImageLabel,
+	Title: Frame,
+	Amount: Frame,
 	RewardIcon: ImageLabel,
+	Fill: Frame,
+	BarText: Frame,
+	Button: ImageButton,
+	ButtonText: Frame,
 	Reroll: ImageButton,
 }
 
-type Section = {
-	PoolName: string,
-	Header: Frame,
-	Timer: TextLabel,
-	Cards: { Card },
-}
+type Tab = { PoolName: string, Button: ImageButton }
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
 -------------------------------------------------------------------------------
 
 local player = Players.LocalPlayer
-
-local QuestsScreenGui: ScreenGui
-local Container: GuiObject
-local sections: { Section } = {}
-local List: ScrollingFrame
-local containerGoalPosition: UDim2
-local containerOffscreenPosition: UDim2
-local activeTween: Tween?
+local window: Kit.Window
+local tabs: { Tab } = {}
+local cards: { Card } = {}
+local timerText: Frame
+local currentPool: string? = nil
 local refreshQueued = false
 local busySlot: string? = nil -- // "<pool>/<index>" while its claim or reroll request is pending
 
@@ -107,35 +111,58 @@ local busySlot: string? = nil -- // "<pool>/<index>" while its claim or reroll r
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
 
--- // TextLabel with the menu's shared text look; [properties] override defaults
-local function createLabel(properties: { [string]: any }, children: { Instance }?)
-	local merged = {
-		BackgroundTransparency = 1,
-		TextColor3 = TEXT_COLOR,
-		TextScaled = true,
-		FontFace = FONT,
-		TextWrapped = true,
-	}
-	for property, value in properties do
-		merged[property] = value
-	end
-	return CreateElement("TextLabel", merged, children)
+local function rect(r: { number }): (UDim2, UDim2)
+	return UDim2.fromOffset(r[1], r[2]), UDim2.fromOffset(r[3], r[4])
 end
 
-local function formatTimeLeft(seconds: number): string
-	seconds = math.max(0, math.floor(seconds))
-	if seconds >= SECONDS_IN_DAY then
-		local days = math.floor(seconds / SECONDS_IN_DAY)
-		return `{days}d {math.floor((seconds % SECONDS_IN_DAY) / SECONDS_IN_HOUR)}h`
-	elseif seconds >= SECONDS_IN_HOUR then
-		return `{math.floor(seconds / SECONDS_IN_HOUR)}h {math.floor((seconds % SECONDS_IN_HOUR) / SECONDS_IN_MINUTE)}m`
+local function image(name: string, imageId: string, r: { number }, parent: Instance, zIndex: number?): ImageLabel
+	local label = Kit.create("ImageLabel", {
+		Name = name,
+		BackgroundTransparency = 1,
+		Image = imageId,
+		ScaleType = Enum.ScaleType.Fit,
+		ZIndex = zIndex or 2,
+	})
+	label.Position, label.Size = rect(r)
+	label.Parent = parent
+	return label
+end
+
+-- // Cream lettering with a dark outline (Kit.label), wrapped and shrunk to fit its box
+local function outlined(name: string, text: string, size: number, r: { number }, parent: Instance, zIndex: number?): Frame
+	local label = Kit.label(text, size, { Name = name, Parent = parent })
+	label.Position, label.Size = rect(r)
+	for _, layer in label:GetChildren() do
+		if layer:IsA("TextLabel") then
+			layer.TextWrapped = true
+			layer.TextScaled = true
+			layer.ZIndex += (zIndex or 2) - 1
+			Kit.create("UITextSizeConstraint", { MaxTextSize = size, Parent = layer })
+		end
 	end
-	return `{math.floor(seconds / SECONDS_IN_MINUTE)}m {seconds % SECONDS_IN_MINUTE}s`
+	return label
+end
+
+-- // Dark brown lettering printed on the cream panel
+local function printed(name: string, text: string, size: number, r: { number }, parent: Instance): TextLabel
+	local label = Kit.create("TextLabel", {
+		Name = name,
+		BackgroundTransparency = 1,
+		FontFace = Theme.Font,
+		Text = text,
+		TextColor3 = Theme.Colors.Ink,
+		TextSize = size,
+		ZIndex = 3,
+	})
+	label.Position, label.Size = rect(r)
+	label.Parent = parent
+	return label
 end
 
 -- // Sends a claim or reroll request for a quest (one at a time), then redraws
-local function requestForSlot(poolName: string, slotIndex: number, canRequest: (slot: QuestLibrary.QuestSlot) -> boolean, request: (poolName: string, slotIndex: number) -> boolean)
-	if busySlot then
+local function requestForSlot(slotIndex: number, canRequest: (slot: QuestLibrary.QuestSlot) -> boolean, request: (poolName: string, slotIndex: number) -> boolean)
+	local poolName = currentPool
+	if busySlot or not poolName then
 		return
 	end
 	local poolData = QuestController.getPoolData(poolName)
@@ -152,321 +179,223 @@ local function requestForSlot(poolName: string, slotIndex: number, canRequest: (
 	end)
 end
 
-local function onRewardClicked(poolName: string, slotIndex: number)
-	requestForSlot(poolName, slotIndex, QuestLibrary.isClaimable, QuestController.claim)
-end
+local function createCard(slotIndex: number, root: Frame): Card
+	local frame = image(`Card{slotIndex}`, Art.Card, { CARD_X[slotIndex], CARD_Y, CARD_SIZE.X, CARD_SIZE.Y }, root, 2)
+	frame.ScaleType = Enum.ScaleType.Stretch
 
-local function onRerollClicked(poolName: string, slotIndex: number)
-	requestForSlot(poolName, slotIndex, QuestLibrary.canReroll, QuestController.reroll)
-end
+	local title = outlined("Title", "", TEXT_SIZE.CardTitle, CARD_TITLE, frame, 3)
+	printed("RewardLabel", "Reward:", TEXT_SIZE.Label, REWARD_LABEL, frame).TextXAlignment = Enum.TextXAlignment.Left
+	local rewardIcon = image("RewardIcon", `rbxassetid://{Icons.CurrencyIcon}`, REWARD_ICON, frame, 3)
+	local amount = outlined("Amount", "", TEXT_SIZE.Amount, REWARD_AMOUNT, frame, 3)
+	for _, layer in amount:GetChildren() do
+		if layer:IsA("TextLabel") then
+			layer.TextXAlignment = Enum.TextXAlignment.Left
+			if layer.Name == "Text" then
+				layer.TextColor3 = AMOUNT_COLOR
+			end
+		end
+	end
+	printed("ProgressLabel", "Progress", TEXT_SIZE.Label, PROGRESS_LABEL, frame)
 
-local function createCard(poolName: string, slotIndex: number): Card
-	local description = createLabel({
-		Name = "Description",
-		Position = UDim2.fromScale(0.03, 0.1),
-		Size = UDim2.fromScale(0.6, 0.4),
-		TextXAlignment = Enum.TextXAlignment.Left,
-		Text = "",
+	local track = image("Track", Art.ProgressTrack, TRACK, frame, 3)
+	track.ScaleType = Enum.ScaleType.Stretch
+	local fillArea = Kit.create("Frame", {
+		Name = "FillArea",
+		BackgroundTransparency = 1,
+		ClipsDescendants = true,
+		Position = UDim2.fromOffset(TRACK_INSET, TRACK_INSET),
+		Size = UDim2.new(1, -2 * TRACK_INSET, 1, -2 * TRACK_INSET),
+		ZIndex = 4,
+		Parent = track,
 	})
-
-	local fill = CreateElement("Frame", {
+	local fill = Kit.create("Frame", {
 		Name = "Fill",
+		BackgroundColor3 = FILL_COLOR,
+		BorderSizePixel = 0,
 		Size = UDim2.fromScale(0, 1),
-		BackgroundColor3 = BAR_FILL_COLOR,
-		BorderSizePixel = 0,
-	}, { CreateElement("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
-
-	local progressText = createLabel({
-		Name = "ProgressText",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(0.9, 0.8),
-		ZIndex = 2,
-		Text = "0 / 0",
-		TextColor3 = Color3.new(1, 1, 1),
-	}, { CreateElement("UIStroke", { Color = TEXT_COLOR, Thickness = 1.5 }) })
-
-	local bar = CreateElement("Frame", {
-		Name = "ProgressBar",
-		Position = UDim2.fromScale(0.03, 0.58),
-		Size = UDim2.fromScale(0.6, 0.3),
-		BackgroundColor3 = BAR_BACK_COLOR,
-		BorderSizePixel = 0,
+		ZIndex = 4,
+		Parent = fillArea,
 	}, {
-		CreateElement("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
-		fill,
-		progressText,
-	})
-
-	local rewardIcon = CreateElement("ImageLabel", {
-		Name = "RewardIcon",
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.fromScale(0.08, 0.5),
-		Size = UDim2.fromScale(0.3, 0.75),
-		BackgroundTransparency = 1,
-		Image = `rbxassetid://{Icons.CurrencyIcon}`,
-		ScaleType = Enum.ScaleType.Fit,
-	})
-
-	local rewardText = createLabel({
-		Name = "RewardText",
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.fromScale(0.4, 0.5),
-		Size = UDim2.fromScale(0.55, 0.7),
-		TextXAlignment = Enum.TextXAlignment.Left,
-		Text = "",
-	})
-
-	-- // Plain label until the quest is finished, then a green claim button
-	local reward = CreateElement("TextButton", {
-		Name = "Reward",
-		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.fromScale(0.855, 0.5),
-		Size = UDim2.fromScale(0.2, 0.62),
-		BackgroundColor3 = CLAIM_COLOR,
-		BackgroundTransparency = 1,
-		BorderSizePixel = 0,
-		AutoButtonColor = false,
-		Text = "",
-		MouseButton1Click = function()
-			onRewardClicked(poolName, slotIndex)
-		end,
-	}, {
-		CreateElement("UICorner", { CornerRadius = UDim.new(0.3, 0) }),
-		CreateElement("UIStroke", { Name = "Stroke", Color = TEXT_COLOR, Thickness = 1.5, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Enabled = false }),
-		rewardIcon,
-		rewardText,
-	})
-
-	local reroll = CreateElement("ImageButton", {
-		Name = "Reroll",
-		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.fromScale(0.975, 0.5),
-		Size = UDim2.fromScale(0.1, 0.62),
-		BackgroundColor3 = REROLL_COLOR,
-		BorderSizePixel = 0,
-		AutoButtonColor = true,
-		Image = `rbxassetid://{Icons.QuestReroll}`,
-		ScaleType = Enum.ScaleType.Fit,
-		MouseButton1Click = function()
-			onRerollClicked(poolName, slotIndex)
-		end,
-	}, {
-		CreateElement("UIAspectRatioConstraint", {}),
-		CreateElement("UICorner", { CornerRadius = UDim.new(0.3, 0) }),
-		CreateElement("UIStroke", { Color = TEXT_COLOR, Thickness = 1.5, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }),
-		CreateElement("UIPadding", {
-			PaddingTop = UDim.new(0.15, 0),
-			PaddingBottom = UDim.new(0.15, 0),
-			PaddingLeft = UDim.new(0.15, 0),
-			PaddingRight = UDim.new(0.15, 0),
+		Kit.create("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
+		Kit.create("UIGradient", {
+			Rotation = 90,
+			Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(190, 190, 190)),
 		}),
 	})
+	local barText = outlined("BarText", "", TEXT_SIZE.Bar, { 0, 0, TRACK[3], TRACK[4] }, track, 5)
 
-	local art = UIUtil.createListingCardArt(CARD_COLOR)
-	local frame = CreateElement("Frame", {
-		Name = `{poolName}Quest{slotIndex}`,
-		Size = UDim2.new(1, 0, 0, 40), -- // Height is set by resizeList
+	local button = Kit.create("ImageButton", {
+		Name = "Button",
+		AutoButtonColor = false,
 		BackgroundTransparency = 1,
-	}, {
-		art,
-		description,
-		bar,
-		reward,
-		reroll,
+		Image = Art.ButtonGrey,
+		ScaleType = Enum.ScaleType.Stretch,
+		ZIndex = 3,
 	})
+	button.Position, button.Size = rect(BUTTON)
+	button.Parent = frame
+	Kit.pressable(button)
+	local buttonText = outlined("Label", "", TEXT_SIZE.Button, {
+		BUTTON[3] * BUTTON_TEXT_INSET[1],
+		BUTTON[4] * BUTTON_TEXT_INSET[2],
+		BUTTON[3] * (1 - 2 * BUTTON_TEXT_INSET[1]),
+		BUTTON[4] * (1 - 2 * BUTTON_TEXT_INSET[2]),
+	}, button, 4)
+	button.Activated:Connect(function()
+		requestForSlot(slotIndex, QuestLibrary.isClaimable, QuestController.claim)
+	end)
+
+	local reroll = Kit.create("ImageButton", {
+		Name = "Reroll",
+		AutoButtonColor = false,
+		BackgroundTransparency = 1,
+		Image = `rbxassetid://{Icons.QuestReroll}`,
+		ScaleType = Enum.ScaleType.Fit,
+		ZIndex = 4,
+	})
+	reroll.Position, reroll.Size = rect(CARD_REROLL)
+	reroll.Parent = frame
+	Kit.pressable(reroll)
+	reroll.Activated:Connect(function()
+		requestForSlot(slotIndex, QuestLibrary.canReroll, QuestController.reroll)
+	end)
 
 	return {
 		Frame = frame,
-		Art = art,
-		Description = description,
-		Fill = fill,
-		ProgressText = progressText,
-		Reward = reward,
-		RewardText = rewardText,
+		Title = title,
+		Amount = amount,
 		RewardIcon = rewardIcon,
+		Fill = fill,
+		BarText = barText,
+		Button = button,
+		ButtonText = buttonText,
 		Reroll = reroll,
 	}
 end
 
--- // A pool's header row and cards, laid out in the list from `order` (headers and cards share LayoutOrder)
-local function createSection(poolName: string, order: number): Section
-	local pool = QuestLibrary.getPool(poolName)
-	local cards: { Card } = {}
-
-	local title = createLabel({
-		Name = "Title",
-		Size = UDim2.fromScale(0.6, 1),
-		TextXAlignment = Enum.TextXAlignment.Left,
-		Text = if pool then pool.DisplayName else poolName,
-	})
-	local timer = createLabel({
-		Name = "Timer",
-		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.fromScale(1, 0.5),
-		Size = UDim2.fromScale(0.38, 0.75),
-		TextXAlignment = Enum.TextXAlignment.Right,
-		Text = "",
-	})
-	local header = CreateElement("Frame", {
-		Name = `{poolName}Header`,
-		LayoutOrder = order * 100,
-		Size = UDim2.new(1, 0, 0, 20), -- // Height is set by resizeList
-		BackgroundTransparency = 1,
-	}, { title, timer })
-	header.Parent = List
-
-	for slotIndex = 1, CARDS_PER_POOL do
-		local card = createCard(poolName, slotIndex)
-		card.Frame.LayoutOrder = order * 100 + slotIndex
-		card.Frame.Parent = List
-		cards[slotIndex] = card
-	end
-
-	return { PoolName = poolName, Header = header, Timer = timer, Cards = cards }
-end
-
--- // Rows use pixel heights (a scrolling list can't size by scale), kept proportional to the list width
-local function resizeList()
-	local width = List.AbsoluteSize.X - SCROLLBAR_THICKNESS * 2
-	for _, section in sections do
-		section.Header.Size = UDim2.new(1, 0, 0, math.floor(width / HEADER_ASPECT_RATIO))
-		for _, card in section.Cards do
-			card.Frame.Size = UDim2.new(1, 0, 0, math.floor(width / CARD_ASPECT_RATIO))
-		end
-	end
-end
-
-local function createGui(): ScreenGui
-	-- // The parchment inside the brick border of the frame image, as in the Stats menu
-	List = CreateElement("ScrollingFrame", {
-		Name = "List",
-		Position = UDim2.fromScale(0.118, 0.24),
-		Size = UDim2.fromScale(0.765, 0.548),
-		BackgroundTransparency = 1,
-		BorderSizePixel = 0,
-		CanvasSize = UDim2.new(),
-		ScrollBarThickness = SCROLLBAR_THICKNESS,
-		ScrollBarImageColor3 = TEXT_COLOR,
-		ScrollingDirection = Enum.ScrollingDirection.Y,
-		AutomaticCanvasSize = Enum.AutomaticSize.Y,
-	}, {
-		CreateElement("UIListLayout", {
-			Padding = UDim.new(0, LIST_PADDING_PIXELS),
-			HorizontalAlignment = Enum.HorizontalAlignment.Center,
-			SortOrder = Enum.SortOrder.LayoutOrder,
-		}),
-		CreateElement("UIPadding", {
-			PaddingTop = UDim.new(0, 3),
-			PaddingBottom = UDim.new(0, 3),
-			PaddingLeft = UDim.new(0, 3),
-			PaddingRight = UDim.new(0, SCROLLBAR_THICKNESS * 2),
-		}),
-	})
-	for order, poolName in QuestLibrary.getPoolNames() do
-		table.insert(sections, createSection(poolName, order))
-	end
-
-	local title = createLabel({
-		Name = "Title",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.128),
-		Size = UDim2.fromScale(0.36, 0.095),
-		ZIndex = 2,
-		Text = "QUESTS",
-		TextColor3 = Color3.new(1, 1, 1),
-	}, { CreateElement("UIStroke", { Color = TEXT_COLOR, Thickness = 3 }) })
-
-	local exit = CreateElement("ImageButton", {
-		Name = "Exit",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.955, 0.1),
-		Size = UDim2.fromScale(0.085, 0.085),
-		BackgroundTransparency = 1,
-		ZIndex = 3,
-		Image = EXIT_IMAGE,
-		MouseButton1Click = function()
-			QuestsGui.close()
-		end,
-	}, { CreateElement("UIAspectRatioConstraint", {}) })
-
-	Container = CreateElement("ImageLabel", {
-		Name = "Container",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(0.6, 0.85),
-		BackgroundTransparency = 1,
-		Image = CONTAINER_IMAGE,
-		ScaleType = Enum.ScaleType.Fit,
-	}, {
-		CreateElement("UIAspectRatioConstraint", { AspectRatio = CONTAINER_ASPECT_RATIO }),
-		title,
-		exit,
-		List,
-	})
-
-	return CreateElement("ScreenGui", {
-		Name = "Quests",
-		ResetOnSpawn = false,
-		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-		Enabled = false,
-	}, { Container })
-end
-
-local function updateCard(card: Card, poolName: string, slotIndex: number, slot: QuestLibrary.QuestSlot?)
+local function updateCard(card: Card, slotIndex: number, slot: QuestLibrary.QuestSlot?)
 	local quest = slot and QuestLibrary.getQuest(slot.Id)
 	card.Frame.Visible = quest ~= nil
-	if not slot or not quest then
+	if not slot or not quest or not currentPool then
 		return
 	end
 
 	local goal = quest.Objective.Goal
 	local progress = math.min(slot.Progress, goal)
-	card.Description.Text = QuestLibrary.getText(quest)
-	card.Fill.Size = UDim2.fromScale(if goal > 0 then progress / goal else 1, 1)
-	card.Fill.Visible = progress > 0
-	card.ProgressText.Text = `{progress} / {goal}`
+	Kit.setText(card.Title, QuestLibrary.getText(quest))
+	TweenService:Create(card.Fill, TweenInfo.new(0.25), { Size = UDim2.fromScale(if goal > 0 then progress / goal else 1, 1) }):Play()
+	Kit.setText(card.BarText, `{progress} / {goal}`)
 
 	local reward = QuestLibrary.getReward(quest)
-	local isComplete = progress >= goal
-	local isBusy = busySlot == `{poolName}/{slotIndex}`
-	local canClaim = QuestLibrary.isClaimable(slot)
-	card.Art.ImageColor3 = if isComplete then CARD_DONE_COLOR else CARD_COLOR
+	card.RewardIcon.Visible = reward.Type == "Currency"
+	Kit.setText(card.Amount, if reward.Type == "Currency" then tostring(reward.Value) else RewardLibrary.getText(reward))
 
-	-- // Reward: green button only while claimable
-	card.Reward.Active = canClaim and not isBusy
-	card.Reward.BackgroundTransparency = if canClaim then 0 else 1
-	card.Reward.AutoButtonColor = canClaim
-	local stroke = card.Reward:FindFirstChild("Stroke")
-	if stroke then
-		(stroke :: UIStroke).Enabled = canClaim
-	end
-	card.RewardIcon.Visible = reward.Type == "Currency" and not slot.Claimed
-	card.RewardText.Text = if slot.Claimed then "Claimed" elseif isBusy and canClaim then "..." else RewardLibrary.getText(reward)
-	card.RewardText.TextColor3 = if canClaim then Color3.new(1, 1, 1) else TEXT_COLOR
-	card.RewardText.TextTransparency = if slot.Claimed then CLAIMED_TEXT_TRANSPARENCY else 0
+	local isBusy = busySlot == `{currentPool}/{slotIndex}`
+	local canClaim = QuestLibrary.isClaimable(slot)
+	card.Button.Image = if canClaim then Art.ButtonGreen else Art.ButtonGrey
+	Kit.setEnabled(card.Button, canClaim and not isBusy)
+	Kit.setText(
+		card.ButtonText,
+		if slot.Claimed then "Claimed!" elseif isBusy and canClaim then "..." elseif canClaim then "Claim" else "In-Progress"
+	)
 
 	-- // Reroll: hidden once the reward is claimed
 	card.Reroll.Visible = QuestLibrary.canReroll(slot)
-	card.Reroll.Active = not isBusy
+	Kit.setEnabled(card.Reroll, not isBusy)
 	card.Reroll.ImageTransparency = if isBusy then 0.5 else 0
 end
 
-local function updateTimers()
+local function updateTimer()
+	local pool = currentPool and QuestLibrary.getPool(currentPool)
 	local now = os.time()
-	for _, section in sections do
-		local pool = QuestLibrary.getPool(section.PoolName)
-		local periodEnd = pool and QuestLibrary.getPeriodEnd(pool.ResetPeriod, now)
-		section.Timer.Text = if periodEnd then `New in {formatTimeLeft(periodEnd - now)}` else ""
-	end
+	local periodEnd = pool and QuestLibrary.getPeriodEnd(pool.ResetPeriod, now)
+	Kit.setText(timerText, if periodEnd then Kit.formatDuration(periodEnd - now) else "")
 end
 
-local function playContainerTween(tweenInfo: TweenInfo, goalPosition: UDim2)
-	if activeTween then
-		activeTween:Cancel()
+local function selectPool(poolName: string)
+	currentPool = poolName
+	for _, tab in tabs do
+		tab.Button.Image = if tab.PoolName == poolName then Art.TabOn else Art.TabOff
 	end
-	activeTween = TweenService:Create(Container, tweenInfo, { Position = goalPosition })
-	activeTween:Play()
+	QuestsGui.refresh()
+end
+
+local function build()
+	window = Kit.window(player:WaitForChild("PlayerGui"), "Quests", Art.Window, CANVAS)
+	local root = window.root
+
+	outlined("Title", "Quests", TEXT_SIZE.Title, TITLE, root, 2)
+
+	-- // Close button: blank button + X icon
+	local close = Kit.create("ImageButton", {
+		Name = "Close",
+		AutoButtonColor = false,
+		BackgroundTransparency = 1,
+		Image = Art.CloseBlank,
+		ScaleType = Enum.ScaleType.Fit,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromOffset(CLOSE[1] + CLOSE[3] / 2, CLOSE[2] + CLOSE[4] / 2),
+		Size = UDim2.fromOffset(CLOSE[3], CLOSE[4]),
+		ZIndex = 3,
+		Parent = root,
+	})
+	Kit.create("ImageLabel", {
+		Name = "Icon",
+		BackgroundTransparency = 1,
+		Image = Art.IconClose,
+		ScaleType = Enum.ScaleType.Fit,
+		Position = UDim2.fromScale(CLOSE_ICON_INSET, CLOSE_ICON_INSET),
+		Size = UDim2.fromScale(1 - 2 * CLOSE_ICON_INSET, 1 - 2 * CLOSE_ICON_INSET),
+		ZIndex = 4,
+		Parent = close,
+	})
+	Kit.pressable(close)
+	close.Activated:Connect(function()
+		QuestsGui.close()
+	end)
+
+	-- // One tab per pool, in pool order (first three)
+	for index, poolName in QuestLibrary.getPoolNames() do
+		local r = TAB_RECTS[index]
+		if not r then
+			break
+		end
+		local pool = QuestLibrary.getPool(poolName)
+		local button = Kit.create("ImageButton", {
+			Name = `Tab{poolName}`,
+			AutoButtonColor = false,
+			BackgroundTransparency = 1,
+			Image = Art.TabOff,
+			ScaleType = Enum.ScaleType.Stretch,
+			ZIndex = 2,
+		})
+		button.Position, button.Size = rect(r)
+		button.Parent = root
+		if POOL_ICONS[poolName] then
+			image("Icon", POOL_ICONS[poolName], TAB_ICON, button, 3)
+		end
+		local label = (pool and pool.DisplayName or poolName):gsub(" Quests$", "")
+		outlined("Label", label, TEXT_SIZE.Tab, if POOL_ICONS[poolName] then TAB_TEXT else { 6, 6, r[3] - 12, 42 }, button, 3)
+		Kit.pressable(button)
+		button.Activated:Connect(function()
+			selectPool(poolName)
+		end)
+		table.insert(tabs, { PoolName = poolName, Button = button })
+	end
+
+	-- // Reset countdown of the open pool
+	image("TimerPill", Art.TimerPill, TIMER_PILL, root, 2).ScaleType = Enum.ScaleType.Stretch
+	image("TimerIcon", Art.IconClock, TIMER_ICON, root, 3)
+	timerText = outlined("Timer", "", TEXT_SIZE.Timer, TIMER_TEXT, root, 3)
+
+	for slotIndex = 1, CARDS_PER_POOL do
+		cards[slotIndex] = createCard(slotIndex, root)
+	end
+
+	local firstPool = QuestLibrary.getPoolNames()[1]
+	if firstPool then
+		selectPool(firstPool)
+	end
 end
 
 -------------------------------------------------------------------------------
@@ -474,37 +403,29 @@ end
 -------------------------------------------------------------------------------
 
 function QuestsGui.refresh()
-	for _, section in sections do
-		local poolData = QuestController.getPoolData(section.PoolName)
-		local slots = (poolData and poolData.Slots) or {}
-		for slotIndex, card in section.Cards do
-			updateCard(card, section.PoolName, slotIndex, slots[slotIndex])
-		end
+	if not currentPool then
+		return
 	end
-	updateTimers()
+	local poolData = QuestController.getPoolData(currentPool)
+	local slots = (poolData and poolData.Slots) or {}
+	for slotIndex, card in cards do
+		updateCard(card, slotIndex, slots[slotIndex])
+	end
+	updateTimer()
 end
 
 function QuestsGui.open()
 	QuestsGui.Open = true
-	QuestsScreenGui.Enabled = true
 	QuestsGui.refresh()
-	resizeList()
-	Container.Position = containerOffscreenPosition
-	playContainerTween(CONTAINER_TWEEN_INFO_IN, containerGoalPosition)
+	window.open()
 	UIController.supercede("Quests", "GamemodeHud")
 	UIController.closeOtherMenus("Quests") -- // After superceding, so the closing menu doesn't restore the HUD
 end
 
 function QuestsGui.close()
 	QuestsGui.Open = false
-	playContainerTween(CONTAINER_TWEEN_INFO_OUT, containerOffscreenPosition)
+	window.close()
 	UIController.unSupercede("Quests", "GamemodeHud")
-
-	task.delay(CONTAINER_TWEEN_INFO_OUT.Time, function()
-		if not QuestsGui.Open then
-			QuestsScreenGui.Enabled = false
-		end
-	end)
 end
 
 function QuestsGui.toggle()
@@ -518,16 +439,6 @@ end
 -------------------------------------------------------------------------------
 -- CORE FUNCTIONS
 -------------------------------------------------------------------------------
-
-local function _init()
-	QuestsScreenGui = createGui()
-	QuestsScreenGui.Parent = player:WaitForChild("PlayerGui")
-
-	containerGoalPosition = Container.Position
-	containerOffscreenPosition = containerGoalPosition - UDim2.fromScale(0, 1)
-
-	List:GetPropertyChangedSignal("AbsoluteSize"):Connect(resizeList)
-end
 
 function QuestsGui.start()
 	-- // Changes arrive together (e.g. new quests): refresh once on the next resumption cycle
@@ -553,17 +464,17 @@ function QuestsGui.start()
 		wasInArena = isInArena
 	end)
 
-	-- // Reset countdowns tick while the menu is open
+	-- // The countdown ticks while the menu is open
 	task.spawn(function()
 		while true do
 			task.wait(1)
 			if QuestsGui.Open then
-				updateTimers()
+				updateTimer()
 			end
 		end
 	end)
 end
 
-_init()
+build()
 
 return QuestsGui

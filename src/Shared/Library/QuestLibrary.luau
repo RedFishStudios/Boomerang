@@ -159,13 +159,16 @@ function QuestLibrary.canReroll(slot: QuestSlot): boolean
 end
 
 -- // Which period a time falls in, for a reset period: quests drawn in another period are replaced.
--- // Day: "D20390" (days since 1970-01-01 UTC). Week: "W2913" (Monday-to-Sunday weeks, UTC). Never: "".
+-- // Day: "D20390" (days since 1970-01-01 UTC). Week: "W2913" (Monday-to-Sunday weeks, UTC). Season: "S<end time>"
+-- // (Quests.SEASON_ENDS_AT). Never: "".
 function QuestLibrary.getPeriodKey(resetPeriod: Quests.ResetPeriod, now: number?): string
 	local day = math.floor((now or os.time()) / SECONDS_IN_DAY)
 	if resetPeriod == "Day" then
 		return `D{day}`
 	elseif resetPeriod == "Week" then
 		return `W{math.floor((day + WEEK_START_OFFSET_DAYS) / DAYS_IN_WEEK)}`
+	elseif resetPeriod == "Season" then
+		return `S{Quests.SEASON_ENDS_AT}` -- // A new season = a new end date
 	end
 	return ""
 end
@@ -178,6 +181,8 @@ function QuestLibrary.getPeriodEnd(resetPeriod: Quests.ResetPeriod, now: number?
 	elseif resetPeriod == "Week" then
 		local week = math.floor((day + WEEK_START_OFFSET_DAYS) / DAYS_IN_WEEK)
 		return ((week + 1) * DAYS_IN_WEEK - WEEK_START_OFFSET_DAYS) * SECONDS_IN_DAY
+	elseif resetPeriod == "Season" then
+		return Quests.SEASON_ENDS_AT
 	end
 	return nil
 end

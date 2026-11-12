@@ -141,6 +141,34 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
+### T-159 · Quests menu reskin with the client art
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client UI / Shared
+- **Files:** `Client/UI/Gui/Quests/init.luau`, `Client/UI/ClientArt/Assets.luau`, `Shared/Referential/Quests.luau`, `Shared/Library/QuestLibrary.luau`
+
+**Problem / goal**
+Replace the placeholder Quests look (T-144) with the client's Quests design, add a Season quest pool, and build the menu from blank art with all text, icons and pictures as instances.
+
+**Done when**
+- [ ] Daily / Weekly / Season tabs switch the three quest cards; the open pool's countdown shows in the timer
+- [ ] Each card shows the task, the coin reward, progress, a Claim / In-Progress / Claimed button and a reroll button
+- [ ] No text, icon or picture is painted into the uploaded art
+
+**Test in Studio**
+- Open Quests from the lobby: frame, title, tabs with icons, timer and 3 cards line up; check at a small and a large window size.
+- Switch tabs; Season shows 3 quests and a countdown to 1 Jan 2027.
+- `questprogress me` finishes quests: the button turns green "Claim"; claim one (coins go up, "Claimed!"). Reroll one.
+
+**Notes**
+- Sol, 2026-11-11: add a Season pool. The client's package only gives a season end date (1 Jan 2027 UTC) and no schedule, so it's that date (`Quests.SEASON_ENDS_AT`, `TODO:RELEASE placeholder`); set a new date to start the next season. 3 slots, 2,500 coins each (placeholder), six placeholder season quests. New reset period `"Season"` in `QuestLibrary` (period key = the end date).
+- Sol, 2026-11-11: the art must be blank: no text, icons or pictures painted in; everything else is a Roblox instance. Agent cut a blank set from the client's Quests art (Sol approved every image): frame (blank ribbon; the emblem stays), card, progress track, tab on / off (drawn fresh), timer pill (drawn fresh), close button, plus the client's standalone X / clock / calendar / season icons. Uploaded to group 293180599; ids in `ClientArt/Assets.QuestsScreen` (with their decal ids). Sources in `Projects/Boomerang/Assets/ArtPipeline/QuestsUI`. The green / grey card buttons are the client's own blank uploads.
+- The client's reward badges were "XP" and a skull; cards now show our coin icon. XP isn't explained anywhere in the client's package (only used as a quest goal and reward).
+- Reroll kept as a small button in each card's blue area (Sol).
+- The card picture area is empty for now (room for a quest picture later).
+- Not syntax-checked (no Luau tooling here) and not tested in Studio.
+- Branch `agent/T-159-quests`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`.
+
 ### T-160 · Stats menu reskin with the client art
 - **Priority:** P2
 - **Owner:** Agent
@@ -642,6 +670,21 @@ In Server mode the aim direction shows correctly on the player's own screen, but
 
 ## Backlog
 
+### T-161 · Rebuild the HUD, Inventory and Stats menus from blank art
+- **Priority:** P2
+- **Owner:** Agent (Sol approves every image before upload)
+- **Area:** Client UI / Art
+- **Files:** `Client/UI/Gui/MenuButtons/init.luau`, `Client/UI/Gui/Inventory/init.luau`, `Client/UI/Gui/Stats/init.luau`, `Client/UI/ClientArt/Assets.luau`
+
+**Problem / goal**
+Like the Quests menu (T-159): the lobby HUD, Inventory and Stats still use client art with text and icons painted in (the HUD tile ribbons and icons, "AFK", "Stats", the Inventory's tab pictures, the Stats banner, labels and card icons). Cut blank versions (colored backgrounds and frames only, smooth fills, solid edges, transparent outside) and draw all text, icons and pictures as instances.
+
+**Done when**
+- [ ] The three menus look as now, but no text, icon or picture is painted into their art
+
+**Notes**
+- Sol, 2026-11-11: do this after T-159, as its own task. Show every image before uploading.
+
 > **Client package UI reskins (T-156 to T-160).** Reskin our existing GUIs with the client's art from `Downloads/Boomerang-ScripterPackage/SourceAssets/UIArtwork` (layout reference: the package's screen modules, extracted in T-152). Keep our controllers and data. Image ids are in the package's `AssetManifest.csv` (check ownership, T-152). Any art with baked-in text that says "Kill" must be redrawn or covered.
 
 ### T-158 · Shop reskin with the client art
@@ -661,26 +704,6 @@ Use the package's Shop art (`UIArtwork/shop`: window, skin cards with odds, Buy 
 
 **Done when**
 - [ ] The chosen shop uses the client art with our data and `Currency`
-
-**Notes**
-
-### T-159 · Quests menu reskin with the client art
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Client UI
-- **Files:** `Client/UI/Gui/Quests/init.luau`
-
-**Problem / goal**
-Replace the placeholder look from T-144 with the package's Quests art (`UIArtwork/quests`: window, Daily / Weekly / Season tabs, cards, green / grey buttons). Data stays our `QuestService` pools.
-
-- Don't port the package's quests (`QuestData`). In particular **no "Open N Eggs" quests** (Sol, 2026-11-10).
-- The art's reward badges are XP and coins; we have no XP.
-
-**Open questions (ask Sol first)**
-- Season tab: hide it, or is a Season pool wanted? XP badge: replace with the coin badge?
-
-**Done when**
-- [ ] The Quests menu uses the client art with Daily and Weekly working as before
 
 **Notes**
 
