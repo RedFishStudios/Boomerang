@@ -45,6 +45,17 @@ return {
 		StatsBlank = "rbxassetid://100091781409398", -- // Teal button, no icon or "Stats" (decal 84108479099038)
 		IconCoins = "rbxassetid://139285801889097", -- // The client's coin icon (decal 104975043270108)
 		IconStats = "rbxassetid://96402700613329", -- // The client's bar-chart icon (decal 126596162842988)
+		-- // Daily and Settings tiles (same layers as the four above; the ribbon is RibbonBlank). Made from the client's
+		-- // Inventory tile background (recoloured) and its gift / gear icons (Sol approved, uploaded to the group 2026-11-12;
+		-- // sources in Projects/Boomerang/Assets/ArtPipeline/HudUI).
+		Daily = {
+			Bg = "rbxassetid://103538567976658", -- // Blue (decal 129623966161549)
+			Icon = "rbxassetid://116159687124008", -- // Gift (decal 80979980650732)
+		},
+		Settings = {
+			Bg = "rbxassetid://74190379862788", -- // Slate (decal 74555314624043)
+			Icon = "rbxassetid://95540930779834", -- // Gear (decal 73698195605434)
+		},
 	},
 
 	-- // Inventory (and Index). Blank pieces made from the client's art (Sol approved, uploaded to the group 2026-11-11;

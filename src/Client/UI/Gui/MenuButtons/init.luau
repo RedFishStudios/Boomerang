@@ -7,7 +7,7 @@
 		[  Index  ] [Quests]   <- Index = the Inventory showing every item, owned or not
 		[   AFK  (toggle)  ]   <- sits out the next rounds (OptOut, PlayerSessionService)
 		[      Stats       ]
-		[ Daily ] [Settings]   <- no client art for these yet: our older wooden-frame buttons
+		[ Daily ] [Settings]   <- tiles like the four above (our own art from the client's tiles)
 	The art column is laid out in the mockup's own pixels (CANVAS) and scaled down; ids are in ClientArt/Assets.
 	The same menus are also topbar buttons (TopbarGui), which stay visible in rounds.
 	Hidden while the local player is alive in the arena (lobby menu).
@@ -42,10 +42,6 @@ local LocalPlayer = Players.LocalPlayer
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
-local FONT = Enum.Font.FredokaOne
-local TEXT_COLOR = Color3.fromRGB(255, 255, 255)
-local TEXT_STROKE_COLOR = Color3.fromRGB(60, 35, 15)
-
 -- // Sizes are for a 900 px tall screen; everything scales with screen height (UIScale), clamped below
 local REFERENCE_SCREEN_HEIGHT = 900
 local MIN_SCALE, MAX_SCALE = 0.55, 1.2
@@ -54,7 +50,7 @@ local VERTICAL_POSITION = 0.5 -- // Menu center as a fraction of screen height
 local GAP = 10
 
 -- // The client's art column, in mockup pixels (CANVAS), shown COLUMN_WIDTH wide
-local CANVAS = Vector2.new(1011, 2150)
+local CANVAS = Vector2.new(1011, 2649)
 local COLUMN_WIDTH = 240
 local COLUMN_SCALE = COLUMN_WIDTH / CANVAS.X
 local COINS = { 23, 0, 930, 374 } -- // {x, y, w, h}
@@ -65,6 +61,8 @@ local TILES = {
 	{ Id = "Shop", Art = "Shop", Text = "Shop", Rect = { 512, 406, 488, 478 } },
 	{ Id = "Index", Art = "Index", Text = "Index", Rect = { 16, 905, 484, 473 } },
 	{ Id = "Quests", Art = "Quests", Text = "Quests", Rect = { 512, 905, 488, 473 } },
+	{ Id = "Daily", Art = "Daily", Text = "Daily", Rect = { 16, 2171, 484, 478 } }, -- // Under Stats
+	{ Id = "Settings", Art = "Settings", Text = "Settings", Rect = { 512, 2171, 484, 478 } },
 }
 -- // The name on a tile's ribbon, in the blank ribbon's own pixels (RIBBON_ART), scaled to each tile
 local RIBBON_ART = Vector2.new(484, 478)
@@ -88,27 +86,14 @@ local STATS_HIT = { 30, 28, 888, 300 }
 local STATS_ICON = { 145, 95, 195, 185 } -- // In STATS_ART pixels
 local STATS_TEXT = { 395, 85, 415, 200 }
 
--- // Older wooden-frame buttons, for the menus the client's art doesn't cover (Daily, Settings)
-local OLD_BUTTON_WIDTH = (COLUMN_WIDTH - GAP) / 2
-local OLD_BUTTON_SIZE = Vector2.new(OLD_BUTTON_WIDTH, math.round(OLD_BUTTON_WIDTH * 753 / 838)) -- // Frame art proportions
-local FRAME_IMAGE = "rbxassetid://78059494085912" -- // Hollow wooden frame with a name board at the bottom
-local FRAME_FULL = Rect.new(0, 0, 838, 753)
-local FRAME_ICON_AREA = Rect.new(160, 120, 680, 510) -- // Free window inside the frame
-local FRAME_BOARD_TEXT = Rect.new(145, 560, 700, 695) -- // Free space on the name board, between the two rivets
-local INTERIOR_IMAGE = "rbxassetid://138558379535634" -- // Grayscale interior, recolored live with ImageColor3
-local INTERIOR_IMAGE_SIZE = Vector2.new(686, 674)
-local INTERIOR_BLEED = Rect.new(70, 60, 770, 572) -- // Drawn larger than the window so the frame covers its edges
-local INTERIOR_CROP_HEIGHT = INTERIOR_IMAGE_SIZE.X * INTERIOR_BLEED.Height / INTERIOR_BLEED.Width
-
--- // Every menu, in topbar order. OldStyle = drawn as an older wooden-frame button under the art column.
--- // Icon = the topbar icon (and the old-style button's icon); Color tints an old-style button's interior.
+-- // Every menu, in topbar order (Icon = its topbar icon)
 local MENUS = {
 	{ Id = "Shop", Text = "Shop", Icon = "rbxassetid://95884415147706" },
-	{ Id = "Daily", Text = "Daily", Icon = "rbxassetid://126765785652910", Color = Color3.fromRGB(205, 130, 255), OldStyle = true },
+	{ Id = "Daily", Text = "Daily", Icon = "rbxassetid://126765785652910" },
 	{ Id = "Skins", Text = "Inventory", Icon = `rbxassetid://{Icons.InventoryButton}` },
 	{ Id = "Stats", Text = "Stats", Icon = "rbxassetid://124985088272789" },
 	{ Id = "Quests", Text = "Quests", Icon = "rbxassetid://83981048085676" },
-	{ Id = "Settings", Text = "Settings", Icon = "rbxassetid://118835487029221", Color = Color3.fromRGB(190, 200, 215), OldStyle = true },
+	{ Id = "Settings", Text = "Settings", Icon = "rbxassetid://118835487029221" },
 }
 
 -------------------------------------------------------------------------------
@@ -134,13 +119,6 @@ local function formatNumber(value: number): string
 		text = formatted
 	until count == 0
 	return text
-end
-
--- // Maps a rectangle of an image's free space to a position inside the GUI object showing that image
-local function rectInRegion(rect: Rect, region: Rect): (UDim2, UDim2)
-	local position = UDim2.fromScale((rect.Min.X - region.Min.X) / region.Width, (rect.Min.Y - region.Min.Y) / region.Height)
-	local size = UDim2.fromScale(rect.Width / region.Width, rect.Height / region.Height)
-	return position, size
 end
 
 local function toggleGui(guiName: string)
@@ -383,72 +361,6 @@ local function buildArtColumn(parent: Instance)
 	buildStats(root)
 end
 
-local function newImage(name: string, image: string, parent: Instance, zIndex: number): ImageLabel
-	local imageLabel = Instance.new("ImageLabel")
-	imageLabel.Name = name
-	imageLabel.BackgroundTransparency = 1
-	imageLabel.Image = image
-	imageLabel.ZIndex = zIndex
-	imageLabel.Parent = parent
-	return imageLabel
-end
-
-local function buildOldStyleButton(info, layoutOrder: number, parent: Instance)
-	local button = Instance.new("TextButton")
-	button.Name = info.Id
-	button.Text = ""
-	button.AutoButtonColor = false
-	button.BackgroundTransparency = 1
-	button.LayoutOrder = layoutOrder
-	button.Parent = parent
-	local scale = Instance.new("UIScale")
-	scale.Parent = button
-	button.MouseEnter:Connect(function()
-		scale.Scale = 1.04
-	end)
-	button.MouseLeave:Connect(function()
-		scale.Scale = 1
-	end)
-	button.MouseButton1Down:Connect(function()
-		scale.Scale = 0.95
-	end)
-	button.MouseButton1Up:Connect(function()
-		scale.Scale = 1.04
-	end)
-
-	-- // Bottom to top: recolored interior, wooden frame, icon, name text
-	local interior = newImage("Interior", INTERIOR_IMAGE, button, 1)
-	interior.ImageColor3 = info.Color
-	interior.ImageRectSize = Vector2.new(INTERIOR_IMAGE_SIZE.X, INTERIOR_CROP_HEIGHT)
-	interior.ImageRectOffset = Vector2.new(0, (INTERIOR_IMAGE_SIZE.Y - INTERIOR_CROP_HEIGHT) / 2)
-	interior.Position, interior.Size = rectInRegion(INTERIOR_BLEED, FRAME_FULL)
-
-	local frame = newImage("Frame", FRAME_IMAGE, button, 2)
-	frame.Size = UDim2.fromScale(1, 1)
-
-	local icon = newImage("Icon", info.Icon, button, 3)
-	icon.ScaleType = Enum.ScaleType.Fit
-	icon.Position, icon.Size = rectInRegion(FRAME_ICON_AREA, FRAME_FULL)
-
-	local label = Instance.new("TextLabel")
-	label.Name = "Label"
-	label.BackgroundTransparency = 1
-	label.Font = FONT
-	label.Text = info.Text
-	label.TextColor3 = TEXT_COLOR
-	label.TextStrokeColor3 = TEXT_STROKE_COLOR
-	label.TextStrokeTransparency = 0.2
-	label.TextScaled = true
-	label.Position, label.Size = rectInRegion(FRAME_BOARD_TEXT, FRAME_FULL)
-	label.ZIndex = 4
-	label.Parent = button
-
-	button.Activated:Connect(function()
-		runCallback(info.Id)
-	end)
-	buttonInstances[info.Id] = button
-end
-
 local function updateScale(uiScale: UIScale)
 	local camera = workspace.CurrentCamera
 	local height = if camera then camera.ViewportSize.Y else REFERENCE_SCREEN_HEIGHT
@@ -489,27 +401,6 @@ local function build()
 	listLayout.Parent = container
 
 	buildArtColumn(container)
-
-	local grid = Instance.new("Frame")
-	grid.Name = "OldStyleGrid"
-	grid.BackgroundTransparency = 1
-	grid.Size = UDim2.fromOffset(COLUMN_WIDTH, 0)
-	grid.AutomaticSize = Enum.AutomaticSize.Y
-	grid.LayoutOrder = 2
-	grid.Parent = container
-
-	local gridLayout = Instance.new("UIGridLayout")
-	gridLayout.CellSize = UDim2.fromOffset(OLD_BUTTON_SIZE.X, OLD_BUTTON_SIZE.Y)
-	gridLayout.CellPadding = UDim2.fromOffset(GAP, GAP)
-	gridLayout.FillDirectionMaxCells = 2
-	gridLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	gridLayout.Parent = grid
-
-	for index, info in ipairs(MENUS) do
-		if info.OldStyle then
-			buildOldStyleButton(info, index, grid)
-		end
-	end
 
 	screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 end
