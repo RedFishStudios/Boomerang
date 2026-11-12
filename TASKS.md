@@ -17,7 +17,7 @@ The task board: every feature, fix and cleanup. See [CLAUDE.md](CLAUDE.md) for h
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-164**
+**Next free ID: T-165**
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -484,6 +484,31 @@ Players enter a code to receive a reward. Server: validates the code (case-insen
 ---
 
 ## Done
+
+### T-164 · Daily Rewards menu in the new menu style
+- **Priority:** P2
+- **Owner:** Agent (Sol approves every image before upload)
+- **Area:** Client UI / Art
+- **Files:** `Client/UI/Gui/DailyClaims/init.luau` (now built in code; `DailyClaims.rbxmx` removed), `Client/UI/ClientArt/Assets.luau`
+
+**Problem / goal**
+The Daily Rewards menu still used the old purple-and-wood art. Rebuild it in the style of the new menus with blank art.
+
+**Done when**
+- [x] New blank art: the window (title ribbon, six day cards, a tall day 7 card) and a calendar icon without a number
+- [x] "Daily Rewards" on the ribbon, the current day on the calendar; each card shows Day N / Today, the reward and Claim (green) / Claimed / Locked (grey)
+- [x] Claiming works as before (ClaimDailyReward, popups for currency)
+
+**Test in Studio**
+- Y (Studio) or the Daily tile opens it; Today's card has a green Claim; claiming updates the cards and the calendar; Locked / Claimed show on the others; the close button closes it.
+- Day 3 / day 7 skin rewards show their model.
+
+**Notes**
+- Sol, 2026-11-12: replace the Daily Rewards panel with the new style. New art (approved, uploaded to group 293180599; sources in `Projects/Boomerang/Assets/ArtPipeline/DailyUI`): window 74179176173746 (decal 140689110290163), calendar 114487784911406 (decal 118238809664905). Close and buttons reuse the Quests art.
+- 2026-11-12: done, in **Review**. Branch `agent/T-164-daily-rewards`, lane `Github/Boomerang-lanes/T-158-shop-reskin`. Rojo build passes, no syntax errors; not play-tested.
+- Sol, 2026-11-12: passed testing.
+
+---
 
 ### T-163 · Voting window in the new menu style
 - **Priority:** P2

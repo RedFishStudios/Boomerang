@@ -94,6 +94,14 @@ return {
 		IconLosses = "rbxassetid://110184146477831", -- // Red flag (decal 131876269322029)
 	},
 
+	-- // Daily Rewards menu: blank frame (ribbon for the title, six day cards and a tall day 7 card, made from the client's
+	-- // Stats window art) and the client's calendar icon with its number painted out (Sol approved, uploaded to the group
+	-- // 2026-11-12; sources in Projects/Boomerang/Assets/ArtPipeline/DailyUI). Close and buttons are the Quests ones.
+	DailyScreen = {
+		Window = "rbxassetid://74179176173746", -- // 1448 x 900 (decal 140689110290163)
+		Calendar = "rbxassetid://114487784911406", -- // Blank page for the day number (decal 118238809664905)
+	},
+
 	-- // Voting window: blank frame (ribbon for the title, two option panels) and the vote-count badge, made from the
 	-- // client's Stats window art (Sol approved, uploaded to the group 2026-11-12; sources in
 	-- // Projects/Boomerang/Assets/ArtPipeline/VoteUI). Its close button is the Quests one.
