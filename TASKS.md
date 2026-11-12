@@ -485,6 +485,31 @@ Players enter a code to receive a reward. Server: validates the code (case-insen
 
 ## Done
 
+### T-163 · Voting window in the new menu style
+- **Priority:** P2
+- **Owner:** Agent (Sol approves every image before upload)
+- **Area:** Client UI / Art
+- **Files:** `Client/UI/Gui/Voting/init.luau` (now built in code; `Voting.rbxmx` removed), `Client/UI/ClientArt/Assets.luau`
+
+**Problem / goal**
+The gamemode vote still used the old purple-and-wood art. Rebuild it in the style of the new menus with blank art: a frame with room for the title and two option panels, the existing close button, and a separate badge for each option's vote count.
+
+**Done when**
+- [x] New blank art: the window (ribbon for the title, two option panels) and the vote badge
+- [x] "Vote for the next round!" on the ribbon, gamemode names on the panels, counts on the badges, Quests close button
+- [x] Clicking a panel votes (VoteUpdated 1 / 2), as before
+
+**Test in Studio**
+- Lobby voting: the window slides in at the top, shows both gamemodes and their counts; clicking a panel votes and the count updates; the close button hides it; it leaves when voting ends.
+- Check its size on small and wide screens (it fits half the screen width / about a third of the height).
+
+**Notes**
+- Sol, 2026-11-12: frame with title room and two option areas, a separate badge for the count, reuse a close button. New art (approved, uploaded to group 293180599; sources in `Projects/Boomerang/Assets/ArtPipeline/VoteUI`): window 77755075702101 (decal 79078710621841), badge 126651513659897 (decal 140503110925787). Made from the client's Stats window.
+- 2026-11-12: done, in **Review**. Branch `agent/T-163-vote-window`, lane `Github/Boomerang-lanes/T-158-shop-reskin`. Rojo build passes, no syntax errors; not play-tested.
+- Sol, 2026-11-12: passed testing.
+
+---
+
 ### T-162 · Daily and Settings tiles in the left HUD menu
 - **Priority:** P2
 - **Owner:** Agent (Sol approves every image before upload)

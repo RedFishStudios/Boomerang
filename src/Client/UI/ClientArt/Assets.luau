@@ -94,6 +94,14 @@ return {
 		IconLosses = "rbxassetid://110184146477831", -- // Red flag (decal 131876269322029)
 	},
 
+	-- // Voting window: blank frame (ribbon for the title, two option panels) and the vote-count badge, made from the
+	-- // client's Stats window art (Sol approved, uploaded to the group 2026-11-12; sources in
+	-- // Projects/Boomerang/Assets/ArtPipeline/VoteUI). Its close button is the Quests one.
+	VoteScreen = {
+		Window = "rbxassetid://77755075702101", -- // 1448 x 720 (decal 79078710621841)
+		Badge = "rbxassetid://126651513659897", -- // Red and gold circle (decal 140503110925787)
+	},
+
 	-- // Quests menu: blank pieces made from the client's Quests art (Sol approved, uploaded to the group 2026-11-11; sources in
 	-- // Projects/Boomerang/Assets/ArtPipeline/QuestsUI). No text, pictures or icons are painted in: those are instances.
 	QuestsScreen = {
