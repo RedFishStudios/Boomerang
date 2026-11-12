@@ -130,7 +130,8 @@ end
 
 -- // Cream lettering with a dark outline (Kit.label), wrapped and shrunk to fit its box
 local function outlined(name: string, text: string, size: number, r: { number }, parent: Instance, zIndex: number?): Frame
-	local label = Kit.label(text, size, { Name = name, Parent = parent })
+	-- // The container takes the same ZIndex: with sibling layering it would otherwise draw under what it sits on
+	local label = Kit.label(text, size, { Name = name, ZIndex = zIndex or 2, Parent = parent })
 	label.Position, label.Size = rect(r)
 	for _, layer in label:GetChildren() do
 		if layer:IsA("TextLabel") then
