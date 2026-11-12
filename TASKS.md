@@ -17,7 +17,7 @@ The task board: every feature, fix and cleanup. See [CLAUDE.md](CLAUDE.md) for h
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-163**
+**Next free ID: T-164**
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -495,16 +495,18 @@ Players enter a code to receive a reward. Server: validates the code (case-insen
 The Daily and Settings buttons under Stats were still the older wooden-frame buttons. Make them tiles like Inventory, Shop, Index and Quests (background, icon, blank ribbon with the name), with new art.
 
 **Done when**
-- [x] Daily and Settings are a third row of tiles under Stats, in the same style as the four tiles above
+- [x] Daily and Settings are a third row of tiles between Index / Quests and AFK, in the same style as the four tiles above
 - [x] The old wooden-frame button code is gone
 
 **Test in Studio**
-- Lobby: the left menu shows Daily (blue, gift) and Settings (slate, gear) under Stats; they open Daily Claims and Settings. The column is taller now: check it still fits on small screens.
+- Lobby: the left menu shows Daily (blue, gift) and Settings (slate, gear) between Index / Quests and AFK; they open Daily Claims and Settings. The column is taller now: check it still fits on small screens.
 
 **Notes**
 - Sol, 2026-11-12: use the same kind of assets as the four tiles (with the ribbon). New art (approved, uploaded to group 293180599; sources in `Projects/Boomerang/Assets/ArtPipeline/HudUI`): Daily bg 103538567976658 (decal 129623966161549), Daily icon 116159687124008 (decal 80979980650732), Settings bg 74190379862788 (decal 74555314624043), Settings icon 95540930779834 (decal 73698195605434). Backgrounds are the client's Inventory tile recoloured; icons are the client's gift and gear.
 - 2026-11-12: done, in **Review**. Branch `agent/T-162-hud-buttons`, lane `Github/Boomerang-lanes/T-158-shop-reskin`. Rojo build passes, no syntax errors; not play-tested.
 - Sol, 2026-11-12: passed testing.
+- Sol, 2026-11-12: move the Daily / Settings row above AFK, below Index / Quests. Done on the same branch; back in **Review**.
+- Sol, 2026-11-12: passed testing (row moved above AFK).
 
 ---
 

@@ -5,9 +5,9 @@
 		[   coins plank    ]   <- balance; click = Currency shop
 		[Inventory] [ Shop ]
 		[  Index  ] [Quests]   <- Index = the Inventory showing every item, owned or not
+		[ Daily ] [Settings]   <- tiles like the four above (our own art from the client's tiles)
 		[   AFK  (toggle)  ]   <- sits out the next rounds (OptOut, PlayerSessionService)
 		[      Stats       ]
-		[ Daily ] [Settings]   <- tiles like the four above (our own art from the client's tiles)
 	The art column is laid out in the mockup's own pixels (CANVAS) and scaled down; ids are in ClientArt/Assets.
 	The same menus are also topbar buttons (TopbarGui), which stay visible in rounds.
 	Hidden while the local player is alive in the arena (lobby menu).
@@ -61,15 +61,15 @@ local TILES = {
 	{ Id = "Shop", Art = "Shop", Text = "Shop", Rect = { 512, 406, 488, 478 } },
 	{ Id = "Index", Art = "Index", Text = "Index", Rect = { 16, 905, 484, 473 } },
 	{ Id = "Quests", Art = "Quests", Text = "Quests", Rect = { 512, 905, 488, 473 } },
-	{ Id = "Daily", Art = "Daily", Text = "Daily", Rect = { 16, 2171, 484, 478 } }, -- // Under Stats
-	{ Id = "Settings", Art = "Settings", Text = "Settings", Rect = { 512, 2171, 484, 478 } },
+	{ Id = "Daily", Art = "Daily", Text = "Daily", Rect = { 16, 1399, 484, 478 } }, -- // Above AFK
+	{ Id = "Settings", Art = "Settings", Text = "Settings", Rect = { 512, 1399, 484, 478 } },
 }
 -- // The name on a tile's ribbon, in the blank ribbon's own pixels (RIBBON_ART), scaled to each tile
 local RIBBON_ART = Vector2.new(484, 478)
 local RIBBON_TEXT = { 95, 330, 305, 82 }
 local LABEL_TEXT_SIZE = 120 -- // Over 100: the lettering fills its box (Kit.label)
 -- // AFK slide toggle, in the toggle art's own pixels (AFK_ART), scaled to AFK's width
-local AFK = { 0, 1388, 1011, 371 }
+local AFK = { 0, 1887, 1011, 371 }
 local AFK_ART = Vector2.new(1580, 580)
 local AFK_HIT = { 55, 50, 1465, 495 } -- // The wooden board only; the vines don't take clicks
 local AFK_TRACK = { 208, 163, 600, 269 }
@@ -80,7 +80,7 @@ local AFK_TEXT = { 870, 160, 555, 260 }
 local AFK_SLIDE = TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local OPTED_OUT_ATTRIBUTE = "OptedOut" -- // Set by PlayerSessionService
 -- // Stats button (same frame size as AFK), directly beneath it
-local STATS = { 0, 1779, 1011, 371 }
+local STATS = { 0, 2278, 1011, 371 }
 local STATS_ART = Vector2.new(948, 348)
 local STATS_HIT = { 30, 28, 888, 300 }
 local STATS_ICON = { 145, 95, 195, 185 } -- // In STATS_ART pixels
