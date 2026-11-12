@@ -384,6 +384,26 @@ local function onEquipClicked()
 	equipRequestPending = false
 end
 
+-- // Display order (Sol, 2026-11-11): the equipped item, then owned items, then unowned ones (Index); within each
+-- // group, the tab's own order
+local function sortForDisplay(items: { InventoryItem }): { InventoryItem }
+	local function group(item: InventoryItem): number
+		return if item.Equipped then 1 elseif item.Owned then 2 else 3
+	end
+	local order: { [InventoryItem]: number } = {}
+	for index, item in items do
+		order[item] = index
+	end
+	table.sort(items, function(a, b)
+		local groupA, groupB = group(a), group(b)
+		if groupA ~= groupB then
+			return groupA < groupB
+		end
+		return order[a] < order[b]
+	end)
+	return items
+end
+
 -- // Rebuilds the listing grid from the open tab's items (keeps the selection if it still exists)
 local function refreshListings()
 	for _, listing in listings do
@@ -392,7 +412,7 @@ local function refreshListings()
 	table.clear(listings)
 
 	local tab = currentTabId and tabModules[currentTabId]
-	currentItems = if tab then tab.getItems(indexMode) else {}
+	currentItems = sortForDisplay(if tab then tab.getItems(indexMode) else {})
 	detailItemId = nil -- // Forces a Detail model redraw; the item data may have changed
 
 	for order, item in currentItems do

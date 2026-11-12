@@ -190,6 +190,7 @@ Use the client's Inventory art (window, tabs, item cards, Equip / Equipped butto
 - The window placeholder comes from the 1011 px source, so it's a little softer than the client's original.
 - Not syntax-checked (no Luau tooling here) and not tested in Studio.
 - Sol, 2026-11-11: make the Index match the client's package (`InventoryScreen` index mode): title "Index: <tab>", Owned / Locked instead of Equip, and where each item comes from (`Source` from each tab, kept short per Sol: the crate's name for weapons, "Cosmetics Shop", "Default", "Special", "Unavailable"). Status text (Equipped / Owned / Locked) sits in the button's inner text area.
+- Sol, 2026-11-11: list order is the equipped item, then owned items, then unowned ones (each group in the tab's own order); applies to the Inventory and the Index.
 - Branch `agent/T-157-inventory`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`.
 
 ### T-150 · Six new fan skins from the modeller's concept art
