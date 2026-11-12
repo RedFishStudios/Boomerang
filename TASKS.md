@@ -81,522 +81,14 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## In Progress
 
-### T-143 · Quest system: 3 daily + 3 weekly quests, shared rewards
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Server + Shared (data, progress, rewards)
-- **Files:** `Shared/Referential/Quests.luau` (new), `Shared/Library/QuestLibrary.luau` (new), `Shared/Library/RewardLibrary.luau` (new), `Server/Core/QuestService.luau` (new), `Server/Core/RewardService.luau` (new), `Shared/Data/ProfileTemplate.luau`, `Server/Core/BotService.luau`, `Server/Logics/BotBehaviors/Decoy.luau`, `Server/Cmdr/Commands/ResetQuests*.luau` / `QuestProgress*.luau` (new)
-
-**Done when**
-- [ ] Every player has 3 Daily quests (new ones at UTC midnight) and 3 Weekly quests (new ones Monday 00:00 UTC), drawn at random from each pool, preferring different objective types
-- [ ] Objectives: eliminations, round wins, rounds played, minutes played, throws, dashes / stabs, pickups (any or one kind); eliminations / wins / rounds can be limited to a gamemode
-- [ ] Eliminating another player or a bot counts as an elimination; popping a decoy doesn't
-- [ ] Throws, abilities and minutes only count while alive in the arena (no lobby farming)
-- [ ] A finished quest is claimed from the server (ClaimQuest); Daily pays 100, Weekly pays 500 Currency
-- [ ] Rewards go through the shared RewardService / RewardLibrary, which also supports skins (weapons), aim arrows, emotes and items, with currency for duplicates; daily/weekly quests only use Currency (cosmetics are for event quests)
-- [ ] Saved in the profile (`Quests`); progress replicates to the player
-- [ ] Cmdr: `resetquests <players> [pool]`, `questprogress <players> [amount]` (no amount = finish them)
-
-**Notes**
-- From Sol, 2026-10-29: Bot eliminations count, decoys don't. Rewards: Currency only for now.
-- A new pool (e.g. an event) = an entry in `Quests.Pools` (ResetPeriod "Never" for events) and its quests in `Quests.List`.
-- Unclaimed finished quests are lost when their pool resets.
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-143-quests`.
-
-### T-144 · Quests menu (placeholder look)
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Client UI
-- **Files:** `Client/UI/Gui/Quests/init.luau` (new), `Client/Core/QuestController.luau` (new), `Client/UI/Gui/MenuButtons/init.luau`
-
-**Done when**
-- [ ] The Quests button in the left lobby menu opens and closes the Quests menu
-- [ ] A vertical scrolling list: Daily quests first, then a header with the Weekly countdown and the Weekly quests; each pool has a header with its "New in ..." countdown and one full-width card per quest (what to do, a progress bar with x / goal, the reward, and a Claim button: green when finished, "Claimed" after)
-- [ ] Updates live as progress replicates; claiming asks the server
-
-**Notes**
-- No quests art yet (Sol): it borrows the Stats menu's frame and exit button; everything else is plain frames. The layout is a first draft so Sol can decide the art.
-- Layout changed from two side-by-side columns to the scrolling list (Sol, 2026-10-29). Throw quests read "Throw x times".
-
-### T-141 · Thrown boomerangs curve (stage 1: PC mouse aim)
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Shared weapon logic, server + client
-- **Files:** `Shared/Library/BoomerangCurveLibrary.luau` (new), `Shared/Logics/WeaponLogics/Boomerang.luau`, `Server/Core/WeaponService.luau`, `Client/Core/WeaponController.luau`, `Shared/Referential/ThrownWeapons.lua`
-
-**Done when**
-- [ ] A thrown boomerang flies a gentle arc (up to ~19 degrees off the aim line) that still passes through the point aimed at, and keeps turning the same way past it
-- [ ] Standing still: the side (left/right) and the amount are random. Moving sideways while aiming: it bows toward the movement, more for more sideways movement
-- [ ] The aim arrow stays straight
-- [ ] Server authority: only the server decides the curve (from the thrower's movement on the server); it is replicated with the spawn and every snapshot, and the server and clients turn it in the same fixed step
-- [ ] Lag compensation: a late spawn or snapshot is advanced along the arc (position and heading), not a straight line
-- [ ] A bounce, clash, homing or Telekinesis steering straightens it out (configurable)
-- [ ] Later stages (separate commits): gamepad and touch auto-targeting (a very slim cone in front, extendable to other target kinds), over-the-shoulder camera aim
-
-**Notes**
-- From Sol, 2026-10-29. Tunables at the top of BoomerangCurveLibrary (INTERNAL CONFIG).
-- Stage 1 sends the mouse's floor point only for PC top-down aim; other aim modes (and bots) send none, and the server curves through a point at the throw's full range.
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-141-boomerang-curve`.
-
 
 ## Review
-
-### T-161 · Rebuild the HUD, Inventory and Stats menus from blank art
-- **Priority:** P2
-- **Owner:** Agent (Sol approves every image before upload)
-- **Area:** Client UI / Art
-- **Files:** `Client/UI/Gui/MenuButtons/init.luau`, `Client/UI/Gui/Inventory/init.luau`, `Client/UI/Gui/Stats/init.luau`, `Client/UI/ClientArt/Assets.luau`
-
-**Problem / goal**
-Like the Quests menu (T-159): the lobby HUD, Inventory and Stats still use client art with text and icons painted in (the HUD tile ribbons and icons, "AFK", "Stats", the Inventory's tab pictures, the Stats banner, labels and card icons). Cut blank versions (colored backgrounds and frames only, smooth fills, solid edges, transparent outside) and draw all text, icons and pictures as instances.
-
-**Done when**
-- [x] The three menus look as now, but no text, icon or picture is painted into their art
-
-**Notes**
-- Sol, 2026-11-11: do this after T-159, as its own task. Show every image before uploading.
-- 2026-11-11: done, in **Review**. Branch `agent/T-161-blank-art`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`. All new art was approved by Sol and uploaded to the group; ids in `ClientArt/Assets` (sources in `Projects/Boomerang/Assets/ArtPipeline/HudUI`, `StatsUI`, `InventoryUI`).
-  - HUD: blank tile ribbon (tile names are text), coin plank (coin icon is an image), AFK frame ("AFK" is text), Stats button (icon + text).
-  - Stats: blank window; banner icon/title, plaque titles, column headers, card icons (cut from the client's window) and card labels are instances.
-  - Inventory: blank window (badge removed, title centred on the ribbon); 5 tab buttons redrawn blank; tab icons are the client's item icons (Weapons uses the Stats boomerang).
-  - **Check in Studio:** placement and size of all new lettering and icons (HUD tiles, AFK, Stats button, Stats menu, Inventory tabs and title). No syntax check was run (Selene/StyLua aren't set up for this project).
-
-### T-081 · Decoy can be hit → eliminate + smoke poof
-- **Priority:** P0
-- **Owner:** Agent
-- **Area:** Server / Shared
-- **Files:** `Server/Core/BotService.luau` (hit handling + poof), `Server/Logics/BotBehaviors/Decoy.luau` (hit rules), `Shared/Logics/WeaponLogics/Boomerang.luau` (bot hit routing), `Shared/Utils/RaycastsUtility.luau` (bots never obstruct), `Shared/Constants/CollisionGroupConstants.luau` (new `Bots` group), `Shared/Constants/GlobalConfig.luau` (`CanHitSelfDecoy`)
-- **Blocked by:** T-079
-
-**Problem / goal**
-An enemy boomerang eliminates the decoy; it poofs into smoke. Only enemies can — the owner can't hit their own decoy unless `GlobalConfig.CanHitSelfDecoy` is on, and teammates follow the team's friendly-fire rule (`GameTeamLibrary.areEnemies`). No stat changes.
-
-**Done when**
-- [ ] An enemy boomerang pops the decoy into smoke; the owner and teammates can't hurt it; no stat changes.
-
-**Test in Studio**
-- `spawndecoy`, then have an enemy (or a second client) hit it with a boomerang → it poofs (DecoySmokePoof, 1.5 s). With `CanHitSelfDecoy` off, your own boomerang should pass through it (no block, no kill). The decoy should also poof when its 4 s lifetime ends. In a team mode, a teammate can't kill it.
-
-**Notes**
-- Implemented on branch `agent/T-081-decoy-hittable` (lane `Boomerang-lanes/T-077-telekinesis`).
-- New `Bots` collision group (Sol's call): collides with arena walls/floor/Default like a player and is detectable by `ThrownWeapons`, but NOT with `Players`, so a decoy passes through players. The rig root + hitbox use it; the hitbox is now `CanQuery = true`.
-- Boomerang hit path: `spherecastCharacterHitbox` also includes the `Bots` workspace folder; `damagedPlayer` routes a victim carrying a `BotId` attribute to `BotService.onWeaponHit` (server only), which asks the behavior's `onHit` and despawns with reason `eliminated`. No `WeaponKilledPlayer` for bots → no stats.
-- `RaycastsUtility.getProjectileObstructionParams` also excludes the `Bots` folder, so a decoy never blocks a boomerang as an obstruction.
-- Smoke: `BotService.despawn` plays the behavior's `DespawnParticle` (`DecoySmokePoof`) at the rig position for 1.5 s via `ParticlesLibrary`, on every despawn except round-end teardown. Decoy sets it in `start`.
-- Smoke asset `DecoySmokePoof` is in `Shared/Assets/Particles` (Sol committed it).
-- **Bug fixed (2026-10-12):** making the decoy's hitbox weapon-detectable caused thrown boomerangs to treat the decoy's client-rendered avatar as a solid obstruction — it bounced/stalled on the client while the server flew normally, so the server boomerang went dead out of range and every later throw was rejected (server weapon stuck). Fix: the decoy visual is kept `CanCollide`/`CanQuery`/`CanTouch = false` and on the Players collision group EVERY frame (a Humanoid rebuild had been resetting those), visuals live in a `BotVisuals` folder, and the boomerang's obstruction/line-of-sight casts exclude both the `Bots` rig folder and `BotVisuals`. Boomerangs now pass through decoys like players. Confirmed working by Sol.
-
----
-
-### T-071 · Throw direction wrong under Server authority
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Client, Server
-- **Files:** `Client/Core/WeaponController.luau`, `Client/Core/CharacterController/init.luau`, `Client/Core/CharacterRenderController.luau`
-- **Approved early** by Sol (2026-10-03). DESIGN.md "Known problems: P4".
-
-**Problem / goal**
-In Server mode the aim direction shows correctly on the player's own screen, but the thrown boomerang doesn't go where they aimed.
-
-**Done when**
-- [ ] In Server mode, the boomerang flies exactly where the player aimed (mouse, locked mouse, touch thumbstick), on their screen and on other players' screens.
-- [ ] Automatic mode unchanged.
-
-**Notes**
-- Branch `agent/T-071-sa-throw-direction`, lane `Github/Boomerang-lanes/docs-server-authority`.
-- Cause (confirmed in Studio by logging what the server receives): the client measured the mouse aim from the held tool's pivot, which under Server authority reported a stale spot ~40 studs from the character, so every throw went roughly the same way. The server already uses the client's direction as-is.
-- Fix: `WeaponController.throwEquippedTool` aims from the rendered character's root (same origin as the aim arrow), and ignores the tool pivot as release position when it's more than 6 studs from the character.
-- Also guarded the per-frame `CharacterController:197` nil error (DESIGN.md P2) in the same file area.
-- Round 2 (Sol, 2026-10-05: still wrong, plus the character's facing jumps while aiming). Logged in Studio: while charging, the rendered model's facing alternated every frame between the aim and a drift toward +Z, and every throw reached the server at ~180°. Cause: the rendered model is unanchored with Humanoid AutoRotate on, so its physics (animation constraints) turned it while `CharacterController` re-pivoted it each frame; the throw read that rotation.
-- Fix 2: the rendered model's HumanoidRootPart is anchored and its AutoRotate is off (ragdoll still unanchors it); throws use `CharacterController.LastCFrame` (exactly what the aim arrow shows) unless a touch direction is given. Removed the now-unused requires in WeaponController.
-- Not lint-checked.
-
----
-
-### T-149 · PC / console: "Recall" pop-up above the head when the boomerang is dead
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Client UI
-- **Files:** `Client/Core/RecallPromptController.luau` (new), `Client/Core/WeaponController.luau`
-
-**Done when**
-- [ ] On PC and console, while the local player's boomerang is dead (or dying), a green prompt pops up above their head: an outlined box with the recall key, then "Recall"
-- [ ] It pops in (from 80% size, overshoots, settles; fades in fast) and pops out when they start recalling or the boomerang is back (expands, shrinks to 80%, fades out); it's a CanvasGroup so it fades as one
-- [ ] It sits above the head and is the same size on screen in the top-down and over-the-shoulder cameras
-
-**Notes**
-- From Sol, 2026-10-29. BillboardGui on the rendered head: StudsOffsetWorldSpace just above the head + SizeOffset (0, 0.5) (bottom edge on that point in screen space); its stud size is recomputed every frame from the camera distance and FOV (SCREEN_HEIGHT_FRACTION of the screen).
-- Console had no recall button: added ButtonY (WeaponController.RECALL_GAMEPAD_KEY) alongside E (RECALL_KEY); the prompt shows the platform's own button image on console.
-- Studio: checked visually in both camera modes (above the head, readable); holding E hid it.
-- Follow-up (Sol): it bobbed with the walk animation, so it now hangs from the physics character's Hitbox (doesn't animate); the head's height above it is measured once per pop-in.
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-149-recall-popup`.
-
-### T-148 · Quests: "Use <pickup> N times"
-- **Priority:** P3
-- **Owner:** Agent
-- **Area:** Quests
-- **Files:** `Shared/Referential/Quests.luau`, `Shared/Library/QuestLibrary.luau`, `Server/Core/QuestService.luau`, `Server/Core/PickupService.luau`
-
-**Done when**
-- [ ] Daily and Weekly pools have a "Use <pickup> N times" quest for each pickup that can spawn (Decoy, Disguise, Electric / Explosive / Fire / Homing / Teleport Boomerang, Shield, Speedup, Telekinesis); Daily goal 3, Weekly goal 6
-- [ ] A use is pressing the pickup's use button (Decoy, Explosive Boomerang, Teleport Boomerang), or collecting a pickup that takes effect at once (the rest)
-
-**Notes**
-- From Sol, 2026-10-29. New PickupService.PickupUsedTasks event. They all share one objective type, so a player usually gets at most one per pool (draws prefer different kinds).
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-148-pickup-quests`.
-
-### T-147 · Quests: reward becomes the claim button, Reroll button
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Quests (client UI + server)
-- **Files:** `Client/UI/Gui/Quests/init.luau`, `Client/Core/QuestController.luau`, `Server/Core/QuestService.luau`, `Shared/Library/QuestLibrary.luau`, `Shared/Constants/Icons.luau`
-
-**Done when**
-- [ ] No separate Claim button: the reward (coin + amount) is a plain label until the quest is finished, then becomes a green button that claims it
-- [ ] A blue Reroll button (Icons.QuestReroll, 90107008743164) on the right of each unclaimed quest swaps that exact quest for another from the same pool, in the same place (the order of the others is kept)
-- [ ] The server picks the new quest (one the player doesn't have, preferring a different kind); claimed quests can't be rerolled
-- [ ] Free for now (QuestService REROLL_IS_FREE) so it can be tested; a developer product will pay for it later
-
-**Notes**
-- From Sol, 2026-10-29. Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-147-quest-reroll`.
-
-### T-146 · MarketplaceLibrary rework: caching, gamepass ownership, receipt protection
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Shared (client + server) monetization
-- **Files:** `Shared/Library/MarketplaceLibrary.luau`, `Shared/Referential/MarketplaceItems.luau`, `Server/Core/ProductService/init.luau`, `Shared/Data/ProfileTemplate.luau`
-
-**Done when**
-- [ ] One shared wrapper for client and server with the same cache shapes; prices and prompts stay on the client (no server round trip)
-- [ ] Separate product / gamepass info caches; one web call per key at a time (others wait for its answer, no polling); failed lookups not retried for a few seconds
-- [ ] Gamepass ownership cached for the whole session, cleared on leave; every known gamepass looked up in parallel when the player's data loads (server: every player, client: itself)
-- [ ] GamepassOwnershipChangedTasks on purchase / gift / refresh; giftGamepass (server), refreshGamepassOwnership, getGamepassAccess; admins (CmdrAdmin) own every gamepass while ADMINS_OWN_ALL_GAMEPASSES is on
-- [ ] MarketplaceItems lists products and gamepasses with a Type
-- [ ] Developer product receipts are never granted twice (ProcessedReceipts in the profile, latest 50)
-
-**Notes**
-- From Sol, 2026-10-29. Fixed on the way: playerCanPurchaseItem passed a UserId to PolicyLibrary (expects a Player); PromptProductPurchaseFinished passes a UserId, not a Player, so waiting for a product prompt's answer always timed out.
-- Studio: no errors; 5 simultaneous price lookups made one call (0.28 s), the cached lookup was instant.
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-146-marketplace`.
-
-### T-142 · Aim arrow lines up under the boomerang's path
-- **Priority:** P3
-- **Owner:** Agent
-- **Area:** Client visuals (charge up effects)
-- **Files:** `Shared/Logics/ChargeUpEffects/ArrowEffect.luau`, `Shared/Library/ChargeUpEffectLibrary.luau`, `Client/Core/WeaponController.luau`
-
-**Done when**
-- [ ] The aim arrow sits under the line the boomerang leaves along (the held boomerang's side of the character), not under the character's centre
-- [ ] Both arrow skins (GenericAimArrow, RedAimArrow) get it, through the shared ArrowEffect
-- [ ] Other players' arrows line up the same way; a stale tool position (too far from the character) falls back to the centre, like the throw does
-
-**Notes**
-- From Sol, 2026-10-29. The charge frame now carries ThrowOrigin (the held boomerang's position, the same point the throw is released from); ArrowEffect shifts the arrow sideways onto that line, eased so the charge animation doesn't make it jitter (THROW_LINE_FOLLOW_RATE).
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-142-aim-arrow-origin`.
-
-### T-139 · Touch: "Recall" label under the Manual Recall button
-- **Priority:** P3
-- **Owner:** Agent
-- **Area:** Client UI (touch)
-- **Files:** `Client/UI/Gui/CustomTouchscreen/init.luau`
-
-**Done when**
-- [ ] The "Recall" text label under ThumbstickImage shows only while the thumbstick is the Manual Recall button (T-138), appearing (and popping) with the icon
-- [ ] Styled like the HUD's other text: Fredoka One (regular), white, dark brown (60, 35, 15) UIStroke outline; its size and position are kept as placed in Studio
-
-**Notes**
-- From Sol, 2026-10-28. The label was added in Studio (not in CustomTouchscreen.rbxmx), so the code uses it if it's there and otherwise makes one with the same size and position (Size {2, 0}, {0.3, 0}; Position {0.5, 0}, {0.8, 0}; AnchorPoint 0.5, 0).
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-139-recall-label`.
-
-### T-138 · Touch: the aim thumbstick becomes the Manual Recall button while the boomerang is dead
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Client UI (touch)
-- **Files:** `Client/UI/Gui/CustomTouchscreen/init.luau`, `Shared/Constants/Icons.luau`
-
-**Done when**
-- [ ] When the boomerang dies and needs a manual recall, the aim thumbstick's knob changes to Icons.ManualRecall (71238029462038) with a cartoony pop (out a little bigger, then back to its size)
-- [ ] In that state it no longer aims: holding it is the touch player's Manual Recall, the same as holding E on PC (it stays the recall button while the boomerang flies back from a manual recall)
-- [ ] Once the boomerang is back in hand, the knob returns to the aim thumbstick (Icons.AimThumbstick) with the same pop
-- [ ] Icons.ManualRecall exists; changing that one line changes the button's look (the knob's images are both set from Icons in code)
-
-**Notes**
-- From Sol, 2026-10-28. Chose to reuse the thumbstick itself (same spot, same circle) rather than a separate button: the knob swaps image, and a press in the circle starts the recall hold instead of aiming. POP_SCALE / POP_OUT_SECONDS / POP_BACK_SECONDS at the top of the MANUAL RECALL MODE section.
-- Not tested on a touch device (Studio's play test runs as PC, where this GUI is closed); only checked that the GUI loads without errors.
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-138-touch-recall`.
-
-### T-136 · Dash avoids landing the player somewhere deadly (water, open air)
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Shared (Dash ability, server authority)
-- **Files:** `Shared/Logics/AbilityLogics/Dash.luau`
-
-**Done when**
-- [ ] When the player dashes, the dash module tries to prevent them from dashing into a spot that would kill them (over water that would kill them, or air they'd fall through)
-- [ ] One shapecast checks the dash's full length for obstructions; the end point is the full distance, or as far as it gets before an obstruction. Only that end point is checked for stable ground (no sampling along the way)
-- [ ] If the end is stable ground, the full dash happens (dashing straight over a gap and landing on stable ground still works)
-- [ ] If the end would leave the player over open air (or deadly water), check for a safe dash: if the player can dash 50% or more of the dash distance and end on stable ground (the most stable spot next to the gap), the dash goes there instead
-- [ ] If they can't dash at least 50% of the dash distance and end on stable ground, they dash the full distance and fall over the gap
-- [ ] The safe-dash behaviour is its own clearly separated section in the Dash module, and the 50% is a clearly labelled internal config there, so it's easy to change or remove entirely
-
-**Notes**
-- From Sol, 2026-10-28 (worded as given): "When the player dashes, the dash module should try to prevent them from dashing into a spot that would kill them (over water that would kill them or air that they'd fall through). The player should be able to dash towards an open air gap from as much as 50% of the gap's total distance coverage and the dash instead automatically brings them to the most stable position adjacent to the gap instead of teleporting them over the gap. This should not interfere with the ability to dash directly over a gap--the player will still dash towards the direction of a gap if the full distance of the dash would cross over the gap and land them on stable ground."
-- Clarified by Sol, 2026-10-28: the 50% is half of the dash's distance. Approach agreed: one shapecast for the full length, then check the end point directly; to find the stable spot next to the gap, one more cast back toward the start just below the floor surface finds the gap's near edge.
-- Built (SAFE DASH section in Dash.luau; config SAFE_DASH_ENABLED / SAFE_DASH_MIN_FRACTION at the top). Also: a dash's leftover speed is now cut to walking speed when it ends (DASH_END_CLAMPS_SPEED), otherwise the 80 studs/s momentum slid players several studs past the planned end (off the very edge the dash had stopped short of).
-- Tested in Studio on PartsTest (11-stud pits), dashing toward a pit: 8 studs from the edge, the dash stopped 0.9 studs short of it (planned 1); 4.2 studs from the edge (too little dash left), the full dash went over and the player fell; ending on solid ground short of the edge, the full dash happened; with a temporary floor narrowing the gap to 6 studs, the dash crossed it.
-- Still server-only: Dash sets the character's velocity on the server (Heartbeat), so the player's client doesn't predict it and is corrected to the server's result under server authority. Making the dash a predicted movement on both sides (likely through the replicated JumpAction input, which is what Space is bound to) is a bigger change and is left for its own task.
-- If the player keeps holding toward the gap, they walk off the edge right after a shortened dash (their own input; their input reaches the server a moment late too).
-
-### T-135 · Players' torsos collide on the server too (moving platforms "popped" players back)
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Server (server authority)
-- **Files:** `Server/Core/CharacterService/init.luau`
-
-**Done when**
-- [ ] Standing in a moving platform's path, the player is pushed by it and stays pushed (no popping back to where they stood)
-- [ ] CharacterService keeps each character's Torso collidable on the server (every other part stays non-collidable, and CanTouch/CanQuery stay off), matching the player's own client, where the Humanoid switches the Torso's collision on
-
-**Notes**
-- From Sol, 2026-10-28. Found in Studio: the server set every character part CanCollide = false, but the player's client has the Torso collidable. So the server simulated the character as a ghost: the platform passed straight through it on the server while the client was pushed, and the server's correction popped the client back. Measured on the server with the platform at speed: Torso not collidable, pushed 0 studs and passed through; collidable, pushed and never passed through. A server-side teleport (as the earlier Studio tests used) makes the Humanoid switch it on, which is why those tests didn't show it.
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-135-server-torso-collision`.
-
-### T-134 · Moving platforms driven by physics (body movers) instead of set CFrames
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Shared (server authority)
-- **Files:** `Shared/Logics/Environment/MovingPlatform.luau`
-
-**Done when**
-- [ ] Walking or dashing toward an oncoming platform doesn't pass through it (T-133's code push only caught characters the face reached, not ones that walked into it during physics)
-- [ ] DRIVE section (PHYSICS_DRIVEN): the server makes the platform an unanchored, maximum-density body held by a rigid AlignPosition and AlignOrientation; every simulation step (server and clients) only sets their targets from the same time() path, so Roblox physics moves it and does the pushing and carrying
-- [ ] Each client switches the server's constraints off locally and drives its own copy (otherwise the server's late target writes drag the predicted platform back and it jitters)
-- [ ] PHYSICS_DRIVEN = false restores the anchored platform with CARRY and PUSH (kept as the fallback)
-- [ ] Crushing still works at both ends (the crush check reads where the platform really is)
-
-**Notes**
-- From Sol, 2026-10-28. Tested in Studio on PartsTest: bot-style rigs running into the oncoming platform at 16, 60 and 100 studs/s were all pushed, never through; the player pushed as seen from the client stays just ahead of the face; the platform moves smoothly on the client (1 direction flip in 12 s, against 228 before the local-constraint fix). Still for Sol: the player walking/dashing into it, riding on top, and crushing at both ends.
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-134-physics-platform`.
-
-### T-133 · Moving platforms push characters in code (no tunnelling)
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Shared (server authority)
-- **Files:** `Shared/Logics/Environment/MovingPlatform.luau`
-
-**Done when**
-- [ ] A character in front of a moving platform is pushed ahead of it at any speed, instead of being popped out the far side (at full speed the anchored platform moves further per simulation step than half a torso, so physics couldn't push)
-- [ ] PUSH section, inside the simulation step on the server and every client: characters whose torso the leading face caught this step are moved forward along the travel, just clear of the face (PUSH_SKIN). Only their position along the travel changes, never their velocity, height or sideways position, so they keep their own movement and don't stick to the platform; nothing pulls them back
-- [ ] The server pushes every player's character and every bot (decoys, workspace.Bots); each client pushes only its own predicted character, so it matches the server, replays included
-- [ ] Characters standing on top aren't pushed (they ride, CARRY); lifts (steep travel) don't push; toward an end that doesn't crush, pushing stops when there's no room left
-- [ ] Pushed into a crushing end, a player is still crushed (T-131)
-
-**Notes**
-- From Sol, 2026-10-28. Tested in Studio on PartsTest (server-driven): pushed at full speed both on the server and as seen by the client, bot-style rig pushed, rider carried and not pushed. Walking away / sideways / jumping while being pushed still needs Sol's hands-on check (the test tools can't send movement input).
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-131-crush-fix`.
-
-### T-131 · Moving platforms under server authority (no more clipping), geometric crush
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Shared (server authority)
-- **Files:** `Shared/Logics/Environment/MovingPlatform.luau`
-
-**Done when**
-- [ ] A moving platform pushes players instead of passing through them (no clipping out the far side), with lag
-- [ ] Players standing on a platform ride along with it (CARRY section, switch CARRY_ENABLED)
-- [ ] The platform is anchored and moved inside RunService:BindToSimulation on the server and every client, as a pure function of time() from its start time (attribute MovingPlatformStartTime); clients force prediction on for it, so its position matches the server's on every frame, including replays
-- [ ] Clients find platforms in the live map's Functional folder themselves (the old lookup used a "Dynamics" folder that doesn't exist, so clients never moved it); the NewMovingPlatform / MovingPlatformSnapshot remotes are gone
-- [ ] A platform is a single part in the map's Functional folder (ClassName MovingPlatform; Speed, StartPivot, EndPivot, optional RestTime), not a folder with a Platform part and crush volumes
-- [ ] Crush (server only, CRUSH section): attributes StartCrush / EndCrush (booleans). While closing in on a crushing end, a player inside the platform's footprint between its leading face and that end dies ("Crushed") once the gap left is smaller than their Hitbox's width (minus CRUSH_GAP_TOLERANCE). The end must have a wall (map rule). Immunity doesn't save them (for now: see T-132)
-- [ ] Boomerangs still pick up the platform's velocity when they hit it (DynamicCollisionLibrary, now timed with time())
-
-**Notes**
-- PartsTest's platform (Functional/MovingPlatform) already matches this layout: StartCrush and EndCrush both true, Speed 10, RestTime 2.
-- Fix (2026-10-28): the crush used applyDamageToHumanoid, whose TakeDamage does nothing while the character has a ForceField (spawn protection); it now sets Health to 0 itself (as Water does) and sends the "Crushed" reason.
-- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-131-moving-platform`.
-
-
-### T-130 · In-game Stats panel replaces the player list
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Client UI + Server (stats replication)
-- **Files:** `Client/UI/Gui/StatsPanel/init.luau`, `Shared/Constants/PlayerStatAttributes.luau`, `Server/Core/LifetimeStatsService.luau`, `Client/Core/StarterGuiController.luau`
-
-**Done when**
-- [ ] A panel (frame image 127212661618035) sits on the right edge: centred on PC, top-right corner on touch. Closed, only its arrow tab sticks out; clicking the tab or pressing Tab slides it out and back. Header "Stats"
-- [ ] Roblox's player list is off; Tab opens this panel instead
-- [ ] Top: this round's Name / Elims / Defeats for every player (labelled columns), most elims first
-- [ ] A divider, then all-time Elims / Defeats / Wins / Losses for every player (two lines per listing: name, then the numbers under labelled columns), the local player first, then the best elims-to-defeats ratio
-- [ ] Numbers come from the server: Player attributes (PlayerStatAttributes) set by LifetimeStatsService (round counts reset when a round starts; lifetime totals mirror the profile; Losses = rounds played - wins)
-- [ ] Scales with the screen (Scale sizes, text capped relative to the panel's height); lists scroll past 5 (round) / 3 (all-time) listings
-
-**Notes**
-- Round elims/defeats count only eliminations by another player, the same rule as the lifetime totals. Checked in a Studio play test (layout, Tab, sliding); not tested with several players or on a phone.
-
-
-### T-128 · Slashes knock away enemy weapons in flight
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Shared (server decides)
-- **Files:** `Shared/Logics/AbilityLogics/Stab.luau`
-
-**Done when**
-- [ ] A slash whose wedge reaches an enemy's weapon in flight (outgoing or returning) knocks it straight away from the slasher, so the slasher can aim it by the angle they hit it from
-- [ ] Only weapons of players the slasher could damage (enemy team, or teammate with friendly fire on); never their own; never dying or dead boomerangs
-- [ ] It is a clash: same energy cost (`ClashEnergyCost`), Deflected snapshot to every client, the clash sound at the contact point; a returning weapon is knocked off course and then steers home
-- [ ] A weapon is caught if its path through the wedge comes within its own HitboxRadius (fast weapons can't slip between frames), with no wall between
-- [ ] `viewhitbox` marks the contact point
-
-**Notes**
-- No rewind needed: clients run thrown weapons ahead to the server's present. A click that reached the server after its impact moment checks the weapon's path back to where it was then (up to 0.3 s). Not play-tested.
-
-
-### T-127 · Slashes pop decoys and other bots
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Shared (server decides)
-- **Files:** `Shared/Logics/AbilityLogics/Stab.luau`, `Shared/Library/LagCompensationLibrary.luau`
-
-**Done when**
-- [ ] A slash pops a decoy (or any bot) whose Hitbox reaches into the swing's wedge, with no wall in between, if its owner is on an enemy team or on the same team with friendly fire on
-- [ ] Your own decoy follows the decoy's rule (`GlobalConfig.CanHitSelfDecoy`); teammates' decoys are safe without friendly fire
-- [ ] Popping uses the existing bot path (`BotService.onWeaponHit`: the bot's own hit rule, despawn with its smoke poof)
-- [ ] Bots are checked where they are now and where the swinging player saw them (lag compensation now also records bots: `LagCompensationLibrary.getRewoundBots`)
-
-**Notes**
-- Not play-tested. Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-126-slash-sweep`.
-
-### T-126 · Slash: crescent sweep effect on every swing
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Client (visual only)
-- **Files:** `Shared/Logics/AbilityLogics/Stab.luau`, `Shared/Assets/Particles/SlashAbility.rbxmx` (Sol's asset)
-
-**Done when**
-- [ ] Every swing shows the SlashAbility crescent sweeping forward in front of the player and fading out over 0.2 s, with its tip trails, facing where they swung
-- [ ] You see your own swing's sweep at the click; other players' sweeps show when your game hears about the swing (skipping ahead if it's late)
-- [ ] The crescent never collides or gets pushed by physics (its BodyVelocity is removed; code moves it)
-- [ ] The kill effect (`Slash` particle on the victim) is still only ever played by the server: no client-side hit prediction
-
-**Notes**
-- Tunables at the top of Stab.luau (`SWEEP_DURATION`, `SWEEP_SCALE` 1.4, `SWEEP_START_DISTANCE` / `SWEEP_END_DISTANCE`, `SWEEP_HEIGHT_OFFSET`, `SWEEP_START_TRANSPARENCY`). A replacement asset works without code changes if it is one part facing -Z with its trail attachments as children.
-- Built on T-125 (branch `agent/T-126-slash-sweep` from `agent/T-125-slash-rework`). Not play-tested. SlashAbility.rbxmx is also untracked in the home repo; it has to be moved out of the way there before this ships (the merge would otherwise refuse to overwrite it).
-
-### T-125 · Slash: one forgiving, lag-compensated hit check
-- **Priority:** P1
-- **Owner:** Agent
-- **Area:** Shared (server decides)
-- **Files:** `Shared/Logics/AbilityLogics/Stab.luau`, `Shared/Library/LagCompensationLibrary.luau`
-
-**Done when**
-- [ ] A swing hits anyone whose Hitbox reaches into a wedge in front of the player (5 studs to the Hitbox edge, about 6.6 centre to centre; 110 degrees wide; full height), not a 2-stud box
-- [ ] A wall between the players blocks the hit
-- [ ] The client sends where it faced, where it will be at impact and when it clicked; the server uses them when plausible (otherwise its own values)
-- [ ] The swing is checked once, when the blade lands (0.08 s after the click), against where everyone is now AND where the swinging player saw them (the boomerangs' lag-compensation rewind: ping + 0.1 s, capped by `setlagcompensation`)
-- [ ] Dashing players can't slip between checks any more; with lag, a swing that looked like a hit counts
-- [ ] Parries still work (a swing landing on a player who is mid-swing, both facing each other)
-
-**Notes**
-- New `LagCompensationLibrary.getRewoundTargets`. Tunables at the top of Stab.luau (`SWING_RANGE`, `SWING_HALF_ANGLE`, `SWING_HALF_HEIGHT`, `IMPACT_DELAY`). `GlobalConfig.ParryVisualizersEnabled` draws the wedge on the server.
-- Checked in Studio: the wedge/line-of-sight maths with test positions and a test wall, and server swings with good, bad and missing client data (no errors). Not tested with two players. Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-125-slash-rework`.
-- Follow-ups from the analysis (not in this task): a slash trail on every swing, always showing other players' swings, parry by click times, server cooldown grace, removing debug prints, the stagger's server ownership.
-
-### T-124 · Dying boomerangs are stopped by the same walls as flying ones, and never climb
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Shared (server decides)
-- **Files:** `Shared/Logics/WeaponLogics/Dead.luau`, `Shared/Library/ObstructionCastLibrary.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`
-
-**Done when**
-- [ ] A dying/sliding boomerang is stopped by every wall a flying boomerang bounces off (same hitbox-wide, cast-height block at flight height), including the low TerrainTest walls (tops 158.35 / 158.46)
-- [ ] A sliding boomerang never climbs onto higher ground: a step more than 0.1 studs above it blocks it like a wall (it can still drop down steps, and a still-falling boomerang can land on anything below it)
-
-**Notes**
-- The block cast now lives in `ObstructionCastLibrary.blockcast` (used by flying and dying weapons); the dying slide along a wall uses the half-width block, as in flight. `DEAD_MAX_STEP_UP = 0.1` in Dead.luau. Checked with test walls in a Studio play session (server physics); not hand-play-tested. Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-124-dying-box-check`.
-
-### T-123 · No automatic recall once a dying boomerang has hit the ground
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Shared (server decides)
-- **Files:** `Shared/Logics/WeaponLogics/Dead.luau`
-
-**Done when**
-- [ ] A dying boomerang can still recall by itself while it is dropping (player in sight and in range), but not after it has hit the ground: sliding into the player's view afterwards leaves it to die
-- [ ] After landing, sliding off over a gap doesn't auto-recall either: it keeps sliding until ground, with the 3 s "last solid spot" failsafe (as for already-Dead boomerangs, T-107)
-- [ ] The "about to die" check (would it be back in sight along its slide?) only looks at the slide until it lands
-
-**Notes**
-- `hasLanded` in `applyDeath` gates `checkRecallWhileDying` and the sliding-away recall; `predictSlidePositions` stops at the landing step. Not play-tested. Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-123-no-auto-recall-after-landing`.
-
-
-### T-122 · Automatic recall shows no SelectionRing or beams
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Client
-- **Files:** `Client/Core/WeaponController.luau`, `Client/Core/DeadWeaponBeamController.luau`
-
-**Done when**
-- [ ] A boomerang recalling by itself (sliding away over nothing, player back in sight while it is dying, out-of-bounds failsafe) shows no SelectionRing, no Summon animation and no beam to the player
-- [ ] The manual (charged, held) recall still shows the ring, the Summon animation and the returning beam
-
-**Notes**
-- Cause: clients started every recall of a dying/dead boomerang as a manual one (`recallFromDead(..., true)` on the Returning snapshot), so automatic recalls got the manual-recall visuals on clients. Now a client treats it as manual only if it was charging that boomerang (`DeadWeaponLogic.isRecallCharging`: the server's RecallCharge Start event reached it and no Cancel); otherwise automatic (`RecallFromDead = false`). The dead beam's life cycle now ends on an automatic recall instead of staying (invisible) until the catch.
-- Not play-tested. Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-122-auto-recall-visuals`.
-
-
-### T-121 · Touch controls: Dash and Stab buttons no longer overlap
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Client (GUI)
-- **Files:** `Client/UI/Gui/CustomTouchscreen/init.luau`
-
-**Done when**
-- [ ] Dash and Stab sit in a row left of the aim circle with an even gap (3.5% of the screen height) between the circle, Dash and Stab, on every screen shape
-
-**Notes**
-- Cause: their sizes follow the screen height (RelativeYY) but their positions were fractions of the screen width, so the spacing depended on the screen's shape (overlapping in Studio's phone view). `layoutActionButtons` now places them in pixels from the aim circle whenever the screen size changes; their Y still comes from the rbxmx, their X in the rbxmx is overridden.
-- Checked in a Studio play-test (phone emulation, 801x413) with the touch controls shown (2026-10-25). Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-121-touch-button-spacing`.
-
-
-### T-120 · Inventory: Weapons tab icon, Arrows tab renamed Charges
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Client (GUI)
-- **Files:** `Client/UI/Gui/Inventory/init.luau`, `Client/UI/Gui/MenuButtons/init.luau`, `Shared/Constants/Icons.luau`
-
-**Done when**
-- [ ] The Inventory's Weapons tab shows the same boomerang icon as the Inventory HUD button
-- [ ] The Arrows tab is labelled "Charges"
-
-**Notes**
-- New `Icons.InventoryButton` (123566439013193), used by both the HUD button and the tab (TABS entries can now have an Icon). The tab module id stays `Arrows`.
-- Not play-tested.
-
-
 
 ## Backlog
 
 > **Client package UI reskins (T-156 to T-160).** Reskin our existing GUIs with the client's art from `Downloads/Boomerang-ScripterPackage/SourceAssets/UIArtwork` (layout reference: the package's screen modules, extracted in T-152). Keep our controllers and data. Image ids are in the package's `AssetManifest.csv` (check ownership, T-152). Any art with baked-in text that says "Kill" must be redrawn or covered.
 
-### T-158 · Shop reskin with the client art
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Client UI
-- **Files:** `Client/UI/Gui/CosmeticsShop.luau` / `WeaponsShop.luau` / `ShopCommon/`, crate data if a Garbage Egg is added
-
-**Problem / goal**
-Use the package's Shop art (`UIArtwork/shop`: window, skin cards with odds, Buy and Gift buttons, the "Limited Garbage Egg Skins" banner). The blue Gems pill shows nothing or our `Currency`: there are no Gems.
-
-- The Garbage Egg (Robux, random skin at 61 / 29 / 9 / 1 %) maps onto our crates (`Crates.luau`, `CrateService`, `LootBoxRates`). Paid random items stay as they are for the prototype; review before launch (odds disclosure, `PolicyLibrary`).
-- Its four skins (Paper Mecha, Lunch Bag Spy, Cpt. Red, Para Bottler) only exist as icons: placeholder models and product ids (`-- TODO:RELEASE placeholder`).
-
-**Open questions (ask Sol first)**
-- Which of our shops gets this art? Is the Garbage Egg wanted now? Gift: build it or hide the button?
-
-**Done when**
-- [ ] The chosen shop uses the client art with our data and `Currency`
-
-**Notes**
+> **Crates, never eggs (Sol, 2026-11-12).** The package's "egg" wording (Garbage Egg, Makeshift Egg, "Open an Egg" quests, `EggsOpened`...) came from an unrelated game's GUI and is not part of this project. Every egg in the package is a **Crate** in our game: names, UI text, quests, stats and code. Art with an egg painted in gets a crate instead.
 
 ### T-078 · Smoke particle for the decoy poof
 - **Priority:** P2
@@ -992,6 +484,595 @@ Players enter a code to receive a reward. Server: validates the code (case-insen
 ---
 
 ## Done
+
+### T-158 · Restyle the Weapons and Cosmetics shops to match the new menus
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client UI
+- **Files:** `Client/UI/ShopCommon/ShopBuilder.luau`, `Client/UI/Gui/CosmeticsShop.luau`, `Client/UI/Gui/WeaponsShop.luau`
+
+**Problem / goal**
+Our two shops still used the old grey tinted art. Restyle them in the style of the recently rebuilt menus (Quests, Inventory, Stats): the client's wood-and-parchment look, blank art, all text and icons as instances. Only the style: not the client's shop mockup's layout or concepts (no eggs, no Gift buttons, no packs).
+
+**Done when**
+- [x] Both shops use the Quests menu's blank art (window, tabs, cards, green / grey buttons, close button, pill) with our data and `Currency`
+- [x] Cosmetics Shop tabs are named and iconed as in the Inventory (Charges, Strikes, Emotes, Taunts)
+- [x] No Gift button
+
+**Test in Studio**
+- Open both shops (Shop buttons, or N / B in Studio): window fits the screen, tabs switch, the balance pill shows your Currency.
+- Cards: name, preview, rarity, price button; buying works; owned items show a grey "Owned"; Robux listings show a second blue button.
+- Cosmetics tabs with more than 8 items scroll.
+
+**Notes**
+- Sol, 2026-11-12: the client's shop mockup isn't final; match our new menus' style instead. "Crate", never "egg" (note above the Backlog). Gift hidden.
+- 2026-11-12: done, in **Review**. Branch `agent/T-158-shop-reskin`, lane `Github/Boomerang-lanes/T-158-shop-reskin`. No new art: reuses the approved Quests pieces (`ClientArt/Assets.QuestsScreen`) and the Inventory tab icons. Cosmetics: 4 cards per row; Weapons: one row of 3 big crate cards, no tabs. Robux price button is the grey button tinted blue.
+  - **Check in Studio:** placement and size of all text, icons and buttons (layout numbers at the top of ShopBuilder). Rojo build passes and luau-lsp finds no syntax errors; not play-tested.
+- Sol, 2026-11-12: passed testing.
+
+---
+
+### T-143 · Quest system: 3 daily + 3 weekly quests, shared rewards
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Server + Shared (data, progress, rewards)
+- **Files:** `Shared/Referential/Quests.luau` (new), `Shared/Library/QuestLibrary.luau` (new), `Shared/Library/RewardLibrary.luau` (new), `Server/Core/QuestService.luau` (new), `Server/Core/RewardService.luau` (new), `Shared/Data/ProfileTemplate.luau`, `Server/Core/BotService.luau`, `Server/Logics/BotBehaviors/Decoy.luau`, `Server/Cmdr/Commands/ResetQuests*.luau` / `QuestProgress*.luau` (new)
+
+**Done when**
+- [ ] Every player has 3 Daily quests (new ones at UTC midnight) and 3 Weekly quests (new ones Monday 00:00 UTC), drawn at random from each pool, preferring different objective types
+- [ ] Objectives: eliminations, round wins, rounds played, minutes played, throws, dashes / stabs, pickups (any or one kind); eliminations / wins / rounds can be limited to a gamemode
+- [ ] Eliminating another player or a bot counts as an elimination; popping a decoy doesn't
+- [ ] Throws, abilities and minutes only count while alive in the arena (no lobby farming)
+- [ ] A finished quest is claimed from the server (ClaimQuest); Daily pays 100, Weekly pays 500 Currency
+- [ ] Rewards go through the shared RewardService / RewardLibrary, which also supports skins (weapons), aim arrows, emotes and items, with currency for duplicates; daily/weekly quests only use Currency (cosmetics are for event quests)
+- [ ] Saved in the profile (`Quests`); progress replicates to the player
+- [ ] Cmdr: `resetquests <players> [pool]`, `questprogress <players> [amount]` (no amount = finish them)
+
+**Notes**
+- From Sol, 2026-10-29: Bot eliminations count, decoys don't. Rewards: Currency only for now.
+- A new pool (e.g. an event) = an entry in `Quests.Pools` (ResetPeriod "Never" for events) and its quests in `Quests.List`.
+- Unclaimed finished quests are lost when their pool resets.
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-143-quests`.
+- Sol, 2026-11-12: passed review.
+
+---
+
+### T-144 · Quests menu (placeholder look)
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client UI
+- **Files:** `Client/UI/Gui/Quests/init.luau` (new), `Client/Core/QuestController.luau` (new), `Client/UI/Gui/MenuButtons/init.luau`
+
+**Done when**
+- [ ] The Quests button in the left lobby menu opens and closes the Quests menu
+- [ ] A vertical scrolling list: Daily quests first, then a header with the Weekly countdown and the Weekly quests; each pool has a header with its "New in ..." countdown and one full-width card per quest (what to do, a progress bar with x / goal, the reward, and a Claim button: green when finished, "Claimed" after)
+- [ ] Updates live as progress replicates; claiming asks the server
+
+**Notes**
+- No quests art yet (Sol): it borrows the Stats menu's frame and exit button; everything else is plain frames. The layout is a first draft so Sol can decide the art.
+- Layout changed from two side-by-side columns to the scrolling list (Sol, 2026-10-29). Throw quests read "Throw x times".
+- Sol, 2026-11-12: passed review.
+
+---
+
+### T-141 · Thrown boomerangs curve (stage 1: PC mouse aim)
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared weapon logic, server + client
+- **Files:** `Shared/Library/BoomerangCurveLibrary.luau` (new), `Shared/Logics/WeaponLogics/Boomerang.luau`, `Server/Core/WeaponService.luau`, `Client/Core/WeaponController.luau`, `Shared/Referential/ThrownWeapons.lua`
+
+**Done when**
+- [ ] A thrown boomerang flies a gentle arc (up to ~19 degrees off the aim line) that still passes through the point aimed at, and keeps turning the same way past it
+- [ ] Standing still: the side (left/right) and the amount are random. Moving sideways while aiming: it bows toward the movement, more for more sideways movement
+- [ ] The aim arrow stays straight
+- [ ] Server authority: only the server decides the curve (from the thrower's movement on the server); it is replicated with the spawn and every snapshot, and the server and clients turn it in the same fixed step
+- [ ] Lag compensation: a late spawn or snapshot is advanced along the arc (position and heading), not a straight line
+- [ ] A bounce, clash, homing or Telekinesis steering straightens it out (configurable)
+- [ ] Later stages (separate commits): gamepad and touch auto-targeting (a very slim cone in front, extendable to other target kinds), over-the-shoulder camera aim
+
+**Notes**
+- From Sol, 2026-10-29. Tunables at the top of BoomerangCurveLibrary (INTERNAL CONFIG).
+- Stage 1 sends the mouse's floor point only for PC top-down aim; other aim modes (and bots) send none, and the server curves through a point at the throw's full range.
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-141-boomerang-curve`.
+- Sol, 2026-11-12: passed review.
+
+---
+
+### T-161 · Rebuild the HUD, Inventory and Stats menus from blank art
+- **Priority:** P2
+- **Owner:** Agent (Sol approves every image before upload)
+- **Area:** Client UI / Art
+- **Files:** `Client/UI/Gui/MenuButtons/init.luau`, `Client/UI/Gui/Inventory/init.luau`, `Client/UI/Gui/Stats/init.luau`, `Client/UI/ClientArt/Assets.luau`
+
+**Problem / goal**
+Like the Quests menu (T-159): the lobby HUD, Inventory and Stats still use client art with text and icons painted in (the HUD tile ribbons and icons, "AFK", "Stats", the Inventory's tab pictures, the Stats banner, labels and card icons). Cut blank versions (colored backgrounds and frames only, smooth fills, solid edges, transparent outside) and draw all text, icons and pictures as instances.
+
+**Done when**
+- [x] The three menus look as now, but no text, icon or picture is painted into their art
+
+**Notes**
+- Sol, 2026-11-11: do this after T-159, as its own task. Show every image before uploading.
+- 2026-11-11: done, in **Review**. Branch `agent/T-161-blank-art`, lane `Github/Boomerang-lanes/T-151-round-ended-phase`. All new art was approved by Sol and uploaded to the group; ids in `ClientArt/Assets` (sources in `Projects/Boomerang/Assets/ArtPipeline/HudUI`, `StatsUI`, `InventoryUI`).
+  - HUD: blank tile ribbon (tile names are text), coin plank (coin icon is an image), AFK frame ("AFK" is text), Stats button (icon + text).
+  - Stats: blank window; banner icon/title, plaque titles, column headers, card icons (cut from the client's window) and card labels are instances.
+  - Inventory: blank window (badge removed, title centred on the ribbon); 5 tab buttons redrawn blank; tab icons are the client's item icons (Weapons uses the Stats boomerang).
+  - **Check in Studio:** placement and size of all new lettering and icons (HUD tiles, AFK, Stats button, Stats menu, Inventory tabs and title). No syntax check was run (Selene/StyLua aren't set up for this project).
+- Sol, 2026-11-12: passed review.
+
+---
+
+### T-081 · Decoy can be hit → eliminate + smoke poof
+- **Priority:** P0
+- **Owner:** Agent
+- **Area:** Server / Shared
+- **Files:** `Server/Core/BotService.luau` (hit handling + poof), `Server/Logics/BotBehaviors/Decoy.luau` (hit rules), `Shared/Logics/WeaponLogics/Boomerang.luau` (bot hit routing), `Shared/Utils/RaycastsUtility.luau` (bots never obstruct), `Shared/Constants/CollisionGroupConstants.luau` (new `Bots` group), `Shared/Constants/GlobalConfig.luau` (`CanHitSelfDecoy`)
+- **Blocked by:** T-079
+
+**Problem / goal**
+An enemy boomerang eliminates the decoy; it poofs into smoke. Only enemies can — the owner can't hit their own decoy unless `GlobalConfig.CanHitSelfDecoy` is on, and teammates follow the team's friendly-fire rule (`GameTeamLibrary.areEnemies`). No stat changes.
+
+**Done when**
+- [ ] An enemy boomerang pops the decoy into smoke; the owner and teammates can't hurt it; no stat changes.
+
+**Test in Studio**
+- `spawndecoy`, then have an enemy (or a second client) hit it with a boomerang → it poofs (DecoySmokePoof, 1.5 s). With `CanHitSelfDecoy` off, your own boomerang should pass through it (no block, no kill). The decoy should also poof when its 4 s lifetime ends. In a team mode, a teammate can't kill it.
+
+**Notes**
+- Implemented on branch `agent/T-081-decoy-hittable` (lane `Boomerang-lanes/T-077-telekinesis`).
+- New `Bots` collision group (Sol's call): collides with arena walls/floor/Default like a player and is detectable by `ThrownWeapons`, but NOT with `Players`, so a decoy passes through players. The rig root + hitbox use it; the hitbox is now `CanQuery = true`.
+- Boomerang hit path: `spherecastCharacterHitbox` also includes the `Bots` workspace folder; `damagedPlayer` routes a victim carrying a `BotId` attribute to `BotService.onWeaponHit` (server only), which asks the behavior's `onHit` and despawns with reason `eliminated`. No `WeaponKilledPlayer` for bots → no stats.
+- `RaycastsUtility.getProjectileObstructionParams` also excludes the `Bots` folder, so a decoy never blocks a boomerang as an obstruction.
+- Smoke: `BotService.despawn` plays the behavior's `DespawnParticle` (`DecoySmokePoof`) at the rig position for 1.5 s via `ParticlesLibrary`, on every despawn except round-end teardown. Decoy sets it in `start`.
+- Smoke asset `DecoySmokePoof` is in `Shared/Assets/Particles` (Sol committed it).
+- **Bug fixed (2026-10-12):** making the decoy's hitbox weapon-detectable caused thrown boomerangs to treat the decoy's client-rendered avatar as a solid obstruction — it bounced/stalled on the client while the server flew normally, so the server boomerang went dead out of range and every later throw was rejected (server weapon stuck). Fix: the decoy visual is kept `CanCollide`/`CanQuery`/`CanTouch = false` and on the Players collision group EVERY frame (a Humanoid rebuild had been resetting those), visuals live in a `BotVisuals` folder, and the boomerang's obstruction/line-of-sight casts exclude both the `Bots` rig folder and `BotVisuals`. Boomerangs now pass through decoys like players. Confirmed working by Sol.
+- Sol, 2026-11-12: passed review.
+
+---
+
+### T-071 · Throw direction wrong under Server authority
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Client, Server
+- **Files:** `Client/Core/WeaponController.luau`, `Client/Core/CharacterController/init.luau`, `Client/Core/CharacterRenderController.luau`
+- **Approved early** by Sol (2026-10-03). DESIGN.md "Known problems: P4".
+
+**Problem / goal**
+In Server mode the aim direction shows correctly on the player's own screen, but the thrown boomerang doesn't go where they aimed.
+
+**Done when**
+- [ ] In Server mode, the boomerang flies exactly where the player aimed (mouse, locked mouse, touch thumbstick), on their screen and on other players' screens.
+- [ ] Automatic mode unchanged.
+
+**Notes**
+- Branch `agent/T-071-sa-throw-direction`, lane `Github/Boomerang-lanes/docs-server-authority`.
+- Cause (confirmed in Studio by logging what the server receives): the client measured the mouse aim from the held tool's pivot, which under Server authority reported a stale spot ~40 studs from the character, so every throw went roughly the same way. The server already uses the client's direction as-is.
+- Fix: `WeaponController.throwEquippedTool` aims from the rendered character's root (same origin as the aim arrow), and ignores the tool pivot as release position when it's more than 6 studs from the character.
+- Also guarded the per-frame `CharacterController:197` nil error (DESIGN.md P2) in the same file area.
+- Round 2 (Sol, 2026-10-05: still wrong, plus the character's facing jumps while aiming). Logged in Studio: while charging, the rendered model's facing alternated every frame between the aim and a drift toward +Z, and every throw reached the server at ~180°. Cause: the rendered model is unanchored with Humanoid AutoRotate on, so its physics (animation constraints) turned it while `CharacterController` re-pivoted it each frame; the throw read that rotation.
+- Fix 2: the rendered model's HumanoidRootPart is anchored and its AutoRotate is off (ragdoll still unanchors it); throws use `CharacterController.LastCFrame` (exactly what the aim arrow shows) unless a touch direction is given. Removed the now-unused requires in WeaponController.
+- Not lint-checked.
+- Sol, 2026-11-12: passed review.
+
+---
+
+### T-149 · PC / console: "Recall" pop-up above the head when the boomerang is dead
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client UI
+- **Files:** `Client/Core/RecallPromptController.luau` (new), `Client/Core/WeaponController.luau`
+
+**Done when**
+- [ ] On PC and console, while the local player's boomerang is dead (or dying), a green prompt pops up above their head: an outlined box with the recall key, then "Recall"
+- [ ] It pops in (from 80% size, overshoots, settles; fades in fast) and pops out when they start recalling or the boomerang is back (expands, shrinks to 80%, fades out); it's a CanvasGroup so it fades as one
+- [ ] It sits above the head and is the same size on screen in the top-down and over-the-shoulder cameras
+
+**Notes**
+- From Sol, 2026-10-29. BillboardGui on the rendered head: StudsOffsetWorldSpace just above the head + SizeOffset (0, 0.5) (bottom edge on that point in screen space); its stud size is recomputed every frame from the camera distance and FOV (SCREEN_HEIGHT_FRACTION of the screen).
+- Console had no recall button: added ButtonY (WeaponController.RECALL_GAMEPAD_KEY) alongside E (RECALL_KEY); the prompt shows the platform's own button image on console.
+- Studio: checked visually in both camera modes (above the head, readable); holding E hid it.
+- Follow-up (Sol): it bobbed with the walk animation, so it now hangs from the physics character's Hitbox (doesn't animate); the head's height above it is measured once per pop-in.
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-149-recall-popup`.
+- Sol, 2026-11-12: passed review.
+
+---
+
+### T-148 · Quests: "Use <pickup> N times"
+- **Priority:** P3
+- **Owner:** Agent
+- **Area:** Quests
+- **Files:** `Shared/Referential/Quests.luau`, `Shared/Library/QuestLibrary.luau`, `Server/Core/QuestService.luau`, `Server/Core/PickupService.luau`
+
+**Done when**
+- [ ] Daily and Weekly pools have a "Use <pickup> N times" quest for each pickup that can spawn (Decoy, Disguise, Electric / Explosive / Fire / Homing / Teleport Boomerang, Shield, Speedup, Telekinesis); Daily goal 3, Weekly goal 6
+- [ ] A use is pressing the pickup's use button (Decoy, Explosive Boomerang, Teleport Boomerang), or collecting a pickup that takes effect at once (the rest)
+
+**Notes**
+- From Sol, 2026-10-29. New PickupService.PickupUsedTasks event. They all share one objective type, so a player usually gets at most one per pool (draws prefer different kinds).
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-148-pickup-quests`.
+- Sol, 2026-11-12: passed review.
+
+---
+
+### T-147 · Quests: reward becomes the claim button, Reroll button
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Quests (client UI + server)
+- **Files:** `Client/UI/Gui/Quests/init.luau`, `Client/Core/QuestController.luau`, `Server/Core/QuestService.luau`, `Shared/Library/QuestLibrary.luau`, `Shared/Constants/Icons.luau`
+
+**Done when**
+- [ ] No separate Claim button: the reward (coin + amount) is a plain label until the quest is finished, then becomes a green button that claims it
+- [ ] A blue Reroll button (Icons.QuestReroll, 90107008743164) on the right of each unclaimed quest swaps that exact quest for another from the same pool, in the same place (the order of the others is kept)
+- [ ] The server picks the new quest (one the player doesn't have, preferring a different kind); claimed quests can't be rerolled
+- [ ] Free for now (QuestService REROLL_IS_FREE) so it can be tested; a developer product will pay for it later
+
+**Notes**
+- From Sol, 2026-10-29. Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-147-quest-reroll`.
+- Sol, 2026-11-12: passed review.
+
+---
+
+### T-146 · MarketplaceLibrary rework: caching, gamepass ownership, receipt protection
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared (client + server) monetization
+- **Files:** `Shared/Library/MarketplaceLibrary.luau`, `Shared/Referential/MarketplaceItems.luau`, `Server/Core/ProductService/init.luau`, `Shared/Data/ProfileTemplate.luau`
+
+**Done when**
+- [ ] One shared wrapper for client and server with the same cache shapes; prices and prompts stay on the client (no server round trip)
+- [ ] Separate product / gamepass info caches; one web call per key at a time (others wait for its answer, no polling); failed lookups not retried for a few seconds
+- [ ] Gamepass ownership cached for the whole session, cleared on leave; every known gamepass looked up in parallel when the player's data loads (server: every player, client: itself)
+- [ ] GamepassOwnershipChangedTasks on purchase / gift / refresh; giftGamepass (server), refreshGamepassOwnership, getGamepassAccess; admins (CmdrAdmin) own every gamepass while ADMINS_OWN_ALL_GAMEPASSES is on
+- [ ] MarketplaceItems lists products and gamepasses with a Type
+- [ ] Developer product receipts are never granted twice (ProcessedReceipts in the profile, latest 50)
+
+**Notes**
+- From Sol, 2026-10-29. Fixed on the way: playerCanPurchaseItem passed a UserId to PolicyLibrary (expects a Player); PromptProductPurchaseFinished passes a UserId, not a Player, so waiting for a product prompt's answer always timed out.
+- Studio: no errors; 5 simultaneous price lookups made one call (0.28 s), the cached lookup was instant.
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-146-marketplace`.
+- Sol, 2026-11-12: passed review.
+
+---
+
+### T-142 · Aim arrow lines up under the boomerang's path
+- **Priority:** P3
+- **Owner:** Agent
+- **Area:** Client visuals (charge up effects)
+- **Files:** `Shared/Logics/ChargeUpEffects/ArrowEffect.luau`, `Shared/Library/ChargeUpEffectLibrary.luau`, `Client/Core/WeaponController.luau`
+
+**Done when**
+- [ ] The aim arrow sits under the line the boomerang leaves along (the held boomerang's side of the character), not under the character's centre
+- [ ] Both arrow skins (GenericAimArrow, RedAimArrow) get it, through the shared ArrowEffect
+- [ ] Other players' arrows line up the same way; a stale tool position (too far from the character) falls back to the centre, like the throw does
+
+**Notes**
+- From Sol, 2026-10-29. The charge frame now carries ThrowOrigin (the held boomerang's position, the same point the throw is released from); ArrowEffect shifts the arrow sideways onto that line, eased so the charge animation doesn't make it jitter (THROW_LINE_FOLLOW_RATE).
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-142-aim-arrow-origin`.
+- Sol, 2026-11-12: passed review.
+
+---
+
+### T-139 · Touch: "Recall" label under the Manual Recall button
+- **Priority:** P3
+- **Owner:** Agent
+- **Area:** Client UI (touch)
+- **Files:** `Client/UI/Gui/CustomTouchscreen/init.luau`
+
+**Done when**
+- [ ] The "Recall" text label under ThumbstickImage shows only while the thumbstick is the Manual Recall button (T-138), appearing (and popping) with the icon
+- [ ] Styled like the HUD's other text: Fredoka One (regular), white, dark brown (60, 35, 15) UIStroke outline; its size and position are kept as placed in Studio
+
+**Notes**
+- From Sol, 2026-10-28. The label was added in Studio (not in CustomTouchscreen.rbxmx), so the code uses it if it's there and otherwise makes one with the same size and position (Size {2, 0}, {0.3, 0}; Position {0.5, 0}, {0.8, 0}; AnchorPoint 0.5, 0).
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-139-recall-label`.
+- Sol, 2026-11-12: passed review.
+
+---
+
+### T-138 · Touch: the aim thumbstick becomes the Manual Recall button while the boomerang is dead
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client UI (touch)
+- **Files:** `Client/UI/Gui/CustomTouchscreen/init.luau`, `Shared/Constants/Icons.luau`
+
+**Done when**
+- [ ] When the boomerang dies and needs a manual recall, the aim thumbstick's knob changes to Icons.ManualRecall (71238029462038) with a cartoony pop (out a little bigger, then back to its size)
+- [ ] In that state it no longer aims: holding it is the touch player's Manual Recall, the same as holding E on PC (it stays the recall button while the boomerang flies back from a manual recall)
+- [ ] Once the boomerang is back in hand, the knob returns to the aim thumbstick (Icons.AimThumbstick) with the same pop
+- [ ] Icons.ManualRecall exists; changing that one line changes the button's look (the knob's images are both set from Icons in code)
+
+**Notes**
+- From Sol, 2026-10-28. Chose to reuse the thumbstick itself (same spot, same circle) rather than a separate button: the knob swaps image, and a press in the circle starts the recall hold instead of aiming. POP_SCALE / POP_OUT_SECONDS / POP_BACK_SECONDS at the top of the MANUAL RECALL MODE section.
+- Not tested on a touch device (Studio's play test runs as PC, where this GUI is closed); only checked that the GUI loads without errors.
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-138-touch-recall`.
+- Sol, 2026-11-12: passed review.
+
+---
+
+### T-136 · Dash avoids landing the player somewhere deadly (water, open air)
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared (Dash ability, server authority)
+- **Files:** `Shared/Logics/AbilityLogics/Dash.luau`
+
+**Done when**
+- [ ] When the player dashes, the dash module tries to prevent them from dashing into a spot that would kill them (over water that would kill them, or air they'd fall through)
+- [ ] One shapecast checks the dash's full length for obstructions; the end point is the full distance, or as far as it gets before an obstruction. Only that end point is checked for stable ground (no sampling along the way)
+- [ ] If the end is stable ground, the full dash happens (dashing straight over a gap and landing on stable ground still works)
+- [ ] If the end would leave the player over open air (or deadly water), check for a safe dash: if the player can dash 50% or more of the dash distance and end on stable ground (the most stable spot next to the gap), the dash goes there instead
+- [ ] If they can't dash at least 50% of the dash distance and end on stable ground, they dash the full distance and fall over the gap
+- [ ] The safe-dash behaviour is its own clearly separated section in the Dash module, and the 50% is a clearly labelled internal config there, so it's easy to change or remove entirely
+
+**Notes**
+- From Sol, 2026-10-28 (worded as given): "When the player dashes, the dash module should try to prevent them from dashing into a spot that would kill them (over water that would kill them or air that they'd fall through). The player should be able to dash towards an open air gap from as much as 50% of the gap's total distance coverage and the dash instead automatically brings them to the most stable position adjacent to the gap instead of teleporting them over the gap. This should not interfere with the ability to dash directly over a gap--the player will still dash towards the direction of a gap if the full distance of the dash would cross over the gap and land them on stable ground."
+- Clarified by Sol, 2026-10-28: the 50% is half of the dash's distance. Approach agreed: one shapecast for the full length, then check the end point directly; to find the stable spot next to the gap, one more cast back toward the start just below the floor surface finds the gap's near edge.
+- Built (SAFE DASH section in Dash.luau; config SAFE_DASH_ENABLED / SAFE_DASH_MIN_FRACTION at the top). Also: a dash's leftover speed is now cut to walking speed when it ends (DASH_END_CLAMPS_SPEED), otherwise the 80 studs/s momentum slid players several studs past the planned end (off the very edge the dash had stopped short of).
+- Tested in Studio on PartsTest (11-stud pits), dashing toward a pit: 8 studs from the edge, the dash stopped 0.9 studs short of it (planned 1); 4.2 studs from the edge (too little dash left), the full dash went over and the player fell; ending on solid ground short of the edge, the full dash happened; with a temporary floor narrowing the gap to 6 studs, the dash crossed it.
+- Still server-only: Dash sets the character's velocity on the server (Heartbeat), so the player's client doesn't predict it and is corrected to the server's result under server authority. Making the dash a predicted movement on both sides (likely through the replicated JumpAction input, which is what Space is bound to) is a bigger change and is left for its own task.
+- If the player keeps holding toward the gap, they walk off the edge right after a shortened dash (their own input; their input reaches the server a moment late too).
+- Sol, 2026-11-12: passed review.
+
+---
+
+### T-135 · Players' torsos collide on the server too (moving platforms "popped" players back)
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Server (server authority)
+- **Files:** `Server/Core/CharacterService/init.luau`
+
+**Done when**
+- [ ] Standing in a moving platform's path, the player is pushed by it and stays pushed (no popping back to where they stood)
+- [ ] CharacterService keeps each character's Torso collidable on the server (every other part stays non-collidable, and CanTouch/CanQuery stay off), matching the player's own client, where the Humanoid switches the Torso's collision on
+
+**Notes**
+- From Sol, 2026-10-28. Found in Studio: the server set every character part CanCollide = false, but the player's client has the Torso collidable. So the server simulated the character as a ghost: the platform passed straight through it on the server while the client was pushed, and the server's correction popped the client back. Measured on the server with the platform at speed: Torso not collidable, pushed 0 studs and passed through; collidable, pushed and never passed through. A server-side teleport (as the earlier Studio tests used) makes the Humanoid switch it on, which is why those tests didn't show it.
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-135-server-torso-collision`.
+- Sol, 2026-11-12: passed review.
+
+---
+
+### T-134 · Moving platforms driven by physics (body movers) instead of set CFrames
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared (server authority)
+- **Files:** `Shared/Logics/Environment/MovingPlatform.luau`
+
+**Done when**
+- [ ] Walking or dashing toward an oncoming platform doesn't pass through it (T-133's code push only caught characters the face reached, not ones that walked into it during physics)
+- [ ] DRIVE section (PHYSICS_DRIVEN): the server makes the platform an unanchored, maximum-density body held by a rigid AlignPosition and AlignOrientation; every simulation step (server and clients) only sets their targets from the same time() path, so Roblox physics moves it and does the pushing and carrying
+- [ ] Each client switches the server's constraints off locally and drives its own copy (otherwise the server's late target writes drag the predicted platform back and it jitters)
+- [ ] PHYSICS_DRIVEN = false restores the anchored platform with CARRY and PUSH (kept as the fallback)
+- [ ] Crushing still works at both ends (the crush check reads where the platform really is)
+
+**Notes**
+- From Sol, 2026-10-28. Tested in Studio on PartsTest: bot-style rigs running into the oncoming platform at 16, 60 and 100 studs/s were all pushed, never through; the player pushed as seen from the client stays just ahead of the face; the platform moves smoothly on the client (1 direction flip in 12 s, against 228 before the local-constraint fix). Still for Sol: the player walking/dashing into it, riding on top, and crushing at both ends.
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-134-physics-platform`.
+- Sol, 2026-11-12: passed review.
+
+---
+
+### T-133 · Moving platforms push characters in code (no tunnelling)
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared (server authority)
+- **Files:** `Shared/Logics/Environment/MovingPlatform.luau`
+
+**Done when**
+- [ ] A character in front of a moving platform is pushed ahead of it at any speed, instead of being popped out the far side (at full speed the anchored platform moves further per simulation step than half a torso, so physics couldn't push)
+- [ ] PUSH section, inside the simulation step on the server and every client: characters whose torso the leading face caught this step are moved forward along the travel, just clear of the face (PUSH_SKIN). Only their position along the travel changes, never their velocity, height or sideways position, so they keep their own movement and don't stick to the platform; nothing pulls them back
+- [ ] The server pushes every player's character and every bot (decoys, workspace.Bots); each client pushes only its own predicted character, so it matches the server, replays included
+- [ ] Characters standing on top aren't pushed (they ride, CARRY); lifts (steep travel) don't push; toward an end that doesn't crush, pushing stops when there's no room left
+- [ ] Pushed into a crushing end, a player is still crushed (T-131)
+
+**Notes**
+- From Sol, 2026-10-28. Tested in Studio on PartsTest (server-driven): pushed at full speed both on the server and as seen by the client, bot-style rig pushed, rider carried and not pushed. Walking away / sideways / jumping while being pushed still needs Sol's hands-on check (the test tools can't send movement input).
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-131-crush-fix`.
+- Sol, 2026-11-12: passed review.
+
+---
+
+### T-131 · Moving platforms under server authority (no more clipping), geometric crush
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared (server authority)
+- **Files:** `Shared/Logics/Environment/MovingPlatform.luau`
+
+**Done when**
+- [ ] A moving platform pushes players instead of passing through them (no clipping out the far side), with lag
+- [ ] Players standing on a platform ride along with it (CARRY section, switch CARRY_ENABLED)
+- [ ] The platform is anchored and moved inside RunService:BindToSimulation on the server and every client, as a pure function of time() from its start time (attribute MovingPlatformStartTime); clients force prediction on for it, so its position matches the server's on every frame, including replays
+- [ ] Clients find platforms in the live map's Functional folder themselves (the old lookup used a "Dynamics" folder that doesn't exist, so clients never moved it); the NewMovingPlatform / MovingPlatformSnapshot remotes are gone
+- [ ] A platform is a single part in the map's Functional folder (ClassName MovingPlatform; Speed, StartPivot, EndPivot, optional RestTime), not a folder with a Platform part and crush volumes
+- [ ] Crush (server only, CRUSH section): attributes StartCrush / EndCrush (booleans). While closing in on a crushing end, a player inside the platform's footprint between its leading face and that end dies ("Crushed") once the gap left is smaller than their Hitbox's width (minus CRUSH_GAP_TOLERANCE). The end must have a wall (map rule). Immunity doesn't save them (for now: see T-132)
+- [ ] Boomerangs still pick up the platform's velocity when they hit it (DynamicCollisionLibrary, now timed with time())
+
+**Notes**
+- PartsTest's platform (Functional/MovingPlatform) already matches this layout: StartCrush and EndCrush both true, Speed 10, RestTime 2.
+- Fix (2026-10-28): the crush used applyDamageToHumanoid, whose TakeDamage does nothing while the character has a ForceField (spawn protection); it now sets Health to 0 itself (as Water does) and sends the "Crushed" reason.
+- Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-131-moving-platform`.
+- Sol, 2026-11-12: passed review.
+
+---
+
+### T-130 · In-game Stats panel replaces the player list
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client UI + Server (stats replication)
+- **Files:** `Client/UI/Gui/StatsPanel/init.luau`, `Shared/Constants/PlayerStatAttributes.luau`, `Server/Core/LifetimeStatsService.luau`, `Client/Core/StarterGuiController.luau`
+
+**Done when**
+- [ ] A panel (frame image 127212661618035) sits on the right edge: centred on PC, top-right corner on touch. Closed, only its arrow tab sticks out; clicking the tab or pressing Tab slides it out and back. Header "Stats"
+- [ ] Roblox's player list is off; Tab opens this panel instead
+- [ ] Top: this round's Name / Elims / Defeats for every player (labelled columns), most elims first
+- [ ] A divider, then all-time Elims / Defeats / Wins / Losses for every player (two lines per listing: name, then the numbers under labelled columns), the local player first, then the best elims-to-defeats ratio
+- [ ] Numbers come from the server: Player attributes (PlayerStatAttributes) set by LifetimeStatsService (round counts reset when a round starts; lifetime totals mirror the profile; Losses = rounds played - wins)
+- [ ] Scales with the screen (Scale sizes, text capped relative to the panel's height); lists scroll past 5 (round) / 3 (all-time) listings
+
+**Notes**
+- Round elims/defeats count only eliminations by another player, the same rule as the lifetime totals. Checked in a Studio play test (layout, Tab, sliding); not tested with several players or on a phone.
+- Sol, 2026-11-12: passed review.
+
+---
+
+### T-128 · Slashes knock away enemy weapons in flight
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared (server decides)
+- **Files:** `Shared/Logics/AbilityLogics/Stab.luau`
+
+**Done when**
+- [ ] A slash whose wedge reaches an enemy's weapon in flight (outgoing or returning) knocks it straight away from the slasher, so the slasher can aim it by the angle they hit it from
+- [ ] Only weapons of players the slasher could damage (enemy team, or teammate with friendly fire on); never their own; never dying or dead boomerangs
+- [ ] It is a clash: same energy cost (`ClashEnergyCost`), Deflected snapshot to every client, the clash sound at the contact point; a returning weapon is knocked off course and then steers home
+- [ ] A weapon is caught if its path through the wedge comes within its own HitboxRadius (fast weapons can't slip between frames), with no wall between
+- [ ] `viewhitbox` marks the contact point
+
+**Notes**
+- No rewind needed: clients run thrown weapons ahead to the server's present. A click that reached the server after its impact moment checks the weapon's path back to where it was then (up to 0.3 s). Not play-tested.
+- Sol, 2026-11-12: passed review.
+
+---
+
+### T-127 · Slashes pop decoys and other bots
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared (server decides)
+- **Files:** `Shared/Logics/AbilityLogics/Stab.luau`, `Shared/Library/LagCompensationLibrary.luau`
+
+**Done when**
+- [ ] A slash pops a decoy (or any bot) whose Hitbox reaches into the swing's wedge, with no wall in between, if its owner is on an enemy team or on the same team with friendly fire on
+- [ ] Your own decoy follows the decoy's rule (`GlobalConfig.CanHitSelfDecoy`); teammates' decoys are safe without friendly fire
+- [ ] Popping uses the existing bot path (`BotService.onWeaponHit`: the bot's own hit rule, despawn with its smoke poof)
+- [ ] Bots are checked where they are now and where the swinging player saw them (lag compensation now also records bots: `LagCompensationLibrary.getRewoundBots`)
+
+**Notes**
+- Not play-tested. Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-126-slash-sweep`.
+- Sol, 2026-11-12: passed review.
+
+---
+
+### T-126 · Slash: crescent sweep effect on every swing
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client (visual only)
+- **Files:** `Shared/Logics/AbilityLogics/Stab.luau`, `Shared/Assets/Particles/SlashAbility.rbxmx` (Sol's asset)
+
+**Done when**
+- [ ] Every swing shows the SlashAbility crescent sweeping forward in front of the player and fading out over 0.2 s, with its tip trails, facing where they swung
+- [ ] You see your own swing's sweep at the click; other players' sweeps show when your game hears about the swing (skipping ahead if it's late)
+- [ ] The crescent never collides or gets pushed by physics (its BodyVelocity is removed; code moves it)
+- [ ] The kill effect (`Slash` particle on the victim) is still only ever played by the server: no client-side hit prediction
+
+**Notes**
+- Tunables at the top of Stab.luau (`SWEEP_DURATION`, `SWEEP_SCALE` 1.4, `SWEEP_START_DISTANCE` / `SWEEP_END_DISTANCE`, `SWEEP_HEIGHT_OFFSET`, `SWEEP_START_TRANSPARENCY`). A replacement asset works without code changes if it is one part facing -Z with its trail attachments as children.
+- Built on T-125 (branch `agent/T-126-slash-sweep` from `agent/T-125-slash-rework`). Not play-tested. SlashAbility.rbxmx is also untracked in the home repo; it has to be moved out of the way there before this ships (the merge would otherwise refuse to overwrite it).
+- Sol, 2026-11-12: passed review.
+
+---
+
+### T-125 · Slash: one forgiving, lag-compensated hit check
+- **Priority:** P1
+- **Owner:** Agent
+- **Area:** Shared (server decides)
+- **Files:** `Shared/Logics/AbilityLogics/Stab.luau`, `Shared/Library/LagCompensationLibrary.luau`
+
+**Done when**
+- [ ] A swing hits anyone whose Hitbox reaches into a wedge in front of the player (5 studs to the Hitbox edge, about 6.6 centre to centre; 110 degrees wide; full height), not a 2-stud box
+- [ ] A wall between the players blocks the hit
+- [ ] The client sends where it faced, where it will be at impact and when it clicked; the server uses them when plausible (otherwise its own values)
+- [ ] The swing is checked once, when the blade lands (0.08 s after the click), against where everyone is now AND where the swinging player saw them (the boomerangs' lag-compensation rewind: ping + 0.1 s, capped by `setlagcompensation`)
+- [ ] Dashing players can't slip between checks any more; with lag, a swing that looked like a hit counts
+- [ ] Parries still work (a swing landing on a player who is mid-swing, both facing each other)
+
+**Notes**
+- New `LagCompensationLibrary.getRewoundTargets`. Tunables at the top of Stab.luau (`SWING_RANGE`, `SWING_HALF_ANGLE`, `SWING_HALF_HEIGHT`, `IMPACT_DELAY`). `GlobalConfig.ParryVisualizersEnabled` draws the wedge on the server.
+- Checked in Studio: the wedge/line-of-sight maths with test positions and a test wall, and server swings with good, bad and missing client data (no errors). Not tested with two players. Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-125-slash-rework`.
+- Follow-ups from the analysis (not in this task): a slash trail on every swing, always showing other players' swings, parry by click times, server cooldown grace, removing debug prints, the stagger's server ownership.
+- Sol, 2026-11-12: passed review.
+
+---
+
+### T-124 · Dying boomerangs are stopped by the same walls as flying ones, and never climb
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared (server decides)
+- **Files:** `Shared/Logics/WeaponLogics/Dead.luau`, `Shared/Library/ObstructionCastLibrary.luau`, `Shared/Logics/WeaponLogics/Boomerang.luau`
+
+**Done when**
+- [ ] A dying/sliding boomerang is stopped by every wall a flying boomerang bounces off (same hitbox-wide, cast-height block at flight height), including the low TerrainTest walls (tops 158.35 / 158.46)
+- [ ] A sliding boomerang never climbs onto higher ground: a step more than 0.1 studs above it blocks it like a wall (it can still drop down steps, and a still-falling boomerang can land on anything below it)
+
+**Notes**
+- The block cast now lives in `ObstructionCastLibrary.blockcast` (used by flying and dying weapons); the dying slide along a wall uses the half-width block, as in flight. `DEAD_MAX_STEP_UP = 0.1` in Dead.luau. Checked with test walls in a Studio play session (server physics); not hand-play-tested. Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-124-dying-box-check`.
+- Sol, 2026-11-12: passed review.
+
+---
+
+### T-123 · No automatic recall once a dying boomerang has hit the ground
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared (server decides)
+- **Files:** `Shared/Logics/WeaponLogics/Dead.luau`
+
+**Done when**
+- [ ] A dying boomerang can still recall by itself while it is dropping (player in sight and in range), but not after it has hit the ground: sliding into the player's view afterwards leaves it to die
+- [ ] After landing, sliding off over a gap doesn't auto-recall either: it keeps sliding until ground, with the 3 s "last solid spot" failsafe (as for already-Dead boomerangs, T-107)
+- [ ] The "about to die" check (would it be back in sight along its slide?) only looks at the slide until it lands
+
+**Notes**
+- `hasLanded` in `applyDeath` gates `checkRecallWhileDying` and the sliding-away recall; `predictSlidePositions` stops at the landing step. Not play-tested. Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-123-no-auto-recall-after-landing`.
+- Sol, 2026-11-12: passed review.
+
+---
+
+### T-122 · Automatic recall shows no SelectionRing or beams
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client
+- **Files:** `Client/Core/WeaponController.luau`, `Client/Core/DeadWeaponBeamController.luau`
+
+**Done when**
+- [ ] A boomerang recalling by itself (sliding away over nothing, player back in sight while it is dying, out-of-bounds failsafe) shows no SelectionRing, no Summon animation and no beam to the player
+- [ ] The manual (charged, held) recall still shows the ring, the Summon animation and the returning beam
+
+**Notes**
+- Cause: clients started every recall of a dying/dead boomerang as a manual one (`recallFromDead(..., true)` on the Returning snapshot), so automatic recalls got the manual-recall visuals on clients. Now a client treats it as manual only if it was charging that boomerang (`DeadWeaponLogic.isRecallCharging`: the server's RecallCharge Start event reached it and no Cancel); otherwise automatic (`RecallFromDead = false`). The dead beam's life cycle now ends on an automatic recall instead of staying (invisible) until the catch.
+- Not play-tested. Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-122-auto-recall-visuals`.
+- Sol, 2026-11-12: passed review.
+
+---
+
+### T-121 · Touch controls: Dash and Stab buttons no longer overlap
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client (GUI)
+- **Files:** `Client/UI/Gui/CustomTouchscreen/init.luau`
+
+**Done when**
+- [ ] Dash and Stab sit in a row left of the aim circle with an even gap (3.5% of the screen height) between the circle, Dash and Stab, on every screen shape
+
+**Notes**
+- Cause: their sizes follow the screen height (RelativeYY) but their positions were fractions of the screen width, so the spacing depended on the screen's shape (overlapping in Studio's phone view). `layoutActionButtons` now places them in pixels from the aim circle whenever the screen size changes; their Y still comes from the rbxmx, their X in the rbxmx is overridden.
+- Checked in a Studio play-test (phone emulation, 801x413) with the touch controls shown (2026-10-25). Lane `Github/Boomerang-lanes/dead-weapon-beam`, branch `agent/T-121-touch-button-spacing`.
+- Sol, 2026-11-12: passed review.
+
+---
+
+### T-120 · Inventory: Weapons tab icon, Arrows tab renamed Charges
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client (GUI)
+- **Files:** `Client/UI/Gui/Inventory/init.luau`, `Client/UI/Gui/MenuButtons/init.luau`, `Shared/Constants/Icons.luau`
+
+**Done when**
+- [ ] The Inventory's Weapons tab shows the same boomerang icon as the Inventory HUD button
+- [ ] The Arrows tab is labelled "Charges"
+
+**Notes**
+- New `Icons.InventoryButton` (123566439013193), used by both the HUD button and the tab (TABS entries can now have an Icon). The tab module id stays `Arrows`.
+- Not play-tested.
+- Sol, 2026-11-12: passed review.
+
+---
 
 ### T-150 · Six new fan skins from the modeller's concept art
 - **Priority:** P1

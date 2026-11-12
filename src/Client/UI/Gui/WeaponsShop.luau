@@ -12,28 +12,19 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ShopBuilder = require(ReplicatedStorage.Client.UI.ShopCommon.ShopBuilder)
 local CratesTab = require(ReplicatedStorage.Client.UI.ShopCommon.Tabs.Crates)
 
-local BACKGROUND_IMAGE = 125528869499843 -- // 1024 x 696, no tab strip
-local ASPECT_RATIO = 1024 / 696
-
 return ShopBuilder.create({
 	Name = "WeaponsShop",
 	Title = "Weapons Shop",
-	BackgroundImage = BACKGROUND_IMAGE,
-	AspectRatio = ASPECT_RATIO,
 	TestKey = Enum.KeyCode.B,
-	-- // Listings fill the parchment panel in a 3 x 2 grid (scrolls past 6 crates)
+	-- // One row of three big crate cards (scrolls past three)
 	Layout = {
 		HideTabs = true,
-		ListingsPosition = UDim2.fromScale(0.12, 0.2),
-		ListingsSize = UDim2.fromScale(0.76, 0.6),
 		GridColumns = 3,
-		GridRows = 2,
 	},
 	Tabs = {
 		{
 			Id = "Crates",
 			Name = "Crates",
-			Icon = "",
 			AutoSelect = true,
 			Tab = CratesTab,
 		},

@@ -3,14 +3,14 @@
 
 	Description:
 	Builds a shop menu: ShopBuilder.create(config) returns a Gui module for UIController. Used by the Weapons Shop and
-	Cosmetics Shop (Client/UI/Gui), which differ only in config: name, title, background art and tabs.
+	Cosmetics Shop (Client/UI/Gui), which differ only in config: name, title, tabs and grid columns.
 	The tab row picks what the listing grid shows (config.Tabs, in order). A tab's content is its Tab module (shape:
 	ShopTab below); a tab without one is selectable but opens blank.
-	The grid shows 3x2 listings. A tab with Scrollable = true scrolls past 6 listings; the others show at most 6.
-	Listing data comes from ShopListings and is tinted by rarity with RarityStyles. Models are shown with ItemViewport.
-	The balance plank at the bottom shows the player's Currency (EconomyController).
-	Built entirely in code with CreateElement; the frame, tab, listing, balance and button art are image assets
-	(Shared/Constants/Icons). The emoji beside tab names are placeholders in their own labels (ICON_EmojiPlaceholder).
+	Listing data comes from ShopListings; the rarity name is colored with RarityStyles. Models are shown with ItemViewport.
+	The pill right of the tabs shows the player's Currency (EconomyController).
+	Looks: the same blank art as the Quests menu (ClientArt/Assets.QuestsScreen: window, tabs, cards, buttons), with every
+	text and icon drawn as instances (ClientArt/Kit). The window is laid out in the frame image's own pixels (CANVAS) and
+	fitted to the screen by Kit.window. Gifting isn't built: there is no Gift button (Sol, 2026-11-12).
 ]]
 
 -------------------------------------------------------------------------------
@@ -20,7 +20,6 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
 local ContextActionService = game:GetService("ContextActionService")
 
 local UIController = require(ReplicatedStorage.Client.UI.UIController)
@@ -31,7 +30,9 @@ local ShopItems = require(ReplicatedStorage.Shared.Referential.ShopItems)
 local Icons = require(ReplicatedStorage.Shared.Constants.Icons)
 local MarketplaceLibrary = require(ReplicatedStorage.Shared.Library.MarketplaceLibrary)
 local PolicyLibrary = require(ReplicatedStorage.Shared.Library.PolicyLibrary)
-local CreateElement = require(ReplicatedStorage.Shared.Utils.CreateElement)
+local Kit = require(ReplicatedStorage.Client.UI.ClientArt.Kit)
+local Theme = require(ReplicatedStorage.Client.UI.ClientArt.Theme)
+local Art = require(ReplicatedStorage.Client.UI.ClientArt.Assets).QuestsScreen
 local ShopListings = require(script.Parent.ShopListings)
 local RarityStyles = require(script.Parent.RarityStyles)
 
@@ -40,8 +41,8 @@ local RarityStyles = require(script.Parent.RarityStyles)
 -------------------------------------------------------------------------------
 
 export type ShopTab = {
-	Scrollable: boolean, -- // Whether the grid scrolls past 6 listings (false: only the first MaxListings are shown)
-	MaxListings: number?, -- // Cap on the listings shown (the Featured tab shows 6)
+	Scrollable: boolean, -- // Whether the grid scrolls past one screen of listings (false: only the first MaxListings are shown)
+	MaxListings: number?, -- // Cap on the listings shown
 	getListings: () -> { ShopItems.ShopListing }, -- // In display order
 	subscribe: (onChanged: () -> ()) -> (), -- // Called once; onChanged runs when the listings or their ownership change
 }
@@ -49,71 +50,166 @@ export type ShopTab = {
 export type ShopTabDefinition = {
 	Id: string,
 	Name: string,
-	Icon: string, -- // Emoji placeholder beside the name, for tabs without IconImage
-	IconImage: number?, -- // Image asset id (from Icons) shown beside the name instead of the emoji
+	IconImage: string?, -- // Image shown left of the name (e.g. a ClientArt icon); none: the name fills the tab
 	AutoSelect: boolean?, -- // Whether this tab is selected when the gui opens
 	Tab: ShopTab?, -- // Its content; nil opens blank
 }
 
--- // Optional layout overrides for frame art that differs from the default (tabbed) one. Scales are of the Container.
 export type ShopLayout = {
 	HideTabs: boolean?, -- // No tab row (single-tab shop); the first / AutoSelect tab is shown
-	ListingsPosition: UDim2?,
-	ListingsSize: UDim2?,
-	GridColumns: number?, -- // Default 3
-	GridRows: number?, -- // Rows visible at once; default 2
+	GridColumns: number?, -- // Cards per row (default 4); fewer columns make bigger cards
 }
 
 export type ShopConfig = {
 	Name: string, -- // Gui name (UIController id), e.g. "WeaponsShop"
-	Title: string, -- // Shown on the title plank
-	BackgroundImage: number, -- // Asset id of the frame art
-	AspectRatio: number, -- // Width / height of the frame art
-	Tabs: { ShopTabDefinition }, -- // In display order
+	Title: string, -- // Shown on the ribbon
+	Tabs: { ShopTabDefinition }, -- // In display order (up to 4)
 	TestKey: Enum.KeyCode?, -- // Studio-only shortcut that toggles the shop
 	Layout: ShopLayout?,
 }
 
-type ListingState = {
+type Listing = {
+	Frame: Frame,
 	Display: ShopListings.ListingDisplay,
-	ShowRobux: boolean,
-	ShowGift: boolean,
 }
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
-local FONT = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+-- // Window layout in the Quests frame art's pixels ({x, y, w, h}), as in the Quests menu
+local CANVAS = Vector2.new(1011, 568)
+local TITLE = { 395, 16, 245, 54 } -- // Over the blank ribbon, right of the emblem
+local CLOSE = { 871, 32, 64, 63 }
+local CLOSE_ICON_INSET = 0.22
+local TABS_ORIGIN = Vector2.new(106, 103) -- // Top-left of the first tab
+local TAB_SIZE = Vector2.new(150, 52)
+local TAB_GAP = 6
+local TAB_ICON = { 10, 8, 36, 36 } -- // Inside a tab
+local TAB_TEXT = { 48, 6, 96, 42 }
+local TAB_TEXT_NO_ICON = { 8, 6, 134, 42 }
+local BALANCE_PILL = { 732, 112, 162, 38 }
+local BALANCE_ICON = { 714, 106, 48, 48 }
+local BALANCE_TEXT = { 766, 114, 120, 34 }
+local LISTINGS = { 108, 166, 796, 322 } -- // The card grid (scrolls vertically)
+local CARD_GAP = 10
+local SCROLLBAR = 8
+local DEFAULT_GRID_COLUMNS = 4
 
--- // Colors (the tab, listing and button art is grayscale and tinted with ImageColor3)
-local TITLE_COLOR = Color3.fromRGB(92, 52, 20)
-local OUTLINE_COLOR = Color3.fromRGB(45, 28, 12)
-local PRICE_OUTLINE_COLOR = Color3.fromRGB(30, 45, 18)
-local SELECTED_TAB_COLOR = Color3.fromRGB(190, 130, 255)
-local UNSELECTED_TAB_COLOR = Color3.fromRGB(225, 160, 100)
-local CURRENCY_BUTTON_COLOR = Color3.fromRGB(150, 255, 90)
-local ROBUX_BUTTON_COLOR = Color3.fromRGB(110, 190, 255)
-local GIFT_BUTTON_COLOR = Color3.fromRGB(200, 130, 255)
-local OWNED_BUTTON_COLOR = Color3.fromRGB(150, 150, 150)
+-- // A card is drawn at the quest card's size (CARD) and scaled to its grid cell; rects are in those pixels
+local CARD = Vector2.new(252, 307)
+local CARD_NAME = { 10, 8, 232, 36 } -- // Top of the blue picture area
+local CARD_VIEWPORT = { 30, 42, 192, 106 }
+local CARD_RARITY = { 14, 158, 224, 32 } -- // Top of the cream panel
+local BUTTON_SINGLE = { 18, 214, 216, 56 } -- // One price button, centred in the cream panel
+local BUTTON_TOP = { 18, 192, 216, 50 } -- // Currency, when there is also a Robux price
+local BUTTON_BOTTOM = { 18, 246, 216, 50 } -- // Robux
+local BUTTON_ICON = { 14, 9, 32, 32 } -- // Coin / Robux icon inside a 216 x 50 button (scaled with it)
+local BUTTON_TEXT_ICON = { 50, 6, 152, 38 }
+local BUTTON_TEXT_PLAIN = { 14, 6, 188, 38 }
+
+local TEXT_SIZE = { Title = 40, Tab = 22, Balance = 20, Name = 22, Rarity = 20, Button = 26 }
+local ROBUX_TINT = Color3.fromRGB(110, 190, 255) -- // Tints the grey button art blue
 local OWNED_TEXT = "Owned"
 local FREE_TEXT = "Free"
 
--- // Layout (all scales; pixel sizes are measured in layoutGrid). Columns / rows: config.Layout, default 3 x 2.
-local DEFAULT_GRID_COLUMNS = 3
-local DEFAULT_GRID_ROWS = 2 -- // Rows visible at once
-local GRID_GAP_FRACTION = 0.012 -- // Gap between listings, as a fraction of grid width
-local SCROLLBAR_FRACTION = 0.022 -- // Scroll bar thickness, as a fraction of grid width
-local BUTTONS_SIZE = UDim2.fromScale(0.88, 0.215) -- // The price / gift / Robux button row under a listing
-local BUTTON_GAP = 0.03 -- // Gap between listing buttons, as a fraction of their row width
+-------------------------------------------------------------------------------
+-- PRIVATE FUNCTIONS
+-------------------------------------------------------------------------------
 
--- // Gifting isn't implemented: the gift button is built and positioned but hidden
-local GIFTING_ENABLED = false
+local function rect(r: { number }): (UDim2, UDim2)
+	return UDim2.fromOffset(r[1], r[2]), UDim2.fromOffset(r[3], r[4])
+end
 
-local CONTAINER_TWEEN_INFO_IN = TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-local CONTAINER_TWEEN_INFO_OUT = TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In)
-local HOVER_SCALE = 1.06
-local HOVER_TWEEN_INFO = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local function image(name: string, imageId: string, r: { number }, parent: Instance, zIndex: number?): ImageLabel
+	local label = Kit.create("ImageLabel", {
+		Name = name,
+		BackgroundTransparency = 1,
+		Image = imageId,
+		ScaleType = Enum.ScaleType.Fit,
+		ZIndex = zIndex or 2,
+	})
+	label.Position, label.Size = rect(r)
+	label.Parent = parent
+	return label
+end
+
+-- // Cream lettering with a dark outline (Kit.label), shrunk to fit its box
+local function outlined(name: string, text: string, size: number, r: { number }, parent: Instance, zIndex: number?): Frame
+	-- // The container takes the same ZIndex: with sibling layering it would otherwise draw under what it sits on
+	local label = Kit.label(text, size, { Name = name, ZIndex = zIndex or 2, Parent = parent })
+	label.Position, label.Size = rect(r)
+	for _, layer in label:GetChildren() do
+		if layer:IsA("TextLabel") then
+			layer.TextWrapped = true
+			layer.TextScaled = true
+			layer.ZIndex += (zIndex or 2) - 1
+			Kit.create("UITextSizeConstraint", { MaxTextSize = size, Parent = layer })
+		end
+	end
+	return label
+end
+
+local function setTextColor(label: Frame, color: Color3)
+	local front = label:FindFirstChild("Text") :: TextLabel?
+	if front then
+		front.TextColor3 = color
+	end
+end
+
+-- // 1500 -> "1,500"
+local function formatAmount(amount: number): string
+	local text = tostring(math.floor(amount))
+	local reversed = text:reverse():gsub("(%d%d%d)", "%1,"):reverse()
+	return (reversed:gsub("^,", ""))
+end
+
+-- // A price button: blank button art, an optional coin / Robux icon, and its text. Returns the button and its label.
+local function createPriceButton(name: string, r: { number }, parent: Instance): (ImageButton, Frame)
+	local button = Kit.create("ImageButton", {
+		Name = name,
+		AutoButtonColor = false,
+		BackgroundTransparency = 1,
+		Image = Art.ButtonGreen,
+		ScaleType = Enum.ScaleType.Stretch,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromOffset(r[1] + r[3] / 2, r[2] + r[4] / 2),
+		Size = UDim2.fromOffset(r[3], r[4]),
+		ZIndex = 3,
+		Parent = parent,
+	})
+	-- // Contents are laid out for a 216 x 50 button and scaled to this one
+	local inner = Kit.create("Frame", {
+		Name = "Inner",
+		BackgroundTransparency = 1,
+		Size = UDim2.fromOffset(216, 50),
+		ZIndex = 3,
+		Parent = button,
+	}, {
+		Kit.create("UIScale", { Scale = r[4] / 50 }),
+	})
+	image("Icon", "", BUTTON_ICON, inner, 4)
+	local label = outlined("Label", "", TEXT_SIZE.Button, BUTTON_TEXT_ICON, inner, 4)
+	Kit.pressable(button)
+	return button, label
+end
+
+local function setPriceButton(button: ImageButton, label: Frame, text: string, iconImage: string?)
+	local icon = button.Inner.Icon :: ImageLabel
+	icon.Image = iconImage or ""
+	icon.Visible = iconImage ~= nil
+	label.Position, label.Size = rect(if iconImage then BUTTON_TEXT_ICON else BUTTON_TEXT_PLAIN)
+	Kit.setText(label, text)
+end
+
+local function placeButton(button: ImageButton, r: { number })
+	button.Position = UDim2.fromOffset(r[1] + r[3] / 2, r[2] + r[4] / 2)
+	button.Size = UDim2.fromOffset(r[3], r[4])
+	local scale = button.Inner:FindFirstChildOfClass("UIScale")
+	if scale then
+		scale.Scale = r[4] / 50
+	end
+end
 
 -------------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
@@ -133,317 +229,36 @@ function ShopBuilder.create(config: ShopConfig)
 
 	local player = Players.LocalPlayer
 	local layout: ShopLayout = config.Layout or {}
-	local GRID_COLUMNS = layout.GridColumns or DEFAULT_GRID_COLUMNS
-	local GRID_ROWS = layout.GridRows or DEFAULT_GRID_ROWS
+	local columns = layout.GridColumns or DEFAULT_GRID_COLUMNS
 	local crateAssetsFolder = ReplicatedStorage.Shared:WaitForChild("Assets"):FindFirstChild("Crates")
 	local purchaseInFlight: { [string]: boolean } = {} -- // One purchase at a time per crate (prevents double charges)
 
-	local ShopScreenGui: ScreenGui
-	local Container: ImageLabel
-	local TabsFrame: Frame
-	local ListingsFrame: ScrollingFrame
-	local GridLayout: UIGridLayout
-	local BalanceAmount: TextLabel
-	local containerGoalPosition: UDim2
-	local containerOffscreenPosition: UDim2
-	local activeTween: Tween?
+	-- // Card size in the grid: the columns fill the grid's width (minus the scroll bar), keeping the card's shape
+	local cellWidth = math.floor((LISTINGS[3] - SCROLLBAR - CARD_GAP * columns) / columns)
+	local cellScale = cellWidth / CARD.X
+	local cellHeight = math.floor(CARD.Y * cellScale)
+
+	local window: Kit.Window
+	local listingsFrame: ScrollingFrame
+	local balanceText: Frame
 
 	local tabModules: { [string]: ShopTab } = {}
 	local tabDefinitions: { [string]: ShopTabDefinition } = {}
 	local tabButtons: { [string]: ImageButton } = {}
 	local tabOrder: { string } = {}
 	local currentTabId: string? = nil
-	local currentScrollable = false
-	local listingStates: { [GuiObject]: ListingState } = {}
-	local listingCount = 0
-	local giftFraction = 0.18 -- // Width of the square gift button relative to its row; measured in layoutGrid
+	local listings: { Listing } = {}
 	local refreshId = 0 -- // Bumped on every refresh so stale async work (policy, Robux prices) can detect it
 
 	-------------------------------------------------------------------------------
 	-- PRIVATE FUNCTIONS
 	-------------------------------------------------------------------------------
 
-	-- // CreateElement returns the instance and its destroyers; only the instance is returned here
-	local function new(className: string, properties: { [string]: any }, children: { any }?): any
-		local element = CreateElement(className, properties, children)
-		return element
-	end
-
-	local function createStroke(color: Color3, thickness: number?): UIStroke
-		return new("UIStroke", {
-			Color = color,
-			Thickness = thickness or 0.08,
-			StrokeSizingMode = Enum.StrokeSizingMode.ScaledSize,
-			LineJoinMode = Enum.LineJoinMode.Round,
-		})
-	end
-
-	local function createLabel(properties: { [string]: any }, children: { any }?): TextLabel
-		local defaults = {
-			BackgroundTransparency = 1,
-			FontFace = FONT,
-			TextScaled = true,
-			TextSize = 8,
-			TextColor3 = Color3.new(1, 1, 1),
-			ZIndex = 3,
-		}
-		for property, value in properties do
-			defaults[property] = value
-		end
-		return new("TextLabel", defaults, children)
-	end
-
-	-- // 1500 -> "1,500"
-	local function formatAmount(amount: number): string
-		local text = tostring(math.floor(amount))
-		local reversed = text:reverse():gsub("(%d%d%d)", "%1,"):reverse()
-		return (reversed:gsub("^,", ""))
-	end
-
-	-- // Grows the button while hovered (through its UIScale, so it works inside layouts)
-	local function setupButtonHover(button: GuiButton)
-		local uiScale = button:FindFirstChildOfClass("UIScale") or Instance.new("UIScale")
-		uiScale.Parent = button
-		local hoverTween: Tween?
-
-		local function tweenTo(scale: number)
-			if hoverTween then
-				hoverTween:Cancel()
-			end
-			hoverTween = TweenService:Create(uiScale, HOVER_TWEEN_INFO, { Scale = scale })
-			hoverTween:Play()
-		end
-
-		button.MouseEnter:Connect(function()
-			tweenTo(HOVER_SCALE)
-		end)
-		button.MouseLeave:Connect(function()
-			tweenTo(1)
-		end)
-	end
-
 	local function updateBalance(balance: number?)
-		BalanceAmount.Text = formatAmount(balance or EconomyController.getBalance())
+		Kit.setText(balanceText, formatAmount(balance or EconomyController.getBalance()))
 	end
 
-	-- // The title, close button, tab row, listing grid and balance plank
-	local function createGui(): ScreenGui
-		local title = createLabel({
-			Name = "Title",
-			Text = config.Title,
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.092),
-			Size = UDim2.fromScale(0.3, 0.1),
-			TextColor3 = TITLE_COLOR,
-		})
-
-		local exit = new("ImageButton", {
-			Name = "Exit",
-			Image = `rbxassetid://{Icons.CloseButton}`,
-			BackgroundTransparency = 1,
-			AutoButtonColor = false,
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.945, 0.1),
-			Size = UDim2.fromScale(0.09, 0.13),
-			ZIndex = 5,
-			MouseButton1Click = function()
-				ShopGui.close()
-			end,
-		}, {
-			new("UIAspectRatioConstraint", {}),
-			new("UIScale", {}),
-		})
-		setupButtonHover(exit)
-
-		TabsFrame = new("Frame", {
-			Name = "Tabs",
-			BackgroundTransparency = 1,
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.202), -- // Centered in the tab strip of the frame art
-			Size = UDim2.fromScale(0.83, 0.095),
-			ZIndex = 2,
-			Visible = not layout.HideTabs,
-		}, {
-			new("UIListLayout", {
-				FillDirection = Enum.FillDirection.Horizontal,
-				SortOrder = Enum.SortOrder.LayoutOrder,
-				Padding = UDim.new(0.01, 0),
-				HorizontalAlignment = Enum.HorizontalAlignment.Center,
-				VerticalAlignment = Enum.VerticalAlignment.Center,
-			}),
-		})
-
-		GridLayout = new("UIGridLayout", {
-			FillDirection = Enum.FillDirection.Horizontal,
-			FillDirectionMaxCells = GRID_COLUMNS,
-			SortOrder = Enum.SortOrder.LayoutOrder,
-			StartCorner = Enum.StartCorner.TopLeft,
-		})
-
-		ListingsFrame = new("ScrollingFrame", {
-			Name = "Listings",
-			BackgroundTransparency = 1,
-			BorderSizePixel = 0,
-			Position = layout.ListingsPosition or UDim2.fromScale(0.101, 0.243),
-			Size = layout.ListingsSize or UDim2.fromScale(0.824, 0.616),
-			ZIndex = 2,
-			ClipsDescendants = true,
-			CanvasSize = UDim2.new(),
-			AutomaticCanvasSize = Enum.AutomaticSize.Y,
-			ScrollingDirection = Enum.ScrollingDirection.Y,
-			ScrollBarThickness = 0,
-			ScrollBarImageColor3 = Color3.fromRGB(122, 78, 42),
-			VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar, -- // The window shrinks by the bar's width while it's shown
-			VerticalScrollBarPosition = Enum.VerticalScrollBarPosition.Right,
-			ElasticBehavior = Enum.ElasticBehavior.WhenScrollable,
-		}, { GridLayout })
-
-		BalanceAmount = createLabel({
-			Name = "Amount",
-			Text = "0",
-			AnchorPoint = Vector2.new(0, 0.5),
-			Position = UDim2.fromScale(0.36, 0.5),
-			Size = UDim2.fromScale(0.5, 0.38),
-			TextXAlignment = Enum.TextXAlignment.Left,
-		}, { createStroke(OUTLINE_COLOR) })
-
-		local balance = new("ImageLabel", {
-			Name = "Balance",
-			Image = `rbxassetid://{Icons.ShopBalanceFrame}`,
-			BackgroundTransparency = 1,
-			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.fromScale(0.5, 0.81),
-			Size = UDim2.fromScale(0.4, 0.2),
-			ZIndex = 3,
-		}, {
-			new("ImageLabel", {
-				Name = "CurrencyIcon",
-				Image = `rbxassetid://{Icons.CurrencyIcon}`,
-				BackgroundTransparency = 1,
-				ScaleType = Enum.ScaleType.Fit,
-				AnchorPoint = Vector2.new(0, 0.5),
-				Position = UDim2.fromScale(0.12, 0.5),
-				Size = UDim2.fromScale(0.5, 0.5),
-				ZIndex = 4,
-			}, { new("UIAspectRatioConstraint", {}) }),
-			BalanceAmount,
-		})
-
-		Container = new("ImageLabel", {
-			Name = "Container",
-			Image = `rbxassetid://{config.BackgroundImage}`,
-			BackgroundTransparency = 1,
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.5),
-			Size = UDim2.fromScale(0.64, 0.88),
-			ZIndex = 1,
-		}, {
-			new("UIAspectRatioConstraint", { AspectRatio = config.AspectRatio }),
-			title,
-			exit,
-			TabsFrame,
-			ListingsFrame,
-			balance,
-		})
-
-		return new("ScreenGui", {
-			Name = config.Name,
-			ResetOnSpawn = false,
-			ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-			IgnoreGuiInset = true, -- // Covers the whole screen, top bar included...
-			ScreenInsets = Enum.ScreenInsets.None, -- // ...and doesn't follow the device's safe areas
-			Enabled = false,
-		}, { Container })
-	end
-
-	local function createTabButton(tabId: string, order: number): ImageButton
-		local tabInfo = tabDefinitions[tabId]
-		return new("ImageButton", {
-			Name = tabId,
-			LayoutOrder = order,
-			Image = `rbxassetid://{Icons.ShopTabButton}`,
-			ImageColor3 = UNSELECTED_TAB_COLOR,
-			BackgroundTransparency = 1,
-			AutoButtonColor = false,
-			Size = UDim2.fromScale(0.31, 1),
-			ZIndex = 2,
-		}, {
-			new("UIScale", {}),
-			-- // The tab's icon: IconImage, else an emoji in its own label (ICON PLACEHOLDER)
-			if tabInfo.IconImage then
-				new("ImageLabel", {
-					Name = "ICON",
-					Image = `rbxassetid://{tabInfo.IconImage}`,
-					ScaleType = Enum.ScaleType.Fit,
-					BackgroundTransparency = 1,
-					AnchorPoint = Vector2.new(0, 0.5),
-					Position = UDim2.fromScale(0.07, 0.48),
-					Size = UDim2.fromScale(0.16, 0.7),
-				}, { new("UIAspectRatioConstraint", {}) })
-			else
-				createLabel({
-					Name = "ICON_EmojiPlaceholder",
-					Text = tabInfo.Icon,
-					AnchorPoint = Vector2.new(0, 0.5),
-					Position = UDim2.fromScale(0.07, 0.48),
-					Size = UDim2.fromScale(0.16, 0.7),
-				}, { new("UIAspectRatioConstraint", {}) }),
-			createLabel({
-				Name = "Label",
-				Text = tabInfo.Name,
-				AnchorPoint = Vector2.new(0.5, 0.5),
-				Position = UDim2.fromScale(0.6, 0.5),
-				Size = UDim2.fromScale(0.62, 0.58),
-			}, { createStroke(OUTLINE_COLOR) }),
-		})
-	end
-
-	-- // A price button: coin or Robux icon + amount on a tinted wide button
-	local function createPriceButton(name: string, order: number, color: Color3, iconImage: number): ImageButton
-		return new("ImageButton", {
-			Name = name,
-			LayoutOrder = order,
-			Image = `rbxassetid://{Icons.ShopWideButton}`,
-			ImageColor3 = color,
-			BackgroundTransparency = 1,
-			AutoButtonColor = false,
-			Size = UDim2.fromScale(0.5, 1),
-			ZIndex = 4,
-		}, {
-			new("UIScale", {}),
-			new("ImageLabel", {
-				Name = "Icon",
-				Image = `rbxassetid://{iconImage}`,
-				BackgroundTransparency = 1,
-				ScaleType = Enum.ScaleType.Fit,
-				AnchorPoint = Vector2.new(0, 0.5),
-				Position = UDim2.fromScale(0.07, 0.5),
-				Size = UDim2.fromScale(0.25, 0.7),
-				ZIndex = 5,
-			}, { new("UIAspectRatioConstraint", {}) }),
-			createLabel({
-				Name = "PriceText",
-				Text = "0",
-				AnchorPoint = Vector2.new(0.5, 0.5),
-				Position = UDim2.fromScale(0.66, 0.44),
-				Size = UDim2.fromScale(0.58, 0.58),
-				ZIndex = 5,
-			}, { createStroke(PRICE_OUTLINE_COLOR) }),
-		})
-	end
-
-	-- // One grid cell: name, rarity, model, and price / gift / Robux buttons. Its size comes from the GridLayout.
-	local function createListing(display: ShopListings.ListingDisplay, order: number): ImageLabel
-		local style = RarityStyles.get(display.Rarity)
-
-		local viewport = new("ViewportFrame", {
-			Name = "Viewport",
-			BackgroundTransparency = 1,
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.48),
-			Size = UDim2.fromScale(0.7, 0.4),
-			ZIndex = 3,
-		}, { new("UIAspectRatioConstraint", {}) })
+	local function showPreview(viewport: ViewportFrame, display: ShopListings.ListingDisplay)
 		if display.ModelName then
 			ItemViewport.renderTool(viewport, display.ModelName)
 		elseif display.IconGlyph then
@@ -461,187 +276,83 @@ function ShopBuilder.create(config: ShopConfig)
 				warn(`ShopBuilder: crate model {display.CrateModelName} not found in Shared.Assets.Crates`)
 			end
 		end
-
-		local giftButton = new("ImageButton", {
-			Name = "Gift",
-			LayoutOrder = 2,
-			Image = `rbxassetid://{Icons.ShopSquareButton}`,
-			ImageColor3 = GIFT_BUTTON_COLOR,
-			BackgroundTransparency = 1,
-			AutoButtonColor = false,
-			ZIndex = 4,
-		}, {
-			new("UIScale", {}),
-			new("ImageLabel", {
-				Name = "Icon",
-				Image = `rbxassetid://{Icons.GiftIcon}`,
-				BackgroundTransparency = 1,
-				ScaleType = Enum.ScaleType.Fit,
-				AnchorPoint = Vector2.new(0.5, 0.5),
-				Position = UDim2.fromScale(0.5, 0.5),
-				Size = UDim2.fromScale(0.7, 0.7),
-				ZIndex = 5,
-			}),
-		})
-
-		local buttons = new("Frame", {
-			Name = "Buttons",
-			BackgroundTransparency = 1,
-			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.fromScale(0.5, 0.715),
-			Size = BUTTONS_SIZE,
-			ZIndex = 3,
-		}, {
-			createPriceButton("Currency", 1, CURRENCY_BUTTON_COLOR, Icons.CurrencyIcon),
-			giftButton,
-			createPriceButton("Robux", 3, ROBUX_BUTTON_COLOR, Icons.RobuxIcon),
-		})
-
-		return new("ImageLabel", {
-			Name = display.Id,
-			LayoutOrder = order,
-			Image = `rbxassetid://{Icons.ShopListingBase}`,
-			ImageColor3 = style.Color, -- // RARITY: the frame is tinted by the item's rarity
-			BackgroundTransparency = 1,
-			ZIndex = 2,
-		}, {
-			createLabel({
-				Name = "ItemName",
-				Text = display.Name,
-				AnchorPoint = Vector2.new(0.5, 0),
-				Position = UDim2.fromScale(0.5, 0.075),
-				Size = UDim2.fromScale(0.74, 0.1),
-			}, { createStroke(OUTLINE_COLOR) }),
-			createLabel({
-				Name = "Rarity",
-				Text = display.Subtitle or display.Rarity,
-				TextColor3 = style.TextColor,
-				AnchorPoint = Vector2.new(0.5, 0),
-				Position = UDim2.fromScale(0.5, 0.18),
-				Size = UDim2.fromScale(0.5, 0.065),
-			}, { createStroke(OUTLINE_COLOR) }),
-			viewport,
-			buttons,
-		})
 	end
 
-	-- // Places the price / gift / Robux buttons of a listing side by side, filling the row (positions are scales)
-	local function layoutButtons(listing: GuiObject)
-		local state = listingStates[listing]
-		if not state then
-			return
-		end
-		local buttons = listing.Buttons
-		local currency = buttons.Currency
-		local gift = buttons.Gift
-		local robux = buttons.Robux
-
-		gift.Visible = state.ShowGift
-		robux.Visible = state.ShowRobux
-
-		local wideCount = 1 + (if state.ShowRobux then 1 else 0)
-		local itemCount = wideCount + (if state.ShowGift then 1 else 0)
-		local giftWidth = if state.ShowGift then giftFraction else 0
-		local wideWidth = (1 - giftWidth - BUTTON_GAP * (itemCount - 1)) / wideCount
-
-		local x = 0
-		currency.Position = UDim2.fromScale(x, 0)
-		currency.Size = UDim2.fromScale(wideWidth, 1)
-		x += wideWidth + BUTTON_GAP
-		if state.ShowGift then
-			gift.Position = UDim2.fromScale(x, 0)
-			gift.Size = UDim2.fromScale(giftWidth, 1)
-			x += giftWidth + BUTTON_GAP
-		end
-		if state.ShowRobux then
-			robux.Position = UDim2.fromScale(x, 0)
-			robux.Size = UDim2.fromScale(wideWidth, 1)
-		end
-	end
-
-	-- // Sizes the 3x2 grid from its measured size (the Container has a fixed aspect ratio, so this changes only with
-	-- // the
-	-- // screen). A scroll bar (tabs with more than 6 listings) takes its width out of the cells.
-	local function layoutGrid()
-		local size = ListingsFrame.AbsoluteSize
-		if size.X <= 0 or size.Y <= 0 then
-			return
-		end
-
-		local scrolls = currentScrollable and listingCount > GRID_COLUMNS * GRID_ROWS
-		local gap = math.max(1, math.floor(size.X * GRID_GAP_FRACTION))
-		local scrollBar = if scrolls then math.max(4, math.floor(size.X * SCROLLBAR_FRACTION)) else 0
-		local availableWidth = size.X - (if scrolls then scrollBar + gap else 0)
-
-		local cellWidth = math.floor((availableWidth - gap * (GRID_COLUMNS - 1)) / GRID_COLUMNS)
-		local cellHeight = math.floor((size.Y - gap * (GRID_ROWS - 1)) / GRID_ROWS)
-
-		ListingsFrame.ScrollBarThickness = scrollBar
-		ListingsFrame.ScrollingEnabled = scrolls
-		GridLayout.CellPadding = UDim2.fromOffset(gap, gap)
-		GridLayout.CellSize = UDim2.fromOffset(cellWidth, cellHeight)
-
-		local newGiftFraction = (BUTTONS_SIZE.Y.Scale * cellHeight) / (BUTTONS_SIZE.X.Scale * cellWidth)
-		if math.abs(newGiftFraction - giftFraction) > 0.001 then
-			giftFraction = newGiftFraction
-			for listing in listingStates do
-				layoutButtons(listing)
+	local function onCurrencyClicked(display: ShopListings.ListingDisplay)
+		if display.Type == "Crate" then
+			-- // One at a time; ShopController / SkinController show the result popup
+			if purchaseInFlight[display.Id] then
+				return
 			end
-		end
-	end
-
-	local function setPriceButton(button: ImageButton, text: string, showIcon: boolean)
-		button.PriceText.Text = text
-		button.Icon.Visible = showIcon
-		button.PriceText.Position = if showIcon then UDim2.fromScale(0.66, 0.44) else UDim2.fromScale(0.5, 0.44)
-	end
-
-	local function buildListing(display: ShopListings.ListingDisplay, order: number, thisRefreshId: number): GuiObject
-		local listing = createListing(display, order)
-		local buttons = listing.Buttons
-		local currencyButton = buttons.Currency
-		local robuxButton = buttons.Robux
-
-		local state: ListingState = {
-			Display = display,
-			ShowRobux = display.ProductId ~= nil and not display.Owned,
-			ShowGift = GIFTING_ENABLED and not display.Owned, -- // TODO: also check PolicyLibrary.isPaidItemTradingAllowed once gifting exists
-		}
-		listingStates[listing] = state
-
-		-- // Currency price (the main button)
-		if display.Owned then
-			currencyButton.ImageColor3 = OWNED_BUTTON_COLOR
-			setPriceButton(currencyButton, OWNED_TEXT, false)
-		else
-			setPriceButton(currencyButton, if display.Price <= 0 then FREE_TEXT else formatAmount(display.Price), display.Price > 0)
-			setupButtonHover(currencyButton)
-			currencyButton.MouseButton1Click:Connect(function()
-				if display.Type == "Crate" then
-					-- // One at a time; ShopController / SkinController show the result popup
-					if purchaseInFlight[display.Id] then
-						return
-					end
-					purchaseInFlight[display.Id] = true
-					task.spawn(function()
-						local bought = ShopController.requestPurchaseCrate(display.Id)
-						purchaseInFlight[display.Id] = nil
-						if bought and ShopGui.Open then
-							ShopGui.close() -- // The crate waits next to the player to be clicked open
-						end
-					end)
-					return
+			purchaseInFlight[display.Id] = true
+			task.spawn(function()
+				local bought = ShopController.requestPurchaseCrate(display.Id)
+				purchaseInFlight[display.Id] = nil
+				if bought and ShopGui.Open then
+					ShopGui.close() -- // The crate waits next to the player to be clicked open
 				end
-				-- // The listing refreshes as Owned through the tab's subscribe once the purchase replicates
-				ShopController.requestPurchaseItem(display.Id, display.Type)
+			end)
+			return
+		end
+		-- // The listing refreshes as Owned through the tab's subscribe once the purchase replicates
+		ShopController.requestPurchaseItem(display.Id, display.Type)
+	end
+
+	-- // One grid cell: name and preview on the blue area, rarity and price buttons on the cream panel
+	local function buildListing(display: ShopListings.ListingDisplay, order: number, thisRefreshId: number): Frame
+		local style = RarityStyles.get(display.Rarity)
+		local cell = Kit.create("Frame", {
+			Name = display.Id,
+			BackgroundTransparency = 1,
+			LayoutOrder = order,
+		})
+		local card = image("Card", Art.Card, { 0, 0, CARD.X, CARD.Y }, cell, 2)
+		card.ScaleType = Enum.ScaleType.Stretch
+		Kit.create("UIScale", { Scale = cellScale, Parent = card })
+
+		outlined("ItemName", display.Name, TEXT_SIZE.Name, CARD_NAME, card, 3)
+		local viewport = Kit.create("ViewportFrame", {
+			Name = "Viewport",
+			BackgroundTransparency = 1,
+			ZIndex = 3,
+		})
+		viewport.Position, viewport.Size = rect(CARD_VIEWPORT)
+		viewport.Parent = card
+		showPreview(viewport, display)
+
+		local rarity = outlined("Rarity", display.Subtitle or display.Rarity, TEXT_SIZE.Rarity, CARD_RARITY, card, 3)
+		if not display.Subtitle then
+			setTextColor(rarity, style.TextColor) -- // RARITY: the rarity name takes its color
+		end
+
+		-- // Currency price (the main button); grey "Owned" once owned
+		local showRobux = display.ProductId ~= nil and not display.Owned
+		local currencyButton, currencyLabel =
+			createPriceButton("Currency", if showRobux then BUTTON_TOP else BUTTON_SINGLE, card)
+		if display.Owned then
+			currencyButton.Image = Art.ButtonGrey
+			Kit.setEnabled(currencyButton, false)
+			setPriceButton(currencyButton, currencyLabel, OWNED_TEXT, nil)
+		else
+			local free = display.Price <= 0
+			setPriceButton(
+				currencyButton,
+				currencyLabel,
+				if free then FREE_TEXT else formatAmount(display.Price),
+				if free then nil else `rbxassetid://{Icons.CurrencyIcon}`
+			)
+			currencyButton.Activated:Connect(function()
+				onCurrencyClicked(display)
 			end)
 		end
 
 		-- // Robux price, when the listing has a developer product: "..." until the price loads, hidden if it can't be bought
-		if state.ShowRobux then
-			setPriceButton(robuxButton, "...", true)
-			setupButtonHover(robuxButton)
-			robuxButton.MouseButton1Click:Connect(function()
+		if showRobux then
+			local robuxButton, robuxLabel = createPriceButton("Robux", BUTTON_BOTTOM, card)
+			robuxButton.Image = Art.ButtonGrey
+			robuxButton.ImageColor3 = ROBUX_TINT
+			setPriceButton(robuxButton, robuxLabel, "...", `rbxassetid://{Icons.RobuxIcon}`)
+			robuxButton.Activated:Connect(function()
 				ShopController.requestRobuxPurchaseItem(display.Id, display.Type)
 			end)
 			task.spawn(function()
@@ -651,27 +362,22 @@ function ShopBuilder.create(config: ShopConfig)
 					return
 				end
 				if price and MarketplaceLibrary.playerCanPurchaseItem(player, productId) then
-					robuxButton.PriceText.Text = formatAmount(price)
+					Kit.setText(robuxLabel, formatAmount(price))
 				else
-					state.ShowRobux = false
-					layoutButtons(listing)
+					robuxButton:Destroy()
+					placeButton(currencyButton, BUTTON_SINGLE)
 				end
 			end)
 		end
 
-		-- // Gift button: TODO wire up once gifting exists
-		setupButtonHover(buttons.Gift)
-
-		layoutButtons(listing)
-		return listing
+		return cell
 	end
 
 	local function clearListings()
-		for listing in listingStates do
-			listing:Destroy()
+		for _, listing in listings do
+			listing.Frame:Destroy()
 		end
-		table.clear(listingStates)
-		listingCount = 0
+		table.clear(listings)
 	end
 
 	-- // Rebuilds the grid from the open tab. A tab without content opens blank.
@@ -679,12 +385,11 @@ function ShopBuilder.create(config: ShopConfig)
 		refreshId += 1
 		local thisRefreshId = refreshId
 		clearListings()
-		ListingsFrame.CanvasPosition = Vector2.zero
+		listingsFrame.CanvasPosition = Vector2.zero
 
 		local tab = currentTabId and tabModules[currentTabId]
-		currentScrollable = tab ~= nil and tab.Scrollable
+		listingsFrame.ScrollingEnabled = tab ~= nil and tab.Scrollable
 		if not tab then
-			layoutGrid()
 			return
 		end
 
@@ -707,17 +412,16 @@ function ShopBuilder.create(config: ShopConfig)
 			table.insert(displays, display)
 		end
 
-		listingCount = #displays
-		layoutGrid() -- // Before the listings exist, so the cell size is right
 		for order, display in displays do
-			buildListing(display, order, thisRefreshId).Parent = ListingsFrame
+			local frame = buildListing(display, order, thisRefreshId)
+			frame.Parent = listingsFrame
+			table.insert(listings, { Frame = frame, Display = display })
 		end
-		layoutGrid()
 	end
 
-	local function updateTabColors()
+	local function updateTabArt()
 		for tabId, button in tabButtons do
-			button.ImageColor3 = if tabId == currentTabId then SELECTED_TAB_COLOR else UNSELECTED_TAB_COLOR
+			button.Image = if tabId == currentTabId then Art.TabOn else Art.TabOff
 		end
 	end
 
@@ -726,7 +430,7 @@ function ShopBuilder.create(config: ShopConfig)
 			return
 		end
 		currentTabId = tabId
-		updateTabColors()
+		updateTabArt()
 		refreshListings()
 	end
 
@@ -739,43 +443,116 @@ function ShopBuilder.create(config: ShopConfig)
 		return tabOrder[1]
 	end
 
-	local function buildTabs()
-		for _, definition in config.Tabs do
-			table.insert(tabOrder, definition.Id)
-			tabDefinitions[definition.Id] = definition
+	local function buildTab(definition: ShopTabDefinition, index: number, root: Frame)
+		local x = TABS_ORIGIN.X + (index - 1) * (TAB_SIZE.X + TAB_GAP)
+		local button = Kit.create("ImageButton", {
+			Name = `Tab{definition.Id}`,
+			AutoButtonColor = false,
+			BackgroundTransparency = 1,
+			Image = Art.TabOff,
+			ScaleType = Enum.ScaleType.Stretch,
+			Position = UDim2.fromOffset(x, TABS_ORIGIN.Y),
+			Size = UDim2.fromOffset(TAB_SIZE.X, TAB_SIZE.Y),
+			Visible = not layout.HideTabs,
+			ZIndex = 2,
+			Parent = root,
+		})
+		if definition.IconImage then
+			image("Icon", definition.IconImage, TAB_ICON, button, 3)
 		end
+		outlined("Label", definition.Name, TEXT_SIZE.Tab, if definition.IconImage then TAB_TEXT else TAB_TEXT_NO_ICON, button, 3)
+		Kit.pressable(button)
+		button.Activated:Connect(function()
+			selectTab(definition.Id)
+		end)
+		tabButtons[definition.Id] = button
 
-		for order, tabId in tabOrder do
-			local button = createTabButton(tabId, order)
-			button.Parent = TabsFrame
-			tabButtons[tabId] = button
-
-			-- // Every tab can be opened; one without content shows blank
-			local tab = tabDefinitions[tabId].Tab
-			if tab then
-				tabModules[tabId] = tab
-				tab.subscribe(function()
-					if ShopGui.Open and currentTabId == tabId then
-						refreshListings()
-					end
-				end)
-			end
-
-			setupButtonHover(button)
-			button.MouseButton1Click:Connect(function()
-				selectTab(tabId)
+		-- // Every tab can be opened; one without content shows blank
+		local tab = definition.Tab
+		if tab then
+			tabModules[definition.Id] = tab
+			tab.subscribe(function()
+				if ShopGui.Open and currentTabId == definition.Id then
+					refreshListings()
+				end
 			end)
 		end
-
-		updateTabColors()
 	end
 
-	local function playContainerTween(tweenInfo: TweenInfo, goalPosition: UDim2)
-		if activeTween then
-			activeTween:Cancel()
+	local function build()
+		window = Kit.window(player:WaitForChild("PlayerGui"), config.Name, Art.Window, CANVAS)
+		local root = window.root
+
+		outlined("Title", config.Title, TEXT_SIZE.Title, TITLE, root, 2)
+
+		-- // Close button: blank button + X icon
+		local close = Kit.create("ImageButton", {
+			Name = "Close",
+			AutoButtonColor = false,
+			BackgroundTransparency = 1,
+			Image = Art.CloseBlank,
+			ScaleType = Enum.ScaleType.Fit,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromOffset(CLOSE[1] + CLOSE[3] / 2, CLOSE[2] + CLOSE[4] / 2),
+			Size = UDim2.fromOffset(CLOSE[3], CLOSE[4]),
+			ZIndex = 3,
+			Parent = root,
+		})
+		Kit.create("ImageLabel", {
+			Name = "Icon",
+			BackgroundTransparency = 1,
+			Image = Art.IconClose,
+			ScaleType = Enum.ScaleType.Fit,
+			Position = UDim2.fromScale(CLOSE_ICON_INSET, CLOSE_ICON_INSET),
+			Size = UDim2.fromScale(1 - 2 * CLOSE_ICON_INSET, 1 - 2 * CLOSE_ICON_INSET),
+			ZIndex = 4,
+			Parent = close,
+		})
+		Kit.pressable(close)
+		close.Activated:Connect(function()
+			ShopGui.close()
+		end)
+
+		-- // Currency balance, right of the tabs
+		image("BalancePill", Art.TimerPill, BALANCE_PILL, root, 2).ScaleType = Enum.ScaleType.Stretch
+		image("BalanceIcon", `rbxassetid://{Icons.CurrencyIcon}`, BALANCE_ICON, root, 3)
+		balanceText = outlined("Balance", "0", TEXT_SIZE.Balance, BALANCE_TEXT, root, 3)
+
+		listingsFrame = Kit.create("ScrollingFrame", {
+			Name = "Listings",
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			ZIndex = 2,
+			ClipsDescendants = true,
+			CanvasSize = UDim2.new(),
+			AutomaticCanvasSize = Enum.AutomaticSize.Y,
+			ScrollingDirection = Enum.ScrollingDirection.Y,
+			ScrollBarThickness = SCROLLBAR,
+			ScrollBarImageColor3 = Theme.Colors.WoodDark,
+			VerticalScrollBarInset = Enum.ScrollBarInset.None,
+			ElasticBehavior = Enum.ElasticBehavior.WhenScrollable,
+			Parent = root,
+		}, {
+			Kit.create("UIGridLayout", {
+				CellSize = UDim2.fromOffset(cellWidth, cellHeight),
+				CellPadding = UDim2.fromOffset(CARD_GAP, CARD_GAP),
+				FillDirection = Enum.FillDirection.Horizontal,
+				FillDirectionMaxCells = columns,
+				SortOrder = Enum.SortOrder.LayoutOrder,
+				StartCorner = Enum.StartCorner.TopLeft,
+			}),
+		})
+		listingsFrame.Position, listingsFrame.Size = rect(LISTINGS)
+	end
+
+	-- // In start(): the tab modules subscribe to controllers that must be initialised first
+	local function buildTabs()
+		for index, definition in config.Tabs do
+			table.insert(tabOrder, definition.Id)
+			tabDefinitions[definition.Id] = definition
+			buildTab(definition, index, window.root)
 		end
-		activeTween = TweenService:Create(Container, tweenInfo, { Position = goalPosition })
-		activeTween:Play()
+		updateTabArt()
 	end
 
 	-------------------------------------------------------------------------------
@@ -784,24 +561,22 @@ function ShopBuilder.create(config: ShopConfig)
 
 	function ShopGui.open()
 		ShopGui.Open = true
-		ShopScreenGui.Enabled = true
 		updateBalance()
-		Container.Position = containerOffscreenPosition
 		selectTab(getDefaultTabId(), true)
-		playContainerTween(CONTAINER_TWEEN_INFO_IN, containerGoalPosition)
+		window.open()
 		UIController.supercede(config.Name, "GamemodeHud")
 		UIController.closeOtherMenus(config.Name) -- // After superceding, so the closing menu doesn't restore the HUD
 	end
 
 	function ShopGui.close()
 		ShopGui.Open = false
-		playContainerTween(CONTAINER_TWEEN_INFO_OUT, containerOffscreenPosition)
+		window.close()
 		UIController.unSupercede(config.Name, "GamemodeHud")
+		refreshId += 1 -- // Invalidates async listing work still running
 
-		task.delay(CONTAINER_TWEEN_INFO_OUT.Time, function()
+		-- // Frees the viewports once the window has shrunk away
+		task.delay(0.15, function()
 			if not ShopGui.Open then
-				ShopScreenGui.Enabled = false
-				refreshId += 1 -- // Invalidates async listing work still running
 				clearListings()
 			end
 		end)
@@ -820,14 +595,7 @@ function ShopBuilder.create(config: ShopConfig)
 	-------------------------------------------------------------------------------
 
 	local function _init()
-		ShopScreenGui = createGui()
-		ShopScreenGui.Parent = player:WaitForChild("PlayerGui")
-
-		containerGoalPosition = Container.Position
-		containerOffscreenPosition = containerGoalPosition - UDim2.fromScale(0, 1)
-
-		ListingsFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(layoutGrid)
-
+		build()
 		EconomyController.CurrencyChangedTasks:Add(function(newBalance)
 			updateBalance(newBalance)
 		end)
@@ -836,7 +604,7 @@ function ShopBuilder.create(config: ShopConfig)
 	function ShopGui.start()
 		buildTabs()
 
-		-- // Opened from the Shop button in MenuButtons; the test key is a Studio-only shortcut
+		-- // Opened from the Shop buttons in MenuButtons; the test key is a Studio-only shortcut
 		if RunService:IsStudio() and config.TestKey then
 			ContextActionService:BindAction("testopen" .. config.Name, function(_, inputState)
 				if inputState == Enum.UserInputState.Begin then
