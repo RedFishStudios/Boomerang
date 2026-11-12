@@ -199,17 +199,24 @@ local function applyClientArt(content: Frame)
 		equipAspect.AspectRatio = DETAIL_BUTTON[3] / DETAIL_BUTTON[4]
 	end
 	styleText(equip.Label)
-	-- // "Equipped": the grey button art behind the status text
+	-- // "Equipped": the grey button art behind the status text. A sibling drawn below the label (a child would always
+	-- // draw over its parent's text), shown and hidden with it.
 	local status = DetailPanel.Status :: TextLabel
 	place(status, DETAIL_BUTTON, detailSize)
 	styleText(status)
+	status.Text = "Equipped"
+	status.ZIndex = math.max(status.ZIndex, 2)
 	local statusArt = Instance.new("ImageLabel")
 	statusArt.Name = "StatusArt"
 	statusArt.BackgroundTransparency = 1
 	statusArt.Image = Art.Equipped
-	statusArt.Size = UDim2.fromScale(1, 1)
+	place(statusArt, DETAIL_BUTTON, detailSize)
 	statusArt.ZIndex = status.ZIndex - 1
-	statusArt.Parent = status
+	statusArt.Visible = status.Visible
+	statusArt.Parent = DetailPanel
+	status:GetPropertyChangedSignal("Visible"):Connect(function()
+		statusArt.Visible = status.Visible
+	end)
 
 	-- // Listing cards: the card art fills the cell; preview, name and the equipped badge on top
 	local cardArt = ListingTemplate.Art :: ImageLabel
