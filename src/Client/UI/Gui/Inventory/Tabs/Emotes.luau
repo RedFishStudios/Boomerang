@@ -44,7 +44,7 @@ function EmotesTab.getItems(includeUnowned: boolean?)
 				EmoteAnimationId = emote.AnimationId,
 				Owned = EmoteController.ownsEmote(emoteId),
 				Equipped = emoteId == equippedId,
-				Source = if emote.Default then "Everyone has it" elseif emote.OffSale then "Special" else "Sold in the Cosmetics Shop",
+				Source = if emote.Default then "Default" elseif emote.OffSale then "Special" else "Cosmetics Shop",
 			})
 		end
 	end

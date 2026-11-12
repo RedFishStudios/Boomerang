@@ -44,7 +44,7 @@ function TauntsTab.getItems(includeUnowned: boolean?)
 				IconGlyph = taunt.PlaceholderGlyph or "?",
 				Owned = TauntController.ownsTaunt(tauntId),
 				Equipped = tauntId == equippedId,
-				Source = if taunt.Default then "Everyone has it" elseif taunt.OffSale then "Special" else "Sold in the Cosmetics Shop",
+				Source = if taunt.Default then "Default" elseif taunt.OffSale then "Special" else "Cosmetics Shop",
 			})
 		end
 	end

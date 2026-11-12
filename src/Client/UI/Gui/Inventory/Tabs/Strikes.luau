@@ -44,7 +44,7 @@ function StrikesTab.getItems(includeUnowned: boolean?)
 				IconGlyph = elimEffect.PlaceholderGlyph or "?",
 				Owned = ElimEffectController.ownsElimEffect(elimEffectId),
 				Equipped = elimEffectId == equippedId,
-				Source = if elimEffect.Default then "Everyone has it" elseif elimEffect.OffSale then "Special" else "Sold in the Cosmetics Shop",
+				Source = if elimEffect.Default then "Default" elseif elimEffect.OffSale then "Special" else "Cosmetics Shop",
 			})
 		end
 	end

@@ -41,7 +41,7 @@ export type InventoryItem = {
 	EmoteAnimationId: string?, -- // Instead of a model (emotes): animation asset id played by the EmotesRig
 	Owned: boolean,
 	Equipped: boolean,
-	Source: string?, -- // Where the item comes from, e.g. "From the Fan Crate" (shown in the Index)
+	Source: string?, -- // Where the item comes from, e.g. "Fan Crate" or "Cosmetics Shop" (shown in the Index)
 }
 
 export type InventoryTab = {
@@ -91,6 +91,7 @@ local DETAIL_NAME = { 24, 18, 422, 72 }
 local DETAIL_RARITY = { 24, 88, 422, 54 }
 local DETAIL_PREVIEW = { 62, 161, 325, 385 }
 local DETAIL_BUTTON = { 37, 541, 395, 135 } -- // Equip / Equipped
+local DETAIL_STATUS_TEXT = { 107, 578, 255, 56 } -- // The status text (Equipped / Owned / Locked) inside the button art
 local DETAIL_SOURCE = { 24, 488, 422, 48 } -- // Index only: where the item comes from (over the bottom of the preview)
 local TEXT_COLOR = Color3.fromRGB(252, 243, 224)
 local TEXT_OUTLINE = Color3.fromRGB(70, 44, 28)
@@ -212,7 +213,8 @@ local function applyClientArt(content: Frame)
 	-- // "Equipped": the grey button art behind the status text. A sibling drawn below the label (a child would always
 	-- // draw over its parent's text), shown and hidden with it.
 	local status = DetailPanel.Status :: TextLabel
-	place(status, DETAIL_BUTTON, detailSize)
+	place(status, DETAIL_STATUS_TEXT, detailSize)
+	status.TextScaled = true
 	styleText(status)
 	status.Text = "Equipped"
 	status.ZIndex = math.max(status.ZIndex, 2)

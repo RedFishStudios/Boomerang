@@ -20,19 +20,19 @@ local CrateLibrary = require(ReplicatedStorage.Shared.Library.CrateLibrary)
 local function getSource(skinId: string): string
 	local skin = SkinLibrary.getSkin(skinId)
 	if skin and skin.Default then
-		return "Starter weapon"
+		return "Default"
 	end
 	for _, crateId in CrateLibrary.getSortedCrateIds() do
 		local crate = CrateLibrary.getCrate(crateId)
 		if crate and not crate.OffSale then
 			for _, entry in CrateLibrary.getEntries(crateId) do
 				if entry.SkinId == skinId then
-					return `From the {crate.Name}`
+					return crate.Name
 				end
 			end
 		end
 	end
-	return if skin and skin.OffSale then "Special" else "Not available yet"
+	return if skin and skin.OffSale then "Special" else "Unavailable"
 end
 
 -------------------------------------------------------------------------------
