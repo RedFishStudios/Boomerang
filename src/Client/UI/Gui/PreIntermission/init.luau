@@ -63,8 +63,8 @@ local REFERENCE = Vector2.new(1280, 720)
 local MIN_SCALE, MAX_SCALE = 0.55, 1.6
 local TOP_MARGIN = 12
 
-local RIBBON = Vector2.new(560, 127) -- // The ribbon art is 725 x 164
-local RIBBON_TEXT = { 90, 26, 380, 64 } -- // "Match!", inside the ribbon
+local RIBBON = Vector2.new(330, 110) -- // The 725 x 164 ribbon art squeezed narrower (Sol, 2026-11-12: slimmer for short titles)
+local RIBBON_TEXT = { 50, 22, 230, 56 } -- // "Match!", inside the ribbon
 local WINNER_ICON = 116 -- // One winner
 local TEAM_ICON = 88 -- // Each winning team player
 local PLACE_ICON = 62

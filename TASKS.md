@@ -17,7 +17,7 @@ The task board: every feature, fix and cleanup. See [CLAUDE.md](CLAUDE.md) for h
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-172**
+**Next free ID: T-173**
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -502,6 +502,30 @@ Players enter a code to receive a reward. Server: validates the code (case-insen
 ---
 
 ## Done
+
+### T-172 · Ribbon fixes: gamemode ribbon cut off, slimmer title ribbons, death screen lower
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client UI
+- **Files:** `Client/UI/Gui/GamemodeHud/init.luau`, `Client/UI/Gui/PreIntermission/init.luau`, `Client/UI/Gui/DeathScreen/init.luau`
+
+**Problem / goal**
+From Sol's play-test: the gamemode ribbon's bottom was cut off; the "Match!" and "Downed!" ribbons were very wide for their text; the death screen sat at the very top.
+
+**Done when**
+- [x] Gamemode ribbon complete: cause was the GUI setup, not the image (Roblox's 9-slice drew only the top of this art; checked in Studio: the same asset drawn plainly is whole). Now three pieces cut with ImageRect (left end, stretching middle, right end)
+- [x] "Match!" and "Downed!" / "Eliminated!" ribbons squeezed narrower: 330 x 110 instead of 560 x 127 (same art)
+- [x] Death screen centred around 36 % of the screen height instead of the top
+
+**Test in Studio**
+- During a round: the gamemode ribbon shows both gold rims for short and long names. After a round: "Match!" ribbon slimmer. On dying: the death screen appears nearer the middle with the slimmer ribbon; "Eliminated!" fits.
+
+**Notes**
+- Sol, 2026-11-12: fixes from play-testing T-167 / T-168 / T-170. No new art.
+- 2026-11-12: done, in **Review**. Branch `agent/T-172-ribbon-fixes`, lane `Github/Boomerang-lanes/T-158-shop-reskin`. Rojo build passes, no syntax errors; the three-piece ribbon was checked in Studio with a test copy (removed); not play-tested.
+- Sol, 2026-11-12: passed testing.
+
+---
 
 ### T-171 · Elimination feed on the straight red ribbon
 - **Priority:** P2

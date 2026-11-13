@@ -2,7 +2,7 @@
 	DeathScreen
 
 	Description:
-	Shown while the local player is dead in a round, with the world turned grey. Floating at the top of the screen, like the
+	Shown while the local player is dead in a round, with the world turned grey. Floating above the middle of the screen, like the
 	end-of-round results (PreIntermission): the red ribbon with "Downed!" (gamemodes with respawns) or "Eliminated!", and
 	under it who did it (their avatar, "By <DisplayName>" and "@<username>") or the cause ("Out of Bounds"...), from the
 	server's PlayerDeathReason event. Never shown over the end-of-round results.
@@ -39,9 +39,9 @@ local Art = require(ReplicatedStorage.Client.UI.ClientArt.Assets).RoundResults
 local CANVAS_WIDTH = 900
 local REFERENCE = Vector2.new(1280, 720)
 local MIN_SCALE, MAX_SCALE = 0.55, 1.6
-local TOP_MARGIN = 12
-local RIBBON = Vector2.new(560, 127)
-local RIBBON_TEXT = { 90, 26, 380, 64 }
+local SHOWN_Y = 0.36 -- // Centre of the screen's top half-ish: closer to the middle than the results (Sol, 2026-11-12)
+local RIBBON = Vector2.new(330, 110) -- // The 725 x 164 ribbon art squeezed narrower (Sol, 2026-11-12: slimmer for short titles)
+local RIBBON_TEXT = { 50, 22, 230, 56 }
 local KILLER_ICON = 96
 local BORDER = Color3.fromRGB(252, 243, 224)
 local TEXT_SIZE = { Ribbon = 52, By = 40, Username = 26, Cause = 40 }
@@ -123,7 +123,7 @@ local function build()
 	})
 	holder = Kit.create("Frame", {
 		Name = "Holder",
-		AnchorPoint = Vector2.new(0.5, 0),
+		AnchorPoint = Vector2.new(0.5, 0.5),
 		BackgroundTransparency = 1,
 		Position = UDim2.new(0.5, 0, -1, 0),
 		Size = UDim2.fromOffset(CANVAS_WIDTH, 0),
@@ -228,7 +228,7 @@ function DeathScreen.open()
 	rescale()
 	gui.Enabled = true
 	holder.Position = UDim2.new(0.5, 0, -1, 0)
-	slide(SLIDE_IN, UDim2.new(0.5, 0, 0, TOP_MARGIN))
+	slide(SLIDE_IN, UDim2.fromScale(0.5, SHOWN_Y))
 end
 
 function DeathScreen.close(_instant: boolean?)

@@ -2,8 +2,9 @@
 	GamemodeHud
 
 	In-round HUD: one line of text in the topbar row showing the gamemode and time left ("Team Elimination • 01:24"), on
-	a straight red ribbon (ClientArt/Assets.GamemodeHud.Ribbon) that stretches sideways to fit the text (its curled ends
-	keep their shape: 9-slice). Cream lettering with a dark outline, like the menus.
+	a straight red ribbon (ClientArt/Assets.GamemodeHud.Ribbon) that stretches sideways to fit the text. It's drawn in three
+	pieces (left end, middle, right end, cut from the art with ImageRect) so the curled ends keep their shape; Roblox's
+	9-slice cut the bottom of this art off. Cream lettering with a dark outline, like the menus.
 	Shown while a round is running; hidden while a menu supersedes it.
 
 	The previous banner HUD is kept for reference in LegacyBannerHud.luau.
@@ -39,7 +40,7 @@ local SEPARATOR = " • "
 
 -- // The ribbon art (725 x 136): its curled ends stay unstretched; only the middle stretches to fit the text
 local RIBBON_ART = Vector2.new(725, 136)
-local RIBBON_SLICE = Rect.new(150, 0, 575, 136)
+local RIBBON_END = 150 -- // Width of each curled end in the art; the middle (150 to 575) stretches
 local RIBBON_HEIGHT_SCALE = 1.05 -- // Ribbon height as a share of the topbar row height
 local TEXT_HEIGHT_SCALE = 0.5 -- // Text height as a share of the ribbon height (inside the red band)
 local END_WIDTH_SCALE = 1.2 -- // Room for each curled end, as a share of the ribbon height
@@ -50,7 +51,7 @@ local MAX_WIDTH_SCALE = 0.6 -- // Widest the ribbon gets, as a share of the scre
 -------------------------------------------------------------------------------
 
 local Gui: ScreenGui
-local Ribbon: ImageLabel
+local Ribbon: Frame
 local Label: TextLabel
 
 local gamemodeText = ""
@@ -78,7 +79,6 @@ local function placeLabel()
 
 	Ribbon.Position = UDim2.fromOffset(0, topbar.Min.Y + rowHeight / 2) + UDim2.fromScale(0.5, 0)
 	Ribbon.Size = UDim2.fromOffset(width, height)
-	Ribbon.SliceScale = height / RIBBON_ART.Y
 	Label.Size = UDim2.new(1, -height * END_WIDTH_SCALE * 2, 0, textHeight)
 end
 
@@ -213,14 +213,42 @@ local function _init()
 	Gui.DisplayOrder = 10 -- // Same as the topbar
 	Gui.Enabled = false
 
-	Ribbon = Instance.new("ImageLabel")
+	Ribbon = Instance.new("Frame")
 	Ribbon.Name = "Ribbon"
 	Ribbon.AnchorPoint = Vector2.new(0.5, 0.5)
 	Ribbon.BackgroundTransparency = 1
-	Ribbon.Image = RibbonArt.Ribbon
-	Ribbon.ScaleType = Enum.ScaleType.Slice
-	Ribbon.SliceCenter = RIBBON_SLICE
 	Ribbon.Parent = Gui
+
+	-- // Left end, stretchy middle, right end; the ends keep the art's proportions (their width follows the height)
+	local endWidth = UDim2.fromScale(RIBBON_END / RIBBON_ART.Y, 1)
+	local function piece(name: string, offsetX: number, sizeX: number): ImageLabel
+		local image = Instance.new("ImageLabel")
+		image.Name = name
+		image.BackgroundTransparency = 1
+		image.Image = RibbonArt.Ribbon
+		image.ImageRectOffset = Vector2.new(offsetX, 0)
+		image.ImageRectSize = Vector2.new(sizeX, RIBBON_ART.Y)
+		image.Parent = Ribbon
+		return image
+	end
+	local left = piece("Left", 0, RIBBON_END)
+	left.Size = endWidth
+	left.SizeConstraint = Enum.SizeConstraint.RelativeYY
+	local right = piece("Right", RIBBON_ART.X - RIBBON_END, RIBBON_END)
+	right.AnchorPoint = Vector2.new(1, 0)
+	right.Position = UDim2.fromScale(1, 0)
+	right.Size = endWidth
+	right.SizeConstraint = Enum.SizeConstraint.RelativeYY
+	local middle = piece("Middle", RIBBON_END, RIBBON_ART.X - 2 * RIBBON_END)
+	middle.Position = UDim2.fromScale(0.5, 0)
+	middle.AnchorPoint = Vector2.new(0.5, 0)
+	-- // Between the ends (plus a pixel of overlap each side so no seam shows)
+	local function fitMiddle()
+		local endPixels = Ribbon.AbsoluteSize.Y * RIBBON_END / RIBBON_ART.Y
+		middle.Size = UDim2.new(1, -2 * endPixels + 2, 1, 0)
+	end
+	Ribbon:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitMiddle)
+	fitMiddle()
 
 	Label = Instance.new("TextLabel")
 	Label.Name = "GamemodeTimer"
