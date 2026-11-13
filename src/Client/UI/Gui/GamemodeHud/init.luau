@@ -1,7 +1,9 @@
 --[[
 	GamemodeHud
 
-	In-round HUD: one line of text in the topbar row showing the gamemode and time left ("Team Elimination • 01:24").
+	In-round HUD: one line of text in the topbar row showing the gamemode and time left ("Team Elimination • 01:24"), on
+	a straight red ribbon (ClientArt/Assets.GamemodeHud.Ribbon) that stretches sideways to fit the text (its curled ends
+	keep their shape: 9-slice). Cream lettering with a dark outline, like the menus.
 	Shown while a round is running; hidden while a menu supersedes it.
 
 	The previous banner HUD is kept for reference in LegacyBannerHud.luau.
@@ -18,26 +20,37 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Player = game:GetService("Players").LocalPlayer
 
+local TextService = game:GetService("TextService")
+
 local Gamemodes = require(ReplicatedStorage.Shared.Constants.Gamemodes)
+local Theme = require(ReplicatedStorage.Client.UI.ClientArt.Theme)
+local RibbonArt = require(ReplicatedStorage.Client.UI.ClientArt.Assets).GamemodeHud
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 
 -------------------------------------------------------------------------------
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
-local FONT = Enum.Font.FredokaOne -- // Same as the topbar
-local TEXT_COLOR = Color3.new(1, 1, 1)
-local OUTLINE_COLOR = Color3.new(0, 0, 0)
-local OUTLINE_THICKNESS = 2.5
-local TEXT_HEIGHT_SCALE = 0.75 -- // Text height as a share of the topbar row height
-local TEXT_WIDTH_SCALE = 0.4 -- // Max text width as a share of the screen (long names shrink to fit)
+local FONT = Enum.Font.FredokaOne -- // Same as the topbar and menus
+local TEXT_COLOR = Theme.Colors.Text
+local OUTLINE_COLOR = Theme.Colors.Outline
+local OUTLINE_THICKNESS = 2
 local SEPARATOR = " • "
+
+-- // The ribbon art (725 x 136): its curled ends stay unstretched; only the middle stretches to fit the text
+local RIBBON_ART = Vector2.new(725, 136)
+local RIBBON_SLICE = Rect.new(150, 0, 575, 136)
+local RIBBON_HEIGHT_SCALE = 1.05 -- // Ribbon height as a share of the topbar row height
+local TEXT_HEIGHT_SCALE = 0.5 -- // Text height as a share of the ribbon height (inside the red band)
+local END_WIDTH_SCALE = 1.2 -- // Room for each curled end, as a share of the ribbon height
+local MAX_WIDTH_SCALE = 0.6 -- // Widest the ribbon gets, as a share of the screen (longer text shrinks)
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
 -------------------------------------------------------------------------------
 
 local Gui: ScreenGui
+local Ribbon: ImageLabel
 local Label: TextLabel
 
 local gamemodeText = ""
@@ -50,12 +63,23 @@ local isSuperceded = false
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
 
--- // Centers the label on the screen and vertically in the topbar row (GuiService.TopbarInset)
+-- // Centers the ribbon on the screen and vertically in the topbar row (GuiService.TopbarInset), sized to its text
 local function placeLabel()
 	local topbar = GuiService.TopbarInset
 	local rowHeight = topbar.Height
-	Label.Position = UDim2.fromOffset(0, topbar.Min.Y + rowHeight / 2) + UDim2.fromScale(0.5, 0)
-	Label.Size = UDim2.new(TEXT_WIDTH_SCALE, 0, 0, rowHeight * TEXT_HEIGHT_SCALE)
+	local height = math.floor(rowHeight * RIBBON_HEIGHT_SCALE)
+	local textHeight = math.floor(height * TEXT_HEIGHT_SCALE)
+	-- // Measured with every digit as "0" so the ribbon doesn't change width as the timer ticks
+	local measured = string.gsub(Label.Text, "%d", "0")
+	local textWidth = TextService:GetTextSize(measured, textHeight, FONT, Vector2.new(math.huge, textHeight)).X
+	local maxWidth = Gui.AbsoluteSize.X * MAX_WIDTH_SCALE
+	local width = math.min(textWidth + height * END_WIDTH_SCALE * 2, maxWidth)
+	width = math.max(width, height * RIBBON_ART.X / RIBBON_ART.Y * 0.6)
+
+	Ribbon.Position = UDim2.fromOffset(0, topbar.Min.Y + rowHeight / 2) + UDim2.fromScale(0.5, 0)
+	Ribbon.Size = UDim2.fromOffset(width, height)
+	Ribbon.SliceScale = height / RIBBON_ART.Y
+	Label.Size = UDim2.new(1, -height * END_WIDTH_SCALE * 2, 0, textHeight)
 end
 
 local function render()
@@ -64,6 +88,7 @@ local function render()
 	else
 		Label.Text = gamemodeText .. timerText
 	end
+	placeLabel()
 end
 
 local function stopCountdown()
@@ -188,15 +213,26 @@ local function _init()
 	Gui.DisplayOrder = 10 -- // Same as the topbar
 	Gui.Enabled = false
 
+	Ribbon = Instance.new("ImageLabel")
+	Ribbon.Name = "Ribbon"
+	Ribbon.AnchorPoint = Vector2.new(0.5, 0.5)
+	Ribbon.BackgroundTransparency = 1
+	Ribbon.Image = RibbonArt.Ribbon
+	Ribbon.ScaleType = Enum.ScaleType.Slice
+	Ribbon.SliceCenter = RIBBON_SLICE
+	Ribbon.Parent = Gui
+
 	Label = Instance.new("TextLabel")
 	Label.Name = "GamemodeTimer"
 	Label.AnchorPoint = Vector2.new(0.5, 0.5)
+	Label.Position = UDim2.fromScale(0.5, 0.47) -- // On the red band, between the gold rims
 	Label.BackgroundTransparency = 1
 	Label.Font = FONT
 	Label.TextScaled = true
 	Label.TextColor3 = TEXT_COLOR
 	Label.Text = ""
-	Label.Parent = Gui
+	Label.ZIndex = 2
+	Label.Parent = Ribbon
 
 	local outline = Instance.new("UIStroke")
 	outline.Color = OUTLINE_COLOR
@@ -205,6 +241,7 @@ local function _init()
 
 	placeLabel()
 	GuiService:GetPropertyChangedSignal("TopbarInset"):Connect(placeLabel)
+	Gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(placeLabel)
 
 	Gui.Parent = Player.PlayerGui
 end

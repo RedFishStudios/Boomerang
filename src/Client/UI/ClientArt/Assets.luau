@@ -94,6 +94,12 @@ return {
 		IconLosses = "rbxassetid://110184146477831", -- // Red flag (decal 131876269322029)
 	},
 
+	-- // In-round gamemode and timer line (GamemodeHud): the results ribbon straightened (Sol approved, uploaded to the group
+	-- // 2026-11-12; source in Projects/Boomerang/Assets/ArtPipeline/GamemodeHudUI).
+	GamemodeHud = {
+		Ribbon = "rbxassetid://129160689263455", -- // 725 x 136 (decal 80178236404759)
+	},
+
 	-- // End-of-round results (PreIntermission): the red ribbon cut out of the client's Stats window art, on its own
 	-- // (Sol approved, uploaded to the group 2026-11-12; source in Projects/Boomerang/Assets/ArtPipeline/RoundResultsUI).
 	RoundResults = {

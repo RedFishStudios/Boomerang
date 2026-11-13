@@ -17,7 +17,7 @@ The task board: every feature, fix and cleanup. See [CLAUDE.md](CLAUDE.md) for h
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-170**
+**Next free ID: T-171**
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -502,6 +502,29 @@ Players enter a code to receive a reward. Server: validates the code (case-insen
 ---
 
 ## Done
+
+### T-170 · Gamemode and timer line on a straight red ribbon
+- **Priority:** P2
+- **Owner:** Agent (Sol approves every image before upload)
+- **Area:** Client UI / Art
+- **Files:** `Client/UI/Gui/GamemodeHud/init.luau`, `Client/UI/ClientArt/Assets.luau`
+
+**Problem / goal**
+The in-round "Team Elimination • 01:24" line was plain white text. Put it on a single straight red ribbon (not arched like the window headers), in the menus' lettering.
+
+**Done when**
+- [x] New art: the results ribbon straightened
+- [x] The line sits on the ribbon in the topbar row; the ribbon stretches sideways to fit the text (curled ends keep their shape) and doesn't jitter as the timer ticks
+
+**Test in Studio**
+- Start rounds of a short-named and a long-named gamemode: the ribbon sits centred in the topbar row with the text on its red band; it hides when a menu opens and when the round ends. Check a phone-sized screen.
+
+**Notes**
+- Sol, 2026-11-12: a single straight red ribbon, not a wooden plank. New art (approved, uploaded to group 293180599; source in `Projects/Boomerang/Assets/ArtPipeline/GamemodeHudUI`): ribbon 129160689263455 (decal 80178236404759).
+- 2026-11-12: done, in **Review**. Branch `agent/T-170-gamemode-hud`, lane `Github/Boomerang-lanes/T-158-shop-reskin`. Rojo build passes, no syntax errors; not play-tested.
+- Sol, 2026-11-12: passed testing.
+
+---
 
 ### T-168 · Death screen in the new style
 - **Priority:** P2
