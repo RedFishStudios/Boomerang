@@ -135,7 +135,7 @@ function TeamEliminationRoundLogic.teardown(winner: Player?, winningTeam: Team?)
       clear()
       table.clear(activeTeams)
       GameTeamService.dismantleRoundTeams()
-      GameStateLibrary.RoundFinishedTasks:Execute("parallel", winner, winningTeam, nil, winners)
+      GameStateLibrary.finishRound(winner, winningTeam, nil, winners)
    end
 end
 

@@ -72,7 +72,7 @@ function ClassicRoundLogic.teardown()
          end
       end
       clear()
-      CurrentGameState.RoundFinishedTasks:Execute("parallel", winner, nil, isTie, winners)
+      CurrentGameState.finishRound(winner, nil, isTie, winners)
    end
 end
 

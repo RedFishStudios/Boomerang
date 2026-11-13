@@ -239,7 +239,7 @@ end
 function HotPotatoRoundLogic.teardown(winner: Player?)
    teardown()
    if isServer then
-      CurrentGameState.RoundFinishedTasks:Execute("parallel", winner, nil)
+      CurrentGameState.finishRound(winner, nil)
    end
 end
 

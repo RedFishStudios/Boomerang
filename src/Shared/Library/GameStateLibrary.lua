@@ -409,6 +409,24 @@ end
 -- CORE FUNCTIONS
 -------------------------------------------------------------------------------
 
+-- // Server: ends the round with its result and runs RoundFinishedTasks. Gamemodes call this instead of executing the
+-- // tasks themselves, so one rule applies everywhere:
+-- // a server with only one player makes that player the winner, as long as they're alive in the arena when the round
+-- // ends (Sol, 2026-11-13). Otherwise the gamemode's own result stands.
+function GameStateLibrary.finishRound(winner: Player?, winningTeam: Team?, isTie: boolean?, winners: {Player}?)
+   local allPlayers = game:GetService("Players"):GetPlayers()
+   if #allPlayers == 1 then
+      local onlyPlayer = allPlayers[1]
+      local inArena = table.find(CurrentGameStateData.LivingPlayersInArena:Get() or {}, onlyPlayer) ~= nil
+      local character = onlyPlayer.Character
+      local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+      if inArena and humanoid and humanoid.Health > 0 then
+         winner, winningTeam, isTie, winners = onlyPlayer, nil, false, { onlyPlayer }
+      end
+   end
+   GameStateLibrary.RoundFinishedTasks:Execute("parallel", winner, winningTeam, isTie, winners)
+end
+
 function GameStateLibrary.init()
    if isServer then
       -- // SERVER CONTEXT

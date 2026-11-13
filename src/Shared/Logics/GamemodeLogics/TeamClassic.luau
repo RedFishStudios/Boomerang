@@ -86,7 +86,7 @@ function TeamClassic.teardown()
 
    clear()
    GameTeamService.dismantleRoundTeams()
-   CurrentGameState.RoundFinishedTasks:Execute("parallel", nil, winningTeam, isTie, winners)
+   CurrentGameState.finishRound(nil, winningTeam, isTie, winners)
 end
 
 return TeamClassic

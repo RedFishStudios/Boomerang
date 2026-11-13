@@ -17,7 +17,7 @@ The task board: every feature, fix and cleanup. See [CLAUDE.md](CLAUDE.md) for h
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-173**
+**Next free ID: T-178**
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -49,6 +49,43 @@ What's wrong, or what should exist.
 ---
 
 ## Ready
+
+### T-173 · Review all GUIs and send the client a video
+- **Priority:** P2
+- **Owner:** Sol
+- **Area:** Review
+
+**Problem / goal**
+Go through every GUI restyled to the new style and record a video for the client.
+
+**Done when**
+- [ ] Every new-style GUI reviewed in Studio
+- [ ] Video sent to the client
+
+**Notes**
+- Sol, 2026-11-12: Sol's task. Restyled today: shops, lobby menu tiles (Daily / Settings), vote window, Daily Rewards, Settings, item acquired popups, end-of-round results (+ countdown), death screen, gamemode / timer ribbon, elimination feed.
+
+---
+
+### T-174 · More time between the end of voting and the start of the next round
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Server (round cycle)
+- **Files:** `Server/Core/RoundCyclingService.luau`
+
+**Problem / goal**
+Add extra time between voting ending (LobbyEnded) and the next round starting.
+
+**Open questions (ask Sol first)**
+- How many extra seconds? Today the gap is `INTERMISSION_DURATION - VOTE_DURATION` in `RoundCyclingService`, which is 20 - 60 = **-40 s**: the LobbyEnded timer is already over when it starts, so there is effectively no gap (worth checking how the phase actually advances).
+
+**Done when**
+- [ ] The gap after voting is longer by the agreed amount
+
+**Notes**
+- Sol, 2026-11-12: added for tomorrow.
+
+---
 
 > **Urgent: instructed by Sol to do today (2026-10-03).** T-062 to T-067 come before everything else in Ready.
 
@@ -84,6 +121,26 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
+### T-177 · A lone player wins the round if they're alive at the end
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared / Server (round result)
+- **Files:** `Shared/Library/GameStateLibrary.lua` (new `finishRound`), every gamemode logic in `Shared/Logics/GamemodeLogics/`
+
+**Problem / goal**
+With only one player in the server, rounds could end with no winner (or a tie). That player should always win, as long as they're alive when the round ends.
+
+**Done when**
+- [x] Gamemodes end rounds through `GameStateLibrary.finishRound` (instead of running RoundFinishedTasks themselves), which applies the rule: one player in the server, alive in the arena at the end -> they're the winner (no team, no tie)
+- [x] Everything that reads the result (results screen, wins / losses, quests, pedestals) gets that winner
+
+**Test in Studio**
+- Alone in a server (bots are fine): let a round time out while alive -> "<you> won!" and a win counted. Die / get knocked out before it ends -> the gamemode's normal result. With 2+ players nothing changes.
+
+**Notes**
+- Sol, 2026-11-13: implement and ship straight away.
+- 2026-11-13: done, in **Review**. Branch `agent/T-177-solo-winner`, lane `Github/Boomerang-lanes/T-158-shop-reskin`. Rojo build passes, no syntax errors; not play-tested.
+
 ### T-175 · Grant commands also equip what they grant
 - **Priority:** P2
 - **Owner:** Agent
@@ -104,6 +161,24 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 - Uses each service's own `equip...` function, so equipping saves and replicates the usual way.
 
 ## Backlog
+
+### T-176 · Console support
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client (input, UI)
+
+**Problem / goal**
+Make the game fully playable and navigable on console (gamepad).
+
+**Open questions (ask Sol first)**
+- Scope: gameplay controls only, or also navigating every menu with the gamepad (selection, highlights, button prompts)?
+- Button layout for throw / recall / dash / stab / pickups?
+
+**Done when**
+- [ ] To be defined with Sol
+
+**Notes**
+- Sol, 2026-11-13: added to the to-do list. Related: T-106 (Telekinesis: console steering) and the gamepad aim / auto-targeting stage of the boomerang curve (T-141).
 
 ### T-169 · "Pending Players" message in the new style
 - **Priority:** P3
