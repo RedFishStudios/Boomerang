@@ -1,3 +1,14 @@
+--[[
+	ItemAcquired
+
+	Description:
+	"You got something" popups (items, skins, emotes, taunts, currency, pickups), stacked at the bottom left; the newest is
+	at the bottom and older ones shrink and fade upward, each leaving after a few seconds.
+	Looks: a blank toast in the style of the new menus (ClientArt/Assets.ItemAcquired.Toast) with the icon or model in its
+	blue slot and the title and subtitle printed on the parchment. The template is built in code (TOAST rects are in the
+	art's own pixels). The previous template is kept as OldTemplate.rbxmx (reference only).
+]]
+
 local ItemAcquiredGui = {}
 ItemAcquiredGui.Type = "HUD"
 ItemAcquiredGui.Open = false
@@ -14,7 +25,64 @@ local Gui = script:WaitForChild("ItemAcquired") :: ScreenGui
 Gui.ResetOnSpawn = false
 Gui.IgnoreGuiInset = true
 
-local Template = script:WaitForChild("Template") :: CanvasGroup
+local Theme = require(ReplicatedStorage:WaitForChild("Client"):WaitForChild("UI"):WaitForChild("ClientArt"):WaitForChild("Theme"))
+local Art = require(ReplicatedStorage:WaitForChild("Client"):WaitForChild("UI"):WaitForChild("ClientArt"):WaitForChild("Assets")).ItemAcquired
+
+-- // The toast art (1020 x 348) and what goes on it, in its pixels: {x, y, w, h}
+local TOAST = Vector2.new(1020, 348)
+local TOAST_ICON = { 121, 105, 142, 142 } -- // Inside the blue slot
+local TOAST_TITLE = { 300, 92, 640, 86 }
+local TOAST_SUBTITLE = { 300, 182, 640, 70 }
+
+local function toastRect(r: { number }): (UDim2, UDim2)
+	return UDim2.fromScale(r[1] / TOAST.X, r[2] / TOAST.Y), UDim2.fromScale(r[3] / TOAST.X, r[4] / TOAST.Y)
+end
+
+-- // The popup template: the toast image, the icon placeholder (ItemViewport adds a model view next to it) and two
+-- // labels printed in the menus' dark brown
+local function buildTemplate(): CanvasGroup
+	local template = Instance.new("CanvasGroup")
+	template.Name = "Template"
+	template.BackgroundTransparency = 1
+	template.AnchorPoint = Vector2.new(0, 1)
+	template.Position = UDim2.new(0, 24, 1, -24)
+	template.Size = UDim2.fromOffset(340, math.round(340 * TOAST.Y / TOAST.X))
+	template.Visible = false
+
+	local toast = Instance.new("ImageLabel")
+	toast.Name = "Toast"
+	toast.BackgroundTransparency = 1
+	toast.Image = Art.Toast
+	toast.Size = UDim2.fromScale(1, 1)
+	toast.Parent = template
+
+	local icon = Instance.new("ImageLabel")
+	icon.Name = "ImageIcon"
+	icon.BackgroundTransparency = 1
+	icon.ScaleType = Enum.ScaleType.Fit
+	icon.Position, icon.Size = toastRect(TOAST_ICON)
+	icon.ZIndex = 2
+	icon.Parent = template
+
+	local function label(name: string, r: { number }, color: Color3)
+		local text = Instance.new("TextLabel")
+		text.Name = name
+		text.BackgroundTransparency = 1
+		text.FontFace = Theme.Font
+		text.TextColor3 = color
+		text.TextScaled = true
+		text.TextWrapped = true
+		text.TextXAlignment = Enum.TextXAlignment.Left
+		text.Position, text.Size = toastRect(r)
+		text.ZIndex = 2
+		text.Parent = template
+	end
+	label("TitleLabel", TOAST_TITLE, Theme.Colors.Ink)
+	label("SubtitleLabel", TOAST_SUBTITLE, Theme.Colors.InkSoft)
+	return template
+end
+
+local Template = buildTemplate()
 
 local NOTIFICATION_LIFETIME = 5
 local MAX_VISIBLE_NOTIFICATIONS = 3

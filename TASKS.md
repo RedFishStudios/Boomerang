@@ -17,7 +17,7 @@ The task board: every feature, fix and cleanup. See [CLAUDE.md](CLAUDE.md) for h
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-166**
+**Next free ID: T-167**
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -484,6 +484,29 @@ Players enter a code to receive a reward. Server: validates the code (case-insen
 ---
 
 ## Done
+
+### T-166 · ItemAcquired popup in the new menu style
+- **Priority:** P2
+- **Owner:** Agent (Sol approves every image before upload)
+- **Area:** Client UI / Art
+- **Files:** `Client/UI/Gui/ItemAcquired/init.luau` (template now built in code; `Template.rbxmx` removed), `Client/UI/ClientArt/Assets.luau`
+
+**Problem / goal**
+The "item acquired" popups still used the old art. Restyle them like the new menus.
+
+**Done when**
+- [x] New blank toast art (wood frame, parchment, blue icon slot)
+- [x] Icon / model in the slot, title and subtitle printed on the parchment; stacking, timing and animations unchanged
+
+**Test in Studio**
+- Trigger a few popups (claim a daily reward, buy a crate, grant a skin / emote / taunt with Cmdr, pick up a pickup in a round): the toast shows bottom left with the icon or model, title and subtitle; several stack and fade as before.
+
+**Notes**
+- Sol, 2026-11-12: port ItemAcquired. New art (approved, uploaded to group 293180599; source in `Projects/Boomerang/Assets/ArtPipeline/ItemAcquiredUI`): toast 138298875000569 (decal 109228082661710). `OldTemplate.rbxmx` (reference) is untouched.
+- 2026-11-12: done, in **Review**. Branch `agent/T-166-item-acquired`, lane `Github/Boomerang-lanes/T-158-shop-reskin`. Rojo build passes, no syntax errors; not play-tested.
+- Sol, 2026-11-12: passed testing.
+
+---
 
 ### T-165 · Settings menu in the new menu style
 - **Priority:** P2

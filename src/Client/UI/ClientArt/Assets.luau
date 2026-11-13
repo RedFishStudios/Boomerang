@@ -94,6 +94,13 @@ return {
 		IconLosses = "rbxassetid://110184146477831", -- // Red flag (decal 131876269322029)
 	},
 
+	-- // ItemAcquired popup: blank toast (wood frame and vines, parchment, a blue slot for the icon), made from the client's
+	-- // Stats button art (Sol approved, uploaded to the group 2026-11-12; source in
+	-- // Projects/Boomerang/Assets/ArtPipeline/ItemAcquiredUI).
+	ItemAcquired = {
+		Toast = "rbxassetid://138298875000569", -- // 1020 x 348 (decal 109228082661710)
+	},
+
 	-- // Settings menu: blank window (plain parchment for the scrolling list), the row panel and the section header plank
 	-- // (cut from the client's Stats art) (Sol approved, uploaded to the group 2026-11-12; sources in
 	-- // Projects/Boomerang/Assets/ArtPipeline/SettingsUI). Close, buttons and the slider track are the Quests ones.
