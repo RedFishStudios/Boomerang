@@ -98,7 +98,7 @@ local GlobalConfig = {
    VisualizeElectricChainRadius = true,
    SyncAbilitiesToEveryPlayer = false, -- // Every player performs any player's ability or throw
    CmdrOpenToEveryone = true, -- TODO:RELEASE RELEASE BLOCKER: must be false before public release
-   ShowRoundEndedScreen = false, -- TODO: temporarily off so taunts can be seen (Sol, 2026-11-11). true = the winner screen (PreIntermission GUI) shows after each round
+   ShowRoundEndedScreen = true, -- // The end-of-round results (PreIntermission); back on with the floating layout that leaves the arena visible (Sol, 2026-11-12)
    AuthoritativeCharacterDebugVisible = false,
    ShowAuthoritativeCharacterOnRenderFailure = true,
 }

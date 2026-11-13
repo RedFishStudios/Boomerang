@@ -28,9 +28,18 @@ type WinnerInfo = {
    Type: "Player" | "Team" | "Tie",
    UserId: number?,
    TeamName: string?,
+   TeamColor: Color3?, -- // Team wins
+   UserIds: {number}?, -- // Team wins: the winning team's players
+}
+-- // Every other player's place at the end of a round (RoundResultsService), best first; TeamColor in team modes
+type RoundPlacement = {
+   UserId: number,
+   Place: number,
+   TeamColor: Color3?,
 }
 type IntermissionData = {
    WinnerInfo: WinnerInfo?,
+   Placements: {RoundPlacement}?, -- // Only during RoundEnded
    VoteOptions: {string},
    VoteCount: {number},
    ChosenGamemode: string?,

@@ -17,7 +17,7 @@ The task board: every feature, fix and cleanup. See [CLAUDE.md](CLAUDE.md) for h
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-167**
+**Next free ID: T-168**
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -484,6 +484,35 @@ Players enter a code to receive a reward. Server: validates the code (case-insen
 ---
 
 ## Done
+
+### T-167 · End-of-round results: ribbon, winner and everyone's place
+- **Priority:** P2
+- **Owner:** Agent (Sol approves every image before upload)
+- **Area:** Server + Client UI / Art
+- **Files:** `Server/Core/RoundResultsService.luau` (new), `Server/Core/RoundCyclingService.luau`, `Shared/Library/GameStateLibrary.lua` (types), `Client/UI/Gui/PreIntermission/init.luau` (built in code; `PreIntermission.rbxmx` removed), `Client/UI/ClientArt/Assets.luau`, `Shared/Constants/GlobalConfig.luau`
+
+**Problem / goal**
+Replace the winner banner with floating results that keep the arena visible: a red ribbon with "Match!", the winner below it, and every other player's place below that.
+
+**Done when**
+- [x] Red ribbon (new art) with "Match!"; nothing else covers the screen
+- [x] One winner: their avatar, "<DisplayName> won!", "@<username>". Team win: the winning team's avatars and "<TeamName> won!". Tie / no winner: "Game tied!" / "No winner"
+- [x] Every other player: avatar + place ("2nd"...); the local player's fully visible, others slightly see-through; team modes: a border in the player's team colour
+- [x] Server ranks players (RoundResultsService): modes with respawns by this round's eliminations, last-one-standing modes by how long they stayed in; equal results share a place; players who left are left out
+- [x] The screen is shown again (`ShowRoundEndedScreen = true`)
+
+**Test in Studio**
+- Play a round of Classic and of Elimination with a few players (or bots / test players): after the round the ribbon, winner and places show; places follow eliminations (Classic) or knockout order (Elimination); your own icon is the clear one.
+- Team mode: the winning team's avatars and name, places with team-coloured borders. A tie shows "Game tied!" with everyone ranked from 1st.
+
+**Notes**
+- Sol, 2026-11-12: floating ribbon + icons; placements per gamemode; in team modes everyone else is ranked on their own with a team-colour border.
+- New art (approved, uploaded to group 293180599; source in `Projects/Boomerang/Assets/ArtPipeline/RoundResultsUI`): ribbon 102477613884507 (decal 77636459345967). Avatars are Roblox headshots (rbxthumb).
+- The place list leaves out the winner(s) and starts at 2nd; after a tie / no winner it starts at 1st.
+- 2026-11-12: done, in **Review**. Branch `agent/T-167-round-results`, lane `Github/Boomerang-lanes/T-158-shop-reskin`. Rojo build passes, no syntax errors; not play-tested.
+- Sol, 2026-11-12: passed testing.
+
+---
 
 ### T-166 · ItemAcquired popup in the new menu style
 - **Priority:** P2

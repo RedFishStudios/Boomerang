@@ -94,6 +94,12 @@ return {
 		IconLosses = "rbxassetid://110184146477831", -- // Red flag (decal 131876269322029)
 	},
 
+	-- // End-of-round results (PreIntermission): the red ribbon cut out of the client's Stats window art, on its own
+	-- // (Sol approved, uploaded to the group 2026-11-12; source in Projects/Boomerang/Assets/ArtPipeline/RoundResultsUI).
+	RoundResults = {
+		Ribbon = "rbxassetid://102477613884507", -- // 725 x 164 (decal 77636459345967)
+	},
+
 	-- // ItemAcquired popup: blank toast (wood frame and vines, parchment, a blue slot for the icon), made from the client's
 	-- // Stats button art (Sol approved, uploaded to the group 2026-11-12; source in
 	-- // Projects/Boomerang/Assets/ArtPipeline/ItemAcquiredUI).

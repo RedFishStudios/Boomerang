@@ -21,6 +21,7 @@ local SpawnService = require(ServerStorage.Server.Core.SpawnService)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local LobbyService = require(ServerStorage.Server.Core.LobbyService)
 local GameTeamService = require(ServerStorage.Server.Core.GameTeamService)
+local RoundResultsService = require(ServerStorage.Server.Core.RoundResultsService)
 local GameplayPhases = require(SharedConstants.Enums.GameplayPhases)
 local CommandService = require(ServerStorage.Server.Core.CommandService)
 local ChatService = require(ServerStorage.Server.Core.ChatService)
@@ -494,18 +495,40 @@ function RoundCyclingService.init()
 end
 
 function RoundCyclingService.start()
-   GameStateLibrary.RoundFinishedTasks:Add(function(winner: Player?, winningTeam: Team?, isTie: boolean?)
+   GameStateLibrary.RoundFinishedTasks:Add(function(winner: Player?, winningTeam: Team?, isTie: boolean?, winners: {Player}?)
       -- // RoundEnded: players stay in the arena; the per-frame gate advances to voting once ROUND_ENDED_DURATION elapses
+      -- // The players shown as the winner: the winning team's players, or the one winner (none after a tie)
+      local shownWinners: {Player} = {}
+      if not isTie and winningTeam then
+         for _, player in winners or {} do
+            table.insert(shownWinners, player)
+         end
+         if #shownWinners == 0 then
+            for _, player in game.Players:GetPlayers() do
+               if player.Team == winningTeam then
+                  table.insert(shownWinners, player)
+               end
+            end
+         end
+      elseif not isTie and winner then
+         table.insert(shownWinners, winner)
+      end
+      local winnerUserIds = {}
+      for _, player in shownWinners do
+         table.insert(winnerUserIds, player.UserId)
+      end
       local winnerInfo = if isTie
          then { Type = "Tie" }
-         elseif winningTeam then { Type = "Team", TeamName = winningTeam.Name }
+         elseif winningTeam then { Type = "Team", TeamName = winningTeam.Name, TeamColor = winningTeam.TeamColor.Color, UserIds = winnerUserIds }
          elseif winner then { Type = "Player", UserId = winner.UserId }
          else nil
+      local placements = RoundResultsService.takePlacements(shownWinners)
       local snapshot = GameStateLibrary.getSnapshot()
       snapshot.CurrentRoundData = nil
       snapshot.CurrentTimerEndsAt = workspace:GetServerTimeNow() + ROUND_ENDED_DURATION
       snapshot.IntermissionData = {
          WinnerInfo = winnerInfo,
+         Placements = placements,
          VoteOptions = {},
          VoteCount = {0, 0},
          ChosenGamemode = nil,
