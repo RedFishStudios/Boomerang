@@ -1,3 +1,15 @@
+--[[
+	ElimMessage
+
+	Description:
+	The elimination feed: one strip per elimination (ElimMessage remote), stacked on the right of the screen, the newest
+	lowest, each fading after a couple of seconds. Off when the "Elimination Feed" setting is off.
+	Looks: the straight red ribbon of the in-round gamemode line (ClientArt/Assets.GamemodeHud.Ribbon) with the eliminator's
+	avatar on the left, the eliminated player's on the right and the elimination type ("Boomeranged"...) in cream lettering
+	in the middle. The avatars' borders are green when the local player or an ally did it, red otherwise (as the old
+	colour frame was). The template is built in code (buildTemplate).
+]]
+
 local ElimMessageGui = {}
 ElimMessageGui.Type = "HUD"
 ElimMessageGui.Open = false
@@ -14,7 +26,71 @@ local Gui = script:WaitForChild("ElimMessage") :: ScreenGui
 Gui.ResetOnSpawn = false
 Gui.IgnoreGuiInset = true
 
-local Template = script:WaitForChild("Template") :: CanvasGroup
+local ClientArt = ReplicatedStorage:WaitForChild("Client"):WaitForChild("UI"):WaitForChild("ClientArt")
+local Theme = require(ClientArt:WaitForChild("Theme"))
+local RibbonArt = require(ClientArt:WaitForChild("Assets")).GamemodeHud
+
+-- // A strip is ASPECT times as wide as it is tall; the ribbon (725 x 136) keeps its own shape across the middle
+local ASPECT = 4
+local RIBBON_WIDTH = 0.84 -- // Share of the strip's width
+local ICON_SIZE = 0.92 -- // Avatar diameter, as a share of the strip's height
+local TEXT_BOX = { 0.25, 0.33, 0.5, 0.3 } -- // Elimination type: x, y, width, height (scale)
+
+-- // One strip: the ribbon, an avatar at each end and the elimination type in the middle
+local function buildTemplate(): CanvasGroup
+	local template = Instance.new("CanvasGroup")
+	template.Name = "Template"
+	template.AnchorPoint = Vector2.new(1, 0.5) -- // As the old template: positions are for its right-middle point
+	template.BackgroundTransparency = 1
+	template.Visible = false
+
+	local ribbon = Instance.new("ImageLabel")
+	ribbon.Name = "Ribbon"
+	ribbon.AnchorPoint = Vector2.new(0.5, 0.5)
+	ribbon.BackgroundTransparency = 1
+	ribbon.Image = RibbonArt.Ribbon
+	ribbon.Position = UDim2.fromScale(0.5, 0.5)
+	ribbon.Size = UDim2.fromScale(RIBBON_WIDTH, RIBBON_WIDTH * ASPECT * 136 / 725)
+	ribbon.Parent = template
+
+	local function icon(name: string, xScale: number)
+		local frame = Instance.new("ImageLabel")
+		frame.Name = name
+		frame.AnchorPoint = Vector2.new(xScale, 0.5)
+		frame.BackgroundColor3 = Theme.Colors.AvatarBackdrop
+		frame.Position = UDim2.fromScale(xScale, 0.5)
+		frame.Size = UDim2.fromScale(ICON_SIZE / ASPECT, ICON_SIZE)
+		frame.ZIndex = 2
+		frame.Parent = template
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0.5, 0)
+		corner.Parent = frame
+		local border = Instance.new("UIStroke")
+		border.Name = "Border"
+		border.Thickness = 3
+		border.Parent = frame
+	end
+	icon("PlayerA", 0)
+	icon("PlayerB", 1)
+
+	local text = Instance.new("TextLabel")
+	text.Name = "ElimType"
+	text.BackgroundTransparency = 1
+	text.FontFace = Theme.Font
+	text.TextColor3 = Theme.Colors.Text
+	text.TextScaled = true
+	text.Position = UDim2.fromScale(TEXT_BOX[1], TEXT_BOX[2])
+	text.Size = UDim2.fromScale(TEXT_BOX[3], TEXT_BOX[4])
+	text.ZIndex = 2
+	text.Parent = template
+	local outline = Instance.new("UIStroke")
+	outline.Color = Theme.Colors.Outline
+	outline.Thickness = 2
+	outline.Parent = text
+	return template
+end
+
+local Template = buildTemplate()
 
 local NOTIFICATION_LIFETIME = 2
 local MAX_VISIBLE_NOTIFICATIONS = 3
@@ -84,9 +160,9 @@ local function getNotificationSize(index: number): UDim2
 	local viewport = Gui.AbsoluteSize
 	local maxWidth = viewport.X / 4
 	local maxHeight = viewport.Y / 3.5
-	-- Y = X / 2.48, but constrained by maxHeight
+	-- // Height = width / ASPECT, but constrained by maxHeight
 	local baseWidth = maxWidth
-	local baseHeight = math.min(baseWidth / 2.48, maxHeight)
+	local baseHeight = math.min(baseWidth / ASPECT, maxHeight)
 	local scale = getPositionScale(index)
 	return UDim2.fromOffset(math.round(baseWidth * scale), math.round(baseHeight * scale))
 end
@@ -99,7 +175,7 @@ local function getNotificationPosition(index: number): UDim2
 	local viewport = Gui.AbsoluteSize
 	local maxWidth = viewport.X / 4
 	local maxHeight = viewport.Y / 3.5
-	local baseHeight = math.min(maxWidth / 2.48, maxHeight)
+	local baseHeight = math.min(maxWidth / ASPECT, maxHeight)
 	
 	-- Height of the first notification
 	local firstNotifHeight = baseHeight * getPositionScale(1)
@@ -174,8 +250,8 @@ local function beginDestruction(frame: CanvasGroup)
 	end)
 end
 
-local function getPlayerBustImage(userId: number): string
-   return "rbxthumb://type=AvatarBust&id=" .. userId .. "&w=420&h=420"
+local function getPlayerHeadshotImage(userId: number): string
+   return "rbxthumb://type=AvatarHeadShot&id=" .. userId .. "&w=150&h=150"
 end
 
 -- Color gradients per relationship type
@@ -250,9 +326,9 @@ local function showElimMessage(userIdA: number, userIdB: number, elimType: strin
 	frame.Visible = true
 
    local PlayerAFrame = frame:FindFirstChild("PlayerA")
-   PlayerAFrame.Image = getPlayerBustImage(userIdA)
+   PlayerAFrame.Image = getPlayerHeadshotImage(userIdA)
    local PlayerBFrame = frame:FindFirstChild("PlayerB")
-   PlayerBFrame.Image = getPlayerBustImage(userIdB)
+   PlayerBFrame.Image = getPlayerHeadshotImage(userIdB)
 
    local elimTypeLabel = frame:FindFirstChild("ElimType")
    local elimTypeData = ElimTypes[elimType]
@@ -263,18 +339,10 @@ local function showElimMessage(userIdA: number, userIdB: number, elimType: strin
       elimTypeLabel.Text = elimType
    end
    
-   local colorGradient, strokeGradient, textColor = getRelationshipColor(playerA, playerB)
-   
-   -- Color frame gradient and stroke
-   local colorFrame = frame:FindFirstChild("Color")
-   local colorFrameGradient = colorFrame:FindFirstChild("UIGradient")
-   colorFrameGradient.Color = colorGradient
-   
-   local colorStroke = colorFrame:FindFirstChild("UIStroke")
-   local strokeGradientChild = colorStroke:FindFirstChild("UIGradient")
-   strokeGradientChild.Color = strokeGradient
-   
-   elimTypeLabel.TextColor3 = textColor
+   -- // Green when the local player or an ally did it, red otherwise: on both avatars' borders
+   local _, _, relationColor = getRelationshipColor(playerA, playerB)
+   PlayerAFrame.Border.Color = relationColor
+   PlayerBFrame.Border.Color = relationColor
 
 	table.insert(activeNotifications, 1, frame)
 	frame.Parent = Gui

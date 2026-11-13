@@ -17,7 +17,7 @@ The task board: every feature, fix and cleanup. See [CLAUDE.md](CLAUDE.md) for h
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-171**
+**Next free ID: T-172**
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -502,6 +502,31 @@ Players enter a code to receive a reward. Server: validates the code (case-insen
 ---
 
 ## Done
+
+### T-171 · Elimination feed on the straight red ribbon
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client UI
+- **Files:** `Client/UI/Gui/ElimMessage/init.luau` (template built in code; `Template.rbxmx` removed)
+
+**Problem / goal**
+The elimination feed still used the old cards. Restyle each entry like the in-round gamemode line.
+
+**Done when**
+- [x] Each entry: the straight red ribbon, the eliminator's avatar on the left, the eliminated player's on the right, the elimination type in cream lettering in the middle
+- [x] Green / red (local player or ally did it / otherwise) shown on the avatars' borders
+- [x] Stacking, timing, position and the "Elimination Feed" setting unchanged
+
+**Test in Studio**
+- Eliminate and get eliminated in a round (or press Z in Studio for a test entry): strips slide in on the right, stack up to 3 and fade; avatars and text fit; borders are green for your eliminations and red for enemies'.
+
+**Notes**
+- Sol, 2026-11-12: do the feed on the straight ribbon. No new art (reuses `ClientArt/Assets.GamemodeHud.Ribbon`). Avatars are now round headshots (were busts). The strip is a bit slimmer than the old card (4 : 1 instead of 2.48 : 1).
+- Found, not changed: the Z test binding (`testopenelimnotif`) is bound in every build, not only Studio.
+- 2026-11-12: done, in **Review**. Branch `agent/T-171-elim-feed`, lane `Github/Boomerang-lanes/T-158-shop-reskin`. Rojo build passes, no syntax errors; not play-tested.
+- Sol, 2026-11-12: passed testing.
+
+---
 
 ### T-170 · Gamemode and timer line on a straight red ribbon
 - **Priority:** P2
