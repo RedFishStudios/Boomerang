@@ -522,9 +522,11 @@ The elimination feed still used the old cards. Restyle each entry like the in-ro
 
 **Notes**
 - Sol, 2026-11-12: do the feed on the straight ribbon. No new art (reuses `ClientArt/Assets.GamemodeHud.Ribbon`). Avatars are now round headshots (were busts). The strip is a bit slimmer than the old card (4 : 1 instead of 2.48 : 1).
-- Found, not changed: the Z test binding (`testopenelimnotif`) is bound in every build, not only Studio.
+- The Z test binding (`testopenelimnotif`) was bound in every build; now Studio only.
 - 2026-11-12: done, in **Review**. Branch `agent/T-171-elim-feed`, lane `Github/Boomerang-lanes/T-158-shop-reskin`. Rojo build passes, no syntax errors; not play-tested.
 - Sol, 2026-11-12: passed testing.
+- Sol, 2026-11-12: Z test key limited to Studio (same branch); back in **Review**.
+- Sol, 2026-11-12: Z key fix passed testing.
 
 ---
 

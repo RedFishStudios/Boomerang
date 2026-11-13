@@ -398,11 +398,14 @@ local function _init()
 	currentScale = computeScale()
 	Gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(onViewportResized)
 
-   game:GetService("ContextActionService"):BindAction("testopenelimnotif", function(_, inputState)
-         if inputState == Enum.UserInputState.Begin then
-            ElimMessageGui.showElimMessage(game.Players.LocalPlayer.UserId, game.Players.LocalPlayer.UserId, "Tested")
-         end
-   end, false, Enum.KeyCode.Z)
+   -- // Studio only: Z shows a test entry
+   if game:GetService("RunService"):IsStudio() then
+      game:GetService("ContextActionService"):BindAction("testopenelimnotif", function(_, inputState)
+            if inputState == Enum.UserInputState.Begin then
+               ElimMessageGui.showElimMessage(game.Players.LocalPlayer.UserId, game.Players.LocalPlayer.UserId, "Tested")
+            end
+      end, false, Enum.KeyCode.Z)
+   end
    
    local elimMessageRemote = SimpleRemotes.getEvent("ElimMessage")
    elimMessageRemote.OnClientEvent:Connect(function(userIdA: number, userIdB: number, elimType: string)
