@@ -17,7 +17,7 @@ The task board: every feature, fix and cleanup. See [CLAUDE.md](CLAUDE.md) for h
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-168**
+**Next free ID: T-170**
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -85,6 +85,24 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## Review
 
 ## Backlog
+
+### T-169 · "Pending Players" message in the new style
+- **Priority:** P3
+- **Owner:** Agent
+- **Area:** Client UI
+- **Files:** `Client/UI/Gui/PendingPlayers/init.luau` (+ its `.rbxmx`)
+
+**Problem / goal**
+The lobby's "Pending Players" message (shown while the server waits for enough players) is a plain white label. Restyle it like the new menus and results. Its `start()` also still has a debug `warn` and two `print`s to remove.
+
+**Open questions (ask Sol first)**
+- Plain restyle (the menus' cream lettering, maybe on the results ribbon), or also show a count such as "1 / 2 players" (needs `PlayersRequiredToStart` sent to the client)?
+
+**Done when**
+- [ ] The message matches the new style; no debug prints
+
+**Notes**
+- Sol, 2026-11-12: its own task, after the death screen. Rarely seen while `PlayersRequiredToStart` is 1.
 
 > **Client package UI reskins (T-156 to T-160).** Reskin our existing GUIs with the client's art from `Downloads/Boomerang-ScripterPackage/SourceAssets/UIArtwork` (layout reference: the package's screen modules, extracted in T-152). Keep our controllers and data. Image ids are in the package's `AssetManifest.csv` (check ownership, T-152). Any art with baked-in text that says "Kill" must be redrawn or covered.
 
@@ -484,6 +502,30 @@ Players enter a code to receive a reward. Server: validates the code (case-insen
 ---
 
 ## Done
+
+### T-168 · Death screen in the new style
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client UI
+- **Files:** `Client/UI/Gui/DeathScreen/init.luau` (built in code; `DeathScreen.rbxmx` removed)
+
+**Problem / goal**
+The death screen still used the old banner. Match the end-of-round results: floating at the top, nothing covering the view.
+
+**Done when**
+- [x] The results' red ribbon with "Downed!" (respawn modes) or "Eliminated!"
+- [x] Under it: the eliminator's avatar, "By <DisplayName>" and "@<username>", or the cause ("Out of Bounds"...)
+- [x] Grey world while dead, hidden on respawn and never over the end-of-round results, as before
+
+**Test in Studio**
+- Get eliminated by another player (avatar, By name, @username), by a hazard / out of bounds (cause text), in a respawn mode ("Downed!") and a last-one-standing mode ("Eliminated!"). It slides away on respawn and doesn't show over the results.
+
+**Notes**
+- Sol, 2026-11-12: start the death screen. No new art: reuses the results ribbon (`ClientArt/Assets.RoundResults.Ribbon`).
+- 2026-11-12: done, in **Review**. Branch `agent/T-168-death-screen`, lane `Github/Boomerang-lanes/T-158-shop-reskin`. Rojo build passes, no syntax errors; not play-tested.
+- Sol, 2026-11-12: passed testing.
+
+---
 
 ### T-167 · End-of-round results: ribbon, winner and everyone's place
 - **Priority:** P2
