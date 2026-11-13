@@ -17,7 +17,7 @@ The task board: every feature, fix and cleanup. See [CLAUDE.md](CLAUDE.md) for h
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-165**
+**Next free ID: T-166**
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -484,6 +484,30 @@ Players enter a code to receive a reward. Server: validates the code (case-insen
 ---
 
 ## Done
+
+### T-165 · Settings menu in the new menu style
+- **Priority:** P2
+- **Owner:** Agent (Sol approves every image before upload)
+- **Area:** Client UI / Art
+- **Files:** `Client/UI/Gui/Settings/init.luau`, `Client/UI/ClientArt/Assets.luau`
+
+**Problem / goal**
+The Settings menu still used a placeholder look (borrowed frame, grey tinted cards and buttons). Rebuild it in the style of the new menus with blank art.
+
+**Done when**
+- [x] New blank art: the window (plain parchment for the list), the row panel and a wooden header plank
+- [x] "Settings" on the ribbon; one plank per section; each setting a row with its name and a toggle (green On / grey Off) or a slider (Quests progress track, AFK knob, value)
+- [x] Settings change and save as before (SettingsController)
+
+**Test in Studio**
+- Open Settings from its tile: every section and setting is there and the list scrolls; toggles switch; sliders drag (mouse and touch) and show their value; the close button closes it.
+
+**Notes**
+- Sol, 2026-11-12: port Settings to the new style. New art (approved, uploaded to group 293180599; sources in `Projects/Boomerang/Assets/ArtPipeline/SettingsUI`): window 129973207039526 (decal 118964160439874), row 130542772595325 (decal 128572878558994), header plank 120915292327584 (decal 111517629436599). The old shared-text-size code is gone: each text shrinks to fit its own box.
+- 2026-11-12: done, in **Review**. Branch `agent/T-165-settings`, lane `Github/Boomerang-lanes/T-158-shop-reskin`. Rojo build passes, no syntax errors; not play-tested.
+- Sol, 2026-11-12: passed testing.
+
+---
 
 ### T-164 · Daily Rewards menu in the new menu style
 - **Priority:** P2

@@ -94,6 +94,15 @@ return {
 		IconLosses = "rbxassetid://110184146477831", -- // Red flag (decal 131876269322029)
 	},
 
+	-- // Settings menu: blank window (plain parchment for the scrolling list), the row panel and the section header plank
+	-- // (cut from the client's Stats art) (Sol approved, uploaded to the group 2026-11-12; sources in
+	-- // Projects/Boomerang/Assets/ArtPipeline/SettingsUI). Close, buttons and the slider track are the Quests ones.
+	SettingsScreen = {
+		Window = "rbxassetid://129973207039526", -- // 1448 x 900 (decal 118964160439874)
+		Row = "rbxassetid://130542772595325", -- // 1020 x 144, a 1000 x 124 panel with a 10 px shadow margin (decal 128572878558994)
+		HeaderPlank = "rbxassetid://120915292327584", -- // 459 x 76 (decal 111517629436599)
+	},
+
 	-- // Daily Rewards menu: blank frame (ribbon for the title, six day cards and a tall day 7 card, made from the client's
 	-- // Stats window art) and the client's calendar icon with its number painted out (Sol approved, uploaded to the group
 	-- // 2026-11-12; sources in Projects/Boomerang/Assets/ArtPipeline/DailyUI). Close and buttons are the Quests ones.

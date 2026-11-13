@@ -2,9 +2,12 @@
 	SettingsGui
 
 	Description:
-	The Settings menu (opened from the lobby's Settings button). One row per setting in SettingConstants.SettingOrder:
-	a toggle button or a slider. Changes go through SettingsController (applied at once, saved by the server).
-	Built in code with a placeholder look (borrowed frame art).
+	The Settings menu (opened from the lobby's Settings tile). A scrolling list: one wooden header plank per section in
+	SettingConstants.SettingSections, then one row per setting, with a toggle button or a slider. Changes go through
+	SettingsController (applied at once, saved by the server).
+	Looks: blank art in the style of the other new menus (ClientArt/Assets.SettingsScreen: window, row panel, header plank;
+	the Quests close button, green / grey buttons and progress track; the AFK knob), with every text drawn as instances
+	(ClientArt/Kit). Laid out in the frame image's own pixels (CANVAS) and fitted to the screen by Kit.window.
 ]]
 
 local SettingsGui = {}
@@ -18,50 +21,19 @@ SettingsGui.RequiresMouse = true -- // Frees the mouse in a locked camera (Mouse
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
-local TextService = game:GetService("TextService")
-local RunService = game:GetService("RunService")
 
 local UIController = require(ReplicatedStorage.Client.UI.UIController)
 local SettingsController = require(ReplicatedStorage.Client.Core.SettingsController)
 local SettingConstants = require(ReplicatedStorage.Shared.Constants.SettingConstants)
-local CreateElement = require(ReplicatedStorage.Shared.Utils.CreateElement)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
-local Icons = require(ReplicatedStorage.Shared.Constants.Icons)
-local GuiColors = require(ReplicatedStorage.Shared.Referential.GuiColors)
-local UIUtil = require(ReplicatedStorage.Client.UI.UIUtil)
+local Kit = require(ReplicatedStorage.Client.UI.ClientArt.Kit)
+local Theme = require(ReplicatedStorage.Client.UI.ClientArt.Theme)
+local Assets = require(ReplicatedStorage.Client.UI.ClientArt.Assets)
 
--------------------------------------------------------------------------------
--- CONSTANTS
--------------------------------------------------------------------------------
-
--- // Look: listing card art behind rows; shop wide-button art for toggles and the slider track. All grayscale, tinted
--- // with ImageColor3
-local TEXT_COLOR = Color3.fromRGB(92, 52, 20)
-local OUTLINE_COLOR = Color3.fromRGB(45, 28, 12) -- // The shop's text outline color
-local ROW_COLOR = GuiColors.CommonItemFrame -- // Tan of owned listings in the Shop and Inventory
-local TOGGLE_ON_COLOR = Color3.fromRGB(150, 255, 90) -- // The shop's currency button tint
-local TOGGLE_OFF_COLOR = Color3.fromRGB(150, 150, 150) -- // The shop's "owned" button tint
-local TRACK_COLOR = Color3.fromRGB(120, 85, 50)
-local FILL_COLOR = Color3.fromRGB(70, 140, 235)
-local KNOB_COLOR = Color3.new(1, 1, 1)
-local FONT = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
-local CONTAINER_IMAGE = "rbxassetid://107079429198573" -- // Borrowed from the Stats menu (placeholder)
-local EXIT_IMAGE = "rbxassetid://83841981001141"
-local CONTAINER_ASPECT_RATIO = 1.46190941
-local ROW_ASPECT_RATIO = 11 -- // Row width / height (rows span the list width)
-local HEADER_ASPECT_RATIO = 20 -- // Section header width / height
--- // A group's labels share one text size: the largest at which all texts fit, capped at this fraction of the row
--- // height
-local ROW_TEXT_MAX_HEIGHT_FRACTION = 0.42
-local HEADER_TEXT_MAX_HEIGHT_FRACTION = 0.8
-local TEXT_FONT = Enum.Font.FredokaOne -- // Same font as FONT, for TextService measuring
-local LIST_PADDING_PIXELS = 6 -- // Gap between list rows
-local SCROLLBAR_THICKNESS = 6
-
-local CONTAINER_TWEEN_INFO_IN = TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-local CONTAINER_TWEEN_INFO_OUT = TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+local Art = Assets.SettingsScreen
+local QuestArt = Assets.QuestsScreen -- // Close button, green / grey buttons, progress track
+local HudArt = Assets.LeftHud -- // The AFK knob, used as the slider knob
 
 -------------------------------------------------------------------------------
 -- TYPES
@@ -71,143 +43,164 @@ local CONTAINER_TWEEN_INFO_OUT = TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.
 type RowUpdater = (value: SettingConstants.SettingValue) -> ()
 
 -------------------------------------------------------------------------------
+-- CONSTANTS
+-------------------------------------------------------------------------------
+
+-- // Layout in the frame art's pixels ({x, y, w, h})
+local CANVAS = Vector2.new(1448, 900)
+local TITLE = { 430, 40, 560, 88 } -- // On the ribbon
+local CLOSE = { 1262, 50, 112, 110 }
+local CLOSE_ICON_INSET = 0.22
+local LIST = { 214, 192, 1026, 592 } -- // The scrolling list, inside the parchment (above the clouds)
+local SCROLLBAR = 14
+local LIST_GAP = 10
+
+local ROW_SIZE = Vector2.new(1000, 124) -- // A row: the row panel (its image has a 10 px margin for the shadow)
+local ROW_IMAGE_PAD = 10
+local ROW_FACE_HEIGHT = 112 -- // The panel's flat top, above its thickness
+local ROW_TITLE = { 32, 0, 440, ROW_FACE_HEIGHT }
+local TOGGLE = { 706, 22, 262, 70 }
+local TRACK = { 470, 40, 360, 34 }
+local TRACK_INSET = 4
+local KNOB_SIZE = 64
+local SLIDER_VALUE = { 846, 0, 130, ROW_FACE_HEIGHT }
+
+local HEADER_HEIGHT = 84
+local PLANK = Vector2.new(459, 76) -- // The header plank image, centred in the header
+local TEXT_SIZE = { Title = 64, Header = 40, Row = 40, Toggle = 34, Value = 36 }
+local FILL_COLOR = Color3.fromRGB(110, 196, 52) -- // As the Quests progress bars
+
+-------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
 -------------------------------------------------------------------------------
 
 local player = Players.LocalPlayer
 
-local SettingsScreenGui: ScreenGui
-local Container: GuiObject
-local List: ScrollingFrame
-local rows: { GuiObject } = {}
-local headers: { GuiObject } = {}
-local rowTextLabels: { TextLabel } = {} -- // Row titles, toggle texts, slider values: one shared text size
-local headerTextLabels: { TextLabel } = {}
-local textSizeQueued = false
-local textsForLabel: { [TextLabel]: { string } } = {} -- // Every text a label can show (a toggle's two texts, a slider's widest values)
-local containerGoalPosition: UDim2
-local containerOffscreenPosition: UDim2
-local activeTween: Tween?
+local window: Kit.Window
+local list: ScrollingFrame
 local rowUpdaters: { [string]: RowUpdater } = {}
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
 
--- // TextLabel with the menu's shared text look; [properties] override defaults
-local function createLabel(properties: { [string]: any }, children: { Instance }?)
-	local merged = {
+local function rect(r: { number }): (UDim2, UDim2)
+	return UDim2.fromOffset(r[1], r[2]), UDim2.fromOffset(r[3], r[4])
+end
+
+-- // Cream lettering with a dark outline (Kit.label), wrapped and shrunk to fit its box
+local function outlined(name: string, text: string, size: number, r: { number }, parent: Instance, zIndex: number?): Frame
+	local label = Kit.label(text, size, { Name = name, ZIndex = zIndex or 2, Parent = parent })
+	label.Position, label.Size = rect(r)
+	for _, layer in label:GetChildren() do
+		if layer:IsA("TextLabel") then
+			layer.TextWrapped = true
+			layer.TextScaled = true
+			layer.ZIndex += (zIndex or 2) - 1
+			Kit.create("UITextSizeConstraint", { MaxTextSize = size, Parent = layer })
+		end
+	end
+	return label
+end
+
+-- // Dark brown lettering printed on the cream rows
+local function printed(name: string, text: string, size: number, r: { number }, parent: Instance): TextLabel
+	local label = Kit.create("TextLabel", {
+		Name = name,
 		BackgroundTransparency = 1,
-		TextColor3 = TEXT_COLOR,
+		FontFace = Theme.Font,
+		Text = text,
+		TextColor3 = Theme.Colors.Ink,
 		TextScaled = true,
-		FontFace = FONT,
 		TextWrapped = true,
-	}
-	for property, value in properties do
-		merged[property] = value
-	end
-	return CreateElement("TextLabel", merged, children)
-end
-
--- // Text outline like the shop's (scales with the text)
-local function createOutline(): UIStroke
-	return CreateElement("UIStroke", {
-		Color = OUTLINE_COLOR,
-		Thickness = 0.08,
-		StrokeSizingMode = Enum.StrokeSizingMode.ScaledSize,
-		LineJoinMode = Enum.LineJoinMode.Round,
-	})
-end
-
-local function createToggle(settingName: SettingConstants.SettingName, setting: SettingConstants.Setting): (GuiObject, RowUpdater)
-	local text = createLabel({
-		Name = "Text",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.45),
-		Size = UDim2.fromScale(0.85, 0.75),
-		TextColor3 = Color3.new(1, 1, 1),
-		Text = "",
 		ZIndex = 3,
-	}, { createOutline() })
-	table.insert(rowTextLabels, text)
-	textsForLabel[text] = { setting.OnText or "On", setting.OffText or "Off" }
-	local button = CreateElement("ImageButton", {
-		Name = "Toggle",
-		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.fromScale(0.95, 0.5),
-		Size = UDim2.fromScale(0.42, 0.7),
-		BackgroundTransparency = 1,
-		Image = `rbxassetid://{Icons.ShopWideButton}`,
-		AutoButtonColor = true,
-		ZIndex = 2,
-		MouseButton1Click = function()
-			SettingsController.setValue(settingName, not SettingsController.getValue(settingName))
-		end,
-	}, { text })
-	local function update(value: SettingConstants.SettingValue)
-		local isOn = value == true
-		text.Text = if isOn then (setting.OnText or "On") else (setting.OffText or "Off")
-		button.ImageColor3 = if isOn then TOGGLE_ON_COLOR else TOGGLE_OFF_COLOR
-	end
-	return button, update
+	}, {
+		Kit.create("UITextSizeConstraint", { MaxTextSize = size }),
+	})
+	label.Position, label.Size = rect(r)
+	label.Parent = parent
+	return label
 end
 
-local function createSlider(settingName: SettingConstants.SettingName, setting: SettingConstants.Setting): (GuiObject, RowUpdater)
+local function createToggle(settingName: SettingConstants.SettingName, setting: SettingConstants.Setting, row: Frame): RowUpdater
+	local button = Kit.create("ImageButton", {
+		Name = "Toggle",
+		AutoButtonColor = false,
+		BackgroundTransparency = 1,
+		Image = QuestArt.ButtonGrey,
+		ScaleType = Enum.ScaleType.Stretch,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromOffset(TOGGLE[1] + TOGGLE[3] / 2, TOGGLE[2] + TOGGLE[4] / 2),
+		Size = UDim2.fromOffset(TOGGLE[3], TOGGLE[4]),
+		ZIndex = 3,
+		Parent = row,
+	})
+	local text = outlined("Text", "", TEXT_SIZE.Toggle, { TOGGLE[3] * 0.1, TOGGLE[4] * 0.12, TOGGLE[3] * 0.8, TOGGLE[4] * 0.76 }, button, 4)
+	Kit.pressable(button)
+	button.Activated:Connect(function()
+		SettingsController.setValue(settingName, not SettingsController.getValue(settingName))
+	end)
+
+	return function(value: SettingConstants.SettingValue)
+		local isOn = value == true
+		Kit.setText(text, if isOn then (setting.OnText or "On") else (setting.OffText or "Off"))
+		button.Image = if isOn then QuestArt.ButtonGreen else QuestArt.ButtonGrey
+	end
+end
+
+local function createSlider(settingName: SettingConstants.SettingName, setting: SettingConstants.Setting, row: Frame): RowUpdater
 	local min, max = setting.Min or 0, setting.Max or 1
 	local dragging = false
 	local dragInput: InputObject? = nil
 	local dragValue: number? = nil -- // Shown while dragging; saved on release
 
-	local fill = CreateElement("Frame", {
+	-- // The track takes clicks and drags; the fill and knob follow the value
+	local track = Kit.create("ImageButton", {
+		Name = "Track",
+		AutoButtonColor = false,
+		BackgroundTransparency = 1,
+		Image = QuestArt.ProgressTrack,
+		ScaleType = Enum.ScaleType.Stretch,
+		ZIndex = 3,
+		Parent = row,
+	})
+	track.Position, track.Size = rect(TRACK)
+	local fillArea = Kit.create("Frame", {
+		Name = "FillArea",
+		BackgroundTransparency = 1,
+		ClipsDescendants = true,
+		Position = UDim2.fromOffset(TRACK_INSET, TRACK_INSET),
+		Size = UDim2.new(1, -2 * TRACK_INSET, 1, -2 * TRACK_INSET),
+		ZIndex = 4,
+		Parent = track,
+	})
+	local fill = Kit.create("Frame", {
 		Name = "Fill",
-		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = FILL_COLOR,
 		BorderSizePixel = 0,
-		ZIndex = 2,
-	}, { CreateElement("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
-	local knob = CreateElement("Frame", {
+		Size = UDim2.fromScale(0, 1),
+		ZIndex = 4,
+		Parent = fillArea,
+	}, {
+		Kit.create("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
+		Kit.create("UIGradient", {
+			Rotation = 90,
+			Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(190, 190, 190)),
+		}),
+	})
+	local knob = Kit.create("ImageLabel", {
 		Name = "Knob",
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(1, 0.5),
-		Size = UDim2.fromScale(2.2, 2.2),
-		SizeConstraint = Enum.SizeConstraint.RelativeYY,
-		BackgroundColor3 = KNOB_COLOR,
-		ZIndex = 3,
-	}, {
-		CreateElement("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
-		CreateElement("UIStroke", { Color = TEXT_COLOR, Thickness = 2 }),
-	})
-	local track = CreateElement("ImageButton", {
-		Name = "Track",
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.fromScale(0.47, 0.5),
-		Size = UDim2.fromScale(0.34, 0.22),
 		BackgroundTransparency = 1,
-		Image = `rbxassetid://{Icons.ShopWideButton}`,
-		ImageColor3 = TRACK_COLOR,
-		AutoButtonColor = false,
-		ZIndex = 2,
-	}, {
-		fill,
-		knob,
+		Image = HudArt.AfkKnob,
+		ScaleType = Enum.ScaleType.Fit,
+		Position = UDim2.fromScale(0, 0.5),
+		Size = UDim2.fromOffset(KNOB_SIZE, KNOB_SIZE),
+		ZIndex = 5,
+		Parent = track,
 	})
-	local valueLabel = createLabel({
-		Name = "Value",
-		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.fromScale(0.97, 0.5),
-		Size = UDim2.fromScale(0.13, 0.5),
-		TextXAlignment = Enum.TextXAlignment.Right,
-		TextColor3 = Color3.new(1, 1, 1),
-		Text = "",
-		ZIndex = 2,
-	}, { createOutline() })
-	table.insert(rowTextLabels, valueLabel)
-	textsForLabel[valueLabel] = { `{max}{setting.Suffix or ""}`, `{min}{setting.Suffix or ""}` }
-	local holder = CreateElement("Frame", {
-		Name = "Slider",
-		Size = UDim2.fromScale(1, 1),
-		BackgroundTransparency = 1,
-	}, { track, valueLabel })
+	local valueLabel = printed("Value", "", TEXT_SIZE.Value, SLIDER_VALUE, row)
+	valueLabel.TextXAlignment = Enum.TextXAlignment.Right
 
 	local function draw(value: number)
 		local alpha = if max > min then math.clamp((value - min) / (max - min), 0, 1) else 0
@@ -247,7 +240,8 @@ local function createSlider(settingName: SettingConstants.SettingName, setting: 
 			return
 		end
 		local isMouseMove = input.UserInputType == Enum.UserInputType.MouseMovement
-			and dragInput and dragInput.UserInputType == Enum.UserInputType.MouseButton1
+			and dragInput
+			and dragInput.UserInputType == Enum.UserInputType.MouseButton1
 		if isMouseMove or input == dragInput then
 			dragValue = valueAt(input.Position.X)
 			draw(dragValue)
@@ -259,138 +253,45 @@ local function createSlider(settingName: SettingConstants.SettingName, setting: 
 		end
 	end)
 
-	local function update(value: SettingConstants.SettingValue)
+	return function(value: SettingConstants.SettingValue)
 		if not dragging then
 			draw(value :: number)
 		end
 	end
-	return holder, update
 end
 
-local function createRow(settingName: SettingConstants.SettingName, order: number): Frame
+local function createRow(settingName: SettingConstants.SettingName, order: number)
 	local setting = SettingConstants.Settings[settingName]
-	local control, update
-	if setting.Type == SettingConstants.SettingTypes.Slider then
-		control, update = createSlider(settingName, setting)
-	else
-		control, update = createToggle(settingName, setting)
-	end
-	rowUpdaters[settingName] = update
-
-	local title = createLabel({
-		Name = "Title",
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.fromScale(0.05, 0.5),
-		Size = UDim2.fromScale(0.42, 0.75),
-		TextXAlignment = Enum.TextXAlignment.Left,
-		TextColor3 = Color3.new(1, 1, 1),
-		Text = setting.DisplayName,
-		ZIndex = 2,
-	}, { createOutline() })
-	table.insert(rowTextLabels, title)
-	local row = CreateElement("Frame", {
+	local row = Kit.create("Frame", {
 		Name = settingName,
-		LayoutOrder = order,
-		Size = UDim2.new(1, 0, 0, 20), -- // Height is set by resizeList
 		BackgroundTransparency = 1,
-	}, {
-		UIUtil.createListingCardArt(ROW_COLOR),
-		title,
-		control,
+		LayoutOrder = order,
+		Size = UDim2.fromOffset(ROW_SIZE.X, ROW_SIZE.Y),
+		Parent = list,
 	})
-	row.Parent = List
-	table.insert(rows, row)
-	return row
+	Kit.image("ImageLabel", Art.Row, -ROW_IMAGE_PAD, -ROW_IMAGE_PAD, ROW_SIZE.X + 2 * ROW_IMAGE_PAD, ROW_SIZE.Y + 2 * ROW_IMAGE_PAD, {
+		Name = "Panel",
+		ZIndex = 2,
+		Parent = row,
+	})
+	printed("Title", setting.DisplayName, TEXT_SIZE.Row, ROW_TITLE, row).TextXAlignment = Enum.TextXAlignment.Left
+
+	rowUpdaters[settingName] = if setting.Type == SettingConstants.SettingTypes.Slider
+		then createSlider(settingName, setting, row)
+		else createToggle(settingName, setting, row)
 end
 
 local function createHeader(title: string, order: number)
-	local header = createLabel({
+	local header = Kit.create("Frame", {
 		Name = `{title}Header`,
+		BackgroundTransparency = 1,
 		LayoutOrder = order,
-		Size = UDim2.new(1, 0, 0, 20), -- // Height is set by resizeList
-		TextXAlignment = Enum.TextXAlignment.Left,
-		Text = title,
+		Size = UDim2.fromOffset(ROW_SIZE.X, HEADER_HEIGHT),
+		Parent = list,
 	})
-	header.Parent = List
-	table.insert(headers, header)
-	table.insert(headerTextLabels, header)
-end
-
--- // Whether `text` fits a label of `size` at `textSize` (on one line, or wrapped if the label wraps)
-local function textFits(label: TextLabel, text: string, textSize: number): boolean
-	local size = label.AbsoluteSize
-	local wrapWidth = if label.TextWrapped then size.X else math.huge
-	local bounds = TextService:GetTextSize(text, textSize, TEXT_FONT, Vector2.new(wrapWidth, math.huge))
-	return bounds.X <= size.X + 0.5 and bounds.Y <= size.Y + 0.5
-end
-
--- // One text size for every label in the group: the largest that fits all of them, capped by maxSize
-local function applySharedTextSize(labels: { TextLabel }, maxSize: number)
-	local best = 1
-	local low, high = 1, math.max(1, math.floor(maxSize))
-	while low <= high do
-		local candidate = math.floor((low + high) / 2)
-		local fitsAll = true
-		for _, label in labels do
-			if label.AbsoluteSize.X <= 0 then
-				continue
-			end
-			for _, text in textsForLabel[label] or { label.Text } do
-				if not textFits(label, text, candidate) then
-					fitsAll = false
-					break
-				end
-			end
-			if not fitsAll then
-				break
-			end
-		end
-		if fitsAll then
-			best = candidate
-			low = candidate + 1
-		else
-			high = candidate - 1
-		end
-	end
-	for _, label in labels do
-		label.TextScaled = false
-		label.TextSize = best
-	end
-end
-
-local function updateTextSizes()
-	local rowHeight = if rows[1] then rows[1].AbsoluteSize.Y else 0
-	local headerHeight = if headers[1] then headers[1].AbsoluteSize.Y else 0
-	if rowHeight <= 0 then
-		return
-	end
-	applySharedTextSize(rowTextLabels, rowHeight * ROW_TEXT_MAX_HEIGHT_FRACTION)
-	applySharedTextSize(headerTextLabels, headerHeight * HEADER_TEXT_MAX_HEIGHT_FRACTION)
-end
-
--- // Labels' AbsoluteSize updates after the frame is laid out; measure after that
-local function queueTextSizes()
-	if textSizeQueued then
-		return
-	end
-	textSizeQueued = true
-	task.spawn(function()
-		RunService.Heartbeat:Wait()
-		textSizeQueued = false
-		updateTextSizes()
-	end)
-end
-
--- // Rows use pixel heights (a scrolling list can't size by scale), kept proportional to the list width
-local function resizeList()
-	local width = List.AbsoluteSize.X - SCROLLBAR_THICKNESS * 2
-	for _, header in headers do
-		header.Size = UDim2.new(1, 0, 0, math.floor(width / HEADER_ASPECT_RATIO))
-	end
-	for _, row in rows do
-		row.Size = UDim2.new(1, 0, 0, math.floor(width / ROW_ASPECT_RATIO))
-	end
-	queueTextSizes()
+	local x, y = (ROW_SIZE.X - PLANK.X) / 2, (HEADER_HEIGHT - PLANK.Y) / 2
+	Kit.image("ImageLabel", Art.HeaderPlank, x, y, PLANK.X, PLANK.Y, { Name = "Plank", ZIndex = 2, Parent = header })
+	outlined("Title", title, TEXT_SIZE.Header, { x + 30, y + 10, PLANK.X - 60, PLANK.Y - 20 }, header, 3)
 end
 
 local function refreshAll()
@@ -399,32 +300,66 @@ local function refreshAll()
 	end
 end
 
-local function createGui(): ScreenGui
-	-- // The parchment inside the brick border of the frame image, as in the Stats and Quests menus
-	List = CreateElement("ScrollingFrame", {
+local function build()
+	window = Kit.window(player:WaitForChild("PlayerGui"), "Settings", Art.Window, CANVAS)
+	local root = window.root
+
+	outlined("Title", "Settings", TEXT_SIZE.Title, TITLE, root, 2)
+
+	-- // Close button: the Quests menu's blank button + X icon
+	local close = Kit.create("ImageButton", {
+		Name = "Close",
+		AutoButtonColor = false,
+		BackgroundTransparency = 1,
+		Image = QuestArt.CloseBlank,
+		ScaleType = Enum.ScaleType.Fit,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromOffset(CLOSE[1] + CLOSE[3] / 2, CLOSE[2] + CLOSE[4] / 2),
+		Size = UDim2.fromOffset(CLOSE[3], CLOSE[4]),
+		ZIndex = 3,
+		Parent = root,
+	})
+	Kit.create("ImageLabel", {
+		Name = "Icon",
+		BackgroundTransparency = 1,
+		Image = QuestArt.IconClose,
+		ScaleType = Enum.ScaleType.Fit,
+		Position = UDim2.fromScale(CLOSE_ICON_INSET, CLOSE_ICON_INSET),
+		Size = UDim2.fromScale(1 - 2 * CLOSE_ICON_INSET, 1 - 2 * CLOSE_ICON_INSET),
+		ZIndex = 4,
+		Parent = close,
+	})
+	Kit.pressable(close)
+	close.Activated:Connect(function()
+		SettingsGui.close()
+	end)
+
+	list = Kit.create("ScrollingFrame", {
 		Name = "List",
-		Position = UDim2.fromScale(0.118, 0.24),
-		Size = UDim2.fromScale(0.765, 0.548),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		CanvasSize = UDim2.new(),
-		ScrollBarThickness = SCROLLBAR_THICKNESS,
-		ScrollBarImageColor3 = TEXT_COLOR,
-		ScrollingDirection = Enum.ScrollingDirection.Y,
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		ScrollingDirection = Enum.ScrollingDirection.Y,
+		ScrollBarThickness = SCROLLBAR,
+		ScrollBarImageColor3 = Theme.Colors.WoodDark,
+		VerticalScrollBarInset = Enum.ScrollBarInset.None,
+		ZIndex = 2,
+		Parent = root,
 	}, {
-		CreateElement("UIListLayout", {
-			Padding = UDim.new(0, LIST_PADDING_PIXELS),
-			HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		Kit.create("UIListLayout", {
+			Padding = UDim.new(0, LIST_GAP),
+			HorizontalAlignment = Enum.HorizontalAlignment.Left,
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
-		CreateElement("UIPadding", {
-			PaddingTop = UDim.new(0, 3),
-			PaddingBottom = UDim.new(0, 3),
-			PaddingLeft = UDim.new(0, 3),
-			PaddingRight = UDim.new(0, SCROLLBAR_THICKNESS * 2),
+		Kit.create("UIPadding", {
+			PaddingTop = UDim.new(0, ROW_IMAGE_PAD),
+			PaddingBottom = UDim.new(0, ROW_IMAGE_PAD * 2),
+			PaddingLeft = UDim.new(0, ROW_IMAGE_PAD),
 		}),
 	})
+	list.Position, list.Size = rect(LIST)
+
 	local order = 0
 	for _, section in SettingConstants.SettingSections do
 		order += 1
@@ -434,59 +369,6 @@ local function createGui(): ScreenGui
 			createRow(settingName, order)
 		end
 	end
-
-	local title = createLabel({
-		Name = "Title",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.128),
-		Size = UDim2.fromScale(0.36, 0.095),
-		ZIndex = 2,
-		Text = "SETTINGS",
-		TextColor3 = Color3.new(1, 1, 1),
-	}, { CreateElement("UIStroke", { Color = TEXT_COLOR, Thickness = 3 }) })
-
-	local exit = CreateElement("ImageButton", {
-		Name = "Exit",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.955, 0.1),
-		Size = UDim2.fromScale(0.085, 0.085),
-		BackgroundTransparency = 1,
-		ZIndex = 3,
-		Image = EXIT_IMAGE,
-		MouseButton1Click = function()
-			SettingsGui.close()
-		end,
-	}, { CreateElement("UIAspectRatioConstraint", {}) })
-
-	Container = CreateElement("ImageLabel", {
-		Name = "Container",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(0.6, 0.85),
-		BackgroundTransparency = 1,
-		Image = CONTAINER_IMAGE,
-		ScaleType = Enum.ScaleType.Fit,
-	}, {
-		CreateElement("UIAspectRatioConstraint", { AspectRatio = CONTAINER_ASPECT_RATIO }),
-		title,
-		exit,
-		List,
-	})
-
-	return CreateElement("ScreenGui", {
-		Name = "Settings",
-		ResetOnSpawn = false,
-		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-		Enabled = false,
-	}, { Container })
-end
-
-local function playContainerTween(tweenInfo: TweenInfo, goalPosition: UDim2)
-	if activeTween then
-		activeTween:Cancel()
-	end
-	activeTween = TweenService:Create(Container, tweenInfo, { Position = goalPosition })
-	activeTween:Play()
 end
 
 -------------------------------------------------------------------------------
@@ -495,25 +377,16 @@ end
 
 function SettingsGui.open()
 	SettingsGui.Open = true
-	SettingsScreenGui.Enabled = true
 	refreshAll()
-	resizeList()
-	Container.Position = containerOffscreenPosition
-	playContainerTween(CONTAINER_TWEEN_INFO_IN, containerGoalPosition)
+	window.open()
 	UIController.supercede("Settings", "GamemodeHud")
 	UIController.closeOtherMenus("Settings") -- // After superceding, so the closing menu doesn't restore the HUD
 end
 
 function SettingsGui.close()
 	SettingsGui.Open = false
-	playContainerTween(CONTAINER_TWEEN_INFO_OUT, containerOffscreenPosition)
+	window.close()
 	UIController.unSupercede("Settings", "GamemodeHud")
-
-	task.delay(CONTAINER_TWEEN_INFO_OUT.Time, function()
-		if not SettingsGui.Open then
-			SettingsScreenGui.Enabled = false
-		end
-	end)
 end
 
 function SettingsGui.toggle()
@@ -527,19 +400,6 @@ end
 -------------------------------------------------------------------------------
 -- CORE FUNCTIONS
 -------------------------------------------------------------------------------
-
-local function _init()
-	SettingsScreenGui = createGui()
-	SettingsScreenGui.Parent = player:WaitForChild("PlayerGui")
-
-	containerGoalPosition = Container.Position
-	containerOffscreenPosition = containerGoalPosition - UDim2.fromScale(0, 1)
-
-	List:GetPropertyChangedSignal("AbsoluteSize"):Connect(resizeList)
-	if rows[1] then
-		rows[1]:GetPropertyChangedSignal("AbsoluteSize"):Connect(queueTextSizes)
-	end
-end
 
 function SettingsGui.start()
 	SettingsController.SettingChangedTasks:Add(function(settingName, value)
@@ -561,6 +421,6 @@ function SettingsGui.start()
 	end)
 end
 
-_init()
+build()
 
 return SettingsGui
