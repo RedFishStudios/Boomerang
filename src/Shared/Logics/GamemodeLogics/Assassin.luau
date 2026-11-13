@@ -358,7 +358,7 @@ function AssassinRoundLogic.teardown()
       end
    end
    clear()
-   GameStateLibrary.finishRound(winner, nil, isTie, winners)
+   GameStateLibrary.RoundFinishedTasks:Execute("parallel", winner, nil, isTie, winners)
 end
 
 if not isServer then

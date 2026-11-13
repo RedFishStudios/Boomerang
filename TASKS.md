@@ -121,26 +121,6 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
-### T-177 · A lone player wins the round if they're alive at the end
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Shared / Server (round result)
-- **Files:** `Shared/Library/GameStateLibrary.lua` (new `finishRound`), every gamemode logic in `Shared/Logics/GamemodeLogics/`
-
-**Problem / goal**
-With only one player in the server, rounds could end with no winner (or a tie). That player should always win, as long as they're alive when the round ends.
-
-**Done when**
-- [x] Gamemodes end rounds through `GameStateLibrary.finishRound` (instead of running RoundFinishedTasks themselves), which applies the rule: one player in the server, alive in the arena at the end -> they're the winner (no team, no tie)
-- [x] Everything that reads the result (results screen, wins / losses, quests, pedestals) gets that winner
-
-**Test in Studio**
-- Alone in a server (bots are fine): let a round time out while alive -> "<you> won!" and a win counted. Die / get knocked out before it ends -> the gamemode's normal result. With 2+ players nothing changes.
-
-**Notes**
-- Sol, 2026-11-13: implement and ship straight away.
-- 2026-11-13: done, in **Review**. Branch `agent/T-177-solo-winner`, lane `Github/Boomerang-lanes/T-158-shop-reskin`. Rojo build passes, no syntax errors; not play-tested.
-
 ### T-175 · Grant commands also equip what they grant
 - **Priority:** P2
 - **Owner:** Agent
@@ -596,6 +576,29 @@ Players enter a code to receive a reward. Server: validates the code (case-insen
 ---
 
 ## Done
+
+### T-177 · (Cancelled) A lone player wins the round if they're alive at the end
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared / Server (round result)
+- **Files:** `Shared/Library/GameStateLibrary.lua` (new `finishRound`), every gamemode logic in `Shared/Logics/GamemodeLogics/`
+
+**Problem / goal**
+With only one player in the server, rounds could end with no winner (or a tie). That player should always win, as long as they're alive when the round ends.
+
+**Done when**
+- [x] Gamemodes end rounds through `GameStateLibrary.finishRound` (instead of running RoundFinishedTasks themselves), which applies the rule: one player in the server, alive in the arena at the end -> they're the winner (no team, no tie)
+- [x] Everything that reads the result (results screen, wins / losses, quests, pedestals) gets that winner
+
+**Test in Studio**
+- Alone in a server (bots are fine): let a round time out while alive -> "<you> won!" and a win counted. Die / get knocked out before it ends -> the gamemode's normal result. With 2+ players nothing changes.
+
+**Notes**
+- Sol, 2026-11-13: implement and ship straight away.
+- 2026-11-13: done, in **Review**. Branch `agent/T-177-solo-winner`, lane `Github/Boomerang-lanes/T-158-shop-reskin`. Rojo build passes, no syntax errors; not play-tested.
+- Sol, 2026-11-13: **cancelled and undone**: the client asked for something different (taunting for every player at the end of a round). Code back to how it was before; checked: any living player can already taunt with T during RoundEnded, only eliminated (dead) players can't, and Sol chose to keep it that way.
+
+---
 
 ### T-172 · Ribbon fixes: gamemode ribbon cut off, slimmer title ribbons, death screen lower
 - **Priority:** P2
