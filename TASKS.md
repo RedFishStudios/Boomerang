@@ -511,6 +511,8 @@ Replace the winner banner with floating results that keep the arena visible: a r
 - The place list leaves out the winner(s) and starts at 2nd; after a tie / no winner it starts at 1st.
 - 2026-11-12: done, in **Review**. Branch `agent/T-167-round-results`, lane `Github/Boomerang-lanes/T-158-shop-reskin`. Rojo build passes, no syntax errors; not play-tested.
 - Sol, 2026-11-12: passed testing.
+- Sol, 2026-11-12: add "Returning to lobby in <seconds>" at the bottom. Done on the same branch; back in **Review**.
+- Sol, 2026-11-12: countdown passed testing.
 
 ---
 

@@ -8,6 +8,7 @@
 	  with "<TeamName> won!" (or "Game tied!" / "No winner").
 	- Below, every other player's avatar with their place ("2nd", "3rd"...). The local player's is fully visible, the
 	  others slightly see-through. In team modes each avatar has a border in its team's colour.
+	- At the bottom, "Returning to lobby in <seconds>", counting down to the end of RoundEnded (CurrentTimerEndsAt).
 	Places come from the server (IntermissionData.Placements, RoundResultsService). Avatars are Roblox headshots.
 	Looks: the ribbon is ClientArt/Assets.RoundResults.Ribbon; text is the menus' cream lettering (ClientArt/Kit).
 ]]
@@ -24,6 +25,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
 
 local UIController = require(ReplicatedStorage.Client.UI.UIController)
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
@@ -70,7 +72,7 @@ local PLACE_LABEL_HEIGHT = 26
 local OTHERS_TRANSPARENCY = 0.4 -- // Other players' icons and places; the local player's are fully visible
 local BORDER = Color3.fromRGB(252, 243, 224) -- // Icon border outside team modes (the menus' cream)
 local ICON_BACKDROP = Theme.Colors.AvatarBackdrop
-local TEXT_SIZE = { Ribbon = 52, Winner = 44, Username = 26, Place = 22 }
+local TEXT_SIZE = { Ribbon = 52, Winner = 44, Username = 26, Place = 22, Countdown = 28 }
 
 local SLIDE_IN = TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 local SLIDE_OUT = TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.In)
@@ -86,6 +88,9 @@ local holder: Frame -- // Slides in and out
 local fitScale: UIScale
 local winnerArea: Frame
 local placesArea: Frame
+local countdownLabel: Frame
+local countdownConnection: RBXScriptConnection?
+local shownSeconds: number? = nil
 
 local lastRegisteredGameplayPhase = nil
 local activeTween: Tween?
@@ -255,6 +260,18 @@ local function showPlacements(placements: { Placement }?)
 	end
 end
 
+-- // "Returning to lobby in N": whole seconds left until the round-ended phase is over
+local function updateCountdown()
+	local endsAt = GameStateLibrary.getGameStateData().CurrentTimerEndsAt:Get()
+	local seconds = if typeof(endsAt) == "number" then math.max(0, math.ceil(endsAt - Workspace:GetServerTimeNow())) else nil
+	if seconds == shownSeconds then
+		return
+	end
+	shownSeconds = seconds
+	countdownLabel.Visible = seconds ~= nil
+	Kit.setText(countdownLabel, `Returning to lobby in {seconds or 0}`)
+end
+
 local function rescale()
 	local camera = Workspace.CurrentCamera
 	local viewport = if camera then camera.ViewportSize else REFERENCE
@@ -340,6 +357,11 @@ local function build()
 		}),
 	})
 
+	countdownLabel = outlined("Countdown", "", TEXT_SIZE.Countdown, holder, {
+		LayoutOrder = 4,
+		Size = UDim2.fromOffset(CANVAS_WIDTH, 36),
+	})
+
 	local function watchCamera()
 		local camera = Workspace.CurrentCamera
 		if camera then
@@ -364,6 +386,11 @@ function PreIntermissionGui.open()
 	gui.Enabled = true
 	holder.Position = UDim2.new(0.5, 0, -1, 0)
 	slide(SLIDE_IN, UDim2.new(0.5, 0, 0, TOP_MARGIN))
+	shownSeconds = nil
+	updateCountdown()
+	if not countdownConnection then
+		countdownConnection = RunService.Heartbeat:Connect(updateCountdown)
+	end
 	UIController.GuiToggledTasks:Execute("parallel", "PreIntermission", true)
 end
 
@@ -371,6 +398,10 @@ function PreIntermissionGui.close(instant: boolean?)
 	closeId += 1
 	local thisClose = closeId
 	PreIntermissionGui.Open = false
+	if countdownConnection then
+		countdownConnection:Disconnect()
+		countdownConnection = nil
+	end
 	if instant then
 		if activeTween then
 			activeTween:Cancel()
