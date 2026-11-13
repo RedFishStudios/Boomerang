@@ -9,12 +9,16 @@ return function(_context, players: { Player }, chargeUpEffectId: string)
 	for _, player in players do
 		if not PlayerDataService.get(player) then
 			table.insert(results, `{player.Name}: data not loaded`)
-		elseif ChargeUpEffectService.ownsChargeUpEffect(player, chargeUpEffectId) then
-			table.insert(results, `{player.Name}: already owned`)
-		elseif ChargeUpEffectService.grantChargeUpEffect(player, chargeUpEffectId) then
-			table.insert(results, `{player.Name}: granted`)
 		else
-			table.insert(results, `{player.Name}: failed`)
+			-- // Granted (or already owned), then equipped straight away (Sol, 2026-11-13)
+			local alreadyOwned = ChargeUpEffectService.ownsChargeUpEffect(player, chargeUpEffectId)
+			if not alreadyOwned and not ChargeUpEffectService.grantChargeUpEffect(player, chargeUpEffectId) then
+				table.insert(results, `{player.Name}: failed`)
+			elseif not ChargeUpEffectService.equipChargeUpEffect(player, chargeUpEffectId) then
+				table.insert(results, `{player.Name}: {if alreadyOwned then "already owned" else "granted"}, but equipping failed`)
+			else
+				table.insert(results, `{player.Name}: {if alreadyOwned then "already owned" else "granted"}, equipped`)
+			end
 		end
 	end
 

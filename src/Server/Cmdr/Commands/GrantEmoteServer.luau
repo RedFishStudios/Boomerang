@@ -9,12 +9,16 @@ return function(_context, players: { Player }, emoteId: string)
 	for _, player in players do
 		if not PlayerDataService.get(player) then
 			table.insert(results, `{player.Name}: data not loaded`)
-		elseif EmoteService.ownsEmote(player, emoteId) then
-			table.insert(results, `{player.Name}: already owned`)
-		elseif EmoteService.grantEmote(player, emoteId) then
-			table.insert(results, `{player.Name}: granted`)
 		else
-			table.insert(results, `{player.Name}: failed`)
+			-- // Granted (or already owned), then equipped straight away (Sol, 2026-11-13)
+			local alreadyOwned = EmoteService.ownsEmote(player, emoteId)
+			if not alreadyOwned and not EmoteService.grantEmote(player, emoteId) then
+				table.insert(results, `{player.Name}: failed`)
+			elseif not EmoteService.equipEmote(player, emoteId) then
+				table.insert(results, `{player.Name}: {if alreadyOwned then "already owned" else "granted"}, but equipping failed`)
+			else
+				table.insert(results, `{player.Name}: {if alreadyOwned then "already owned" else "granted"}, equipped`)
+			end
 		end
 	end
 

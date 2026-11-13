@@ -84,6 +84,25 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
+### T-175 · Grant commands also equip what they grant
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Cmdr
+- **Files:** `Server/Cmdr/Commands/Grant{ChargeUpEffect,ElimEffect,Emote,Skin,Taunt}(Server).luau`
+
+**Problem / goal**
+`grantskin`, `grantelimeffect`, `grantchargeupeffect`, `grantemote` and `granttaunt` only gave the item; it then had to be equipped by hand.
+
+**Done when**
+- [x] Each grant command gives the item and equips it at once; if the player already owns it, it just equips it. The result says "granted, equipped" / "already owned, equipped" (or that equipping failed)
+
+**Test in Studio**
+- `grantelimeffect me <id>`: the Strikes tab shows it equipped and your next elimination uses it. Same for a skin, a charge up effect, an emote and a taunt.
+
+**Notes**
+- Sol, 2026-11-13: implement and ship lane at once (shipped before testing: in Review until Sol tests it).
+- Uses each service's own `equip...` function, so equipping saves and replicates the usual way.
+
 ## Backlog
 
 ### T-169 · "Pending Players" message in the new style

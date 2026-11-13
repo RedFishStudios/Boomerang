@@ -2,7 +2,7 @@
 return {
 	Name = "grantelimeffect",
 	Aliases = { "grantstrikeeffect" },
-	Description = "Gives an elimination effect (Strike Effect) to one or more players (it doesn't equip it).",
+	Description = "Gives an elimination effect (Strike Effect) to one or more players and equips it (already owned: just equips it).",
 	Group = "DevTesting",
 	Args = {
 		{

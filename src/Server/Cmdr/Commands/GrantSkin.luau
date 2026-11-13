@@ -2,7 +2,7 @@
 return {
 	Name = "grantskin",
 	Aliases = { "giveskin" },
-	Description = "Gives a boomerang skin to one or more players (it doesn't equip it).",
+	Description = "Gives a boomerang skin to one or more players and equips it (already owned: just equips it).",
 	Group = "DevTesting",
 	Args = {
 		{

@@ -2,7 +2,7 @@
 return {
 	Name = "grantemote",
 	Aliases = { "giveemote" },
-	Description = "Gives an emote to one or more players (it doesn't equip it).",
+	Description = "Gives an emote to one or more players and equips it (already owned: just equips it).",
 	Group = "DevTesting",
 	Args = {
 		{
