@@ -80,6 +80,7 @@ local closeId = 0
 local countdownText: Frame
 local countdownConnection: RBXScriptConnection?
 local shownSeconds: number? = nil
+local tucked = false -- // Closed with the X: only the countdown shows (until voting ends)
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -111,10 +112,18 @@ local function getGamemodeDisplayName(gamemodeId: string?): string
 	return gamemodeId or ""
 end
 
+-- // Tucked away (the X button): the window slides up until only "Voting ends in N" is left on screen
+local function tuckedPosition(): UDim2
+	return UDim2.new(0.5, 0, TOP_MARGIN, -COUNTDOWN[2] * fitScale.Scale)
+end
+
 local function rescale()
 	local camera = Workspace.CurrentCamera
 	local viewport = if camera then camera.ViewportSize else Vector2.new(1280, 720)
 	fitScale.Scale = math.min(viewport.X * SCREEN_WIDTH / CANVAS.X, viewport.Y * SCREEN_HEIGHT / CANVAS.Y)
+	if tucked and VotingGui.Open and holder then
+		holder.Position = tuckedPosition() -- // Its offset depends on the scale
+	end
 end
 
 local function shownPosition(): UDim2
@@ -216,7 +225,7 @@ local function build()
 	})
 	Kit.pressable(close)
 	close.Activated:Connect(function()
-		VotingGui.close()
+		VotingGui.tuck()
 	end)
 
 	for index in OPTIONS do
@@ -293,6 +302,8 @@ function VotingGui.open()
 		return
 	end
 	VotingGui.Open = true
+	tucked = false
+	VotingGui.RequiresMouse = true
 	setCountdownRunning(true)
 	closeId += 1
 	rescale()
@@ -301,11 +312,24 @@ function VotingGui.open()
 	slide(SLIDE_IN, shownPosition())
 end
 
+-- // The X button: slides the window up so only "Voting ends in N" stays on screen. It stays tucked for the rest of
+-- // this vote (vote count updates don't bring it back) and no longer frees the mouse.
+function VotingGui.tuck()
+	if not VotingGui.Open or tucked then
+		return
+	end
+	tucked = true
+	VotingGui.RequiresMouse = false
+	slide(SLIDE_IN, tuckedPosition())
+end
+
 function VotingGui.close(instant: boolean?)
 	if not VotingGui.Open and not gui.Enabled then
 		return
 	end
 	VotingGui.Open = false
+	tucked = false
+	VotingGui.RequiresMouse = true
 	setCountdownRunning(false)
 	closeId += 1
 	local thisClose = closeId
