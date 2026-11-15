@@ -120,6 +120,7 @@ The mobile aim stick and action buttons still use the old look. Restyle them lik
 - Art (Sol approved, uploaded to the group 2026-11-15; ids in `Assets.Touch`, sources in `ArtPipeline/TouchUI`, script `_Scripts/touch.py`): a round wooden button (the header plank's grain bent into a rim, cream face) and the aim stick's wooden base ring with a translucent dark centre.
 - Done in code (`applyArt` in `CustomTouchscreen/init.luau`), not in the `.rbxmx`: the circle's grey `UIStroke` ring is turned off and the base image added; the knob, Dash and Stab get the button behind their icons, which shrink to sit inside the rim (72%, knob 80%). Behaviour, hit areas, recall mode and the left-handed mirror are unchanged.
 - The dash icon's white speed lines are less visible on the cream face than over the arena (Sol saw it in the mock-up).
+- Sol, 2026-11-15: the knob now shows the Stats "Elims" boomerang (`Assets.StatsScreen.IconElims`, already approved and uploaded) instead of `Icons.AimThumbstick` (detailed, with a white circle), at the same 72% as Dash and Stab. Recall mode still shows `Icons.ManualRecall`.
 - Branch `agent/T-179-touch-controls`, lane `Github/Boomerang-lanes/T-174-voting-gap`. Not linted (Selene isn't installed here).
 
 ### T-178 · StatsPanel in the new style

@@ -23,7 +23,9 @@ local PlatformController = require(ClientMods.Core.PlatformController)
 local Icons = require(ReplicatedStorage.Shared.Constants.Icons)
 local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
 local DeadWeapons = require(ReplicatedStorage.Shared.Referential.DeadWeapons)
-local TouchArt = require(ClientMods.UI.ClientArt.Assets).Touch
+local ClientArt = require(ClientMods.UI.ClientArt.Assets)
+local TouchArt = ClientArt.Touch
+local KNOB_ICON = ClientArt.StatsScreen.IconElims -- // The Stats "Elims" boomerang (Sol, 2026-11-15): smooth, no white circle
 
 -- // Gui Values // --
 
@@ -257,7 +259,7 @@ local function setRecallMode(enabled: boolean)
 		endRecallHold()
 	end
 	aimThumbstick.Position = aimThumbstickDefaultPosition
-	aimThumbstickImage.Image = toImage(if enabled then Icons.ManualRecall else Icons.AimThumbstick)
+	aimThumbstickImage.Image = if enabled then toImage(Icons.ManualRecall) else KNOB_ICON
 	recallLabel.Visible = enabled -- // Pops with the knob (it's inside it)
 	popKnob()
 end
@@ -361,7 +363,7 @@ end
 -- // New menu style (Assets.Touch): the aim circle's grey ring becomes the wooden stick base, and the knob, Dash and
 -- // Stab get the round wooden button behind their icons (the icons shrink to sit inside its rim)
 local ICON_SCALE = 0.72 -- // Dash / Stab icon size as a share of the button
-local KNOB_ICON_SCALE = 0.8 -- // The knob icon has its own white ring, so it can be a little bigger
+local KNOB_ICON_SCALE = 0.72 -- // Same as Dash / Stab
 
 local function addArt(parent: GuiObject, image: string, zIndex: number)
 	local art = Instance.new("ImageLabel")
@@ -402,7 +404,7 @@ end
 
 local function _init()
    applyArt()
-   aimThumbstickImage.Image = toImage(Icons.AimThumbstick)
+   aimThumbstickImage.Image = KNOB_ICON
    Gui.Parent = Player.PlayerGui
    Gui.ClipToDeviceSafeArea = false
    Gui.IgnoreGuiInset = true
