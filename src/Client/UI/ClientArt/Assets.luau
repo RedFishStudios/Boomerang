@@ -138,6 +138,7 @@ return {
 	Touch = {
 		Button = "rbxassetid://78001442558690", -- // 256 x 256 (decal 121434551454695)
 		StickBase = "rbxassetid://70873377837193", -- // 512 x 512, translucent dark centre (decal 129232468214467)
+		LabelBoard = "rbxassetid://73929372926510", -- // 256 x 96, blank cream board for the button names (decal 111952143270550)
 	},
 
 	-- // Daily Rewards menu: blank frame (ribbon for the title, six day cards and a tall day 7 card, made from the client's

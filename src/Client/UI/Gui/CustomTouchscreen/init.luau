@@ -26,6 +26,7 @@ local DeadWeapons = require(ReplicatedStorage.Shared.Referential.DeadWeapons)
 local ClientArt = require(ClientMods.UI.ClientArt.Assets)
 local TouchArt = ClientArt.Touch
 local KNOB_ICON = ClientArt.StatsScreen.IconElims -- // The Stats "Elims" boomerang (Sol, 2026-11-15): smooth, no white circle
+local Theme = require(ClientMods.UI.ClientArt.Theme)
 
 -- // Gui Values // --
 
@@ -105,7 +106,46 @@ local function getRecallLabel(): TextLabel
 	return label
 end
 local recallLabel = getRecallLabel()
-recallLabel.Visible = false
+recallLabel.Visible = false -- // Replaced by the knob's label board, which says "Recall" in recall mode
+
+-- // LABEL BOARDS: a cream board (Assets.Touch.LabelBoard) over the bottom of each button, naming it
+local AIM_LABEL_TEXT = "Aim"
+local DASH_LABEL_TEXT = "Dash"
+local STAB_LABEL_TEXT = "Slash"
+local BOARD_WIDTH = 0.8 -- // Share of the button's width
+local BOARD_ASPECT = 256 / 96 -- // The board art
+local BOARD_BOTTOM = 1.08 -- // The board's bottom edge, as a share of the button's height (a little below the button)
+local BOARD_TEXT_INSET = { X = 0.1, Top = 0.17, Height = 0.56 } -- // The cream face inside the board's rim
+local KNOB_ICON_ROTATION = 180 -- // Sol, 2026-11-15: the boomerang turned around
+
+local function addBoard(button: GuiObject, text: string): TextLabel
+	local board = Instance.new("ImageLabel")
+	board.Name = "LabelBoard"
+	board.BackgroundTransparency = 1
+	board.Image = TouchArt.LabelBoard
+	board.AnchorPoint = Vector2.new(0.5, 1)
+	board.Position = UDim2.fromScale(0.5, BOARD_BOTTOM)
+	board.Size = UDim2.fromScale(BOARD_WIDTH, BOARD_WIDTH / BOARD_ASPECT)
+	board.ZIndex = 3 -- // Over the icon (2) and the button art (1)
+	board.Parent = button
+	local label = Instance.new("TextLabel")
+	label.Name = "Label"
+	label.BackgroundTransparency = 1
+	label.Position = UDim2.fromScale(BOARD_TEXT_INSET.X, BOARD_TEXT_INSET.Top)
+	label.Size = UDim2.fromScale(1 - 2 * BOARD_TEXT_INSET.X, BOARD_TEXT_INSET.Height)
+	label.FontFace = Theme.Font
+	label.TextColor3 = Theme.Colors.Ink
+	label.TextScaled = true
+	label.Text = text
+	label.ZIndex = 4
+	label.Parent = board
+	return label
+end
+
+local knobLabel = addBoard(aimThumbstick, AIM_LABEL_TEXT)
+local function setKnobLabel(text: string)
+	knobLabel.Text = text
+end
 
 local function toImage(assetId: number): string
 	return `rbxassetid://{assetId}`
@@ -260,7 +300,8 @@ local function setRecallMode(enabled: boolean)
 	end
 	aimThumbstick.Position = aimThumbstickDefaultPosition
 	aimThumbstickImage.Image = if enabled then toImage(Icons.ManualRecall) else KNOB_ICON
-	recallLabel.Visible = enabled -- // Pops with the knob (it's inside it)
+	aimThumbstickImage.Rotation = if enabled then 0 else KNOB_ICON_ROTATION
+	setKnobLabel(if enabled then RECALL_LABEL_TEXT else AIM_LABEL_TEXT) -- // The knob's board says "Recall" (pops with the knob)
 	popKnob()
 end
 
@@ -391,12 +432,13 @@ local function applyArt()
 	addArt(aimThumbstickContainer, TouchArt.StickBase, 0)
 	addArt(aimThumbstick, TouchArt.Button, 1)
 	shrinkIcon(aimThumbstickImage, KNOB_ICON_SCALE)
-	for _, button in { Gui.Dash, Gui.Stab } do
+	for button, labelText in { [Gui.Dash] = DASH_LABEL_TEXT, [Gui.Stab] = STAB_LABEL_TEXT } do
 		local icon = button:FindFirstChildWhichIsA("ImageLabel") -- // DashImage / StabImage (found before the art is added)
 		if icon then
 			shrinkIcon(icon, ICON_SCALE)
 		end
 		addArt(button, TouchArt.Button, 1)
+		addBoard(button, labelText)
 	end
 end
 
@@ -405,6 +447,7 @@ end
 local function _init()
    applyArt()
    aimThumbstickImage.Image = KNOB_ICON
+   aimThumbstickImage.Rotation = KNOB_ICON_ROTATION
    Gui.Parent = Player.PlayerGui
    Gui.ClipToDeviceSafeArea = false
    Gui.IgnoreGuiInset = true
