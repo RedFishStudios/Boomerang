@@ -123,6 +123,7 @@ The mobile aim stick and action buttons still use the old look. Restyle them lik
 - Sol, 2026-11-15: the knob now shows the Stats "Elims" boomerang (`Assets.StatsScreen.IconElims`, already approved and uploaded) instead of `Icons.AimThumbstick` (detailed, with a white circle), at the same 72% as Dash and Stab. Recall mode still shows `Icons.ManualRecall`.
 - Sol, 2026-11-15: the knob's boomerang is turned 180 degrees (the recall icon stays upright), and each button has a label board (`Assets.Touch.LabelBoard`: cream face, reddish-brown rim, approved and uploaded) over its bottom: "Dash", "Slash" (Stab) and "Aim". In recall mode the knob's board says "Recall" and the old white "Recall" label under the knob is no longer shown.
 - Sol, 2026-11-15: turning the boomerang 180 degrees put its shading underneath, so it is now its own image (`Assets.Touch.KnobBoomerang`, approved and uploaded): the Elims boomerang mirrored and tilted to point up-left, lit from the top-right, shown unrotated.
+- Sol, 2026-11-15: the touch controls only show while the player is alive in the arena (`LivingPlayersInArena`, the same check as MenuButtons), so in the lobby Roblox's own movement and jump buttons are free. Hiding mid-aim cancels the aim without throwing and ends a recall hold.
 - Branch `agent/T-179-touch-controls`, lane `Github/Boomerang-lanes/T-174-voting-gap`. Not linted (Selene isn't installed here).
 
 ### T-178 · StatsPanel in the new style

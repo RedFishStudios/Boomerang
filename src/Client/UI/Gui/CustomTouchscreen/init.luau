@@ -25,6 +25,7 @@ local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons
 local DeadWeapons = require(ReplicatedStorage.Shared.Referential.DeadWeapons)
 local ClientArt = require(ClientMods.UI.ClientArt.Assets)
 local TouchArt = ClientArt.Touch
+local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
 local KNOB_ICON = TouchArt.KnobBoomerang -- // The Stats "Elims" boomerang, drawn pointing up-left (Sol, 2026-11-15)
 local Theme = require(ClientMods.UI.ClientArt.Theme)
 
@@ -57,6 +58,7 @@ local function ensureThumbstickOrigin()
 end
 
 local drag
+local refreshVisibility -- // Defined below; shows the controls only while in the arena on touch
 
 -- // MANUAL RECALL MODE: while the boomerang is dead (or flying back from a manual recall), the aim thumbstick becomes
 -- // the Manual Recall button: the knob shows Icons.ManualRecall, it doesn't aim, and holding it recalls like holding E
@@ -401,6 +403,29 @@ function TouchscreenGui.close(Instant: boolean?)
 	Gui.Enabled = false
 end
 
+-- // Only while playing in the arena on a touch device: in the lobby (and while waiting to respawn) Roblox's own
+-- // movement and jump buttons are free to use (the same in-arena check as MenuButtons)
+local function isInArena(): boolean
+	local livingPlayersInArena = GameStateLibrary.getGameStateData().LivingPlayersInArena:Get() or {}
+	return table.find(livingPlayersInArena, Player) ~= nil
+end
+
+function refreshVisibility()
+	local shouldShow = PlatformController.getDominantControlScheme() == "Touch" and isInArena()
+	if shouldShow == TouchscreenGui.Open and Gui.Enabled == shouldShow then
+		return
+	end
+	if shouldShow then
+		TouchscreenGui.open()
+	else
+		if draggingAimThumbstick and DragInput then
+			touchEnded(DragInput, false, false)
+		end
+		endRecallHold()
+		TouchscreenGui.close()
+	end
+end
+
 -- // New menu style (Assets.Touch): the aim circle's grey ring becomes the wooden stick base, and the knob, Dash and
 -- // Stab get the round wooden button behind their icons (the icons shrink to sit inside its rim)
 local ICON_SCALE = 0.72 -- // Dash / Stab icon size as a share of the button
@@ -475,27 +500,14 @@ local function _init()
 		aimThumbstick.Position = aimThumbstickDefaultPosition
    end)
 
-   if PlatformController.getDominantControlScheme() == "Touch" then
-      TouchscreenGui.open()
-   else
-      TouchscreenGui.close()
-   end
-
-   PlatformController.DominantControlSchemeChanged:Add(function(newScheme: "PC" | "Console" | "Touch")
-      if newScheme == "Touch" then
-         TouchscreenGui.open()
-      else
-			if draggingAimThumbstick and DragInput then
-				touchEnded(DragInput, false, false)
-			end
-			endRecallHold()
-         TouchscreenGui.close()
-      end
-   end)
+	refreshVisibility()
+	PlatformController.DominantControlSchemeChanged:Add(refreshVisibility)
 end
 _init()
 
 function TouchscreenGui.start()
+	GameStateLibrary.getGameStateData().LivingPlayersInArena:Subscribe(refreshVisibility)
+	refreshVisibility()
 end
 
 --[[
