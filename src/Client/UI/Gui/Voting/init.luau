@@ -64,6 +64,7 @@ local SLIDE_OUT = TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection
 
 local player = Players.LocalPlayer
 local voteRemote = SimpleRemotes.getEvent("VoteUpdated")
+local OPTED_OUT_ATTRIBUTE = "OptedOut" -- // On the Player, set by PlayerSessionService (the lobby's AFK toggle)
 
 local gui: ScreenGui
 local holder: Frame -- // Slides in and out
@@ -234,7 +235,9 @@ local function refreshUi(snapshot)
 	local options = intermissionData and intermissionData.VoteOptions
 	local voteCount = intermissionData and intermissionData.VoteCount
 
-	if not isVoting or not options or not voteCount or #options < 2 then
+	-- // AFK players (the lobby's AFK toggle) don't vote: the window stays hidden for them
+	local isAfk = player:GetAttribute(OPTED_OUT_ATTRIBUTE) == true
+	if not isVoting or isAfk or not options or not voteCount or #options < 2 then
 		VotingGui.close()
 		return
 	end
@@ -298,6 +301,9 @@ function VotingGui.start()
 		refreshUi(snapshot)
 	end)
 	refreshUi(GameStateLibrary.getSnapshot())
+	player:GetAttributeChangedSignal(OPTED_OUT_ATTRIBUTE):Connect(function()
+		refreshUi(GameStateLibrary.getSnapshot())
+	end)
 end
 
 return VotingGui

@@ -17,7 +17,7 @@ The task board: every feature, fix and cleanup. See [CLAUDE.md](CLAUDE.md) for h
   - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
   - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
 
-**Next free ID: T-183**
+**Next free ID: T-184**
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -99,6 +99,30 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-183 · AFK players don't count to start a round and don't vote
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Server (round cycle), Client UI
+- **Files:** `Server/Core/RoundCyclingService.luau`, `Client/UI/Gui/Voting/init.luau`, `Client/UI/Gui/PendingPlayers/init.luau`
+
+**Problem / goal**
+Players with the lobby's AFK toggle on still counted towards `PlayersRequiredToStart`, and voting waited for them (it only ends early once everyone has voted).
+
+**Done when**
+- [x] Only non-AFK players count towards `PlayersRequiredToStart` (the "Waiting for players" count matches)
+- [x] Voting doesn't wait for AFK players, and AFK players can't vote (the server ignores their votes; their vote window is hidden)
+
+**Test in Studio**
+- Set `PlayersRequiredToStart = 2` locally and start a 2-player test. One player turns AFK on: the round doesn't start and the message shows "1 / 2 players". Turning AFK off starts voting.
+- With 2 required and 3 players, one AFK: once the other two vote, voting ends early. The AFK player sees no vote window. Turning AFK on after voting takes the vote back (the count drops); turning it off during voting shows the window again.
+
+**Notes**
+- Sol, 2026-11-15.
+- AFK is `PlayerSessionService`'s opt-out (the `OptedOut` attribute). Going AFK mid-vote withdraws the vote; coming back during voting adds the player back to the voters voting waits for.
+- The vote remote now also ignores votes outside voting and any value other than 1 or 2.
+- Mid-round, going AFK still doesn't end the round (only the lobby phases check the count).
+- Branch `agent/T-183-afk-rounds`, lane `Github/Boomerang-lanes/T-174-voting-gap`. Not linted (Selene isn't installed here).
 
 ### T-182 · Rounds last 5 minutes
 - **Priority:** P2

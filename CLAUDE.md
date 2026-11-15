@@ -246,6 +246,12 @@ If a prompt, task or note mentions a game item or value that doesn't exist in th
 
 If a prompt mentions a larger *back-end feature* that doesn't exist yet, that may be a human error. Stop and ask rather than building unrequested architecture.
 
+## GUI art (images uploaded to Roblox)
+
+New-style GUI art is made with Blender's bundled Python; the scripts, tools and steps are in `C:\MY FILES\Projects\Boomerang\Assets\ArtPipeline\_Scripts\README.md`. Art ids are recorded in `Client/UI/ClientArt/Assets.luau`.
+- **Every upload needs Sol's approval first:** show Sol only the final file(s) and wait for an explicit yes, then upload (Decal, group 293180599).
+- **Re-uploads need Sol's approval too** (Sol, 2026-11-15): replacing an asset that's already uploaded, even with a fix that's hard to see (edge cleanup, colour or size tweaks), is a new upload. Show Sol the final file and get an explicit yes before uploading it.
+
 ## Code conventions
 
 - Luau with type annotations. Export types from the module that owns them.
