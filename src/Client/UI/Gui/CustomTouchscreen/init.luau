@@ -25,7 +25,7 @@ local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons
 local DeadWeapons = require(ReplicatedStorage.Shared.Referential.DeadWeapons)
 local ClientArt = require(ClientMods.UI.ClientArt.Assets)
 local TouchArt = ClientArt.Touch
-local KNOB_ICON = ClientArt.StatsScreen.IconElims -- // The Stats "Elims" boomerang (Sol, 2026-11-15): smooth, no white circle
+local KNOB_ICON = TouchArt.KnobBoomerang -- // The Stats "Elims" boomerang, drawn pointing up-left (Sol, 2026-11-15)
 local Theme = require(ClientMods.UI.ClientArt.Theme)
 
 -- // Gui Values // --
@@ -116,7 +116,7 @@ local BOARD_WIDTH = 0.8 -- // Share of the button's width
 local BOARD_ASPECT = 256 / 96 -- // The board art
 local BOARD_BOTTOM = 1.08 -- // The board's bottom edge, as a share of the button's height (a little below the button)
 local BOARD_TEXT_INSET = { X = 0.1, Top = 0.17, Height = 0.56 } -- // The cream face inside the board's rim
-local KNOB_ICON_ROTATION = 180 -- // Sol, 2026-11-15: the boomerang turned around
+local KNOB_ICON_ROTATION = 0 -- // The art already points up-left (turning it in code would put its shading on the wrong side)
 
 local function addBoard(button: GuiObject, text: string): TextLabel
 	local board = Instance.new("ImageLabel")
