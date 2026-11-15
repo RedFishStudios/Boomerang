@@ -113,12 +113,13 @@ Show how long voting has left: floating text under the vote window, in the same 
 - [x] "Voting ends in N" under the vote window, counting down to 0 as voting runs
 
 **Test in Studio**
-- Start a server and wait for voting: under the window, "Voting ends in 60" counts down each second. Press the X: the window slides up and only the countdown stays at the top of the screen, still counting. Voting ending early (everyone voted) or the timer reaching 0 closes the window and its countdown, then the 5 s pause before the round (T-174) follows.
+- Start a server and wait for voting: under the window, "Voting ends in 60" counts down each second. Press the X, or vote: the window slides up smoothly and only the countdown stays at the top of the screen, still counting. Tap it: the window comes back and you can change your vote. Voting ending early (everyone voted) or the timer reaching 0 closes the window and its countdown, then the 5 s pause before the round (T-174) follows.
 
 **Notes**
 - Sol, 2026-11-15: "ship lane immediately when done" (shipped before testing).
 - Part of the window's canvas (cream outlined Kit lettering, 72 px), so it slides and scales with it; it only updates while the window is open (Heartbeat), reading the voting timer from GameStateLibrary.
 - Sol, 2026-11-15: the X button no longer hides the whole window: it slides up until only "Voting ends in N" stays on screen (tucked for the rest of that vote; vote count updates don't bring it back, and it stops freeing the mouse). Ship lane right away.
+- Sol, 2026-11-15: voting also tucks the window; tapping or clicking the countdown while tucked brings the whole window back (to change the vote). Tucking and untucking ease smoothly into place with no overshoot (Quad Out, 0.35 s). Ship lane right away.
 - Branch `agent/T-184-vote-countdown`, lane `Github/Boomerang-lanes/T-174-voting-gap`. Not linted (Selene isn't installed here).
 
 ### T-183 · AFK players don't count to start a round and don't vote

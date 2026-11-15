@@ -61,6 +61,7 @@ local TOP_MARGIN = 0.02 -- // Fraction of screen height
 
 local SLIDE_IN = TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 local SLIDE_OUT = TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+local TUCK = TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out) -- // Tuck / untuck: smooth, no overshoot
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
@@ -157,6 +158,7 @@ local function buildOption(index: number, root: Frame)
 	Kit.pressable(button, { style = "surface", surface = { x = 0, y = 0, w = r[3], h = r[4], radius = OPTION_RADIUS } })
 	button.Activated:Connect(function()
 		voteRemote:FireServer(index)
+		VotingGui.tuck() -- // Voting tucks the window away; tap the countdown to change the vote
 	end)
 
 	optionTexts[index] = outlined("Name", "", TEXT_SIZE.Option, OPTION_TEXT, button, 4)
@@ -233,6 +235,19 @@ local function build()
 	end
 
 	countdownText = outlined("Countdown", "", TEXT_SIZE.Countdown, COUNTDOWN, root, 2)
+	-- // Tapping the countdown while tucked brings the window back
+	local reopen = Kit.create("TextButton", {
+		Name = "CountdownButton",
+		BackgroundTransparency = 1,
+		Text = "",
+		AutoButtonColor = false,
+		ZIndex = 3,
+		Parent = root,
+	})
+	reopen.Position, reopen.Size = rect(COUNTDOWN)
+	reopen.Activated:Connect(function()
+		VotingGui.untuck()
+	end)
 
 	local function watchCamera()
 		local camera = Workspace.CurrentCamera
@@ -312,15 +327,26 @@ function VotingGui.open()
 	slide(SLIDE_IN, shownPosition())
 end
 
--- // The X button: slides the window up so only "Voting ends in N" stays on screen. It stays tucked for the rest of
--- // this vote (vote count updates don't bring it back) and no longer frees the mouse.
+-- // The X button, or voting: slides the window up so only "Voting ends in N" stays on screen, smoothly with no
+-- // overshoot. It stays tucked (vote count updates don't bring it back) and no longer frees the mouse, until the
+-- // countdown is tapped (VotingGui.untuck) or voting ends.
 function VotingGui.tuck()
 	if not VotingGui.Open or tucked then
 		return
 	end
 	tucked = true
 	VotingGui.RequiresMouse = false
-	slide(SLIDE_IN, tuckedPosition())
+	slide(TUCK, tuckedPosition())
+end
+
+-- // Tapping the countdown while tucked: the whole window comes back, so the vote can be changed
+function VotingGui.untuck()
+	if not VotingGui.Open or not tucked then
+		return
+	end
+	tucked = false
+	VotingGui.RequiresMouse = true
+	slide(TUCK, shownPosition())
 end
 
 function VotingGui.close(instant: boolean?)
