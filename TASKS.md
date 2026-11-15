@@ -100,6 +100,26 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
+### T-184 · "Voting ends in N" countdown under the vote window
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client UI
+- **Files:** `Client/UI/Gui/Voting/init.luau`
+
+**Problem / goal**
+Show how long voting has left: floating text under the vote window, in the same lettering as the other floating text (waiting for players, end-of-round results).
+
+**Done when**
+- [x] "Voting ends in N" under the vote window, counting down to 0 as voting runs
+
+**Test in Studio**
+- Start a server and wait for voting: under the window, "Voting ends in 60" counts down each second. Voting ending early (everyone voted) or the timer reaching 0 closes the window and its countdown, then the 5 s pause before the round (T-174) follows.
+
+**Notes**
+- Sol, 2026-11-15: "ship lane immediately when done" (shipped before testing).
+- Part of the window's canvas (cream outlined Kit lettering, 72 px), so it slides and scales with it; it only updates while the window is open (Heartbeat), reading the voting timer from GameStateLibrary.
+- Branch `agent/T-184-vote-countdown`, lane `Github/Boomerang-lanes/T-174-voting-gap`. Not linted (Selene isn't installed here).
+
 ### T-183 · AFK players don't count to start a round and don't vote
 - **Priority:** P2
 - **Owner:** Agent

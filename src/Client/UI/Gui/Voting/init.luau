@@ -4,6 +4,7 @@
 	Description:
 	The gamemode vote shown at the top of the screen while the lobby is voting (GameplayPhases.LobbyVoting). Two options from
 	GameStateLibrary's IntermissionData (VoteOptions, VoteCount); clicking one sends VoteUpdated (1 or 2) to the server.
+	Under the window floats "Voting ends in N", counting down the voting timer (CurrentTimerEndsAt).
 	Looks: blank art in the style of the other new menus (ClientArt/Assets.VoteScreen; close button from the Quests menu),
 	with every text drawn as instances (ClientArt/Kit). Laid out in the frame image's own pixels (CANVAS) and scaled to the
 	screen.
@@ -20,6 +21,7 @@ VotingGui.RequiresMouse = true -- // Frees the mouse in a locked camera (MouseUn
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
@@ -48,7 +50,9 @@ local OPTION_RADIUS = 30
 local OPTION_TEXT = { 40, 60, 432, 304 } -- // Inside a panel
 local BADGE = { 397, -50, 140, 140 } -- // Inside a panel: over its top-right corner
 local BADGE_TEXT_INSET = 0.2
-local TEXT_SIZE = { Title = 64, Option = 96, Count = 72 }
+local TEXT_SIZE = { Title = 64, Option = 96, Count = 72, Countdown = 72 }
+-- // "Voting ends in N", floating just under the window (in canvas pixels, so it slides and scales with it)
+local COUNTDOWN = { 224, CANVAS.Y + 6, 1000, 96 }
 
 -- // On screen: top centre, as wide as fits in these fractions of the screen
 local SCREEN_WIDTH = 0.5
@@ -73,6 +77,9 @@ local optionTexts: { Frame } = {}
 local countTexts: { Frame } = {}
 local activeTween: Tween?
 local closeId = 0
+local countdownText: Frame
+local countdownConnection: RBXScriptConnection?
+local shownSeconds: number? = nil
 
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
@@ -216,6 +223,8 @@ local function build()
 		buildOption(index, root)
 	end
 
+	countdownText = outlined("Countdown", "", TEXT_SIZE.Countdown, COUNTDOWN, root, 2)
+
 	local function watchCamera()
 		local camera = Workspace.CurrentCamera
 		if camera then
@@ -227,6 +236,32 @@ local function build()
 	watchCamera()
 
 	gui.Parent = player:WaitForChild("PlayerGui")
+end
+
+-- // "Voting ends in N": whole seconds left on the voting timer (GameStateLibrary.CurrentTimerEndsAt), counting down
+-- // while the window is open
+local function updateCountdown()
+	local gameStateData = GameStateLibrary.getGameStateData()
+	local endsAt = gameStateData.CurrentTimerEndsAt:Get()
+	if not endsAt or gameStateData.GameplayPhase:Get() ~= GameplayPhases.LobbyVoting then
+		return
+	end
+	local seconds = math.max(0, math.ceil(endsAt - Workspace:GetServerTimeNow()))
+	if seconds ~= shownSeconds then
+		shownSeconds = seconds
+		Kit.setText(countdownText, `Voting ends in {seconds}`)
+	end
+end
+
+local function setCountdownRunning(running: boolean)
+	if running and not countdownConnection then
+		shownSeconds = nil
+		updateCountdown()
+		countdownConnection = RunService.Heartbeat:Connect(updateCountdown)
+	elseif not running and countdownConnection then
+		countdownConnection:Disconnect()
+		countdownConnection = nil
+	end
 end
 
 local function refreshUi(snapshot)
@@ -258,6 +293,7 @@ function VotingGui.open()
 		return
 	end
 	VotingGui.Open = true
+	setCountdownRunning(true)
 	closeId += 1
 	rescale()
 	gui.Enabled = true
@@ -270,6 +306,7 @@ function VotingGui.close(instant: boolean?)
 		return
 	end
 	VotingGui.Open = false
+	setCountdownRunning(false)
 	closeId += 1
 	local thisClose = closeId
 	if instant then
