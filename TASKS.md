@@ -50,6 +50,26 @@ What's wrong, or what should exist.
 
 ## Ready
 
+### T-179 · Touch controls (CustomTouchscreen) in the new style
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client UI (mobile)
+- **Files:** `Client/UI/Gui/CustomTouchscreen/` (+ its `.rbxmx`), `Client/UI/Screens/InputScreen.luau`, `Client/UI/ClientArt/Assets.luau`
+
+**Problem / goal**
+The mobile aim stick and action buttons still use the old look. Restyle them like the new menus, with new round button art made from the client's art. Keep the behaviour and the left-handed mirror setting.
+
+**Done when**
+- [ ] Aim stick and buttons in the new style (art approved by Sol before upload); same behaviour, left-handed layout still works
+
+**Test in Studio**
+- Device emulator (phone): throw, recall, dash, stab and pickups from the buttons; switch Left-handed touch in Settings.
+
+**Notes**
+- Sol, 2026-11-15: restyle, new art allowed (Sol approves the final image before upload).
+
+---
+
 ### T-173 · Review all GUIs and send the client a video
 - **Priority:** P2
 - **Owner:** Sol
@@ -98,51 +118,52 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## In Progress
 
-
 ## Review
 
-### T-174 · More time between the end of voting and the start of the next round
+### T-178 · StatsPanel in the new style
 - **Priority:** P2
 - **Owner:** Agent
-- **Area:** Server (round cycle)
-- **Files:** `Server/Core/RoundCyclingService.luau`
+- **Area:** Client UI
+- **Files:** `Client/UI/Gui/StatsPanel/init.luau`, `Client/UI/ClientArt/Assets.luau`
 
 **Problem / goal**
-Add extra time between voting ending (LobbyEnded) and the next round starting.
+The StatsPanel (right-edge player list with the slide-out arrow tab) still uses its first frame art and plain brown text. Restyle it like the other new menus (wood frame, vines, parchment, red ribbon, the menus' cream lettering), keeping its behaviour: tab / Tab key slides it, this round + all time lists, PC and touch placement.
 
 **Done when**
-- [x] LobbyEnded lasts 5 s (Sol, 2026-11-15) before the round starts
+- [x] New frame art (made from the client's art, approved by Sol before upload) and the new-style lettering
+- [x] Same contents and behaviour as now
 
 **Test in Studio**
-- Let a vote finish (or vote with every player): the lobby stays for about 5 s, then everyone goes to the arena.
+- Press Tab / click the arrow tab: the panel slides out and back. Lists fill and update with elims and defeats. Check PC and touch (top-right) placement.
 
 **Notes**
-- Sol, 2026-11-12: added for tomorrow. Sol, 2026-11-15: 5 seconds.
-- The old `INTERMISSION_DURATION - VOTE_DURATION` (-40 s) made the timer already expired, so the round started on the next frame. Replaced with `LOBBY_ENDED_DURATION = 5`; `INTERMISSION_DURATION` was used nowhere else and is removed.
-- No client GUI shows the chosen gamemode during this pause (nothing reads `ChosenGamemode`), so it's a plain wait in the lobby for now.
-- Branch `agent/T-174-voting-gap`, lane `Github/Boomerang-lanes/T-174-voting-gap`.
-- Sol, 2026-11-15: ship lane before testing (with T-169). In Review until Sol tests it.
+- Sol, 2026-11-15: restyle, new art allowed (Sol approves the final image before upload).
+- Branch `agent/T-178-stats-panel`, lane `Github/Boomerang-lanes/T-174-voting-gap`.
+- Art (Sol approved, uploaded to the group 2026-11-15; ids in `Assets.StatsPanel`, sources in `ArtPipeline/StatsUI`): the Settings window narrowed (`panel_blank`, its arched ribbon cut out), the header plank shortened into an upright tab (`panel_tab`), and a cream arrow (`panel_arrow`). The title uses the existing straight GamemodeHud ribbon.
+- Sol, 2026-11-15: the tab sits in front of the frame, is squarer, and has an arrow that turns: it points left when closed (pull out) and right when open (push away), tweened with the slide.
+- Text uses the menus' font and ink colours; "Stats" is the cream outlined lettering. The panel is now 62% of the screen height on PC (50% on touch) because the parchment is narrower than the old frame's; the frame's transparent right margin hangs off-screen when open.
+- Not linted (Selene isn't installed here): check the output for errors when it loads.
 
-### T-175 · Grant commands also equip what they grant
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Cmdr
-- **Files:** `Server/Cmdr/Commands/Grant{ChargeUpEffect,ElimEffect,Emote,Skin,Taunt}(Server).luau`
-
-**Problem / goal**
-`grantskin`, `grantelimeffect`, `grantchargeupeffect`, `grantemote` and `granttaunt` only gave the item; it then had to be equipped by hand.
-
-**Done when**
-- [x] Each grant command gives the item and equips it at once; if the player already owns it, it just equips it. The result says "granted, equipped" / "already owned, equipped" (or that equipping failed)
-
-**Test in Studio**
-- `grantelimeffect me <id>`: the Strikes tab shows it equipped and your next elimination uses it. Same for a skin, a charge up effect, an emote and a taunt.
-
-**Notes**
-- Sol, 2026-11-13: implement and ship lane at once (shipped before testing: in Review until Sol tests it).
-- Uses each service's own `equip...` function, so equipping saves and replicates the usual way.
 
 ## Backlog
+
+### T-180 · Use-pickup buttons in the new style (maybe)
+- **Priority:** P3
+- **Owner:** Sol → Agent
+- **Area:** Client UI
+- **Files:** `Client/UI/Gui/UsePickupButtons/` (+ its `.rbxmx`)
+
+**Problem / goal**
+The round use-pickup buttons on the left (Explosive / Teleport Boomerang, Decoy) still use the old look.
+
+**Open questions (ask Sol first)**
+- Do it at all? (Sol, 2026-11-15: "may or may not".) Could reuse T-179's round button art.
+
+**Done when**
+- [ ] To be decided with Sol
+
+**Notes**
+- Sol, 2026-11-15: added for later.
 
 ### T-176 · Console support
 - **Priority:** P2
@@ -560,6 +581,49 @@ Players enter a code to receive a reward. Server: validates the code (case-insen
 ---
 
 ## Done
+
+### T-174 · More time between the end of voting and the start of the next round
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Server (round cycle)
+- **Files:** `Server/Core/RoundCyclingService.luau`
+
+**Problem / goal**
+Add extra time between voting ending (LobbyEnded) and the next round starting.
+
+**Done when**
+- [x] LobbyEnded lasts 5 s (Sol, 2026-11-15) before the round starts
+
+**Test in Studio**
+- Let a vote finish (or vote with every player): the lobby stays for about 5 s, then everyone goes to the arena.
+
+**Notes**
+- Sol, 2026-11-12: added for tomorrow. Sol, 2026-11-15: 5 seconds.
+- The old `INTERMISSION_DURATION - VOTE_DURATION` (-40 s) made the timer already expired, so the round started on the next frame. Replaced with `LOBBY_ENDED_DURATION = 5`; `INTERMISSION_DURATION` was used nowhere else and is removed.
+- No client GUI shows the chosen gamemode during this pause (nothing reads `ChosenGamemode`), so it's a plain wait in the lobby for now.
+- Branch `agent/T-174-voting-gap`, lane `Github/Boomerang-lanes/T-174-voting-gap`.
+- Passed Sol's Studio test (2026-11-15).
+- Sol, 2026-11-15: ship lane before testing (with T-169). In Review until Sol tests it.
+
+### T-175 · Grant commands also equip what they grant
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Cmdr
+- **Files:** `Server/Cmdr/Commands/Grant{ChargeUpEffect,ElimEffect,Emote,Skin,Taunt}(Server).luau`
+
+**Problem / goal**
+`grantskin`, `grantelimeffect`, `grantchargeupeffect`, `grantemote` and `granttaunt` only gave the item; it then had to be equipped by hand.
+
+**Done when**
+- [x] Each grant command gives the item and equips it at once; if the player already owns it, it just equips it. The result says "granted, equipped" / "already owned, equipped" (or that equipping failed)
+
+**Test in Studio**
+- `grantelimeffect me <id>`: the Strikes tab shows it equipped and your next elimination uses it. Same for a skin, a charge up effect, an emote and a taunt.
+
+**Notes**
+- Sol, 2026-11-13: implement and ship lane at once (shipped before testing: in Review until Sol tests it).
+- Uses each service's own `equip...` function, so equipping saves and replicates the usual way.
+- Passed Sol's Studio test (2026-11-15).
 
 ### T-169 · "Pending Players" message in the new style
 - **Priority:** P3

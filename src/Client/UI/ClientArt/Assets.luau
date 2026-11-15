@@ -122,6 +122,16 @@ return {
 		HeaderPlank = "rbxassetid://120915292327584", -- // 459 x 76 (decal 111517629436599)
 	},
 
+	-- // StatsPanel (right-edge player list): the Settings window narrowed (middle with the arched ribbon cut out; the
+	-- // straight GamemodeHud ribbon goes over the top bar), the header plank shortened into an upright tab, and an arrow
+	-- // that turns as the panel slides (Sol approved, uploaded to the group 2026-11-15; sources in
+	-- // Projects/Boomerang/Assets/ArtPipeline/StatsUI: panel_blank, panel_tab, panel_arrow).
+	StatsPanel = {
+		Frame = "rbxassetid://98371271148761", -- // 705 x 838 (decal 134276685393421)
+		Tab = "rbxassetid://75078304874573", -- // 76 x 100 (decal 121368255228019)
+		Arrow = "rbxassetid://75363795742639", -- // 128 x 128, points left (decal 73225227994584)
+	},
+
 	-- // Daily Rewards menu: blank frame (ribbon for the title, six day cards and a tall day 7 card, made from the client's
 	-- // Stats window art) and the client's calendar icon with its number painted out (Sol approved, uploaded to the group
 	-- // 2026-11-12; sources in Projects/Boomerang/Assets/ArtPipeline/DailyUI). Close and buttons are the Quests ones.

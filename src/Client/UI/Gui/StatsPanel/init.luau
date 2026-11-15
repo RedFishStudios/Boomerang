@@ -11,7 +11,9 @@
 	- All time: every player's total elims, defeats, wins and losses (two lines per player: name, then numbers), the
 	  local player first, then the best elims-to-defeats ratio.
 
-	Built in code with CreateElement; the frame art is one image (FRAME_IMAGE, including the arrow tab and header plank).
+	Built in code with CreateElement, in the new menu style (ClientArt/Assets.StatsPanel): the wood-and-vines frame, the
+	straight red ribbon with "Stats", and an upright plank tab drawn in front of the frame, with an arrow that turns as
+	the panel slides (left: pull out, right: push away).
 	Numbers come from attributes the server puts on each Player (Shared/Constants/PlayerStatAttributes, LifetimeStatsService).
 ]]
 
@@ -31,6 +33,10 @@ local Player = Players.LocalPlayer
 local CreateElement = require(ReplicatedStorage.Shared.Utils.CreateElement)
 local PlayerStatAttributes = require(ReplicatedStorage.Shared.Constants.PlayerStatAttributes)
 local PlatformController = require(ReplicatedStorage.Client.Core.PlatformController)
+local Kit = require(ReplicatedStorage.Client.UI.ClientArt.Kit)
+local Theme = require(ReplicatedStorage.Client.UI.ClientArt.Theme)
+local Assets = require(ReplicatedStorage.Client.UI.ClientArt.Assets)
+local Art = Assets.StatsPanel
 
 -- // CreateElement also returns its cleanup list; only the instance is returned here (so it can sit in a children list)
 local function create(className: string, properties: { [string]: any }, children: { Instance }?): any
@@ -42,27 +48,32 @@ end
 -- CONSTANTS
 -------------------------------------------------------------------------------
 
-local FRAME_IMAGE = "rbxassetid://127212661618035"
-local FRAME_ASPECT_RATIO = 0.878 -- // Width / height of the frame image
+local FRAME_ASPECT_RATIO = 705 / 838 -- // Width / height of the frame image (Art.Frame)
 
 -- // Where things sit on the frame image, as fractions of its width (X) and height (Y)
-local TAB_POSITION = UDim2.fromScale(0.05, 0.31) -- // The arrow tab on the left edge
-local TAB_SIZE = UDim2.fromScale(0.14, 0.26)
-local HEADER_POSITION = UDim2.fromScale(0.37, 0.025) -- // The plank at the top
-local HEADER_SIZE = UDim2.fromScale(0.43, 0.09)
-local CONTENT_POSITION = UDim2.fromScale(0.29, 0.155) -- // The parchment
-local CONTENT_SIZE = UDim2.fromScale(0.66, 0.655)
-local CLOSED_SLIDE = 0.81 -- // When closed, the image slides right by this share of its width, leaving only the tab on screen
+local TAB_POSITION = UDim2.fromScale(0.068, 0.425) -- // In front of the left side of the frame
+local TAB_SIZE = UDim2.fromScale(0.135, 0.149) -- // The 76 x 100 tab art
+local ARROW_SIZE = 0.7 -- // Share of the tab's width
+local RIBBON_POSITION = UDim2.fromScale(0.18, 0.036) -- // Over the frame's top bar
+local RIBBON_SIZE = UDim2.fromScale(0.6, 0.094) -- // The 725 x 136 straight ribbon (GamemodeHud)
+local RIBBON_TEXT_POSITION = UDim2.fromScale(0.16, 0.12) -- // "Stats", inside the ribbon
+local RIBBON_TEXT_SIZE = UDim2.fromScale(0.68, 0.62)
+local CONTENT_POSITION = UDim2.fromScale(0.27, 0.19) -- // The parchment (x 182..523, y 145..760 of 705 x 838)
+local CONTENT_SIZE = UDim2.fromScale(0.46, 0.67)
+-- // The frame image's right part is transparent (vines and clouds end ~86% across), so when open it hangs off the
+-- // screen's right edge by this share; when closed it slides right until only the tab is on screen.
+local OPEN_X = 0.12
+local CLOSED_X = 0.79
 
-local PC_HEIGHT = 0.55 -- // Panel height as a fraction of the screen height
-local TOUCH_HEIGHT = 0.45
+local PC_HEIGHT = 0.62 -- // Panel height as a fraction of the screen height
+local TOUCH_HEIGHT = 0.5
 local SLIDE_TIME = 0.25
 
-local TEXT_COLOR = Color3.fromRGB(92, 52, 20)
-local HEADER_TEXT_COLOR = Color3.fromRGB(92, 52, 20)
-local LOCAL_ROW_COLOR = Color3.fromRGB(245, 225, 190)
-local DIVIDER_COLOR = Color3.fromRGB(150, 95, 45)
-local FONT = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+local TEXT_COLOR = Theme.Colors.Ink
+local HEADER_TEXT_COLOR = Theme.Colors.InkSoft
+local LOCAL_ROW_COLOR = Color3.fromRGB(255, 244, 214)
+local DIVIDER_COLOR = Theme.Colors.WoodDark
+local FONT = Theme.Font
 
 -- // Text sizes as a share of the panel height (cells shrink below this only if their text doesn't fit)
 local ROW_TEXT_SIZE = 0.034
@@ -131,7 +142,7 @@ local function addCells(cells: { Instance }, columns, values: { string }, top: n
 			Position = UDim2.fromScale(x, top),
 			Size = UDim2.fromScale(column.Width, height),
 			TextXAlignment = if index == 1 and firstLeft then Enum.TextXAlignment.Left else Enum.TextXAlignment.Center,
-			TextTransparency = if isHeader then 0.15 else 0,
+			TextColor3 = if isHeader then HEADER_TEXT_COLOR else TEXT_COLOR,
 		}, if isHeader then "Header" else "Row"))
 		x += column.Width
 	end
@@ -155,7 +166,7 @@ local function createRow(columns, values: { string }, order: number, isHeader: b
 			Position = UDim2.fromScale(0, 0.05),
 			Size = UDim2.fromScale(1, 0.42),
 			TextXAlignment = if isHeader then Enum.TextXAlignment.Left else Enum.TextXAlignment.Center, -- // A listing's name is centred
-			TextTransparency = if isHeader then 0.15 else 0,
+			TextColor3 = if isHeader then HEADER_TEXT_COLOR else TEXT_COLOR,
 		}, if isHeader then "Header" else "Row"))
 		addCells(cells, columns, values, 0.53, 0.42, isHeader, false)
 	else
@@ -225,31 +236,58 @@ local content = create("Frame", {
 	allTimeList,
 })
 
-local tabButton = create("TextButton", {
+-- // The arrow on the tab: points left while closed (pull out), turned to point right while open (push away)
+local tabArrow = create("ImageLabel", {
+	Name = "Arrow",
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.fromScale(0.5, 0.5),
+	Size = UDim2.fromScale(ARROW_SIZE, ARROW_SIZE),
+	SizeConstraint = Enum.SizeConstraint.RelativeXX,
+	BackgroundTransparency = 1,
+	Image = Art.Arrow,
+	ZIndex = 4,
+}) :: ImageLabel
+
+-- // In front of the frame (a child of it, with a higher ZIndex than the title and lists)
+local tabButton = create("ImageButton", {
 	Name = "Tab",
 	Position = TAB_POSITION,
 	Size = TAB_SIZE,
 	BackgroundTransparency = 1,
-	Text = "",
+	Image = Art.Tab,
 	AutoButtonColor = false,
+	ZIndex = 3,
+}, { tabArrow })
+
+-- // "Stats" on the straight red ribbon, in the menus' cream lettering
+local title = Kit.label("Stats", 40, {
+	Name = "Title",
+	Position = RIBBON_TEXT_POSITION,
+	Size = RIBBON_TEXT_SIZE,
 })
+for _, layer in title:GetChildren() do
+	if layer:IsA("TextLabel") then
+		layer.TextScaled = true
+	end
+end
+local ribbon = create("ImageLabel", {
+	Name = "Ribbon",
+	Position = RIBBON_POSITION,
+	Size = RIBBON_SIZE,
+	BackgroundTransparency = 1,
+	Image = Assets.GamemodeHud.Ribbon,
+	ZIndex = 2,
+}, { title })
 
 local frameImage = create("ImageLabel", {
 	Name = "Frame",
 	Size = UDim2.fromScale(1, 1),
-	Position = UDim2.fromScale(CLOSED_SLIDE, 0),
+	Position = UDim2.fromScale(CLOSED_X, 0),
 	BackgroundTransparency = 1,
-	Image = FRAME_IMAGE,
+	Image = Art.Frame,
 	ScaleType = Enum.ScaleType.Stretch,
 }, {
-	text({
-		Name = "Title",
-		Text = "Stats",
-		Position = HEADER_POSITION,
-		Size = HEADER_SIZE,
-		TextColor3 = HEADER_TEXT_COLOR,
-		TextTruncate = Enum.TextTruncate.None,
-	}),
+	ribbon,
 	tabButton,
 	content,
 }) :: ImageLabel
@@ -291,8 +329,9 @@ end
 
 local function setOut(out: boolean)
 	isOut = out
-	local target = UDim2.fromScale(if out then 0 else CLOSED_SLIDE, 0)
-	TweenService:Create(frameImage, TweenInfo.new(SLIDE_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Position = target }):Play()
+	local info = TweenInfo.new(SLIDE_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	TweenService:Create(frameImage, info, { Position = UDim2.fromScale(if out then OPEN_X else CLOSED_X, 0) }):Play()
+	TweenService:Create(tabArrow, info, { Rotation = if out then 180 else 0 }):Play()
 end
 
 function StatsPanelGui.toggle()
