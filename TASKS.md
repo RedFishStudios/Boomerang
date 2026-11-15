@@ -101,29 +101,6 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
-### T-169 · "Pending Players" message in the new style
-- **Priority:** P3
-- **Owner:** Agent
-- **Area:** Client UI
-- **Files:** `Client/UI/Gui/PendingPlayers/init.luau`
-
-**Problem / goal**
-The lobby's "Pending Players" message (shown while the server waits for enough players) is a plain white label. Restyle it like the new menus and results. Its `start()` also still has a debug `warn` and two `print`s to remove.
-
-**Done when**
-- [x] The red results ribbon says "Waiting for players", with "1 / 2 players" under it in the menus' cream lettering; the count follows players joining and leaving
-- [x] No debug prints
-
-**Test in Studio**
-- `GlobalConfig.PlayersRequiredToStart` is now 2 (Sol, 2026-11-15). Play solo: the ribbon slides in at the top third with "1 / 2 players". Add a second player (Test > 2 players) and it slides away when voting starts.
-
-**Notes**
-- Sol, 2026-11-12: its own task, after the death screen. Sol, 2026-11-15: also show the "1 / 2 players" count.
-- Built in code like the death screen, reusing the approved results ribbon art (no new asset). The old `PendingPlayers.rbxmx` layout is removed (it's in git history).
-- The client reads `GlobalConfig.PlayersRequiredToStart` directly (GlobalConfig is shared), so nothing extra is sent from the server.
-- Branch `agent/T-169-pending-players`, lane `Github/Boomerang-lanes/T-174-voting-gap`. Its TASKS.md edits overlap T-174's branch; merge conflicts there are board-only.
-- Sol, 2026-11-15: ship lane before testing (with T-174), and `PlayersRequiredToStart` set to 2. In Review until Sol tests it.
-
 ### T-174 · More time between the end of voting and the start of the next round
 - **Priority:** P2
 - **Owner:** Agent
@@ -583,6 +560,30 @@ Players enter a code to receive a reward. Server: validates the code (case-insen
 ---
 
 ## Done
+
+### T-169 · "Pending Players" message in the new style
+- **Priority:** P3
+- **Owner:** Agent
+- **Area:** Client UI
+- **Files:** `Client/UI/Gui/PendingPlayers/init.luau`
+
+**Problem / goal**
+The lobby's "Pending Players" message (shown while the server waits for enough players) is a plain white label. Restyle it like the new menus and results. Its `start()` also still has a debug `warn` and two `print`s to remove.
+
+**Done when**
+- [x] The red results ribbon says "Waiting for players", with "1 / 2 players" under it in the menus' cream lettering; the count follows players joining and leaving
+- [x] No debug prints
+
+**Test in Studio**
+- `GlobalConfig.PlayersRequiredToStart` is now 2 (Sol, 2026-11-15). Play solo: the ribbon slides in at the top third with "1 / 2 players". Add a second player (Test > 2 players) and it slides away when voting starts.
+
+**Notes**
+- Sol, 2026-11-12: its own task, after the death screen. Sol, 2026-11-15: also show the "1 / 2 players" count.
+- Built in code like the death screen, reusing the approved results ribbon art (no new asset). The old `PendingPlayers.rbxmx` layout is removed (it's in git history).
+- The client reads `GlobalConfig.PlayersRequiredToStart` directly (GlobalConfig is shared), so nothing extra is sent from the server.
+- Branch `agent/T-169-pending-players`, lane `Github/Boomerang-lanes/T-174-voting-gap`. Its TASKS.md edits overlap T-174's branch; merge conflicts there are board-only.
+- Sol, 2026-11-15: ship lane before testing (with T-174), and `PlayersRequiredToStart` set to 2. In Review until Sol tests it.
+- Passed Sol's Studio test (2026-11-15). `PlayersRequiredToStart` set back to 1 afterwards.
 
 ### T-177 · (Cancelled) A lone player wins the round if they're alive at the end
 - **Priority:** P2
