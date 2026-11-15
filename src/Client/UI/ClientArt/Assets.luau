@@ -132,6 +132,14 @@ return {
 		Arrow = "rbxassetid://75363795742639", -- // 128 x 128, points left (decal 73225227994584)
 	},
 
+	-- // Touch controls (CustomTouchscreen): a round button (the header plank's wood bent into a rim, cream face) behind the
+	-- // Dash, Stab and aim knob icons, and the aim stick's base ring (Sol approved, uploaded to the group 2026-11-15;
+	-- // sources in Projects/Boomerang/Assets/ArtPipeline/TouchUI: round_button, stick_base).
+	Touch = {
+		Button = "rbxassetid://78001442558690", -- // 256 x 256 (decal 121434551454695)
+		StickBase = "rbxassetid://70873377837193", -- // 512 x 512, translucent dark centre (decal 129232468214467)
+	},
+
 	-- // Daily Rewards menu: blank frame (ribbon for the title, six day cards and a tall day 7 card, made from the client's
 	-- // Stats window art) and the client's calendar icon with its number painted out (Sol approved, uploaded to the group
 	-- // 2026-11-12; sources in Projects/Boomerang/Assets/ArtPipeline/DailyUI). Close and buttons are the Quests ones.

@@ -50,26 +50,6 @@ What's wrong, or what should exist.
 
 ## Ready
 
-### T-179 · Touch controls (CustomTouchscreen) in the new style
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Client UI (mobile)
-- **Files:** `Client/UI/Gui/CustomTouchscreen/` (+ its `.rbxmx`), `Client/UI/Screens/InputScreen.luau`, `Client/UI/ClientArt/Assets.luau`
-
-**Problem / goal**
-The mobile aim stick and action buttons still use the old look. Restyle them like the new menus, with new round button art made from the client's art. Keep the behaviour and the left-handed mirror setting.
-
-**Done when**
-- [ ] Aim stick and buttons in the new style (art approved by Sol before upload); same behaviour, left-handed layout still works
-
-**Test in Studio**
-- Device emulator (phone): throw, recall, dash, stab and pickups from the buttons; switch Left-handed touch in Settings.
-
-**Notes**
-- Sol, 2026-11-15: restyle, new art allowed (Sol approves the final image before upload).
-
----
-
 ### T-173 · Review all GUIs and send the client a video
 - **Priority:** P2
 - **Owner:** Sol
@@ -119,6 +99,28 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ## In Progress
 
 ## Review
+
+### T-179 · Touch controls (CustomTouchscreen) in the new style
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client UI (mobile)
+- **Files:** `Client/UI/Gui/CustomTouchscreen/` (+ its `.rbxmx`), `Client/UI/Screens/InputScreen.luau`, `Client/UI/ClientArt/Assets.luau`
+
+**Problem / goal**
+The mobile aim stick and action buttons still use the old look. Restyle them like the new menus, with new round button art made from the client's art. Keep the behaviour and the left-handed mirror setting.
+
+**Done when**
+- [x] Aim stick and buttons in the new style (art approved by Sol before upload); same behaviour, left-handed layout still works
+
+**Test in Studio**
+- Device emulator (phone): throw, recall, dash, stab and pickups from the buttons; switch Left-handed touch in Settings.
+
+**Notes**
+- Sol, 2026-11-15: restyle, new art allowed (Sol approves the final image before upload).
+- Art (Sol approved, uploaded to the group 2026-11-15; ids in `Assets.Touch`, sources in `ArtPipeline/TouchUI`, script `_Scripts/touch.py`): a round wooden button (the header plank's grain bent into a rim, cream face) and the aim stick's wooden base ring with a translucent dark centre.
+- Done in code (`applyArt` in `CustomTouchscreen/init.luau`), not in the `.rbxmx`: the circle's grey `UIStroke` ring is turned off and the base image added; the knob, Dash and Stab get the button behind their icons, which shrink to sit inside the rim (72%, knob 80%). Behaviour, hit areas, recall mode and the left-handed mirror are unchanged.
+- The dash icon's white speed lines are less visible on the cream face than over the arena (Sol saw it in the mock-up).
+- Branch `agent/T-179-touch-controls`, lane `Github/Boomerang-lanes/T-174-voting-gap`. Not linted (Selene isn't installed here).
 
 ### T-178 · StatsPanel in the new style
 - **Priority:** P2

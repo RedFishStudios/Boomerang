@@ -23,6 +23,7 @@ local PlatformController = require(ClientMods.Core.PlatformController)
 local Icons = require(ReplicatedStorage.Shared.Constants.Icons)
 local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
 local DeadWeapons = require(ReplicatedStorage.Shared.Referential.DeadWeapons)
+local TouchArt = require(ClientMods.UI.ClientArt.Assets).Touch
 
 -- // Gui Values // --
 
@@ -357,9 +358,50 @@ function TouchscreenGui.close(Instant: boolean?)
 	Gui.Enabled = false
 end
 
+-- // New menu style (Assets.Touch): the aim circle's grey ring becomes the wooden stick base, and the knob, Dash and
+-- // Stab get the round wooden button behind their icons (the icons shrink to sit inside its rim)
+local ICON_SCALE = 0.72 -- // Dash / Stab icon size as a share of the button
+local KNOB_ICON_SCALE = 0.8 -- // The knob icon has its own white ring, so it can be a little bigger
+
+local function addArt(parent: GuiObject, image: string, zIndex: number)
+	local art = Instance.new("ImageLabel")
+	art.Name = "ButtonArt"
+	art.BackgroundTransparency = 1
+	art.AnchorPoint = Vector2.new(0.5, 0.5)
+	art.Position = UDim2.fromScale(0.5, 0.5)
+	art.Size = UDim2.fromScale(1, 1)
+	art.Image = image
+	art.ZIndex = zIndex
+	art.Parent = parent
+end
+
+local function shrinkIcon(icon: GuiObject, scale: number)
+	icon.AnchorPoint = Vector2.new(0.5, 0.5)
+	icon.Position = UDim2.fromScale(0.5, 0.5)
+	icon.Size = UDim2.fromScale(scale, scale)
+end
+
+local function applyArt()
+	local ring = aimThumbstickContainer:FindFirstChildWhichIsA("UIStroke")
+	if ring then
+		ring.Enabled = false
+	end
+	addArt(aimThumbstickContainer, TouchArt.StickBase, 0)
+	addArt(aimThumbstick, TouchArt.Button, 1)
+	shrinkIcon(aimThumbstickImage, KNOB_ICON_SCALE)
+	for _, button in { Gui.Dash, Gui.Stab } do
+		local icon = button:FindFirstChildWhichIsA("ImageLabel") -- // DashImage / StabImage (found before the art is added)
+		if icon then
+			shrinkIcon(icon, ICON_SCALE)
+		end
+		addArt(button, TouchArt.Button, 1)
+	end
+end
+
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 local function _init()
+   applyArt()
    aimThumbstickImage.Image = toImage(Icons.AimThumbstick)
    Gui.Parent = Player.PlayerGui
    Gui.ClipToDeviceSafeArea = false
