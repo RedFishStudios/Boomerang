@@ -168,6 +168,7 @@ The mobile aim stick and action buttons still use the old look. Restyle them lik
 - Sol, 2026-11-15: the touch controls only show while the player is alive in the arena (`LivingPlayersInArena`, the same check as MenuButtons), so in the lobby Roblox's own movement and jump buttons are free. Hiding mid-aim cancels the aim without throwing and ends a recall hold.
 - Sol, 2026-11-15: recall mode shows a new icon in the same style (`Assets.Touch.RecallIcon`, approved and uploaded; `_Scripts/touchrecall.py`): the up-left boomerang with a reddish-brown return arrow around it, instead of `Icons.ManualRecall`.
 - Sol, 2026-11-15: the Slash (Stab) button shows a new icon (`Assets.Touch.SlashIcon`, approved and uploaded; `_Scripts/touchslash.py`): the old icon's red flames (from `Game Assets/Boomerang/Gui/Slash.png`) with the smoothed client boomerang in front, no outline, and edge colours under the transparent pixels (no black, so no dark fringe when Roblox scales it).
+- Sol, 2026-11-15: the stick base, label board, knob boomerang and recall icon were re-saved and re-uploaded with clean edges (true colours on soft pixels, edge colours under transparent pixels instead of black, so no dark fringe when Roblox scales them; `_Scripts/unpremul.py` + `defringe.py`). The round button's clean upload is still pending.
 - Branch `agent/T-179-touch-controls`, lane `Github/Boomerang-lanes/T-174-voting-gap`. Not linted (Selene isn't installed here).
 
 ### T-178 · StatsPanel in the new style

@@ -137,10 +137,10 @@ return {
 	-- // sources in Projects/Boomerang/Assets/ArtPipeline/TouchUI: round_button, stick_base).
 	Touch = {
 		Button = "rbxassetid://78001442558690", -- // 256 x 256 (decal 121434551454695)
-		StickBase = "rbxassetid://70873377837193", -- // 512 x 512, translucent dark centre (decal 129232468214467)
-		LabelBoard = "rbxassetid://73929372926510", -- // 256 x 96, blank cream board for the button names (decal 111952143270550)
-		KnobBoomerang = "rbxassetid://102007735735821", -- // 127 x 127, the Stats Elims boomerang mirrored and tilted to point up-left (decal 140583176878721)
-		RecallIcon = "rbxassetid://89343037520076", -- // 256 x 256, the knob boomerang with a return arrow around it (decal 140465345385279)
+		StickBase = "rbxassetid://74744077755198", -- // 512 x 512, translucent dark centre (decal 71129316973804; clean edges, was 129232468214467)
+		LabelBoard = "rbxassetid://89687129699029", -- // 256 x 96, blank cream board for the button names (decal 135720838496054; clean edges, was 111952143270550)
+		KnobBoomerang = "rbxassetid://87538426578731", -- // 127 x 127, the Stats Elims boomerang mirrored and tilted to point up-left (decal 124663895153099; clean edges, was 140583176878721)
+		RecallIcon = "rbxassetid://119876740054895", -- // 256 x 256, the knob boomerang with a return arrow around it (decal 95542855519121; clean edges, was 140465345385279)
 		SlashIcon = "rbxassetid://117955200902492", -- // 512 x 512, the old Slash icon's flames with the smooth boomerang in front (decal 114618003738794)
 	},
 
