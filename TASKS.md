@@ -67,26 +67,6 @@ Go through every GUI restyled to the new style and record a video for the client
 
 ---
 
-### T-174 · More time between the end of voting and the start of the next round
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Server (round cycle)
-- **Files:** `Server/Core/RoundCyclingService.luau`
-
-**Problem / goal**
-Add extra time between voting ending (LobbyEnded) and the next round starting.
-
-**Open questions (ask Sol first)**
-- How many extra seconds? Today the gap is `INTERMISSION_DURATION - VOTE_DURATION` in `RoundCyclingService`, which is 20 - 60 = **-40 s**: the LobbyEnded timer is already over when it starts, so there is effectively no gap (worth checking how the phase actually advances).
-
-**Done when**
-- [ ] The gap after voting is longer by the agreed amount
-
-**Notes**
-- Sol, 2026-11-12: added for tomorrow.
-
----
-
 > **Urgent: instructed by Sol to do today (2026-10-03).** T-062 to T-067 come before everything else in Ready.
 
 > **Client scripter package (T-151 to T-160).** The client sent a package of taunts, elimination effects, fan trails and UI art (`Downloads/Boomerang-ScripterPackage`, with its own README). Sol's decisions (2026-11-10): port it onto **our** systems only (`PlayerDataService`, single `Currency`, `CosmeticLibrary`, `SimpleRemotes`): none of its own data code, DataStore (`PlayerStats_v1`), Gems, remotes, quests or install script. Reskin our existing GUIs with its art instead of using its code-built screens. Player-facing text never says "kill". Paid random items stay as they are for the prototype (to review before launch). Order: T-151 and T-152 first; then T-153 → T-154 (both touch `ProfileTemplate`, `CosmeticLibrary` and the Inventory); T-155 can run alongside them; the UI reskins (Backlog, T-156 to T-160) come after.
@@ -120,6 +100,27 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 
 ## Review
+
+### T-174 · More time between the end of voting and the start of the next round
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Server (round cycle)
+- **Files:** `Server/Core/RoundCyclingService.luau`
+
+**Problem / goal**
+Add extra time between voting ending (LobbyEnded) and the next round starting.
+
+**Done when**
+- [x] LobbyEnded lasts 5 s (Sol, 2026-11-15) before the round starts
+
+**Test in Studio**
+- Let a vote finish (or vote with every player): the lobby stays for about 5 s, then everyone goes to the arena.
+
+**Notes**
+- Sol, 2026-11-12: added for tomorrow. Sol, 2026-11-15: 5 seconds.
+- The old `INTERMISSION_DURATION - VOTE_DURATION` (-40 s) made the timer already expired, so the round started on the next frame. Replaced with `LOBBY_ENDED_DURATION = 5`; `INTERMISSION_DURATION` was used nowhere else and is removed.
+- No client GUI shows the chosen gamemode during this pause (nothing reads `ChosenGamemode`), so it's a plain wait in the lobby for now.
+- Branch `agent/T-174-voting-gap`, lane `Github/Boomerang-lanes/T-174-voting-gap`.
 
 ### T-175 · Grant commands also equip what they grant
 - **Priority:** P2
@@ -169,14 +170,12 @@ Make the game fully playable and navigable on console (gamepad).
 **Problem / goal**
 The lobby's "Pending Players" message (shown while the server waits for enough players) is a plain white label. Restyle it like the new menus and results. Its `start()` also still has a debug `warn` and two `print`s to remove.
 
-**Open questions (ask Sol first)**
-- Plain restyle (the menus' cream lettering, maybe on the results ribbon), or also show a count such as "1 / 2 players" (needs `PlayersRequiredToStart` sent to the client)?
-
 **Done when**
-- [ ] The message matches the new style; no debug prints
+- [ ] The message matches the new style and shows a count such as "1 / 2 players"; no debug prints
 
 **Notes**
 - Sol, 2026-11-12: its own task, after the death screen. Rarely seen while `PlayersRequiredToStart` is 1.
+- Sol, 2026-11-15: show the "1 / 2 players" count too (needs `PlayersRequiredToStart` sent to the client).
 
 > **Client package UI reskins (T-156 to T-160).** Reskin our existing GUIs with the client's art from `Downloads/Boomerang-ScripterPackage/SourceAssets/UIArtwork` (layout reference: the package's screen modules, extracted in T-152). Keep our controllers and data. Image ids are in the package's `AssetManifest.csv` (check ownership, T-152). Any art with baked-in text that says "Kill" must be redrawn or covered.
 
