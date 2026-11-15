@@ -26,6 +26,9 @@ local DeadWeapons = require(ReplicatedStorage.Shared.Referential.DeadWeapons)
 local ClientArt = require(ClientMods.UI.ClientArt.Assets)
 local TouchArt = ClientArt.Touch
 local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibrary)
+local GameplayPhases = require(ReplicatedStorage.Shared.Constants.Enums.GameplayPhases)
+local TauntLibrary = require(ReplicatedStorage.Shared.Library.TauntLibrary)
+local TauntController = require(ClientMods.Core.TauntController)
 local KNOB_ICON = TouchArt.KnobBoomerang -- // The Stats "Elims" boomerang, drawn pointing up-left (Sol, 2026-11-15)
 local Theme = require(ClientMods.UI.ClientArt.Theme)
 
@@ -59,6 +62,10 @@ end
 
 local drag
 local refreshVisibility -- // Defined below; shows the controls only while in the arena on touch
+local tauntMode = false -- // RoundEnded: the Taunt button replaces Aim, Dash and Slash
+local tauntButton: ImageButton? = nil -- // Made in _init
+local TAUNT_BUTTON_SCALE = 1.3 -- // Sol, 2026-11-15: about 30% larger than Dash / Slash
+local TAUNT_LABEL_TEXT = "Taunt"
 
 -- // MANUAL RECALL MODE: while the boomerang is dead (or flying back from a manual recall), the aim thumbstick becomes
 -- // the Manual Recall button: the knob shows Icons.ManualRecall, it doesn't aim, and holding it recalls like holding E
@@ -205,6 +212,9 @@ local function touchStarted(input, gameProcessed)
 	if input.UserInputType ~= Enum.UserInputType.Touch and input.UserInputType ~= Enum.UserInputType.MouseButton1 then
 		return
 	end
+	if tauntMode then
+		return -- // The aim stick is hidden; its circle holds the Taunt button
+	end
 	if draggingAimThumbstick then
 		return
 	end
@@ -349,6 +359,11 @@ local function layoutActionButtons()
 		dash.Position = UDim2.new(0, aimLeft - gap, dash.Position.Y.Scale, dash.Position.Y.Offset)
 		stab.Position = UDim2.new(0, aimLeft - gap - dash.AbsoluteSize.X - gap, stab.Position.Y.Scale, stab.Position.Y.Offset)
 	end
+	-- // The Taunt button sits in the middle of the aim circle, TAUNT_BUTTON_SCALE times the Dash button's size
+	if tauntButton and aimThumbstickContainer.AbsoluteSize.X > 0 then
+		local share = dash.AbsoluteSize.X * TAUNT_BUTTON_SCALE / aimThumbstickContainer.AbsoluteSize.X
+		tauntButton.Size = UDim2.fromScale(share, share)
+	end
 end
 
 -- // Touch Controls setting: left-handed players get the aim thumbstick on the left edge (mirrored)
@@ -410,8 +425,43 @@ local function isInArena(): boolean
 	return table.find(livingPlayersInArena, Player) ~= nil
 end
 
+local function isAlive(): boolean
+	local character = Player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	return humanoid ~= nil and humanoid.Health > 0
+end
+
+-- // TAUNT MODE (RoundEnded, the results phase): Aim, Dash and Slash are hidden and a Taunt button takes the aim
+-- // stick's place, styled like Dash / Slash and TAUNT_BUTTON_SCALE times their size, showing the equipped taunt's
+-- // inventory icon. It replaces Roblox's default touch button (TauntController no longer makes one).
+local function setTauntMode(enabled: boolean)
+	if enabled == tauntMode then
+		return
+	end
+	tauntMode = enabled
+	if enabled then
+		if draggingAimThumbstick and DragInput then
+			touchEnded(DragInput, false, false)
+		end
+		endRecallHold()
+	end
+	Gui.Dash.Visible = not enabled
+	Gui.Stab.Visible = not enabled
+	aimThumbstick.Visible = not enabled
+	local stickBase = aimThumbstickContainer:FindFirstChild("ButtonArt")
+	if stickBase then
+		(stickBase :: GuiObject).Visible = not enabled
+	end
+	if tauntButton then
+		tauntButton.Visible = enabled
+	end
+end
+
 function refreshVisibility()
-	local shouldShow = PlatformController.getDominantControlScheme() == "Touch" and isInArena()
+	local isRoundEnded = GameStateLibrary.getGameStateData().GameplayPhase:Get() == GameplayPhases.RoundEnded
+	local onTouch = PlatformController.getDominantControlScheme() == "Touch"
+	local shouldShow = onTouch and (if isRoundEnded then isAlive() else isInArena())
+	setTauntMode(isRoundEnded)
 	if shouldShow == TouchscreenGui.Open and Gui.Enabled == shouldShow then
 		return
 	end
@@ -467,10 +517,65 @@ local function applyArt()
 	end
 end
 
+-- // The Taunt button's icon: the equipped taunt's inventory icon (its placeholder glyph if it has no image yet)
+local function updateTauntIcon()
+	if not tauntButton then
+		return
+	end
+	local taunt = TauntLibrary.getTaunt(TauntController.getEquippedId())
+	local icon = tauntButton:FindFirstChild("TauntIcon") :: ImageLabel
+	local glyph = icon:FindFirstChild("Glyph") :: TextLabel
+	icon.Image = if taunt and taunt.Icon then toImage(taunt.Icon) else ""
+	glyph.Text = if taunt and not taunt.Icon then taunt.PlaceholderGlyph or "?" else ""
+end
+
+local function createTauntButton()
+	local button = Instance.new("ImageButton")
+	button.Name = "TauntButton"
+	button.BackgroundTransparency = 1
+	button.Image = ""
+	button.AutoButtonColor = false
+	button.AnchorPoint = Vector2.new(0.5, 0.5)
+	button.Position = UDim2.fromScale(0.5, 0.5)
+	button.SizeConstraint = Enum.SizeConstraint.RelativeXX
+	button.Size = UDim2.fromScale(0.5, 0.5) -- // Set by layoutActionButtons
+	button.Visible = false
+	button.ZIndex = 1
+	button.Parent = aimThumbstickContainer
+	addArt(button, TouchArt.Button, 1)
+	local icon = Instance.new("ImageLabel")
+	icon.Name = "TauntIcon"
+	icon.BackgroundTransparency = 1
+	icon.ScaleType = Enum.ScaleType.Fit
+	icon.ZIndex = 2
+	icon.Parent = button
+	shrinkIcon(icon, ICON_SCALE)
+	local glyph = Instance.new("TextLabel")
+	glyph.Name = "Glyph"
+	glyph.BackgroundTransparency = 1
+	glyph.Size = UDim2.fromScale(1, 1)
+	glyph.TextScaled = true
+	glyph.Text = ""
+	glyph.ZIndex = 2
+	glyph.Parent = icon
+	addBoard(button, TAUNT_LABEL_TEXT)
+	button.Activated:Connect(function()
+		if tauntMode then
+			TauntController.requestTaunt()
+		end
+	end)
+	tauntButton = button
+	updateTauntIcon()
+	TauntController.TauntEquippedTasks:Add(function()
+		updateTauntIcon()
+	end)
+end
+
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 local function _init()
    applyArt()
+   createTauntButton()
    aimThumbstickImage.Image = KNOB_ICON
    aimThumbstickImage.Rotation = KNOB_ICON_ROTATION
    Gui.Parent = Player.PlayerGui
@@ -506,7 +611,21 @@ end
 _init()
 
 function TouchscreenGui.start()
-	GameStateLibrary.getGameStateData().LivingPlayersInArena:Subscribe(refreshVisibility)
+	local gameStateData = GameStateLibrary.getGameStateData()
+	gameStateData.LivingPlayersInArena:Subscribe(refreshVisibility)
+	gameStateData.GameplayPhase:Subscribe(refreshVisibility)
+	-- // Taunt mode shows the Taunt button only to living players
+	local function watchCharacter(character: Model)
+		local humanoid = character:WaitForChild("Humanoid", 10)
+		if humanoid and humanoid:IsA("Humanoid") then
+			humanoid.Died:Connect(refreshVisibility)
+		end
+		refreshVisibility()
+	end
+	Player.CharacterAdded:Connect(watchCharacter)
+	if Player.Character then
+		task.spawn(watchCharacter, Player.Character)
+	end
 	refreshVisibility()
 end
 

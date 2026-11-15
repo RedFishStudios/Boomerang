@@ -4,7 +4,7 @@
 	Description:
 	Client side of taunts: owned and equipped taunts, equip requests, the "New taunt acquired!" popup, the Taunt input,
 	and playing taunts.
-	The input (T, gamepad Y, or a touch button) is bound only during the RoundEnded phase and asks the server
+	The input (T, gamepad Y, or the touch Taunt button in CustomTouchscreen) works only during the RoundEnded phase and asks the server
 	(RequestTaunt). TauntService answers every client with PlayTaunt(player, tauntId, skinId); each client plays it on
 	that player's visible body (CharacterRenderController's model) under Workspace.Taunts. The taunting player's own
 	client keeps their character planted for the taunt (no walking, jumping or turning).
@@ -104,7 +104,8 @@ local function onTauntInput(_actionName: string, inputState: Enum.UserInputState
 	return Enum.ContextActionResult.Pass -- // Gamepad Y is also Recall
 end
 
--- // The Taunt input exists only while taunting is possible (the RoundEnded phase), so its touch button does too
+-- // The Taunt input exists only while taunting is possible (the RoundEnded phase). No Roblox touch button: on touch,
+-- // CustomTouchscreen shows its own Taunt button (in the aim stick's place) that calls TauntController.requestTaunt.
 local function updateInputBinding(gameplayPhase: number?)
 	local shouldBind = gameplayPhase == GameplayPhases.RoundEnded
 	if shouldBind == inputBound then
@@ -112,8 +113,7 @@ local function updateInputBinding(gameplayPhase: number?)
 	end
 	inputBound = shouldBind
 	if shouldBind then
-		ContextActionService:BindAction(ACTION_NAME, onTauntInput, true, Enum.KeyCode.T, Enum.KeyCode.ButtonY)
-		ContextActionService:SetTitle(ACTION_NAME, "Taunt")
+		ContextActionService:BindAction(ACTION_NAME, onTauntInput, false, Enum.KeyCode.T, Enum.KeyCode.ButtonY)
 	else
 		ContextActionService:UnbindAction(ACTION_NAME)
 	end
@@ -129,6 +129,11 @@ end
 
 function TauntController.getEquippedId(): string
 	return TauntLibrary.getEquippedId(localPlayer)
+end
+
+-- // Asks the server to play the equipped taunt (the T key, gamepad Y, or the touch Taunt button); it checks the timing
+function TauntController.requestTaunt()
+	requestTauntRemote:FireServer()
 end
 
 --- Asks the server to equip an owned taunt. Yields; returns whether it succeeded.

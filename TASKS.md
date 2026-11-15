@@ -100,6 +100,29 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
+### T-181 · Touch Taunt button after the round
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client UI (mobile)
+- **Files:** `Client/UI/Gui/CustomTouchscreen/init.luau`, `Client/Core/TauntController/init.luau`
+
+**Problem / goal**
+After a round (RoundEnded), touch players got Roblox's default ContextActionService "Taunt" button, and our Aim / Dash / Slash stayed on screen.
+
+**Done when**
+- [x] During RoundEnded the Aim, Dash and Slash controls are hidden
+- [x] A Taunt button takes the aim stick's place: styled like Dash / Slash (wooden button, name board "Taunt"), 30% larger, showing the equipped taunt's inventory icon
+- [x] Roblox's default touch Taunt button is gone (T and gamepad Y still work)
+
+**Test in Studio**
+- Phone emulator: finish a round while alive. The aim stick, Dash and Slash disappear; a larger Taunt button with your taunt's icon appears in the aim stick's spot; pressing it plays the taunt. Equip another taunt (`granttaunt me <id>`) and check the icon changes. Left-handed touch: the button follows the aim circle.
+
+**Notes**
+- Sol, 2026-11-15: requested after the touch controls restyle (T-179); this branch is built on `agent/T-179-touch-controls` (it includes the lobby-hiding commit).
+- The button is a child of the aim circle, so it follows the left-handed mirror. Shown in RoundEnded to any player whose character is alive (the server's own rule for taunting: alive, RoundEnded, enough time left); a press outside that is simply refused by the server.
+- `TauntController.requestTaunt()` is new; `BindAction` no longer asks Roblox for a touch button.
+- Branch `agent/T-181-taunt-button`, lane `Github/Boomerang-lanes/T-174-voting-gap`. Not linted (Selene isn't installed here).
+
 ### T-179 · Touch controls (CustomTouchscreen) in the new style
 - **Priority:** P2
 - **Owner:** Agent
