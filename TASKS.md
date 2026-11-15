@@ -121,6 +121,28 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
+### T-169 · "Pending Players" message in the new style
+- **Priority:** P3
+- **Owner:** Agent
+- **Area:** Client UI
+- **Files:** `Client/UI/Gui/PendingPlayers/init.luau`
+
+**Problem / goal**
+The lobby's "Pending Players" message (shown while the server waits for enough players) is a plain white label. Restyle it like the new menus and results. Its `start()` also still has a debug `warn` and two `print`s to remove.
+
+**Done when**
+- [x] The red results ribbon says "Waiting for players", with "1 / 2 players" under it in the menus' cream lettering; the count follows players joining and leaving
+- [x] No debug prints
+
+**Test in Studio**
+- Set `GlobalConfig.PlayersRequiredToStart = 2` locally (it's 1 now, so the message never shows), play solo: the ribbon slides in at the top third with "1 / 2 players". Add a second player (Test > 2 players) and it slides away when voting starts. Put the value back afterwards.
+
+**Notes**
+- Sol, 2026-11-12: its own task, after the death screen. Sol, 2026-11-15: also show the "1 / 2 players" count.
+- Built in code like the death screen, reusing the approved results ribbon art (no new asset). The old `PendingPlayers.rbxmx` layout is removed (it's in git history).
+- The client reads `GlobalConfig.PlayersRequiredToStart` directly (GlobalConfig is shared), so nothing extra is sent from the server.
+- Branch `agent/T-169-pending-players`, lane `Github/Boomerang-lanes/T-174-voting-gap`. Its TASKS.md edits overlap T-174's branch; merge conflicts there are board-only.
+
 ### T-175 · Grant commands also equip what they grant
 - **Priority:** P2
 - **Owner:** Agent
@@ -159,24 +181,6 @@ Make the game fully playable and navigable on console (gamepad).
 
 **Notes**
 - Sol, 2026-11-13: added to the to-do list. Related: T-106 (Telekinesis: console steering) and the gamepad aim / auto-targeting stage of the boomerang curve (T-141).
-
-### T-169 · "Pending Players" message in the new style
-- **Priority:** P3
-- **Owner:** Agent
-- **Area:** Client UI
-- **Files:** `Client/UI/Gui/PendingPlayers/init.luau` (+ its `.rbxmx`)
-
-**Problem / goal**
-The lobby's "Pending Players" message (shown while the server waits for enough players) is a plain white label. Restyle it like the new menus and results. Its `start()` also still has a debug `warn` and two `print`s to remove.
-
-**Open questions (ask Sol first)**
-- Plain restyle (the menus' cream lettering, maybe on the results ribbon), or also show a count such as "1 / 2 players" (needs `PlayersRequiredToStart` sent to the client)?
-
-**Done when**
-- [ ] The message matches the new style; no debug prints
-
-**Notes**
-- Sol, 2026-11-12: its own task, after the death screen. Rarely seen while `PlayersRequiredToStart` is 1.
 
 > **Client package UI reskins (T-156 to T-160).** Reskin our existing GUIs with the client's art from `Downloads/Boomerang-ScripterPackage/SourceAssets/UIArtwork` (layout reference: the package's screen modules, extracted in T-152). Keep our controllers and data. Image ids are in the package's `AssetManifest.csv` (check ownership, T-152). Any art with baked-in text that says "Kill" must be redrawn or covered.
 
