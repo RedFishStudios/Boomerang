@@ -6,7 +6,7 @@
 	Tab slides it out and back. Always present, in the lobby and in rounds.
 
 	Contents, under the "Stats" header:
-	- This round: every player's elims and defeats (columns Name / Elims / Defeats), most elims first.
+	- This Server (this round): every player's elims and defeats (columns Name / Elims / Defeats), most elims first.
 	- A divider line.
 	- All time: every player's total elims, defeats, wins and losses (two lines per player: name, then numbers), the
 	  local player first, then the best elims-to-defeats ratio.
@@ -78,6 +78,7 @@ local FONT = Theme.Font
 -- // Text sizes as a share of the panel height (cells shrink below this only if their text doesn't fit)
 local ROW_TEXT_SIZE = 0.034
 local HEADER_TEXT_SIZE = 0.032
+local TITLE_TEXT_SIZE = 0.04 -- // Section titles ("This Server", "All Time")
 
 local ROUND_VISIBLE_ROWS = 10 -- // Listings that fit before the list scrolls
 local ALL_TIME_VISIBLE_ROWS = 6 -- // All-time listings are two lines each (name, then the numbers)
@@ -102,7 +103,8 @@ local Gui: ScreenGui -- // Set below
 
 local function getMaxTextSize(kind: string): number
 	local height = if holder then holder.AbsoluteSize.Y else 0
-	return math.max(1, math.floor(height * (if kind == "Header" then HEADER_TEXT_SIZE else ROW_TEXT_SIZE)))
+	local share = if kind == "Title" then TITLE_TEXT_SIZE elseif kind == "Header" then HEADER_TEXT_SIZE else ROW_TEXT_SIZE
+	return math.max(1, math.floor(height * share))
 end
 
 -- // kind: "Row" or "Header" (capped text size, so every cell of a kind matches), or nil (just fills its box)
@@ -160,15 +162,21 @@ end
 local function createRow(columns, values: { string }, order: number, isHeader: boolean, highlight: boolean, nameLine: string?): Instance
 	local cells = {}
 	if nameLine then
-		table.insert(cells, text({
+		local nameLabel = text({
 			Name = "Name",
 			Text = nameLine,
 			Position = UDim2.fromScale(0, 0.05),
 			Size = UDim2.fromScale(1, 0.42),
-			TextXAlignment = if isHeader then Enum.TextXAlignment.Left else Enum.TextXAlignment.Center, -- // A listing's name is centred
-			TextColor3 = if isHeader then HEADER_TEXT_COLOR else TEXT_COLOR,
-		}, if isHeader then "Header" else "Row"))
-		addCells(cells, columns, values, 0.53, 0.42, isHeader, false)
+			TextXAlignment = Enum.TextXAlignment.Center,
+			TextColor3 = TEXT_COLOR, -- // A section title ("This Server", "All Time") uses the darker ink, like listings
+		}, if isHeader then "Title" else "Row")
+		if isHeader then
+			-- // Fredoka One has no bold weight: a thin outline in the same ink thickens the title
+			create("UIStroke", { Color = TEXT_COLOR, Thickness = 1, LineJoinMode = Enum.LineJoinMode.Round, Parent = nameLabel })
+		end
+		table.insert(cells, nameLabel)
+		-- // The round header keeps "Name" left-aligned over the names
+		addCells(cells, columns, values, 0.53, 0.42, isHeader, isHeader and columns == ROUND_COLUMNS)
 	else
 		addCells(cells, columns, values, 0.1, 0.8, isHeader, true)
 	end
@@ -201,8 +209,8 @@ local function createList(name: string, order: number, height: number): Scrollin
 	}) :: ScrollingFrame
 end
 
-local roundHeaderHolder = create("Frame", { Name = "RoundHeader", LayoutOrder = 1, Size = UDim2.fromScale(1, 0.09), BackgroundTransparency = 1 })
-local roundList = createList("RoundList", 2, 0.34)
+local roundHeaderHolder = create("Frame", { Name = "RoundHeader", LayoutOrder = 1, Size = UDim2.fromScale(1, 0.12), BackgroundTransparency = 1 })
+local roundList = createList("RoundList", 2, 0.31)
 local divider = create("Frame", {
 	Name = "Divider",
 	LayoutOrder = 3,
@@ -219,7 +227,7 @@ local function fillHeader(holder: Instance, columns, nameLine: string?)
 	row.Size = UDim2.fromScale(1, 1)
 	row.Parent = holder
 end
-fillHeader(roundHeaderHolder, ROUND_COLUMNS)
+fillHeader(roundHeaderHolder, ROUND_COLUMNS, "This Server")
 fillHeader(allTimeHeaderHolder, ALL_TIME_COLUMNS, "All Time")
 
 local content = create("Frame", {

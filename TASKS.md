@@ -143,6 +143,7 @@ The StatsPanel (right-edge player list with the slide-out arrow tab) still uses 
 - Sol, 2026-11-15: the tab sits in front of the frame, is squarer, and has an arrow that turns: it points left when closed (pull out) and right when open (push away), tweened with the slide.
 - Text uses the menus' font and ink colours; "Stats" is the cream outlined lettering. The panel is now 62% of the screen height on PC (50% on touch) because the parchment is narrower than the old frame's; the frame's transparent right margin hangs off-screen when open.
 - Not linted (Selene isn't installed here): check the output for errors when it loads.
+- Sol, 2026-11-15 (after a first look): "All Time" centred, darker and bolder (same ink as the listings, thin outline, a bit bigger); a matching "This Server" title over the round list (Name stays left-aligned under it).
 
 
 ## Backlog
