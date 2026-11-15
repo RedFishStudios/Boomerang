@@ -141,6 +141,7 @@ return {
 		LabelBoard = "rbxassetid://73929372926510", -- // 256 x 96, blank cream board for the button names (decal 111952143270550)
 		KnobBoomerang = "rbxassetid://102007735735821", -- // 127 x 127, the Stats Elims boomerang mirrored and tilted to point up-left (decal 140583176878721)
 		RecallIcon = "rbxassetid://89343037520076", -- // 256 x 256, the knob boomerang with a return arrow around it (decal 140465345385279)
+		SlashIcon = "rbxassetid://117955200902492", -- // 512 x 512, the old Slash icon's flames with the smooth boomerang in front (decal 114618003738794)
 	},
 
 	-- // Daily Rewards menu: blank frame (ribbon for the title, six day cards and a tall day 7 card, made from the client's

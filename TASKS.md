@@ -113,7 +113,7 @@ Every gamemode's round lasted 10 seconds (a testing value in `ROUND_LENGTH`).
 - [x] Every round type lasts 5 minutes (`ROUND_LENGTH = 300`, shared by all gamemodes)
 
 **Test in Studio**
-- Start any round: the timer on the gamemode ribbon starts at 05:00. `forceround` / ending rounds early still work as before.
+- Start any round: the timer on the gamemode ribbon starts at 05:00. To skip ahead while testing, use the Cmdr commands `endround` or `setroundtime`.
 
 **Notes**
 - Sol, 2026-11-15: "change round timers to 5 minutes for every round type and ship lane" (shipped before testing).
@@ -167,6 +167,7 @@ The mobile aim stick and action buttons still use the old look. Restyle them lik
 - Sol, 2026-11-15: turning the boomerang 180 degrees put its shading underneath, so it is now its own image (`Assets.Touch.KnobBoomerang`, approved and uploaded): the Elims boomerang mirrored and tilted to point up-left, lit from the top-right, shown unrotated.
 - Sol, 2026-11-15: the touch controls only show while the player is alive in the arena (`LivingPlayersInArena`, the same check as MenuButtons), so in the lobby Roblox's own movement and jump buttons are free. Hiding mid-aim cancels the aim without throwing and ends a recall hold.
 - Sol, 2026-11-15: recall mode shows a new icon in the same style (`Assets.Touch.RecallIcon`, approved and uploaded; `_Scripts/touchrecall.py`): the up-left boomerang with a reddish-brown return arrow around it, instead of `Icons.ManualRecall`.
+- Sol, 2026-11-15: the Slash (Stab) button shows a new icon (`Assets.Touch.SlashIcon`, approved and uploaded; `_Scripts/touchslash.py`): the old icon's red flames (from `Game Assets/Boomerang/Gui/Slash.png`) with the smoothed client boomerang in front, no outline, and edge colours under the transparent pixels (no black, so no dark fringe when Roblox scales it).
 - Branch `agent/T-179-touch-controls`, lane `Github/Boomerang-lanes/T-174-voting-gap`. Not linted (Selene isn't installed here).
 
 ### T-178 · StatsPanel in the new style

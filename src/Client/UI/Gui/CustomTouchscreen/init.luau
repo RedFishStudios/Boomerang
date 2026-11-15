@@ -509,6 +509,9 @@ local function applyArt()
 	for button, labelText in { [Gui.Dash] = DASH_LABEL_TEXT, [Gui.Stab] = STAB_LABEL_TEXT } do
 		local icon = button:FindFirstChildWhichIsA("ImageLabel") -- // DashImage / StabImage (found before the art is added)
 		if icon then
+			if button == Gui.Stab then
+				icon.Image = TouchArt.SlashIcon -- // Sol, 2026-11-15: the new Slash icon (the old one's flames, smooth boomerang)
+			end
 			shrinkIcon(icon, ICON_SCALE)
 		end
 		addArt(button, TouchArt.Button, 1)
