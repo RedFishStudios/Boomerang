@@ -100,6 +100,25 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
+### T-182 · Rounds last 5 minutes
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared (config)
+- **Files:** `Shared/Constants/Gamemodes.luau`
+
+**Problem / goal**
+Every gamemode's round lasted 10 seconds (a testing value in `ROUND_LENGTH`).
+
+**Done when**
+- [x] Every round type lasts 5 minutes (`ROUND_LENGTH = 300`, shared by all gamemodes)
+
+**Test in Studio**
+- Start any round: the timer on the gamemode ribbon starts at 05:00. `forceround` / ending rounds early still work as before.
+
+**Notes**
+- Sol, 2026-11-15: "change round timers to 5 minutes for every round type and ship lane" (shipped before testing).
+- Branch `agent/T-182-round-length`, lane `Github/Boomerang-lanes/T-174-voting-gap`.
+
 ### T-181 · Touch Taunt button after the round
 - **Priority:** P2
 - **Owner:** Agent

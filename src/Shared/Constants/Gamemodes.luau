@@ -13,7 +13,7 @@ export type RoundType = {
    PickupsDisabled: boolean?
 }
 
-local ROUND_LENGTH = 10 -- // Seconds every round lasts (RoundCyclingService adds TimeLasts to server time in seconds)
+local ROUND_LENGTH = 300 -- // Seconds every round lasts: 5 minutes (Sol, 2026-11-15). RoundCyclingService adds TimeLasts to server time in seconds
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
