@@ -35,8 +35,9 @@ local GamemodeLogicModules = {}
 -------------------------------------------------------------------------------
 
 -- // ROUND_ENDED_DURATION: how long the RoundEnded phase lasts (winner screen, players still in the arena; not lobby time).
-local INTERMISSION_DURATION = 20
+-- // LOBBY_ENDED_DURATION: pause between voting ending (gamemode chosen) and the round starting.
 local VOTE_DURATION = 60
+local LOBBY_ENDED_DURATION = 5
 local ROUND_ENDED_DURATION = 10 -- // Long enough for a 6 s taunt (TauntLibrary.DURATION)
 
 -------------------------------------------------------------------------------
@@ -264,7 +265,7 @@ local function finishVotingAndEnterLobbyEnded()
    end
 
    local snapshot = GameStateLibrary.getSnapshot()
-   snapshot.CurrentTimerEndsAt = workspace:GetServerTimeNow() + (INTERMISSION_DURATION - VOTE_DURATION)
+   snapshot.CurrentTimerEndsAt = workspace:GetServerTimeNow() + LOBBY_ENDED_DURATION
    if intermissionData then
       local updatedIntermissionData = table.clone(intermissionData)
       updatedIntermissionData.VoteCount = table.clone(totalVotes)

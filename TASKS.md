@@ -67,26 +67,6 @@ Go through every GUI restyled to the new style and record a video for the client
 
 ---
 
-### T-174 · More time between the end of voting and the start of the next round
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Server (round cycle)
-- **Files:** `Server/Core/RoundCyclingService.luau`
-
-**Problem / goal**
-Add extra time between voting ending (LobbyEnded) and the next round starting.
-
-**Open questions (ask Sol first)**
-- How many extra seconds? Today the gap is `INTERMISSION_DURATION - VOTE_DURATION` in `RoundCyclingService`, which is 20 - 60 = **-40 s**: the LobbyEnded timer is already over when it starts, so there is effectively no gap (worth checking how the phase actually advances).
-
-**Done when**
-- [ ] The gap after voting is longer by the agreed amount
-
-**Notes**
-- Sol, 2026-11-12: added for tomorrow.
-
----
-
 > **Urgent: instructed by Sol to do today (2026-10-03).** T-062 to T-067 come before everything else in Ready.
 
 > **Client scripter package (T-151 to T-160).** The client sent a package of taunts, elimination effects, fan trails and UI art (`Downloads/Boomerang-ScripterPackage`, with its own README). Sol's decisions (2026-11-10): port it onto **our** systems only (`PlayerDataService`, single `Currency`, `CosmeticLibrary`, `SimpleRemotes`): none of its own data code, DataStore (`PlayerStats_v1`), Gems, remotes, quests or install script. Reskin our existing GUIs with its art instead of using its code-built screens. Player-facing text never says "kill". Paid random items stay as they are for the prototype (to review before launch). Order: T-151 and T-152 first; then T-153 → T-154 (both touch `ProfileTemplate`, `CosmeticLibrary` and the Inventory); T-155 can run alongside them; the UI reskins (Backlog, T-156 to T-160) come after.
@@ -142,6 +122,29 @@ The lobby's "Pending Players" message (shown while the server waits for enough p
 - Built in code like the death screen, reusing the approved results ribbon art (no new asset). The old `PendingPlayers.rbxmx` layout is removed (it's in git history).
 - The client reads `GlobalConfig.PlayersRequiredToStart` directly (GlobalConfig is shared), so nothing extra is sent from the server.
 - Branch `agent/T-169-pending-players`, lane `Github/Boomerang-lanes/T-174-voting-gap`. Its TASKS.md edits overlap T-174's branch; merge conflicts there are board-only.
+- Sol, 2026-11-15: ship lane before testing (with T-174), and `PlayersRequiredToStart` set to 2. In Review until Sol tests it.
+
+### T-174 · More time between the end of voting and the start of the next round
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Server (round cycle)
+- **Files:** `Server/Core/RoundCyclingService.luau`
+
+**Problem / goal**
+Add extra time between voting ending (LobbyEnded) and the next round starting.
+
+**Done when**
+- [x] LobbyEnded lasts 5 s (Sol, 2026-11-15) before the round starts
+
+**Test in Studio**
+- Let a vote finish (or vote with every player): the lobby stays for about 5 s, then everyone goes to the arena.
+
+**Notes**
+- Sol, 2026-11-12: added for tomorrow. Sol, 2026-11-15: 5 seconds.
+- The old `INTERMISSION_DURATION - VOTE_DURATION` (-40 s) made the timer already expired, so the round started on the next frame. Replaced with `LOBBY_ENDED_DURATION = 5`; `INTERMISSION_DURATION` was used nowhere else and is removed.
+- No client GUI shows the chosen gamemode during this pause (nothing reads `ChosenGamemode`), so it's a plain wait in the lobby for now.
+- Branch `agent/T-174-voting-gap`, lane `Github/Boomerang-lanes/T-174-voting-gap`.
+- Sol, 2026-11-15: ship lane before testing (with T-169). In Review until Sol tests it.
 
 ### T-175 · Grant commands also equip what they grant
 - **Priority:** P2
