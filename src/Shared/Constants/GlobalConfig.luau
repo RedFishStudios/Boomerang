@@ -7,7 +7,7 @@ local GlobalConfig = {
    DeathHeight = 14.207, -- // Fallback for a map without its own Config.DeathHeight
 
   --PlayersRequiredToStart = if isStudio then 1 else 2,
-  PlayersRequiredToStart = 1,
+  PlayersRequiredToStart = 2,
    
    CharacterFocalHeight = 154.902,
    SkipVoting = false,

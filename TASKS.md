@@ -135,7 +135,7 @@ The lobby's "Pending Players" message (shown while the server waits for enough p
 - [x] No debug prints
 
 **Test in Studio**
-- Set `GlobalConfig.PlayersRequiredToStart = 2` locally (it's 1 now, so the message never shows), play solo: the ribbon slides in at the top third with "1 / 2 players". Add a second player (Test > 2 players) and it slides away when voting starts. Put the value back afterwards.
+- `GlobalConfig.PlayersRequiredToStart` is now 2 (Sol, 2026-11-15). Play solo: the ribbon slides in at the top third with "1 / 2 players". Add a second player (Test > 2 players) and it slides away when voting starts.
 
 **Notes**
 - Sol, 2026-11-12: its own task, after the death screen. Sol, 2026-11-15: also show the "1 / 2 players" count.
