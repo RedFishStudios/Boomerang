@@ -20,7 +20,6 @@ local WeaponController = require(ClientMods.Core.WeaponController)
 local SettingsController = require(ClientMods.Core.SettingsController)
 local GuiMirror = require(ClientMods.UI.GuiMirror)
 local PlatformController = require(ClientMods.Core.PlatformController)
-local Icons = require(ReplicatedStorage.Shared.Constants.Icons)
 local ThrownWeapons = require(ReplicatedStorage.Shared.Referential.ThrownWeapons)
 local DeadWeapons = require(ReplicatedStorage.Shared.Referential.DeadWeapons)
 local ClientArt = require(ClientMods.UI.ClientArt.Assets)
@@ -68,7 +67,7 @@ local TAUNT_BUTTON_SCALE = 1.3 -- // Sol, 2026-11-15: about 30% larger than Dash
 local TAUNT_LABEL_TEXT = "Taunt"
 
 -- // MANUAL RECALL MODE: while the boomerang is dead (or flying back from a manual recall), the aim thumbstick becomes
--- // the Manual Recall button: the knob shows Icons.ManualRecall, it doesn't aim, and holding it recalls like holding E
+-- // the Manual Recall button: the knob shows Assets.Touch.RecallIcon, it doesn't aim, and holding it recalls like holding E
 -- // on PC.
 -- // Each mode switch pops the knob out and back.
 local POP_SCALE = 1.25 -- // Knob scale at the peak of the pop
@@ -311,7 +310,7 @@ local function setRecallMode(enabled: boolean)
 		endRecallHold()
 	end
 	aimThumbstick.Position = aimThumbstickDefaultPosition
-	aimThumbstickImage.Image = if enabled then toImage(Icons.ManualRecall) else KNOB_ICON
+	aimThumbstickImage.Image = if enabled then TouchArt.RecallIcon else KNOB_ICON
 	aimThumbstickImage.Rotation = if enabled then 0 else KNOB_ICON_ROTATION
 	setKnobLabel(if enabled then RECALL_LABEL_TEXT else AIM_LABEL_TEXT) -- // The knob's board says "Recall" (pops with the knob)
 	popKnob()
