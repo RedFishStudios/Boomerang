@@ -18,6 +18,7 @@ local GameStateLibrary = require(ReplicatedStorage.Shared.Library.GameStateLibra
 local ArenaService = require(ServerStorage.Server.Core.ArenaService)
 local SimpleRemotes = require(ReplicatedStorage.Shared.Networking.SimpleRemotes)
 local SpawnService = require(ServerStorage.Server.Core.SpawnService)
+local PlayerSessionService = require(ServerStorage.Server.Core.PlayerSessionService)
 local PlayersUtil = require(ReplicatedStorage.Shared.Utils.PlayersUtil)
 local LobbyService = require(ServerStorage.Server.Core.LobbyService)
 local GameTeamService = require(ServerStorage.Server.Core.GameTeamService)
@@ -67,6 +68,44 @@ local awaitingVotes: {Player} = {}
 -------------------------------------------------------------------------------
 -- PRIVATE FUNCTIONS
 -------------------------------------------------------------------------------
+
+-- // AFK players (the lobby's AFK toggle, PlayerSessionService opt-out) don't count towards starting a round and
+-- // don't vote (Sol, 2026-11-15)
+local function countActivePlayers(): number
+	local count = 0
+	for _, player in ipairs(game.Players:GetPlayers()) do
+		if not PlayerSessionService.isOptedOut(player) then
+			count += 1
+		end
+	end
+	return count
+end
+
+-- // Sends the current vote counts to everyone (IntermissionData.VoteCount)
+local function publishVoteCounts()
+	local intermissionData = GameStateLibrary.getGameStateData().IntermissionData:Get()
+	if intermissionData then
+		local updatedIntermissionData = table.clone(intermissionData)
+		updatedIntermissionData.VoteCount = table.clone(totalVotes)
+		GameStateLibrary.applyValues({
+			IntermissionData = updatedIntermissionData,
+		})
+	end
+end
+
+-- // Takes back a player's vote, if any, and stops voting from waiting for them
+local function withdrawVoter(player: Player)
+	local previous = votes[player]
+	if previous then
+		votes[player] = nil
+		totalVotes[previous] -= 1
+		publishVoteCounts()
+	end
+	local i = table.find(awaitingVotes, player)
+	if i then
+		table.remove(awaitingVotes, i)
+	end
+end
 
 local function getLogic(roundTypeId: string)
 	if not GamemodeLogicModules[roundTypeId] then
@@ -224,7 +263,9 @@ local function enterLobbyVoting(winnerInfo: {Type: string, UserId: number?, Team
    table.clear(votes)
    table.clear(awaitingVotes)
    for _, p in pairs(game.Players:GetPlayers()) do
-      table.insert(awaitingVotes, p)
+      if not PlayerSessionService.isOptedOut(p) then -- // Voting doesn't wait for AFK players
+         table.insert(awaitingVotes, p)
+      end
    end
 
    local snapshot = GameStateLibrary.getSnapshot()
@@ -292,7 +333,7 @@ end
 local function updateGameStateEveryFrame(_dt: number)
    local gameStateData = GameStateLibrary.getGameStateData()
    local currentPhase = gameStateData.GameplayPhase:Get()
-   local playerCount = #game.Players:GetPlayers()
+   local playerCount = countActivePlayers() -- // AFK players don't count towards PlayersRequiredToStart
    local timerEndsAt = gameStateData.CurrentTimerEndsAt:Get()
    local timerElapsed = timerEndsAt ~= nil and workspace:GetServerTimeNow() >= timerEndsAt
 
@@ -459,15 +500,33 @@ function RoundCyclingService.init()
             LivingPlayersInArena = livingPlayersInArena,
          })
       end
-      i = table.find(awaitingVotes, player)
-      if i then
-         table.remove(awaitingVotes, i)
+      withdrawVoter(player)
+   end)
+
+   -- // Going AFK takes back your vote and voting stops waiting for you; coming back during voting lets you vote again
+   PlayerSessionService.OptOutChangedTasks:Add(function(player: Player, optOut: boolean)
+      if optOut then
+         withdrawVoter(player)
+      elseif gameStateData.GameplayPhase:Get() == GameplayPhases.LobbyVoting
+         and not votes[player] and not table.find(awaitingVotes, player) then
+         table.insert(awaitingVotes, player)
       end
    end)
 
-   VoteUpdatedEvent.OnServerEvent:Connect(function(player: Player, index: number)
+   VoteUpdatedEvent.OnServerEvent:Connect(function(player: Player, index: unknown)
+      -- // Only during voting, only option 1 or 2, and never from AFK players
+      if gameStateData.GameplayPhase:Get() ~= GameplayPhases.LobbyVoting then
+         return
+      end
+      if index ~= 1 and index ~= 2 then
+         return
+      end
+      if PlayerSessionService.isOptedOut(player) then
+         return
+      end
+      local choice = index :: number
       -- same vote?
-      if votes[player] == index then
+      if votes[player] == choice then
          return
       end
 
@@ -477,21 +536,14 @@ function RoundCyclingService.init()
       end
 
       -- Record new vote
-      votes[player] = index
-      totalVotes[index] += 1
+      votes[player] = choice
+      totalVotes[choice] += 1
 
       local i = table.find(awaitingVotes, player)
       if i then
          table.remove(awaitingVotes, i)
       end
-      local intermissionData = gameStateData.IntermissionData:Get()
-      if intermissionData then
-         local updatedIntermissionData = table.clone(intermissionData)
-         updatedIntermissionData.VoteCount = table.clone(totalVotes)
-         GameStateLibrary.applyValues({
-            IntermissionData = updatedIntermissionData,
-         })
-      end
+      publishVoteCounts()
    end)
 end
 

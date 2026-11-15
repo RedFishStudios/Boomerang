@@ -77,9 +77,18 @@ local function outlined(name: string, size: number, parent: Instance, props: { [
 	return label
 end
 
+-- // Only players who aren't AFK count, like the server's PlayersRequiredToStart check (RoundCyclingService)
+local OPTED_OUT_ATTRIBUTE = "OptedOut" -- // On the Player, set by PlayerSessionService (the lobby's AFK toggle)
+
 local function updateCount()
 	if countLabel then
-		Kit.setText(countLabel, `{#Players:GetPlayers()} / {GlobalConfig.PlayersRequiredToStart} players`)
+		local active = 0
+		for _, other in Players:GetPlayers() do
+			if other:GetAttribute(OPTED_OUT_ATTRIBUTE) ~= true then
+				active += 1
+			end
+		end
+		Kit.setText(countLabel, `{active} / {GlobalConfig.PlayersRequiredToStart} players`)
 	end
 end
 
@@ -201,7 +210,14 @@ end
 local function _init()
 	build()
 	-- // PlayerRemoving fires before the player leaves the list, so count on the next frame
-	Players.PlayerAdded:Connect(updateCount)
+	local function watch(other: Player)
+		other:GetAttributeChangedSignal(OPTED_OUT_ATTRIBUTE):Connect(updateCount)
+		updateCount()
+	end
+	Players.PlayerAdded:Connect(watch)
+	for _, other in Players:GetPlayers() do
+		watch(other)
+	end
 	Players.PlayerRemoving:Connect(function()
 		task.defer(updateCount)
 	end)

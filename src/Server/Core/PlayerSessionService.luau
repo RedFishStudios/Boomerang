@@ -6,6 +6,7 @@
 	- OptOut: the player doesn't take part in rounds. They aren't added to a round when it starts and
 	  can't (re)spawn into one. Players set it themselves with the AFK toggle in the lobby menu (SetOptOut remote,
 	  MenuButtons); the current value is mirrored on the Player as the `OptedOut` attribute for the toggle.
+	  Opted-out players also don't count towards PlayersRequiredToStart and can't vote (RoundCyclingService).
 	  Cmdr: `optout`.
 ]]
 
