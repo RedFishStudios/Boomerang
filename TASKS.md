@@ -80,26 +80,6 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## In Progress
 
-### T-180 · Use-pickup icons with the smooth boomerang (Explosive, Teleport)
-- **Priority:** P3
-- **Owner:** Agent
-- **Area:** Art, Shared (icons)
-- **Files:** `Shared/Constants/Icons.luau`
-
-**Problem / goal**
-The Explosive and Teleport Boomerang use-button icons still show the old, detailed boomerang. Redo them like the Slash icon: keep each icon's effect and put the smooth client boomerang in front, with clean edges.
-
-**Done when**
-- [x] Teleport Boomerang (approved and uploaded)
-- [ ] Explosive Boomerang: needs its source image (only the 220 px in-game version exists; Sol to save it as `Game Assets/Boomerang/Gui/Icons_ExplosiveBoomerang.png`)
-
-**Test in Studio**
-- Pick up a Teleport Boomerang: its use button (and the pickup effect icon) shows the new icon.
-
-**Notes**
-- Sol, 2026-11-15: Explosive and Teleport only, done like the Slash icon. Teleport: the jagged electric swirl was replaced by one ring of four smooth swirl strokes in the same style (white core, cyan, blue, dark blue outline; no overlapping layers), and the boomerang got a blue glow. `Icons.TeleportBoomerang` is now 121249333362423 (decal 72226517463965; source `ArtPipeline/PickupsUI/teleport_boomerang.png`); it is also the icon wherever the pickup shows (AcquirableThingData).
-- Branch `agent/T-180-pickup-icons`, lane `Github/Boomerang-lanes/T-174-voting-gap`.
-
 ## Backlog
 
 ### T-176 · Console support
@@ -518,6 +498,28 @@ Players enter a code to receive a reward. Server: validates the code (case-insen
 ---
 
 ## Done
+
+### T-180 · Use-pickup icons with the smooth boomerang (Explosive, Teleport)
+- **Priority:** P3
+- **Owner:** Agent
+- **Area:** Art, Shared (icons)
+- **Files:** `Shared/Constants/Icons.luau`
+
+**Problem / goal**
+The Explosive and Teleport Boomerang use-button icons still show the old, detailed boomerang. Redo them like the Slash icon: keep each icon's effect and put the smooth client boomerang in front, with clean edges.
+
+**Done when**
+- [x] Teleport Boomerang (approved and uploaded)
+- [x] Explosive Boomerang (approved and uploaded)
+
+**Test in Studio**
+- Pick up a Teleport Boomerang: its use button (and the pickup effect icon) shows the new icon.
+
+**Notes**
+- Sol, 2026-11-15: Explosive and Teleport only, done like the Slash icon. Teleport: the jagged electric swirl was replaced by one ring of four smooth swirl strokes in the same style (white core, cyan, blue, dark blue outline; no overlapping layers), and the boomerang got a blue glow. `Icons.TeleportBoomerang` is now 121249333362423 (decal 72226517463965; source `ArtPipeline/PickupsUI/teleport_boomerang.png`); it is also the icon wherever the pickup shows (AcquirableThingData).
+- Explosive: its source turned out to be misnamed `Game Assets/Boomerang/Gui/Icons_ElectricBoomerang.png` (the electric one is `Icon_ElectricBoomerang.png`). The old boomerang was masked with the Teleport icon's mask (same drawing, aligned by the gem) and replaced by `ArtPipeline/Shared/boomerang_hd.png`, a best-effort 8x upscale of the smooth boomerang (`_Scripts/boomerang_hd.py`), stored for reuse. `Icons.ExplosiveBoomerang` is now 107779419317943 (decal 121733111372643; source `ArtPipeline/PickupsUI/explosive_boomerang.png`).
+- Branch `agent/T-180-pickup-icons`, lane `Github/Boomerang-lanes/T-174-voting-gap`.
+- Done (Sol, 2026-11-15).
 
 ### T-187 · New Shark Attack icon
 - **Priority:** P2
