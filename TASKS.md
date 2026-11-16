@@ -121,6 +121,7 @@ Show how long voting has left: floating text under the vote window, in the same 
 - Sol, 2026-11-15: the X button no longer hides the whole window: it slides up until only "Voting ends in N" stays on screen (tucked for the rest of that vote; vote count updates don't bring it back, and it stops freeing the mouse). Ship lane right away.
 - Sol, 2026-11-15: voting also tucks the window; tapping or clicking the countdown while tucked brings the whole window back (to change the vote). Tucking and untucking ease smoothly into place with no overshoot (Quad Out, 0.35 s). Ship lane right away.
 - Sol, 2026-11-15: tucking now winds up slightly downwards, then shoots up and stops exactly at the tucked position (Back In, 0.45 s); untucking stays smooth (Quad Out). In a solo test, your vote ends voting at once (everyone has voted), so the window closes fully instead of tucking: test tucking with the X, or with a second player who hasn't voted.
+- Sol, 2026-11-15: voting never ends early any more: it always runs its full timer, even once everyone has voted (only a forced next gamemode ends it early), so voting tucks the window to its countdown like the X does, solo included (`RoundCyclingService`).
 - Branch `agent/T-184-vote-countdown`, lane `Github/Boomerang-lanes/T-174-voting-gap`. Not linted (Selene isn't installed here).
 
 ### T-183 · AFK players don't count to start a round and don't vote
@@ -138,12 +139,13 @@ Players with the lobby's AFK toggle on still counted towards `PlayersRequiredToS
 
 **Test in Studio**
 - Set `PlayersRequiredToStart = 2` locally and start a 2-player test. One player turns AFK on: the round doesn't start and the message shows "1 / 2 players". Turning AFK off starts voting.
-- With 2 required and 3 players, one AFK: once the other two vote, voting ends early. The AFK player sees no vote window. Turning AFK on after voting takes the vote back (the count drops); turning it off during voting shows the window again.
+- With 2 required and 3 players, one AFK: The AFK player sees no vote window. Turning AFK on after voting takes the vote back (the count drops); turning it off during voting shows the window again.
 
 **Notes**
 - Sol, 2026-11-15.
 - AFK is `PlayerSessionService`'s opt-out (the `OptedOut` attribute). Going AFK mid-vote withdraws the vote; coming back during voting adds the player back to the voters voting waits for.
 - The vote remote now also ignores votes outside voting and any value other than 1 or 2.
+- 2026-11-15 (T-184): voting no longer ends early when everyone has voted, so "voting doesn't wait for AFK players" only matters for the AFK checks themselves now; AFK players still can't vote.
 - Mid-round, going AFK still doesn't end the round (only the lobby phases check the count).
 - Branch `agent/T-183-afk-rounds`, lane `Github/Boomerang-lanes/T-174-voting-gap`. Not linted (Selene isn't installed here).
 

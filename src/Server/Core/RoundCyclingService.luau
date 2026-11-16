@@ -59,7 +59,7 @@ local VoteUpdatedEvent = SimpleRemotes.getEvent("VoteUpdated")
 
 local votes: {[Player]: number} = {}
 local totalVotes = {0, 0}
-local awaitingVotes: {Player} = {}
+local awaitingVotes: {Player} = {} -- // Non-AFK players who haven't voted yet (bookkeeping only: voting runs its full timer)
 
 -------------------------------------------------------------------------------
 -- PUBLIC VARIABLES
@@ -359,7 +359,9 @@ local function updateGameStateEveryFrame(_dt: number)
          enterLobbyVoting(intermissionData and intermissionData.WinnerInfo)
       end
    elseif currentPhase == GameplayPhases.LobbyVoting then
-      if timerElapsed or #awaitingVotes == 0 or nextGamemode ~= nil then
+      -- // Voting always runs its full timer, even once everyone has voted (Sol, 2026-11-15: the vote window tucks to
+      -- // its countdown after voting); only a forced next gamemode ends it early
+      if timerElapsed or nextGamemode ~= nil then
          finishVotingAndEnterLobbyEnded()
       end
    elseif currentPhase == GameplayPhases.LobbyEnded then
