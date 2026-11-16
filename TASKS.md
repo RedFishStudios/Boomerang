@@ -80,25 +80,27 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## In Progress
 
-## Backlog
-
-### T-180 · Use-pickup buttons in the new style (maybe)
+### T-180 · Use-pickup icons with the smooth boomerang (Explosive, Teleport)
 - **Priority:** P3
-- **Owner:** Sol → Agent
-- **Area:** Client UI
-- **Files:** `Client/UI/Gui/UsePickupButtons/` (+ its `.rbxmx`)
+- **Owner:** Agent
+- **Area:** Art, Shared (icons)
+- **Files:** `Shared/Constants/Icons.luau`
 
 **Problem / goal**
-The round use-pickup buttons on the left (Explosive / Teleport Boomerang, Decoy) still use the old look.
-
-**Open questions (ask Sol first)**
-- Do it at all? (Sol, 2026-11-15: "may or may not".) Could reuse T-179's round button art.
+The Explosive and Teleport Boomerang use-button icons still show the old, detailed boomerang. Redo them like the Slash icon: keep each icon's effect and put the smooth client boomerang in front, with clean edges.
 
 **Done when**
-- [ ] To be decided with Sol
+- [x] Teleport Boomerang (approved and uploaded)
+- [ ] Explosive Boomerang: needs its source image (only the 220 px in-game version exists; Sol to save it as `Game Assets/Boomerang/Gui/Icons_ExplosiveBoomerang.png`)
+
+**Test in Studio**
+- Pick up a Teleport Boomerang: its use button (and the pickup effect icon) shows the new icon.
 
 **Notes**
-- Sol, 2026-11-15: added for later.
+- Sol, 2026-11-15: Explosive and Teleport only, done like the Slash icon. Teleport: the jagged electric swirl was replaced by one ring of four smooth swirl strokes in the same style (white core, cyan, blue, dark blue outline; no overlapping layers), and the boomerang got a blue glow. `Icons.TeleportBoomerang` is now 121249333362423 (decal 72226517463965; source `ArtPipeline/PickupsUI/teleport_boomerang.png`); it is also the icon wherever the pickup shows (AcquirableThingData).
+- Branch `agent/T-180-pickup-icons`, lane `Github/Boomerang-lanes/T-174-voting-gap`.
+
+## Backlog
 
 ### T-176 · Console support
 - **Priority:** P2

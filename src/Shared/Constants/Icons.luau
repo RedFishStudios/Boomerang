@@ -38,7 +38,7 @@ return {
 	ElectricBoomerang = 136469809434197,
 	ExplosiveBoomerang = 98510163856303,
 	FireBoomerang = 83181687488794,
-	TeleportBoomerang = 113756730038308,
+	TeleportBoomerang = 121249333362423, -- // Our own icon (Sol approved, uploaded to the group 2026-11-15; decal 72226517463965; source ArtPipeline/PickupsUI/teleport_boomerang.png): smooth swirl strokes, the client boomerang with a blue glow. Was 113756730038308
 	DisguisePickup = 110455057830397,
 	HomingBoomerang = 96446271835879,
 	OnFireEffect = 118956710558189,
