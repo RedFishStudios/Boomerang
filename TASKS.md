@@ -100,6 +100,29 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
+### T-186 · "New round in N" between voting and the round
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client UI
+- **Files:** `Client/UI/Gui/GameAboutToStart/init.luau` (new), `Client/UI/Gui/Voting/init.luau`
+
+**Problem / goal**
+When voting ends, the vote window should vanish at once, and a new "GameAboutToStart" screen should count down to the round.
+
+**Done when**
+- [x] When voting ends, the vote window (and its countdown) is switched off instantly, with no animation
+- [x] GameAboutToStart: only text in the middle of the screen, "New round in" with the seconds beneath in double-size lettering
+- [x] Each new second pops: the number quickly grows large, then shrinks back to its normal size
+
+**Test in Studio**
+- Let voting run out: the vote window vanishes and "New round in 5" appears in the middle, popping on 5, 4, 3, 2, 1, 0; it disappears when the round starts.
+
+**Notes**
+- Sol, 2026-11-15: "ship lane when done" (shipped before testing).
+- Built in code like PendingPlayers (cream outlined Kit lettering, 48 / 96 px on a 900 px canvas scaled with the screen). Shown during GameplayPhases.LobbyEnded, counting down CurrentTimerEndsAt. Pop: UIScale 1 -> 1.8 in 0.08 s (Quad Out), then back to 1 in 0.28 s (Quad In), centred on the number.
+- The vote window still slides away (not instantly) when a player turns AFK mid-vote.
+- Branch `agent/T-186-round-countdown`, lane `Github/Boomerang-lanes/T-174-voting-gap`. Not linted (Selene isn't installed here).
+
 ### T-185 · Voting lasts 30 seconds
 - **Priority:** P2
 - **Owner:** Agent

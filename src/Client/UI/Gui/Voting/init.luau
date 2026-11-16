@@ -299,7 +299,9 @@ local function refreshUi(snapshot)
 	-- // AFK players (the lobby's AFK toggle) don't vote: the window stays hidden for them
 	local isAfk = player:GetAttribute(OPTED_OUT_ATTRIBUTE) == true
 	if not isVoting or isAfk or not options or not voteCount or #options < 2 then
-		VotingGui.close()
+		-- // Voting over: switched off at once, timer included (Sol, 2026-11-15: GameAboutToStart takes over); going AFK
+		-- // mid-vote still slides it away
+		VotingGui.close(not isVoting)
 		return
 	end
 
