@@ -5,17 +5,16 @@ The task board: every feature, fix and cleanup. See [CLAUDE.md](CLAUDE.md) for h
 ## How to use this board
 
 - **Status is the section a task sits in.** To change it, move the whole task block to another section.
-  `Ready` → `In Progress` → `Review` → `Done`. `Backlog` holds ideas that aren't ready to start.
+  `Ready` → `In Progress` → `Done`. `Backlog` holds ideas that aren't ready to start. There is no testing stage: a finished task goes straight to `Done` (Sol, 2026-11-15).
 - **Adding a task:** first **reserve** the next free ID (`T-###`) on `main` in the home repo ([docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md#2-reserve-a-task-id-before-adding-any-new-task)), then copy the template below into `Backlog` or `Ready` in your lane with that ID.
 - **Priority:** `P0` breaks the game or blocks the current milestone · `P1` needed for the current milestone · `P2` nice to have.
 - **Owner:** `Agent` (an agent can do it), `Sol` (design decisions or assets only Sol can provide), or `Sol → Agent` (Sol decides first, then an agent implements).
 - **Agents:**
   - Only pick up tasks in `Ready` whose Owner is `Agent`, or `Sol → Agent` once Sol has answered its questions.
   - If a task has **Open questions**, ask Sol before starting.
-  - Move the task to `In Progress` when you start, and to `Review` when you're done.
-  - Fill in **Notes** with what changed, what still needs testing in Studio, and any `TODO:RELEASE placeholder` values you added.
-  - When moving a task to `Review`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
-  - **Moving tasks to `Done` is the agent's job, not Sol's.** When Sol reports that a task passed testing in Studio, move it to `Done` and add a short note (e.g. "Passed Sol's Studio test (date)"). Never move a task to `Done` on your own judgment, before Sol has tested it.
+  - Move the task to `In Progress` when you start, and to `Done` when you're done.
+  - Fill in **Notes** with what changed, what to check in Studio, and any `TODO:RELEASE placeholder` values you added.
+  - When moving a task to `Done`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
 
 **Next free ID: T-188**
 
@@ -50,23 +49,6 @@ What's wrong, or what should exist.
 
 ## Ready
 
-### T-173 · Review all GUIs and send the client a video
-- **Priority:** P2
-- **Owner:** Sol
-- **Area:** Review
-
-**Problem / goal**
-Go through every GUI restyled to the new style and record a video for the client.
-
-**Done when**
-- [ ] Every new-style GUI reviewed in Studio
-- [ ] Video sent to the client
-
-**Notes**
-- Sol, 2026-11-12: Sol's task. Restyled today: shops, lobby menu tiles (Daily / Settings), vote window, Daily Rewards, Settings, item acquired popups, end-of-round results (+ countdown), death screen, gamemode / timer ribbon, elimination feed.
-
----
-
 > **Urgent: instructed by Sol to do today (2026-10-03).** T-062 to T-067 come before everything else in Ready.
 
 > **Client scripter package (T-151 to T-160).** The client sent a package of taunts, elimination effects, fan trails and UI art (`Downloads/Boomerang-ScripterPackage`, with its own README). Sol's decisions (2026-11-10): port it onto **our** systems only (`PlayerDataService`, single `Currency`, `CosmeticLibrary`, `SimpleRemotes`): none of its own data code, DataStore (`PlayerStats_v1`), Gems, remotes, quests or install script. Reskin our existing GUIs with its art instead of using its code-built screens. Player-facing text never says "kill". Paid random items stay as they are for the prototype (to review before launch). Order: T-151 and T-152 first; then T-153 → T-154 (both touch `ProfileTemplate`, `CosmeticLibrary` and the Inventory); T-155 can run alongside them; the UI reskins (Backlog, T-156 to T-160) come after.
@@ -97,70 +79,6 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 ---
 
 ## In Progress
-
-## Review
-
-### T-187 · New Shark Attack icon
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Art, Shared (data)
-- **Files:** `Shared/Referential/ElimEffects.luau`
-
-**Problem / goal**
-The Shark Attack elimination effect's icon (from the client's package) didn't look like a shark.
-
-**Done when**
-- [x] A new icon that clearly reads as a shark, in the flat style of the other item icons (approved by Sol before upload)
-
-**Test in Studio**
-- Inventory > Strikes (and the Cosmetics shop): the Shark Attack card shows the new shark rising from flat blue water, jaws up.
-
-**Notes**
-- Sol, 2026-11-15: side view, jaws wide open pointing straight up, out of a flat water circle; flat 2D-vector colours with no shading; a cream-white outline like the taunt icons.
-- Rendered from the client's own shark model (`SharkKit/boomerang-shark.blend`, the one the effect uses) with headless Blender (Workbench, flat colours), cut at the waterline; post-processed with the art scripts (`_Scripts/shark_*.py`, README). Uploaded to the group (decal 96535314650071, image 73017135002229); source `ArtPipeline/ElimEffectsUI/shark_attack.png`.
-- Branch `agent/T-187-shark-icon`, lane `Github/Boomerang-lanes/T-174-voting-gap`.
-
-### T-186 · "New round in N" between voting and the round
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Client UI
-- **Files:** `Client/UI/Gui/GameAboutToStart/init.luau` (new), `Client/UI/Gui/Voting/init.luau`
-
-**Problem / goal**
-When voting ends, the vote window should vanish at once, and a new "GameAboutToStart" screen should count down to the round.
-
-**Done when**
-- [x] When voting ends, the vote window (and its countdown) is switched off instantly, with no animation
-- [x] GameAboutToStart: only text in the middle of the screen, "New round in" with the seconds beneath in double-size lettering
-- [x] Each new second pops: the number quickly grows large, then shrinks back to its normal size
-
-**Test in Studio**
-- Let voting run out: the vote window vanishes and "New round in 5" appears in the middle, popping on 5, 4, 3, 2, 1, 0; it disappears when the round starts.
-
-**Notes**
-- Sol, 2026-11-15: "ship lane when done" (shipped before testing).
-- Built in code like PendingPlayers (cream outlined Kit lettering, 48 / 96 px on a 900 px canvas scaled with the screen). Shown during GameplayPhases.LobbyEnded, counting down CurrentTimerEndsAt. Pop: UIScale 1 -> 1.8 in 0.08 s (Quad Out), then back to 1 in 0.28 s (Quad In), centred on the number.
-- The vote window still slides away (not instantly) when a player turns AFK mid-vote.
-- Branch `agent/T-186-round-countdown`, lane `Github/Boomerang-lanes/T-174-voting-gap`. Not linted (Selene isn't installed here).
-
-### T-185 · Voting lasts 30 seconds
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Server (round cycle)
-- **Files:** `Server/Core/RoundCyclingService.luau`
-
-**Problem / goal**
-Voting lasted 60 seconds, and since T-184 it always runs its full time.
-
-**Done when**
-- [x] Voting lasts 30 seconds (`VOTE_DURATION = 30`)
-
-**Test in Studio**
-- Wait for voting: "Voting ends in 30" counts down, then the 5 s pause and the round.
-
-**Notes**
-- Sol, 2026-11-15: "shorten voting to last 30 seconds and ship lane immediately" (shipped before testing).
-- Branch `agent/T-185-vote-length`, lane `Github/Boomerang-lanes/T-174-voting-gap`.
 
 ## Backlog
 
@@ -599,6 +517,87 @@ Players enter a code to receive a reward. Server: validates the code (case-insen
 
 ## Done
 
+### T-187 · New Shark Attack icon
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Art, Shared (data)
+- **Files:** `Shared/Referential/ElimEffects.luau`
+
+**Problem / goal**
+The Shark Attack elimination effect's icon (from the client's package) didn't look like a shark.
+
+**Done when**
+- [x] A new icon that clearly reads as a shark, in the flat style of the other item icons (approved by Sol before upload)
+
+**Test in Studio**
+- Inventory > Strikes (and the Cosmetics shop): the Shark Attack card shows the new shark rising from flat blue water, jaws up.
+
+**Notes**
+- Sol, 2026-11-15: side view, jaws wide open pointing straight up, out of a flat water circle; flat 2D-vector colours with no shading; a cream-white outline like the taunt icons.
+- Rendered from the client's own shark model (`SharkKit/boomerang-shark.blend`, the one the effect uses) with headless Blender (Workbench, flat colours), cut at the waterline; post-processed with the art scripts (`_Scripts/shark_*.py`, README). Uploaded to the group (decal 96535314650071, image 73017135002229); source `ArtPipeline/ElimEffectsUI/shark_attack.png`.
+- Branch `agent/T-187-shark-icon`, lane `Github/Boomerang-lanes/T-174-voting-gap`.
+- Done (Sol, 2026-11-15).
+
+### T-186 · "New round in N" between voting and the round
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client UI
+- **Files:** `Client/UI/Gui/GameAboutToStart/init.luau` (new), `Client/UI/Gui/Voting/init.luau`
+
+**Problem / goal**
+When voting ends, the vote window should vanish at once, and a new "GameAboutToStart" screen should count down to the round.
+
+**Done when**
+- [x] When voting ends, the vote window (and its countdown) is switched off instantly, with no animation
+- [x] GameAboutToStart: only text in the middle of the screen, "New round in" with the seconds beneath in double-size lettering
+- [x] Each new second pops: the number quickly grows large, then shrinks back to its normal size
+
+**Test in Studio**
+- Let voting run out: the vote window vanishes and "New round in 5" appears in the middle, popping on 5, 4, 3, 2, 1, 0; it disappears when the round starts.
+
+**Notes**
+- Sol, 2026-11-15: "ship lane when done" (shipped before testing).
+- Built in code like PendingPlayers (cream outlined Kit lettering, 48 / 96 px on a 900 px canvas scaled with the screen). Shown during GameplayPhases.LobbyEnded, counting down CurrentTimerEndsAt. Pop: UIScale 1 -> 1.8 in 0.08 s (Quad Out), then back to 1 in 0.28 s (Quad In), centred on the number.
+- The vote window still slides away (not instantly) when a player turns AFK mid-vote.
+- Branch `agent/T-186-round-countdown`, lane `Github/Boomerang-lanes/T-174-voting-gap`. Not linted (Selene isn't installed here).
+- Done (Sol, 2026-11-15).
+
+### T-185 · Voting lasts 30 seconds
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Server (round cycle)
+- **Files:** `Server/Core/RoundCyclingService.luau`
+
+**Problem / goal**
+Voting lasted 60 seconds, and since T-184 it always runs its full time.
+
+**Done when**
+- [x] Voting lasts 30 seconds (`VOTE_DURATION = 30`)
+
+**Test in Studio**
+- Wait for voting: "Voting ends in 30" counts down, then the 5 s pause and the round.
+
+**Notes**
+- Sol, 2026-11-15: "shorten voting to last 30 seconds and ship lane immediately" (shipped before testing).
+- Branch `agent/T-185-vote-length`, lane `Github/Boomerang-lanes/T-174-voting-gap`.
+- Done (Sol, 2026-11-15).
+
+### T-173 · Review all GUIs and send the client a video
+- **Priority:** P2
+- **Owner:** Sol
+- **Area:** Review
+
+**Problem / goal**
+Go through every GUI restyled to the new style and record a video for the client.
+
+**Done when**
+- [ ] Every new-style GUI reviewed in Studio
+- [ ] Video sent to the client
+
+**Notes**
+- Sol, 2026-11-12: Sol's task. Restyled today: shops, lobby menu tiles (Daily / Settings), vote window, Daily Rewards, Settings, item acquired popups, end-of-round results (+ countdown), death screen, gamemode / timer ribbon, elimination feed.
+- Done (Sol, 2026-11-15: video sent to the client).
+
 ### T-184 · "Voting ends in N" countdown under the vote window
 - **Priority:** P2
 - **Owner:** Agent
@@ -748,6 +747,7 @@ The StatsPanel (right-edge player list with the slide-out arrow tab) still uses 
 - Text uses the menus' font and ink colours; "Stats" is the cream outlined lettering. The panel is now 62% of the screen height on PC (50% on touch) because the parchment is narrower than the old frame's; the frame's transparent right margin hangs off-screen when open.
 - Not linted (Selene isn't installed here): check the output for errors when it loads.
 - Sol, 2026-11-15 (after a first look): "All Time" centred, darker and bolder (same ink as the listings, thin outline, a bit bigger); a matching "This Server" title over the round list (Name stays left-aligned under it).
+- Sol, 2026-11-15: the arrow and frame were re-saved and re-uploaded with clean edges (no dark fringe when Roblox scales them; `_Scripts/unpremul.py` + `defringe.py`). The tab was already clean.
 - Passed Sol's Studio test (2026-11-15).
 
 ### T-174 · More time between the end of voting and the start of the next round

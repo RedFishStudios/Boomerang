@@ -52,13 +52,13 @@ This reservation commit is the **only** commit an agent may make on `main` witho
 
 Edit, run checks and commit in the lane, as usual. Keep the task's Notes current: branch, lane folder, what changed, what to test in Studio.
 
-## 4. Hand back for testing
+## 4. Hand back
 
 ```sh
 git push home agent/<lane>
 ```
 
-The branch appears in the home repo (and in GitHub Desktop). Move the task to `Review` with the branch and lane in its Notes, and add the client-facing line to the home repo's `Commits.txt`. Push again after any later commits.
+The branch appears in the home repo (and in GitHub Desktop). Move the task to `Done` with the branch and lane in its Notes, and add the client-facing line to the home repo's `Commits.txt`. Push again after any later commits.
 
 How Sol can test a branch:
 - In GitHub Desktop, switch the home repo to the branch, test, then switch back to `main`. (Agents can't ship lane while the home repo is on another branch.)
@@ -69,7 +69,7 @@ How Sol can test a branch:
 Only when Sol says "ship lane" for this branch (see CLAUDE.md for exactly what counts).
 
 1. In the lane: `git fetch home && git merge -m "Merged branch changes to main" home/main` (always this message, and nothing else appended). Resolve any conflicts in the lane and commit. For the `Next free ID` line, keep the highest number.
-2. If you resolved conflicts or changed code, say so. Sol tested the branch before the merge-in; a non-trivial conflict resolution is worth a re-test. Ask before going on if it touched game code.
+2. If you resolved conflicts or changed code, say so: a non-trivial conflict resolution is worth Sol checking in Studio. Ask before going on if it touched game code.
 3. `git push home agent/<lane>`.
 4. In the home repo, check it's on `main` and clean (as in step 2.1). If not, stop and tell Sol.
 5. `git merge --ff-only agent/<lane>`. If it refuses because `main` moved, go back to step 1.

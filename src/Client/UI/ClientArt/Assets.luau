@@ -127,9 +127,9 @@ return {
 	-- // that turns as the panel slides (Sol approved, uploaded to the group 2026-11-15; sources in
 	-- // Projects/Boomerang/Assets/ArtPipeline/StatsUI: panel_blank, panel_tab, panel_arrow).
 	StatsPanel = {
-		Frame = "rbxassetid://98371271148761", -- // 705 x 838 (decal 134276685393421)
+		Frame = "rbxassetid://118498938792396", -- // 705 x 838 (decal 72274809051654; clean edges, was 134276685393421)
 		Tab = "rbxassetid://75078304874573", -- // 76 x 100 (decal 121368255228019)
-		Arrow = "rbxassetid://75363795742639", -- // 128 x 128, points left (decal 73225227994584)
+		Arrow = "rbxassetid://86798636311953", -- // 128 x 128, points left (decal 114407294029994; clean edges, was 73225227994584)
 	},
 
 	-- // Touch controls (CustomTouchscreen): a round button (the header plank's wood bent into a rim, cream face) behind the
