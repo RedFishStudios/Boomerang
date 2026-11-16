@@ -100,151 +100,24 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
-### T-184 · "Voting ends in N" countdown under the vote window
+### T-185 · Voting lasts 30 seconds
 - **Priority:** P2
 - **Owner:** Agent
-- **Area:** Client UI
-- **Files:** `Client/UI/Gui/Voting/init.luau`
+- **Area:** Server (round cycle)
+- **Files:** `Server/Core/RoundCyclingService.luau`
 
 **Problem / goal**
-Show how long voting has left: floating text under the vote window, in the same lettering as the other floating text (waiting for players, end-of-round results).
+Voting lasted 60 seconds, and since T-184 it always runs its full time.
 
 **Done when**
-- [x] "Voting ends in N" under the vote window, counting down to 0 as voting runs
+- [x] Voting lasts 30 seconds (`VOTE_DURATION = 30`)
 
 **Test in Studio**
-- Start a server and wait for voting: under the window, "Voting ends in 60" counts down each second. Press the X, or vote: the window slides up smoothly and only the countdown stays at the top of the screen, still counting. Tap it: the window comes back and you can change your vote. Voting ending early (everyone voted) or the timer reaching 0 closes the window and its countdown, then the 5 s pause before the round (T-174) follows.
+- Wait for voting: "Voting ends in 30" counts down, then the 5 s pause and the round.
 
 **Notes**
-- Sol, 2026-11-15: "ship lane immediately when done" (shipped before testing).
-- Part of the window's canvas (cream outlined Kit lettering, 72 px), so it slides and scales with it; it only updates while the window is open (Heartbeat), reading the voting timer from GameStateLibrary.
-- Sol, 2026-11-15: the X button no longer hides the whole window: it slides up until only "Voting ends in N" stays on screen (tucked for the rest of that vote; vote count updates don't bring it back, and it stops freeing the mouse). Ship lane right away.
-- Sol, 2026-11-15: voting also tucks the window; tapping or clicking the countdown while tucked brings the whole window back (to change the vote). Tucking and untucking ease smoothly into place with no overshoot (Quad Out, 0.35 s). Ship lane right away.
-- Sol, 2026-11-15: tucking now winds up slightly downwards, then shoots up and stops exactly at the tucked position (Back In, 0.45 s); untucking stays smooth (Quad Out). In a solo test, your vote ends voting at once (everyone has voted), so the window closes fully instead of tucking: test tucking with the X, or with a second player who hasn't voted.
-- Sol, 2026-11-15: voting never ends early any more: it always runs its full timer, even once everyone has voted (only a forced next gamemode ends it early), so voting tucks the window to its countdown like the X does, solo included (`RoundCyclingService`).
-- Branch `agent/T-184-vote-countdown`, lane `Github/Boomerang-lanes/T-174-voting-gap`. Not linted (Selene isn't installed here).
-
-### T-183 · AFK players don't count to start a round and don't vote
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Server (round cycle), Client UI
-- **Files:** `Server/Core/RoundCyclingService.luau`, `Client/UI/Gui/Voting/init.luau`, `Client/UI/Gui/PendingPlayers/init.luau`
-
-**Problem / goal**
-Players with the lobby's AFK toggle on still counted towards `PlayersRequiredToStart`, and voting waited for them (it only ends early once everyone has voted).
-
-**Done when**
-- [x] Only non-AFK players count towards `PlayersRequiredToStart` (the "Waiting for players" count matches)
-- [x] Voting doesn't wait for AFK players, and AFK players can't vote (the server ignores their votes; their vote window is hidden)
-
-**Test in Studio**
-- Set `PlayersRequiredToStart = 2` locally and start a 2-player test. One player turns AFK on: the round doesn't start and the message shows "1 / 2 players". Turning AFK off starts voting.
-- With 2 required and 3 players, one AFK: The AFK player sees no vote window. Turning AFK on after voting takes the vote back (the count drops); turning it off during voting shows the window again.
-
-**Notes**
-- Sol, 2026-11-15.
-- AFK is `PlayerSessionService`'s opt-out (the `OptedOut` attribute). Going AFK mid-vote withdraws the vote; coming back during voting adds the player back to the voters voting waits for.
-- The vote remote now also ignores votes outside voting and any value other than 1 or 2.
-- 2026-11-15 (T-184): voting no longer ends early when everyone has voted, so "voting doesn't wait for AFK players" only matters for the AFK checks themselves now; AFK players still can't vote.
-- Mid-round, going AFK still doesn't end the round (only the lobby phases check the count).
-- Branch `agent/T-183-afk-rounds`, lane `Github/Boomerang-lanes/T-174-voting-gap`. Not linted (Selene isn't installed here).
-
-### T-182 · Rounds last 5 minutes
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Shared (config)
-- **Files:** `Shared/Constants/Gamemodes.luau`
-
-**Problem / goal**
-Every gamemode's round lasted 10 seconds (a testing value in `ROUND_LENGTH`).
-
-**Done when**
-- [x] Every round type lasts 5 minutes (`ROUND_LENGTH = 300`, shared by all gamemodes)
-
-**Test in Studio**
-- Start any round: the timer on the gamemode ribbon starts at 05:00. To skip ahead while testing, use the Cmdr commands `endround` or `setroundtime`.
-
-**Notes**
-- Sol, 2026-11-15: "change round timers to 5 minutes for every round type and ship lane" (shipped before testing).
-- Branch `agent/T-182-round-length`, lane `Github/Boomerang-lanes/T-174-voting-gap`.
-
-### T-181 · Touch Taunt button after the round
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Client UI (mobile)
-- **Files:** `Client/UI/Gui/CustomTouchscreen/init.luau`, `Client/Core/TauntController/init.luau`
-
-**Problem / goal**
-After a round (RoundEnded), touch players got Roblox's default ContextActionService "Taunt" button, and our Aim / Dash / Slash stayed on screen.
-
-**Done when**
-- [x] During RoundEnded the Aim, Dash and Slash controls are hidden
-- [x] A Taunt button takes the aim stick's place: styled like Dash / Slash (wooden button, name board "Taunt"), 30% larger, showing the equipped taunt's inventory icon
-- [x] Roblox's default touch Taunt button is gone (T and gamepad Y still work)
-
-**Test in Studio**
-- Phone emulator: finish a round while alive. The aim stick, Dash and Slash disappear; a larger Taunt button with your taunt's icon appears in the aim stick's spot; pressing it plays the taunt. Equip another taunt (`granttaunt me <id>`) and check the icon changes. Left-handed touch: the button follows the aim circle.
-
-**Notes**
-- Sol, 2026-11-15: requested after the touch controls restyle (T-179); this branch is built on `agent/T-179-touch-controls` (it includes the lobby-hiding commit).
-- The button is a child of the aim circle, so it follows the left-handed mirror. Shown in RoundEnded to any player whose character is alive (the server's own rule for taunting: alive, RoundEnded, enough time left); a press outside that is simply refused by the server.
-- `TauntController.requestTaunt()` is new; `BindAction` no longer asks Roblox for a touch button.
-- Branch `agent/T-181-taunt-button`, lane `Github/Boomerang-lanes/T-174-voting-gap`. Not linted (Selene isn't installed here).
-
-### T-179 · Touch controls (CustomTouchscreen) in the new style
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Client UI (mobile)
-- **Files:** `Client/UI/Gui/CustomTouchscreen/` (+ its `.rbxmx`), `Client/UI/Screens/InputScreen.luau`, `Client/UI/ClientArt/Assets.luau`
-
-**Problem / goal**
-The mobile aim stick and action buttons still use the old look. Restyle them like the new menus, with new round button art made from the client's art. Keep the behaviour and the left-handed mirror setting.
-
-**Done when**
-- [x] Aim stick and buttons in the new style (art approved by Sol before upload); same behaviour, left-handed layout still works
-
-**Test in Studio**
-- Device emulator (phone): throw, recall, dash, stab and pickups from the buttons; switch Left-handed touch in Settings.
-
-**Notes**
-- Sol, 2026-11-15: restyle, new art allowed (Sol approves the final image before upload).
-- Art (Sol approved, uploaded to the group 2026-11-15; ids in `Assets.Touch`, sources in `ArtPipeline/TouchUI`, script `_Scripts/touch.py`): a round wooden button (the header plank's grain bent into a rim, cream face) and the aim stick's wooden base ring with a translucent dark centre.
-- Done in code (`applyArt` in `CustomTouchscreen/init.luau`), not in the `.rbxmx`: the circle's grey `UIStroke` ring is turned off and the base image added; the knob, Dash and Stab get the button behind their icons, which shrink to sit inside the rim (72%, knob 80%). Behaviour, hit areas, recall mode and the left-handed mirror are unchanged.
-- The dash icon's white speed lines are less visible on the cream face than over the arena (Sol saw it in the mock-up).
-- Sol, 2026-11-15: the knob now shows the Stats "Elims" boomerang (`Assets.StatsScreen.IconElims`, already approved and uploaded) instead of `Icons.AimThumbstick` (detailed, with a white circle), at the same 72% as Dash and Stab. Recall mode still shows `Icons.ManualRecall`.
-- Sol, 2026-11-15: the knob's boomerang is turned 180 degrees (the recall icon stays upright), and each button has a label board (`Assets.Touch.LabelBoard`: cream face, reddish-brown rim, approved and uploaded) over its bottom: "Dash", "Slash" (Stab) and "Aim". In recall mode the knob's board says "Recall" and the old white "Recall" label under the knob is no longer shown.
-- Sol, 2026-11-15: turning the boomerang 180 degrees put its shading underneath, so it is now its own image (`Assets.Touch.KnobBoomerang`, approved and uploaded): the Elims boomerang mirrored and tilted to point up-left, lit from the top-right, shown unrotated.
-- Sol, 2026-11-15: the touch controls only show while the player is alive in the arena (`LivingPlayersInArena`, the same check as MenuButtons), so in the lobby Roblox's own movement and jump buttons are free. Hiding mid-aim cancels the aim without throwing and ends a recall hold.
-- Sol, 2026-11-15: recall mode shows a new icon in the same style (`Assets.Touch.RecallIcon`, approved and uploaded; `_Scripts/touchrecall.py`): the up-left boomerang with a reddish-brown return arrow around it, instead of `Icons.ManualRecall`.
-- Sol, 2026-11-15: the Slash (Stab) button shows a new icon (`Assets.Touch.SlashIcon`, approved and uploaded; `_Scripts/touchslash.py`): the old icon's red flames (from `Game Assets/Boomerang/Gui/Slash.png`) with the smoothed client boomerang in front, no outline, and edge colours under the transparent pixels (no black, so no dark fringe when Roblox scales it).
-- Sol, 2026-11-15: the stick base, label board, knob boomerang and recall icon were re-saved and re-uploaded with clean edges (true colours on soft pixels, edge colours under transparent pixels instead of black, so no dark fringe when Roblox scales them; `_Scripts/unpremul.py` + `defringe.py`). The round button's clean upload is still pending.
-- Branch `agent/T-179-touch-controls`, lane `Github/Boomerang-lanes/T-174-voting-gap`. Not linted (Selene isn't installed here).
-
-### T-178 · StatsPanel in the new style
-- **Priority:** P2
-- **Owner:** Agent
-- **Area:** Client UI
-- **Files:** `Client/UI/Gui/StatsPanel/init.luau`, `Client/UI/ClientArt/Assets.luau`
-
-**Problem / goal**
-The StatsPanel (right-edge player list with the slide-out arrow tab) still uses its first frame art and plain brown text. Restyle it like the other new menus (wood frame, vines, parchment, red ribbon, the menus' cream lettering), keeping its behaviour: tab / Tab key slides it, this round + all time lists, PC and touch placement.
-
-**Done when**
-- [x] New frame art (made from the client's art, approved by Sol before upload) and the new-style lettering
-- [x] Same contents and behaviour as now
-
-**Test in Studio**
-- Press Tab / click the arrow tab: the panel slides out and back. Lists fill and update with elims and defeats. Check PC and touch (top-right) placement.
-
-**Notes**
-- Sol, 2026-11-15: restyle, new art allowed (Sol approves the final image before upload).
-- Branch `agent/T-178-stats-panel`, lane `Github/Boomerang-lanes/T-174-voting-gap`.
-- Art (Sol approved, uploaded to the group 2026-11-15; ids in `Assets.StatsPanel`, sources in `ArtPipeline/StatsUI`): the Settings window narrowed (`panel_blank`, its arched ribbon cut out), the header plank shortened into an upright tab (`panel_tab`), and a cream arrow (`panel_arrow`). The title uses the existing straight GamemodeHud ribbon.
-- Sol, 2026-11-15: the tab sits in front of the frame, is squarer, and has an arrow that turns: it points left when closed (pull out) and right when open (push away), tweened with the slide.
-- Text uses the menus' font and ink colours; "Stats" is the cream outlined lettering. The panel is now 62% of the screen height on PC (50% on touch) because the parchment is narrower than the old frame's; the frame's transparent right margin hangs off-screen when open.
-- Not linted (Selene isn't installed here): check the output for errors when it loads.
-- Sol, 2026-11-15 (after a first look): "All Time" centred, darker and bolder (same ink as the listings, thin outline, a bit bigger); a matching "This Server" title over the round list (Name stays left-aligned under it).
-
+- Sol, 2026-11-15: "shorten voting to last 30 seconds and ship lane immediately" (shipped before testing).
+- Branch `agent/T-185-vote-length`, lane `Github/Boomerang-lanes/T-174-voting-gap`.
 
 ## Backlog
 
@@ -682,6 +555,157 @@ Players enter a code to receive a reward. Server: validates the code (case-insen
 ---
 
 ## Done
+
+### T-184 · "Voting ends in N" countdown under the vote window
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client UI
+- **Files:** `Client/UI/Gui/Voting/init.luau`
+
+**Problem / goal**
+Show how long voting has left: floating text under the vote window, in the same lettering as the other floating text (waiting for players, end-of-round results).
+
+**Done when**
+- [x] "Voting ends in N" under the vote window, counting down to 0 as voting runs
+
+**Test in Studio**
+- Start a server and wait for voting: under the window, "Voting ends in 60" counts down each second. Press the X, or vote: the window slides up smoothly and only the countdown stays at the top of the screen, still counting. Tap it: the window comes back and you can change your vote. Voting ending early (everyone voted) or the timer reaching 0 closes the window and its countdown, then the 5 s pause before the round (T-174) follows.
+
+**Notes**
+- Sol, 2026-11-15: "ship lane immediately when done" (shipped before testing).
+- Part of the window's canvas (cream outlined Kit lettering, 72 px), so it slides and scales with it; it only updates while the window is open (Heartbeat), reading the voting timer from GameStateLibrary.
+- Sol, 2026-11-15: the X button no longer hides the whole window: it slides up until only "Voting ends in N" stays on screen (tucked for the rest of that vote; vote count updates don't bring it back, and it stops freeing the mouse). Ship lane right away.
+- Sol, 2026-11-15: voting also tucks the window; tapping or clicking the countdown while tucked brings the whole window back (to change the vote). Tucking and untucking ease smoothly into place with no overshoot (Quad Out, 0.35 s). Ship lane right away.
+- Sol, 2026-11-15: tucking now winds up slightly downwards, then shoots up and stops exactly at the tucked position (Back In, 0.45 s); untucking stays smooth (Quad Out). In a solo test, your vote ends voting at once (everyone has voted), so the window closes fully instead of tucking: test tucking with the X, or with a second player who hasn't voted.
+- Sol, 2026-11-15: voting never ends early any more: it always runs its full timer, even once everyone has voted (only a forced next gamemode ends it early), so voting tucks the window to its countdown like the X does, solo included (`RoundCyclingService`).
+- Branch `agent/T-184-vote-countdown`, lane `Github/Boomerang-lanes/T-174-voting-gap`. Not linted (Selene isn't installed here).
+- Passed Sol's Studio test (2026-11-15).
+
+### T-183 · AFK players don't count to start a round and don't vote
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Server (round cycle), Client UI
+- **Files:** `Server/Core/RoundCyclingService.luau`, `Client/UI/Gui/Voting/init.luau`, `Client/UI/Gui/PendingPlayers/init.luau`
+
+**Problem / goal**
+Players with the lobby's AFK toggle on still counted towards `PlayersRequiredToStart`, and voting waited for them (it only ends early once everyone has voted).
+
+**Done when**
+- [x] Only non-AFK players count towards `PlayersRequiredToStart` (the "Waiting for players" count matches)
+- [x] Voting doesn't wait for AFK players, and AFK players can't vote (the server ignores their votes; their vote window is hidden)
+
+**Test in Studio**
+- Set `PlayersRequiredToStart = 2` locally and start a 2-player test. One player turns AFK on: the round doesn't start and the message shows "1 / 2 players". Turning AFK off starts voting.
+- With 2 required and 3 players, one AFK: The AFK player sees no vote window. Turning AFK on after voting takes the vote back (the count drops); turning it off during voting shows the window again.
+
+**Notes**
+- Sol, 2026-11-15.
+- AFK is `PlayerSessionService`'s opt-out (the `OptedOut` attribute). Going AFK mid-vote withdraws the vote; coming back during voting adds the player back to the voters voting waits for.
+- The vote remote now also ignores votes outside voting and any value other than 1 or 2.
+- 2026-11-15 (T-184): voting no longer ends early when everyone has voted, so "voting doesn't wait for AFK players" only matters for the AFK checks themselves now; AFK players still can't vote.
+- Mid-round, going AFK still doesn't end the round (only the lobby phases check the count).
+- Branch `agent/T-183-afk-rounds`, lane `Github/Boomerang-lanes/T-174-voting-gap`. Not linted (Selene isn't installed here).
+- Passed Sol's Studio test (2026-11-15).
+
+### T-182 · Rounds last 5 minutes
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Shared (config)
+- **Files:** `Shared/Constants/Gamemodes.luau`
+
+**Problem / goal**
+Every gamemode's round lasted 10 seconds (a testing value in `ROUND_LENGTH`).
+
+**Done when**
+- [x] Every round type lasts 5 minutes (`ROUND_LENGTH = 300`, shared by all gamemodes)
+
+**Test in Studio**
+- Start any round: the timer on the gamemode ribbon starts at 05:00. To skip ahead while testing, use the Cmdr commands `endround` or `setroundtime`.
+
+**Notes**
+- Sol, 2026-11-15: "change round timers to 5 minutes for every round type and ship lane" (shipped before testing).
+- Branch `agent/T-182-round-length`, lane `Github/Boomerang-lanes/T-174-voting-gap`.
+- Passed Sol's Studio test (2026-11-15).
+
+### T-181 · Touch Taunt button after the round
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client UI (mobile)
+- **Files:** `Client/UI/Gui/CustomTouchscreen/init.luau`, `Client/Core/TauntController/init.luau`
+
+**Problem / goal**
+After a round (RoundEnded), touch players got Roblox's default ContextActionService "Taunt" button, and our Aim / Dash / Slash stayed on screen.
+
+**Done when**
+- [x] During RoundEnded the Aim, Dash and Slash controls are hidden
+- [x] A Taunt button takes the aim stick's place: styled like Dash / Slash (wooden button, name board "Taunt"), 30% larger, showing the equipped taunt's inventory icon
+- [x] Roblox's default touch Taunt button is gone (T and gamepad Y still work)
+
+**Test in Studio**
+- Phone emulator: finish a round while alive. The aim stick, Dash and Slash disappear; a larger Taunt button with your taunt's icon appears in the aim stick's spot; pressing it plays the taunt. Equip another taunt (`granttaunt me <id>`) and check the icon changes. Left-handed touch: the button follows the aim circle.
+
+**Notes**
+- Sol, 2026-11-15: requested after the touch controls restyle (T-179); this branch is built on `agent/T-179-touch-controls` (it includes the lobby-hiding commit).
+- The button is a child of the aim circle, so it follows the left-handed mirror. Shown in RoundEnded to any player whose character is alive (the server's own rule for taunting: alive, RoundEnded, enough time left); a press outside that is simply refused by the server.
+- `TauntController.requestTaunt()` is new; `BindAction` no longer asks Roblox for a touch button.
+- Branch `agent/T-181-taunt-button`, lane `Github/Boomerang-lanes/T-174-voting-gap`. Not linted (Selene isn't installed here).
+- Passed Sol's Studio test (2026-11-15).
+
+### T-179 · Touch controls (CustomTouchscreen) in the new style
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client UI (mobile)
+- **Files:** `Client/UI/Gui/CustomTouchscreen/` (+ its `.rbxmx`), `Client/UI/Screens/InputScreen.luau`, `Client/UI/ClientArt/Assets.luau`
+
+**Problem / goal**
+The mobile aim stick and action buttons still use the old look. Restyle them like the new menus, with new round button art made from the client's art. Keep the behaviour and the left-handed mirror setting.
+
+**Done when**
+- [x] Aim stick and buttons in the new style (art approved by Sol before upload); same behaviour, left-handed layout still works
+
+**Test in Studio**
+- Device emulator (phone): throw, recall, dash, stab and pickups from the buttons; switch Left-handed touch in Settings.
+
+**Notes**
+- Sol, 2026-11-15: restyle, new art allowed (Sol approves the final image before upload).
+- Art (Sol approved, uploaded to the group 2026-11-15; ids in `Assets.Touch`, sources in `ArtPipeline/TouchUI`, script `_Scripts/touch.py`): a round wooden button (the header plank's grain bent into a rim, cream face) and the aim stick's wooden base ring with a translucent dark centre.
+- Done in code (`applyArt` in `CustomTouchscreen/init.luau`), not in the `.rbxmx`: the circle's grey `UIStroke` ring is turned off and the base image added; the knob, Dash and Stab get the button behind their icons, which shrink to sit inside the rim (72%, knob 80%). Behaviour, hit areas, recall mode and the left-handed mirror are unchanged.
+- The dash icon's white speed lines are less visible on the cream face than over the arena (Sol saw it in the mock-up).
+- Sol, 2026-11-15: the knob now shows the Stats "Elims" boomerang (`Assets.StatsScreen.IconElims`, already approved and uploaded) instead of `Icons.AimThumbstick` (detailed, with a white circle), at the same 72% as Dash and Stab. Recall mode still shows `Icons.ManualRecall`.
+- Sol, 2026-11-15: the knob's boomerang is turned 180 degrees (the recall icon stays upright), and each button has a label board (`Assets.Touch.LabelBoard`: cream face, reddish-brown rim, approved and uploaded) over its bottom: "Dash", "Slash" (Stab) and "Aim". In recall mode the knob's board says "Recall" and the old white "Recall" label under the knob is no longer shown.
+- Sol, 2026-11-15: turning the boomerang 180 degrees put its shading underneath, so it is now its own image (`Assets.Touch.KnobBoomerang`, approved and uploaded): the Elims boomerang mirrored and tilted to point up-left, lit from the top-right, shown unrotated.
+- Sol, 2026-11-15: the touch controls only show while the player is alive in the arena (`LivingPlayersInArena`, the same check as MenuButtons), so in the lobby Roblox's own movement and jump buttons are free. Hiding mid-aim cancels the aim without throwing and ends a recall hold.
+- Sol, 2026-11-15: recall mode shows a new icon in the same style (`Assets.Touch.RecallIcon`, approved and uploaded; `_Scripts/touchrecall.py`): the up-left boomerang with a reddish-brown return arrow around it, instead of `Icons.ManualRecall`.
+- Sol, 2026-11-15: the Slash (Stab) button shows a new icon (`Assets.Touch.SlashIcon`, approved and uploaded; `_Scripts/touchslash.py`): the old icon's red flames (from `Game Assets/Boomerang/Gui/Slash.png`) with the smoothed client boomerang in front, no outline, and edge colours under the transparent pixels (no black, so no dark fringe when Roblox scales it).
+- Sol, 2026-11-15: the stick base, label board, knob boomerang and recall icon were re-saved and re-uploaded with clean edges (true colours on soft pixels, edge colours under transparent pixels instead of black, so no dark fringe when Roblox scales them; `_Scripts/unpremul.py` + `defringe.py`). The round button's clean version was not uploaded (Sol, 2026-11-15: leave it); its file is in ArtPipeline/TouchUI.
+- Branch `agent/T-179-touch-controls`, lane `Github/Boomerang-lanes/T-174-voting-gap`. Not linted (Selene isn't installed here).
+- Passed Sol's Studio test (2026-11-15).
+
+### T-178 · StatsPanel in the new style
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Client UI
+- **Files:** `Client/UI/Gui/StatsPanel/init.luau`, `Client/UI/ClientArt/Assets.luau`
+
+**Problem / goal**
+The StatsPanel (right-edge player list with the slide-out arrow tab) still uses its first frame art and plain brown text. Restyle it like the other new menus (wood frame, vines, parchment, red ribbon, the menus' cream lettering), keeping its behaviour: tab / Tab key slides it, this round + all time lists, PC and touch placement.
+
+**Done when**
+- [x] New frame art (made from the client's art, approved by Sol before upload) and the new-style lettering
+- [x] Same contents and behaviour as now
+
+**Test in Studio**
+- Press Tab / click the arrow tab: the panel slides out and back. Lists fill and update with elims and defeats. Check PC and touch (top-right) placement.
+
+**Notes**
+- Sol, 2026-11-15: restyle, new art allowed (Sol approves the final image before upload).
+- Branch `agent/T-178-stats-panel`, lane `Github/Boomerang-lanes/T-174-voting-gap`.
+- Art (Sol approved, uploaded to the group 2026-11-15; ids in `Assets.StatsPanel`, sources in `ArtPipeline/StatsUI`): the Settings window narrowed (`panel_blank`, its arched ribbon cut out), the header plank shortened into an upright tab (`panel_tab`), and a cream arrow (`panel_arrow`). The title uses the existing straight GamemodeHud ribbon.
+- Sol, 2026-11-15: the tab sits in front of the frame, is squarer, and has an arrow that turns: it points left when closed (pull out) and right when open (push away), tweened with the slide.
+- Text uses the menus' font and ink colours; "Stats" is the cream outlined lettering. The panel is now 62% of the screen height on PC (50% on touch) because the parchment is narrower than the old frame's; the frame's transparent right margin hangs off-screen when open.
+- Not linted (Selene isn't installed here): check the output for errors when it loads.
+- Sol, 2026-11-15 (after a first look): "All Time" centred, darker and bolder (same ink as the listings, thin outline, a bit bigger); a matching "This Server" title over the round list (Name stays left-aligned under it).
+- Passed Sol's Studio test (2026-11-15).
 
 ### T-174 · More time between the end of voting and the start of the next round
 - **Priority:** P2

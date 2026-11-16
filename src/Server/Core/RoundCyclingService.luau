@@ -37,7 +37,7 @@ local GamemodeLogicModules = {}
 
 -- // ROUND_ENDED_DURATION: how long the RoundEnded phase lasts (winner screen, players still in the arena; not lobby time).
 -- // LOBBY_ENDED_DURATION: pause between voting ending (gamemode chosen) and the round starting.
-local VOTE_DURATION = 60
+local VOTE_DURATION = 30 -- // Seconds of voting (Sol, 2026-11-15: 30; voting always runs the full time)
 local LOBBY_ENDED_DURATION = 5
 local ROUND_ENDED_DURATION = 10 -- // Long enough for a 6 s taunt (TauntLibrary.DURATION)
 
