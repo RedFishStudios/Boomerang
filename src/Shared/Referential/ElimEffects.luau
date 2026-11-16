@@ -68,7 +68,7 @@ local ElimEffects: { [ElimEffectId]: ElimEffect } = {
 		Price = 2500, -- TODO:RELEASE placeholder
 		Order = 5,
 		Rarity = "Legendary", -- TODO:RELEASE placeholder (the package's rarity)
-		Icon = 113492942953005,
+		Icon = 73017135002229, -- // Our own icon (Sol approved, uploaded to the group 2026-11-15; decal 96535314650071; source ArtPipeline/ElimEffectsUI/shark_attack.png): the package shark rising from water, jaws up, flat colours, cream outline. Was the package's 113492942953005
 	},
 }
 

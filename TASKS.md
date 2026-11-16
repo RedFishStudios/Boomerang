@@ -100,6 +100,26 @@ Sol decided the standard is **tabs**. Many newer files use 3 spaces, and some mi
 
 ## Review
 
+### T-187 · New Shark Attack icon
+- **Priority:** P2
+- **Owner:** Agent
+- **Area:** Art, Shared (data)
+- **Files:** `Shared/Referential/ElimEffects.luau`
+
+**Problem / goal**
+The Shark Attack elimination effect's icon (from the client's package) didn't look like a shark.
+
+**Done when**
+- [x] A new icon that clearly reads as a shark, in the flat style of the other item icons (approved by Sol before upload)
+
+**Test in Studio**
+- Inventory > Strikes (and the Cosmetics shop): the Shark Attack card shows the new shark rising from flat blue water, jaws up.
+
+**Notes**
+- Sol, 2026-11-15: side view, jaws wide open pointing straight up, out of a flat water circle; flat 2D-vector colours with no shading; a cream-white outline like the taunt icons.
+- Rendered from the client's own shark model (`SharkKit/boomerang-shark.blend`, the one the effect uses) with headless Blender (Workbench, flat colours), cut at the waterline; post-processed with the art scripts (`_Scripts/shark_*.py`, README). Uploaded to the group (decal 96535314650071, image 73017135002229); source `ArtPipeline/ElimEffectsUI/shark_attack.png`.
+- Branch `agent/T-187-shark-icon`, lane `Github/Boomerang-lanes/T-174-voting-gap`.
+
 ### T-186 · "New round in N" between voting and the round
 - **Priority:** P2
 - **Owner:** Agent
