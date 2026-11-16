@@ -120,6 +120,7 @@ Show how long voting has left: floating text under the vote window, in the same 
 - Part of the window's canvas (cream outlined Kit lettering, 72 px), so it slides and scales with it; it only updates while the window is open (Heartbeat), reading the voting timer from GameStateLibrary.
 - Sol, 2026-11-15: the X button no longer hides the whole window: it slides up until only "Voting ends in N" stays on screen (tucked for the rest of that vote; vote count updates don't bring it back, and it stops freeing the mouse). Ship lane right away.
 - Sol, 2026-11-15: voting also tucks the window; tapping or clicking the countdown while tucked brings the whole window back (to change the vote). Tucking and untucking ease smoothly into place with no overshoot (Quad Out, 0.35 s). Ship lane right away.
+- Sol, 2026-11-15: tucking now winds up slightly downwards, then shoots up and stops exactly at the tucked position (Back In, 0.45 s); untucking stays smooth (Quad Out). In a solo test, your vote ends voting at once (everyone has voted), so the window closes fully instead of tucking: test tucking with the X, or with a second player who hasn't voted.
 - Branch `agent/T-184-vote-countdown`, lane `Github/Boomerang-lanes/T-174-voting-gap`. Not linted (Selene isn't installed here).
 
 ### T-183 · AFK players don't count to start a round and don't vote

@@ -61,7 +61,9 @@ local TOP_MARGIN = 0.02 -- // Fraction of screen height
 
 local SLIDE_IN = TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 local SLIDE_OUT = TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.In)
-local TUCK = TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out) -- // Tuck / untuck: smooth, no overshoot
+-- // Tuck: a slight wind-up downwards, then it shoots up and stops exactly in place (no overshoot at the end)
+local TUCK = TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+local UNTUCK = TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out) -- // Back down smoothly
 
 -------------------------------------------------------------------------------
 -- PRIVATE VARIABLES
@@ -327,8 +329,8 @@ function VotingGui.open()
 	slide(SLIDE_IN, shownPosition())
 end
 
--- // The X button, or voting: slides the window up so only "Voting ends in N" stays on screen, smoothly with no
--- // overshoot. It stays tucked (vote count updates don't bring it back) and no longer frees the mouse, until the
+-- // The X button, or voting: slides the window up so only "Voting ends in N" stays on screen (wind-up, then no
+-- // overshoot at the end). It stays tucked (vote count updates don't bring it back) and no longer frees the mouse, until the
 -- // countdown is tapped (VotingGui.untuck) or voting ends.
 function VotingGui.tuck()
 	if not VotingGui.Open or tucked then
@@ -346,7 +348,7 @@ function VotingGui.untuck()
 	end
 	tucked = false
 	VotingGui.RequiresMouse = true
-	slide(TUCK, shownPosition())
+	slide(UNTUCK, shownPosition())
 end
 
 function VotingGui.close(instant: boolean?)
