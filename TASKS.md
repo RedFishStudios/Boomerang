@@ -16,7 +16,7 @@ The task board: every feature, fix and cleanup. See [CLAUDE.md](CLAUDE.md) for h
   - Fill in **Notes** with what changed, what to check in Studio, and any `TODO:RELEASE placeholder` values you added.
   - When moving a task to `Done`, add a client-facing line to `Commits.txt` (see CLAUDE.md).
 
-**Next free ID: T-188**
+**Next free ID: T-189**
 
 <details>
 <summary><b>Task template</b> (click to expand, then copy)</summary>
@@ -498,6 +498,29 @@ Players enter a code to receive a reward. Server: validates the code (case-insen
 ---
 
 ## Done
+
+### T-188 · Remove the backdoor from the Electric particle template
+- **Priority:** P0
+- **Owner:** Agent
+- **Area:** Assets / Security
+- **Files:** `src/Shared/Assets/Particles/ElectrifiedObject.rbxmx`
+
+**Problem / goal**
+A free-model VFX asset carried a backdoor: a hidden script tree disguised as "Written by @Quenty" texture/lighting scripts that, only on live servers (`game.JobId ~= ''`), `require`s remote asset ids (76291693036148, 119562760813431, plus one decoded from a Marketplace product description). `ParticlesLibrary` clones this template on every Electric boomerang zap, so every zap started another copy (also a source of lag). The Studio-only copies (Workspace.ElectrifiedObject, FreeParticleStorage "vfx pack") were removed in the dev place by another chat; this removes it from the repo, which Rojo syncs over the place.
+
+**Done when**
+- [x] The `TextureUtility` Folder (10 instances: cTextureManager, CoreTextureSystem, TextureConfiguration x2, a Script named PackageLink, LightConfig, Type, EasyConfiguration, Pose) is cut out of `ElectrifiedObject.rbxmx`; the Part and its two ParticleEmitters are unchanged
+- [x] Whole repo scanned: no other model file contains any script, and no code matches the backdoor's signatures (`MarketplaceLibrary`'s `GetProductInfoAsync` colon call is legitimate)
+
+**Test in Studio**
+- After syncing: `ReplicatedStorage.Shared.Assets.Particles.ElectrifiedObject.Glow` has no children; an Electric zap still shows its particles; the handoff's smoke test prints `scripts in spawned particles: 0`.
+- **Publish the place** afterwards: live servers stay infected until a version without the backdoor is published.
+
+**Notes**
+- Sol, 2026-11-17: from another chat's handoff (removed in Studio there); do it in the repo too.
+- Text-level cut (only deletions in the diff), so the rest of the .rbxmx is byte-identical.
+
+---
 
 ### T-180 · Use-pickup icons with the smooth boomerang (Explosive, Teleport)
 - **Priority:** P3
